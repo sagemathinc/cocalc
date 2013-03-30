@@ -4,31 +4,29 @@
 Create a unix user, setup ssh keys, impose quota, etc.
 """
 
-import os
-
-verbose = True
+import os, sys
 
 from subprocess import Popen, PIPE
 
-def cmd(args, dry_run=False, ignore_errors=False):
+def cmd(args):
     if isinstance(args, str):
         shell = True
-        if verbose: print args
     else:
-        if verbose: print ' '.join(args)
         shell = False
-    if dry_run:
-        return
     out = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=shell)
     e = out.wait()
     stdout = out.stdout.read()
-    stderr =  out.stderr.read()
-    if verbose: print stdout,
-    if verbose: print stderr,
-    if e and not ignore_errors:
+    stderr = out.stderr.read()
+    if e:
         sys.exit(e)
     return {'stdout':stdout, 'stderr':stderr}
 
-username =
-cmd(['useradd', '-m', '-U', '-k', 'skel', username])
+n = 0
+username = 'sage%s'%n
+while os.path.exists('/home/%s'%username):
+    n += 1
+    username = 'sage%s'%n
 
+out = cmd(['useradd', '-m', '-U', '-k', 'skel', username])
+
+print username
