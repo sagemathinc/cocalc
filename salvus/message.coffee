@@ -878,7 +878,6 @@ message
     title      : required
     description: required
     public     : required
-    location   : undefined    # {username:?, host:?, port:22, path:'.'}  (if given, port and path are optional)
 
 # hub --> client
 message

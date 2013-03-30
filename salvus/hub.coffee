@@ -752,8 +752,16 @@ class Client extends EventEmitter
 
         project_id = uuid.v4()
         project = undefined
+        location = undefined
 
         async.series([
+            # get unix account location for the project
+            (cb) =>
+                new_random_unix_user
+                    cb : (err, _location) =>
+                        location = _location
+                        cb(err)
+
             # create project in database
             (cb) =>
                 database.create_project
@@ -762,7 +770,7 @@ class Client extends EventEmitter
                     title       : mesg.title
                     description : mesg.description
                     public      : mesg.public
-                    location    : mesg.location
+                    location    : location
                     quota       : DEFAULTS.quota   # TODO -- account based
                     idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb
@@ -2501,6 +2509,11 @@ is_valid_password = (password) ->
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
 
+
+new_random_unix_user = (opts) ->
+    opts = defaults opts,
+        cb : required
+    opts.cb(false, {host:'localhost', username:'sage0', port:22, path:'.'})
 
 create_account = (client, mesg) ->
     id = mesg.id

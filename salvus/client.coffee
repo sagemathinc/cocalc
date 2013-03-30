@@ -710,10 +710,9 @@ class exports.Connection extends EventEmitter
             title       : required
             description : required
             public      : required
-            location    : required
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, public:opts.public, location:opts.location)
+            message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
             cb     : opts.cb
 
     get_projects: (opts) ->

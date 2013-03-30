@@ -160,7 +160,7 @@ class ProjectPage
         @init_project_download()
 
         # Set the project id
-        @container.find(".project-id").text(@project.project_id.slice(0,8))
+        @container.find(".project-id").text(@project.project_id)
 
         if @project.size? and @project.size
             @container.find(".project-size").text(human_readable_size(@project.size))
@@ -168,10 +168,10 @@ class ProjectPage
             @container.find(".project-size-label").hide()
 
         # Set the project location
-        if @project.location?
-            l = @project.location
-            l = "#{l.username}@#{l.host}:#{l.path}" + (if l.port != 22 then " -p #{l.port}" else "")
-            @container.find(".project-location").text(l)#.attr('contenteditable', true).blur () ->
+        #if @project.location?
+        #    l = @project.location
+        #    l = "#{l.username}@#{l.host}:#{l.path}" + (if l.port != 22 then " -p #{l.port}" else "")
+        #    @container.find(".project-location").text(l)#.attr('contenteditable', true).blur () ->
             #    alert_message(message:"Changing project location not yet implemented.", type:'info')
                 # TODO -- actually implement project location change -- show a notification and send
                 # a message if makes sense; otherwise, don't.  Also, we should store all past

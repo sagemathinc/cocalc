@@ -107,7 +107,7 @@ create_project_item = (project) ->
         item.find(".projects-size").text(human_readable_size(project.size))
     item.find(".projects-description").text(project.description)
     ###
-    # This is too cluttered.
+    # This is too cluttered and is somewhat meaningless.
     if project.location.username?
         d = "#{project.location.username}@#{project.location.host}"
         if project.location.path != '.'
@@ -167,7 +167,7 @@ close_create_project = () ->
     create_project.modal('hide').find('input').val('')
     $("#projects-create_project-public").attr("checked", true)
     $("#projects-create_project-private").attr("checked", false)
-    $("#projects-create_project-location").val('')
+    #$("#projects-create_project-location").val('')
 
 create_project.find(".close").click((event) -> close_create_project())
 
@@ -184,34 +184,9 @@ $("#projects-create_project-button-create_project").click (event) ->
         description = $("#projects-create_project-description").attr("placeholder")
     spinner = $(".projects-create-new-spinner").show().spin()
 
-    location = $.trim($("#projects-create_project-location").val())
-    if location == ""
-        location = {}
-    else
-        try
-            v = location.split("-p")
-            if v.length > 1
-                port = parseInt($.trim(v[1]))
-            else
-                port = 22
-            w = v[0].split(":")
-            if w.length > 1
-                path = $.trim(w[1])
-            else
-                path = '.'
-            w2 = w[0].split('@')
-            username = w2[0]
-            hostname = w2[1]
-            location = {username:username, host:hostname, port:port, path:path}
-        catch e
-            alert_message(type:'error', message:'Enter the unix user as "username@host[:path] [-p port]"')
-            # do not close modal
-            return true
-
     salvus_client.create_project
         title       : title
         description : description
-        location    : location
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
             spinner.spin(false).hide()
