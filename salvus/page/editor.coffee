@@ -798,6 +798,10 @@ class CodeMirrorEditor extends FileEditor
                     "Shift-Enter"  : (editor)   => @click_save_button()
                     "Ctrl-S"       : (editor)   => @click_save_button()
                     "Cmd-S"        : (editor)   => @click_save_button()
+                    "Ctrl-L"       : (editor)   => @goto_line(editor)
+                    "Cmd-L"        : (editor)   => @goto_line(editor)
+                    "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
+                    "Cmd-I"        : (editor)   => @toggle_split_view(editor)
                     "Shift-Tab"    : (editor)   => editor.unindent_selection()
                     "Ctrl-Space"  : "indentAuto"
                     "Tab"          : (editor)   => @press_tab_key(editor)
@@ -864,8 +868,7 @@ class CodeMirrorEditor extends FileEditor
             when 'redo'
                 cm.redo()
             when 'split-view'
-                @_split_view = not @_split_view
-                @show()
+                @toggle_split_view(cm)
             when 'autoindent'
                 CodeMirror.commands.indentAuto(cm)
             when 'shift-left'
@@ -886,15 +889,20 @@ class CodeMirrorEditor extends FileEditor
         if new_size > 1
             elt.css('font-size', new_size + 'px')
 
+    toggle_split_view: (cm) =>
+        @_split_view = not @_split_view
+        @show()
+        @focus()
+        cm.focus()
+
     goto_line: (cm) =>
+        focus = () =>
+            @focus()
+            cm.focus()
         bootbox.prompt "Goto line...", (result) =>
-            if result == null
-                return
-            try
+            if result != null
                 cm.setCursor({line:parseInt(result)-1, ch:0})
-                cm.focus()
-            catch e
-                return
+            setTimeout(focus, 100)
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
