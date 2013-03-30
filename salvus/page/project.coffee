@@ -124,6 +124,9 @@ class ProjectPage
             onclose : () =>
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
+            onshow: () =>
+                if @project?
+                    document.title = "SMC: #{@project.title}"
             #onshow: () =>
             #    @focus()
 

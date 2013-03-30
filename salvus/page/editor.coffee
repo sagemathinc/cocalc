@@ -493,6 +493,7 @@ class exports.Editor
         @resize_open_file_tabs()
 
     resize_open_file_tabs: () =>
+        return   # disabled for now -- too buggy.
         # Make a list of the tabs after the search menu.
         x = []
         file_tabs = false

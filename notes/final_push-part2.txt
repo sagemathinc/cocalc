@@ -1,3 +1,5 @@
+(1:00?)  [ ] MINIFY actual page js
+
 (1:00?)  [ ] feature -- file browser listing pagination
 
 (1:00?) [ ] ui idea -- it would be nice to mark the active editor tabs when there is activity in them.
