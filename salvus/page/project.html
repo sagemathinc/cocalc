@@ -142,7 +142,7 @@
 
             <!-- Open files in this project. -->
             <div class="project-editor hide">
-                <h1>
+                <h1  style="margin-left:1em;">
                     <span class="project-editor-file-count">0</span> Recent Files
                 </h1>
 
@@ -152,7 +152,7 @@
 
             <!-- Create a new file -->
             <div class="project-new-file hide">
-                <h1>Create or Import a File, Worksheet, Terminal or Directory</h1>
+                <h1  style="margin-left:1em;">Create or Import a File, Worksheet, Terminal or Directory</h1>
                 <div class="row">
                     <div class="span10 offset1">
                         <h3>Destination: <span class="project-new-file-if-root">root directory of project</span>
@@ -206,7 +206,7 @@
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                <h1>Project Settings</h1>
+                <h1  style="margin-left:1em;">Project Settings</h1>
                 <div class="row">
 
                     <div class="well" style="margin-left:3em;">
@@ -245,7 +245,7 @@
 
             <!-- Search -->
             <div class="project-search hide">
-                <h1>Search in Files</h1>
+                <h1  style="margin-left:1em;">Search in Files</h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well"  style="margin-left:3em;">
@@ -276,8 +276,9 @@
                 <div class="row">
                     <div class="project-search-output-further-results hide well">There were more results than displayed below.  Try making your search more specific.</div>
 
-                    <div class="project-search-output well span11"></div>
-                    <div class="project-search-output-command well span11"></div>
+                    <div class="project-search-output well span14"></div>
+                    <!-- command is currently not visible due to positioning -->
+                    <div class="project-search-output-command well span14 hide"></div>
                 </div>
             </div>
 

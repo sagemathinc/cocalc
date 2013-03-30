@@ -1691,7 +1691,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
             else if socket?
                 @_sockets[opts.session_uuid] = socket
-                socket.history = ''
+                socket.history = undefined
             opts.cb(err, socket)
         )
 
@@ -1741,14 +1741,19 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
                 # client over the channel we just created.
-                console_socket.on 'data', (data) ->
-                    console_socket.history += data
-                    n = console_socket.history.length
-                    if n > 150000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                        console_socket.history = console_socket.history.slice(100000)
-                    opts.client.push_data_to_client(channel, data)
+                if history?
+                    opts.client.push_data_to_client(channel, history)
+                    console_socket.on 'data', (data) ->
+                        opts.client.push_data_to_client(channel, data)
+                else
+                    console_socket.history = ''
+                    console_socket.on 'data', (data) ->
+                        console_socket.history += data
+                        n = console_socket.history.length
+                        if n > 150000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                            console_socket.history = console_socket.history.slice(100000)
+                        opts.client.push_data_to_client(channel, data)
 
-                opts.client.push_data_to_client(channel, history)
 
     #########################################
     # CodeMirror sessions

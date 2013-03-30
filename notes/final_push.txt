@@ -1,9 +1,5 @@
 UI:
 
---> (1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
-(0:10?) [ ] bug -- add or delete open file pill should result in a resize all (not just on add)
-
-(0:45?)  [ ] feature -- file browser listing pagination, when lots of files.
 (1:00?)  [ ] feature -- (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 
 EXPLORE:
@@ -52,6 +48,18 @@ DEPLOY
 (0:30?)  [ ] define topology file for deployment
 (0:30?)  [ ] get it running
 (1:00?)  [ ] get ssl cert setup for cloud.sagemath.org
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -203,4 +211,7 @@ With the following done, we will have 100% fixed the UI for now:
 [x] (0:20) goto line keyboard shortcut; toggle split view shortcut.
 
 
- (0:08?)  [x] (0:20) pdf preview -- make resolution function of width?
+(0:08?)  [x] (0:20) pdf preview -- make resolution function of width?
+(1:00?)  [x] (3:30) bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
+
+(0:10?) [x] bug -- add or delete open file pill should result in a resize all (not just on add)

@@ -177,8 +177,14 @@ class Console extends EventEmitter
         # Plug the remote session into the terminal.
 
         # The user types in the terminal, so we send the text to the remote server:
-        @terminal.on 'data',  (data) =>
-            @session.write_data(data)
+        f = () =>
+            @terminal.on 'data',  (data) =>
+                @session.write_data(data)
+        # TODO: We put in a delay to avoid bursting resize/controldata back at the server in response
+        # when the server bursts the history back at us.  It would be better to coordinate this
+        # somehow, since on a slow network, this might not be enough time.  (The history is arbitrarily
+        # truncated to be small by the server, so this might be fine.)
+        setTimeout(f, 250)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
