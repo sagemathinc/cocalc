@@ -1,8 +1,6 @@
 UI:xxxx
 
---> (0:30?)  [ ] feature -- open new documents on creation.
-
-(1:00?)  [ ] change filename extensions: ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
+(1:00?)  [x] (0:28) change filename extensions: ".sage-worksheet", ".sage-terminal", ".sage-cell", ".sage-quiz", ".sage-backup", ".sage-chat", etc.
 (0:30?)  [ ] bug -- can have the same filename twice in recent files if you make new file; e.g., make "a" worksheet twice.
 (0:30?)  [ ] bug: if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
 (1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
@@ -189,3 +187,4 @@ With the following done, we will have 100% fixed the UI for now:
 (0:10?)  [x] (0:14) bug -- save all should only save things that are already open; plus some style cleanup
 (0:45?)  [x] (0:43) codemirror split screen editing.  I NEED IT.  Now I gots it.
 (0:30?)  [x] (1:22) tabs -- make them shrink as more are added; also fix some serious bug/issues with split editing.
+(0:30?)  [x] (0:05) feature -- open new documents on creation.

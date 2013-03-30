@@ -512,7 +512,7 @@ meta_file = (path, ext) ->
     path = p.head
     if p.head != ''
         path += '/'
-    return path + "." + p.tail + ".smc-" + ext
+    return path + "." + p.tail + ".sage-" + ext
 
 class ChatRecorder
     constructor: (path, cb) ->

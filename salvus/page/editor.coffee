@@ -74,21 +74,21 @@ file_associations['css'] =
     icon   : 'icon-edit'
     opts   : {mode:'css', indent_unit:4, tab_size:4}
 
-file_associations['salvus-terminal'] =
+file_associations['sage-terminal'] =
     editor : 'terminal'
     icon   : 'icon-credit-card'
     opts   : {}
 
-file_associations['salvus-worksheet'] =
+file_associations['sage-worksheet'] =
     editor : 'worksheet'
     icon   : 'icon-list-ul'
     opts   : {}
 
-file_associations['salvus-spreadsheet'] =
+file_associations['sage-spreadsheet'] =
     editor : 'spreadsheet'
     opts   : {}
 
-file_associations['salvus-slideshow'] =
+file_associations['sage-slideshow'] =
     editor : 'slideshow'
     opts   : {}
 

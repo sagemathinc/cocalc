@@ -264,8 +264,8 @@ class Worksheet extends EventEmitter
     _init_filename_save: () =>
         input = @element.find(".salvus-worksheet-filename")
         if @opts.path?
-            if filename_extension(@opts.path) == 'salvus-worksheet'
-                input.val(@opts.path.slice(0,-17))
+            if filename_extension(@opts.path) == 'sage-worksheet'
+                input.val(@opts.path.slice(0,15))
             else
                 input.val(@opts.path)
         input.keypress (evt) =>
@@ -752,8 +752,8 @@ class Worksheet extends EventEmitter
             alert_message(type:'error', message:err)
             cb?(err)
             return
-        if filename_extension(path) != 'salvus-worksheet'
-            path += '.salvus-worksheet'
+        if filename_extension(path) != 'sage-worksheet'
+            path += '.sage-worksheet'
         obj = @to_obj()
         async.series([
             (cb) =>

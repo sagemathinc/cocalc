@@ -1,3 +1,5 @@
+(1:00?) [ ] ui idea -- it would be nice to mark the active editor tabs when there is activity in them. 
+
 (1:00?) [ ] bug -- when view split, history isn't shared, which is CONFUSING; maybe has something to do with syncdoc since option is set correctly.  Not sure.
 
 

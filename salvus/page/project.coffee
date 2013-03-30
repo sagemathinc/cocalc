@@ -293,7 +293,7 @@ class ProjectPage
         #@display_tab("project-editor")
         for session_uuid, obj of sessions
             if obj.status == 'running'
-                filename = "scratch/#{session_uuid.slice(0,8)}.salvus-terminal"
+                filename = "scratch/#{session_uuid.slice(0,8)}.sage-terminal"
                 auto_open = local_storage(@project.project_id, filename, 'auto_open')
                 if not auto_open? or auto_open
                     tab = @editor.create_tab(filename:filename, session_uuid:session_uuid)
@@ -803,7 +803,7 @@ class ProjectPage
             return s
 
         @new_file_tab.find("a[href=#new-terminal]").click () =>
-            p = path('.salvus-terminal')
+            p = path('.sage-terminal')
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
@@ -813,7 +813,7 @@ class ProjectPage
             return false
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
-            p = path('.salvus-worksheet')
+            p = path('.sage-worksheet')
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
@@ -1045,7 +1045,8 @@ class ProjectPage
                     # Finally add our new listing entry to the list:
                     file_or_listing.append(t)
 
-                @clear_file_search()
+                #@clear_file_search()
+                @update_file_search()
                 if no_focus? and no_focus
                     return
                 @focus_file_search()
