@@ -95,8 +95,8 @@ Editor for files in a project
     margin:1em;
     background-color:#fff;
     border:1px solid aaa;
-    width:95%;
-    box-shadow: 3px 3px 3px 3px #888;
+    /* width:95%; */
+    box-shadow: 5px 5px 5px 5px #888;
 }
 
 .salvus-editor-search-openfiles-input {

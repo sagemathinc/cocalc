@@ -2,7 +2,8 @@ UI:
 
 (1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
 (0:45?)  [ ] feature -- file browser listing pagination, when lots of files.
-(0:08?)  [ ] pdf preview -- make resolution function of width?
+
+
 
 
 EXPLORE:
@@ -200,3 +201,6 @@ With the following done, we will have 100% fixed the UI for now:
 [x] (0:08) CSS and styling of terminal.
 [x] disabled draggable of recent... since I didn't use it once today!
 [x] (0:20) goto line keyboard shortcut; toggle split view shortcut.
+
+
+ (0:08?)  [x] (0:20) pdf preview -- make resolution function of width?

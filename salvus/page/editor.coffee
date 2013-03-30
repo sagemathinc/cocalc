@@ -1048,7 +1048,7 @@ class PDF_Preview extends FileEditor
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
 
         @page_number = 1
-        @density = 250  # impacts the clarity
+
 
         s = path_split(@filename)
         @path = s.head
@@ -1081,13 +1081,17 @@ class PDF_Preview extends FileEditor
                 cb?(err)
                 return
             # Update the PNG's which provide a preview of the PDF
+            density = @element.width()/4  # smaller denom = slower = clearer
+            if density == 0
+                # not visible, so no point.
+                return
             salvus_client.exec
                 project_id : @editor.project_id
                 path       : @path
                 command    : 'gs'
                 args       : ["-dBATCH", "-dNOPAUSE",
                               "-sDEVICE=pngmono",
-                              "-sOutputFile=#{tmp}/%d.png", "-r#{@density}", @file]
+                              "-sOutputFile=#{tmp}/%d.png", "-r#{density}", @file]
 
                 timeout    : 20
                 err_on_exit: false
@@ -1395,9 +1399,8 @@ class Terminal extends FileEditor
         if @console?
             e = $(@console.terminal.element)
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
-            e.height($(window).height() - top)
+            e.height($(window).height() - top - 6)
             @console.focus()
-            setTimeout( (() => @console.focus()), 150) # failing to focus is infuriating.
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
