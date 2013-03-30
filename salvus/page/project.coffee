@@ -774,10 +774,6 @@ class ProjectPage
                 @update_file_list_tab()
             ))
 
-        # Put a link to create a new file or directory here.
-        #t.append(template_new_file_link.clone().data("current_path", @current_path).click( (elt) ->
-        #    that.new_file($(@).data("current_path").join('/'))
-        #))  #.tooltip(placement:'right'))  # TODO -- should use special plugin and depend on settings.
 
     focus: () =>
         if not IS_MOBILE  # do *NOT* do on mobile, since is very annoying to have a keyboard pop up.

@@ -338,6 +338,9 @@ class exports.Editor
             content      : undefined
 
         filename = opts.filename
+        if @tabs[filename]?
+            return @tabs[filename]
+
         content = opts.content
         opts0 = @file_options(filename, content)
         extra_opts = copy(opts0.opts)
