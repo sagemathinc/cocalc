@@ -38,14 +38,6 @@ whoami = os.environ['USER']
 HAPROXY_PORT = 8000
 NGINX_PORT   = 8080
 
-COMPUTE_SERVER_PORTS = {
-    'compute' : 5999,
-    'sage'    : 6000,
-    'console' : 6001,
-    'project' : 6002
-}
-
-
 HUB_PORT = 5000
 HUB_TCP_PORT = 5001
 
@@ -509,8 +501,7 @@ class Hub(Process):
 
 class Compute(Process):
     def __init__(self, id=0, host=''):
-        port=COMPUTE_SERVER_PORTS['compute']
-        self._port = port
+        self._port = 22
         Process.__init__(self, id,
                          name        = 'compute',
                          port        = port,
@@ -1277,10 +1268,12 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn,
-            commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
-                        ['allow proto tcp from %s to any port %s'%(ip, y[1]) for ip in self._hosts['hub admin'] for y in COMPUTE_SERVER_PORTS.iteritems()]+
-                        ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
-                        )
+            commands = []
+            # We don't need/want to firewall the compute machines
+            #commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
+            #            ['allow proto tcp from %s to any port %s'%(ip, y[1]) for ip in self._hosts['hub admin'] for y in COMPUTE_SERVER_PORTS.iteritems()]+
+            #            ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
+            #            )
         elif action == 'status':
             return
         else:

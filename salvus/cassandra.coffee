@@ -11,12 +11,6 @@
 #
 #########################################################################
 
-exports.COMPUTE_SERVER_PORTS = COMPUTE_SERVER_PORTS =
-    compute : 5999
-    sage    : 6000
-    console : 6001
-    project : 6002
-
 # This is used for project servers.
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
@@ -502,7 +496,6 @@ class exports.Salvus extends exports.Cassandra
     running_compute_servers: (opts={}) ->
         opts = defaults opts,
             cb   : required
-            type : required    # 'sage', 'console', 'project', 'compute', etc.
             min_score : MIN_SCORE
 
         @select
@@ -514,9 +507,9 @@ class exports.Salvus extends exports.Cassandra
                     # This is used when testing the compute servers
                     # when not run as a daemon so there is not entry
                     # in the database.
-                    opts.cb(err, [{host:'localhost', port:COMPUTE_SERVER_PORTS[opts.type], score:0}])
+                    opts.cb(err, [{host:'localhost', score:0}])
                 else
-                    opts.cb(err, {host:x[0], port:COMPUTE_SERVER_PORTS[opts.type], score:x[1]} for x in results)
+                    opts.cb(err, {host:x[0], score:x[1]} for x in results)
 
     # cb(error, random running sage server) or if there are no running
     # sage servers, then cb(undefined).  We only consider servers whose
@@ -524,10 +517,8 @@ class exports.Salvus extends exports.Cassandra
     random_compute_server: (opts={}) ->
         opts = defaults opts,
             cb        : required
-            type      : required
 
         @running_compute_servers
-            type : opts.type
             cb   : (error, res) ->
                 opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
 
@@ -616,6 +607,7 @@ class exports.Salvus extends exports.Cassandra
 
         @update(
             table :'accounts'
+            json  : []
             set   : a
             where : {account_id:account_id}
             cb    : (error, result) -> opts.cb?(error, account_id)

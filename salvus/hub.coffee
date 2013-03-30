@@ -3437,6 +3437,7 @@ stateless_exec_using_server = (input_mesg, output_message_callback, host, port) 
             sage_conn.send_json(message.terminate_session())
     )
 
+# TODO: delete -- no longer makes sense
 stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
     winston.info("(hub) stateless_sage_exec_nocache #{to_safe_str(input_mesg)}")
     database.random_compute_server(type:'sage', cb:(err, sage_server) ->

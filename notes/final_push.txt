@@ -1,8 +1,13 @@
+STUBS
+2614 in hub.coffee:
+create_unix_user_on_random_compute_server = (cb) ->
+    cb(false, {host:'localhost', username:'sage0',port:22})
 
-(0:30?) [ ] make it so each new project get mapped to unix accounts by default created using above script.
+
+(0:30?) [ ] make it so each new project get mapped to unix accounts by default, created using above script.
         [ ] new accounts get one new unix_user
 
-
+(0:30?) [ ] ui: make it so account in new project uses the user's default account "by default"
 
 (1:00?) [ ] basic project explorer:    (similar function to https://github.com/explore)
                * search = on project name and description (I will have to build indexes at some point...)
@@ -28,6 +33,7 @@
 (0:30?) [ ] console -- when restarting, it comes up as sh rather than BASH?! !!
 (0:10?) [ ] make default file sort order "sort by time"
 (1:00?) [ ] find a solution to the trivial-to-cause "Terminal with infinite output" control-c ignored problem.  I wonder how c9, etc., deal?
+(0:10?) [ ] ui: make the "directory listing" spinner moved down and bigger -- half hidden looks silly.
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 (0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
@@ -193,5 +199,4 @@ IO2wMWk7
 (1:00?) [x] (0:16) change any hard coded "salv.us" to cloud.sagemath.org
 
 
-(0:30?) [x] (1:14) create an suid script on an unix_account, which can be run to make a random unix_user with quota, and outputs user info in json; sage machines have this
---> useradd -s/bin/bash -m -U s6 -k skel/
+(0:30?) [x] (1:14) create  script to make new unix_account

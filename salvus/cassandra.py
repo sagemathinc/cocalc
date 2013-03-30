@@ -488,10 +488,8 @@ class StatelessExec(object):
 # Compute servers
 ##########################################################################
 
-from admin import COMPUTE_SERVER_PORTS
-
-def running_compute_servers(type):
-    return [(host[0], COMPUTE_SERVER_PORTS[type]) for host in cursor_execute("SELECT host FROM compute_servers WHERE running='true'")]
+def running_compute_servers():
+    return [host[0] for host in cursor_execute("SELECT host FROM compute_servers WHERE running='true'")]
 
 def record_that_compute_server_started(host):
     cursor().execute("UPDATE compute_servers SET running = 'true', score=0 WHERE host = :host", {'host':host})

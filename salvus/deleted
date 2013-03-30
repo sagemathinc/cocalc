@@ -1,3 +1,28 @@
+create_unix_user_on_random_compute_server = (opts) ->
+    opts = defaults opts,
+        cb : required
+
+    opts.cb(false, {host:'localhost', username:'sage0', port:22})
+    
+"""
+    TO DO
+    async.series([
+        (cb) ->
+            # first get a computer on which to create an account
+            # (TODO: load balance)
+            database.random_compute_server
+                cb  : (err, _compute_server) ->
+                    if err
+                        cb(err)
+                    else
+                        compute_server = _compute_server
+                        cb()
+    ], (err) ->
+        cb(err, unix_user)
+    )
+"""
+
+
 
 # The CodeMirrorDiffSyncHub class represents a global hub viewed as a
 # remote server for this client.
