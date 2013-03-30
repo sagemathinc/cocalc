@@ -1,4 +1,3 @@
---> (1:00?)  [ ] get ssl cert setup for cloud.sagemath.org
 
 (2:00?) [ ] figure out how to make it so new projects get mapped to created limitedunix accounts and implement
             (have a big /scratch and a small home and only backup home?)
@@ -188,3 +187,10 @@ With the following done, we will have 100% fixed the UI for now:
 (1:00?)  [x] (3:30) bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
 
 (0:10?) [x] bug -- add or delete open file pill should result in a resize all (not just on add)
+
+(1:00?)  [x] (0:46) get ssl cert setup for cloud.sagemath.org:
+
+openssl req -new -newkey rsa:2048 -nodes -keyout cloud.sagemath.key -out cloud.sagemath.csr
+IO2wMWk7
+01salvus: 128.95.224.230
+06salvus: 128.95.242.135
