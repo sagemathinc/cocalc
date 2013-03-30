@@ -764,6 +764,7 @@ class Client extends EventEmitter
 
             # create project in database
             (cb) =>
+                winston.debug("got random unix user location = ", location)
                 database.create_project
                     project_id  : project_id
                     account_id  : @account_id
@@ -2513,7 +2514,43 @@ is_valid_password = (password) ->
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb : required
-    opts.cb(false, {host:'localhost', username:'sage0', port:22, path:'.'})
+
+    host = undefined
+    username = undefined
+    async.series([
+        (cb) ->
+            # first get a computer on which to create an account
+            database.random_compute_server
+                cb  : (err, resp) ->
+                    if err
+                        cb(err)
+                    else
+                        host = resp.host
+                        cb()
+        (cb) ->
+            # ssh to that computer and create account using script
+            misc_node.execute_code
+                command : "ssh"
+                args    : ["root@" + host, '-o', 'StrictHostKeyChecking=no', "./create_unix_user.py"]
+                timeout : 10
+                bash    : false
+                err_on_exit: true
+                cb      : (err, output) =>
+                    if err
+                        cb(err)
+                    else
+                        username = output.stdout.replace(/\s/g, '')
+                        if username.length == 0
+                            cb("error creating user")
+                        else
+                            cb()
+
+    ], (err) ->
+        if err
+            opts.cb(err)
+        else
+            opts.cb(false, {host:host, username:username, port:22, path:'.'})
+    )
 
 create_account = (client, mesg) ->
     id = mesg.id
