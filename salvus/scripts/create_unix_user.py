@@ -4,7 +4,7 @@
 Create a unix user, setup ssh keys, impose quota, etc.
 """
 
-import os, sys
+import os, sys, uuid
 
 from subprocess import Popen, PIPE
 
@@ -24,17 +24,13 @@ def cmd(args):
     return {'stdout':stdout, 'stderr':stderr}
 
 if len(sys.argv) == 1:
-    n = 0
-    username = 'sage%s'%n
-    while os.path.exists('/home/%s'%username):
-        n += 1
-        username = 'sage%s'%n
+    username = str(uuid.uuid4())[:8]  # avoid all race conditions...
 else:
     username = sys.argv[1]
 
 out = cmd(['useradd', '-m', '-U', '-k', 'skel', username])
 
-# coffeescript to determine 
+# coffeescript to determine
 # BLOCK_SIZE = 4096   # units = bytes; This is used by the quota command via the conversion below.
 # megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 # ensure host system is setup with quota for this to do anything: http://www.ubuntugeek.com/how-to-setup-disk-quotas-in-ubuntu.html

@@ -2513,8 +2513,53 @@ is_valid_password = (password) ->
 
 new_random_unix_user = (opts) ->
     opts = defaults opts,
-        cb : required
+        cb          : required
+    cache = new_random_unix_user.cache
 
+    if cache.length > 0
+        user = cache.shift()
+        opts.cb(false, user)
+    else
+        # Just make a user without involving the cache at all.
+        new_random_unix_user_no_cache(opts)
+
+    # Now replenish the cache for next time.
+    replenish_random_unix_user_cache()
+
+new_random_unix_user_cache_target_size = 2
+new_random_unix_user.cache = []
+replenish_random_unix_user_cache = () ->
+    cache = new_random_unix_user.cache
+    if cache.length < new_random_unix_user_cache_target_size
+        winston.debug("New unix user cache has size #{cache.length}, which is less than target size #{new_random_unix_user_cache_target_size}, so we create a new account.")
+        new_random_unix_user_no_cache
+            cb : (err, user) =>
+                if err
+                    winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
+                    # try again in 5 seconds
+                    setTimeout(replenish_random_unix_user_cache, 5000)
+                else
+                    winston.debug("Got new unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
+                    new_local_hub
+                        username : user.username
+                        host     : user.host
+                        port     : user.port
+                        cb       : (err) =>
+                            if err
+                                winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
+                                # try again in 5 seconds
+                                setTimeout(replenish_random_unix_user_cache, 5000)
+                            else
+                                # only save user if we succeed in starting a local hub.
+                                cache.push(user)
+                                winston.debug("SUCCESS -- created a new unix user for cache, which now has size #{cache.length}")
+                                replenish_random_unix_user_cache()
+
+
+
+new_random_unix_user_no_cache = (opts) ->
+    opts = defaults opts,
+        cb          : required
     host = undefined
     username = undefined
     async.series([
@@ -2532,7 +2577,7 @@ new_random_unix_user = (opts) ->
             misc_node.execute_code
                 command : "ssh"
                 args    : ["root@" + host, '-o', 'StrictHostKeyChecking=no', "./create_unix_user.py"]
-                timeout : 10
+                timeout : 20
                 bash    : false
                 err_on_exit: true
                 cb      : (err, output) =>
