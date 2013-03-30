@@ -17,6 +17,13 @@
     margin-top:4px;
 }
 
+.project-file-top-current-path-display {
+    font-size: 14px;
+    top: 38px;
+    position: absolute;
+    left: 10px;
+}
+
 .project-file-tools {
     margin-left:2em;
 }

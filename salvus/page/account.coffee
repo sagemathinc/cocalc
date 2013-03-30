@@ -232,7 +232,7 @@ password_strength_meter = (input) ->
     colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
     input.bind('change keypress paste focus textInput input', () ->
-        result = zxcvbn(input.val(), ['salvus', 'salv.us'])
+        result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
         display.find(".bar").css("width", "#{13*(result.score+1)}%")
         display.find("font").html(score[result.score])
         display.css("background-color", colors[result.score])

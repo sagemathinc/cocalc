@@ -402,7 +402,7 @@ class Stunnel(Process):
                          start_cmd  = [os.path.join(base, DATA, 'local/bin', 'stunnel'), self._stunnel_conf])
 
     def _pre_start(self):
-        pem = os.path.join(SECRETS, 'salv.us/nopassphrase.pem')
+        pem = os.path.join(SECRETS, 'sagemath/nopassphrase.pem')
         if not os.path.exists(pem):
             raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
 
@@ -420,7 +420,7 @@ class Stunnel(Process):
 ####################
 class Haproxy(Process):
     def __init__(self, id=0,
-                 sitename='salv.us',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
+                 sitename='cloud.sagemath.org',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
                  accept_proxy_port=HAPROXY_PORT,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
@@ -1226,12 +1226,12 @@ class Services(object):
     def stunnel_key_files(self, hostname, action):
         target = os.path.join(BASE, SECRETS)
         for ip_address in self._hosts[hostname]:
-            if ip_address.startswith('127.'): continue
+            if ip_address.startswith('127.'): continue  # don't wipe our personal copy of secrets!
             if action == 'stop':
-                self._hosts.rmdir(ip_address, os.path.join(target, 'salv.us'))
+                self._hosts.rmdir(ip_address, os.path.join(target, 'sagemath'))
             elif action in ['start', 'restart']:
                 self._hosts.mkdir(ip_address, target)
-                self._hosts.putdir(ip_address, os.path.join(SECRETS, 'salv.us'), BASE)
+                self._hosts.putdir(ip_address, os.path.join(SECRETS, 'sagemath'), BASE)
         # avoid race condition where file is there but not there.
         time.sleep(.5)
 

@@ -445,7 +445,7 @@ class exports.Editor
 
         link_filename = link.find(".salvus-editor-tab-filename")
         i = filename.lastIndexOf('/')
-        display_name = trunc(filename.slice(i+1),20)
+        display_name = trunc(filename.slice(i+1),16)
         link_filename.text(display_name)
         link.tooltip(title:filename, animation:false, delay: { show: 1000, hide: 100 })
 
@@ -781,7 +781,7 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
-        @element.find(".salvus-editor-codemirror-filename").text(@filename)
+        @element.find(".salvus-editor-codemirror-filename").text(misc.trunc(@filename,40))
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
 

@@ -241,7 +241,7 @@ extract_bundles = (project_id, bundles, cb) ->
         (c) ->
             if misc.len(bundles) == 0
                 winston.debug("create the initial default gitconfig")
-                fs.writeFile("#{repo_path}/.gitconfig", "[user]\n    name = Project #{project_id}\n    email = salvus@salv.us\n", c)  # TODO -- change to project owner
+                fs.writeFile("#{repo_path}/.gitconfig", "[user]\n    name = Project #{project_id}\n    email = sage@example.com\n", c)  # TODO -- change to project owner
             else
                 c()
         (c) ->
@@ -794,7 +794,7 @@ events.read_file_from_project = (socket, mesg) ->
     )
 
 # Make sure that that the directory containing the file indicated by the path exists
-# and has the right permissions. 
+# and has the right permissions.
 ensure_containing_directory_exists = (project_id, uid, path, cb) ->   # cb(err)
     dir = misc.path_split(path).head
 

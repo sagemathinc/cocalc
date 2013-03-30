@@ -2889,7 +2889,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 If you requested this password change, please change your password by
                 following the link below:
 
-                     https://salv.us#forgot##{id}
+                     https://cloud.sagemath.org#forgot##{id}
 
                 If you don't want to change your password, ignore this message.
                 """
