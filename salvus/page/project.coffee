@@ -740,6 +740,7 @@ class ProjectPage
 
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
         top_navbar.set_button_label(@project.project_id, label)
+        document.title = "SMC: #{@project.title}"
         return @
 
 
