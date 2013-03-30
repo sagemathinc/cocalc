@@ -196,3 +196,5 @@ With the following done, we will have 100% fixed the UI for now:
 
 (0:30)   [x] (0:23) font size in editor; go to line in editor
 (0:30?)  [x] bug: if you start clicking around directories quickly, you can easily get to a nonexistent path due to time of gitls round trip.  So... when that happens display the last valid path; save last working path, and don't change path to a directory that doesn't exist (as determined by an error from git-ls)
+
+[x] (0:08) CSS and styling of terminal.

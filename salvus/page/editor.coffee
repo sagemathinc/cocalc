@@ -394,13 +394,14 @@ class exports.Editor
 
 
         link.data('tab', @tabs[filename])
+        ###
         link.draggable
             zIndex      : 1000
             #containment : @element
             stop        : () =>
                 ignore_clicks = true
                 setTimeout( (() -> ignore_clicks=false), 100)
-
+        ###
 
         @nav_tabs.append(link)
 
