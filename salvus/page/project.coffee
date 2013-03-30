@@ -751,7 +751,7 @@ class ProjectPage
 
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
-        if path == ""
+        if path == "" or not path?
             @current_path = []
         else
             @current_path = path.split('/')
@@ -932,7 +932,7 @@ class ProjectPage
                 spinner.spin(false).hide()
                 if (err)
                     console.log("error")
-                    if @_last_path_without_error != path
+                    if @_last_path_without_error? and @_last_path_without_error != path
                         console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
@@ -952,6 +952,7 @@ class ProjectPage
                 # Now rendering the listing or file preview
                 file_or_listing = @container.find(".project-file-listing-file-list")
                 file_or_listing.empty()
+                directory_is_empty = true
 
                 # The path we are viewing.
                 path = @current_pathname()
@@ -1051,10 +1052,18 @@ class ProjectPage
                         scope          : 'files'
 
                     # Finally add our new listing entry to the list:
+                    directory_is_empty = false
                     file_or_listing.append(t)
 
                 #@clear_file_search()
                 @update_file_search()
+
+                # No files
+                if directory_is_empty
+                    @container.find(".project-file-listing-no-files").show()
+                else
+                    @container.find(".project-file-listing-no-files").hide()
+
                 if no_focus? and no_focus
                     return
                 @focus_file_search()

@@ -1,3 +1,5 @@
+(1:00?)  [ ] editor -- ability to set the syntax highlight mode of a file
+
 (0:45?)  [ ] bug -- if editing file with long name, vertical size is miscomputed. (I put in a 5-minute hack truncate.)
 (0:30?)  [ ] make sure email reset works with cloud.sagemath.org
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)

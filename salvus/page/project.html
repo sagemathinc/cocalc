@@ -64,7 +64,7 @@
 
                 <!-- Browse through files in the project -->
                 <li class="super-menu">
-                    <a href="#project-file-listing"  data-toggle="tooltip" data-placement="bottom" title="Browse files"><i class="project-control-icon icon-folder-close-alt"></i> </a>
+                    <a href="#project-file-listing"  data-toggle="tooltip" data-placement="bottom" title="Browse files"><i class="project-control-icon icon-folder-open-alt"></i> </a>
                 </li>
 
                 <!-- File editor -->
@@ -73,12 +73,11 @@
                 <!-- Create a new file (or, etc.)-->
                 <li class="super-menu"><a href="#project-new-file" data-toggle="tooltip" data-placement="bottom" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> </a></li>
 
-                <!-- Settings specific to this project -->
-                <li class="super-menu"><a href="#project-settings" data-toggle="tooltip" data-placement="bottom" title="Project specific settings"><i class="project-control-icon icon-cog"> </i> </a></li>
-
                 <!-- Search -->
                 <li class="super-menu project-search-menu-item"><a href="#project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i></a></li>
 
+                <!-- Settings specific to this project -->
+                <li class="super-menu"><a href="#project-settings" data-toggle="tooltip" data-placement="bottom" title="Project specific settings"><i class="project-control-icon icon-cog"> </i> </a></li>
 
             </ul>
 
@@ -86,11 +85,12 @@
 
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing" style="margin-left:3em;">
-                <h1>File Browser</h1>
+                <h1>Files </h1>
                 <div class="row">
 
                     <div class="span2">
                         <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file..." data-toggle="tooltip" data-placement="top" title="Search filenames the current directory">
+
                     </div>
 
                     <!-- The current path -->
@@ -136,6 +136,12 @@
                 <div class="row project-file-listing-container">
                     <div class="project-file-listing-spinner hide"></div>
                     <div class="project-file-listing-file-list"></div>
+                    <div class="project-file-listing-no-files hide">
+                        <br><br>
+                        <h3 style="margin-left:3em;">
+                            <a href="#project-new-file" data-toggle="tooltip" data-placement="bottom" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> Create or Import a File, Worksheet, Terminal or Directory...</a>
+                        </h3>
+                    </div>
                 </div>
 
             </div>
@@ -143,7 +149,7 @@
             <!-- Open files in this project. -->
             <div class="project-editor hide">
                 <h1  style="margin-left:1em;">
-                    <span class="project-editor-file-count">0</span> Recent Files
+                    Recent Files (<span class="project-editor-file-count">0</span> )
                 </h1>
 
                 <!-- the actual recent file UI gets inserted here dynamically! -->
@@ -163,7 +169,7 @@
                 <div class="well"  style="margin-left:3em;">
                     <div class="row">
                         <div class="span3">
-                            <h4>New file</h4>
+                            <h4>New</h4>
                         </div>
                         <div class="span8" style="padding-top: 4px;">
 

@@ -6,6 +6,7 @@ logs
 .DS_Store
 *.log
 *.sobj
+.*.sage-backup
 .*.smc-backup
 data/
 .#*

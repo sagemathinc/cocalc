@@ -1,23 +1,34 @@
-FINAL DAY
 
-(1:00?) [ ] make it so new projects get mapped to automatically created limited (100MB) unix accounts by default (code in hub)
-(1:00?) [ ] implement backup of project contents to cassandra via tar -- if du first reports less than 100MB total usage?
+(0:30?) [ ] (0:26) create an suid script on an unix_account, which can be run to make a random unix_user with quota, and outputs user info in json; sage machines have this
+
+--> useradd -s/bin/bash -m -U s6 -k skel/
+
+(0:30?) [ ] make it so each new project get mapped to unix accounts by default created using above script.
+        [ ] new accounts get one new unix_user
+
+
 (1:00?) [ ] basic project explorer:    (similar function to https://github.com/explore)
                * search = on project name and description (I will have to build indexes at some point...)
 (1:00?) [ ] clicking on a project in result list opens it (as usual) in read/write mode, if you have write access to it.
 (1:00?) [ ] Any location should have a url which can be used as a shortcut to get back there.
               https://cloud.sagemath.org/projects/project_id/path/in/filesystem
             Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
-(1:00?) [ ] worksheet: define code to diff two worksheets and make a patch, and apply patch
-(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into client
-(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into hub
-(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into local hub
-(0:45?) [ ] worksheet/ui: interact plus moving cells bug: just add a data attribute to those cells so skipped
 (0:45?) [ ] update virtual machine image that is up2date and has all necessary packages (including ghostview, etc.);
 (0:45?) [ ] rsnapshot on the virtual machine, for local file recover.
 (0:30?) [ ] define topology file for deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
 (0:30?) [ ] browserify version issue
 
+(0:30?) [ ] (0:16) restarting sage session bug
+(0:45?) [ ] worksheet: weird bug when starting to edit a file and loose something -- idea: instead of reseting sync session, just start it from scratch; should work, since this problem doesn't happen when freshly connecting!
+(1:00?) [ ] worksheet: define code to diff two worksheets and make a patch, and apply patch
+(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into client
+(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into hub
+(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into local hub
+(0:45?) [ ] worksheet/ui: interact plus moving cells bug: just add a data attribute to those cells so skipped
+
+(0:30?) [ ] cloud = salvus alias inside notebook; plus some renames in docstrings?
+(0:30?) [ ] console -- when restarting, it comes up as sh rather than BASH?! !!
+(0:10?) [ ] make default file sort order "sort by time"
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 (0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)

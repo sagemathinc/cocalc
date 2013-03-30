@@ -735,7 +735,7 @@ class CodeMirrorSessions
                 @add_session_to_cache
                     session    : session
                     project_id : mesg.project_id
-                    timeout    : undefined   # time in seconds (or undefined to not use timer)
+                    timeout    : 3600   # time in seconds (or undefined to not use timer)
                 finish(session)
 
     add_session_to_cache: (opts) =>

@@ -1866,7 +1866,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb(err)
             (cb) =>
                 if not @_status.installed
-                    @_exec_on_local_hub('build', 120, cb)
+                    @_exec_on_local_hub('build', 300, cb)
                 else
                     cb()
             (cb) =>
@@ -1903,7 +1903,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             command : "rsync"
             args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
                        'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
-            timeout : 15
+            timeout : 30
             bash    : false
             path    : SALVUS_HOME
             cb      : cb
@@ -1919,14 +1919,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     _get_local_hub_status: (cb) =>
         winston.debug("getting status of remote location")
-        @_exec_on_local_hub "status", 10, (err, out) =>
+        @_exec_on_local_hub "status", 15, (err, out) =>
             if out?.stdout?
                 status = misc.from_json(out.stdout)
             cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
         winston.debug("restarting local_hub daemons")
-        @_exec_on_local_hub "restart_smc", 10, (err, out) =>
+        @_exec_on_local_hub "restart_smc", 30, (err, out) =>
             cb(err)
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
@@ -3379,7 +3379,7 @@ class SageSession
                 client.compute_session_uuids.push(@session_uuid)
                 cb()
 
-        ], cb)
+        ], (err) => cb?(err))
 
 
 ##########################################
