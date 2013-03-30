@@ -1,10 +1,10 @@
 UI:
 
-(1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
+--> (1:00?)  [ ] bug -- when reconnecting to a TERMINAL session, it display a bunch of garbage codes.
+(0:10?) [ ] bug -- add or delete open file pill should result in a resize all (not just on add)
+
 (0:45?)  [ ] feature -- file browser listing pagination, when lots of files.
-
-
-
+(1:00?)  [ ] feature -- (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 
 EXPLORE:
 (1:00?) [ ] Search page:    (similar function to https://github.com/explore)

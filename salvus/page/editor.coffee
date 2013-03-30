@@ -458,6 +458,7 @@ class exports.Editor
             if ignore_clicks
                 return false
             link.tooltip('destroy')
+            link.hide()
             link.remove()
             name = link.prev().data('name')
             if name?
@@ -467,6 +468,9 @@ class exports.Editor
                 if tab.open_file_pill?
                     delete tab.open_file_pill
                 tab.close_editor()
+            if @active_tab? and @active_tab.filename == filename
+                @active_tab = undefined
+            @resize_open_file_tabs()
             return false
 
         ignore_clicks = false
@@ -497,7 +501,7 @@ class exports.Editor
             if t.hasClass("project-search-menu-item")
                 file_tabs = true
                 continue
-            if file_tabs
+            else if file_tabs
                 x.push(t)
         if x.length == 0
             return
@@ -508,7 +512,7 @@ class exports.Editor
             if not a.data('orig_width')?
                 a.data('orig_width', a.width())
             if width < a.data('orig_width')
-                a.width(width)
+                a.animate(width:width, duration:100)
             else
                 a.width(a.data('orig_width'))
 

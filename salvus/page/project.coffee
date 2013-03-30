@@ -894,8 +894,8 @@ class ProjectPage
             path += "/"
         @new_file_tab.find(".project-new-file-path").text(path)
 
-        elt = @new_file_tab.find(".project-new-file-hide-if-root")
-        if path == ''
+        elt = @new_file_tab.find(".project-new-file-if-root")
+        if path != ''
             elt.hide()
         else
             elt.show()

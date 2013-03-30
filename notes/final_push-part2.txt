@@ -1,4 +1,4 @@
-(1:00?) [ ] ui idea -- it would be nice to mark the active editor tabs when there is activity in them. 
+(1:00?) [ ] ui idea -- it would be nice to mark the active editor tabs when there is activity in them.
 
 (1:00?) [ ] bug -- when view split, history isn't shared, which is CONFUSING; maybe has something to do with syncdoc since option is set correctly.  Not sure.
 
@@ -17,7 +17,6 @@
 
 (0:45?)  [ ] cells: move (control-arrow) should move all cells with checkbox checked.  (and control-arrow doesn't work on os x, right?)
 
-(1:00?)  [ ] (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 (0:45?)  [ ] split document editing (see two parts of doc at once): http://codemirror.net/doc/manual.html#linkedDoc
 
 (1:00?)  [ ] attach: implement the attach command for (backwards) compatibility.
