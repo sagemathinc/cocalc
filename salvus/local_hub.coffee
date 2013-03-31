@@ -278,7 +278,6 @@ class SageSessions
     session_exists: (session_uuid) =>
         return @_sessions[session_uuid]?
 
-
     terminate_session: (session_uuid, cb) =>
         S = @_sessions[session_uuid]
         if not S?
@@ -1014,7 +1013,7 @@ project_exec = (socket, mesg) ->
 # Handle a message form the client
 ###############################################
 
-handle_mesg = (socket, mesg) ->
+handle_mesg = (socket, mesg, handler) ->
     try
         winston.debug("Handling '#{json(mesg)}'")
         if mesg.event.split('_')[0] == 'codemirror'
@@ -1023,6 +1022,9 @@ handle_mesg = (socket, mesg) ->
 
         switch mesg.event
             when 'connect_to_session', 'start_session'
+                # These sessions completely take over this connection, so we better stop listening 
+                # for further control messages on this connection.
+                socket.removeListener 'mesg', handler
                 connect_to_session(socket, mesg)
             when 'project_session_info'
                 resp = message.project_session_info
@@ -1059,6 +1061,7 @@ handle_mesg = (socket, mesg) ->
         winston.debug(new Error().stack)
         winston.error "ERROR: '#{e}' handling message '#{json(mesg)}'"
 
+
 server = net.createServer (socket) ->
     winston.debug "PARENT: received connection"
 
@@ -1068,10 +1071,11 @@ server = net.createServer (socket) ->
         else
             socket.id = uuid.v4()
             misc_node.enable_mesg(socket)
-            socket.on 'mesg', (type, mesg) ->
+            handler = (type, mesg) ->
                 if type == "json"   # other types are handled elsewhere in event code.
                     winston.debug "received control mesg #{json(mesg)}"
-                    handle_mesg(socket, mesg)
+                    handle_mesg(socket, mesg, handler)
+            socket.on 'mesg', handler
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->

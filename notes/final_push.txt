@@ -1,17 +1,13 @@
 
 1. fix huge bugs:
---> (0:45?) [x] (3:00) HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
-  Surprisingly, this is caused by a major bug in node.js, which is here and is fixed in a new version:
-         https://github.com/joyent/node/issues/4700
-  So, I guess i have to upgrade node.... which is a good idea anyways. This was a frickin' rabit whole!
+--> (0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
 
-
-(0:30?) [ ] HUB BUG -- ui worksheet filename situation is a MESS
-(0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
+(0:30?) [ ] HUGE BUG -- ui worksheet filename situation is a MESS
 (0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
             -- idea: instead of reseting sync session, just start it from scratch;
                should work, since this problem doesn't happen when freshly connecting!
-(0:20?) [ ] control-c for worksheet means ... no way to copy from cell!               
+
+(0:15?) [ ] bug -- tab/untab of selected text -- I assumed direction of selection is one way, but if it is backwards, then bOOM.               
 
 2. deploy:
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including ghostview, etc.);
@@ -227,3 +223,8 @@ features;
 
 
 (0:30?) [x] (0:30) protection from the trivial-to-cause "Terminal with infinite output" control-c ignored problem.
+
+--> (0:45?) [x] (3:00) HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
+  Surprisingly, this is caused by a major bug in node.js, which is here and is fixed in a new version:
+         https://github.com/joyent/node/issues/4700
+  So, I guess i have to upgrade node.... which is a good idea anyways. This was a frickin' rabit whole!

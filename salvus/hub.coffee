@@ -485,7 +485,7 @@ class Client extends EventEmitter
         catch error
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
-        if mesg.event.slice(0,4) != 'ping'
+        if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
             winston.debug("client --> hub: #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
@@ -1398,7 +1398,7 @@ class CodeMirrorSession
         if not ds_client?
             return # something wrong -- just drop the message
 
-        winston.debug("client_broadcast: #{misc.to_json(mesg)}")
+        #winston.debug("client_broadcast: #{misc.to_json(mesg)}")
 
         # We tag the broadcast message, in order to make it more useful to recipients (but do not
         # go so far as to advertise the account_id or email)..
@@ -3315,7 +3315,7 @@ save_blob = (opts) ->
         if opts.value.length > 15000000  # 15MB
             # ensure time is *really short*, so we don't waste RAM
             opts.ttl = 60
-        else 
+        else
             # ensure time is *really short*, so we don't waste RAM
             opts.ttl = Math.min(600, opts.ttl)  # ensure time is <= 10 minutes in all cases.
 
