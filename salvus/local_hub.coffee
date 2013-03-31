@@ -1065,7 +1065,7 @@ exports.start_server = start_server = () ->
     init_confpath()
     server.listen program.port, '127.0.0.1', () ->
         winston.info "listening on port #{server.address().port}"
-        fs.writeFile('.sagemathcloud/data/local_hub.port', server.address().port)
+        fs.writeFile(abspath('.sagemathcloud/data/local_hub.port'), server.address().port)
 
 
 # daemonize it
