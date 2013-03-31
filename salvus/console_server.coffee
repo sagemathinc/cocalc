@@ -65,7 +65,7 @@ start_session = (socket, mesg) ->
     opts = defaults mesg.params,
         rows    : 24
         cols    : 80
-        command : undefined
+        command : 'bash'
         args    : []
         path    : undefined
 
