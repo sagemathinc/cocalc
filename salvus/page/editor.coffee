@@ -1374,6 +1374,8 @@ class Terminal extends FileEditor
                     cb?(err)
                 else
                     @console.set_session(session)
+                    if @element.is(":visible")
+                        setTimeout(@show, 100)
                     salvus_client.write_text_file_to_project
                         project_id : @editor.project_id
                         path       : @filename
@@ -1391,6 +1393,7 @@ class Terminal extends FileEditor
 
         # TODO
         #@filename_tab.set_icon('console')
+
 
     _get: () =>  # TODO
         return 'history saving not yet implemented'

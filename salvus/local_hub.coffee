@@ -899,7 +899,8 @@ read_file_from_project = (socket, mesg) ->
                 split = misc.path_split(path)
                 path = target
                 winston.debug("tar #{misc.to_json(['jcf', target, split.tail, split.head])}...")
-                child_process.execFile 'tar', ['jcf', target, split.tail], {cwd:split.head}, (err, stdout, stderr) ->
+                # same patterns also in project.coffee (TODO)
+                child_process.execFile 'tar', ['--exclude=.sagemathcloud', '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', 'jcf', target, split.tail], {cwd:split.head}, (err, stdout, stderr) ->
                     if err
                         winston.debug("Issue creating tarball: #{err}, #{stdout}, #{stderr}")
                         cb(err)

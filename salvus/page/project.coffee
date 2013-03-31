@@ -639,6 +639,9 @@ class ProjectPage
             else if name == "project-new-file"
                 tab.onshow = () ->
                     that.show_new_file_tab()
+            else if name == "project-settings"
+                tab.onshow = () ->
+                    that.update_topbar()
 
         @display_tab("project-file-listing")
 
@@ -741,6 +744,19 @@ class ProjectPage
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "SMC: #{@project.title}"
+
+        usage = @container.find(".project-disk_usage")
+        usage.text('...')
+        salvus_client.exec
+            project_id : @project.project_id
+            command    : 'du -sch --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage .'
+            timeout    : 10
+            cb         : (err, output) =>
+                if not err
+                    usage.text(output.stdout)
+                else
+                    usage.text("unable to compute -- #{err}")
+
         return @
 
 

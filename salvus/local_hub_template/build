@@ -2,6 +2,9 @@
 
 from os import chdir, environ as env, path, popen, system, uname
 
+# We are using this old version since terminal resize doesn't work in 0.10.2!
+VERSION="0.8.22"
+
 import os, sys
 
 if 'MAKE' in env:
@@ -19,15 +22,15 @@ if os.path.exists('installed'):
 install_node = True
 try:
     node_version = popen('node --version').read()[1:]
-    # output looks like this: '0.8.14\n'
-    if node_version >= '0.8':
+    # output looks like this: '0.10.2\n'
+    if node_version == VERSION:
         install_node = False
 except:
     pass
 
 
 if install_node:
-    version = "0.8.22"
+    version = VERSION
 
     u = uname()
     if u[-1] == 'x86_64':
@@ -39,7 +42,7 @@ if install_node:
     tarball = node_folder + '.tar.gz'
 
     # For example:
-    #   wget http://nodejs.org/dist/v0.8.22/node-v0.8.22-linux-x64.tar.gz
+    #   wget http://nodejs.org/dist/v0.10.2/node-v0.10.2-linux-x64.tar.gz
     cmd = "rm -f node-v%s* && wget http://nodejs.org/dist/v%s/%s && mkdir -p data/local && cd data/local && tar zxvf ../../%s && mv '%s'/* . && rm -rf '%s'"%(
         version, version, tarball, tarball, node_folder, node_folder)
     if os.system(cmd):

@@ -429,11 +429,15 @@ class exports.Cassandra extends EventEmitter
         @select(opts)
 
     cql: (query, vals, cb) ->
-        #winston.debug(query, vals)
-        @conn.cql(query, vals, (error, results) =>
-            winston.error("Query cql('#{query}','params=#{vals}') caused a CQL error:\n#{error}") if error
-            @emit('error', error) if error
-            cb?(error, results))
+        winston.debug("About to query db #{query}...")
+        @conn.cql query, vals, (error, results) =>
+            if error
+                winston.error("Query cql('#{query}','params=#{vals}') caused a CQL error:\n#{error}")
+            else
+                winston.debug("query completed")
+            if error
+                @emit('error', error)
+            cb?(error, results)
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)

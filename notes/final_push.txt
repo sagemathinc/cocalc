@@ -1,11 +1,9 @@
 
 1. fix huge bugs:
---> (0:45?) [ ] HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
+--> (0:45?) [x] (3:00) HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
   Surprisingly, this is caused by a major bug in node.js, which is here and is fixed in a new version:
-
          https://github.com/joyent/node/issues/4700
-
-  So, I guess i have to upgrade node.
+  So, I guess i have to upgrade node.... which is a good idea anyways. This was a frickin' rabit whole!
 
 
 (0:30?) [ ] HUB BUG -- ui worksheet filename situation is a MESS

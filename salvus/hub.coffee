@@ -1816,7 +1816,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.cb(err)
                     return
 
+                ignore = false
                 console_socket.on 'end', () =>
+                    ignore = true
                     delete @_sockets[opts.session_uuid]
 
                 # Plug the two consoles together
@@ -1826,7 +1828,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # (This uses our system for multiplexing JSON and multiple binary streams
                 #  over one single SockJS connection.)
                 channel = opts.client.register_data_handler (data)->
-                    console_socket.write(data)
+                    if not ignore
+                        console_socket.write(data)
 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
@@ -3296,27 +3299,50 @@ exports.send_email = send_email = (opts={}) ->
 # Blobs
 ########################################
 
+_local_blobs = {}
 save_blob = (opts) ->
     opts = defaults opts,
         uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
         value : required   # NOTE: value *must* be a Buffer.
         ttl   : undefined
         cb    : required
-    if      opts.value.length >= 100000000 and opts.ttl?
-        # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
-        opts.cb("Temporary blobs must be at most 100MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
-    else if opts.value.length >= 10000000 and not opts.ttl?
-        # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
-        opts.cb("Permanent blobs must be at most 10MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
+    if opts.value.length > 5000000
+        if not opts.ttl?
+            opts.cb("Permanent blobs must be at most 5MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
+            return
+        if not opts.uuid?
+            opts.uuid = uuid.v4()
+        if opts.value.length > 15000000  # 15MB
+            # ensure time is *really short*, so we don't waste RAM
+            opts.ttl = 60
+        else 
+            # ensure time is *really short*, so we don't waste RAM
+            opts.ttl = Math.min(600, opts.ttl)  # ensure time is <= 10 minutes in all cases.
+
+        winston.debug("storing blob of size #{opts.value.length/1000000} MB locally in RAM with timeout #{opts.ttl} seconds.")
+        u = opts.uuid
+        _local_blobs[u] = opts.value
+
+        remove_from_store = () ->
+            winston.debug("Deleting temporary blob from local RAM")
+            delete _local_blobs[u]
+        setTimeout(remove_from_store, opts.ttl * 1000)
+
+        opts.cb(false)
+        return opts.uuid
     else
-        x = database.uuid_blob_store(name:"blobs").set(opts)
-        return x
+        # permanent blob or small blob with ttl
+        return database.uuid_blob_store(name:"blobs").set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
         uuid : required
         cb   : required
-    database.uuid_blob_store(name:"blobs").get(opts)
+    x = _local_blobs[opts.uuid]
+    if x?
+        opts.cb(false, x)
+    else
+        database.uuid_blob_store(name:"blobs").get(opts)
 
 
 # For each element of the array blob_ids, (1) add an entry to the project_blobs
