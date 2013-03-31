@@ -1,3 +1,5 @@
+(2:00?) [ ] console -- make it so the dang thing always gets focus!
+
 (1:00?) [ ] feature -- save button should tell if *anybody* has made a change.
 
 (0:30?) [ ] bug -- stopwatch is appearing where it shouldn't when making NESTED interacts.

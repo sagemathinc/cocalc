@@ -1,5 +1,3 @@
-(0:15?) [x] tiny bug -- when first opening a session the save button should say that there are no unsaved changes...; very confusing otherwise.; this isn't optimal, but at least it tells us if *we* made any changes... for what it is worth.  Optimal would be to know if anybody has.
-
 (0:30?) [ ] HUGE BUG -- ui worksheet filename situation is a MESS
 
 (0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
@@ -227,3 +225,5 @@ features;
   So, I guess i have to upgrade node.... which is a good idea anyways. This was a frickin' rabit whole!
 (0:15?) [x] bug -- tab/untab of selected text -- I assumed direction of selection is one way, but if it is backwards, then bOOM.
 (0:45?) [x] HUGE BUG -- (0:16) restarting sage session bug
+
+(0:15?) [x] tiny bug -- when first opening a session the save button should say that there are no unsaved changes...; very confusing otherwise.; this isn't optimal, but at least it tells us if *we* made any changes... for what it is worth.  Optimal would be to know if anybody has.

@@ -14,15 +14,13 @@ Editor for files in a project
 }
 
 .salvus-editor-close-button-x {
-    font-size: 18px;
-    margin-left:5px;
+    font-size: 14px;
 }
 
 .salvus-editor-close-button-x:hover {
-    margin-left:5px;
     color: #fff;
     background-color:orange;
-    font-size: 18px;
+    font-size: 14px;
 }
 
 .salvus-editor-codemirror {
