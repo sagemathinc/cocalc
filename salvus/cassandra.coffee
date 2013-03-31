@@ -185,7 +185,11 @@ class UUIDBlobStore extends UUIDStore
     constructor: (@cassandra, opts={}) ->
         @opts     = defaults(opts, name:required)
         @_table   = 'uuid_blob'
-        @_to_db   = (x) -> x.toString('hex')
+        @_to_db   = (x) ->
+            winston.debug("converting object of length #{x.length} to hex")
+            s = x.toString('hex')
+            winston.debug('converted, now storing')
+            return s
         @_from_db = (x) -> new Buffer(x, 'hex')
 
 class KeyValueStore

@@ -3302,11 +3302,15 @@ save_blob = (opts) ->
         value : required   # NOTE: value *must* be a Buffer.
         ttl   : undefined
         cb    : required
-    if opts.value.length >= 10000000
+    if      opts.value.length >= 100000000 and opts.ttl?
         # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
-        opts.cb("Blobs must be at most 10MB, but you tried to store one of size #{opts.value.length} bytes")
+        opts.cb("Temporary blobs must be at most 100MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
+    else if opts.value.length >= 10000000 and not opts.ttl?
+        # TODO: PRIMITIVE anti-DOS measure -- very important do something better later!
+        opts.cb("Permanent blobs must be at most 10MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
     else
-        return database.uuid_blob_store(name:"blobs").set(opts)
+        x = database.uuid_blob_store(name:"blobs").set(opts)
+        return x
 
 get_blob = (opts) ->
     opts = defaults opts,

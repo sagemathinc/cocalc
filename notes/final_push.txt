@@ -1,21 +1,39 @@
-huge bugs:
+
+1. fix huge bugs:
+--> (0:45?) [ ] HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
+  Surprisingly, this is caused by a major bug in node.js, which is here and is fixed in a new version:
+
+         https://github.com/joyent/node/issues/4700
+
+  So, I guess i have to upgrade node.
+
+
+(0:30?) [ ] HUB BUG -- ui worksheet filename situation is a MESS
+(0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
 (0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
             -- idea: instead of reseting sync session, just start it from scratch;
                should work, since this problem doesn't happen when freshly connecting!
-(0:45?) [ ] HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
-(0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
+(0:20?) [ ] control-c for worksheet means ... no way to copy from cell!               
 
-deploy:
+2. deploy:
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including ghostview, etc.);
 (0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
+(0:45?) [ ] deploy and try
+(0:30?) [ ] setup rsync backups
 
-sync:
-(0:15?) [ ] ui worksheet filename is a MESS
+3. implement sync, then update deploy.
 (1:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
 (0:45?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet
             test that it works and provides a parallel and 100% working sync system.
 (0:45?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
 (0:30?) [ ] modify editor to use syncws enhanced version of Worksheet
+
+
+
+
+
+
+
 
 
 

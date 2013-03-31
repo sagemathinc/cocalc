@@ -1376,9 +1376,12 @@ class ProjectPage
             path       : opts.path
             timeout    : opts.timeout
             cb         : (err, result) =>
-                opts.cb?(err)
                 if err
                     alert_message(type:"error", message:"#{err} -- #{misc.to_json(result)}")
+                    opts.cb?(err)
+                else if result.event == "error"
+                    alert_message(type:"error", message:"File download prevented -- (#{result.error})")
+                    opts.cb?(result.error)
                 else
                     url = result.url + "&download"
                     if opts.prefix?
@@ -1386,6 +1389,7 @@ class ProjectPage
                         url = url.slice(0,i+1) + opts.prefix + url.slice(i+1)
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                     setTimeout((() -> iframe.remove()), 1000)
+                    opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>
         salvus_client.read_file_from_project
