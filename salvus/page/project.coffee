@@ -1074,7 +1074,7 @@ class ProjectPage
                 @update_file_search()
 
                 # No files
-                if directory_is_empty
+                if directory_is_empty and path != ".trash"
                     @container.find(".project-file-listing-no-files").show()
                 else
                     @container.find(".project-file-listing-no-files").hide()

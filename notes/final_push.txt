@@ -2,9 +2,6 @@ publication:
 (0:15?) [ ] ui -- under settings, give a link that brings up the project/file: https://cloud.sagemath.org/projects/project_id/path/in/filesystem
 (0:40?) [ ] hub -- when user does a get on url for project/file, send message opening that project.
 
-features;
---> (1:00?)  [ ] feature -- (0:04 so far) file upload using thttp://www.dropzonejs.com/; need to accept POST
-
 huge bugs:
 (0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
             -- idea: instead of reseting sync session, just start it from scratch;
@@ -213,3 +210,7 @@ create_unix_user_on_random_compute_server = (cb) ->
 (0:10?) [x] (0:11) figure out port forward trick for hopping a local_hub? -- thought about it, not so happy; found buggy in process
 
 (0:07?) [x] (0:15) ui -- same keyboard shortcuts for zoom in/out of fonts in codemirror as in terminal; plus some other ui cleanup.
+
+features;
+(1:00?)  [x] feature -- (4:00 so far) file upload using thttp://www.dropzonejs.com/; need to accept POST
+
