@@ -3518,7 +3518,7 @@ class SageSession
                 pid          : @pid
                 signal       : signal
 
-    kill : () =>
+    kill: () =>
         @send_signal(9)
         @conn?.close()
         @conn = undefined

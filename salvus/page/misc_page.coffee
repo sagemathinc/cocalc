@@ -164,10 +164,19 @@ $.fn.maxheight = (opts) ->
 
 CodeMirror.defineExtension 'unindent_selection', () ->
     editor     = @
-    start      = editor.getCursor(true)
+
+    start = editor.getCursor('head')
+    end   = editor.getCursor('anchor')
+    console.log(start,end)
+    if end.line <= start.line or (end.line ==start.line and end.ch <= start.ch)
+        # swap start and end.
+        t = start
+        start = end
+        end = t
+
     start_line = start.line
-    end        = editor.getCursor()
     end_line   = if end.ch > 0 then end.line else end.line - 1
+    console.log(start_line, end_line)
     all_need_unindent = true
     for n in [start_line .. end_line]
         s = editor.getLine(n)

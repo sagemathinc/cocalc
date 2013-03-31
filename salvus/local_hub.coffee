@@ -286,10 +286,28 @@ class SageSessions
             winston.debug("terminate sage session -- STUB!")
             cb()
 
+    update_session_status: (session) =>
+        # Check if the process corresponding to the given session is
+        # *actually* running/healthy (?).  Just because the socket hasn't sent
+        # an "end" doesn't mean anything.
+        try
+            process.kill(session.desc.pid, 0)
+            # process is running -- leave status as is.
+        catch e
+            # process is not running
+            session.status = 'done'
+
+
+    get_session: (uuid) =>
+        session = @_sessions[uuid]
+        if session?
+            @update_session_status(session)
+        return session
+
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the Sage session with mesg.session_uuid.
     connect: (client_socket, mesg) =>
-        session = @_sessions[mesg.session_uuid]
+        session = @get_session mesg.session_uuid
         if session? and session.status == 'running'
             winston.debug("sage sessions: connect to the running session with id #{mesg.session_uuid}")
             client_socket.write_mesg('json', session.desc)
@@ -339,9 +357,13 @@ class SageSessions
                         project_id : mesg.project_id
 
                 sage_socket.on 'end', () =>
+                    # this is *NOT* dependable, since a segfaulted process -- and sage does that -- might
+                    # not send a FIN.
+                    winston.debug("sage_socket: session #{mesg.session_uuid} terminated.")
                     session = @_sessions[mesg.session_uuid]
                     # TODO: should we close client_socket here?
                     if session?
+                        winston.debug("sage_socket: setting status of session #{mesg.session_uuid} to terminated.")
                         session.status = 'done'
 
     # Return object that describes status of all Sage sessions
@@ -1050,7 +1072,10 @@ handle_mesg = (socket, mesg, handler) ->
                         signal = 'SIGKILL'
                     else
                         throw("only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
-                process.kill(mesg.pid, signal)
+                try
+                    process.kill(mesg.pid, signal)
+                catch e
+                    # it's normal to get an exception when sending a signal... to a process that doesn't exist.
                 if mesg.id?
                     socket.write_mesg('json', message.signal_sent(id:mesg.id))
             when 'terminate_session'

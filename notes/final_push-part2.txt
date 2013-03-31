@@ -1,3 +1,5 @@
+(0:30?) [ ] bug -- stopwatch is appearing where it shouldn't when making NESTED interacts.
+
 [ ] BUG/issue -- terminal console resize doesn't work with node
     0.10.2, but does with 0.8.22, so I'm stuck with 0.8.22 for the
     client local_hub for now.  No older pty.js's work in 0.10.2.

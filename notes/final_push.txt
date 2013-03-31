@@ -1,8 +1,10 @@
 
 1. fix huge bugs:
---> (0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
+--> (0:45?) [x] HUGE BUG -- (0:16) restarting sage session bug
 
 (0:30?) [ ] HUGE BUG -- ui worksheet filename situation is a MESS
+
+
 (0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
             -- idea: instead of reseting sync session, just start it from scratch;
                should work, since this problem doesn't happen when freshly connecting!
