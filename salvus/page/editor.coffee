@@ -1347,11 +1347,12 @@ class Terminal extends FileEditor
                 if err
                     alert_message(type:"error", message: "Error connecting to console server.")
                 else
-                    # New session
+                    # New session or connect to session
                     opts = @opts = defaults opts,
                         session_uuid : result.content
                         rows         : 24
                         cols         : 80
+
                     elt = @element.salvus_console
                         title   : "Terminal"
                         filename : filename

@@ -218,8 +218,20 @@ class ConsoleSessions
                     # Connect the sockets together.
                     client_socket.on 'data', (data) ->
                         console_socket.write(data)
+
+                    session.amount_of_data = 0
+                    setInterval(( () -> session.amount_of_data = 0), 250)
                     console_socket.on 'data', (data) ->
+                        if session.amount_of_data > 20000
+                            # we are getting a massive burst of output
+                            # (1) send control-c -- maybe it will help
+                            console_socket.write(String.fromCharCode(3))
+                            # (2) and ignore more data
+                            client_socket.write('[Ctrl-C]')
+                            return
+
                         session.history += data
+                        session.amount_of_data += data.length
                         n = session.history.length
                         if n > 150000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
                             session.history = session.history.slice(100000)

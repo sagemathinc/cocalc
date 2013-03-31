@@ -1,3 +1,8 @@
+publication:
+(0:15?) [ ] ui -- under settings, give a link that brings up the project/file: https://cloud.sagemath.org/projects/project_id/path/in/filesystem
+(0:40?) [ ] hub -- when user does a get on url for project/file, send message opening that project.
+
+
 implement explorer:
 ---------------------
 (0:20?) [ ] message: give me list of n projects with title/desc satisfying a query

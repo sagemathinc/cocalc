@@ -1,14 +1,9 @@
-publication:
-(0:15?) [ ] ui -- under settings, give a link that brings up the project/file: https://cloud.sagemath.org/projects/project_id/path/in/filesystem
-(0:40?) [ ] hub -- when user does a get on url for project/file, send message opening that project.
-
 huge bugs:
 (0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
             -- idea: instead of reseting sync session, just start it from scratch;
                should work, since this problem doesn't happen when freshly connecting!
 (0:45?) [ ] HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
 (0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
-(0:30?) [ ] protection from the trivial-to-cause "Terminal with infinite output" control-c ignored problem.  I wonder how c9, etc., deal?
 
 deploy:
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including ghostview, etc.);
@@ -214,3 +209,5 @@ create_unix_user_on_random_compute_server = (cb) ->
 features;
 (1:00?)  [x] feature -- (4:00 so far) file upload using thttp://www.dropzonejs.com/; need to accept POST
 
+
+(0:30?) [x] (0:30) protection from the trivial-to-cause "Terminal with infinite output" control-c ignored problem.
