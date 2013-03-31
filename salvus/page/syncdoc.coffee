@@ -288,6 +288,9 @@ class SynchronizedDocument
                     @_syncing = false
                     @sync()
 
+                if not resetting
+                    @editor.save_button.addClass('disabled')   # start with no unsaved changes
+                    
                 cb()
 
     _diffsync_ready: (mesg) =>
