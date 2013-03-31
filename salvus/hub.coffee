@@ -136,32 +136,87 @@ init_http_server = () ->
                 # See https://github.com/felixge/node-formidable
                 if req.method == "POST"
                     # user uploaded a file
-                    winston.debug("user uploading a file...")
+                    winston.debug("User uploading a file...")
                     form = new formidable.IncomingForm()
                     form.parse req, (err, fields, files) ->
                         res.writeHead(200, {'content-type': 'text/plain'})
                         res.write('received upload:\n\n');
                         res.end('')
-                        winston.debug(util.inspect({fields: fields, files: files}))
-                        cookies = new Cookies(req, res)
-                        value = cookies.get('remember_me')
-                        if not value?
-                            res.end('ERROR -- you must enable remember_me cookies')
-                            return
-                        x    = value.split('$')
-                        hash = generate_hash(x[0], x[1], x[2], x[3])
-                        user = database.key_value_store(name: 'remember_me').get
-                            key : hash
-                            cb  : (err, signed_in_mesg) =>
-                                account_id = signed_in_mesg.account_id
-                                if not account_id?
-                                    res.end('ERROR -- invalid cookie')
+                        account_id = undefined
+                        project_id = undefined
+                        dest_dir   = undefined
+                        data       = undefined
+                        async.series([
+                            # authenticate user
+                            (cb) ->
+                                cookies = new Cookies(req, res)
+                                value = cookies.get('remember_me')
+                                if not value?
+                                    res.end('ERROR -- you must enable remember_me cookies')
                                     return
-                                winston.debug("Upload from: '#{account_id}'")
-                                project_id = query.project_id
-                                dest_dir   = query.dest_dir
-                                winston.debug("project = #{project_id}")
-                                winston.debug("dest_dir = '#{dest_dir}'")
+                                x    = value.split('$')
+                                hash = generate_hash(x[0], x[1], x[2], x[3])
+                                database.key_value_store(name: 'remember_me').get
+                                    key : hash
+                                    cb  : (err, signed_in_mesg) =>
+                                        if err
+                                            cb('unable to get remember_me cookie from db -- cookie invalid'); return
+                                        account_id = signed_in_mesg.account_id
+                                        if not account_id?
+                                            cb('invalid remember_me cookie'); return
+                                        winston.debug("Upload from: '#{account_id}'")
+                                        project_id = query.project_id
+                                        dest_dir   = query.dest_dir
+                                        if dest_dir == ""
+                                            dest_dir = '.'
+                                        winston.debug("project = #{project_id}")
+                                        winston.debug("dest_dir = '#{dest_dir}'")
+                                        cb()
+                            # auth user access to *write* to the project
+                            (cb) ->
+                                user_has_write_access_to_project
+                                    project_id : project_id
+                                    account_id : account_id
+                                    cb         : (err, result) =>
+                                        if err
+                                            cb(err)
+                                        else if not result
+                                            cb("User does not have write access to project.")
+                                        else
+                                            winston.debug("user has write access to project.")
+                                            cb()
+                            # TODO: we *should* stream the file, not write to disk/read/etc.... but that is more work and I don't have time now.
+                            # get the file itself
+                            (cb) ->
+                                winston.debug(misc.to_json(files))
+                                winston.debug("Reading file from disk '#{files.file.path}'")
+                                fs.readFile files.file.path, (err, _data) ->
+                                    if err
+                                        cb(err)
+                                    else
+                                        data = _data
+                                        cb()
+
+                            # actually send the file to the project
+                            (cb) ->
+                                winston.debug("getting project...")
+                                new_project project_id, (err, project) ->
+                                    if err
+                                        cb(err)
+                                    else
+                                        path = dest_dir + '/' + files.file.name
+                                        winston.debug("writing file '#{path}' to project...")
+                                        project.write_file
+                                            path : path
+                                            data : data
+                                            cb   : cb
+
+                        ], (err) ->
+                            if err
+                                winston.debug("Error during file upload: #{misc.to_json(err)}")
+                            # delete tmp file
+                            fs.unlink(files.file.path)
+                        )
             else
                 res.end('hub server')
 

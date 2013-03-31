@@ -67,11 +67,11 @@
                     <a href="#project-file-listing"  data-toggle="tooltip" data-placement="bottom" title="Browse files"><i class="project-control-icon icon-folder-open-alt"></i> </a>
                 </li>
 
-                <!-- File editor -->
-                <li class="super-menu"><a href="#project-editor" data-toggle="tooltip" data-placement="bottom" title="Rrecent files"><i class="project-control-icon icon-time"> </i></a></li>
-
                 <!-- Create a new file (or, etc.)-->
                 <li class="super-menu"><a href="#project-new-file" data-toggle="tooltip" data-placement="bottom" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> </a></li>
+
+                <!-- File editor with links to recent files -->
+                <li class="super-menu"><a href="#project-editor" data-toggle="tooltip" data-placement="bottom" title="Rrecent files"><i class="project-control-icon icon-time"> </i></a></li>
 
                 <!-- Search -->
                 <li class="super-menu project-search-menu-item"><a href="#project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i></a></li>
@@ -160,7 +160,7 @@
             <div class="project-new-file hide">
                 <h1  style="margin-left:1em;">Add files to <span class="project-new-file-if-root">root directory of project</span>
                             <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a></h1>
-                <div class="well"  style="margin-left:3em; overflow-y:auto;">
+                <div class="well"  style="margin-left:3em;">
                     <div class="row">
                         <div class="span3">
                             <h4>New</h4>
@@ -179,6 +179,14 @@
                         </div>
                     </div>
                     <hr>
+                    <div class="row" >
+                        <div class="span3">
+                            <h4>From your computer <i class="icon-cloud-upload"> </i></h4>
+                        </div>
+                        <div class="span8 project-dropzone" style="overflow-y:auto; height:15em; background-color: #eeeeee;">
+                        </div>
+                    </div>
+                    <hr>
                     <div class="row">
                         <div class="span3">
                             <h4>From the web</h4>
@@ -190,14 +198,6 @@
                     <div class="row">
                         <div class="offset3 span3">
                             <a class="btn btn-large" href="#import-from-web"><i class="icon-external-link"> </i> Copy into my project</a>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row" >
-                        <div class="span3">
-                            <h4>From your computer <i class="icon-cloud-upload"> </i></h4>
-                        </div>
-                        <div class="span8 project-dropzone" style="overflow-y:auto; height:15em;">
                         </div>
                     </div>
                 </div>
