@@ -1,10 +1,41 @@
+implement explorer:
+---------------------
+(0:20?) [ ] message: give me list of n projects with title/desc satisfying a query
+(0:10?) [ ] ui -- box in which to type query
+(0:20?) [ ] ui -- div/list in which to show results and click
+(0:15?) [ ] ui readonly -- grey out plus to create file, settings
+(0:15?) [ ] ui readonly -- codemirror edit sessions; sets the editor to readonly
+(0:15?) [ ] ui readonly -- worksheets read only view (but still see)
+(0:15?) [ ] ui readonly -- console read only view (but still see)
+
+
+
+project sharing:
+-----------------
+(0:10?) [ ] message: add user to project
+(0:10?) [ ] message: remove user from project
+(0:20?) [ ] message: get all users by username; support in hub via db query; returns first/last/account_id that match.
+(0:15?) [ ] ui -- search for other users by login name
+(0:20?) [ ] ui -- display other user names in a clickable scrollable list
+(0:20?) [ ] ui -- display closeable pills representing users that who have invites access
+(0:20?) [ ] ui -- remove self from project (if last, this deletes projects)
+
+
+-------------
+
+(0:45?) [ ] rsnapshot on the virtual machine, for local file recover -- how to easily configure and make available?
+
+
+(3:00?)   [ ] arbitrary user-specified project location
+
+(0:30?)   [ ] browserify issue
+
 (1:00?)  [ ] editor -- ability to set the syntax highlight mode of a file
 
 (0:45?)  [ ] bug -- if editing file with long name, vertical size is miscomputed. (I put in a 5-minute hack truncate.)
 (0:30?)  [ ] make sure email reset works with cloud.sagemath.org
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
 (0:45?)  [ ] editor synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up -- sync the window with focus?
-(1:00?)  [ ] feature -- (0:04 so far) file upload using http://www.dropzonejs.com/; need to accept POST
 
 
 (1:00?)  [ ] MINIFY actual page js

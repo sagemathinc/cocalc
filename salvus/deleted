@@ -1,4 +1,13 @@
-create_unix_user_on_random_compute_server = (opts) ->
+
+                ###
+                if req.method == "POST"
+                    data = ''
+                    req.on 'data', (chunk) -> data += chunk
+                    req.on 'end', () ->
+                        winston.debug("data = ", data)
+                        winston.debug("got file of length #{data.length} and id #{query.uuid}, #{misc.to_json()}")
+                ###
+ocreate_unix_user_on_random_compute_server = (opts) ->
     opts = defaults opts,
         cb : required
 

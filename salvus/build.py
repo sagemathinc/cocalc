@@ -38,7 +38,7 @@ NODE_MODULES = [
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
-    'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff'
+    'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest'
     ]
 
 PYTHON_PACKAGES = [

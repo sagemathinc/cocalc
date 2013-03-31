@@ -83,6 +83,8 @@ PROJECT_TEMPLATE = 'conf/project_templates/default/'
 ###
 # HTTP Server
 ###
+formidable = require('formidable')
+util = require('util')
 
 init_http_server = () ->
     http_server = http.createServer((req, res) ->
@@ -129,6 +131,37 @@ init_http_server = () ->
                             header['Content-disposition'] = 'attachment; filename=' + segments[segments.length-1]
                         res.writeHead(200, header)
                         res.end(data, 'utf-8')
+
+            when "upload"
+                # See https://github.com/felixge/node-formidable
+                if req.method == "POST"
+                    # user uploaded a file
+                    winston.debug("user uploading a file...")
+                    form = new formidable.IncomingForm()
+                    form.parse req, (err, fields, files) ->
+                        res.writeHead(200, {'content-type': 'text/plain'})
+                        res.write('received upload:\n\n');
+                        res.end('')
+                        winston.debug(util.inspect({fields: fields, files: files}))
+                        cookies = new Cookies(req, res)
+                        value = cookies.get('remember_me')
+                        if not value?
+                            res.end('ERROR -- you must enable remember_me cookies')
+                            return
+                        x    = value.split('$')
+                        hash = generate_hash(x[0], x[1], x[2], x[3])
+                        user = database.key_value_store(name: 'remember_me').get
+                            key : hash
+                            cb  : (err, signed_in_mesg) =>
+                                account_id = signed_in_mesg.account_id
+                                if not account_id?
+                                    res.end('ERROR -- invalid cookie')
+                                    return
+                                winston.debug("Upload from: '#{account_id}'")
+                                project_id = query.project_id
+                                dest_dir   = query.dest_dir
+                                winston.debug("project = #{project_id}")
+                                winston.debug("dest_dir = '#{dest_dir}'")
             else
                 res.end('hub server')
 

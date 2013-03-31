@@ -313,3 +313,9 @@ font-size: 11px;
 .project-file-listing-spinner {
     margin-top:2em;
 }
+
+.project-dropzone {
+    border: 2px solid #ccc;
+    box-shadow: 4px 4px 2px #bbb;
+    border-radius: 5px;
+}

@@ -1,42 +1,29 @@
+publication:
+(0:15?) [ ] ui -- under settings, give a link that brings up the project/file: https://cloud.sagemath.org/projects/project_id/path/in/filesystem
+(0:40?) [ ] hub -- when user does a get on url for project/file, send message opening that project.
 
+features;
+--> (1:00?)  [ ] feature -- (0:04 so far) file upload using thttp://www.dropzonejs.com/; need to accept POST
 
-(0:30?) [ ] find protection from the trivial-to-cause "Terminal with infinite output" control-c ignored problem.  I wonder how c9, etc., deal?
-
-project sharing:
-(0:10?) [ ] message: add user to project
-(0:10?) [ ] message: remove user from project
-(0:20?) [ ] message: get all users by username; support in hub via db query; returns first/last/account_id that match.
-(0:15?) [ ] ui -- search for other users by login name
-(0:20?) [ ] ui -- display other user names in a clickable scrollable list
-(0:20?) [ ] ui -- display closeable pills representing users that who have invites access
-(0:20?) [ ] ui -- remove self from project (if last, this deletes projects)
-
-(0:45?) [ ] HUGE BUG -- download project kills everything
+huge bugs:
+(0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
+            -- idea: instead of reseting sync session, just start it from scratch;
+               should work, since this problem doesn't happen when freshly connecting!
+(0:45?) [ ] HUGE BUG -- download project kills everything (confirmed in multiple settings) -- obviously trying to tar /home and running out of RAM.
 (0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
-
-(2:00?) [ ] implement basic project explorer:    (similar function to https://github.com/explore)
-               * search = on project name and description (I will have to build indexes at some point...)
-               * Any location should have a url which can be used as a shortcut to get back there.
-                  https://cloud.sagemath.org/projects/project_id/path/in/filesystem
-                  Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
+(0:30?) [ ] protection from the trivial-to-cause "Terminal with infinite output" control-c ignored problem.  I wonder how c9, etc., deal?
 
 deploy:
-(0:45?) [ ] make virtual machine image that is up2date and has all necessary packages (including ghostview, etc.);
-(0:30?) [ ] define topology file for deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
+(0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including ghostview, etc.);
+(0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
 
 sync:
-(0:45?) [ ] HUB BUG editor -- weird bug when starting to edit a file and loose something -- idea: instead of reseting sync session, just start it from scratch; should work, since this problem doesn't happen when freshly connecting!
-(0:45?) [ ] worksheet: filename is a MESS
-(1:00?) [ ] worksheet: define code to diff two worksheets and make a patch, and apply patch
-(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into client
-(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into hub
-(1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into local hub
-(0:45?) [ ] worksheet/ui: interact plus moving cells bug: just add a data attribute to those cells so skipped
-
-
-
-(0:45?) [ ] rsnapshot on the virtual machine, for local file recover -- how to easily configure and make available?
-(0:30?) [ ] browserify version issue
+(0:15?) [ ] ui worksheet filename is a MESS
+(1:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
+(0:45?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet
+            test that it works and provides a parallel and 100% working sync system.
+(0:45?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
+(0:30?) [ ] modify editor to use syncws enhanced version of Worksheet
 
 
 
@@ -224,3 +211,5 @@ create_unix_user_on_random_compute_server = (cb) ->
 
 
 (0:10?) [x] (0:11) figure out port forward trick for hopping a local_hub? -- thought about it, not so happy; found buggy in process
+
+(0:07?) [x] (0:15) ui -- same keyboard shortcuts for zoom in/out of fonts in codemirror as in terminal; plus some other ui cleanup.

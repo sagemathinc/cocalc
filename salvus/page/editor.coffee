@@ -807,6 +807,10 @@ class CodeMirrorEditor extends FileEditor
                     "Cmd-L"        : (editor)   => @goto_line(editor)
                     "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
                     "Cmd-I"        : (editor)   => @toggle_split_view(editor)
+                    "Shift-Ctrl-."       : (editor)   => @change_font_size(editor, +1)
+                    "Shift-Ctrl-,"       : (editor)   => @change_font_size(editor, -1)
+                    "Shift-Cmd-."       : (editor)   => @change_font_size(editor, +1)
+                    "Shift-Cmd-,"       : (editor)   => @change_font_size(editor, -1)
                     "Shift-Tab"    : (editor)   => editor.unindent_selection()
                     "Ctrl-Space"  : "indentAuto"
                     "Tab"          : (editor)   => @press_tab_key(editor)

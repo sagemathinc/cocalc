@@ -192,12 +192,13 @@ $("#about").top_navbar
     #pull_right : true
     close   : false
 
-
+###
 $(".salvus-explore").top_navbar
     id      : "explorer"
     label   : "Explore"
     icon : 'icon-globe'
     close   : false
+###
 
 $("#projects").top_navbar
     id      : "projects"

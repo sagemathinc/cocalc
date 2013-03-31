@@ -789,7 +789,24 @@ class ProjectPage
                 when "project-editor"
                     @editor.focus()
 
+    init_dropzone_upload: () =>
+        # Dropzone
+        uuid = misc.uuid()
+        dz_container = @container.find(".project-dropzone")
+        dz_container.empty()
+        dz = $('<div class="dropzone" ></div>')
+        dz_container.append(dz)
+        dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
+        dz.dropzone
+            url: "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
+            dictDefaultMessage : "Drop a file here, or click to select a file from your computer..."
+            #success: () ->
+            #    console.log("success!")
+            #complete: () ->
+            #    console.log("complete!")
+
     init_new_file_tab: () =>
+
         # Make it so clicking on each of the new file tab buttons does the right thing.
         @new_file_tab = @container.find(".project-new-file")
         @new_file_tab_input = @new_file_tab.find(".project-new-file-path-input")
@@ -897,6 +914,7 @@ class ProjectPage
         if path != ""
             path += "/"
         @new_file_tab.find(".project-new-file-path").text(path)
+        @init_dropzone_upload()
 
         elt = @new_file_tab.find(".project-new-file-if-root")
         if path != ''

@@ -1,7 +1,7 @@
 TODO
 -----
 
-NOW: 
+NOW:
 
 BUGS:
 
@@ -46,7 +46,7 @@ I annoted the conf/deploy/hosts file with this info. Made a proper file on combi
      on the VPN, because it would have to put new keys on the vpn
      server nodes.
 
- [ ] sage network still too open -- it allows outgoing 22 and 8200 and 53 to anywhere. 
+ [ ] sage network still too open -- it allows outgoing 22 and 8200 and 53 to anywhere.
      really need to lock down much more eventually somehow...
 
  [ ] salv.us new homepage needs to have google analytics javascript on it;
@@ -101,7 +101,7 @@ host = 'combinat2'
 s.stop('sage', host)
 
 # delete old sage
-h(host, 'rm -rf sage')  
+h(host, 'rm -rf sage')
 
 # get new sage
 ver = '5.3'
@@ -150,7 +150,7 @@ to the sage machines and the database and haproxy.  But the sage servers
 can *only* talk to the tornado machines and that is it.  And no databases
 will run on the same machines as the tornado machines.    Even if somebody
 roots a sage server, they do not get access to the salvus vpn, so it gains
-them little.   
+them little.
 
 This way I will not have to worry a lot about security of the database
 (at least of the connections between nodes).  That said, anything in
@@ -163,9 +163,9 @@ might that work?  What is sensitive?
 * Password hash is fine, assuming we use a state of the art hashing algorithm!
 * email address must be protected.
 
-Why/when do we need email addresses?   
+Why/when do we need email addresses?
 
-Let userid = SHA1(email_address).   
+Let userid = SHA1(email_address).
 
 Then the tornado web servers do not need to know the email address do
 they?  They just need the SHA1 hash of it, which can be computed by
@@ -178,7 +178,7 @@ accounts, the system, etc... but that can be done on a completely
 different server.
 
 SO... conclusion: the production network and big distributed database will
-*not* have any email addresses in it -- only the SHA1 of them. 
+*not* have any email addresses in it -- only the SHA1 of them.
 
 There will be another super-secure database that contains email
 address and account info, and that server will be used for sending any
@@ -205,18 +205,18 @@ automatic.
 
    [ ] top goal: have the page be live with a single compute cell
 
-   [ ] create query that will be used by backend/monitor/etc. to determine 
+   [ ] create query that will be used by backend/monitor/etc. to determine
        memcache pool:
           [ ] make sure startup goes like this:
              (1) start database
              (2) start memcached
-             ... 
+             ...
           [ ] create the query to get memcached pool
-          [ ] use in tornado, monitor, etc. 
+          [ ] use in tornado, monitor, etc.
 
-   [ ] haproxy should also proxy ssl tcp connections to the tornado servers, so they 
-       can provide a simpler faster non-http API.  
-     
+   [ ] haproxy should also proxy ssl tcp connections to the tornado servers, so they
+       can provide a simpler faster non-http API.
+
    [ ] "monitor": database ...
      [ ] add support to admin.py to clean out old entries from the
          database, i.e., something like capped collection via a delete call: calls db.cap_table somehow...
@@ -232,9 +232,9 @@ automatic.
 
    [ ] database: table of connected browers and which tornado server they are connected to
 
-   [ ] admin: make it so this doesn't happen every time: 
+   [ ] admin: make it so this doesn't happen every time:
           INFO:root:running 'sudo cp /var/folders/fc/tdg_b00d2rv0_0c940cxttjc0000gp/T/tmp3XEkwZ data/haproxy-0.conf'
-  
+
    [ ] tornado: implement sending message to any connected browser, possibly connected to a different tornado
 
    [ ] sage_server: sage_server.py dies when run in daemon mode -- for now just run as subproc, but need to fix this
@@ -242,18 +242,18 @@ automatic.
    [ ] sage_server/tornado: range(10^4 ) *reliably* fails to get the final I/O terminate message through from tornado to browser.
    [ ] sage_server: specify tornado sage_servers by putting them in a config file, which the
        tornado monitors for changes (via file descriptor)
-   [ ] sage_server: when sage_server.py killed, it doesn't properly clean up the processes that it forked off.   
+   [ ] sage_server: when sage_server.py killed, it doesn't properly clean up the processes that it forked off.
    [ ] sage_server: max limit on number of simultaneous sage_server processes allowed by sage_server server
    [ ] sage_server: sudo sage_server.py -- executing commands doesn't work at all on Linux
        (but does on OS X), so probably a resource issue?
 
-   [ ] tornado: dropbox oauth: dropbox too 
-   [ ] haproxy: this line in haproxy conf looks wrong/misleading since I settled on a file, right? 
-             #daemon   -- commented out so I can just log to stdout 
+   [ ] tornado: dropbox oauth: dropbox too
+   [ ] haproxy: this line in haproxy conf looks wrong/misleading since I settled on a file, right?
+             #daemon   -- commented out so I can just log to stdout
    [ ] haproxy: two different haproxies at once (so either can be used if the other dies)
    [ ] logging: format for date part of every log message, so in
        database the time when log row was *record* could be set,
-       instead of the time of insertion in DB.  
+       instead of the time of insertion in DB.
    [ ] browser/sage_server/tornado: interacts
    [ ] browser/sage_server/tornado: 2d graphics
    [ ] tornado/database: shortened url database
@@ -286,7 +286,7 @@ VAGUE:
    [ ] think about how to separate my data into multiple database for scalability
    [ ] multiple haproxies for high availability:
     - do what stackoverflow does: heartbeat + haproxy: http://blog.stackoverflow.com/2010/01/stack-overflow-network-configuration/; http://www.linux-ha.org/wiki/Main_Page
-    - this discussion says to use "DNS failover":  
+    - this discussion says to use "DNS failover":
         * http://www.webhostingtalk.com/archive/index.php/t-1117385.html
         * http://www.dnsmadeeasy.com/
     - this page talks about round robin DNS, which seems sensible to me:
@@ -312,35 +312,35 @@ DONE:
            I don't know if using haproxy is needed or a good idea; it is a small detail in the implementation.
        Proposal 1 (rejected):
          - tornados will have access to a token they read from database, which they know but
-           not publicly available (since tornados have to be able to get personal user data, 
+           not publicly available (since tornados have to be able to get personal user data,
            the database must support this).
          - Add another url handler:  /message
             POST message with variables:
                  token: the token
                  message: the message, as a ProtoBuf -- the message format should have user id of recipient as part of message
-         - haproxy will also map 
+         - haproxy will also map
                 /tornado[n]/... to the n-th tornado.
          - each tornado has an id number (the n above)
          - tornado communication will go via stunnel, so is secure
            outside of LAN, where it matters
-         - messages might suggest pulling down static web content (e.g, describing an image), 
+         - messages might suggest pulling down static web content (e.g, describing an image),
            and url will be /tornado[n]/static/[id].[ext]
-         Thoughts: the above seems untenable because of the overhead in estabilishing a complete 
-         HTTPS connection for every single message. 
+         Thoughts: the above seems untenable because of the overhead in estabilishing a complete
+         HTTPS connection for every single message.
    [x] tornado: find a way to move the code for "Persistent connections to sage_servers" into another file (like
        is done with "Authentication with Facebook, Google, and DropBox (TODO)")
    [x] yes, use a vpn???
          I'm thinking about how to structure services, define their location,
-         make it so every service can connect to every other one, etc. 
+         make it so every service can connect to every other one, etc.
          One possibility is that I setup a VPN connecting all the
-         physical sites.   Hmmm.  
-         It looks like openVPN is a good choice. 
+         physical sites.   Hmmm.
+         It looks like openVPN is a good choice.
             http://openvpn.net/index.php/open-source/overview.html
          It takes only a few seconds to build from source.  It's small.  The documentation
          seems excellent.  And using this will make it so I can easily use exactly one
-         config script to manage all the sites at once, that any node can talk to any 
+         config script to manage all the sites at once, that any node can talk to any
          other node, while they are all still behind a layer of security (not directly
-         on the web), etc. 
+         on the web), etc.
    [x] add openvpn to build.py -- easy to build on linux; not sure how yet on OS X!
    [x] tornado: postgresql async client for tornado -- needed to
        implement tornado socket communication (just a little), and
@@ -351,10 +351,10 @@ DONE:
            [x] do not use SQLalchemy at all (sad, but I have only written
                a few lines in logwatch.py so far in my newest version, so this
                shouldn't be hard).
-           [x] Directly use psycopg2 (which has builtin async support) and 
+           [x] Directly use psycopg2 (which has builtin async support) and
                momoko which officially supports using PostgreSQL + Tornado.
        This would explicitly tie us to PostgreSQL.
-    
+
     [x] tornado communication system working with ports hardcoded and no encryption
     [x] tornado communication system with encryption
     [x] html: make "Thyme" name clear.
@@ -394,7 +394,7 @@ DONE:
    [x] Address this comment I found: "Site note: our 2gb VPS's memcahed is set up to accept over 40k requests. The default setting in memcached is 1024 which is WAY too low."
            http://blog.dpn.name/asyncronous-memcache-driver-for-tornado
 
-   [x] async tornado memcached:  
+   [x] async tornado memcached:
            Solution: https://github.com/dpnova/tornado-memcache
          Add to build system.
 
@@ -404,7 +404,7 @@ DONE:
    [x] salv.us certificate
    [x] need to use namespace for my use of memcached in tornado_server.py
    [x] decided not to add in-process ram cache to tornado_server that I check first, since this could easily lead to using up all available RAM if not implemented sensibly, and doing this sensibly is really complicated.
-           
+
 [...x] monitor database:
      [x] rename logwatch.py to monitor.py
      [x] change docs to indicate what monitor.py does
@@ -418,7 +418,7 @@ services:
   - type - string: one of 'nginx', 'haproxy', 'sage', 'tornado', 'stunnel', 'openvpn', 'memcached', 'postgresql'
   - site - string: where this service is physically located
   - address - string (ip address or hostname)
-  - port - integer  
+  - port - integer
   - running - boolean
   - user
   - pid
@@ -438,21 +438,21 @@ status:
      [x] monitor: change to use -- options since - options are too short
 
    [x] "Failed to commit log messages to database (invalid byte sequence for encoding "UTF8": 0x8d)"
-       Seen when doing 
+       Seen when doing
             sudo ./monitor.py --debug --logfile data/logs/haproxy-0.log --database "dbname=monitor user=wstein" --pidfile data/pids/haproxy-0-log.pid --interval 6 --target_pidfile data/pids/haproxy-0.pid --target_name haproxy --target_address localhost --target_port 8000
 
      [x] add address command line option to monitor.py, which gives
-         the address and port that the service listens on: 
+         the address and port that the service listens on:
            "--address 10.7.1.5 --port 6000 --site padelford".  This will get entered into the
-         database when process starts.  When this happens, we will also 
+         database when process starts.  When this happens, we will also
          get the unique id that corresponds to this service, which will be used
-         by the monitor for all future db interaction.  
+         by the monitor for all future db interaction.
      [x] make a command line option for when info is put in database
      [x] service startup -- put data in database
      [x] when monitored process terminates, update the corresponding entry (using id)
          to set running to false
      [x] status -- put periodic information in database about state of watched processes
-     [x] memcached + monitor: store something in memcached at same time as put in database, so 
+     [x] memcached + monitor: store something in memcached at same time as put in database, so
          query about latest status can be done instantly using memcached if in cache.
      [x] add support to easily query the monitor database and use memcached when appropriate
           [x] - list of running processes and last status
@@ -462,12 +462,12 @@ status:
          sage_server to use, and use that -- might choose based on
          lowest load, etc.
      [x] race condition: sage_server seems to delete its pid file even when it doesn't quit, which causes havoc...
-         
+
      [x] sage_server: "./config1 --restart=sage_server" doesn't work; this is because the
          port isn't being freed quickly enough.  we use SO_REUSEADDR to fix this.
 
      [x] make tornado determining sage_server query be async
-   [x] get it to start under linux 
+   [x] get it to start under linux
 
    [x] setup openVPN
 
@@ -475,7 +475,7 @@ status:
        name.com), but more complicated to get.  Would it be better
        than salv.us?  No, since it is hallucinogenic sage!
 
-   [x] setup a private DNS server -- instead use godaddy to do this. 
+   [x] setup a private DNS server -- instead use godaddy to do this.
 
    [x] change DNS clients to run in daemon mode, maybe connecting on
        startup (at least for the VMs)?
@@ -506,23 +506,23 @@ status:
   [x] ansible SUCKSxxxx
 write ansible playbooks for:
      [ ] updating git repos: how?
-         * we want every node (except the sage server nodes) to 
+         * we want every node (except the sage server nodes) to
            be able to pull the latest version of the code.
          * sage server will only have sage_server.py (and maybe
            stuff it deps on).
-         It seems like copying all of the ssh public keys 
+         It seems like copying all of the ssh public keys
          for all non-sage nodes to a single authorized_keys file
-         is the way to do this. 
-  
+         is the way to do this.
+
       1. fix the id_rsa.pub files to have correct names
       2. get them all using something like
            ansible XXX -m shell -a "cat ~/.ssh/id_rsa.pub" -u salvus
          (not the sage server machines!)
       3. make "git" account on combinat1 that contains
-         salvus bare repo that we can push to, and whose 
+         salvus bare repo that we can push to, and whose
          .ssh/authorized_keys files is the concat of all the public keys.
          and *USE git-shell* for safety.
-      4. test   
+      4. test
 ---
 
   [x] get rid of anything non-local from the non-Hosts top part of the admin module

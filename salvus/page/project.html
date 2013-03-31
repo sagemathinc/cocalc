@@ -112,7 +112,7 @@
 
                     <!-- Sort by time or alphabetical -->
                     <div class="project-sort-files pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex;">
-                        <a href="#sort-by-time" class='hide' data-toggle="tooltip" data-placement="bottom" title="Toggle whether files are sorted by time or filename."><i class="icon-time"> </i></a>
+                        <a href="#sort-by-time" class='hide' data-toggle="tooltip" data-placement="bottom" title="Toggle whether files are sorted by time or filename."><i class="icon-text-height"> </i></a>
                         <a href="#dont-sort-by-time"  data-toggle="tooltip" data-placement="top" title="Toggle whether files are sorted by time or filename."><i class="icon-reorder"> </i> </a>
                     </div>
 
@@ -149,7 +149,7 @@
             <!-- Open files in this project. -->
             <div class="project-editor hide">
                 <h1  style="margin-left:1em;">
-                    Recent Files (<span class="project-editor-file-count">0</span> )
+                    Recent Files (<span class="project-editor-file-count">0</span>)
                 </h1>
 
                 <!-- the actual recent file UI gets inserted here dynamically! -->
@@ -158,15 +158,9 @@
 
             <!-- Create a new file -->
             <div class="project-new-file hide">
-                <h1  style="margin-left:1em;">Create or Import a File, Worksheet, Terminal or Directory</h1>
-                <div class="row">
-                    <div class="span10 offset1">
-                        <h3>Destination: <span class="project-new-file-if-root">root directory of project</span>
-                            <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a>
-                        </h3>
-                    </div>
-                </div>
-                <div class="well"  style="margin-left:3em;">
+                <h1  style="margin-left:1em;">Add files to <span class="project-new-file-if-root">root directory of project</span>
+                            <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a></h1>
+                <div class="well"  style="margin-left:3em; overflow-y:auto;">
                     <div class="row">
                         <div class="span3">
                             <h4>New</h4>
@@ -176,10 +170,10 @@
                             <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
                             <br>
                             <span style="width:100%">
-                                <a class="btn btn-large" href="#new-file"><i class="icon-file"></i> File</a>
-                                <a class="btn btn-large" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                                <a class="btn btn-large" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                                <a class="btn btn-large" href="#new-folder"><i class="icon-folder-close"></i> Directory</a>
+                                <a class="btn btn-large btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
+                                <a class="btn btn-large btn-info" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
+                                <a class="btn btn-large btn-success" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                                <a class="btn btn-large btn-warning" href="#new-folder"><i class="icon-folder-close"></i> Directory</a>
 
                             </span>
                         </div>
@@ -195,16 +189,15 @@
                     </div>
                     <div class="row">
                         <div class="offset3 span3">
-                            <a class="btn" href="#import-from-web"><i class="icon-external-link"> </i> Copy into my project</a>
+                            <a class="btn btn-large" href="#import-from-web"><i class="icon-external-link"> </i> Copy into my project</a>
                         </div>
                     </div>
                     <hr>
-                    <div class="row">
+                    <div class="row" >
                         <div class="span3">
-                            <h4>From your computer</h4>
+                            <h4>From your computer <i class="icon-cloud-upload"> </i></h4>
                         </div>
-                        <div class="span8">
-                            <a class="btn" href="#upload"><i class="icon-upload-alt"> </i> Click to select...</a>
+                        <div class="span8 project-dropzone" style="overflow-y:auto; height:15em;">
                         </div>
                     </div>
                 </div>
@@ -226,8 +219,8 @@
                                 <!-- Location:
                                 <span class="project-location"></span> -->
                                 <!-- Download the whole project -->
-                                <a href="#download-project" class="btn btn-success">
-                                    <i class="icon-download-alt"> </i> Download Project
+                                <a href="#download-project" class="btn btn-large btn-success">
+                                    <i class="icon-cloud-download"> </i> Download Project
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
                                 </a>
                             </div>
@@ -324,7 +317,7 @@
 
 <div class="row span12 well well-small project-file-link">
     <div class="span lighten" style="width: 10px;">
-        <i class="icon-move hide project-file-drag-handle   project-file-buttons "> </i>
+        <i class="icon-move hide project-file-drag-handle   project-file-buttons " > </i>
     </div>
 
     <div class="span" style="width: 10px;">
@@ -351,9 +344,9 @@
         (<a class="project-file-last-commit-message lighten"></a>)
     </div>
     <div class="pull-right">
-        <span class="btn-group project-file-buttons  hide">
+        <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
             <a class="btn btn-small" href="#open-file"><i class="icon-edit"> </i> </a>
-            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-download-alt"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
             <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
         </span>
     </div>
@@ -372,9 +365,9 @@
         <a  href="#rename" class="project-directory-name"></a>
     </div>
     <div class="pull-right">
-        <span class="btn-group project-file-buttons  hide">
+        <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
             <a class="btn btn-small" href="#open-file"><i class=" icon-folder-open-alt"> </i> </a>
-            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-download-alt"> </i> </a>
+            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-cloud-download"> </i> </a>
             <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> </a>
         </span>
     </div>
