@@ -938,7 +938,7 @@ class ProjectPage
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
                         @update_file_list_tab(no_focus)
                     else
-                        alert_message(type:"error", message:"Error viewing files at '#{path}'")
+                        alert_message(type:"error", message:"Error viewing files at '#{path}' in project '#{@project.title}'.")
 
                     return
                 # remember for later

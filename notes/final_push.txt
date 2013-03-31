@@ -1,39 +1,46 @@
-STUBS
-2614 in hub.coffee:
-create_unix_user_on_random_compute_server = (cb) ->
-    cb(false, {host:'localhost', username:'sage0',port:22})
 
 
-(0:30?) [ ] make it so each new project get mapped to unix accounts by default, created using above script.
-        [ ] new accounts get one new unix_user
+(0:30?) [ ] find protection from the trivial-to-cause "Terminal with infinite output" control-c ignored problem.  I wonder how c9, etc., deal?
 
-(0:30?) [ ] ui: make it so account in new project uses the user's default account "by default"
+project sharing:
+(0:10?) [ ] message: add user to project
+(0:10?) [ ] message: remove user from project
+(0:20?) [ ] message: get all users by username; support in hub via db query; returns first/last/account_id that match.
+(0:15?) [ ] ui -- search for other users by login name
+(0:20?) [ ] ui -- display other user names in a clickable scrollable list
+(0:20?) [ ] ui -- display closeable pills representing users that who have invites access
+(0:20?) [ ] ui -- remove self from project (if last, this deletes projects)
 
-(1:00?) [ ] basic project explorer:    (similar function to https://github.com/explore)
+(0:45?) [ ] HUGE BUG -- download project kills everything
+(0:45?) [ ] HUGE BUG -- (0:16) restarting sage session bug
+
+(2:00?) [ ] implement basic project explorer:    (similar function to https://github.com/explore)
                * search = on project name and description (I will have to build indexes at some point...)
-(1:00?) [ ] clicking on a project in result list opens it (as usual) in read/write mode, if you have write access to it.
-(1:00?) [ ] Any location should have a url which can be used as a shortcut to get back there.
-              https://cloud.sagemath.org/projects/project_id/path/in/filesystem
-            Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
-(0:45?) [ ] update virtual machine image that is up2date and has all necessary packages (including ghostview, etc.);
-(0:45?) [ ] rsnapshot on the virtual machine, for local file recover.
-(0:30?) [ ] define topology file for deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
-(0:30?) [ ] browserify version issue
+               * Any location should have a url which can be used as a shortcut to get back there.
+                  https://cloud.sagemath.org/projects/project_id/path/in/filesystem
+                  Make a link to get this next to the file, and also in browser.  Kind of like with google maps.
 
-(0:30?) [ ] (0:16) restarting sage session bug
+deploy:
+(0:45?) [ ] make virtual machine image that is up2date and has all necessary packages (including ghostview, etc.);
+(0:30?) [ ] define topology file for deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
+
+sync:
+(0:45?) [ ] HUB BUG editor -- weird bug when starting to edit a file and loose something -- idea: instead of reseting sync session, just start it from scratch; should work, since this problem doesn't happen when freshly connecting!
 (0:45?) [ ] worksheet: filename is a MESS
-(0:45?) [ ] worksheet: weird bug when starting to edit a file and loose something -- idea: instead of reseting sync session, just start it from scratch; should work, since this problem doesn't happen when freshly connecting!
 (1:00?) [ ] worksheet: define code to diff two worksheets and make a patch, and apply patch
 (1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into client
 (1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into hub
 (1:00?) [ ] worksheet: integrate code for using these other diff/patch functions into local hub
 (0:45?) [ ] worksheet/ui: interact plus moving cells bug: just add a data attribute to those cells so skipped
 
-(0:30?) [ ] cloud = salvus alias inside notebook; plus some renames in docstrings?
-(0:30?) [ ] console -- when restarting, it comes up as sh rather than BASH?! !!
-(0:10?) [ ] make default file sort order "sort by time"
-(1:00?) [ ] find a solution to the trivial-to-cause "Terminal with infinite output" control-c ignored problem.  I wonder how c9, etc., deal?
-(0:10?) [ ] ui: make the "directory listing" spinner moved down and bigger -- half hidden looks silly.
+
+
+(0:45?) [ ] rsnapshot on the virtual machine, for local file recover -- how to easily configure and make available?
+(0:30?) [ ] browserify version issue
+
+
+
+
 
 @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 (0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
@@ -200,3 +207,20 @@ IO2wMWk7
 
 
 (0:30?) [x] (1:14) create  script to make new unix_account
+2614 in hub.coffee:
+create_unix_user_on_random_compute_server = (cb) ->
+    cb(false, {host:'localhost', username:'sage0',port:22})
+
+
+(0:30?) [x] make it so each new project get mapped to unix accounts by default, created using above script.
+        [x] new accounts get one new unix_user
+(0:30?) [x] ui: make it so account in new project uses the user's default account "by default"
+
+
+(0:10?) [x] ui: make the "directory listing" spinner moved down and bigger -- half hidden looks silly.
+
+
+(0:05?) [x] (0:03) error viewing files at message should say for what project.
+
+
+(0:10?) [x] (0:11) figure out port forward trick for hopping a local_hub? -- thought about it, not so happy; found buggy in process

@@ -309,3 +309,7 @@ font-size: 11px;
 .project-control-icon {
     font-size: 20px;
 }
+
+.project-file-listing-spinner {
+    margin-top:2em;
+}
