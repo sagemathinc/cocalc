@@ -303,9 +303,13 @@ class Cell extends EventEmitter
     _output_line_wrapping_off: ->
         @_output.removeClass('word-wrap overflow-wrap').css('white-space':'pre')
 
-    _interrupt: =>
+    _interrupt: (cb) =>
         if @_execute_running? and @_execute_running
-            @opts.session.interrupt()
+            @opts.session.interrupt () =>
+                @_execute_running = false
+                cb()
+        else
+            cb()
         return false
 
     _introspect: =>
@@ -1172,53 +1176,53 @@ class Cell extends EventEmitter
         }
 
     execute: () =>
-        @_interrupt()
-        @show('output')
-        @_close_on_action()
-        if not @opts.session
-            throw "Attempt to execute code on a cell whose session has not been set."
-        @emit 'execute'
-        code = $.trim(@input())
-        data = undefined
-        if code == ""
-            # easy special case -- empty input
-            @delete_output()
-            return
-        first_message = true
-        s = setTimeout( (() => @prepare_stopwatch()), 250)
-        @_last_execute_uuid = @opts.session.execute_code
-            code     : code
-            data     : data
-            preparse : true
-            cb       : (mesg) =>
-                clearTimeout(s)
-                @_execute_running = true
-                @emit 'execute-running'
+        @_interrupt () =>
+            @show('output')
+            @_close_on_action()
+            if not @opts.session
+                throw "Attempt to execute code on a cell whose session has not been set."
+            @emit 'execute'
+            code = $.trim(@input())
+            data = undefined
+            if code == ""
+                # easy special case -- empty input
+                @delete_output()
+                return
+            first_message = true
+            s = setTimeout( (() => @prepare_stopwatch()), 250)
+            @_last_execute_uuid = @opts.session.execute_code
+                code     : code
+                data     : data
+                preparse : true
+                cb       : (mesg) =>
+                    clearTimeout(s)
+                    @_execute_running = true
+                    @emit 'execute-running'
 
-                # I HAVEN'T DECIDED ON THE SEMANTICS FOR THIS:
-                #if mesg.id != @_last_execute_uuid
-                    # The user executed code multiple times in the
-                    # same cell before the output from the first
-                    # execution finished, and we just got a message
-                    # with some output.
+                    # I HAVEN'T DECIDED ON THE SEMANTICS FOR THIS:
+                    #if mesg.id != @_last_execute_uuid
+                        # The user executed code multiple times in the
+                        # same cell before the output from the first
+                        # execution finished, and we just got a message
+                        # with some output.
 
-                # NOTE: this callback function gets called
-                # *repeatedly* while this cell is being evaluated.
-                # The last message has the property that mesg.done is
-                # true.  Right When the cell *starts* being evaluated
-                # a mesg is always sent.
-                if first_message
-                    @delete_output()
-                    first_message = false
-                    @start_stopwatch()
+                    # NOTE: this callback function gets called
+                    # *repeatedly* while this cell is being evaluated.
+                    # The last message has the property that mesg.done is
+                    # true.  Right When the cell *starts* being evaluated
+                    # a mesg is always sent.
+                    if first_message
+                        @delete_output()
+                        first_message = false
+                        @start_stopwatch()
 
-                @append_output_in_mesg(mesg)
+                    @append_output_in_mesg(mesg)
 
-                if mesg.done
-                    @stop_stopwatch()
-                    if mesg.id == @_last_execute_uuid
-                        @_execute_running = stop
-                        @emit 'execute-done'
+                    if mesg.done
+                        @stop_stopwatch()
+                        if mesg.id == @_last_execute_uuid
+                            @_execute_running = false
+                            @emit 'execute-done'
 
     # Remove this cell from the DOM
     remove: () =>

@@ -69,14 +69,14 @@ class Session extends EventEmitter
         @conn.write_data(@data_channel, data)
 
     # default = SIGINT
-    interrupt: () ->
+    interrupt: (cb) ->
         tm = misc.mswalltime()
-        if @_last_interrupt? and tm - @_last_interrupt < 200
+        if @_last_interrupt? and tm - @_last_interrupt < 100
             # client self-limit: do not send signals too frequently, since that wastes bandwidth and can kill the process
-            return
+            cb?()
         else
             @_last_interrupt = tm
-            @conn.send(message.send_signal(session_uuid:@session_uuid, signal:2))
+            @conn.call(message:message.send_signal(session_uuid:@session_uuid, signal:2), timeout:10, cb:cb)
 
     kill: () ->
         @emit("close")

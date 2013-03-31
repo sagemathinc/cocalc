@@ -7,7 +7,8 @@
             -- idea: instead of reseting sync session, just start it from scratch;
                should work, since this problem doesn't happen when freshly connecting!
 
-(0:15?) [ ] bug -- tab/untab of selected text -- I assumed direction of selection is one way, but if it is backwards, then bOOM.               
+(0:15?) [ ] bug -- tab/untab of selected text -- I assumed direction of selection is one way, but if it is backwards, then bOOM.
+(0:15?) [ ] bug -- when first opening a session the save button should say that there are no unsaved changes...; very confusing otherwise.
 
 2. deploy:
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including ghostview, etc.);

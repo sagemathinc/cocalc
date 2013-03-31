@@ -291,10 +291,12 @@ class SageSessions
     connect: (client_socket, mesg) =>
         session = @_sessions[mesg.session_uuid]
         if session? and session.status == 'running'
+            winston.debug("sage sessions: connect to the running session with id #{mesg.session_uuid}")
             client_socket.write_mesg('json', session.desc)
             plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
+            winston.debug("make a connection to a new sage session.")
             get_port 'sage', (err, port) =>
                 winston.debug("Got sage server port = #{port}")
                 if err
@@ -304,7 +306,7 @@ class SageSessions
                     @_new_session(client_socket, mesg, port)
 
     _new_session: (client_socket, mesg, port) =>
-        winston.debug("new sage session")
+        winston.debug("Creating new sage session")
         # Connect to port, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
             port  : port
@@ -1022,7 +1024,7 @@ handle_mesg = (socket, mesg, handler) ->
 
         switch mesg.event
             when 'connect_to_session', 'start_session'
-                # These sessions completely take over this connection, so we better stop listening 
+                # These sessions completely take over this connection, so we better stop listening
                 # for further control messages on this connection.
                 socket.removeListener 'mesg', handler
                 connect_to_session(socket, mesg)
