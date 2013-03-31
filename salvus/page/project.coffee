@@ -406,7 +406,7 @@ class ProjectPage
         @display_tab("project-search")
         @container.find(".project-search-output-path-heading").show()
         @container.find(".project-search-output-terms").text(query)
-        search_output = @container.find(".project-search-output").empty()
+        search_output = @container.find(".project-search-output").show().empty()
         recursive   = @container.find(".project-search-output-recursive").is(':checked')
         insensitive = not @container.find(".project-search-output-case-sensitive").is(':checked')
         max_results = 1000
