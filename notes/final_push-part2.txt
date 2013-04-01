@@ -1,6 +1,5 @@
 After deploy, top priority, in order:
 
-
 (1:00?) [ ] worksheet -- export to html mode (?)
 
 (2:00?) [ ] add a markdown preview mode to the editor -- generic preview modes would be good...
@@ -22,7 +21,7 @@ After deploy, top priority, in order:
 
 (1:00?) [ ] download from web link will need some intelligence, e.g., how to handle github links.
 
----------------
+(0:30?) [ ] worksheet load -- better graphics, esp if it will take a while.
 
 
 (1:00?) [ ] some way to copy a file (e.g., a button the right that makes a copy with a similar name)

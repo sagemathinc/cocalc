@@ -1,10 +1,8 @@
 TODO deploy:
 
-(0:05?) [ ] center the worksheet title/description
 (0:15?) [ ] BUG: don't send new cursor broadcast message in response to sync events -- this is ANNOYING as hell.
 (0:10?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize *and* show top_navbar tab events.
 (0:30?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore.
-(0:30?) [ ] BUG: split mode is totally broken on my office Chrome machine!?
 (0:15?) [ ] NOTE: add a temporary warning that the worksheets are not SYNC'd yet.
 (1:00?) [ ] SAFETY FEATURE: setup rsnapshot to run like crazy in every account, copying to /snapshot for virtual machines, and mention this.  Say "This is a the first release, and since there is every possibility of data loss and corruption due to bugs, snapshots are made frequently."  Need a button (next to trash) that is a quick link to snapshots in .snapshots (?).  The smc service can start this.
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including gv, rsnapshot, etc.);
@@ -222,3 +220,8 @@ features;
                should work, since this problem doesn't happen when freshly connecting!
 
 (0:15?) [x] (0:10) BUG: checkboxes in worksheets have wrong position attribute -- they don't scroll.
+
+
+(0:05?) [x] center the worksheet title/description
+
+(0:30?) [x] (0:08) BUG: split mode is totally broken on my office Chrome machine!?
