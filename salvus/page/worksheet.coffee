@@ -76,9 +76,6 @@ class Worksheet extends EventEmitter
 
         @element.find("a").tooltip(delay: { show: 1000, hide: 100 })
 
-        @_init_download_button()
-        #@element.find(".salvus-worksheet-controls-label").hide()
-
         if @opts.content?
             # Set the contents of the worksheet, then *delete* this
             # attribute, since it would be wasted and could be
@@ -94,14 +91,11 @@ class Worksheet extends EventEmitter
 
         @_init_autosave()
 
-        if not @opts.path?
-            @_set_default_path()
-
         @_last_path = @opts.path
+        @element.find("a[href=#restart]").find(".icon-spin").hide()
 
     chdir: (path, cb) =>
         @opts.session.execute_code
-            # os.chdir(os.environ['HOME']); os.makedirs(salvus.data['path']) if not os.path.exists(salvus.data['path']) else None;
             code     : "os.chdir(salvus.data['path'])"
             data     : {path: path}
             preparse : false
@@ -110,19 +104,6 @@ class Worksheet extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
-
-    _set_default_path: () =>
-        input = @element.find(".salvus-worksheet-filename")
-        if input.text() == ""
-            salvus_client.exec
-                project_id : @opts.project_id
-                command    : "mkdir"
-                args       : ["-p", SCRATCH]
-                cb         : (err, output) =>
-                    @chdir(SCRATCH)
-                    path = SCRATCH + '/' + uuid().slice(0,8)
-                    input.text(path)
-                    @save(path)
 
     _monitor_for_changes: (elt) =>
         elt.data("last", elt.html())
@@ -267,40 +248,11 @@ class Worksheet extends EventEmitter
             interval = setInterval(save_if_changed, autosave*1000)
 
     _init_filename_save: () =>
-        input = @element.find(".salvus-worksheet-filename")
-        if @opts.path?
-            if filename_extension(@opts.path) == 'sage-worksheet'
-                input.val(@opts.path.slice(0,15))
-            else
-                input.val(@opts.path)
-        input.keypress (evt) =>
-            if evt.which == 13
-                @save(input.val())
-                return false
         save = @element.find("a[href=#save]")
         save.click () =>
             if not save.hasClass('disabled')
-                @save(input.val())
+                @save()
             return false
-
-    _init_download_button: () =>
-        @element.find("a[href=#download-file]").click () =>
-            @_download_file()
-            return false
-
-    _download_file : () =>
-        @save @opts.path, (err) =>
-            # TODO: THIS replicates code in project.coffee
-            salvus_client.read_file_from_project
-                project_id : @opts.project_id
-                path       : @opts.path
-                cb         : (err, result) =>
-                    if err
-                        alert_message(type:"error", message:"Error downloading a worksheet: #{err} -- #{misc.to_json(result)}")
-                    else
-                        url = result.url + "&download"
-                        iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-                        setTimeout((() -> iframe.remove()), 1000)
 
     _init_section_button: () =>
         @element.find("a[href=#create-section]").click () =>
@@ -718,9 +670,11 @@ class Worksheet extends EventEmitter
     #######################################################################
 
     restart: () =>
-        @opts.session.restart()
-        for elt in @_cells.find(".salvus-cell")
-            $(elt).data('cell').restart()
+        spinner = @element.find("a[href=#restart]").find(".icon-spin").show()
+        @opts.session.restart () =>
+            spinner.hide()
+            for elt in @_cells.find(".salvus-cell")
+                $(elt).data('cell').restart()
 
     kill: () =>
         @opts.session.restart()
@@ -751,22 +705,10 @@ class Worksheet extends EventEmitter
         @element.find(".salvus-worksheet-filename").val()
 
     # Save the worksheet to the given path.
-    save: (path, cb) =>
-        if path == "" or not path?
-            err = "You must enter a filename in order to save your worksheet."
-            alert_message(type:'error', message:err)
-            cb?(err)
-            return
-        if filename_extension(path) != 'sage-worksheet'
-            path += '.sage-worksheet'
+    save: (cb) =>
+        path = @opts.path
         obj = @to_obj()
         async.series([
-            (cb) =>
-                salvus_client.makedirs
-                    project_id : @opts.project_id
-                    path       : dirname(path)
-                    cb         : cb
-
             (cb) =>
                 salvus_client.write_text_file_to_project
                     project_id : @opts.project_id
@@ -779,14 +721,7 @@ class Worksheet extends EventEmitter
                 @emit "save", path
                 cb()
             (cb) =>
-                # TODO: save new git commit back to database -- but we will probably remove this later; too aggressive
-                salvus_client.save_project
-                    project_id : @opts.project_id
-                    cb         : (err, mesg) ->
-                        # We do not quit no matter what
-                        cb()
-            (cb) =>
-                # We also ensure all blobs referenced by the worksheet are made permanent.
+                # We also ensure all blobs referenced by the worksheet are made long-term; note that large blobs will result in an error.
                 ids = @_new_blobs(obj.content)
                 if ids.length > 0
                     salvus_client.save_blobs_to_project
@@ -794,6 +729,7 @@ class Worksheet extends EventEmitter
                         blob_ids   : ids
                         cb         : (err) =>
                             if err
+                                # This could get annoying?
                                 cb("Failed to write worksheet blobs -- #{err}")
                             else
                                 for id in ids
@@ -802,31 +738,14 @@ class Worksheet extends EventEmitter
                 else
                     cb()
 
-            (cb) =>
-                # If path changed since the last successful save, delete that previous path.
-                if @_last_path? and path != @_last_path
-                    salvus_client.remove_file_from_project
-                        project_id : @opts.project_id
-                        path       : @_last_path
-                        cb         : cb
-                else
-                    cb()
-
-            (cb) =>
-                @chdir(dirname(path))
-                cb()
-
         ], (err) =>
-            if err and err.indexOf('nothing to commit') == -1
+            if err
                 alert_message(type:"error", message:"Failed to save worksheet to #{path} -- #{err}")
             else
                 @has_unsaved_changes(false)
             @_last_path = path
             cb?(err)
         )
-
-
-
 
     # has_unsaved_changes() returns the state, where true means that
     # there are unsaved changed.  To set the state, do

@@ -96,6 +96,10 @@ class exports.Connection
                     options.cb(err)
                     return
 
+                if not _conn
+                    options.cb("unable to connect to a locked socket")
+                    return
+
                 @conn = _conn
 
                 @recv = options.recv  # send message to client
@@ -113,14 +117,14 @@ class exports.Connection
                 options.cb()
 
     send_json: (mesg) ->
-        @conn.write_mesg('json', mesg)
+        @conn?.write_mesg('json', mesg)
 
     send_blob: (uuid, blob) ->
-        @conn.write_mesg('blob', {uuid:uuid, blob:blob})
+        @conn?.write_mesg('blob', {uuid:uuid, blob:blob})
 
     # Close the connection with the server.  You probably instead want
     # to send_signal(...) using the module-level function to kill the
     # session, in most cases, since this will leave the Sage process running.
     close: () ->
-        @conn.end()
-        @conn.destroy()
+        @conn?.end()
+        @conn?.destroy()

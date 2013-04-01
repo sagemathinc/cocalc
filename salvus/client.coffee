@@ -80,10 +80,10 @@ class Session extends EventEmitter
 
     kill: () ->
         @emit("close")
-        @conn.send(message.send_signal(session_uuid:@session_uuid, signal:9))
+        @conn.call(message:message.send_signal(session_uuid:@session_uuid, signal:9), timeout:10, cb:cb)
 
-    restart: () =>
-        @conn.send(message.restart_session(session_uuid:@session_uuid))
+    restart: (cb) =>
+        @conn.call(message:message.restart_session(session_uuid:@session_uuid), timeout:10, cb:cb)
 
     # Starts a ping interval timer that periodicially pings the server
     # to indicate that this session is being actively viewed.  Pinging

@@ -8,6 +8,7 @@
 
 .salvus-worksheet-controls {
     background-color: #fafafa;
+    border: 1px solid #eee;
 }
 
 .salvus-worksheet-running {
@@ -20,9 +21,6 @@
 }
 
 .salvus-worksheet-title {
-    font-size     : 16pt;
-    margin-top    : 8px;
-    margin-bottom : 4px;
 }
 
 .salvus-worksheet-filename {
@@ -30,6 +28,8 @@
     font-weight: bold;
     color:#555;
     margin-top:5px;
+    position:absolute;
+    word-break: break-word;
 
 }
 

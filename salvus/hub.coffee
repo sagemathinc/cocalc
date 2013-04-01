@@ -3589,7 +3589,8 @@ class SageSession
                 winston.debug("Registering the session.")
                 persistent_sage_sessions[@session_uuid] = @
                 compute_sessions[@session_uuid] = @
-                client.compute_session_uuids.push(@session_uuid)
+                if @session_uuid not in client.compute_session_uuids
+                    client.compute_session_uuids.push(@session_uuid)
                 cb()
 
         ], (err) => cb?(err))

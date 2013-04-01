@@ -391,6 +391,9 @@ class exports.Editor
                     editor.disconnect_from_session()
                     editor.remove()
                 editor = undefined
+                # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
+                # will end up overwriting it with stale contents.
+                delete create_editor_opts.content
 
 
         link.data('tab', @tabs[filename])
@@ -1423,7 +1426,7 @@ class Worksheet extends FileEditor
         else
             salvus_client.read_text_file_from_project
                 project_id : @editor.project_id
-                timeout    : 30
+                timeout    : 40
                 path       : filename
                 cb         : (err, mesg) =>
                     if err
@@ -1535,6 +1538,12 @@ class Worksheet extends FileEditor
         @element.height(win.height() - top)
         bar_height = @element.find(".salvus-worksheet-controls").height()
         @element.find(".salvus-worksheet-worksheet").height(win.height() - top - bar_height)
+
+    disconnect_from_session : (cb) =>
+        # We define it this way for now, since we don't have sync yet.
+        @worksheet.save()
+        cb?()
+
 
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
