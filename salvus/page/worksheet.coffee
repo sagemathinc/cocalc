@@ -37,13 +37,13 @@ worksheet_template = templates.find(".salvus-worksheet")
 class Worksheet extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
-            element     : required # DOM element (or jQuery wrapped element); this is replaced by the worksheet
+            element     : required   # DOM element (or jQuery wrapped element); this is replaced by the worksheet
+            path        : required   # filename of the worksheet
             title       : ""
             description : ""
             content     : undefined  # If given, sets the cells/sections of the worksheet (see @to_obj()).
             cell_opts   : {}
             session     : undefined
-            path        : undefined  # If given, is the default filename of the worksheet
             cwd         : undefined  # If given,  chdir'd on startup.
             project_id  : required
             latex_opts  : {'documentclass':'article', 'preamble':'', tableofcontents:true}
@@ -53,6 +53,9 @@ class Worksheet extends EventEmitter
         $(@opts.element).replaceWith(@element)
         @_init_title()
         @_init_description()
+
+        @element.find(".salvus-worksheet-filename").text(@opts.path)
+
         @_init_session_ping()
         @_cells = @element.find(".salvus-worksheet-cells")
         @_current_cell = @_append_new_cell()
@@ -108,7 +111,7 @@ class Worksheet extends EventEmitter
 
     _set_default_path: () =>
         input = @element.find(".salvus-worksheet-filename")
-        if input.val() == ""
+        if input.text() == ""
             salvus_client.exec
                 project_id : @opts.project_id
                 command    : "mkdir"
@@ -116,7 +119,7 @@ class Worksheet extends EventEmitter
                 cb         : (err, output) =>
                     @chdir(SCRATCH)
                     path = SCRATCH + '/' + uuid().slice(0,8)
-                    input.val(path)
+                    input.text(path)
                     @save(path)
 
     _monitor_for_changes: (elt) =>

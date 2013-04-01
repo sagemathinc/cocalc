@@ -1,90 +1,89 @@
 <span id="salvus-worksheet-templates" class="hide">
     <div class="salvus-worksheet well">
+        <!--
         <div class="span2 pull-right">
             <div class="pull-right">
-                <input type="text" class="salvus-worksheet-filename span2" placeholder="Choose a filename..." style="margin-right:.5ex;margin-top:0ex;"></input>
-            <span class="btn-group">
-                <!--            <a href="#download-file" class="btn btn-success" ><i class="icon-download-alt"> </i></a> -->
-                <a href="#restart" class="btn btn-warning btn-small" ><i class="icon-repeat"></i> Restart</a>
-                <a href="#kill" class="btn btn-danger btn-small"><i class="icon-off"></i> Off</a>
-            </span>
-        </div>
-        <div class="pull-right">
-            <!-- TODO: hidden for now. -->
-            <span class="salvus-worksheet-view-button-bar btn-group hide">
-                <a href="#worksheet-view" class="btn btn-inverse btn-primary btn-small">Worksheet</a>
-                <a href="#print-view" class="btn btn-small">Print</a>
-                <a href="#text-view" class="btn  btn-small">Text</a>
-                <a href="#rest-view" class="btn  btn-small">ReST</a>
-                <a href="#latex-view" class="btn  btn-small">LaTeX</a>
-                <a href="#pdf-view" class="btn btn-small">PDF</a>
-                <a href="#json-view" class="btn  btn-small">JSON</a>
-            </span>
-        </div>
-    </div>
-
-    <div class="salvus-worksheet-controls row">
-        <div class="span2">
-            <a href="#save" class="btn btn-success" ><i class="icon-save"></i> Save</a>
-        </div>
-        <div class="span4">
-            <div class="btn-toolbar">
-                <div class="btn-group">
-                    <a href="#check-all" class="btn btn-small"><i class="icon-check-empty"></i><span class="salvus-worksheet-controls-label"><br>All</span></a>
-                    <a href="#execute-cells" class="btn btn-small"><i class="icon-play"></i><span class="salvus-worksheet-controls-label"><br>Run</span></a>
-                    <a href="#create-section" class="btn btn-small"><i class="icon-indent-right"></i><span class="salvus-worksheet-controls-label"><br>Section</span></a>
-                    <a href="#toggle-note" class="btn btn-small"><i class="icon-eye-close"></i>&nbsp;<i class="icon-edit"></i><span class="salvus-worksheet-controls-label"><br>Note</span></a>
-                    <a href="#toggle-code" class="btn btn-small"><i class="icon-eye-close"></i>&nbsp;<i class="icon-tasks"></i><span class="salvus-worksheet-controls-label"><br>Code</span></a>
-                    <a href="#toggle-output" class="btn btn-small"><i class="icon-eye-close"></i>&nbsp;<i class="icon-bar-chart"></i><span class="salvus-worksheet-controls-label"><br>Output</span></a>
-                </div>
+                <span class="salvus-worksheet-view-button-bar btn-group hide">
+                    <a href="#worksheet-view" class="btn btn-inverse btn-primary btn-small">Worksheet</a>
+                    <a href="#print-view" class="btn btn-small">Print</a>
+                    <a href="#text-view" class="btn  btn-small">Text</a>
+                    <a href="#rest-view" class="btn  btn-small">ReST</a>
+                    <a href="#latex-view" class="btn  btn-small">LaTeX</a>
+                    <a href="#pdf-view" class="btn btn-small">PDF</a>
+                    <a href="#json-view" class="btn  btn-small">JSON</a>
+                </span>
             </div>
         </div>
-        <div class="span6">
-            <h4 class="salvus-worksheet-title"></h4>
-            <h5 class="salvus-worksheet-description"></h5>
+        -->
+
+        <div class="salvus-worksheet-controls row">
+            <div class="span7">
+                <div class="btn-toolbar salvus-worksheet-button-row">
+                    <span class="btn-group">
+                        <a href="#check-all" class="btn"><i class="icon-check-empty"></i></a>
+                        <a href="#execute-cells" class="btn"><i class="icon-play"></i></a>
+                        <a href="#create-section" class="btn"><i class="icon-indent-right"></i></a>
+                        <a href="#toggle-note" class="btn"><i class="icon-edit"></i></a>
+                        <a href="#toggle-code" class="btn"><i class="icon-tasks"></i></a>
+                        <a href="#toggle-output" class="btn"><i class="icon-bar-chart"></i></a>
+                    </span>
+                    <span class="btn-group">
+                        <a href="#save" class="btn btn-success" ><i class="icon-save"></i> Save</a>
+                        <a href="#restart" class="btn btn-warning" ><i class="icon-repeat"></i> Restart</a>
+                        <a href="#kill" class="btn btn-danger"><i class="icon-off"></i> Off</a>
+                    </span>
+                </div>
+            </div>
+            <div class="span3">
+                <div class="salvus-worksheet-filename">
+                </div>
+            </div>
+            <div class="span4">
+                <h4 class="salvus-worksheet-title"></h4>
+                <h5 class="salvus-worksheet-description hide"></h5>
+            </div>
         </div>
-    </div>
 
-    <div class="salvus-worksheet-view salvus-worksheet-worksheet-view">
-        <div class="salvus-worksheet-worksheet">
+        <div class="salvus-worksheet-view salvus-worksheet-worksheet-view">
+            <div class="salvus-worksheet-worksheet">
 
-            <div class="salvus-worksheet-cells"></div>
+                <div class="salvus-worksheet-cells"></div>
+            </div>
         </div>
+
+        <div class="salvus-worksheet-view   salvus-worksheet-text-view hide well">
+            <textarea></textarea>
+        </div>
+
+        <div class="salvus-worksheet-view   salvus-worksheet-json-view hide well">
+            <textarea></textarea>
+        </div>
+
+        <div class="salvus-worksheet-view   salvus-worksheet-rest-view hide well">
+            <textarea></textarea>
+        </div>
+
+        <div class="salvus-worksheet-view   salvus-worksheet-latex-view hide well container-fluid">
+            <textarea></textarea>
+        </div>
+
+        <div class="salvus-worksheet-view   salvus-worksheet-pdf-view hide well">
+            PNG preview goes here, along with a "download as PDF" link.
+        </div>
+
+        <div class="salvus-worksheet-view   salvus-worksheet-print-view hide well">
+            A read-only print view of the worksheet goes here, with a link to open it by itself in another tab to print.
+        </div>
+
     </div>
 
-    <div class="salvus-worksheet-view   salvus-worksheet-text-view hide well">
-        <textarea></textarea>
+    <div class="salvus-worksheet-section">
+        <div class="salvus-worksheet-section-title">
+            <i class="icon-caret-down salvus-worksheet-section-hide"></i>
+            <i class="icon-caret-right hide salvus-worksheet-section-show"></i>
+            <span class="salvus-worksheet-section-title-user">Section</span>
+        </div>
+        <div class="salvus-worksheet-section-cells"></div>
     </div>
-
-    <div class="salvus-worksheet-view   salvus-worksheet-json-view hide well">
-        <textarea></textarea>
-    </div>
-
-    <div class="salvus-worksheet-view   salvus-worksheet-rest-view hide well">
-        <textarea></textarea>
-    </div>
-
-    <div class="salvus-worksheet-view   salvus-worksheet-latex-view hide well container-fluid">
-        <textarea></textarea>
-    </div>
-
-    <div class="salvus-worksheet-view   salvus-worksheet-pdf-view hide well">
-        PNG preview goes here, along with a "download as PDF" link.
-    </div>
-
-    <div class="salvus-worksheet-view   salvus-worksheet-print-view hide well">
-        A read-only print view of the worksheet goes here, with a link to open it by itself in another tab to print.
-    </div>
-
-</div>
-
-<div class="salvus-worksheet-section">
-    <div class="salvus-worksheet-section-title">
-        <i class="icon-caret-down salvus-worksheet-section-hide"></i>
-        <i class="icon-caret-right hide salvus-worksheet-section-show"></i>
-        <span class="salvus-worksheet-section-title-user">Section</span>
-    </div>
-    <div class="salvus-worksheet-section-cells"></div>
-</div>
 
 </span>

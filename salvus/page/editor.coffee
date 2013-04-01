@@ -445,7 +445,7 @@ class exports.Editor
 
         link_filename = link.find(".salvus-editor-tab-filename")
         i = filename.lastIndexOf('/')
-        display_name = trunc(filename.slice(i+1),12)
+        display_name = trunc(filename.slice(i+1),16)
         link_filename.text(display_name)
         link.tooltip(title:filename, animation:false, delay: { show: 1000, hide: 100 })
 

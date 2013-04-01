@@ -3,7 +3,7 @@
     margin: 0px;
     /* background-color: #fdf6e3; */
     background-color: #fff;
-    border-top: 2px solid grey;
+    border-top: 2px solid #eee;
 }
 
 .salvus-worksheet-controls {
@@ -23,6 +23,14 @@
     font-size     : 16pt;
     margin-top    : 8px;
     margin-bottom : 4px;
+}
+
+.salvus-worksheet-filename {
+    font-size: 14pt;
+    font-weight: bold;
+    color:#555;
+    margin-top:5px;
+
 }
 
 .salvus-worksheet-description {
@@ -62,4 +70,10 @@
 }
 
 .salvus-worksheet-view {
+}
+
+.salvus-worksheet-button-row {
+    margin-bottom: 5px;
+    margin-top: 1px;
+    height:30px;
 }

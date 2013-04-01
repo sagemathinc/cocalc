@@ -1,8 +1,10 @@
-(0:30?) [ ] HUGE BUG -- ui worksheet filename situation is a MESS
+--> (1:00?) [ ] HUGE BUG -- ui worksheet filename situation is a MESS
 
 (0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
             -- idea: instead of reseting sync session, just start it from scratch;
                should work, since this problem doesn't happen when freshly connecting!
+
+[ ] BUG terminal -- sometimes it freezes and you have to open/close it.
 
 2. deploy:
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including ghostview, etc.);
