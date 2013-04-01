@@ -230,22 +230,17 @@ class Worksheet extends EventEmitter
         return v
 
     _init_autosave: () =>
-        # start autosaving, as long as a filename is set
-        input = @element.find(".salvus-worksheet-filename")
-        autosave = require('account').account_settings.settings.autosave
+        # start autosaving every 15 seconds.: TODO: this is only until we have proper sync sessions (which will be in a month)
         that = @
         interval = undefined
-        if autosave
-            save_if_changed = () ->
-                # Check to see if the worksheet has been closed, in which case we stop autosaving.
-                if not that.worksheet_is_open()
-                    clearInterval(interval)
-                    return
-                if that.has_unsaved_changes()
-                    path = input.val()
-                    if path.length > 0
-                        that.save(path)
-            interval = setInterval(save_if_changed, autosave*1000)
+        save_if_changed = () ->
+            # Check to see if the worksheet has been closed, in which case we stop autosaving.
+            if not that.worksheet_is_open()
+                clearInterval(interval)
+                return
+            if that.has_unsaved_changes()
+                that.save()
+        interval = setInterval(save_if_changed, 15*1000)
 
     _init_filename_save: () =>
         save = @element.find("a[href=#save]")
@@ -670,14 +665,16 @@ class Worksheet extends EventEmitter
     #######################################################################
 
     restart: () =>
-        spinner = @element.find("a[href=#restart]").find(".icon-spin").show()
-        @opts.session.restart () =>
-            spinner.hide()
+        #spinner = @element.find("a[href=#restart]").find(".icon-spin").show()
+        @opts.session.restart()
+        # TODO -- the restart function takes like 10 seconds to call its callback, but the session restarts almost instantly
+        f = () =>
             for elt in @_cells.find(".salvus-cell")
                 $(elt).data('cell').restart()
+        setTimeout(f, 1000)
 
     kill: () =>
-        @opts.session.restart()
+        @opts.session.kill()
         for elt in @_cells.find(".salvus-cell")
             $(elt).data('cell').kill()
 

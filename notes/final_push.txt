@@ -1,39 +1,7 @@
- (1:00?) [ ] worksheet filename save
-
-    [ ] control-s to save worksheet
-
-(0:30?) [ ] section deletion -- UI: delete title and it goes away.
-
-(0:45?) [ ] editor bug -- weird bug when starting to edit a file and loose something
-            -- idea: instead of reseting sync session, just start it from scratch;
-               should work, since this problem doesn't happen when freshly connecting!
-(0:10) [ ] shift-enter in any contenteditable to submit.
-
-(0:10) [ ] add a warning somewhere that worksheets are not sync'd -- open one at a time
-
-[ ] BUG terminal -- sometimes it freezes and you have to open/close it.
-
 2. deploy:
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including ghostview, etc.);
 (0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
 (0:45?) [ ] deploy and try
-(0:30?) [ ] setup rsync backups
-
-3. implement sync, then update deploy.
-(1:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
-(0:45?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet
-            test that it works and provides a parallel and 100% working sync system.
-(0:45?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
-(0:30?) [ ] modify editor to use syncws enhanced version of Worksheet
-
-
-
-
-
-
-
-
-
 
 
 
@@ -236,3 +204,12 @@ features;
 (0:45?) [x] HUGE BUG -- (0:16) restarting sage session bug
 
 (0:15?) [x] tiny bug -- when first opening a session the save button should say that there are no unsaved changes...; very confusing otherwise.; this isn't optimal, but at least it tells us if *we* made any changes... for what it is worth.  Optimal would be to know if anybody has.
+
+(1:00?) [x] worksheet filename save
+
+(0:10?) [x]worksheet; no save button; make save every 15 seconds no matter what.
+
+
+--> (0:45?) [x] editor bug -- weird bug when starting to edit a file and loose something
+            -- idea: instead of reseting sync session, just start it from scratch;
+               should work, since this problem doesn't happen when freshly connecting!

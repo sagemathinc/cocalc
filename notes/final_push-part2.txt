@@ -1,3 +1,21 @@
+[ ] BUG terminal -- sometimes it freezes and you have to open/close it.
+
+
+(0:10) [ ] shift-enter in any contenteditable to submit.
+
+
+3. implement sync, then update deploy.
+(1:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
+(0:45?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet
+            test that it works and provides a parallel and 100% working sync system.
+(0:45?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
+(0:30?) [ ] modify editor to use syncws enhanced version of Worksheet
+
+
+
+(0:30?) [ ] section deletion -- UI: delete title and it goes away.
+
+
 (2:00?) [ ] console -- make it so the dang thing always gets focus!
 
 (1:00?) [ ] feature -- save button should tell if *anybody* has made a change.

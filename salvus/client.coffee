@@ -78,7 +78,7 @@ class Session extends EventEmitter
             @_last_interrupt = tm
             @conn.call(message:message.send_signal(session_uuid:@session_uuid, signal:2), timeout:10, cb:cb)
 
-    kill: () ->
+    kill: (cb) ->
         @emit("close")
         @conn.call(message:message.send_signal(session_uuid:@session_uuid, signal:9), timeout:10, cb:cb)
 
@@ -251,8 +251,11 @@ class exports.Connection extends EventEmitter
         @_last_pong = misc.walltime()
         @_connected = false
 
-        # have to get a round trip packet between client and hub every this many ms, or client will start freaking out and trying to reconnect
-        @_ping_check_interval = 60000
+        # have to get a round trip packet between client and hub every
+        # this many ms, or client will start freaking out and trying
+        # to reconnect.  This limits things like max size of files we
+        # can edit.
+        @_ping_check_interval = 20000  # 20 seconds.
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->

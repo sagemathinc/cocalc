@@ -272,9 +272,17 @@ class SynchronizedDocument
                     # Doing a reset -- apply all the edits to the current version of the document.
                     edit_stack = @dsync_client.edit_stack
                     # Apply our offline edits to the new live version of the document.
-                    live_content = resp.content
+                    r = new DiffSyncDoc(string:resp.content)
                     for p in edit_stack
-                        live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
+                        r = r.patch(p.edits)
+
+                    # Compute the patch comparing last known shadow
+                    # with our current live, and apply that patch to what the server
+                    # just sent us.  We declare that to be our new live.
+                    patch = @dsync_client.shadow.diff(@dsync_client.live)
+                    r2 = r.patch(patch)
+                    live_content = r2.string()
+
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
                 @dsync_server = new DiffSyncHub(@)
@@ -290,7 +298,7 @@ class SynchronizedDocument
 
                 if not resetting
                     @editor.save_button.addClass('disabled')   # start with no unsaved changes
-                    
+
                 cb()
 
     _diffsync_ready: (mesg) =>
