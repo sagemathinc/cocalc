@@ -1,8 +1,12 @@
---> (1:00?) [ ] HUGE BUG -- ui worksheet filename situation is a MESS
+--> (1:00?) [ ] worksheet filename save
 
-(0:45?) [ ] HUGE BUG editor -- weird bug when starting to edit a file and loose something
+(0:30?) [ ] section deletion -- UI: delete title and it goes away.
+
+(0:45?) [ ] editor bug -- weird bug when starting to edit a file and loose something
             -- idea: instead of reseting sync session, just start it from scratch;
                should work, since this problem doesn't happen when freshly connecting!
+
+(0:10) [ ] add a warning somewhere that worksheets are not sync'd -- open one at a time
 
 [ ] BUG terminal -- sometimes it freezes and you have to open/close it.
 

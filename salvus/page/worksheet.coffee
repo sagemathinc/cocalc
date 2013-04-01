@@ -74,6 +74,8 @@ class Worksheet extends EventEmitter
         @_init_view_button_bar()
         @_init_views()
 
+        @element.find("a").tooltip(delay: { show: 1000, hide: 100 })
+
         @_init_download_button()
         #@element.find(".salvus-worksheet-controls-label").hide()
 
