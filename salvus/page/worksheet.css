@@ -20,9 +20,6 @@
    /* border   : 1px solid #888; */
 }
 
-.salvus-worksheet-title {
-}
-
 .salvus-worksheet-filename {
     font-size: 14pt;
     font-weight: bold;
@@ -33,7 +30,13 @@
 
 }
 
+
+.salvus-worksheet-title {
+    text-align: center;
+}
+
 .salvus-worksheet-description {
+    text-align: center;
    color : #666;
 }
 

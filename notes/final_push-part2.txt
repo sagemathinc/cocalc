@@ -1,7 +1,33 @@
-[ ] BUG terminal -- sometimes it freezes and you have to open/close it.
+After deploy, top priority, in order:
 
 
-(0:10) [ ] shift-enter in any contenteditable to submit.
+(1:00?) [ ] worksheet -- export to html mode (?)
+
+(2:00?) [ ] add a markdown preview mode to the editor -- generic preview modes would be good...
+
+(6:00?) [ ] 3d graphics using three.js -- this is CRITICAL in order to use SMC in my math 308 teaching!
+
+(0:30?) [ ] it is possible to drag documentation out of the window
+    and then impossible to bring it back!
+
+(0:30?) [ ] var('x','y') is supposed to work according to docs, but I
+    screwed it up.
+
+(1:00?) [ ] BUG terminal -- sometimes it freezes and you have to open/close it.
+
+(0:30?) [ ] the current path html wraps way too skinny -- make a long path and see.
+(0:30?) [ ] filename in terminal wraps way too early -- should cut off beginning, not end.
+
+(1:00?) [ ] I had to open/close a file since it got "stuck" in "syncing" -- this should be made even more robust.
+
+(1:00?) [ ] download from web link will need some intelligence, e.g., how to handle github links.
+
+---------------
+
+
+(1:00?) [ ] some way to copy a file (e.g., a button the right that makes a copy with a similar name)
+
+(0:30?) [ ] shift-enter in any contenteditable to submit.
 
 
 3. implement sync, then update deploy.
