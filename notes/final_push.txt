@@ -1,10 +1,11 @@
 TODO deploy:
 
-(0:15?) [ ] BUG: don't send new cursor broadcast message in response to sync events -- this is ANNOYING as hell.
-(0:10?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize *and* show top_navbar tab events.
+--> (0:30?) [ ] BUG: don't send new cursor broadcast message in response to sync events -- this is ANNOYING as hell.
+(0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize *and* show top_navbar tab events.
 (0:30?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore.
 (0:15?) [ ] NOTE: add a temporary warning that the worksheets are not SYNC'd yet.
 (1:00?) [ ] SAFETY FEATURE: setup rsnapshot to run like crazy in every account, copying to /snapshot for virtual machines, and mention this.  Say "This is a the first release, and since there is every possibility of data loss and corruption due to bugs, snapshots are made frequently."  Need a button (next to trash) that is a quick link to snapshots in .snapshots (?).  The smc service can start this.
+   IDEA: make the rsnapshot backup of user files for public projects... available via haproxy, so even if the hub goes down, people can get to all their files.  Also, this is index-able.
 (0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including gv, rsnapshot, etc.);
 (0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
 (0:45?) [ ] deploy and test.

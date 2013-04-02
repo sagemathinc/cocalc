@@ -1,5 +1,11 @@
 After deploy, top priority, in order:
 
+[ ] worksheet zoom mode -- need something for PRESENTATIONS -- zooming the browser is useless.
+
+(2:00?) [ ] editor/worksheet/terminal -- fullscreen mode for each, esp. worksheet, since that is needed for presentations.
+
+(1:00?) [ ] worksheet -- section toggle status needs to be preserved.
+
 (1:00?) [ ] worksheet -- export to html mode (?)
 
 (2:00?) [ ] add a markdown preview mode to the editor -- generic preview modes would be good...
@@ -27,6 +33,10 @@ After deploy, top priority, in order:
 (1:00?) [ ] some way to copy a file (e.g., a button the right that makes a copy with a similar name)
 
 (0:30?) [ ] shift-enter in any contenteditable to submit.
+
+(3:00?) [ ] split view mode for worksheets, just like for editor.  Could just initially use sync...
+
+(0:30?) [ ] if worksheet starts with a section, no way to insert a cell above the section.
 
 
 3. implement sync, then update deploy.
