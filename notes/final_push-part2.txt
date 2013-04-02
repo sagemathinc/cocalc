@@ -1,5 +1,7 @@
 After deploy, top priority, in order:
 
+(1:00?) [ ] copy bug in terminal -- it unhighlights when copying on a single line
+
 [ ] worksheet zoom mode -- need something for PRESENTATIONS -- zooming the browser is useless.
 
 (2:00?) [ ] editor/worksheet/terminal -- fullscreen mode for each, esp. worksheet, since that is needed for presentations.

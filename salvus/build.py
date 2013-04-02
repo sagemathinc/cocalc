@@ -35,7 +35,7 @@ TARGET = os.path.abspath(os.path.join(DATA, 'local'))
 
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
-    'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify', 'uglify-js2',
+    'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest'
