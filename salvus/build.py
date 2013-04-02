@@ -247,14 +247,14 @@ if __name__ == "__main__":
         if args.build_all or args.build_tinc:
             times['tinc'] = build_tinc()
 
+        if args.build_all or args.build_python:
+            times['python'] = build_python()
+
         if args.build_all or args.build_node:
             times['node'] = build_node()
 
         if args.build_all or args.build_node_modules:
             times['node_modules'] = build_node_modules()
-
-        if args.build_all or args.build_python:
-            times['python'] = build_python()
 
         if args.build_all or args.build_nginx:
             times['nginx'] = build_nginx()
