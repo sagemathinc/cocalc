@@ -220,9 +220,9 @@ class ConsoleSessions
                         console_socket.write(data)
 
                     session.amount_of_data = 0
-                    setInterval(( () -> session.amount_of_data = 0), 250)
+                    setInterval(( () -> session.amount_of_data = 0), 50)
                     console_socket.on 'data', (data) ->
-                        if session.amount_of_data > 20000
+                        if session.amount_of_data > 50000
                             # we are getting a massive burst of output
                             # (1) send control-c -- maybe it will help
                             console_socket.write(String.fromCharCode(3))

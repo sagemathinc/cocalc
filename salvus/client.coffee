@@ -1141,7 +1141,8 @@ class exports.Connection extends EventEmitter
 # Other account Management functionality shared between client and server
 #################################################
 
-check = require('validator').check
+#check = require('validator').check
+check = (s) -> true
 
 exports.is_valid_email_address = (email) ->
     try

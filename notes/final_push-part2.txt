@@ -40,8 +40,7 @@ After deploy, top priority, in order:
 
 (0:30?) [ ] if worksheet starts with a section, no way to insert a cell above the section.
 
-
-
+(1:00?) [ ] write new email validation and stop using validator, or figure out why it isn't working with browserify.  See client.coffee.
 
 (0:30?) [ ] section deletion -- UI: delete title and it goes away.
 

@@ -1,13 +1,18 @@
 TODO deploy:
 
+
 (0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize *and* show top_navbar tab events.
 (0:30?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
+
 (1:00?) [ ] SAFETY FEATURE: setup rsnapshot to run like crazy in every account, copying to /snapshot for virtual machines, and mention this.  Say "This is a the first release, and since there is every possibility of data loss and corruption due to bugs, snapshots are made frequently."  Need a button (next to trash) that is a quick link to snapshots in .snapshots (?).  The smc service can start this.
    IDEA: make the rsnapshot backup of user files for public projects... available via haproxy, so even if the hub goes down, people can get to all their files.  Also, this is index-able.
-(0:30?) [ ] make virtual machine that is up2date and has all necessary packages (including gv, rsnapshot, etc.);
-(0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
-(3:00?) [ ] deploy and test.
 
+
+(0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
+
+(3:00?) [ ] deploy and test (and come up with plan to do so)
+
+(0:30?) [ ] don't allow editing a file if it is above a certain relatively small size...
 
 implement sync, then update deploy.
 (2:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
@@ -233,6 +238,38 @@ features;
 
 (0:30?) [x] (0:08) BUG: split mode is totally broken on my office Chrome machine!?
 
---> (0:30?) [x] (0:06) BUG: don't send new cursor broadcast message in response to sync events -- this is ANNOYING as hell.
+(0:30?) [x] (0:06) BUG: don't send new cursor broadcast message in response to sync events -- this is ANNOYING as hell.
 
+ * (0:05?) [x] (0:04) force browserify version
+
+
+ VM's
+     # check that no base vm is running
+     virsh --connect qemu:///session list --all
+     export PREV=salvus5; export NAME=salvus-20130402; qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+       # IMPORTANT!
+       sudo chown og-rwx -R salvus
+
+       sudo apt-get update; sudo apt-get upgrade;
+       sudo reboot -h now
+       cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
+       . salvus-env
+
+
+# for example:
+       ./build.py --build_stunnel --build_nodejs --build_nodejs_packages --build_haproxy --build_nginx --build_cassandra --build_python_packages
+
+     virsh --connect qemu:///session undefine $NAME
+     virsh --connect qemu:///session destroy $NAME
+     virsh --connect qemu:///session list --all
+
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py
+
+
+
+
+(0:30?) [x] make virtual machine that is up2date and has all necessary packages (including gv, rsnapshot, etc.);
 
