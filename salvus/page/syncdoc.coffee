@@ -391,7 +391,8 @@ class SynchronizedDocument
 
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
-            @send_cursor_info_to_hub_soon()
+            if not @_syncing
+                @send_cursor_info_to_hub_soon()
             @editor.local_storage('cursor', @codemirror.getCursor())
 
     init_chat: () =>
