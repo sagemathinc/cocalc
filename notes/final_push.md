@@ -5,8 +5,22 @@
 
  (0:30?) [x] (0:20) diff for individual cells
  (0:30?) [x] (0:15) patch for cells
- (0:30?) [ ] diff for worksheets
+ (0:30?) [x] (2:15; more subtle than expected, and distracted) diff for worksheets
  (0:30?) [ ] patch for worksheets
+
+ Regarding worksheet sync, I'm going to assume that I'll implement the following structure in the future.  This means, I'm completely
+ ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
+
+IDEA:
+------
+The basic unit of computation in a notebook is a *cell*, which is a triple consisting of a note (or comment), followed by input code, then output.    Any of these three components may be easily hidden or shown, but all are present.  A computation involves a description of *what* is being done in human terms (the note), how to do it in terms of code (the input code), and the result of the computation (the output).  The output may be interactive, and itself contain cells.   A live cell is aware of an associated Sage session.  Sage sessions know nothing about cells, worksheets, etc. -- they simply execute code and have a state.
+
+A worksheet is a linearly ordered list of cells.  There is no section or page structure to a worksheet -- it is a single infinitely long page.  All cells share the same Sage compute session.
+
+A spreadsheet view is a one way of displaying a worksheet, in which only the *output* is displayed, and the cells are organized in a rectangular array.  Also, clicking on the output, changes the display for that cell to input.
+
+A notebook is a collection of worksheets, with additional structure, e.g., chapters, sections, subsections, pages, etc.  A presentation is a linear list of worksheets, where each page is displayed in a free-form layout without the possibility to scroll.  The worksheets (hence cells) in a notebook or presentation all share a common Sage compute session.
+-----
 
 
 * (2:00?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.

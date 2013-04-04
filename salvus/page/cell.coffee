@@ -143,6 +143,7 @@ class Cell extends EventEmitter
         # Given two cells -- this one (version0) and version1, compute a JSON-able
         # object that encodes a patch that transforms this cell to version1.
         # This purely involves input -- the output part of the cell is ignored.
+        # Special case: if the cells are the same, return the empty list.
 
         note0  = @note()
         input0 = @input()
@@ -151,6 +152,10 @@ class Cell extends EventEmitter
         note1  = version1.note()
         input1 = version1.input()
         hide1  = version1.hidden_components()
+
+        # super-common special case
+        if note0 == note1 and input0 == input1 and hide0 == hide1
+            return []
 
         # Note patch
         note_patch = diffsync.dmp.patch_make(note0, note1)
@@ -170,7 +175,10 @@ class Cell extends EventEmitter
         # The cell patch is the combination of the above three patches.
         # These patches will *never* be stored longterm or used between
         # different versions, so we use an array instead of an object.
-        return [note_patch, input_patch, component_patch]
+        if note_patch.length == 0 and input_patch.length == 0 and component_patch.length == 0
+            return []
+        else
+            return [note_patch, input_patch, component_patch]
 
     patch: (patch) =>
         # Apply a patch to this cell, transforming it into a new cell.

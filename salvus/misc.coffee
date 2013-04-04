@@ -239,3 +239,45 @@ exports.retry_until_success = (opts) ->
             else
                 opts.cb?()
     setTimeout(g, delta)
+
+# Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
+class exports.StringCharMapping
+    constructor: (opts={}) ->
+        opts = exports.defaults opts,
+            to_char   : undefined
+            to_string : undefined
+        @_to_char   = {}
+        @_to_string = {}
+        @_next_char = 'A'
+        if opts.to_string?
+            for ch, st of opts.to_string
+                @_to_string[ch] = st
+                @_to_char[st]  = ch
+        if opts.to_char?
+            for st,ch of opts.to_char
+                @_to_string[ch] = st
+                @_to_char[st]   = ch
+        @_find_next_char()
+
+    _find_next_char: () =>
+        loop
+            @_next_char = String.fromCharCode(@_next_char.charCodeAt(0) + 1)
+            break if not @_to_string[@_next_char]?
+
+    to_string: (strings) =>
+        t = ''
+        for s in strings
+            a = @_to_char[s]
+            if a?
+                t += a
+            else
+                t += @_next_char
+                @_to_char[s] = @_next_char
+                @_to_string[@_next_char] = s
+                @_find_next_char()
+        return t
+
+    to_array: (string) =>
+        return (@_to_string[s] for s in string)
+
+
