@@ -191,7 +191,13 @@ class Console extends EventEmitter
 
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
-            @terminal.write(data)
+            try
+                @terminal.write(data)
+            catch e
+                # TODO -- these are all basically bugs, I think...
+                # That said, try/catching them is better than having
+                # the whole terminal just be broken.
+                
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
