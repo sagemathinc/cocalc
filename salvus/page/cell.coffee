@@ -175,8 +175,32 @@ class Cell extends EventEmitter
     patch: (patch) =>
         # Apply a patch to this cell, transforming it into a new cell.
         # The patch must be in exactly the format returned by diff above.
-        
+        note_patch      = patch[0]
+        input_patch     = patch[1]
+        component_patch = patch[2]
 
+        note = @note()
+        new_note = diffsync.dmp.patch_apply(note_patch, note)[0]
+        if new_note != note
+            @note(new_note)
+
+        input = @input()
+        new_input = diffsync.dmp.patch_apply(input_patch, input)[0]
+        if input != new_input
+            @input(new_input)
+
+        hidden = @hidden_components()
+        for x in component_patch
+            comp   = x[0]
+            action = x[1]
+            if action == -1
+                # change component from hidden to shown
+                if comp in hidden
+                    @show(comp)
+            else
+                # change component from shown to hidden
+                if comp not in hidden
+                    @hide(comp)
 
     #######################################################################
     # Private Methods

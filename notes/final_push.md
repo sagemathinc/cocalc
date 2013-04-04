@@ -3,8 +3,8 @@
 
 * (2:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
 
- --> (0:30?) [ ] diff for individual cells
- (0:30?) [ ] patch for cells
+ (0:30?) [x] (0:20) diff for individual cells
+ (0:30?) [x] (0:15) patch for cells
  (0:30?) [ ] diff for worksheets
  (0:30?) [ ] patch for worksheets
 
@@ -18,6 +18,8 @@
 * (1:00?) [ ] cursor position improvements: I should take what I currently do and combine it with "fuzzy search"... the combination should be unbeatable.
 
 * (1:00?) [ ] BUG -- when syncing editor documents, the first sync now doesn't loose anything, but it *DOES* move the cursor, which is confusion and causes errors while typing... every time.  Maybe force a first sync right when document loads. ok, I'm testing this out while developing today to see how it goes.
+
+* (0:45?) [ ] when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
 
 # Weekend final push for release
 * (1:00?) [ ] merge recent files (etc.) thing into the database; it's too frustrating/confusing tieing to computer.

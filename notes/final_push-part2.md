@@ -106,6 +106,9 @@ project sharing:
 (0:30?)  [ ] make sure email reset works with cloud.sagemath.org
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
 
+(3:00?)  [ ] worksheet pages: would make worksheets dramatically more scalable.
+
+
 
 (1:00?)  [ ] MINIFY actual page js
 
