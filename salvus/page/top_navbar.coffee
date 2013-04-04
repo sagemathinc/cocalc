@@ -189,8 +189,8 @@ $.fn.extend
 
 $("#about").top_navbar
     id      : "about"
-    #label   : "SageMathCloud&trade;"
-    label : ''
+    label   : "SageMathCloud&trade;"
+    #label : ''
     icon : 'icon-cloud'
     #pull_right : true
     close   : false
@@ -206,7 +206,7 @@ $(".salvus-explore").top_navbar
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "Projects"
+    label   : "Your Accounts"
     icon : 'icon-tasks'
     close   : false
 

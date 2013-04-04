@@ -1,142 +1,149 @@
 <div class="container hide" id="projects">
-  <div class="span11 well" style="margin-top:1em;">
+    <div class="span11 well" style="margin-top:1em;">
 
-    <!-- <h4 class="lighten">A project is a self-contained collection of files and folders.
-    </h4> -->
+        <h4 class="lighten">
+            An account is a complete self-contained collection of files and folders located on a computer.
+            Sharing and collaboration occurs at the account level.
+        </h4>
+        <br><br>
 
-    <button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:15em; margin-left: 7em;">Create a New Project</button>
-    <div class="pull-right" style="margin-right:2em">
-	<span class="btn-group">
-	  <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
-	  <button class="btn btn-info btn-small" id="projects-public-button">Public</button>
-	  <button class="btn btn-info btn-small" id="projects-private-button">Private</button>
-	</span>
-	&nbsp;	&nbsp;
-      <input class="span3 projects-find-input search-query" type="text" placeholder="Find a project...">
-	&nbsp;	&nbsp;
+        <button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:15em; margin-left: 7em;">Create a New Account</button>
+        <div class="pull-right" style="margin-right:2em">
+            <span class="btn-group">
+                <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
+                <button class="btn btn-info btn-small" id="projects-public-button">Public</button>
+                <button class="btn btn-info btn-small" id="projects-private-button">Private</button>
+            </span>
+            &nbsp;&nbsp;
+            <input class="span3 projects-find-input search-query" type="text" placeholder="Find an account...">
+            &nbsp;&nbsp;
+             <br><br><br>
+
+        </div>
+
+        <div class="row span10">
+            <div class="span1 ">
+                <span class="projects-create-new-spinner hide"></span>
+            </div>
+            <br>
+        </div>
+
+
+        <div class="row span10 well well-small  project-link hide" id="projects-project_list_item_template">
+            <div class="span" style="width: 50px; margin-left:0px;">
+                <i class="icon-eye-open projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                <i class="icon-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                <!--<span class="projects-active hide"><i class="icon-bolt"> </i></span>-->
+            </div>
+            <div class="span2">
+                <a href="" class="projects-title"></a>
+            </div>
+            <div class="span smallish" style="width:140px;">
+                <span class="projects-last_edited">
+                </span>
+            </div>
+            <div class="span smallish" style="width:25px;">
+                <span class="projects-size">
+                </span>
+            </div>
+            <div class="span4 projects-description"  style="margin-left:0px"></div>
+            <div class="span1 projects-location small" style="margin-left:0px"></div>
+        </div>
+
+
+        <span id="projects-project_list">
+
+        </span>
+
+        <div class="row span12">
+            <br>
+            <button class="btn btn-info btn-large" id="projects-show_all">Show all matching accounts...</button>
+        </div>
+
+
     </div>
-
-    <div class="row span10">
-      <div class="span1 ">
-	<span class="projects-create-new-spinner hide"></span>
-      </div>
-      <br>
-    </div>
-    <div class="row span10 well well-small  project-link hide" id="projects-project_list_item_template">
-      <div class="span" style="width: 50px; margin-left:0px;">
-	<i class="icon-eye-open projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-	<i class="icon-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-	<!--<span class="projects-active hide"><i class="icon-bolt"> </i></span>-->
-      </div>
-      <div class="span2">
-	<a href="" class="projects-title"></a>
-      </div>
-    <div class="span smallish" style="width:140px;">
-      <span class="projects-last_edited">
-      </span>
-    </div>
-    <div class="span smallish" style="width:25px;">
-      <span class="projects-size">
-      </span>
-    </div>
-      <div class="span4 projects-description"  style="margin-left:0px"></div>
-      <div class="span1 projects-location small" style="margin-left:0px"></div>
-    </div>
-
-
-    <span id="projects-project_list">
-
-    </span>
-
-    <div class="row span12">
-      <br>
-      <button class="btn btn-info btn-large" id="projects-show_all">Show all matching projects...</button>
-    </div>
-
-
-  </div>
 
 </div>
 
 
 <!-- Create new project -->
 <div class="modal hide" id="projects-create_project" tabindex="-1" role="dialog" aria-hidden="true">
-  <form>
-    <div class="modal-header big-only">
-      <button type="button" class="close" data-dismiss="modal">×</button>
-      <h2>Create a New Project</h2>
-    </div>
-    <div class="modal-body">
+    <form>
+        <div class="modal-header big-only">
+            <button type="button" class="close" data-dismiss="modal">×</button>
+            <h2>Create a New Account</h2>
+        </div>
+        <div class="modal-body">
 
-      <!-- title -->
-      <div class="row span5">
-	<h4 class="big-only">Title</h4>
-	<input class="span5 offset1" type="text" placeholder="Title (you can easily change this later)" id="projects-create_project-title">
-      </div>
+            <!-- title -->
+            <div class="row span5">
+                <h4 class="big-only">Title</h4>
+                <input class="span5 offset1" type="text" placeholder="Title (you can easily change this later)" id="projects-create_project-title">
+            </div>
 
-      <!-- description -->
-      <div class="row span5">
-	<h4 class="big-only">Description</h4>
-	<input class="span5 offset1" type="text" placeholder="No description" id="projects-create_project-description">
-      </div>
+            <!-- description -->
+            <div class="row span5">
+                <h4 class="big-only">Description</h4>
+                <input class="span5 offset1" type="text" placeholder="No description" id="projects-create_project-description">
+            </div>
 
-      <div class="row span5">
-	<span class="big-only lighten">You can easily change the title and description at any time later.</span>
-      </div>
+            <div class="row span5">
+                <span class="big-only lighten">You can easily change the title and description at any time later.</span>
+            </div>
 
-      <!-- public? -->
-      <div class="row span5">
-	<hr class="big-only">
-	<label class="radio">
-	  <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
-	  <h4><i class="icon-eye-open"></i> Public</h4>
-	  <span class="big-only lighten">Anyone can see this project. You choose who can modify it.</span>
-	</label>
-	<label class="radio">
-	  <input type="radio" name="projects-create_project-public" value="private">
-	  <h4><i class="icon-lock"></i> Private</h4>
-	  <span class="big-only lighten">You choose who can see and modify this project.</span>
-	</label>
-      </div>
+            <!-- public? -->
+            <div class="row span5">
+                <hr class="big-only">
+                <label class="radio">
+                    <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
+                    <h4><i class="icon-eye-open"></i> Public</h4>
+                    <span class="big-only lighten">Anyone can see contents of this account. You choose who can modify it.</span>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="projects-create_project-public" value="private">
+                    <h4><i class="icon-lock"></i> Private</h4>
+                    <span class="big-only lighten">You choose who can see and modify contents of this account.</span>
+                </label>
+            </div>
 
-      <!-- location -->
-<!--
-      <div class="row span5">
-	<hr class="big-only">
-	<h4>Advanced: use your own Linux account</h4>
-	<span class="big-only lighten">Enter "username@host[:path] [-p port]".</span>
-	<input class="span5 offset1" type="text" placeholder="username@host[:path] [-p port]" id="projects-create_project-location">
-      </div>
+            <!-- location -->
+            <!--
+<div class="row span5">
+<hr class="big-only">
+<h4>Advanced: use your own Linux account</h4>
+<span class="big-only lighten">Enter "username@host[:path] [-p port]".</span>
+<input class="span5 offset1" type="text" placeholder="username@host[:path] [-p port]" id="projects-create_project-location">
+</div>
 -->
 
 
-    </div>
-    <!-- do it -->
-    <div class="modal-footer">
-      <button class="btn btn-primary btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create Project</button>
-      <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
+        </div>
+        <!-- do it -->
+        <div class="modal-footer">
+            <button class="btn btn-primary btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create Account</button>
+            <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
 
-    </div>
-  </form>
+        </div>
+    </form>
 
 </div>
 
 
 
 <!--
-    <div class="modal"  tabindex="-1" role="dialog" aria-hidden="true">
-      <form action="" method="post" class="modal" id="form">
-	<div class="modal-header">
-	  <button class="close" data-dismiss="modal">×</button>
-	  <h3>New User</h3>
-	</div>
-	<div class="modal-body">
-	  <label>Name <input name="name" required></label>
-	  <label>Email <input name="email" required></label>
-	</div>
-	<div class="modal-footer">
-	  <button class="btn btn-primary" type="submit">Save Changes</button>
-	</div>
-      </form>
-    </div>
+<div class="modal"  tabindex="-1" role="dialog" aria-hidden="true">
+<form action="" method="post" class="modal" id="form">
+<div class="modal-header">
+<button class="close" data-dismiss="modal">×</button>
+<h3>New User</h3>
+</div>
+<div class="modal-body">
+<label>Name <input name="name" required></label>
+<label>Email <input name="email" required></label>
+</div>
+<div class="modal-footer">
+<button class="btn btn-primary" type="submit">Save Changes</button>
+</div>
+</form>
+</div>
 -->
