@@ -243,7 +243,10 @@ class exports.Editor
 
     # Used for resizing editor windows.
     editor_top_position: () =>
-        return @element.find(".salvus-editor-content").position().top
+        if $(".salvus-fullscreen-activate").is(":visible")
+            return @element.find(".salvus-editor-content").position().top
+        else
+            return 0
 
     _window_resize_while_editing: () =>
         @resize_open_file_tabs()
@@ -1535,6 +1538,47 @@ class Worksheet extends FileEditor
         win = $(window)
         @element.width(win.width())
         top = @editor.editor_top_position()
+        @element.css('top':top)
+        if top == 0
+            @element.css('position':'fixed')
+            @element.find(".salvus-worksheet-filename").hide()
+            @element.find(".salvus-worksheet-controls").hide()
+            @element.find(".salvus-cell-checkbox").hide()
+            note = @element.find(".salvus-cell-note")
+            # TODO: redo these three by adding/removing a CSS class!
+            @_orig_css_note =
+                'font-size':note.css('font-size')
+                'margin-left':note.css('margin-left')
+                'margin-right':note.css('margin-right')
+                'line-height':note.css('line-height')
+            note.css
+                'font-size': '15pt'
+                'margin-left': '-30px'
+                'margin-right': '-30px'
+                'line-height': '1.3em'
+            input = @element.find(".salvus-cell-input")
+            @_orig_css_input =
+                'font-size' : input.css('font-size')
+                'line-height' : input.css('line-height')
+            input.css
+                'font-size':'14pt'
+                'line-height':'1.3.em'
+            output = @element.find(".salvus-cell-output")
+            @_orig_css_input =
+                'font-size' : output.css('font-size')
+                'line-height' : output.css('line-height')
+            output.css
+                'font-size':'14pt'
+                'line-height':'1.3.em'
+        else
+            @element.find(".salvus-worksheet-filename").show()
+            @element.find(".salvus-worksheet-controls").show()
+            @element.find(".salvus-cell-checkbox").show()
+            if @_orig_css_note?
+                @element.find(".salvus-cell-note").css(@_orig_css_note)
+                @element.find(".salvus-cell-input").css(@_orig_css_input)
+                @element.find(".salvus-cell-output").css(@_orig_css_output)
+
         @element.height(win.height() - top)
         bar_height = @element.find(".salvus-worksheet-controls").height()
         @element.find(".salvus-worksheet-worksheet").height(win.height() - top - bar_height)

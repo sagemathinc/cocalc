@@ -127,8 +127,14 @@ class ProjectPage
             onshow: () =>
                 if @project?
                     document.title = "SMC: #{@project.title}"
-            #onshow: () =>
-            #    @focus()
+            onfullscreen: (entering) =>
+                if @project?
+                    if entering
+                        @hide_tabs()
+                    else
+                        @show_tabs()
+                    $(window).resize()
+
 
         $(window).resize () => @window_resize()
         @_update_file_listing_size()
@@ -611,6 +617,12 @@ class ProjectPage
             (c) =>
                 @save_project(cb:c)
         ], opts.cb)
+
+    hide_tabs: () =>
+        @container.find(".project-pages").hide()
+
+    show_tabs: () =>
+        @container.find(".project-pages").show()
 
     init_tabs: () ->
         @tabs = []

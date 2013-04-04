@@ -1,5 +1,7 @@
 After deploy, top priority, in order:
 
+(0:30?) [ ] expanding a section expands all subsections.  It shouldn't.
+
 (1:00?) [ ] copy bug in terminal -- it unhighlights when copying on a single line
 
 [ ] worksheet zoom mode -- need something for PRESENTATIONS -- zooming the browser is useless.

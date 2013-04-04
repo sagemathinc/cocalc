@@ -887,7 +887,7 @@ class Cell extends EventEmitter
     to_latex: () =>
         obj = @to_obj()
         hidden = @hidden_components()
-        t = ''
+        t = '\n\n'
 
         if obj.note? and 'note' not in hidden
             t += html_to_latex(obj.note)
@@ -1380,9 +1380,6 @@ parse_width = (width) ->
             return "#{width}ex"
         else
             return width
-
-
-
 
 html_to_latex = (s) ->
     # TODO: This is horrible/insecure/etc.

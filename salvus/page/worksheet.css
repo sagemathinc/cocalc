@@ -70,6 +70,7 @@
 
 .salvus-worksheet-worksheet {
     overflow-y:auto;
+    width: 100%;
 }
 
 .salvus-worksheet-view {

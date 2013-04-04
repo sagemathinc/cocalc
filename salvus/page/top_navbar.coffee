@@ -36,6 +36,7 @@ class TopNavbar  extends EventEmitter
             onclose       : undefined  # called if defined when the page is closed
             onshow        : undefined  # called if defined right after page is shown
             onblur        : undefined  # called if defined right after page is blured
+            onfullscreen  : undefined  # called with onfullscreen(true or false) when switching to fullscreen (true) or out (false).
             icon          : undefined      # something like 'icon-globe'
 
         button = @button_template.clone()
@@ -52,6 +53,7 @@ class TopNavbar  extends EventEmitter
             onclose : opts.onclose
             onshow  : opts.onshow
             onblur  : opts.onblur
+            onfullscreen : opts.onfullscreen
             divider : divider
             icon    : opts.icon
 
@@ -95,8 +97,6 @@ class TopNavbar  extends EventEmitter
         if not n?
             return
 
-
-
         if id != @current_page_id
             for m, p of @pages
                 if m != id
@@ -113,6 +113,9 @@ class TopNavbar  extends EventEmitter
         # We still call show even if already on this page.
         n.page?.show()
         n.onshow?()
+
+    fullscreen: (entering) =>
+        @pages[@current_page_id]?.onfullscreen?(entering)
 
     make_button_active: (id) ->
         @pages[id]?.button.addClass("active")
@@ -226,5 +229,22 @@ $("#account").top_navbar
 
 
 $(window).resize () ->
+    $("body").css
+        'padding-top': ($(".salvus-top_navbar").height()) + 'px'
+
+
+fullscreen_activate = $(".salvus-fullscreen-activate")
+fullscreen_deactivate = $(".salvus-fullscreen-deactivate")
+
+fullscreen_activate.click () ->
+    $(".salvus-fullscreen").toggle()
+    $(".salvus-top_navbar").hide()
+    top_navbar.fullscreen(true)
+    $("body").css('padding-top':0)
+
+fullscreen_deactivate.click () ->
+    $(".salvus-fullscreen").toggle()
+    $(".salvus-top_navbar").show()
+    top_navbar.fullscreen(false)
     $("body").css
         'padding-top': ($(".salvus-top_navbar").height()) + 'px'
