@@ -211,6 +211,7 @@ class SynchronizedDocument
                 @codemirror.setOption('readOnly', false)
                 @ui_synced(true)
                 @editor.init_autosave()
+                @sync_soon()  # do a first sync asap.
                 @codemirror.on 'change', (instance, changeObj) =>
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         @ui_synced(false)

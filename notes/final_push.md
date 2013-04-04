@@ -3,6 +3,12 @@
 
 * (2:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
 
+ --> (0:30?) [ ] diff for individual cells
+ (0:30?) [ ] patch for cells
+ (0:30?) [ ] diff for worksheets
+ (0:30?) [ ] patch for worksheets
+
+
 * (2:00?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
 
 * (2:00?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
@@ -10,6 +16,8 @@
 * (2:00?) [ ] modify editor to use syncws enhanced version of worksheet
 
 * (1:00?) [ ] cursor position improvements: I should take what I currently do and combine it with "fuzzy search"... the combination should be unbeatable.
+
+* (1:00?) [ ] BUG -- when syncing editor documents, the first sync now doesn't loose anything, but it *DOES* move the cursor, which is confusion and causes errors while typing... every time.  Maybe force a first sync right when document loads. ok, I'm testing this out while developing today to see how it goes.
 
 # Weekend final push for release
 * (1:00?) [ ] merge recent files (etc.) thing into the database; it's too frustrating/confusing tieing to computer.
@@ -30,6 +38,7 @@ IDEA: make the rsnapshot backup of user files for public projects... available v
 * (0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
 * (3:00?) [ ] deploy and test (and come up with plan to do so)
 * (0:30?) [ ] don't allow editing a file if it is above a certain relatively small size...
+* (0:45?) [ ] BUG -- editor synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up -- sync the window with focus?
 
 
 # DONE

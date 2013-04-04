@@ -1,5 +1,7 @@
 After deploy, top priority, in order:
 
+(1:00?) [ ] delete trailing whitespace and cursors -- instead of avoiding the line where there is a cursor, when applying a diff, put trailing whitespace back in, so that cursor moves to where it should.  This is a much better approach.
+
 (0:15?) [ ] "Latex Log" --> "Latex"; also the icons are wrong: icon-refresh should be "eye", and refresh should be next to latex.
 
 (0:45?) [ ] BUG -- latex output log -- isn't properly sized relative to container.
@@ -103,7 +105,6 @@ project sharing:
 (0:45?)  [ ] bug -- if editing file with long name, vertical size is miscomputed. (I put in a 5-minute hack truncate.)
 (0:30?)  [ ] make sure email reset works with cloud.sagemath.org
 (1:00?)  [ ] worksheet: be able to print a worksheet (something involving HTML/CSS)
-(0:45?)  [ ] editor synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up -- sync the window with focus?
 
 
 (1:00?)  [ ] MINIFY actual page js

@@ -14,6 +14,7 @@
 
 {alert_message} = require('alerts')
 
+diffsync = require('diffsync')
 
 COMPONENTS = ['note', 'editor', 'output', 'checkbox', 'insert-above', 'insert-below']
 
@@ -134,6 +135,48 @@ class Cell extends EventEmitter
                 @hide(e)
 
         @execute_if_auto()
+
+    #######################################################################
+    # Synchronization support
+    #######################################################################
+    diff: (version1) =>
+        # Given two cells -- this one (version0) and version1, compute a JSON-able
+        # object that encodes a patch that transforms this cell to version1.
+        # This purely involves input -- the output part of the cell is ignored.
+
+        note0  = @note()
+        input0 = @input()
+        hide0  = @hidden_components()
+
+        note1  = version1.note()
+        input1 = version1.input()
+        hide1  = version1.hidden_components()
+
+        # Note patch
+        note_patch = diffsync.dmp.patch_make(note0, note1)
+        # Input patch
+        input_patch= diffsync.dmp.patch_make(input0, input1)
+        # Components patch (todo: this comp can prob be optimized a lot, e.g., starting with replacing c below (the string) with a number or character)
+        component_patch = []
+        # First: removed components
+        for c in hide0
+            if c not in hide1
+                component_patch.push([c,-1])
+        # Next: added components
+        for c in hide1
+            if c not in hide0
+                component_patch.push([c,+1])
+
+        # The cell patch is the combination of the above three patches.
+        # These patches will *never* be stored longterm or used between
+        # different versions, so we use an array instead of an object.
+        return [note_patch, input_patch, component_patch]
+
+    patch: (patch) =>
+        # Apply a patch to this cell, transforming it into a new cell.
+        # The patch must be in exactly the format returned by diff above.
+        
+
 
     #######################################################################
     # Private Methods
