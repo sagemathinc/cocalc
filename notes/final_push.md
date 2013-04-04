@@ -1,6 +1,4 @@
 
-* (0:10) [x] convert final_push.txt to final_push.md
-
 # implement sync
 
 * (2:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
@@ -14,6 +12,7 @@
 * (1:00?) [ ] cursor position improvements: I should take what I currently do and combine it with "fuzzy search"... the combination should be unbeatable.
 
 # Weekend final push for release
+* (1:00?) [ ] merge recent files (etc.) thing into the database; it's too frustrating/confusing tieing to computer.
 * (1:00?) [ ] clean up presentation mode -- what I did is a mess; also add support for code and terminal.
 * (1:00?) [ ] MUST have a spinner to indicate when docs are loading... some are quite slow right now.
 * (0:30?) [ ] the css position of tab completion is wrong; it doesn't move with the worksheet!
@@ -269,4 +268,13 @@ features;
 
 
 (0:30?) [x] make virtual machine that is up2date and has all necessary packages (including gv, rsnapshot, etc.);
+
+* (0:10) [x] convert final_push.txt to final_push.md
+
+* (0:15?) [x] (1:05) terminal/editor full-screen modes, too.
+
+
+
+
+
 

@@ -1,5 +1,9 @@
 After deploy, top priority, in order:
 
+(0:15?) [ ] "Latex Log" --> "Latex"; also the icons are wrong: icon-refresh should be "eye", and refresh should be next to latex.
+
+(0:45?) [ ] BUG -- latex output log -- isn't properly sized relative to container.
+
 (0:30?) [ ] expanding a section expands all subsections.  It shouldn't.
 
 (1:00?) [ ] copy bug in terminal -- it unhighlights when copying on a single line

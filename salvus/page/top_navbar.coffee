@@ -4,7 +4,10 @@
 
 $(document).on 'keydown', (ev) =>
     #console.log(ev)
-    if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
+    if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79    # ctrl (or meta) o.
+        return false
+    if (ev.altKey and ev.ctrlKey) and ev.keyCode == 70    # ctrl-alt-f = fullscreen
+        toggle_fullscreen()
         return false
 
 misc = require("misc")
@@ -232,19 +235,20 @@ $(window).resize () ->
     $("body").css
         'padding-top': ($(".salvus-top_navbar").height()) + 'px'
 
+toggle_fullscreen = () ->
+    if $(".salvus-top_navbar").is(":visible") # not in fullscreen mode
+        $(".salvus-fullscreen").toggle()
+        $(".salvus-top_navbar").hide()
+        top_navbar.fullscreen(true)
+        $("body").css('padding-top':0)
+    else
+        $(".salvus-fullscreen").toggle()
+        $(".salvus-top_navbar").show()
+        top_navbar.fullscreen(false)
+        $("body").css
+            'padding-top': ($(".salvus-top_navbar").height()) + 'px'
+    return false
 
-fullscreen_activate = $(".salvus-fullscreen-activate")
-fullscreen_deactivate = $(".salvus-fullscreen-deactivate")
 
-fullscreen_activate.click () ->
-    $(".salvus-fullscreen").toggle()
-    $(".salvus-top_navbar").hide()
-    top_navbar.fullscreen(true)
-    $("body").css('padding-top':0)
-
-fullscreen_deactivate.click () ->
-    $(".salvus-fullscreen").toggle()
-    $(".salvus-top_navbar").show()
-    top_navbar.fullscreen(false)
-    $("body").css
-        'padding-top': ($(".salvus-top_navbar").height()) + 'px'
+$(".salvus-fullscreen-activate").click(toggle_fullscreen)
+$(".salvus-fullscreen-deactivate").click(toggle_fullscreen)

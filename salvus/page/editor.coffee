@@ -979,7 +979,9 @@ class CodeMirrorEditor extends FileEditor
 
         cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
+        @element.css(top:top)
         @element.height(elem_height).show()
+        @element.show()
 
         if @_chat_is_hidden? and not @_chat_is_hidden
             width = $(window).width() - @element.find(".salvus-editor-codemirror-chat-column").width()
@@ -1417,6 +1419,7 @@ class Terminal extends FileEditor
             e = $(@console.terminal.element)
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
             e.height($(window).height() - top - 6)
+            @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus()
 
 class Worksheet extends FileEditor
@@ -1552,24 +1555,24 @@ class Worksheet extends FileEditor
                 'margin-right':note.css('margin-right')
                 'line-height':note.css('line-height')
             note.css
-                'font-size': '15pt'
+                'font-size': '11pt'
                 'margin-left': '-30px'
                 'margin-right': '-30px'
-                'line-height': '1.3em'
+                'line-height': '1.1em'
             input = @element.find(".salvus-cell-input")
             @_orig_css_input =
                 'font-size' : input.css('font-size')
                 'line-height' : input.css('line-height')
             input.css
-                'font-size':'14pt'
-                'line-height':'1.3.em'
+                'font-size':'11pt'
+                'line-height':'1.1em'
             output = @element.find(".salvus-cell-output")
             @_orig_css_input =
                 'font-size' : output.css('font-size')
                 'line-height' : output.css('line-height')
             output.css
-                'font-size':'14pt'
-                'line-height':'1.3.em'
+                'font-size':'11pt'
+                'line-height':'1.1em'
         else
             @element.find(".salvus-worksheet-filename").show()
             @element.find(".salvus-worksheet-controls").show()
@@ -1580,12 +1583,15 @@ class Worksheet extends FileEditor
                 @element.find(".salvus-cell-output").css(@_orig_css_output)
 
         @element.height(win.height() - top)
-        bar_height = @element.find(".salvus-worksheet-controls").height()
-        @element.find(".salvus-worksheet-worksheet").height(win.height() - top - bar_height)
+        if top > 0
+            bar_height = @element.find(".salvus-worksheet-controls").height()
+            @element.find(".salvus-worksheet-worksheet").height(win.height() - top - bar_height)
+        else
+            @element.find(".salvus-worksheet-worksheet").height(win.height())
 
     disconnect_from_session : (cb) =>
         # We define it this way for now, since we don't have sync yet.
-        @worksheet.save()
+        @worksheet?.save()
         cb?()
 
 

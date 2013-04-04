@@ -24,10 +24,11 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror {
+    position:fixed;
+    width:100%;
 }
 
 .salvus-editor-codemirror-button-row {
-    margin-bottom: 5px;
     margin-top: 1px;
     height:30px;
 }
