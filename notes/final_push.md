@@ -1,66 +1,42 @@
-@@@@@@@@@@@@@@@@@@@@
+
+* (0:10) [x] convert final_push.txt to final_push.md
+
+# implement sync
+
+* (2:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
+
+* (2:00?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
+
+* (2:00?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
+
+* (2:00?) [ ] modify editor to use syncws enhanced version of worksheet
+
+* (1:00?) [ ] cursor position improvements: I should take what I currently do and combine it with "fuzzy search"... the combination should be unbeatable.
+
+# Weekend final push for release
+* (1:00?) [ ] clean up presentation mode -- what I did is a mess; also add support for code and terminal.
+* (1:00?) [ ] MUST have a spinner to indicate when docs are loading... some are quite slow right now.
+* (0:30?) [ ] the css position of tab completion is wrong; it doesn't move with the worksheet!
+* (1:00?) [ ] Hide top bar and zoom mode!!!!
+* (0:30?) [ ] worksheet path is still not set correctly
+* (0:30?) [ ] terminal path is not set correctly.
+* (0:10?) [ ] switch the open/recent back next to each, since they both do the same sort of thing -- open a file.
+* (1:00?) [ ] worksheet: modes!
+* (0:30?) [ ] need more space the bottom of the worksheet
+* (0:20?) [ ] os x "control-o" should also accept command-o
+* (0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize and show top navbar events.
+* (0:30?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
+* (1:00?) [ ] SAFETY FEATURE: setup rsnapshot to run like crazy in every account, copying to /snapshot for virtual machines, and mention this.  Say "This is a the first release, and since there is every possibility of data loss and corruption due to bugs, snapshots are made frequently."  Need a button (next to trash) that is a quick link to snapshots in .snapshots (?).  The smc service can start this.
+IDEA: make the rsnapshot backup of user files for public projects... available via haproxy, so even if the hub goes down, people can get to all their files.  Also, this is index-able.
+* (0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
+* (3:00?) [ ] deploy and test (and come up with plan to do so)
+* (0:30?) [ ] don't allow editing a file if it is above a certain relatively small size...
 
 
-(0:15) [ ] rename -- "project" to "account", and see how that feels
-(1:00) [ ] clean up presentation mode -- what I did is a mess; also add support for code and terminal.
-(0:10) [ ] convert final_push.txt to final_push.md
+# DONE
 
-implement sync:
-(2:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
-(2:00?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet
-            test that it works and provides a parallel and 100% working sync system.
-(2:00?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
-(2:00?) [ ] modify editor to use syncws enhanced version of Worksheet
-
-(1:00?) [ ] cursor position improvements: I should take what I currently do and combine it with "fuzzy search"... the combination should be unbeatable.
-
-
-
-
-===========================
-
-(1:00?) [ ] MUST have a spinner to indicate when docs are loading... some are quite slow right now.
-(0:30?) [ ] the css position of tab completion is wrong; it doesn't move with the worksheet!
-(1:00?) [ ] Hide top bar and zoom mode!!!!
-(0:30?) [ ] worksheet path is still not set correctly
-(0:30?) [ ] terminal path is not set correctly.
-(0:10?) [ ] switch the open/recent back next to each, since they both do the same sort of thing -- open a file.
-(1:00?) [ ] worksheet: modes!
-(0:30?) [ ] need more space the bottom of the worksheet
-
-(0:20?) [ ] os x "control-o" should also accept command-o
-
-(0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize *and* show top_navbar tab events.
-(0:30?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
-
-(1:00?) [ ] SAFETY FEATURE: setup rsnapshot to run like crazy in every account, copying to /snapshot for virtual machines, and mention this.  Say "This is a the first release, and since there is every possibility of data loss and corruption due to bugs, snapshots are made frequently."  Need a button (next to trash) that is a quick link to snapshots in .snapshots (?).  The smc service can start this.
-   IDEA: make the rsnapshot backup of user files for public projects... available via haproxy, so even if the hub goes down, people can get to all their files.  Also, this is index-able.
-
-
-(0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
-
-(3:00?) [ ] deploy and test (and come up with plan to do so)
-
-(0:30?) [ ] don't allow editing a file if it is above a certain relatively small size...
-
-@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 (0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
-
 (0:30?) [x] Add a new tab at the top called "Explore" that is to the left of "Your Projects"
-
-
-FINAL TOP PRIORITY THIS WEEK TODO LIST;
-Tuesday   Mar 26    3pm - 11pm:    7
-Wednesday Mar 27    5am - 11pm:   16  (not counting food/shower)
-Thursday  Mar 28    5am - 11pm:   16
-Friday    Mar 29    5am - 11pm:   16
-Saturday  Mar 30    5am - 11pm:   16
-
-Max possible hours: 71
-
-Sunday -- get prepared for my teaching on monday
-
----------------------------------------
 
 = UX =
 (0:20?)  [x] (0:06) do not delete whitespace on line that contains the cursor (codemirror plugin)
