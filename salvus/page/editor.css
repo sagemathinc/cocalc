@@ -26,6 +26,7 @@ Editor for files in a project
 .salvus-editor-codemirror {
     position:fixed;
     width:100%;
+    padding:0px;
 }
 
 .salvus-editor-codemirror-button-row {
