@@ -280,4 +280,13 @@ class exports.StringCharMapping
     to_array: (string) =>
         return (@_to_string[s] for s in string)
 
+# Given a string s, return the string obtained by deleting all later duplicate characters from s.
+exports.uniquify_string = (s) ->
+    seen_already = {}
+    t = ''
+    for c in s
+        if not seen_already[c]?
+            t += c
+            seen_already[c] = true
+    return t
 

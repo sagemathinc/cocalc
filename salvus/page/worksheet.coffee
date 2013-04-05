@@ -155,10 +155,46 @@ class Worksheet extends EventEmitter
         else
             return [cell_list_patch, cell_patches]
 
-
     patch: (patch) =>
-        # Apply a patch to this worksheet, transforming it into a new worksheet.
+        # Apply a patch (as defined above) to this worksheet, transforming it (and all cells init) in place into a new worksheet.
+        if patch.length == 0
+            # easy common special case?
+            return
+        cell_list_patch = patch[0]
+        cell_patches    = patch[1]
 
+        # There are two things to do:
+        #   (1) compute the new ordered cell list, which may involve creating and deleting cells, and reordering them.
+        #   (2) for each remaining cell, apply the corresponding cell patch
+
+        # Stage 1: cell creation/deletion/reordering
+        if cell_list_patch.length > 0
+            patch = cell_list_patch[0]
+            string_mapping = new misc.StringCharMapping(cell_list_patch[1])
+            # Convert our current list of cells to a string using the mapping,
+            # apply the patch to that string, then eliminate duplicates.
+            s = string_mapping.to_string(c.id() for c in @cells())
+            t = diffsync.dmp.patch_apply(patch, s)[0]
+            t = misc.uniquify_string(t)  # eliminate duplicates
+            if s != t
+                # The patch modified our cell list.  Now we have to do something about it.
+                new_cells = worksheet_template.find("..salvus-worksheet-cells").clone()
+                for id in string_mapping.to_array(t)
+                    cell = @_cells.find("#" + id)
+                    if cell.length == 0
+                        # New cell
+                        cell = @_new_cell(id:id)
+                    new_cells.append(cell)
+                # After the above loop, any cells left in @_cells should automatically be deleted.
+                @_cells.replaceWith(new_cells)
+                @_cells = new_cells
+                # TODO: I'm concerned about the efficiency of the above, e.g., when all that happens is say a single swap.
+
+        # Stage 2: applying patches to cells
+        for id, patch of cell_patches
+            cell = @cell(id)
+            if cell?  # only bother if the cell still exists
+                cell.patch(patch)
 
     #######################################################################
     # Private Methods

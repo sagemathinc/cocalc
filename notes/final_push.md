@@ -6,7 +6,7 @@
  (0:30?) [x] (0:20) diff for individual cells
  (0:30?) [x] (0:15) patch for cells
  (0:30?) [x] (2:15; more subtle than expected, and distracted) diff for worksheets
- (0:30?) [ ] patch for worksheets
+ (0:30?) [x] (0:55) patch for worksheets
 
  Regarding worksheet sync, I'm going to assume that I'll implement the following structure in the future.  This means, I'm completely
  ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
