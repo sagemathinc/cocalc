@@ -46,6 +46,7 @@ PYTHON_PACKAGES = [
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
     'cql',                # interface to Cassandra
+    'markdown2'
     ]
 
 if not os.path.exists(BUILD):
