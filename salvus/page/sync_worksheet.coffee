@@ -18,8 +18,14 @@ message  = require('message')
 
 templates = $("#salvus-editor-templates")
 
+##################################################################################
+#
+#
+##################################################################################
+
+
 class DiffSyncDoc
-    # Define exactly one of cm or string.
+    # Define exactly one of worksheet or obj (non-DOM version of a worksheet)
     #     cm     = a live codemirror editor
     #     string = a string
     constructor: (opts) ->
