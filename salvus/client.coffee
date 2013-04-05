@@ -8,6 +8,8 @@ sync_hub = require('sync_hub')  # used by page/
 message = require("message")
 misc    = require("misc")
 
+docs = require("docs")
+
 defaults = misc.defaults
 required = defaults.required
 

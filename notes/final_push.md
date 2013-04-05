@@ -1,3 +1,4 @@
+* (0:20?) [ ] I broke latex'ing with new fullscreen stuff.
 
 # implement sync
 
