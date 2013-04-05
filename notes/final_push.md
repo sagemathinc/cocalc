@@ -19,13 +19,16 @@ A worksheet is a linearly ordered list of cells.  There is no section or page st
 
 A spreadsheet view is a one way of displaying a worksheet, in which only the *output* is displayed, and the cells are organized in a rectangular array.  Also, clicking on the output, changes the display for that cell to input.
 
-A notebook is a collection of worksheets, with additional structure, e.g., chapters, sections, subsections, pages, etc.  A presentation is a linear list of worksheets, where each page is displayed in a free-form layout without the possibility to scroll.  The worksheets (hence cells) in a notebook or presentation all share a common Sage compute session.
+A workbook is a collection of worksheets, with additional structure, e.g., chapters, sections, subsections, pages, etc.  A presentation is a linear list of worksheets, where each page is displayed in a free-form layout without the possibility to scroll.  The worksheets (hence cells) in a notebook or presentation all share a common Sage compute session.
 -----
 
+--> * (2:00?) [ ] rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
+
+I started on this, and made a lot of progress, but a lot of work remains.  I forgot about
+how one needs both DOM-free and DOM-ish objects, and how only certain diff/patch combinations
+are needed.  That code is now written, though probably buggy.
 
 * (2:00?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
-
-* (2:00?) [ ] rewrite page/syncws.coffee to use worksheet diff/patch
 
 * (2:00?) [ ] modify editor to use syncws enhanced version of worksheet
 

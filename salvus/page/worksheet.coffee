@@ -20,6 +20,7 @@
 async          = require("async")
 
 diffsync       = require('diffsync')
+docs           = require('docs')
 
 {merge, copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
 {alert_message} = require('alerts')
@@ -103,57 +104,13 @@ class Worksheet extends EventEmitter
     #######################################################################
     # Synchronization support
     #######################################################################
-    diff: (version1) =>
-        # Given two worksheets -- this one (version0) and version1, compute a JSON-able
-        # object that encodes a patch that transforms this worksheet to version1
-        # (at least on the level of input -- output is ignored).
-        # The patch is the empty list exactly when there is nothing to be done.
-
-        # There are two levels to diff'ing, diffing the ordered list of uuid's of cells,
-        # then diffing the cells themselves.
-        cells0 = @cells()
-        cells1 = version1.cells()
-
-        #########################################################
-        # Our patch algorithm does the following:
-        #   * Create a patch cell_list_patch that transforms the ordered list of uuid's for cells0 to the ordered list for cells1.
-        #   * For each new cell in cells1 (i.e., call not in cells0) define a patch that simply adds all the content of that cell.
-        #   * For each cell in cells1 that is also in cells0, compute the patch transforming it.
-        #########################################################
-
-        # To construct the cell_list_patch, we convert the cell uuid's, which we assume are distinct, to unicode characters.
-        # We then apply the dmp library to compute a patch that transforms one string to the other.
-        # When we later apply it, we'll eliminate duplicate cells.
-        string_mapping = new misc.StringCharMapping()
-        cells0_string  = string_mapping.to_string(c.id() for c in cells0)
-        cells1_string  = string_mapping.to_string(c.id() for c in cells1)
-
-        p = diffsync.dmp.patch_make(cells0_string, cells1_string)
-        if p.length == 0
-            cell_list_patch = []
+    sync_obj: (obj) =>
+        if not obj?
+            cells = (cell.sync_obj() for cell in @cells())
+            return new docs.Worksheet(title:@get_title(), description:@get_description(), cells:cells)
         else
-            # Take only the part of the mapping that actually appears in the patch
-            to_string = {}
-            for d in p
-                for x in d.diffs
-                    for s in x[1]
-                        to_string[s] = string_mapping.to_string(s)
-            cell_list_patch= [p, to_string]
-
-        # Now, for each cell that remains, we may have a patch.   The cell_patches object will
-        # be a mapping from cell id's to cell patches.
-        for cell1 in cells1
-            id = cell1.id()
-            cell0 = @cell_by_id(id)
-            p = cell0.diff(cell1)
-            if p.length > 0
-                cell_patches[id] = p
-
-        v = []
-        if cell_list_patch.length == 0 and misc.len(cell_patches) == 0
-            return []
-        else
-            return [cell_list_patch, cell_patches]
+            # TODO: I don't think we ever need to do this.
+            throw("is setting a worksheet from obj ever needed?")
 
     patch: (patch) =>
         # Apply a patch (as defined above) to this worksheet, transforming it (and all cells init) in place into a new worksheet.
@@ -178,7 +135,7 @@ class Worksheet extends EventEmitter
             t = misc.uniquify_string(t)  # eliminate duplicates
             if s != t
                 # The patch modified our cell list.  Now we have to do something about it.
-                new_cells = worksheet_template.find("..salvus-worksheet-cells").clone()
+                new_cells = worksheet_template.find(".salvus-worksheet-cells").clone()
                 for id in string_mapping.to_array(t)
                     cell = @_cells.find("#" + id)
                     if cell.length == 0
@@ -452,7 +409,6 @@ class Worksheet extends EventEmitter
     _init_toggle_note_button: () =>
         @element.find("a[href=#toggle-note]").click () =>
             @_toggle_component('note')
-            @_toggle_note()
             return false
 
     _init_toggle_output_button: () =>

@@ -139,46 +139,22 @@ class Cell extends EventEmitter
     #######################################################################
     # Synchronization support
     #######################################################################
-    diff: (version1) =>
-        # Given two cells -- this one (version0) and version1, compute a JSON-able
-        # object that encodes a patch that transforms this cell to version1.
-        # This purely involves input -- the output part of the cell is ignored.
-        # Special case: if the cells are the same, return the empty list.
-
-        note0  = @note()
-        input0 = @input()
-        hide0  = @hidden_components()
-
-        note1  = version1.note()
-        input1 = version1.input()
-        hide1  = version1.hidden_components()
-
-        # super-common special case
-        if note0 == note1 and input0 == input1 and hide0 == hide1
-            return []
-
-        # Note patch
-        note_patch = diffsync.dmp.patch_make(note0, note1)
-        # Input patch
-        input_patch= diffsync.dmp.patch_make(input0, input1)
-        # Components patch (todo: this comp can prob be optimized a lot, e.g., starting with replacing c below (the string) with a number or character)
-        component_patch = []
-        # First: removed components
-        for c in hide0
-            if c not in hide1
-                component_patch.push([c,-1])
-        # Next: added components
-        for c in hide1
-            if c not in hide0
-                component_patch.push([c,+1])
-
-        # The cell patch is the combination of the above three patches.
-        # These patches will *never* be stored longterm or used between
-        # different versions, so we use an array instead of an object.
-        if note_patch.length == 0 and input_patch.length == 0 and component_patch.length == 0
-            return []
+    sync_obj: (obj) =>
+        if not obj?
+            return new docs.Cell(id:@opts.id, note:@note(), input:@input(), hidden:@hidden_components())
         else
-            return [note_patch, input_patch, component_patch]
+            if @note() != obj.note
+                @note(obj.note)
+            if @input() != obj.input
+                @input(obj.input)
+            hidden = @hidden_components()
+            for c in COMPONENTS
+                if c in hidden    # is hidden
+                    if c not in obj.hidden  # shouldn't be hidden
+                        x.show(c)
+                else  # not hidden
+                    if c in obj.hidden # should be hidden
+                        x.hide(c)
 
     patch: (patch) =>
         # Apply a patch to this cell, transforming it into a new cell.
@@ -877,8 +853,10 @@ class Cell extends EventEmitter
             @execute()
 
     hidden_components: () =>
+        if @_hidden_components? # cache
+            return @_hidden_components
         # return list of components of the cell that have been hidden
-        return (c for c in COMPONENTS when @component(c).data('hide'))
+        return @_hidden_components = (c for c in COMPONENTS when @component(c).data('hide'))
 
     to_obj: () =>
         obj =
@@ -1105,6 +1083,7 @@ class Cell extends EventEmitter
     # component) if it was hidden; this does not impact which
     # components are hidden/shown.
     show: (e) ->
+        @_hidden_components = undefined
         c = @component(e).removeClass('hide').data('hide',false)
         if e == 'editor'
             @_editor.refresh()
@@ -1118,6 +1097,7 @@ class Cell extends EventEmitter
     # component); this does not impact which individual components are
     # hidden/shown.
     hide: (e) ->
+        @_hidden_components = undefined
         c = @component(e)
         if not c?
             throw "unknown cell component -- '#{e}'"
