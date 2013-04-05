@@ -52,8 +52,8 @@
 .salvus-cell-output {
     /* background-color : #fff; #fafafa; */
     /*overflow-y       : auto; */
-    overflow-x       : auto;
-    margin-left      : 3em;
+    /* overflow-x       : auto; */
+    margin-left      : 79px;
     padding          : 0ex;
     margin-right     : 1em;
 
@@ -100,10 +100,10 @@
     margin-left : 0em;
     margin-top  : 0px;;
     height      : 0px;
-    font-size   : 10pt;
+    font-size   : 9pt;
     color       : #666;
     background-color : #ddd;
-    opacity     : 0.5;
+    opacity     : 0.4;
 }
 
 .salvus-cell-stopwatch-running {

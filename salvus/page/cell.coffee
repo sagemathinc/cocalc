@@ -41,7 +41,7 @@ class Cell extends EventEmitter
 
             # subarray of COMPONENTS (see definition at top of this file); if given, hides
             # the given components when the cell is created
-            hide                  : undefined
+            hide                  : ['note']
 
             # If given, and hide is undefined, show only these components
             show                  : undefined
