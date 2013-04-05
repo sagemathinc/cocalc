@@ -1,4 +1,21 @@
-* (0:20?) [ ] I broke latex'ing with new fullscreen stuff.
+* (2:00?) [ ] entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code.
+
+* (2:00?) [ ] rewrite divide into blocks to respect code decorators, plus fix ugly recombination of if/while/etc.
+
+* (1:00?) [ ] every time we start editing a document on first sync the cursor moves back 4 characters.  FIX.
+
+* (1:30?)  [ ] infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
+
+* (1:00?) [ ] automatic restart of `sage_server.py`... doesn't seem to work; or -- maybe -- it's just that a worksheet that asks for a non-existent session should failover and ask for a new session; right now it doesn't.
+
+* (1:00?) [ ] seriously consider getting rid of the note part of a cell, and instead just making it much easier to auto-hide input / auto-show input, etc., select formatting modes, etc.  This would make sync easier, and prevent a lot of pain with this whole confusing note system.  Have "%md" for markdown. In particular, it would be very good to work harder on supporting changing the syntax highlighting modes in codemirror automatically for percent modes.  And have a palette of percent modes.  This will be better in the long run.  Double click on output to show input...  Another advantage is that undo "just works".  Might as well get rid of TITLE and Description too -- it all just serves to complicate things; instead make cells really powerful/easy.
+
+* (0:45?) [ ]  add a %md mode -- one like in lecture3:
+def md(s):
+    import markdown2
+    html(markdown2.markdown(s))
+
+
 
 # implement sync
 
@@ -12,8 +29,8 @@
  Regarding worksheet sync, I'm going to assume that I'll implement the following structure in the future.  This means, I'm completely
  ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
 
-IDEA:
-------
+ (0:45?) [ ] create a tab for help (linked to from the about page and various places), and put this there (with new stuff commented out)
+
 The basic unit of computation in a notebook is a *cell*, which is a triple consisting of a note (or comment), followed by input code, then output.    Any of these three components may be easily hidden or shown, but all are present.  A computation involves a description of *what* is being done in human terms (the note), how to do it in terms of code (the input code), and the result of the computation (the output).  The output may be interactive, and itself contain cells.   A live cell is aware of an associated Sage session.  Sage sessions know nothing about cells, worksheets, etc. -- they simply execute code and have a state.
 
 A worksheet is a linearly ordered list of cells.  There is no section or page structure to a worksheet -- it is a single infinitely long page.  All cells share the same Sage compute session.
@@ -22,6 +39,9 @@ A spreadsheet view is a one way of displaying a worksheet, in which only the *ou
 
 A workbook is a collection of worksheets, with additional structure, e.g., chapters, sections, subsections, pages, etc.  A presentation is a linear list of worksheets, where each page is displayed in a free-form layout without the possibility to scroll.  The worksheets (hence cells) in a notebook or presentation all share a common Sage compute session.
 -----
+
+* (0:20?) [ ] I broke latex'ing with new fullscreen stuff.
+
 
 --> * (2:00?) [ ] rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
 
@@ -39,7 +59,8 @@ are needed.  That code is now written, though probably buggy.
 
 * (0:45?) [ ] when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
 
-# Weekend final push for release
+* (2:00?) [ ] block parsing sucks.  cell decorator parsing shouldn't be mixed in with it and totally sucks since it is. FIX.  Sympton, %md doesn't work right due to newlines.
+
 * (1:00?) [ ] merge recent files (etc.) thing into the database; it's too frustrating/confusing tieing to computer.
 * (1:00?) [ ] clean up presentation mode -- what I did is a mess; also add support for code and terminal.
 * (1:00?) [ ] MUST have a spinner to indicate when docs are loading... some are quite slow right now.
