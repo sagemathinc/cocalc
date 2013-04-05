@@ -14,7 +14,7 @@ Code for parsing Sage code blocks sensibly.
 
 import string
 import traceback
-
+disabl
 def get_input(prompt):
     try:
         r = raw_input(prompt)
@@ -137,6 +137,9 @@ dec_args = {}
 def divide_into_blocks(code):
     global dec_counter
     code, literals, state = strip_string_literals(code)
+
+    ## attempt to not remove blank lines -- didn't work.
+    ##code = code.splitlines()
     code = [x for x in code.splitlines() if x.strip()]  # remove blank lines
 
     # Compute the line-level code decorators.
@@ -179,6 +182,12 @@ def divide_into_blocks(code):
         code = c
 
     # Compute the blocks
+    blocks = []
+    ## Attempt to completely disable block parsing (didn't work)
+    ##blocks = [[0,len(code)-1,('\n'.join(code))%literals]]
+    ##return blocks
+
+
     i = len(code)-1
     blocks = []
     while i >= 0:
@@ -196,16 +205,29 @@ def divide_into_blocks(code):
         code = code[:i]
         i = len(code)-1
 
-    # merge try/except/finally/decorator blocks
+    # merge try/except/finally/decorator/else/elif blocks
     i = 1
     while i < len(blocks):
         s = blocks[i][-1].lstrip()
+        # TODO: there shouldn't be 5 identical bits of code below!!!
         if s.startswith('finally:') or s.startswith('except'):
             if blocks[i-1][-1].lstrip().startswith('try:'):
                 blocks[i-1][-1] += '\n' + blocks[i][-1]
                 blocks[i-1][1] = blocks[i][1]
                 del blocks[i]
         elif s.startswith('def') and blocks[i-1][-1].lstrip().startswith('@'):
+            blocks[i-1][-1] += '\n' + blocks[i][-1]
+            blocks[i-1][1] = blocks[i][1]
+            del blocks[i]
+        elif s.startswith('else') and blocks[i-1][-1].lstrip().startswith('if'):
+            blocks[i-1][-1] += '\n' + blocks[i][-1]
+            blocks[i-1][1] = blocks[i][1]
+            del blocks[i]
+        elif s.startswith('elif') and blocks[i-1][-1].lstrip().startswith('if'):
+            blocks[i-1][-1] += '\n' + blocks[i][-1]
+            blocks[i-1][1] = blocks[i][1]
+            del blocks[i]
+        elif s.startswith('else') and blocks[i-1][-1].lstrip().startswith('elif'):
             blocks[i-1][-1] += '\n' + blocks[i][-1]
             blocks[i-1][1] = blocks[i][1]
             del blocks[i]
