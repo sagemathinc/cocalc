@@ -922,7 +922,7 @@ def serve(port, host):
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
                  'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                  'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
-                 'reset', 'restore']:
+                 'reset', 'restore', 'md']:
         namespace[name] = getattr(sage_salvus, name)
 
     sage_salvus.default_namespace = dict(namespace)

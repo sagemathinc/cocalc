@@ -2222,3 +2222,11 @@ def restore(vars=None):
     sage.misc.reset._restore(sage.calculus.calculus.syms_cur, sage.calculus.calculus.syms_default, vars)
 
 restore.__doc__ += sage.misc.reset.restore.__doc__
+
+
+def md(s):
+    """
+    Cell mode that renders everything after %md as markdown.
+    """
+    import markdown2
+    html(markdown2.markdown(s))
