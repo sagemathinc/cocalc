@@ -16,4 +16,4 @@ salvus_client.on "connected", (protocol) ->
     $("#connection_bars").show()
 
 salvus_client.on "ping", (ping_time) ->
-    $("#ping_time").html("ping=#{(ping_time*1000).toFixed(0)}ms")
+    $("#ping_time").html("#{(ping_time*1000).toFixed(0)}ms ping")

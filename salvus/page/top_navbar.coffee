@@ -190,6 +190,13 @@ $.fn.extend
 ###############################################################
 # Add the standard pages
 
+$("#salvus-help").top_navbar
+    id      : "salvus-help"
+    label   : ""
+    icon : 'icon-question-sign'
+    close   : false
+
+###
 $("#about").top_navbar
     id      : "about"
     label   : "SageMathCloud&trade;"
@@ -197,6 +204,7 @@ $("#about").top_navbar
     icon : 'icon-cloud'
     #pull_right : true
     close   : false
+###
 
 ###
 $(".salvus-explore").top_navbar
@@ -209,7 +217,7 @@ $(".salvus-explore").top_navbar
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "Your Accounts"
+    label   : "Accounts"
     icon : 'icon-tasks'
     close   : false
 

@@ -1,86 +1,58 @@
-* (1:30?) [ ] idea to test:
+I have 24 hours total.
 
-* (1:00?) [ ] HUGE BUG -- every time we start editing a document on first sync the cursor moves back 4 characters.  FIX.
-
-* (1:00?) [ ] BUG: when a worksheet that asks for a non-existent, it should failover and ask for a new session; right now it doesn't.
-* (1:30?)  [ ] BUG: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
-
-* (2:00?) [ ] entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code.
-* (2:00?) [ ] rewrite divide into blocks to respect code decorators, plus fix ugly recombination of if/while/etc.
-
-* (1:00?) [ ] remove the note part of a cell, and instead just making it much easier to create notes using cells.
-  - auto-hide input / auto-show input, etc., select formatting modes, etc.
-  - This would make sync easier, and prevent a lot of pain with this whole confusing note system.
-  - Have "%md" for markdown. In particular, it would be very good to work harder on supporting
-  - changing the syntax highlighting modes in codemirror automatically for percent modes.  And have a palette of percent modes.  This will be better in the long run.
-  - Double click on output to show input...  Another advantage is that undo "just works".
-  - Might as well get rid of TITLE and Description too -- it all just serves to complicate things; instead make cells really powerful/easy.
-
-* (0:30?) [ ] usually, writing after doing an operation with some checked cells, it is natural to uncheck them all. This is the case for hide/show ops.
-
-# implement sync
-
-* (2:00?) [ ] sync worksheet define code to diff two worksheets making a patch, and apply patch
-
- (0:30?) [x] (0:20) diff for individual cells
- (0:30?) [x] (0:15) patch for cells
- (0:30?) [x] (2:15; more subtle than expected, and distracted) diff for worksheets
- (0:30?) [x] (0:55) patch for worksheets
-
- Regarding worksheet sync, I'm going to assume that I'll implement the following structure in the future.  This means, I'm completely
- ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
-
- (0:45?) [ ] create a tab for help (linked to from the about page and various places), and put this there (with new stuff commented out)
-
-The basic unit of computation in a notebook is a *cell*, which is a triple consisting of a note (or comment), followed by input code, then output.    Any of these three components may be easily hidden or shown, but all are present.  A computation involves a description of *what* is being done in human terms (the note), how to do it in terms of code (the input code), and the result of the computation (the output).  The output may be interactive, and itself contain cells.   A live cell is aware of an associated Sage session.  Sage sessions know nothing about cells, worksheets, etc. -- they simply execute code and have a state.
-
-A worksheet is a linearly ordered list of cells.  There is no section or page structure to a worksheet -- it is a single infinitely long page.  All cells share the same Sage compute session.
-
-A spreadsheet view is a one way of displaying a worksheet, in which only the *output* is displayed, and the cells are organized in a rectangular array.  Also, clicking on the output, changes the display for that cell to input.
-
-A workbook is a collection of worksheets, with additional structure, e.g., chapters, sections, subsections, pages, etc.  A presentation is a linear list of worksheets, where each page is displayed in a free-form layout without the possibility to scroll.  The worksheets (hence cells) in a notebook or presentation all share a common Sage compute session.
------
-
-* (0:20?) [ ] I broke latex'ing with new fullscreen stuff.
+--> * (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
 
 
---> * (2:00?) [ ] rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
+* (0:10?) [ ] change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
+* (1:00?) [ ] BUG: every time we start editing a document on first sync the cursor moves back 4 characters.  FIX.
+* (1:00?) [ ] BUG: when a worksheet asks for a non-existent session, it should failover and ask for a new session; right now it doesn't.
+* (1:00?) [ ] BUG: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
+* (2:00?) [ ] BUG: entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code; latexing totally broken.
+* (2:00?) [ ] BUG: rewrite "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
+* (0:30?) [ ] REMOVE: worksheet1.html -- why is it there.
+* (1:00?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
+* (1:00?) [ ] REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).
+* (1:00?) [ ] FEATURE: in worksheet cell, double click on output to show input...
+* (1:00?) [ ] FEATURE: changing the syntax highlighting modes in codemirror automatically for percent modes.  And have a palette of percent modes.
+* (1:00?) [ ] BUG FIX: cursor positioning: take what I currently do and combine it with "fuzzy search"...
+* (0:30?) [ ] After doing certain operations with checked cells, uncheck them all: hide/show ops.
+* (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
+* (0:15?) [ ] REMOVE: about.html and commented out stuff in `top_navbar`, assuming I really want to combine with help.
+* (1:00?) [ ] BUG: fix/implement the open file tab resize code.
+* (0:30?) [ ] FEATURE: donation link
+* (1:00?) [ ] FEATURE: way user can self-report that they donated, how much, and when; stored in a "donations" table?
 
-I started on this, and made a lot of progress, but a lot of work remains.  I forgot about
-how one needs both DOM-free and DOM-ish objects, and how only certain diff/patch combinations
-are needed.  That code is now written, though probably buggy.
+* (2:00?) [ ] SYNC: rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
+* (2:00?) [ ] SYNC: sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
 
-* (2:00?) [ ] sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
+* (2:00?) [ ] SYNC: modify editor to use sync\_worksheet  enhanced version of worksheet
+* (0:45?) [ ] BUG: when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
+* (1:00?) [ ] BUG: move recent files (etc.) thing to the database; it's too frustrating/confusing tieing to the computer.
 
-* (2:00?) [ ] modify editor to use syncws enhanced version of worksheet
-
-* (1:00?) [ ] cursor position improvements: I should take what I currently do and combine it with "fuzzy search"... the combination should be unbeatable.
-
-* (1:00?) [ ] BUG -- when syncing editor documents, the first sync now doesn't loose anything, but it *DOES* move the cursor, which is confusion and causes errors while typing... every time.  Maybe force a first sync right when document loads. ok, I'm testing this out while developing today to see how it goes.
-
-* (0:45?) [ ] when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
-
-* (2:00?) [ ] block parsing sucks.  cell decorator parsing shouldn't be mixed in with it and totally sucks since it is. FIX.  Sympton, %md doesn't work right due to newlines.
-
-* (1:00?) [ ] merge recent files (etc.) thing into the database; it's too frustrating/confusing tieing to computer.
-* (1:00?) [ ] clean up presentation mode -- what I did is a mess; also add support for code and terminal.
-* (1:00?) [ ] MUST have a spinner to indicate when docs are loading... some are quite slow right now.
-* (0:30?) [ ] the css position of tab completion is wrong; it doesn't move with the worksheet!
-* (1:00?) [ ] Hide top bar and zoom mode!!!!
-* (0:30?) [ ] worksheet path is still not set correctly
-* (0:30?) [ ] terminal path is not set correctly.
-* (0:10?) [ ] switch the open/recent back next to each, since they both do the same sort of thing -- open a file.
-* (1:00?) [ ] worksheet: modes!
-* (0:30?) [ ] need more space the bottom of the worksheet
-* (0:20?) [ ] os x "control-o" should also accept command-o
+* (1:00?) [ ] FEATURE: spinner to indicate when docs are loading... some are quite slow right now.
+* (0:30?) [ ] BUG: the css position of tab completion is wrong; it doesn't move with the worksheet!
+* (0:30?) [ ] BUG: worksheet path is still not set correctly
+* (0:30?) [ ] BUG: terminal path is not set correctly.
+* (1:00?) [ ] FEATURE: default worksheet percent modes.
+* (0:30?) [ ] BUG: sometimes need more space the bottom of the worksheet
+* (0:30?) [ ] BUG: os x "control-o" should also accept command-o
 * (0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize and show top navbar events.
-* (0:30?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
-* (1:00?) [ ] SAFETY FEATURE: setup rsnapshot to run like crazy in every account, copying to /snapshot for virtual machines, and mention this.  Say "This is a the first release, and since there is every possibility of data loss and corruption due to bugs, snapshots are made frequently."  Need a button (next to trash) that is a quick link to snapshots in .snapshots (?).  The smc service can start this.
-IDEA: make the rsnapshot backup of user files for public projects... available via haproxy, so even if the hub goes down, people can get to all their files.  Also, this is index-able.
-* (0:30?) [ ] define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
-* (3:00?) [ ] deploy and test (and come up with plan to do so)
-* (0:30?) [ ] don't allow editing a file if it is above a certain relatively small size...
+* (0:45?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
+* (1:00?) [ ] SAFETY: setup rsnapshot so it is used for every account and noted in database.
+* (1:30?) [ ] DEPLOY: define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
+* (3:00?) [ ] DEPLOY: deploy and test (and come up with plan to do so)
+* (1:00?) [ ] BUG: don't allow editing a file if it is above a certain relatively small size...
 * (0:45?) [ ] BUG -- editor synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up -- sync the window with focus?
+
+
+
+
+
+
+
+
+@@@@@@@@@@@@@@@@@@
+
 
 
 # DONE
@@ -327,6 +299,13 @@ features;
 
 * (0:45?) [x]  add a %md mode -- one like in lecture3:
 
+ (0:30?) [x] (0:20) diff for individual cells
+ (0:30?) [x] (0:15) patch for cells
+ (0:30?) [x] (2:15; more subtle than expected, and distracted) diff for worksheets
+ (0:30?) [x] (0:55) patch for worksheets
+
+ Regarding worksheet sync, I'm going to assume that I'll implement the following structure in the future.  This means, I'm completely
+ ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
 
 
 
