@@ -807,17 +807,18 @@ def handle_session_term(signum, frame):
             return
         if not pid: return
 
-CONFPATH = os.path.abspath('.sagemathcloud') + '/'
+CONFPATH = os.path.join(os.environ['HOME'], '.sagemathcloud') + os.path.sep
 secret_token = None
+secret_token_path = os.path.join(CONFPATH, 'data/secret_token')
 
 def unlock_conn(conn):
     global secret_token
     if secret_token is None:
         try:
-            secret_token = open(CONFPATH + 'data/secret_token').read()
+            secret_token = open(secret_token_path).read()
         except:
             conn.send('n')
-            conn.send("Unable to accept connection, since Sage server doesn't yet know the secret token.")
+            conn.send("Unable to accept connection, since Sage server doesn't yet know the secret token; unable to read from '%s'"%secret_token_path)
             conn.close()
 
     n = len(secret_token)

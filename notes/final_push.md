@@ -1,4 +1,4 @@
-* (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
+--> * (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
 * (0:30?) [ ] REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
 * (0:30?) [ ] FEATURE: spinner to indicate when docs are loading... some are quite slow right now.
@@ -10,7 +10,11 @@
 * (0:45?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
 * (0:30?) [ ] MAJOR BUG: when a worksheet asks for a non-existent session, it should failover and ask for a new session; right now it doesn't.
 * (1:00?) [ ] BUG: terminal sessions need to reconnect when they timeout!
-
+* (0:45?) [ ] BUG: when we get this in the `local_hub`, then the `sage_server` needs to be automatically started:
+    debug: connect_to_session -- type='sage'
+    debug: make a connection to a new sage session.
+    debug: Got sage server port = undefined
+    debug: can't determine sage server port; probably sage server not running
 
 * (1:30?) [ ] SYNC: rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
 * (1:30?) [ ] SYNC: sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
@@ -29,7 +33,7 @@
 
 @@@@
 
-
+* (0:15?) [ ] BUG: after pasting something big in terminal paste blank, page gets scrolled up all wrong.
 * (1:00?) [ ] FEATURE: default worksheet percent modes.
 * (1:00?) [ ] BUG: rewrite "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
 * (0:30?) [ ] DESIGN: After doing certain operations with checked cells, uncheck them all: hide/show ops.
@@ -299,4 +303,4 @@ features;
 --> * (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
 
 * (0:10?) [x] (0:12) change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
-
+* (0:25?) [x] (0:25) fix path bugginess that I guess I introduced yesterday, which made sage not start.
