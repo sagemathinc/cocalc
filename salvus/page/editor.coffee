@@ -1543,18 +1543,7 @@ class Worksheet extends FileEditor
             @element.find(".salvus-worksheet-filename").hide()
             @element.find(".salvus-worksheet-controls").hide()
             @element.find(".salvus-cell-checkbox").hide()
-            note = @element.find(".salvus-cell-note")
             # TODO: redo these three by adding/removing a CSS class!
-            @_orig_css_note =
-                'font-size':note.css('font-size')
-                'margin-left':note.css('margin-left')
-                'margin-right':note.css('margin-right')
-                'line-height':note.css('line-height')
-            note.css
-                'font-size': '11pt'
-                'margin-left': '-30px'
-                'margin-right': '-30px'
-                'line-height': '1.1em'
             input = @element.find(".salvus-cell-input")
             @_orig_css_input =
                 'font-size' : input.css('font-size')
@@ -1573,8 +1562,7 @@ class Worksheet extends FileEditor
             @element.find(".salvus-worksheet-filename").show()
             @element.find(".salvus-worksheet-controls").show()
             @element.find(".salvus-cell-checkbox").show()
-            if @_orig_css_note?
-                @element.find(".salvus-cell-note").css(@_orig_css_note)
+            if @_orig_css_input?
                 @element.find(".salvus-cell-input").css(@_orig_css_input)
                 @element.find(".salvus-cell-output").css(@_orig_css_output)
 

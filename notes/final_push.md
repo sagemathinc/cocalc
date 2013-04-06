@@ -1,4 +1,8 @@
---> * (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
+--> * (0:30?) [ ] BUG: loading some worksheets is DOUBLE DOG slow.  WHY??
+This issue is CRITICAL.   It seems like every codemirror editor is taking like a half second to do something in response to a window resize event. This isn't good.   WHY?  Ideas of things to do:
+   - make a simple standalone page to try to emulate this.
+   - try making a bunch of editors and *one* shared doc -- they each edit a separate range of lines.  Will this help?
+
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
 
 * (0:15?) [ ] BUG: I broke interact; now editor part of cell is shown in output interact?!
@@ -310,3 +314,7 @@ features;
 * (0:30?) [x] (1:14), FEATURE: in worksheet cell, double click on output to show input...
 
 * (0:30?) [x] (0:37) REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).; clean up button bar some
+
+
+* (0:30?) [x] (0:17) REMOVE the note part of a cell, and instead just making it much easier to create notes using cells.
+
