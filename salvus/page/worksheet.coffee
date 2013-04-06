@@ -65,7 +65,6 @@ class Worksheet extends EventEmitter
         @_init_restart_button()
         @_init_kill_button()
         @_init_toggle_code_button()
-        @_init_toggle_note_button()
         @_init_toggle_output_button()
         @_init_view_button_bar()
         @_init_views()
@@ -382,11 +381,6 @@ class Worksheet extends EventEmitter
             else
                 c.hide(name)
 
-    _init_toggle_note_button: () =>
-        @element.find("a[href=#toggle-note]").click () =>
-            @_toggle_component('note')
-            return false
-
     _init_toggle_output_button: () =>
         @element.find("a[href=#toggle-output]").click () =>
             @_toggle_component('output')
@@ -486,7 +480,7 @@ class Worksheet extends EventEmitter
         changed = () -> that.has_unsaved_changes(true)
 
         cell.on "change", (desc) =>
-            # Something changed, e.g., editing a note, input, etc.
+            # Something changed, e.g., editing input, etc.
             changed()
 
         # User requested to move this cell up
@@ -515,12 +509,6 @@ class Worksheet extends EventEmitter
             @emit 'delete-cell', cell.opts.id
             cell_prev = @_prev_cell(cell)
             cell_next = @_next_cell(cell)
-            note = cell.note()
-            if note != ""
-                if cell_next?
-                    cell_next.note(note + '<br>' + cell_next.note())
-                else if cell_prev?
-                    cell_prev.note(cell_prev.note() + '<br>' + note)
             cell.remove()
             if cell_prev?
                 @_focus_cell(cell_prev)
@@ -556,10 +544,6 @@ class Worksheet extends EventEmitter
                 # If there is no cell above this one, do nothing.
                 return
             changed()
-            # Copy note contents to end of note of cell above.
-            note = $.trim(cell.note())
-            if note.length > 0
-                prev_cell.note(prev_cell.note() + '<br>' + note)
             # Copy input to end of input above.
             prev_cell.append_to_input("\n" +cell.input())
             # Copy output to end of output above

@@ -16,7 +16,7 @@
 
 diffsync = require('diffsync')
 
-COMPONENTS = ['note', 'editor', 'output', 'checkbox', 'insert-above', 'insert-below']
+COMPONENTS = ['editor', 'output', 'checkbox', 'insert-above', 'insert-below']
 
 # templates
 templates     = $("#salvus-cell-templates")
@@ -32,8 +32,6 @@ class Cell extends EventEmitter
             # DOM element (or jquery wrapped element); this is replaced by the cell
             element               : undefined
 
-            # initial value of the note (HTML)
-            note                  : undefined
             # initial value of the code editor (TEXT)
             input                 : undefined
             # initial value of the output area (JSON)
@@ -41,15 +39,10 @@ class Cell extends EventEmitter
 
             # subarray of COMPONENTS (see definition at top of this file); if given, hides
             # the given components when the cell is created
-            hide                  : ['note']
+            hide                  : []
 
             # If given, and hide is undefined, show only these components
             show                  : undefined
-
-            # milliseconds interval between sending update change events about note
-            note_change_timer     : 250
-            # maximum height of note part of cell.
-            note_max_height       : "auto"
 
             # language mode of the input editor
             editor_mode           : "python"
@@ -107,17 +100,13 @@ class Cell extends EventEmitter
 
         if not @opts.input?
             @opts.input = e.text()
-        @opts.note = e.data('note') if not @opts.note?
         @opts.output = e.data('output') if not @opts.output?
-
-        @_note_change_timer_is_set = false
 
         @element = cell_template.clone()
 
         @_initialize_output()
         @_initialize_checkbox()
         @_initialize_insert()
-        @_initialize_note()
         @_initialize_input()
         @_initialize_action_button()
 
@@ -132,7 +121,8 @@ class Cell extends EventEmitter
 
         if @opts.hide?
             for e in @opts.hide
-                @hide(e)
+                if e != 'note' # temporary backwards compat
+                    @hide(e)
 
         @_initialize_dblclick_toggles()
 
@@ -143,10 +133,8 @@ class Cell extends EventEmitter
     #######################################################################
     sync_obj: (obj) =>
         if not obj?
-            return new docs.Cell(id:@opts.id, note:@note(), input:@input(), hidden:@hidden_components())
+            return new docs.Cell(id:@opts.id, input:@input(), hidden:@hidden_components())
         else
-            if @note() != obj.note
-                @note(obj.note)
             if @input() != obj.input
                 @input(obj.input)
             hidden = @hidden_components()
@@ -161,14 +149,8 @@ class Cell extends EventEmitter
     patch: (patch) =>
         # Apply a patch to this cell, transforming it into a new cell.
         # The patch must be in exactly the format returned by diff above.
-        note_patch      = patch[0]
         input_patch     = patch[1]
         component_patch = patch[2]
-
-        note = @note()
-        new_note = diffsync.dmp.patch_apply(note_patch, note)[0]
-        if new_note != note
-            @note(new_note)
 
         input = @input()
         new_input = diffsync.dmp.patch_apply(input_patch, input)[0]
@@ -250,14 +232,6 @@ class Cell extends EventEmitter
 
         @element.find(".salvus-cell-insert-below").tooltip(delay:500, title:"Click to insert a cell.").click () =>
             @emit "insert-new-cell-after"
-
-    _initialize_note: () ->
-        @_note = @element.find(".salvus-cell-note")
-        @_note.html(@opts.note)
-        @_note.css('max-height', @opts.note_max_height)
-        @_note.make_editable
-            onchange : (obj, diff) =>
-                @emit('change', {'note':diff})
 
     _initialize_input: () ->
         @_input = @element.find(".salvus-cell-input")
@@ -888,14 +862,11 @@ class Cell extends EventEmitter
     to_obj: () =>
         obj =
             id     : @opts.id
-            note   : @_note.data('raw')
             input  : @input()
             output : @_persistent_output_messages
             hide   : @hidden_components()
 
         # optimize-- could do during construction...
-        if not obj.note or obj.note.length == 0
-            delete obj.note
         if not obj.input or obj.input.length == 0
             delete obj.input
         if not obj.output or obj.output.length == 0
@@ -908,8 +879,6 @@ class Cell extends EventEmitter
         obj = @to_obj()  # takes advantage of optimization of cell components
         t = ''
         hidden = @hidden_components()
-        if obj.note? and 'note' not in hidden
-            t += '# ' + $("<div>").html(obj.note).text() + '\n'
         if obj.input? and 'editor' not in hidden
             t += 'sage: ' + $.trim(obj.input).replace(/\n/g,'\n      ')
         if obj.output? and 'output' not in hidden
@@ -935,8 +904,6 @@ class Cell extends EventEmitter
         obj = @to_obj()
         t = ''
         hidden = @hidden_components()
-        if obj.note? and 'note' not in hidden
-            t += $("<div>").html(obj.note).text()
         if (obj.input? and 'editor' not in hidden) or (obj.output? and 'output' not in hidden)
             t += '::\n'
         else
@@ -968,9 +935,6 @@ class Cell extends EventEmitter
         obj = @to_obj()
         hidden = @hidden_components()
         t = '\n\n'
-
-        if obj.note? and 'note' not in hidden
-            t += html_to_latex(obj.note)
 
         if obj.input? and 'editor' not in hidden
             input = $.trim(obj.input)
@@ -1090,8 +1054,6 @@ class Cell extends EventEmitter
         if not e?
             return @element
         switch e
-            when 'note'
-                return @_note
             when 'editor'
                 return @element.find(".salvus-cell-input")
             when 'output'
@@ -1105,7 +1067,7 @@ class Cell extends EventEmitter
 
     # Show an individual component of the cell:
     #
-    #       cell.show("note"), cell.show("editor"), cell.show("output").
+    #      cell.show("editor"), cell.show("output").
     #
     # Also, cell.show() will show the complete cell (not show each
     # component) if it was hidden; this does not impact which
@@ -1119,7 +1081,7 @@ class Cell extends EventEmitter
 
     # Hide an individual component of the cell --
     #
-    #  cell.hide("note"), cell.hide("editor"), cell.hide("output")
+    #  cell.hide("editor"), cell.hide("output")
     #
     # Also, cell.hide() will hide the complete cell (not hide each
     # component); this does not impact which individual components are
@@ -1318,12 +1280,6 @@ class Cell extends EventEmitter
     remove: () =>
         @element.remove()
 
-    # Set or get the HTML value of the note field
-    note: (val) =>
-        if val?
-            @_note.data('raw', val).html(val).mathjax()
-        else
-            @_note.data('raw')
 
 exports.Cell = Cell
 

@@ -1,7 +1,8 @@
-* (0:30?) [x] (0:37) REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).; clean up button bar some
-* (0:15?) [ ] BUG: I broke interact; now editor part of cell is shown in output interact?!
-* (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
+--> * (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
+
+* (0:15?) [ ] BUG: I broke interact; now editor part of cell is shown in output interact?!
+
 * (0:15?) [ ] BUG: need block of empty whitespace at bottom of cell.
 * (0:15?) [ ] BUG: moving cursor over cells with hidden input (?)
 * (0:30?) [ ] FEATURE: spinner to indicate when docs are loading... some are quite slow right now.
@@ -307,3 +308,5 @@ features;
 * (0:10?) [x] (0:12) change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
 * (0:25?) [x] (0:25) fix path bugginess that I guess I introduced yesterday, which made sage not start.
 * (0:30?) [x] (1:14), FEATURE: in worksheet cell, double click on output to show input...
+
+* (0:30?) [x] (0:37) REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).; clean up button bar some

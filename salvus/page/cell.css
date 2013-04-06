@@ -7,14 +7,6 @@
     border: dashed 1px #aaa;
 }
 
-.salvus-cell-note {
-    font-size        : 11pt;
-    color            : #333;
-    min-height       : 1.8em;
-    padding-left     : 5em;
-    padding-right    : 5em;
-}
-
 .salvus-cell-insert-above {
     height: 4px;
     margin-left: 10ex;
