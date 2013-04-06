@@ -25,8 +25,8 @@
     font-weight: bold;
     color:#555;
     margin-top:5px;
-    position:absolute;
     word-break: break-word;
+    margin-right: 1em;
 
 }
 
@@ -77,7 +77,14 @@
 }
 
 .salvus-worksheet-button-row {
-    margin-bottom: 5px;
+    margin-bottom: 1px;
     margin-top: 1px;
     height:30px;
+    position:absolute;
+    left:0;
+}
+
+
+.salvus-worksheet-bottom-whitespace-box {
+    height: 10em;
 }

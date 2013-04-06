@@ -1070,6 +1070,7 @@ class Cell extends EventEmitter
         @selected()
         @_editor.focus()
         @_editor.refresh()
+        @element[0].scrollIntoView(false)
 
     # Mark the cell visibly as selected or not selected
     selected: (is_selected=true) ->

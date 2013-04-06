@@ -1500,10 +1500,8 @@ class Worksheet extends FileEditor
     _set: (content) =>
         content = $.trim(content)
         if content.length > 0
-            {title, description, content, session_uuid} = from_json(content)
+            {content, session_uuid} = from_json(content)
         else
-            title = "Title"
-            description = "Description"
             content = undefined
             session_uuid = undefined
 
@@ -1511,8 +1509,6 @@ class Worksheet extends FileEditor
             if err
                 return
             @element.salvus_worksheet
-                title       : title
-                description : description
                 content     : content
                 path        : @filename
                 session     : @session

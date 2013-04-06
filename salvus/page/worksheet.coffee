@@ -22,7 +22,7 @@ async          = require("async")
 diffsync       = require('diffsync')
 docs           = require('docs')
 
-{merge, copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
+{merge, copy, filename_extension, required, defaults, to_json, uuid, trunc} = require('misc')
 {alert_message} = require('alerts')
 {salvus_client} = require('salvus_client')
 {Cell} = require("cell")
@@ -39,8 +39,6 @@ class Worksheet extends EventEmitter
         @opts = defaults opts,
             element     : required   # DOM element (or jQuery wrapped element); this is replaced by the worksheet
             path        : required   # filename of the worksheet
-            title       : ""
-            description : ""
             content     : undefined  # If given, sets the cells/sections of the worksheet (see @to_obj()).
             cell_opts   : {}
             session     : undefined
@@ -51,10 +49,8 @@ class Worksheet extends EventEmitter
         @element = worksheet_template.clone()
         @element.data("worksheet", @)
         $(@opts.element).replaceWith(@element)
-        @_init_title()
-        @_init_description()
 
-        @element.find(".salvus-worksheet-filename").text(@opts.path)
+        @element.find(".salvus-worksheet-filename").text(trunc(@opts.path,32))
 
         @_init_session_ping()
         @_cells = @element.find(".salvus-worksheet-cells")
@@ -107,7 +103,7 @@ class Worksheet extends EventEmitter
     sync_obj: (obj) =>
         if not obj?
             cells = (cell.sync_obj() for cell in @cells())
-            return new docs.Worksheet(title:@get_title(), description:@get_description(), cells:cells)
+            return new docs.Worksheet(cells:cells)
         else
             # TODO: I don't think we ever need to do this.
             throw("is setting a worksheet from obj ever needed?")
@@ -165,26 +161,6 @@ class Worksheet extends EventEmitter
                 # TODO: here we might also send a message with edit difference back to hub...?
                 @has_unsaved_changes(true)
                 elt.data("last", h)
-
-    _init_title: () =>
-        title = @element.find(".salvus-worksheet-title")
-        @set_title(@opts.title)
-
-        title.make_editable
-            onchange : (obj, diff) -> # TODO: do something with this.
-                #console.log(obj, diff)
-
-        @_monitor_for_changes(title)
-
-
-    _init_description: () =>
-        description = @element.find(".salvus-worksheet-description")
-
-        @set_description(@opts.description)
-        @_monitor_for_changes(description)
-
-        description.make_editable
-            onchange: (obj, diff) ->  # TODO: do something with this.
 
     _init_session_ping: () =>
         # Ping as long as the worksheet_is_open method returns true.
@@ -826,29 +802,22 @@ class Worksheet extends EventEmitter
     # convert worksheet to object -- this is not lossy
     to_obj: () =>
         obj = {}
-
         if @opts.session?
             obj.session_uuid = @opts.session.session_uuid
-
-        obj.title       = @get_title()
-        obj.description = @get_description()
-        obj.content     = (@_to_obj(c) for c in @_cells.children())
-
+        obj.content = (@_to_obj(c) for c in @_cells.children())
         return obj
 
     # convert worksheet to text/command line format -- this is lossy
     to_text: () =>
-        return "# #{@get_title()}\n# #{@get_description()}\n\n" + (@_to_text(c) for c in @_cells.children()).join('')
+        return (@_to_text(c) for c in @_cells.children()).join('')
 
     to_rest: () =>
-        return "(ReST view NOT fully implemented!)\n#{@get_title()}\n===================\n#{@get_description()}\n----------------------\n\n" + (@_to_rest(c) for c in @_cells.children()).join('')
+        return "(ReST view NOT fully implemented!)\n\n" + (@_to_rest(c) for c in @_cells.children()).join('')
 
 
     to_latex: () =>
         s = "\\documentclass{#{@opts.latex_opts.documentclass}}\n#{@opts.latex_opts.preamble}\n"
-        s += "\\title{#{@get_title()}}\n\n"
-        s += "\\author{#{@get_description()}}\n\n"
-        s += "\\begin{document}\n\\maketitle\n\n"
+        s += "\\begin{document}\n\n"
         if @opts.latex_opts.tableofcontents
             s += "\\tableofcontents\n\n"
         s += (@_to_latex(c) for c in @_cells.children()).join('\n')
@@ -875,22 +844,6 @@ class Worksheet extends EventEmitter
         @_saved_blobs = {}
         for b in @_new_blobs(content)
             @_saved_blobs[b] = 'known'
-
-    set_title: (title) =>
-        @element.find(".salvus-worksheet-title").html(title)
-
-    get_title: () =>
-        @element.find(".salvus-worksheet-title").data('raw')
-
-    set_description: (description) ->
-        @element.find(".salvus-worksheet-description").html(description)
-
-    get_description: (description) ->
-        @element.find(".salvus-worksheet-description").data('raw')
-
-    #get_author: () =>
-        # This is relative to who is viewing the worksheet.
-    #    return require('account').account_settings.fullname()
 
     set_session: (session) ->
         @opts.session = session
