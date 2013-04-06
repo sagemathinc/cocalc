@@ -257,7 +257,7 @@ class exports.Connection extends EventEmitter
         # this many ms, or client will start freaking out and trying
         # to reconnect.  This limits things like max size of files we
         # can edit.
-        @_ping_check_interval = 20000  # 20 seconds.
+        @_ping_check_interval = 45000  # 45 seconds.
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->
