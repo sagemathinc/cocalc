@@ -1,21 +1,22 @@
-* (2:00?) [ ] entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code.
+* (1:30?) [ ] idea to test:
 
+* (1:00?) [ ] HUGE BUG -- every time we start editing a document on first sync the cursor moves back 4 characters.  FIX.
+
+* (1:00?) [ ] BUG: when a worksheet that asks for a non-existent, it should failover and ask for a new session; right now it doesn't.
+* (1:30?)  [ ] BUG: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
+
+* (2:00?) [ ] entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code.
 * (2:00?) [ ] rewrite divide into blocks to respect code decorators, plus fix ugly recombination of if/while/etc.
 
-* (1:00?) [ ] every time we start editing a document on first sync the cursor moves back 4 characters.  FIX.
+* (1:00?) [ ] remove the note part of a cell, and instead just making it much easier to create notes using cells.
+  - auto-hide input / auto-show input, etc., select formatting modes, etc.
+  - This would make sync easier, and prevent a lot of pain with this whole confusing note system.
+  - Have "%md" for markdown. In particular, it would be very good to work harder on supporting
+  - changing the syntax highlighting modes in codemirror automatically for percent modes.  And have a palette of percent modes.  This will be better in the long run.
+  - Double click on output to show input...  Another advantage is that undo "just works".
+  - Might as well get rid of TITLE and Description too -- it all just serves to complicate things; instead make cells really powerful/easy.
 
-* (1:30?)  [ ] infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
-
-* (1:00?) [ ] automatic restart of `sage_server.py`... doesn't seem to work; or -- maybe -- it's just that a worksheet that asks for a non-existent session should failover and ask for a new session; right now it doesn't.
-
-* (1:00?) [ ] seriously consider getting rid of the note part of a cell, and instead just making it much easier to auto-hide input / auto-show input, etc., select formatting modes, etc.  This would make sync easier, and prevent a lot of pain with this whole confusing note system.  Have "%md" for markdown. In particular, it would be very good to work harder on supporting changing the syntax highlighting modes in codemirror automatically for percent modes.  And have a palette of percent modes.  This will be better in the long run.  Double click on output to show input...  Another advantage is that undo "just works".  Might as well get rid of TITLE and Description too -- it all just serves to complicate things; instead make cells really powerful/easy.
-
-* (0:45?) [ ]  add a %md mode -- one like in lecture3:
-def md(s):
-    import markdown2
-    html(markdown2.markdown(s))
-
-
+* (0:30?) [ ] usually, writing after doing an operation with some checked cells, it is natural to uncheck them all. This is the case for hide/show ops.
 
 # implement sync
 
@@ -324,6 +325,7 @@ features;
 * (0:15?) [x] (1:05) terminal/editor full-screen modes, too.
 
 
+* (0:45?) [x]  add a %md mode -- one like in lecture3:
 
 
 

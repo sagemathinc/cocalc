@@ -1,3 +1,5 @@
+[ ] http://www.picloud.com -- supercomputing in the cloud via "jobs"; really interface to EC2.  Python/Matlab oriented.
+
 [ ] Adobe Brackets is, since the difference with codemirror is that it adds "Brackets: file management, server APIs (github), extensions+inline"
 
 [ ] http://www.equalis.com/?page=Math_In_The_Cloud
