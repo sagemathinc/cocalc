@@ -1,7 +1,23 @@
 --> * (0:30?) [ ] BUG: loading some worksheets is DOUBLE DOG slow.  WHY??
 This issue is CRITICAL.   It seems like every codemirror editor is taking like a half second to do something in response to a window resize event. This isn't good.   WHY?  Ideas of things to do:
-   - make a simple standalone page to try to emulate this.
-   - try making a bunch of editors and *one* shared doc -- they each edit a separate range of lines.  Will this help?
+   x - make a simple standalone page to try to emulate this; maybe I am misconfiguring something: -- NOPE, it is very slow (!)
+   x - what if they are all set to read-only mode: total fail; still very slow.
+   x - ipython isn't nearly so slow... but is also using an old version of codemirror.
+   x - try making a bunch of editors and *one* shared doc -- they each edit a separate range of lines.  Will this help?
+     Didn't try, since I REALLY doubt it, given what is taking time.
+   x - I did upgrade codemirror to 3.11, which breaks the ReST mode (I don't use it), but is otherwise not really
+       any different.
+
+   I must address this issue.  I really want to try again my idea to have the entire worksheet be inside of a single
+   codemirror editor, with the output as html widgets.  That would have the potential to *scale up hugely*.
+   When I add back sectioning/pages/slides, each section/page/slide, etc. will be such a codemirror editor.
+
+   cm.addLineWidget(line: integer|LineHandle, node: Element, ?options: object)
+
+This will be some work, so let's plan it out.
+Cell will be separated by immutable lines
+
+
 
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
 

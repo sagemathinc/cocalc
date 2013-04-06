@@ -206,7 +206,7 @@ class Worksheet extends EventEmitter
         @_rest_view_codemirror = CodeMirror.fromTextArea(e[0],
             readOnly     : true
             lineNumbers  : true
-            mode         : "rst"
+        #    mode         : "rst" # BROKEN in codemirror 3.1.1
             lineWrapping : true
         )
         $(@_rest_view_codemirror.getScrollerElement()).css('max-height' : '30em')
@@ -215,7 +215,7 @@ class Worksheet extends EventEmitter
         @_latex_view_codemirror = CodeMirror.fromTextArea(e[0],
             readOnly     : true
             lineNumbers  : true
-            mode         : "rst"
+            mode         : "stex"
             lineWrapping : true
         )
         $(@_latex_view_codemirror.getScrollerElement()).css('max-height' : '30em')
