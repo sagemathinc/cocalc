@@ -16,7 +16,8 @@
 }
 
 .salvus-cell-insert-above {
-    height: 5px;
+    height: 4px;
+    margin-left: 10ex;
 }
 
 .salvus-cell-insert-above:hover {
@@ -24,7 +25,8 @@
 }
 
 .salvus-cell-insert-below {
-    height: 5px;
+    height: 4px;
+    margin-left: 10ex;
 }
 
 .salvus-cell-insert-below:hover {
@@ -88,7 +90,7 @@
 .salvus-cell-checkbox {
     position:absolute;
     margin-left:0em;
-    margin-top:.1em;
+    margin-top: -1ex;
 /*    border: 1px solid #white; */
 }
 

@@ -1,8 +1,10 @@
---> * (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
+--> * (0:30?) [ ] FEATURE: in worksheet cell, double click on output to show input...
+* (0:15?) [ ] BUG: need block of empty whitespace at bottom of cell.
+* (0:15?) [ ] BUG: moving cursor over cells with hidden input (?)
+* (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
 * (0:30?) [ ] REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
 * (0:30?) [ ] FEATURE: spinner to indicate when docs are loading... some are quite slow right now.
-* (0:30?) [ ] FEATURE: in worksheet cell, double click on output to show input...
 * (0:20?) [ ] BIG BUG: worksheets -- the css position of tab completion is wrong; it doesn't move with the worksheet!
 * (0:30?) [ ] BUG: worksheet path is still not set correctly
 * (0:30?) [ ] BUG: terminal path is not set correctly.

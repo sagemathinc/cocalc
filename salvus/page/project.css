@@ -284,6 +284,7 @@ font-size: 11px;
 
 .project-listing-search-include {
     /* border  : 2px solid #08c; */
+    z-index: 10;
 }
 
 .project-listing-search-exclude {
@@ -293,7 +294,7 @@ font-size: 11px;
     font-size: 9px;
     margin  : 0;
     padding : 0;
-    margin-top: -8px;  /* So they overlap */
+    margin-top: -13px;  /* So they overlap */
 }
 
 .project-search-output-further-results {

@@ -134,6 +134,8 @@ class Cell extends EventEmitter
             for e in @opts.hide
                 @hide(e)
 
+        @_initialize_dblclick_toggles()
+
         @execute_if_auto()
 
     #######################################################################
@@ -189,6 +191,31 @@ class Cell extends EventEmitter
     #######################################################################
     # Private Methods
     #######################################################################
+
+    _initialize_dblclick_toggles: () =>
+        if not IS_MOBILE # no "double click" on mobile, right?
+            # double click editor: shows output; if output nonempty, also hides editor.
+            # double click output: hides output if editor is shown; otherwise, shows everything
+            editor = @component('editor')
+            output = @component('output')
+
+            editor.dblclick () =>
+                @execute()
+                @show('output')
+                @hide('editor')
+                return false
+
+            output.dblclick () =>
+                if not editor.hasClass('hide')
+                    @hide('output')
+                else
+                    @show('editor')
+                return false
+
+            @element.dblclick () =>
+                @show('output')
+                @show('editor')
+                return false
 
     _initialize_action_button: () =>
         if IS_MOBILE
@@ -1102,6 +1129,13 @@ class Cell extends EventEmitter
         if not c?
             throw "unknown cell component -- '#{e}'"
         return c.data('hide',true).addClass('hide')
+
+    toggle_component: (e) =>
+        c = @component(e)
+        if c.hasClass('hide')
+            @show(e)
+        else
+            @hide(e)
 
     delete_output: () ->
         # Delete the array of all received output messages
