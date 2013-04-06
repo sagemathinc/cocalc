@@ -1,5 +1,3 @@
-
-* (0:10?) [ ] change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
 * (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
 * (0:30?) [ ] REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
@@ -299,4 +297,6 @@ features;
 
 
 --> * (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
+
+* (0:10?) [x] (0:12) change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
 

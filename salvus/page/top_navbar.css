@@ -21,3 +21,26 @@
 .salvus-top_navbar {
     font-size: 14px;
 }
+
+.salvus-fullscreen-activate {
+    position:fixed;
+    z-index:100000;
+    right:0;
+    top:0;
+    color:#999;
+    font-size: 22px;
+}
+
+.salvus-fullscreen-deactivate {
+    position:fixed;
+    z-index:100000;
+    right:0;
+    top:0;
+    font-size:22px;
+    color:#bbb;
+}
+
+.salvus-fullscreen-deactivate:hover {
+    background: blue;
+    color: white;
+}
