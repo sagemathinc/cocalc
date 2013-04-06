@@ -1,57 +1,47 @@
-I have 24 hours total.
-
---> * (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
-
 
 * (0:10?) [ ] change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
-* (1:00?) [ ] BUG: every time we start editing a document on first sync the cursor moves back 4 characters.  FIX.
-* (1:00?) [ ] BUG: when a worksheet asks for a non-existent session, it should failover and ask for a new session; right now it doesn't.
-* (1:00?) [ ] BUG: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
-* (2:00?) [ ] BUG: entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code; latexing totally broken.
-* (2:00?) [ ] BUG: rewrite "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
-* (0:30?) [ ] REMOVE: worksheet1.html -- why is it there.
-* (1:00?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
-* (1:00?) [ ] REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).
-* (1:00?) [ ] FEATURE: in worksheet cell, double click on output to show input...
-* (1:00?) [ ] FEATURE: changing the syntax highlighting modes in codemirror automatically for percent modes.  And have a palette of percent modes.
-* (1:00?) [ ] BUG FIX: cursor positioning: take what I currently do and combine it with "fuzzy search"...
-* (0:30?) [ ] After doing certain operations with checked cells, uncheck them all: hide/show ops.
+* (0:30?) [ ] REMOVE: the note part of a cell, and instead just making it much easier to create notes using cells.
+* (0:30?) [ ] REMOVE: Get rid of TITLE and Description too (it all just serves to complicate things; instead make cells really powerful).
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
-* (0:15?) [ ] REMOVE: about.html and commented out stuff in `top_navbar`, assuming I really want to combine with help.
-* (1:00?) [ ] BUG: fix/implement the open file tab resize code.
-* (0:30?) [ ] FEATURE: donation link
-* (1:00?) [ ] FEATURE: way user can self-report that they donated, how much, and when; stored in a "donations" table?
-
-* (2:00?) [ ] SYNC: rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
-* (2:00?) [ ] SYNC: sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
-
-* (2:00?) [ ] SYNC: modify editor to use sync\_worksheet  enhanced version of worksheet
-* (0:45?) [ ] BUG: when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
-* (1:00?) [ ] BUG: move recent files (etc.) thing to the database; it's too frustrating/confusing tieing to the computer.
-
-* (1:00?) [ ] FEATURE: spinner to indicate when docs are loading... some are quite slow right now.
-* (0:30?) [ ] BUG: the css position of tab completion is wrong; it doesn't move with the worksheet!
+* (0:30?) [ ] FEATURE: spinner to indicate when docs are loading... some are quite slow right now.
+* (0:30?) [ ] FEATURE: in worksheet cell, double click on output to show input...
+* (0:20?) [ ] BIG BUG: worksheets -- the css position of tab completion is wrong; it doesn't move with the worksheet!
 * (0:30?) [ ] BUG: worksheet path is still not set correctly
 * (0:30?) [ ] BUG: terminal path is not set correctly.
+* (1:00?) [ ] BUG: don't allow editing a file if it is above a certain relatively small size...
+* (0:45?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
+* (0:30?) [ ] MAJOR BUG: when a worksheet asks for a non-existent session, it should failover and ask for a new session; right now it doesn't.
+* (1:00?) [ ] BUG: terminal sessions need to reconnect when they timeout!
+
+
+* (1:30?) [ ] SYNC: rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
+* (1:30?) [ ] SYNC: sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
+* (1:30?) [ ] SYNC: modify editor to use sync\_worksheet  enhanced version of worksheet
+* (0:45?) [ ] SYNC: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
+* (0:45?) [ ] SYNC BUG: often we start editing a document on first sync the cursor moves back 4 characters.  Maybe take what I currently do and combine it with "fuzzy search"...?
+
+* (1:30?) [ ] BUG: entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code; latexing totally broken.
+
+* (1:30?) [ ] DEPLOY: define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
+* (1:30?) [ ] DEPLOY: deploy and test
+* (1:00?) [ ] SAFETY: setup rsnapshot so it is used for every account and noted in database.
+
+
+
+
+@@@@
+
+
 * (1:00?) [ ] FEATURE: default worksheet percent modes.
+* (1:00?) [ ] BUG: rewrite "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
+* (0:30?) [ ] DESIGN: After doing certain operations with checked cells, uncheck them all: hide/show ops.
+* (0:45?) [ ] BUG: when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
+* (0:45?) [ ] BUG: move recent files (etc.) thing to the database; it's too frustrating/confusing tieing to the computer.
 * (0:30?) [ ] BUG: sometimes need more space the bottom of the worksheet
 * (0:30?) [ ] BUG: os x "control-o" should also accept command-o
 * (0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize and show top navbar events.
-* (0:45?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
-* (1:00?) [ ] SAFETY: setup rsnapshot so it is used for every account and noted in database.
-* (1:30?) [ ] DEPLOY: define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
-* (3:00?) [ ] DEPLOY: deploy and test (and come up with plan to do so)
-* (1:00?) [ ] BUG: don't allow editing a file if it is above a certain relatively small size...
 * (0:45?) [ ] BUG -- editor synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up -- sync the window with focus?
 
-
-
-
-
-
-
-
-@@@@@@@@@@@@@@@@@@
 
 
 
@@ -308,4 +298,5 @@ features;
  ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
 
 
+--> * (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
 

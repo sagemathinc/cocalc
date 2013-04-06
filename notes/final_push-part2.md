@@ -1,4 +1,16 @@
-After deploy, top priority, in order:
+After first deploy, top priority, in order:
+
+* (0:30?) [ ] REMOVE: worksheet1.html -- why is it there?
+* (0:45?) [ ] BUG: terminal paste doesn't work, usually
+* (0:45?) [ ] BUG: 1-line terminal copy doesn't work, usually
+* (1:00?) [ ] FEATURE: changing the syntax highlighting modes in codemirror automatically for percent modes.  And have a palette of percent modes.
+* (0:15?) [ ] REMOVE: about.html and commented out stuff in `top_navbar`, assuming I really want to combine with help.
+* (1:00?) [ ] BUG: fix/implement the open file tab resize code.
+* (0:30?) [ ] FEATURE: donation link
+* (1:00?) [ ] FEATURE: way user can self-report that they donated, how much, and when; stored in a "donations" table?
+
+---------------------------------------
+
 
 (1:00?) [ ] "Any decent text editor should make email-style quoting easy. For example, with BBEdit, you can make a selection and choose Increase Quote Level from the Text menu."  (from markdown definition)
 
