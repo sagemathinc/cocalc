@@ -583,14 +583,18 @@ class SynchronizedDocument
             @codemirror.refresh()
         @_refresh_soon = setTimeout(do_refresh, wait)
 
+MARKERS = diffsync.MARKERS
 
-MARKER = "\uFE20"
+FLAGS = diffsync.FLAGS
+
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
         opts0 =
             cursor_interval : opts.cursor_interval
             sync_interval   : opts.sync_interval
         super(@editor, opts0)
+        @_input_markers = []
+        @_output_markers = []
 
     current_input_block: () =>
         cm = @codemirror
@@ -599,19 +603,73 @@ class SynchronizedWorksheet extends SynchronizedDocument
         end = c
         while start > 1
             line = cm.getLine(start)
-            if line.length > 0 and line[0] == MARKER
+            if line.length > 0 and line[0] == MARKERS.cell
                 start += 1
                 break
             start -= 1
         while end < cm.lineCount()-1
             line = cm.getLine(end)
-            if line.length > 0 and line[0] == MARKER
+            if line.length > 0 and line[0] == MARKERS.cell
                 end -= 1
                 break
             end += 1
         return {start:start, end:end}
 
     execute: () =>
+        block = @current_input_block()
+        cm = @codemirror
+        console.log("block = ", block)
+        x = cm.findMarksAt({line:block.start,ch:1})
+        console.log('x = ', x)
+        if x.length == 0
+            # create cell start mark
+            marker = @create_cell_start_marker(block.start)
+        else
+            marker = x[0]
+        @set_cell_flag(marker, FLAGS.execute)
+
+    ##########################################
+    # Codemirror-based cell manipulation code
+    #   This is tightly tied to codemirror, so only makes sense on the client.
+    ##########################################
+    get_cell_flagstring: (marker) =>
+        pos = marker.find()
+        return @codemirror.getRange({line:pos.from.line,ch:37},{line:pos.from.line, ch:pos.to.ch-1})
+
+    set_cell_flagstring: (marker, value) =>
+        pos = marker.find()
+        @codemirror.replaceRange(value, {line:pos.from.line,ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
+
+    get_cell_uuid: (marker) =>
+        pos = marker.find()
+        return @codemirror.getLine(pos.line).slice(1,38)
+
+    set_cell_flag: (marker, flag) =>
+        s = @get_cell_flagstring(marker)
+        console.log("got cell flagstring = ", s)
+        if flag not in s
+            @set_cell_flagstring(marker, flag + s)
+
+    remove_cell_flag: (marker, flag) =>
+        s = @get_cell_flagstring(marker)
+        if flag in s
+            s = s.replace(new RegExp(flag, "g"), "")
+            @set_cell_flagstring(marker, s)
+
+    create_cell_start_marker: (line) =>
+        cm = @codemirror
+        if cm.lineCount() < line + 2
+            cm.replaceRange('\n',{line:line+1,ch:0})
+        uuid = misc.uuid()
+        cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell, {line:line, ch:0})
+        marker = cm.markText({line:line, ch:0}, {line:line, ch:38},
+                             {atomic:true, inclusiveLeft:true, inclusiveRight: false})
+        marker.uuid = uuid
+        return marker
+
+    ##########################################
+
+    execute0: () =>
         if not @session?.session_uuid?
             # TODO: we could just queue these up and submit them when connection succeeds.
             alert_message(type:"error", message:"Not connected to sage server.")

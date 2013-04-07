@@ -543,3 +543,16 @@ exports.test7 = (n=1) ->
         #test0(client, server, Doc, ((s,t) -> s.doc ==t.doc), ((s) -> s.doc))
 
 exports.DiffSync = DiffSync
+
+# For various clients:
+
+exports.MARKERS =
+    cell   : "\uFE20"
+    output : "\uFE21"
+
+exports.FLAGS =
+    execute : "x"
+    interrupt : "c"
+    running : "r"
+
+

@@ -57,25 +57,37 @@ Can I store data in the output line that is synchronized across worksheets and i
       clients seeing that modification and interpreting it.
 
 0: meta information about this; json object; e.g., modes for cells.
-1: [start-marker][uuid of cell]contents of cells...
+1: [start-cell-marker][uuid of cell]metadata[marker]contents of cells...
+       metadata = set of letters
+         - e = need to execute
+         - h = hide input
+         - o = hide output
+         -
+       use the metadata to specify that the cell is ready to run.
 .. more contents ..
-n: [output-marker][uuid of output]{}[output-sep]{}... <-- output goes here as json messages all on one line, separated by a marker; rendered by client.  This is ONE CodeMirror marked text area.
+n: [output-marker][uuid of output] {}[output-sep]{}...[output-marker] <-- output goes here as json messages all on one line, separated by a marker; rendered by client.  This is ONE CodeMirror marked text area.
 ?: [start-marker][uuid of cell]contents of cells...
 .. more contents ..
 ?: [output-marker]{} <-- output goes here as json messages all on one line
 ...
 
-
 [x] (0:18) Make a fairly complete plan to implement core of the above idea
 
 (0:20?) [x]  (0:48)local hub: when starting a codemirror session and file extension is sagews, *ensure* that a corresponding sage session is available.  No need to reconnect or store an existing session, etc., since local hub *is* the lifetime of the session!
 
-- (0:45?) [ ] local hub: support a new "execute" message, which takes uuid of cell as only input.  This should probably be just combined with the sync message as an optional additional action, to avoid latency issues.  Also, make client send this message on doing "shift-enter" (say).   This will determine what code to execute, submit it to the sage process, delete existing output, create a new cell if necessary, etc.; all this will get pushed out via the sync system.
+--> (0:45?) [x] (2:45) local hub: support a new "execute" message, which takes uuid of cell as only input.  This should probably be just combined with the sync message as an optional additional action, to avoid latency issues.  Also, make client send this message on doing "shift-enter" (say).   This will determine what code to execute, submit it to the sage process, delete existing output, create a new cell if necessary, etc.; all this will get pushed out via the sync system.
 Another optimization will be to wait up to 100ms (?) say for output messages and only complete the sync after applying them, so they are all sent back together immediately.
 NOTE: output messages do *not* need to have an id tag on them -- that would be wasteful.
 
-- (0:15?) [ ] test/debug the above, which should work and allow for synchronized sessions with output appearing in all of them.  Then plan further.
+WAIT -- instead, we'll mark the document
+- (0:15?) [x] test/debug the above, which should work and allow for synchronized sessions with output appearing in all of them.  Then plan further.
 
+--> (0:30?) [ ] do processing on client side of new input from server after sync; mark text, so that mark finding works (of course) when doing shift-enter multiple times.
+
+-->  [ ] make it so that when localhub runs code, it creates output location
+-->  [ ] make it so that when localhub evaluates code, it sends it to sage process
+-->  [ ] make it so that when localhub gets results back, it puts them in output location
+--> [ ] make it so client parses and renders any results appearing in output location.
 
 - (0:15?) [ ] local hub: support the session control messages; interrupt, restart, kill
 

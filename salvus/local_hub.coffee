@@ -657,10 +657,14 @@ class CodeMirrorSession
                 # If this is a sagews file, create corresponding sage session.
                 if misc.filename_extension(@path) == 'sagews'
                     @sage_socket(cb)
+                    @process_new_content = @sage_update
                 else
                     cb()
         ], (err) => cb?(err, @))
 
+    ##############################
+    # Sage execution related code
+    ##############################
     sage_socket: (cb) =>  # cb(err, socket)
         if @_sage_socket?
             cb(false, @_sage_socket); return
@@ -675,6 +679,63 @@ class CodeMirrorSession
                     @_sage_socket = undefined
                     winston.debug("codemirror session #{@session_uuid} sage socket terminated.")
                 cb(false, @_sage_socket)
+
+    sage_execute: (uuid) =>
+        winston.debug("exec request for cell with uuid #{uuid}")
+        @sage_remove_cell_flag(uuid, diffsync.FLAGS.execute)
+        @sage_set_cell_flag(uuid, diffsync.FLAGS.running)
+        @set_content(@content)
+
+    send_signal_to_sage_session: (sig) =>
+        winston.debug("send_signal_to_sage_session -- todo")
+
+    sage_update: () =>
+        # scan the string @content for execution requests, etc...
+        winston.debug("sage_update: '#{@content}'")
+        i = 0
+        while true
+            i = @content.indexOf(diffsync.MARKERS.cell, i)
+            if i == -1
+                break
+            j = @content.indexOf(diffsync.MARKERS.cell, i+1)
+            if j == -1
+                break  # corrupt (TODO)
+            uuid  = @content.slice(i+1,i+37)
+            flags = @content.slice(i+37, j)
+            if diffsync.FLAGS.execute in flags
+                @sage_execute(uuid)
+            i = j + 1
+
+    sage_find_cell_meta: (uuid, start) =>
+        i = @content.indexOf(diffsync.MARKERS.cell + uuid, start)
+        j = @content.indexOf(diffsync.MARKERS.cell, i+1)
+        if j == -1
+            return undefined
+        return {start:i, end:j}
+
+    sage_get_cell_flagstring: (uuid) =>
+        pos = @sage_find_cell_meta(uuid)
+        return @content.slice(pos.start+37, pos.end)
+
+    sage_set_cell_flagstring: (uuid, flags) =>
+        pos = @sage_find_cell_meta(uuid)
+        if pos?
+            @content = @content.slice(0, pos.start+37) + flags + @content.slice(pos.end)
+
+    sage_set_cell_flag: (uuid, flag) =>
+        s = @sage_get_cell_flagstring(uuid)
+        if flag not in s
+            @sage_set_cell_flagstring(uuid, flag + s)
+
+    sage_remove_cell_flag: (uuid, flag) =>
+        s = @sage_get_cell_flagstring(uuid)
+        if flag in s
+            s = s.replace(new RegExp(flag, "g"), "")
+            @sage_set_cell_flagstring(uuid, s)
+
+
+    ##############################
+
 
     chat_log: () =>
         return @chat_recorder.log
@@ -693,9 +754,6 @@ class CodeMirrorSession
             @sage_socket.end()
             # then, brutally kill it if need be. :-)
             setTimeout( (() => @send_signal_to_sage_session(9)), 10000 )
-
-    send_signal_to_sage_session: (sig) =>
-        winston.debug("send_signal_to_sage_session -- todo")
 
     set_content: (value) =>
         @is_active = true
@@ -736,6 +794,7 @@ class CodeMirrorSession
         before = @content
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
             @set_content(ds_client.live)
+            @process_new_content?()
             # Send back our own edits to the global hub.
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
             ds_client.push_edits (err) =>
