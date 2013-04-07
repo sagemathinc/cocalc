@@ -260,6 +260,48 @@ console_sessions = new ConsoleSessions()
 
 
 ###############################################
+# Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
+###############################################
+get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
+    sage_socket = undefined
+    port = undefined
+    async.series([
+        (cb) =>
+            winston.debug("get sage server port")
+            get_port 'sage', (err, _port) =>
+                if err
+                    cb(err); return
+                else
+                    port = _port
+                    cb()
+        (cb) =>
+            winston.debug("get and unlock socket")
+            misc_node.connect_to_locked_socket
+                port  : port
+                token : secret_token
+                cb    : (err, _socket) =>
+                    if err
+                        forget_port('sage')
+                        cb("_new_session: sage session denied connection: #{err}")
+                        return
+                    sage_socket = _socket
+                    winston.debug("Successfully unlocked a sage session connection.")
+                    cb()
+
+        (cb) =>
+            winston.debug("request sage session from server.")
+            misc_node.enable_mesg(sage_socket)
+            sage_socket.write_mesg('json', message.start_session(type:'sage'))
+            winston.debug("Waiting to read one JSON message back, which will describe the session....")
+            # TODO: couldn't this just hang forever :-(
+            sage_socket.once 'mesg', (type, desc) =>
+                winston.debug("Got message back from Sage server: #{json(desc)}")
+                sage_socket.pid = desc.pid
+                cb()
+
+    ], (err) -> cb(err, sage_socket))
+
+###############################################
 # Sage sessions
 ###############################################
 
@@ -382,7 +424,7 @@ sage_sessions = new SageSessions()
 
 ############################################################################
 #
-# Differentially-Synchronized CodeMirror editing sessions
+# Differentially-Synchronized document editing sessions
 #
 # Here's a map                    YOU ARE HERE
 #                                   |
@@ -393,7 +435,7 @@ sage_sessions = new SageSessions()
 #
 #############################################################################
 
-# The "live content" of DiffSyncFile_client is the actual file on disk.
+# The "live upstream content" of DiffSyncFile_client is the actual file on disk.
 # # TODO: when applying diffs, we could use that the file is random access.  This is not done yet!
 class DiffSyncFile_server extends diffsync.DiffSync
     constructor:(@cm_session, cb)  ->
@@ -595,20 +637,44 @@ class CodeMirrorSession
         # The downstream clients of this local hub -- these are global hubs
         @diffsync_clients = {}
 
-        # The upstream version of this document -- the *actual* file on disk.
-        @diffsync_fileserver = new DiffSyncFile_server @, (err, content) =>
-            if err
-                cb(err); return
-
-            @content = content
-            @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
-
-            new ChatRecorder @path, (err, obj) =>
-                if err
-                    cb(err)
-                else
+        async.series([
+            (cb) =>
+                # The upstream version of this document -- the *actual* file on disk.
+                @diffsync_fileserver = new DiffSyncFile_server @, (err, content) =>
+                    if err
+                        cb(err); return
+                    @content = content
+                    @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
+                    cb()
+            (cb) =>
+                # Create chatroom recorder.
+                new ChatRecorder @path, (err, obj) =>
+                    if err
+                        cb(err); return
                     @chat_recorder = obj
-                    cb(false, @)
+                    cb()
+            (cb) =>
+                # If this is a sagews file, create corresponding sage session.
+                if misc.filename_extension(@path) == 'sagews'
+                    @sage_socket(cb)
+                else
+                    cb()
+        ], (err) => cb?(err, @))
+
+    sage_socket: (cb) =>  # cb(err, socket)
+        if @_sage_socket?
+            cb(false, @_sage_socket); return
+        winston.debug("Opening a Sage session.")
+        get_sage_socket (err, socket) =>
+            if err
+                cb(err)
+            else
+                winston.debug("Successfully opened a Sage session.")
+                @_sage_socket = socket
+                @_sage_socket.on 'end', () =>
+                    @_sage_socket = undefined
+                    winston.debug("codemirror session #{@session_uuid} sage socket terminated.")
+                cb(false, @_sage_socket)
 
     chat_log: () =>
         return @chat_recorder.log
@@ -622,6 +688,14 @@ class CodeMirrorSession
             delete @content
             delete @diffsync_fileclient
             delete @diffsync_fileserver
+        if @sage_socket?
+            # send FIN packet so that Sage process may terminate naturally
+            @sage_socket.end()
+            # then, brutally kill it if need be. :-)
+            setTimeout( (() => @send_signal_to_sage_session(9)), 10000 )
+
+    send_signal_to_sage_session: (sig) =>
+        winston.debug("send_signal_to_sage_session -- todo")
 
     set_content: (value) =>
         @is_active = true

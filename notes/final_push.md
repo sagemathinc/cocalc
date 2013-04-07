@@ -68,10 +68,11 @@ n: [output-marker][uuid of output]{}[output-sep]{}... <-- output goes here as js
 
 [x] (0:18) Make a fairly complete plan to implement core of the above idea
 
-- (0:20?) [ ] local hub: when starting a codemirror session and file extension is sagews, *ensure* that a corresponding sage session is available.  No need to reconnect or store an existing session, etc., since local hub *is* the lifetime of the session!
+(0:20?) [x]  (0:48)local hub: when starting a codemirror session and file extension is sagews, *ensure* that a corresponding sage session is available.  No need to reconnect or store an existing session, etc., since local hub *is* the lifetime of the session!
 
 - (0:45?) [ ] local hub: support a new "execute" message, which takes uuid of cell as only input.  This should probably be just combined with the sync message as an optional additional action, to avoid latency issues.  Also, make client send this message on doing "shift-enter" (say).   This will determine what code to execute, submit it to the sage process, delete existing output, create a new cell if necessary, etc.; all this will get pushed out via the sync system.
 Another optimization will be to wait up to 100ms (?) say for output messages and only complete the sync after applying them, so they are all sent back together immediately.
+NOTE: output messages do *not* need to have an id tag on them -- that would be wasteful.
 
 - (0:15?) [ ] test/debug the above, which should work and allow for synchronized sessions with output appearing in all of them.  Then plan further.
 

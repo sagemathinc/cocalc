@@ -590,69 +590,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts0 =
             cursor_interval : opts.cursor_interval
             sync_interval   : opts.sync_interval
-        super(@editor, opts0, @connect_to_server)
-
-    connect_to_server: (cb) =>
-        console.log("connect to sage server")
-        if @session?
-            cb?('already connected or attempting to connect')
-            return
-        @session = "init"
-
-        session_uuid = @codemirror.getLine(0)
-        if session_uuid.length != 36 # probably not yet initialized
-            session_uuid = undefined
-
-        async.series([
-            (cb) =>
-                # If the worksheet specifies a specific session_uuid,
-                # try to connect to that one, in case it is still running.
-                if session_uuid?
-                    console.log("connect to existing session")
-                    salvus_client.connect_to_session
-                        type         : 'sage'
-                        timeout      : 60
-                        project_id   : @editor.project_id
-                        session_uuid : session_uuid
-                        cb           : (err, _session) =>
-                            if err or _session.event == 'error'
-                                # NOPE -- try to make a new session (below)
-                                console.log("connect to existing session -- fail: ", err, _session)
-                                cb()
-                            else
-                                # Bingo -- got it!
-                                console.log("connect to existing session -- got it!")
-                                @session = _session
-                                cb()
-                else
-                    # No session_uuid requested.
-                    cb()
-            (cb) =>
-                if @session? and @session != "init"
-                    # We successfully got a session above.
-                    cb()
-                else
-                    # Create a completely new session on the given project.
-                    console.log("connect to new session")
-                    salvus_client.new_session
-                        timeout    : 60
-                        type       : "sage"
-                        project_id : @editor.project_id
-                        cb : (err, _session) =>
-                            if err or _session.event == 'error'
-                                console.log("connect to new session -- fail", err, _session)
-                                alert_message(type:'error', message:err)
-                                @session = undefined
-                            else
-                                console.log("connect to new session -- got it!")
-                                @session = _session
-                            cb(err)
-        ], (err) =>
-            if @session?.session_uuid?
-                @codemirror.setLine(0, @session.session_uuid)
-            cb?(err)
-        )
-
+        super(@editor, opts0)
 
     current_input_block: () =>
         cm = @codemirror
