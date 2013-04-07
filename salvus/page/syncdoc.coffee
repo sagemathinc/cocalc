@@ -687,7 +687,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return
 
         # Create line for output
-        output = $("<div style='padding: 1ex; border:1px solid #ccc; white-space: pre; width:#{$(window).width()*.9}px;'>")
+        output = $("<div style='padding: 1ex; border:1px solid #ccc;  width:#{$(window).width()*.9}px;'>")
+        output.resizable
+            aspectRatio: true
+            handles: "se,s,e"
         if cm.lineCount() < block.end+2
             cm.replaceRange('\n',{line:block.end+1,ch:0})
         uuid = misc.uuid()
@@ -709,9 +712,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     first = false
 
                 if mesg.stdout?
-                    output.append($("<span>").text(mesg.stdout))
+                    output.append($("<span style='white-space: pre;'>").text(mesg.stdout))
                 if mesg.stderr?
-                    output.append($("<span style='color:red'>").text(mesg.stderr))
+                    output.append($("<span style='white-space: pre;color:red'>").text(mesg.stderr))
                 if mesg.html?
                     output.append($("<span>").html(mesg.html).mathjax())
                 if mesg.tex?

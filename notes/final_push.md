@@ -43,18 +43,49 @@ However, it is possible to use markText to do everything we need for output, to 
 
 * [x] (0:15) Try out the above and see if it "feels" good, especially with the syncing that will automatically just work.
 
-* (0:10?) [x] (0:17) cm-sync-worksheets: correctly embed the uuid of each computation
+* (0:10?) [x] (0:20) cm-sync-worksheets: correctly embed the uuid of each computation
 
 * (0:15?) [ ] cm-sync-worksheets: right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them)
 
- -
-section X
+PLAN:
 
-section X
+Can I store data in the output line that is synchronized across worksheets and invisible to user?  YES!
 
-cell start
+    - EXECUTE: message to local hub to execute cell with this id
 
-cell end
+    - ALL output is via local hub modifying the master document's output line (via 1-line json),
+      clients seeing that modification and interpreting it.
+
+0: meta information about this; json object; e.g., modes for cells.
+1: [start-marker][uuid of cell]contents of cells...
+.. more contents ..
+n: [output-marker][uuid of output]{}[output-sep]{}... <-- output goes here as json messages all on one line, separated by a marker; rendered by client.  This is ONE CodeMirror marked text area.
+?: [start-marker][uuid of cell]contents of cells...
+.. more contents ..
+?: [output-marker]{} <-- output goes here as json messages all on one line
+...
+
+
+[x] (0:18) Make a fairly complete plan to implement core of the above idea
+
+- (0:20?) [ ] local hub: when starting a codemirror session and file extension is sagews, *ensure* that a corresponding sage session is available.  No need to reconnect or store an existing session, etc., since local hub *is* the lifetime of the session!
+
+- (0:45?) [ ] local hub: support a new "execute" message, which takes uuid of cell as only input.  This should probably be just combined with the sync message as an optional additional action, to avoid latency issues.  Also, make client send this message on doing "shift-enter" (say).   This will determine what code to execute, submit it to the sage process, delete existing output, create a new cell if necessary, etc.; all this will get pushed out via the sync system.
+Another optimization will be to wait up to 100ms (?) say for output messages and only complete the sync after applying them, so they are all sent back together immediately.
+
+- (0:15?) [ ] test/debug the above, which should work and allow for synchronized sessions with output appearing in all of them.  Then plan further.
+
+
+- (0:15?) [ ] local hub: support the session control messages; interrupt, restart, kill
+
+
+
+
+
+
+
+
+
 
 
 @@@@@@@@@@@@@@@@@@@@@
