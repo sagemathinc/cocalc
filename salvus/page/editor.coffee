@@ -1469,7 +1469,7 @@ class Worksheet extends FileEditor
                         project_id   : @editor.project_id
                         session_uuid : session_uuid
                         cb           : (err, _session) =>
-                            if err
+                            if err or _session.event == 'error'
                                 # NOPE -- try to make a new session (below)
                                 cb()
                             else

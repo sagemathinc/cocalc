@@ -35,13 +35,13 @@ However, it is possible to use markText to do everything we need for output, to 
 * (0:20?) [x] (0:11) cm-sync-worksheets: add code to detect the block that needs to be evaluated when a shift-enter happens. This is the max in both directions until edge of editor or hit an output line.  An output line is defined to be
 [MARKER]uuid
 
-* (0:15?) [ ] cm-sync-worksheets: right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them).
-
-* (0:15?) [ ] cm-sync-worksheets: bring over code for having a Sage session attached to the worksheet
+* (0:15?) [x] (0:21) cm-sync-worksheets: bring over code for having a Sage session attached to the worksheet
 
 * (0:15?) [ ] cm-sync-worksheets: when user shift-enters above, send the code to be evaluated and create a corresponding div for output, along with a callback.
 
 * (0:15?) [ ] cm-sync-worksheets: write something to handle output messages: when get a message tagged with a uuid, will search editor for [MARKER]uuid, find linemarker corresponding to that line (or make one if there is none), then insert output in that line.  Try again later if such a line doesn't exist.
+
+* (0:15?) [ ] cm-sync-worksheets: right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them).
 
 Try out the above and see if it "feels" good, especially with the syncing that will automatically just work.
 

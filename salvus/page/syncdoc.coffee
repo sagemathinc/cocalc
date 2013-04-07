@@ -34,6 +34,8 @@ message  = require('message')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
+async = require('async')
+
 templates = $("#salvus-editor-templates")
 
 class DiffSyncDoc
@@ -189,7 +191,7 @@ class DiffSyncHub
 
 
 class SynchronizedDocument
-    constructor: (@editor, opts) ->
+    constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,
             cursor_interval : 1000
             sync_interval   : 1000
@@ -216,6 +218,8 @@ class SynchronizedDocument
                     if changeObj.origin? and changeObj.origin != 'setValue'
                         @ui_synced(false)
                         @sync_soon()
+            # Done initializing and have got content.
+            cb?()
 
     _add_listeners: () =>
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
@@ -576,8 +580,69 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts0 =
             cursor_interval : opts.cursor_interval
             sync_interval   : opts.sync_interval
-        super(@editor, opts0)
-        console.log("Synchronized Worksheet")
+        super(@editor, opts0, @connect_to_server)
+
+    connect_to_server: (cb) =>
+        console.log("connect to sage server")
+        if @session?
+            cb?('already connected or attempting to connect')
+            return
+        @session = "init"
+
+        session_uuid = @codemirror.getLine(0)
+        if session_uuid.length != 36 # probably not yet initialized
+            session_uuid = undefined
+
+        async.series([
+            (cb) =>
+                # If the worksheet specifies a specific session_uuid,
+                # try to connect to that one, in case it is still running.
+                if session_uuid?
+                    console.log("connect to existing session")
+                    salvus_client.connect_to_session
+                        type         : 'sage'
+                        timeout      : 60
+                        project_id   : @editor.project_id
+                        session_uuid : session_uuid
+                        cb           : (err, _session) =>
+                            if err or _session.event == 'error'
+                                # NOPE -- try to make a new session (below)
+                                console.log("connect to existing session -- fail: ", err, _session)
+                                cb()
+                            else
+                                # Bingo -- got it!
+                                console.log("connect to existing session -- got it!")
+                                @session = _session
+                                cb()
+                else
+                    # No session_uuid requested.
+                    cb()
+            (cb) =>
+                if @session? and @session != "init"
+                    # We successfully got a session above.
+                    cb()
+                else
+                    # Create a completely new session on the given project.
+                    console.log("connect to new session")
+                    salvus_client.new_session
+                        timeout    : 60
+                        type       : "sage"
+                        project_id : @editor.project_id
+                        cb : (err, _session) =>
+                            if err or _session.event == 'error'
+                                console.log("connect to new session -- fail", err, _session)
+                                alert_message(type:'error', message:err)
+                                @session = undefined
+                            else
+                                console.log("connect to new session -- got it!")
+                                @session = _session
+                            cb(err)
+        ], (err) =>
+            if @session?.session_uuid?
+                @codemirror.setLine(0, @session.session_uuid)
+            cb?(err)
+        )
+
 
     current_input_block: () =>
         cm = @codemirror
