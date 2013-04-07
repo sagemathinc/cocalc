@@ -571,10 +571,20 @@ class SynchronizedDocument
         if changeObj.next?
             @_apply_changeObj(changeObj.next)
 
+    refresh_soon: (wait) =>
+        if not wait?
+            wait = 1000
+        if @_refresh_soon?
+            # We have already set a timer to do a refresh soon.
+            #console.log("not refresh_soon since -- We have already set a timer to do a refresh soon.")
+            return
+        do_refresh = () =>
+            delete @_refresh_soon
+            @codemirror.refresh()
+        @_refresh_soon = setTimeout(do_refresh, wait)
 
 
-
-MARKER = "\uFE12"
+MARKER = "\uFE20"
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
         opts0 =
@@ -649,7 +659,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         c = cm.getCursor().line
         start = c
         end = c
-        while start > 0
+        while start > 1
             line = cm.getLine(start)
             if line.length > 0 and line[0] == MARKER
                 start += 1
@@ -664,9 +674,51 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return {start:start, end:end}
 
     execute: () =>
+        if not @session?.session_uuid?
+            # TODO: we could just queue these up and submit them when connection succeeds.
+            alert_message(type:"error", message:"Not connected to sage server.")
+            return
         console.log("execute code")
         block = @current_input_block()
-        console.log(block)
+        code = $.trim(@codemirror.getRange({line:block.start,ch:0}, {line:block.end+1,ch:0}))
+        console.log(code)
+        if code.length == 0
+            return
+
+        # Create line for output
+        output = $("<div style='padding: 1ex; border:1px solid #ccc; white-space: pre; width:#{$(window).width()}px;>")
+        if @codemirror.lineCount() < block.end+2
+            @codemirror.replaceRange('\n',{line:block.end+1,ch:0})
+        @codemirror.replaceRange(MARKER+'fcb9dcfc-0769-49e0-a04c-62c41a80cf71\n',{line:block.end+1,ch:0})
+        @codemirror.markText({line:block.end+1,ch:0}, {line:block.end+1,ch:37},
+                             {inclusiveLeft:false, inclusiveRight: false, replacedWith:output[0], shared:true})
+        first = true
+        @sync_soon()
+        @session.execute_code
+            code     : code
+            preparse : true
+            cb       : (mesg) =>
+                if first
+                    # first message back; we know uuid, so we can set uuid and start inserting output.
+                    first = false
+                if mesg.stdout?
+                    output.append($("<span>").text(mesg.stdout))
+                if mesg.stderr?
+                    output.append($("<span style='color:red'>").text(mesg.stderr))
+                if mesg.html?
+                    output.append($("<span>").html(mesg.html).mathjax())
+                if mesg.tex?
+                    val = mesg.tex
+                    elt = $("<span>")
+                    arg = {tex:val.tex}
+                    if val.display
+                        arg.display = true
+                    else
+                        arg.inline = true
+                    output.append(elt.mathjax(arg))
+
+                @refresh_soon()
+                console.log(mesg)
 
 ################################
 exports.SynchronizedDocument = SynchronizedDocument
