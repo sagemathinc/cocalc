@@ -122,8 +122,12 @@ class SageSession extends Session
             cb       : undefined
             data     : undefined
             preparse : true
+            uuid     : undefined
 
-        uuid = misc.uuid()
+        if opts.uuid?
+            uuid = opts.uuid
+        else
+            uuid = misc.uuid()
         if opts.cb?
             @conn.execute_callbacks[uuid] = opts.cb
 

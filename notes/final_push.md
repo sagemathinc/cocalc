@@ -37,15 +37,15 @@ However, it is possible to use markText to do everything we need for output, to 
 
 * (0:15?) [x] (0:21) cm-sync-worksheets: bring over code for having a Sage session attached to the worksheet
 
---> * (0:15?) [x] (1:00) cm-sync-worksheets: when user shift-enters above, send the code to be evaluated and create a corresponding div for output, along with a callback.
+* (0:15?) [x] (1:00) cm-sync-worksheets: when user shift-enters above, send the code to be evaluated and create a corresponding div for output, along with a callback.
 
 * (0:15?) [x] cm-sync-worksheets: write something to handle output messages: when get a message tagged with a uuid, will search editor for [MARKER]uuid, find linemarker corresponding to that line (or make one if there is none), then insert output in that line.  Try again later if such a line doesn't exist.
 
-* (0:15?) [ ] cm-sync-worksheets: right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them).
+* [x] (0:15) Try out the above and see if it "feels" good, especially with the syncing that will automatically just work.
 
-Try out the above and see if it "feels" good, especially with the syncing that will automatically just work.
+* (0:10?) [x] (0:17) cm-sync-worksheets: correctly embed the uuid of each computation
 
-
+* (0:15?) [ ] cm-sync-worksheets: right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them)
 
  -
 section X

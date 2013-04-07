@@ -678,29 +678,36 @@ class SynchronizedWorksheet extends SynchronizedDocument
             # TODO: we could just queue these up and submit them when connection succeeds.
             alert_message(type:"error", message:"Not connected to sage server.")
             return
-        console.log("execute code")
+
+        cm = @codemirror
         block = @current_input_block()
-        code = $.trim(@codemirror.getRange({line:block.start,ch:0}, {line:block.end+1,ch:0}))
+        code = $.trim(cm.getRange({line:block.start,ch:0}, {line:block.end+1,ch:0}))
         console.log(code)
         if code.length == 0
             return
 
         # Create line for output
-        output = $("<div style='padding: 1ex; border:1px solid #ccc; white-space: pre; width:#{$(window).width()}px;>")
-        if @codemirror.lineCount() < block.end+2
-            @codemirror.replaceRange('\n',{line:block.end+1,ch:0})
-        @codemirror.replaceRange(MARKER+'fcb9dcfc-0769-49e0-a04c-62c41a80cf71\n',{line:block.end+1,ch:0})
-        @codemirror.markText({line:block.end+1,ch:0}, {line:block.end+1,ch:37},
-                             {inclusiveLeft:false, inclusiveRight: false, replacedWith:output[0], shared:true})
+        output = $("<div style='padding: 1ex; border:1px solid #ccc; white-space: pre; width:#{$(window).width()*.9}px;'>")
+        if cm.lineCount() < block.end+2
+            cm.replaceRange('\n',{line:block.end+1,ch:0})
+        uuid = misc.uuid()
+        cm.replaceRange(MARKER+uuid+'\n',{line:block.end+1,ch:0})
+        cm.refresh()
+        console.log("Marking text on line ", block.end+1, " using ", output)
+        marker = cm.markText({line:block.end+1,ch:0}, {line:block.end+1,ch:37},
+                             {inclusiveLeft:false, inclusiveRight: false, replacedWith:output[0]})
         first = true
         @sync_soon()
         @session.execute_code
             code     : code
             preparse : true
+            uuid     : uuid
             cb       : (mesg) =>
                 if first
-                    # first message back; we know uuid, so we can set uuid and start inserting output.
+                    # first message back - ui should show that computation started running
+                    output.css('border-left','1px solid green')
                     first = false
+
                 if mesg.stdout?
                     output.append($("<span>").text(mesg.stdout))
                 if mesg.stderr?
@@ -716,6 +723,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     else
                         arg.inline = true
                     output.append(elt.mathjax(arg))
+                if mesg.file?
+                    val = mesg.file
+                    target = "/blobs/#{val.filename}?uuid=#{val.uuid}"
+                    switch misc.filename_extension(val.filename)
+                        # TODO: harden DOM creation below
+                        when 'svg', 'png', 'gif', 'jpg'
+                            output.append($("<img src='#{target}' class='salvus-cell-output-img'>"))
+                        else
+                            output.append($("<a href='#{target}' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
+
+                if mesg.done? and mesg.done
+                    output.css('border-left','1px solid #ccc')
 
                 @refresh_soon()
                 console.log(mesg)
