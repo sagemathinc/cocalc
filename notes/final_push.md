@@ -14,9 +14,51 @@ This issue is CRITICAL.   It seems like every codemirror editor is taking like a
 
    cm.addLineWidget(line: integer|LineHandle, node: Element, ?options: object)
 
-This will be some work, so let's plan it out.
-Cell will be separated by immutable lines
+This will be some work, so let's plan it out. I've tried this 2-3 times before, and always FAILED, so let's hope this time is different.
 
+--> * (0:45?) [ ] make a detailed plan for an worksheet-in-an-editor
+
+# The look
+- A worksheet will *look* exactly like a single codemirror document, except:
+1. We will utilize line widgets to influence how much code is evaluated when you press "shift-enter", and to "insert a new cell".
+2. The output of code evaluation will be entirely in a CodeMIrror "Line Widget", and will use all the same code I already wrote, e.g., for interact.
+
+Question: in codemirror, is it possible to use markText to put a border around a block of text?  ANSWER: *NO.*
+
+However, it is possible to use markText to do everything we need for output, to do code folding, etc.
+
+* (0:10?) [x] (0:06) make a class called "WorksheetDocument" that derives from "class SynchronizedDocument" in syncdoc.coffee.
+
+* (0:10?) [ ] make it so editor opens sagews using the new class.
+
+* (0:15?) [ ] add handling a keyboard event to the codemirror for "shift-enter".  -- just print something to log
+
+* (0:20?) [ ] add code to detect the block that needs to be evaluated when a shift-enter happens. This is the max in both directions until edge of editor or hit an output line.  An output line is defined to be
+[MARKER]uuid
+
+* (0:15?) [ ] right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them).
+
+* (0:15?) [ ] bring over code for having a Sage session attached to the worksheet
+
+* (0:15?) [ ] when user shift-enters above, send the code to be evaluated and create a corresponding div for output, along with a callback.
+
+* (0:15?) [ ] write something to handle output messages: when get a message tagged with a uuid, will search editor for [MARKER]uuid, find linemarker corresponding to that line (or make one if there is none), then insert output in that line.  Try again later if such a line doesn't exist.
+
+Try out the above and see if it "feels" good, especially with the syncing that will automatically just work.
+
+
+
+ -
+section X
+
+section X
+
+cell start
+
+cell end
+
+
+@@@@@@@@@@@@@@@@@@@@@
 
 
 * (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.

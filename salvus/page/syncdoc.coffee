@@ -191,8 +191,8 @@ class DiffSyncHub
 class SynchronizedDocument
     constructor: (@editor, opts) ->
         @opts = defaults opts,
-            cursor_interval : 150
-            sync_interval   : 150
+            cursor_interval : 1000
+            sync_interval   : 1000
         @editor.save = @save
         @codemirror = @editor.codemirror
         @element    = @editor.element
@@ -569,4 +569,21 @@ class SynchronizedDocument
 
 
 
+
+
+class SynchronizedWorksheet extends SynchronizedDocument
+    constructor: (@editor, opts) ->
+        opts0 =
+            cursor_interval : opts.cursor_interval
+            sync_interval   : opts.sync_interval
+        super(@editor, opts0)
+
+
+################################
 exports.SynchronizedDocument = SynchronizedDocument
+exports.SynchronizedWorksheet = SynchronizedWorksheet
+
+
+
+
+
