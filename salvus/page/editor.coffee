@@ -807,7 +807,7 @@ class CodeMirrorEditor extends FileEditor
                 theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
                 extraKeys       :
-                    "Shift-Enter"  : (editor)   => @click_save_button()
+                    "Shift-Enter"  : (editor)   => @action_key()
                     "Ctrl-S"       : (editor)   => @click_save_button()
                     "Cmd-S"        : (editor)   => @click_save_button()
                     "Ctrl-L"       : (editor)   => @goto_line(editor)
@@ -843,6 +843,9 @@ class CodeMirrorEditor extends FileEditor
         @init_edit_buttons()
 
         @_split_view = false
+
+    action_key: () =>
+        @click_save_button()
 
     press_tab_key: (editor) =>
         if editor.somethingSelected()
@@ -1030,6 +1033,7 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
     switch filename_extension(filename)
         when "sagews"
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
+            E.action_key = E.syncdoc.execute
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E

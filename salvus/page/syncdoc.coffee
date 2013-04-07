@@ -570,7 +570,7 @@ class SynchronizedDocument
 
 
 
-
+MARKER = "\uFE12"
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
         opts0 =
@@ -579,6 +579,29 @@ class SynchronizedWorksheet extends SynchronizedDocument
         super(@editor, opts0)
         console.log("Synchronized Worksheet")
 
+    current_input_block: () =>
+        cm = @codemirror
+        c = cm.getCursor().line
+        start = c
+        end = c
+        while start > 0
+            line = cm.getLine(start)
+            if line.length > 0 and line[0] == MARKER
+                start += 1
+                break
+            start -= 1
+        while end < cm.lineCount()-1
+            line = cm.getLine(end)
+            if line.length > 0 and line[0] == MARKER
+                end -= 1
+                break
+            end += 1
+        return {start:start, end:end}
+
+    execute: () =>
+        console.log("execute code")
+        block = @current_input_block()
+        console.log(block)
 
 ################################
 exports.SynchronizedDocument = SynchronizedDocument
