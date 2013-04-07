@@ -43,6 +43,7 @@ codemirror_associations =
     r      : 'r'
     rst    : 'rst'
     sage   : 'python'
+    sagews : 'python'
     scala  : 'text/x-scala'
     sh     : 'shell'
     spyx   : 'python'
@@ -782,8 +783,8 @@ class CodeMirrorEditor extends FileEditor
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 150   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 150   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval   : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval     : 1000   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
@@ -1025,7 +1026,12 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
     opts =
         cursor_interval : E.opts.cursor_interval
         sync_interval   : E.opts.sync_interval
-    E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
+
+    switch filename_extension(filename)
+        when "sagews"
+            E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
+        else
+            E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E
 
 

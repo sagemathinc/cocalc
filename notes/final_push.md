@@ -29,7 +29,7 @@ However, it is possible to use markText to do everything we need for output, to 
 
 * (0:10?) [x] (0:06) make a class called "WorksheetDocument" that derives from "class SynchronizedDocument" in syncdoc.coffee.
 
-* (0:10?) [ ] make it so editor opens sagews using the new class.
+* (0:10?) [x] (0:07) make it so editor opens sagews using the new class.
 
 * (0:15?) [ ] add handling a keyboard event to the codemirror for "shift-enter".  -- just print something to log
 

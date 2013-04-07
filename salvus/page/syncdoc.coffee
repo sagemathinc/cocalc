@@ -577,6 +577,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cursor_interval : opts.cursor_interval
             sync_interval   : opts.sync_interval
         super(@editor, opts0)
+        console.log("Synchronized Worksheet")
 
 
 ################################
