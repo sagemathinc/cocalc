@@ -817,11 +817,14 @@ class CodeMirrorSession
                     @content = @content.slice(0, output) + @content.slice(output_end+1)
         code = @content.slice(code_start+1, output_start)
         output_id   = uuid.v4()
-        output_insert = '\n' + diffsync.MARKERS.output + output_id + diffsync.MARKERS.output + '\n'
+        if output_start > 0 and @content[output_start-1] != '\n'
+            output_insert = '\n'
+        else
+            output_insert = ''
+        output_insert += diffsync.MARKERS.output + output_id + diffsync.MARKERS.output + '\n'
         if next_cell == -1
             # There is no next cell.
             output_insert += diffsync.MARKERS.cell + uuid.v4() + diffsync.MARKERS.cell
-        winston.debug("OUTPUT_INSERT = ", output_insert)
         @content = @content.slice(0, output_start) + output_insert + @content.slice(output_start)
         return {code:code, output_id:output_id}
 

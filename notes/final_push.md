@@ -1,6 +1,8 @@
-- (0:10?) [ ] local hub: support the session control messages; interrupt, restart, kill, etc., via cell markers.
-- (0:25?) [ ] systematically test/debug the above, and make sure sync really works in practice.
-- (0:15?) [ ] when client executes code, have it move the cursor to next input
+- (0:10?) [ ] sagews: get rid of trailing whitespace on eval
+- (0:10?) [ ] sagews: local hub: support the session control messages; interrupt, restart, kill, etc., via line-1 markers.
+- (0:25?) [ ] sagews: systematically test/debug the above, and make sure sync really works in practice.
+- (0:15?) [ ] sagews: when client executes code, have it move the cursor to next input
+- (0:20?) [ ] sagews: don't require output cell to start at beginning of a line.
 
 PHASE 3:
 
