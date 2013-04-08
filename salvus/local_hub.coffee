@@ -688,7 +688,7 @@ class CodeMirrorSession
                     winston.debug("sage --> local_hub: '#{json(mesg)}'")
                     @sage_output_mesg(mesg.id, m)
                     @set_content(@content)
-                    # Suggest to all connected clients to sync. 
+                    # Suggest to all connected clients to sync.
                     for id, ds_client of @diffsync_clients
                         ds_client.remote.sync_ready()
 
@@ -843,10 +843,10 @@ class CodeMirrorSession
             delete @content
             delete @diffsync_fileclient
             delete @diffsync_fileserver
-        if @sage_socket?
+        if @_sage_socket?
             # send FIN packet so that Sage process may terminate naturally
-            @sage_socket.end()
-            # then, brutally kill it if need be. :-)
+            @_sage_socket.end()
+            # ... then, brutally kill it if need be (a few seconds later). :-)
             setTimeout( (() => @send_signal_to_sage_session(9)), 10000 )
 
     set_content: (value) =>

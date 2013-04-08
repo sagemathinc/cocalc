@@ -599,6 +599,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @process_sage_updates()
 
         @.on 'sync', @process_sage_updates
+        @editor.on 'show', (height) =>
+            for mark in @codemirror.getAllMarks()
+                if mark.output?
+                    console.log('resizing ', mark.output)
+                    mark.output.css('max-height', (height*.9) + 'px')
 
     process_sage_updates: () =>
         #console.log("processing Sage updates")
@@ -664,7 +669,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # mark it as such (thus hiding control codes).
         x   = @codemirror.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        input = $("<div style='border-top:solid 4px blue; margin-top:-4px; margin-left:-1em'>&nbsp;</div>")
+        #input = $("<div style='border-top:solid 4px blue; margin-top:-4px; margin-left:-1em'>&nbsp;</div>")
+        input = $("<div>")
         mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
         return mark
@@ -673,7 +679,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # Assuming the proper text is in the document for output to be displayed at this line,
         # mark it as such.  This hides control codes and creates a div into which output will
         # be placed as it appears.
-        output = $("<div style='padding: 3px; margin: 3px; border:1px solid #ddd;  border-radius:5px; width:#{$(window).width()*.9}px;'>")
+
+        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
+        output = $("<div class='sage-worksheet-output' style='padding: 3px; margin: 3px; border:1px solid #ddd;  border-radius:5px; width:#{$(window).width()*.9}px; max-height:20em; overflow-y:auto;'>")
         cm = @codemirror
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})

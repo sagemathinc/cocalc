@@ -1014,6 +1014,8 @@ class CodeMirrorEditor extends FileEditor
         chat.width(0)
         output = chat.find(".salvus-editor-codemirror-chat-output")
 
+        @emit 'show', ht
+
     focus: () =>
         if not @codemirror?
             return
