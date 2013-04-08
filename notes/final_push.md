@@ -1,95 +1,3 @@
---> * (0:30?) [ ] BUG: loading some worksheets is DOUBLE DOG slow.  WHY??
-This issue is CRITICAL.   It seems like every codemirror editor is taking like a half second to do something in response to a window resize event. This isn't good.   WHY?  Ideas of things to do:
-   x - make a simple standalone page to try to emulate this; maybe I am misconfiguring something: -- NOPE, it is very slow (!)
-   x - what if they are all set to read-only mode: total fail; still very slow.
-   x - ipython isn't nearly so slow... but is also using an old version of codemirror.
-   x - try making a bunch of editors and *one* shared doc -- they each edit a separate range of lines.  Will this help?
-     Didn't try, since I REALLY doubt it, given what is taking time.
-   x - I did upgrade codemirror to 3.11, which breaks the ReST mode (I don't use it), but is otherwise not really
-       any different.
-
-   I must address this issue.  I really want to try again my idea to have the entire worksheet be inside of a single
-   codemirror editor, with the output as html widgets.  That would have the potential to *scale up hugely*.
-   When I add back sectioning/pages/slides, each section/page/slide, etc. will be such a codemirror editor.
-
-   cm.addLineWidget(line: integer|LineHandle, node: Element, ?options: object)
-
-This will be some work, so let's plan it out. I've tried this 2-3 times before, and always FAILED, so let's hope this time is different.
-
---> * (0:45?) [ ] make a detailed plan for an worksheet-in-an-editor
-
-# The look
-- A worksheet will *look* exactly like a single codemirror document, except:
-1. We will utilize line widgets to influence how much code is evaluated when you press "shift-enter", and to "insert a new cell".
-2. The output of code evaluation will be entirely in a CodeMIrror "Line Widget", and will use all the same code I already wrote, e.g., for interact.
-
-Question: in codemirror, is it possible to use markText to put a border around a block of text?  ANSWER: *NO.*
-
-However, it is possible to use markText to do everything we need for output, to do code folding, etc.
-
-* (0:10?) [x] (0:06) make a class called "WorksheetDocument" that derives from "class SynchronizedDocument" in syncdoc.coffee.
-
-
-* (0:10?) [x] (0:07) make it so editor opens sagews using the new class.
-* (0:15?) [x] (0:04) add handling a keyboard event to the codemirror for "shift-enter".  -- just print something to log
-
-* (0:20?) [x] (0:11) cm-sync-worksheets: add code to detect the block that needs to be evaluated when a shift-enter happens. This is the max in both directions until edge of editor or hit an output line.  An output line is defined to be
-[MARKER]uuid
-
-* (0:15?) [x] (0:21) cm-sync-worksheets: bring over code for having a Sage session attached to the worksheet
-
-* (0:15?) [x] (1:00) cm-sync-worksheets: when user shift-enters above, send the code to be evaluated and create a corresponding div for output, along with a callback.
-
-* (0:15?) [x] cm-sync-worksheets: write something to handle output messages: when get a message tagged with a uuid, will search editor for [MARKER]uuid, find linemarker corresponding to that line (or make one if there is none), then insert output in that line.  Try again later if such a line doesn't exist.
-
-* [x] (0:15) Try out the above and see if it "feels" good, especially with the syncing that will automatically just work.
-
-* (0:10?) [x] (0:20) cm-sync-worksheets: correctly embed the uuid of each computation
-
-* (0:15?) [ ] cm-sync-worksheets: right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them)
-
-PLAN:
-
-Can I store data in the output line that is synchronized across worksheets and invisible to user?  YES!
-
-    - EXECUTE: message to local hub to execute cell with this id
-
-    - ALL output is via local hub modifying the master document's output line (via 1-line json),
-      clients seeing that modification and interpreting it.
-
-0: meta information about this; json object; e.g., modes for cells.
-1: [start-cell-marker][uuid of cell]metadata[marker]contents of cells...
-       metadata = set of letters
-         - e = need to execute
-         - h = hide input
-         - o = hide output
-         -
-       use the metadata to specify that the cell is ready to run.
-.. more contents ..
-n: [output-marker][uuid of output] {}[output-sep]{}...[output-marker] <-- output goes here as json messages all on one line, separated by a marker; rendered by client.  This is ONE CodeMirror marked text area.
-?: [start-marker][uuid of cell]contents of cells...
-.. more contents ..
-?: [output-marker]{} <-- output goes here as json messages all on one line
-...
-
-[x] (0:18) Make a fairly complete plan to implement core of the above idea
-
-(0:20?) [x]  (0:48)local hub: when starting a codemirror session and file extension is sagews, *ensure* that a corresponding sage session is available.  No need to reconnect or store an existing session, etc., since local hub *is* the lifetime of the session!
-
---> (0:45?) [x] (2:45) local hub: support a new "execute" message, which takes uuid of cell as only input.  This should probably be just combined with the sync message as an optional additional action, to avoid latency issues.  Also, make client send this message on doing "shift-enter" (say).   This will determine what code to execute, submit it to the sage process, delete existing output, create a new cell if necessary, etc.; all this will get pushed out via the sync system.
-Another optimization will be to wait up to 100ms (?) say for output messages and only complete the sync after applying them, so they are all sent back together immediately.
-NOTE: output messages do *not* need to have an id tag on them -- that would be wasteful.
-
-WAIT -- instead, we'll mark the document
-
-- (0:15?) [x] test/debug the above, which should work and allow for synchronized sessions with output appearing in all of them.  Then plan further.
-
-PHASE 2: get something that works that is in `local_hub` (hence everywhere and synchronized)
-
-- (0:20?) [x] (0:40) do processing on client side of new input from server after sync (i.e., use mark text).
-- (0:20?) [x] (1:00) make it so that when localhub runs code, it deletes old output line and creates new output line
---> - (0:20?) [ ] make it so that when localhub evaluates code, it sends it to sage process and also listens for results and puts them in the appropriate output cells (if they exist).
-- (0:25?) [ ] make it so client parses and renders any results appearing in output location, tracking what it has done so far.
 - (0:10?) [ ] local hub: support the session control messages; interrupt, restart, kill, etc., via cell markers.
 - (0:25?) [ ] systematically test/debug the above, and make sure sync really works in practice.
 - (0:15?) [ ] when client executes code, have it move the cursor to next input
@@ -422,3 +330,100 @@ features;
 
 * (0:30?) [x] (0:17) REMOVE the note part of a cell, and instead just making it much easier to create notes using cells.
 
+
+* (0:15?) [x] "max-height:20em;" setting initial output in syncdoc; instead should be in terms of height of codemirror wrapper.
+
+==
+
+--> * (0:30?) [ ] BUG: loading some worksheets is DOUBLE DOG slow.  WHY??
+This issue is CRITICAL.   It seems like every codemirror editor is taking like a half second to do something in response to a window resize event. This isn't good.   WHY?  Ideas of things to do:
+   x - make a simple standalone page to try to emulate this; maybe I am misconfiguring something: -- NOPE, it is very slow (!)
+   x - what if they are all set to read-only mode: total fail; still very slow.
+   x - ipython isn't nearly so slow... but is also using an old version of codemirror.
+   x - try making a bunch of editors and *one* shared doc -- they each edit a separate range of lines.  Will this help?
+     Didn't try, since I REALLY doubt it, given what is taking time.
+   x - I did upgrade codemirror to 3.11, which breaks the ReST mode (I don't use it), but is otherwise not really
+       any different.
+
+   I must address this issue.  I really want to try again my idea to have the entire worksheet be inside of a single
+   codemirror editor, with the output as html widgets.  That would have the potential to *scale up hugely*.
+   When I add back sectioning/pages/slides, each section/page/slide, etc. will be such a codemirror editor.
+
+   cm.addLineWidget(line: integer|LineHandle, node: Element, ?options: object)
+
+This will be some work, so let's plan it out. I've tried this 2-3 times before, and always FAILED, so let's hope this time is different.
+
+--> * (0:45?) [ ] make a detailed plan for an worksheet-in-an-editor
+
+# The look
+- A worksheet will *look* exactly like a single codemirror document, except:
+1. We will utilize line widgets to influence how much code is evaluated when you press "shift-enter", and to "insert a new cell".
+2. The output of code evaluation will be entirely in a CodeMIrror "Line Widget", and will use all the same code I already wrote, e.g., for interact.
+
+Question: in codemirror, is it possible to use markText to put a border around a block of text?  ANSWER: *NO.*
+
+However, it is possible to use markText to do everything we need for output, to do code folding, etc.
+
+* (0:10?) [x] (0:06) make a class called "WorksheetDocument" that derives from "class SynchronizedDocument" in syncdoc.coffee.
+
+
+* (0:10?) [x] (0:07) make it so editor opens sagews using the new class.
+* (0:15?) [x] (0:04) add handling a keyboard event to the codemirror for "shift-enter".  -- just print something to log
+
+* (0:20?) [x] (0:11) cm-sync-worksheets: add code to detect the block that needs to be evaluated when a shift-enter happens. This is the max in both directions until edge of editor or hit an output line.  An output line is defined to be
+[MARKER]uuid
+
+* (0:15?) [x] (0:21) cm-sync-worksheets: bring over code for having a Sage session attached to the worksheet
+
+* (0:15?) [x] (1:00) cm-sync-worksheets: when user shift-enters above, send the code to be evaluated and create a corresponding div for output, along with a callback.
+
+* (0:15?) [x] cm-sync-worksheets: write something to handle output messages: when get a message tagged with a uuid, will search editor for [MARKER]uuid, find linemarker corresponding to that line (or make one if there is none), then insert output in that line.  Try again later if such a line doesn't exist.
+
+* [x] (0:15) Try out the above and see if it "feels" good, especially with the syncing that will automatically just work.
+
+* (0:10?) [x] (0:20) cm-sync-worksheets: correctly embed the uuid of each computation
+
+* (0:15?) [ ] cm-sync-worksheets: right after doing sync, need to search for any new [MARKER]uuid's and mark them (so user doesn't see them)
+
+PLAN:
+
+Can I store data in the output line that is synchronized across worksheets and invisible to user?  YES!
+
+    - EXECUTE: message to local hub to execute cell with this id
+
+    - ALL output is via local hub modifying the master document's output line (via 1-line json),
+      clients seeing that modification and interpreting it.
+
+0: meta information about this; json object; e.g., modes for cells.
+1: [start-cell-marker][uuid of cell]metadata[marker]contents of cells...
+       metadata = set of letters
+         - e = need to execute
+         - h = hide input
+         - o = hide output
+         -
+       use the metadata to specify that the cell is ready to run.
+.. more contents ..
+n: [output-marker][uuid of output] {}[output-sep]{}...[output-marker] <-- output goes here as json messages all on one line, separated by a marker; rendered by client.  This is ONE CodeMirror marked text area.
+?: [start-marker][uuid of cell]contents of cells...
+.. more contents ..
+?: [output-marker]{} <-- output goes here as json messages all on one line
+...
+
+[x] (0:18) Make a fairly complete plan to implement core of the above idea
+
+(0:20?) [x]  (0:48)local hub: when starting a codemirror session and file extension is sagews, *ensure* that a corresponding sage session is available.  No need to reconnect or store an existing session, etc., since local hub *is* the lifetime of the session!
+
+--> (0:45?) [x] (2:45) local hub: support a new "execute" message, which takes uuid of cell as only input.  This should probably be just combined with the sync message as an optional additional action, to avoid latency issues.  Also, make client send this message on doing "shift-enter" (say).   This will determine what code to execute, submit it to the sage process, delete existing output, create a new cell if necessary, etc.; all this will get pushed out via the sync system.
+Another optimization will be to wait up to 100ms (?) say for output messages and only complete the sync after applying them, so they are all sent back together immediately.
+NOTE: output messages do *not* need to have an id tag on them -- that would be wasteful.
+
+WAIT -- instead, we'll mark the document
+
+- (0:15?) [x] test/debug the above, which should work and allow for synchronized sessions with output appearing in all of them.  Then plan further.
+
+PHASE 2: get something that works that is in `local_hub` (hence everywhere and synchronized)
+
+- (0:20?) [x] (0:40) do processing on client side of new input from server after sync (i.e., use mark text).
+- (0:20?) [x] (1:00) make it so that when localhub runs code, it deletes old output line and creates new output line
+--> - (0:20?) [ ] make it so that when localhub evaluates code, it sends it to sage process and also listens for results and puts them in the appropriate output cells (if they exist).
+- (0:25?) [ ] make it so client parses and renders any results appearing in output location, tracking what it has done so far.

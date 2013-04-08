@@ -640,7 +640,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.stderr?
             output.append($("<span style='white-space: pre;color:red'>").text(mesg.stderr))
         if mesg.html?
-            output.append($("<div style='font-family:helvetica;  line-height: 1ex; padding-left: 2em;' >").html(mesg.html).mathjax())
+            output.append($("<div style='font-family:helvetica;  line-height: 1.1em; padding-left: 2em; padding-right:2em;' >").html(mesg.html).mathjax())
         if mesg.tex?
             val = mesg.tex
             elt = $("<span>")
@@ -681,9 +681,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # mark it as such.  This hides control codes and creates a div into which output will
         # be placed as it appears.
 
-        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
-        output = $("<div class='sage-worksheet-output' style='padding: 3px; margin: 3px; border:1px solid #ddd; border-radius:5px; width:#{$(window).width()*.9}px; max-height:20em; overflow-y:auto;'>")
         cm = @codemirror
+
+        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
+        ht = $(cm.getWrapperElement()).height()
+        output = $("<div class='sage-worksheet-output' style='padding: 3px; margin: 3px; border:1px solid #ddd; border-radius:5px; width:#{$(window).width()*.9}px; max-height:#{.9*ht}px; overflow-y:auto;'>")
+
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
         mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
