@@ -595,9 +595,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts0 =
             cursor_interval : opts.cursor_interval
             sync_interval   : opts.sync_interval
-        super(@editor, opts0)
-        @_input_markers = []
-        @_output_markers = []
+        super @editor, opts0, () =>
+            @process_sage_updates()
 
         @.on 'sync', @process_sage_updates
 
@@ -607,6 +606,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # If not marked, mark it appropriately.
         cm = @codemirror
         for line in [0...cm.lineCount()]
+            console.log("line = ", line)
             x = cm.getLine(line)
             if x[0] == MARKERS.cell
                 marks = cm.findMarksAt({line:line, ch:1})
@@ -616,15 +616,54 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 marks = cm.findMarksAt({line:line, ch:1})
                 if marks.length == 0
                     @mark_output_line(line)
+                mark = cm.findMarksAt({line:line, ch:1})[0]
+                if mark.processed < x.length
+                    # new output to process
+                    t = x.slice(mark.processed, x.length-1)
+                    @process_new_output(mark, JSON.parse(t))
+                    mark.processed = x.length
+
+    process_new_output: (mark, mesg) =>
+        console.log("new output: ", mesg)
+        output = mark.output
+        if mesg.stdout?
+            output.append($("<span style='white-space: pre;'>").text(mesg.stdout))
+        if mesg.stderr?
+            output.append($("<span style='white-space: pre;color:red'>").text(mesg.stderr))
+        if mesg.html?
+            output.append($("<span>").html(mesg.html).mathjax())
+        if mesg.tex?
+            val = mesg.tex
+            elt = $("<span>")
+            arg = {tex:val.tex}
+            if val.display
+                arg.display = true
+            else
+                arg.inline = true
+            output.append(elt.mathjax(arg))
+        if mesg.file?
+            val = mesg.file
+            target = "/blobs/#{val.filename}?uuid=#{val.uuid}"
+            switch misc.filename_extension(val.filename)
+                # TODO: harden DOM creation below
+                when 'svg', 'png', 'gif', 'jpg'
+                    output.append($("<img src='#{target}' class='salvus-cell-output-img'>"))
+                else
+                    output.append($("<a href='#{target}' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
+
+        if mesg.done? and mesg.done
+            output.css('border-left','1px solid #ccc')
+
+        @refresh_soon()
 
     mark_cell_start: (line) =>
         # Assuming the proper text is in the document for a new cell at this line,
         # mark it as such (thus hiding control codes).
         x   = @codemirror.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        output = $("<div style='border-left:solid 1px blue;'>&nbsp;</div>")
+        input = $("<div style='border-top:solid 4px blue; margin-top:-4px; margin-left:-1em'>&nbsp;</div>")
         @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
-                {inclusiveLeft:true, inclusiveRight: false, replacedWith:output[0]})
+                {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
 
 
     mark_output_line: (line) =>
@@ -638,10 +677,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm = @codemirror
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
-        cm.markText({line:line, ch:0}, {line:line,ch:cm.getLine(line).length},
-                     {inclusiveLeft:false, inclusiveRight: false, replacedWith:output[0]})
-
-
+        mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
+                     {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
+        mark.processed = 38 # how much of the output line we have processed  [marker]36-char-uuid[marker]
+        mark.output = output
 
     current_input_block: () =>
         cm = @codemirror
@@ -694,7 +733,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     set_cell_flag: (marker, flag) =>
         s = @get_cell_flagstring(marker)
-        console.log("got cell flagstring = ", s)
         if flag not in s
             @set_cell_flagstring(marker, flag + s)
 

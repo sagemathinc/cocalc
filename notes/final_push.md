@@ -88,10 +88,11 @@ PHASE 2: get something that works that is in `local_hub` (hence everywhere and s
 
 - (0:20?) [x] (0:40) do processing on client side of new input from server after sync (i.e., use mark text).
 - (0:20?) [x] (1:00) make it so that when localhub runs code, it deletes old output line and creates new output line
-- (0:20?) [ ] make it so that when localhub evaluates code, it sends it to sage process and also listens for results and puts them in the appropriate output cells (if they exist).
+--> - (0:20?) [ ] make it so that when localhub evaluates code, it sends it to sage process and also listens for results and puts them in the appropriate output cells (if they exist).
 - (0:25?) [ ] make it so client parses and renders any results appearing in output location, tracking what it has done so far.
 - (0:10?) [ ] local hub: support the session control messages; interrupt, restart, kill, etc., via cell markers.
 - (0:25?) [ ] systematically test/debug the above, and make sure sync really works in practice.
+- (0:15?) [ ] when client executes code, have it move the cursor to next input
 
 PHASE 3:
 

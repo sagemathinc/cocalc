@@ -688,6 +688,10 @@ class CodeMirrorSession
         winston.debug("exec code '#{code}'; output id='#{output_id}'")
         @set_content(@content)
 
+        # TEST:
+        @sage_output_mesg(output_id, {stdout:'4',done:true})
+        @set_content(@content)
+
     send_signal_to_sage_session: (sig) =>
         winston.debug("send_signal_to_sage_session -- todo")
 
@@ -707,6 +711,19 @@ class CodeMirrorSession
             if diffsync.FLAGS.execute in flags
                 @sage_execute(id)
             i = j + 1
+
+
+    sage_output_mesg: (output_id, mesg) =>
+        i = @content.indexOf(diffsync.MARKERS.output + output_id)
+        if i == -1
+            # no such output cell anymore -- ignore (?) -- or we could make such a cell...?
+            winston.debug("WORKSHEET: no such output cell (ignoring) -- #{output_id}")
+            return
+        n = @content.indexOf('\n', i)
+        if n == -1
+            winston.debug("WORKSHEET: output cell corrupted (ignoring) -- #{output_id}")
+            return
+        @content = @content.slice(0,n) + JSON.stringify(mesg) + diffsync.MARKERS.output + @content.slice(n)
 
     sage_find_cell_meta: (id, start) =>
         i = @content.indexOf(diffsync.MARKERS.cell + id, start)
