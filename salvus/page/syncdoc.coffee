@@ -601,12 +601,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @.on 'sync', @process_sage_updates
 
     process_sage_updates: () =>
-        console.log("processing Sage updates")
+        #console.log("processing Sage updates")
         # For each line in the editor, check if it starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately.
         cm = @codemirror
         for line in [0...cm.lineCount()]
-            console.log("line = ", line)
             x = cm.getLine(line)
             if x[0] == MARKERS.cell
                 marks = cm.findMarksAt({line:line, ch:1})
@@ -620,11 +619,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if mark.processed < x.length
                     # new output to process
                     t = x.slice(mark.processed, x.length-1)
-                    @process_new_output(mark, JSON.parse(t))
                     mark.processed = x.length
+                    for s in t.split(MARKERS.output)
+                        try
+                            @process_new_output(mark, JSON.parse(s))
+                        catch e
+                            console.log("TODO/DEBUG: malformed message: '#{s}'")
 
     process_new_output: (mark, mesg) =>
-        console.log("new output: ", mesg)
+        #console.log("new output: ", mesg)
         output = mark.output
         if mesg.stdout?
             output.append($("<span style='white-space: pre;'>").text(mesg.stdout))
@@ -662,18 +665,15 @@ class SynchronizedWorksheet extends SynchronizedDocument
         x   = @codemirror.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
         input = $("<div style='border-top:solid 4px blue; margin-top:-4px; margin-left:-1em'>&nbsp;</div>")
-        @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
+        mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
-
+        return mark
 
     mark_output_line: (line) =>
         # Assuming the proper text is in the document for output to be displayed at this line,
         # mark it as such.  This hides control codes and creates a div into which output will
         # be placed as it appears.
-        output = $("<div style='padding: 1ex; border:1px solid #ccc;  width:#{$(window).width()*.9}px;'>")
-        output.resizable
-            aspectRatio: true
-            handles: "se,s,e"
+        output = $("<div style='padding: 3px; margin: 3px; border:1px solid #ddd;  border-radius:5px; width:#{$(window).width()*.9}px;'>")
         cm = @codemirror
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
@@ -681,6 +681,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                      {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
         mark.processed = 38 # how much of the output line we have processed  [marker]36-char-uuid[marker]
         mark.output = output
+        return mark
 
     current_input_block: () =>
         cm = @codemirror
@@ -703,9 +704,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     execute: () =>
         block = @current_input_block()
         cm = @codemirror
-        console.log("block = ", block)
         x = cm.findMarksAt({line:block.start,ch:1})
-        console.log('x = ', x)
         if x.length == 0
             # create cell start mark
             marker = @create_cell_start_marker(block.start)
@@ -748,81 +747,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange('\n',{line:line+1,ch:0})
         uuid = misc.uuid()
         cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell, {line:line, ch:0})
-        marker = cm.markText({line:line, ch:0}, {line:line, ch:38},
-                             {atomic:true, inclusiveLeft:true, inclusiveRight: false})
-        marker.uuid = uuid
-        return marker
+        return @mark_cell_start(line)
 
-    ##########################################
-
-    xxx_execute: () =>
-        if not @session?.session_uuid?
-            # TODO: we could just queue these up and submit them when connection succeeds.
-            alert_message(type:"error", message:"Not connected to sage server.")
-            return
-
-        cm = @codemirror
-        block = @current_input_block()
-        code = $.trim(cm.getRange({line:block.start,ch:0}, {line:block.end+1,ch:0}))
-        console.log(code)
-        if code.length == 0
-            return
-
-        # Create line for output
-        output = $("<div style='padding: 1ex; border:1px solid #ccc;  width:#{$(window).width()*.9}px;'>")
-        output.resizable
-            aspectRatio: true
-            handles: "se,s,e"
-        if cm.lineCount() < block.end+2
-            cm.replaceRange('\n',{line:block.end+1,ch:0})
-        uuid = misc.uuid()
-        cm.replaceRange(MARKER+uuid+'\n',{line:block.end+1,ch:0})
-        cm.refresh()
-        console.log("Marking text on line ", block.end+1, " using ", output)
-        marker = cm.markText({line:block.end+1,ch:0}, {line:block.end+1,ch:37},
-                             {inclusiveLeft:false, inclusiveRight: false, replacedWith:output[0]})
-        first = true
-        @sync_soon()
-        @session.execute_code
-            code     : code
-            preparse : true
-            uuid     : uuid
-            cb       : (mesg) =>
-                if first
-                    # first message back - ui should show that computation started running
-                    output.css('border-left','1px solid green')
-                    first = false
-
-                if mesg.stdout?
-                    output.append($("<span style='white-space: pre;'>").text(mesg.stdout))
-                if mesg.stderr?
-                    output.append($("<span style='white-space: pre;color:red'>").text(mesg.stderr))
-                if mesg.html?
-                    output.append($("<span>").html(mesg.html).mathjax())
-                if mesg.tex?
-                    val = mesg.tex
-                    elt = $("<span>")
-                    arg = {tex:val.tex}
-                    if val.display
-                        arg.display = true
-                    else
-                        arg.inline = true
-                    output.append(elt.mathjax(arg))
-                if mesg.file?
-                    val = mesg.file
-                    target = "/blobs/#{val.filename}?uuid=#{val.uuid}"
-                    switch misc.filename_extension(val.filename)
-                        # TODO: harden DOM creation below
-                        when 'svg', 'png', 'gif', 'jpg'
-                            output.append($("<img src='#{target}' class='salvus-cell-output-img'>"))
-                        else
-                            output.append($("<a href='#{target}' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
-
-                if mesg.done? and mesg.done
-                    output.css('border-left','1px solid #ccc')
-
-                @refresh_soon()
-                console.log(mesg)
 
 ################################
 exports.SynchronizedDocument = SynchronizedDocument

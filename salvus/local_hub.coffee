@@ -675,9 +675,23 @@ class CodeMirrorSession
             else
                 winston.debug("Successfully opened a Sage session.")
                 @_sage_socket = socket
-                @_sage_socket.on 'end', () =>
+
+                socket.on 'end', () =>
                     @_sage_socket = undefined
                     winston.debug("codemirror session #{@session_uuid} sage socket terminated.")
+
+                socket.on 'mesg', (type, mesg) =>
+                    m = {}
+                    for x, y of mesg
+                        if x != 'id'
+                            m[x] = y
+                    winston.debug("sage --> local_hub: '#{json(mesg)}'")
+                    @sage_output_mesg(mesg.id, m)
+                    @set_content(@content)
+                    # Suggest to all connected clients to sync. 
+                    for id, ds_client of @diffsync_clients
+                        ds_client.remote.sync_ready()
+
                 cb(false, @_sage_socket)
 
     sage_execute: (id) =>
@@ -688,9 +702,17 @@ class CodeMirrorSession
         winston.debug("exec code '#{code}'; output id='#{output_id}'")
         @set_content(@content)
 
-        # TEST:
-        @sage_output_mesg(output_id, {stdout:'4',done:true})
-        @set_content(@content)
+        @sage_socket (err, socket) =>
+            if err
+                winston.debug("Error getting sage socket: #{err}")
+                return
+
+            socket.write_mesg('json',
+                message.execute_code
+                    id       : output_id
+                    code     : code
+                    preparse : true
+            )
 
     send_signal_to_sage_session: (sig) =>
         winston.debug("send_signal_to_sage_session -- todo")
@@ -793,7 +815,7 @@ class CodeMirrorSession
                     # delete the line of output we just found
                     output_end = @content.indexOf('\n', output+1)
                     @content = @content.slice(0, output) + @content.slice(output_end+1)
-        code = @content.slice(code_start, output_start)
+        code = @content.slice(code_start+1, output_start)
         output_id   = uuid.v4()
         output_insert = '\n' + diffsync.MARKERS.output + output_id + diffsync.MARKERS.output + '\n'
         if next_cell == -1
