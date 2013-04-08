@@ -719,7 +719,7 @@ class CodeMirrorSession
 
     sage_update: () =>
         # scan the string @content for execution requests, etc...
-        winston.debug("sage_update: '#{@content}'")
+        winston.debug("sage_update")
         i = 0
         while true
             i = @content.indexOf(diffsync.MARKERS.cell, i)

@@ -604,6 +604,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if mark.output?
                     console.log('resizing ', mark.output)
                     mark.output.css('max-height', (height*.9) + 'px')
+                    mark.output.css('width', $(window).width()*.9 + 'px')
 
     process_sage_updates: () =>
         #console.log("processing Sage updates")
@@ -639,7 +640,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.stderr?
             output.append($("<span style='white-space: pre;color:red'>").text(mesg.stderr))
         if mesg.html?
-            output.append($("<span>").html(mesg.html).mathjax())
+            output.append($("<div style='font-family:helvetica;  line-height: 1ex; padding-left: 2em;' >").html(mesg.html).mathjax())
         if mesg.tex?
             val = mesg.tex
             elt = $("<span>")
@@ -669,8 +670,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # mark it as such (thus hiding control codes).
         x   = @codemirror.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        #input = $("<div style='border-top:solid 4px blue; margin-top:-4px; margin-left:-1em'>&nbsp;</div>")
-        input = $("<div>")
+        input = $("<div style='border-top:solid 3px blue; margin-top:-3px; margin-left:-1em'>&nbsp;</div>")
+        #input = $("<div>")
         mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
         return mark
@@ -681,7 +682,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # be placed as it appears.
 
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
-        output = $("<div class='sage-worksheet-output' style='padding: 3px; margin: 3px; border:1px solid #ddd;  border-radius:5px; width:#{$(window).width()*.9}px; max-height:20em; overflow-y:auto;'>")
+        output = $("<div class='sage-worksheet-output' style='padding: 3px; margin: 3px; border:1px solid #ddd; border-radius:5px; width:#{$(window).width()*.9}px; max-height:20em; overflow-y:auto;'>")
         cm = @codemirror
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
