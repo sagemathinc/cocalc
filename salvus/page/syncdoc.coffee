@@ -189,8 +189,9 @@ class DiffSyncHub
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
+{EventEmitter} = require('events')
 
-class SynchronizedDocument
+class SynchronizedDocument extends EventEmitter
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,
             cursor_interval : 1000
@@ -389,8 +390,10 @@ class SynchronizedDocument
                 setTimeout(@sync, 30000)  # try again soon...
                 cb?(err)
             else
+                # We just completed a successful sync.
                 @_sync_failures = 0
                 @_syncing = false
+                @emit 'sync'
                 @ui_synced(true)
                 cb?()
 
@@ -596,6 +599,50 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @_input_markers = []
         @_output_markers = []
 
+        @.on 'sync', @process_sage_updates
+
+    process_sage_updates: () =>
+        console.log("processing Sage updates")
+        # For each line in the editor, check if it starts with a cell or output marker and is not already marked.
+        # If not marked, mark it appropriately.
+        cm = @codemirror
+        for line in [0...cm.lineCount()]
+            x = cm.getLine(line)
+            if x[0] == MARKERS.cell
+                marks = cm.findMarksAt({line:line, ch:1})
+                if marks.length == 0
+                    @mark_cell_start(line)
+            else if x[0] == MARKERS.output
+                marks = cm.findMarksAt({line:line, ch:1})
+                if marks.length == 0
+                    @mark_output_line(line)
+
+    mark_cell_start: (line) =>
+        # Assuming the proper text is in the document for a new cell at this line,
+        # mark it as such (thus hiding control codes).
+        x   = @codemirror.getLine(line)
+        end = x.indexOf(MARKERS.cell, 1)
+        output = $("<div style='border-left:solid 1px blue;'>&nbsp;</div>")
+        @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
+                {inclusiveLeft:true, inclusiveRight: false, replacedWith:output[0]})
+
+
+    mark_output_line: (line) =>
+        # Assuming the proper text is in the document for output to be displayed at this line,
+        # mark it as such.  This hides control codes and creates a div into which output will
+        # be placed as it appears.
+        output = $("<div style='padding: 1ex; border:1px solid #ccc;  width:#{$(window).width()*.9}px;'>")
+        output.resizable
+            aspectRatio: true
+            handles: "se,s,e"
+        cm = @codemirror
+        if cm.lineCount() < line + 2
+            cm.replaceRange('\n',{line:line+1,ch:0})
+        cm.markText({line:line, ch:0}, {line:line,ch:cm.getLine(line).length},
+                     {inclusiveLeft:false, inclusiveRight: false, replacedWith:output[0]})
+
+
+
     current_input_block: () =>
         cm = @codemirror
         c = cm.getCursor().line
@@ -604,7 +651,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         while start > 1
             line = cm.getLine(start)
             if line.length > 0 and line[0] == MARKERS.cell
-                start += 1
                 break
             start -= 1
         while end < cm.lineCount()-1
@@ -627,6 +673,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else
             marker = x[0]
         @set_cell_flag(marker, FLAGS.execute)
+        @sync_soon()
+        @sync()
 
     ##########################################
     # Codemirror-based cell manipulation code
@@ -669,7 +717,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     ##########################################
 
-    execute0: () =>
+    xxx_execute: () =>
         if not @session?.session_uuid?
             # TODO: we could just queue these up and submit them when connection succeeds.
             alert_message(type:"error", message:"Not connected to sage server.")

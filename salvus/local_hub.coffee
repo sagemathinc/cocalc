@@ -680,10 +680,12 @@ class CodeMirrorSession
                     winston.debug("codemirror session #{@session_uuid} sage socket terminated.")
                 cb(false, @_sage_socket)
 
-    sage_execute: (uuid) =>
-        winston.debug("exec request for cell with uuid #{uuid}")
-        @sage_remove_cell_flag(uuid, diffsync.FLAGS.execute)
-        @sage_set_cell_flag(uuid, diffsync.FLAGS.running)
+    sage_execute: (id) =>
+        winston.debug("exec request for cell with id #{id}")
+        @sage_remove_cell_flag(id, diffsync.FLAGS.execute)
+        @sage_set_cell_flag(id, diffsync.FLAGS.running)
+        {code, output_id} = @sage_initialize_cell_for_execute(id)
+        winston.debug("exec code '#{code}'; output id='#{output_id}'")
         @set_content(@content)
 
     send_signal_to_sage_session: (sig) =>
@@ -700,38 +702,91 @@ class CodeMirrorSession
             j = @content.indexOf(diffsync.MARKERS.cell, i+1)
             if j == -1
                 break  # corrupt (TODO)
-            uuid  = @content.slice(i+1,i+37)
+            id  = @content.slice(i+1,i+37)
             flags = @content.slice(i+37, j)
             if diffsync.FLAGS.execute in flags
-                @sage_execute(uuid)
+                @sage_execute(id)
             i = j + 1
 
-    sage_find_cell_meta: (uuid, start) =>
-        i = @content.indexOf(diffsync.MARKERS.cell + uuid, start)
+    sage_find_cell_meta: (id, start) =>
+        i = @content.indexOf(diffsync.MARKERS.cell + id, start)
         j = @content.indexOf(diffsync.MARKERS.cell, i+1)
         if j == -1
             return undefined
         return {start:i, end:j}
 
-    sage_get_cell_flagstring: (uuid) =>
-        pos = @sage_find_cell_meta(uuid)
+    sage_get_cell_flagstring: (id) =>
+        pos = @sage_find_cell_meta(id)
         return @content.slice(pos.start+37, pos.end)
 
-    sage_set_cell_flagstring: (uuid, flags) =>
-        pos = @sage_find_cell_meta(uuid)
+    sage_set_cell_flagstring: (id, flags) =>
+        pos = @sage_find_cell_meta(id)
         if pos?
             @content = @content.slice(0, pos.start+37) + flags + @content.slice(pos.end)
 
-    sage_set_cell_flag: (uuid, flag) =>
-        s = @sage_get_cell_flagstring(uuid)
+    sage_set_cell_flag: (id, flag) =>
+        s = @sage_get_cell_flagstring(id)
         if flag not in s
-            @sage_set_cell_flagstring(uuid, flag + s)
+            @sage_set_cell_flagstring(id, flag + s)
 
-    sage_remove_cell_flag: (uuid, flag) =>
-        s = @sage_get_cell_flagstring(uuid)
+    sage_remove_cell_flag: (id, flag) =>
+        s = @sage_get_cell_flagstring(id)
         if flag in s
             s = s.replace(new RegExp(flag, "g"), "")
-            @sage_set_cell_flagstring(uuid, s)
+            @sage_set_cell_flagstring(id, s)
+
+    sage_initialize_cell_for_execute: (id, start) =>   # start is optional, but can speed finding cell
+        # Initialize the line of the document for output for the cell with given id.
+        # We do this by finding where that cell starts, then searching for the start
+        # of the next cell, deleting any output lines in between, and placing one new line
+        # for output.  This function returns
+        #   - output_id: a newly created id that identifies the new output line.
+        #   - code: the string of code that will be executed by Sage.
+        # Or, it returns undefined if there is no cell with this id.
+        cell_start = @content.indexOf(diffsync.MARKERS.cell + id, start)
+        if cell_start == -1
+            # there is now no cell with this id.
+            return
+
+        code_start = @content.indexOf(diffsync.MARKERS.cell, cell_start+1)
+        if code_start == -1
+            # TODO: cell is mangled: would need to fix...?
+            return
+
+        newline = @content.indexOf('\n', cell_start)  # next newline after cell_start
+        next_cell = @content.indexOf(diffsync.MARKERS.cell, code_start+1)
+        winston.debug("NEXT_CELL = ", next_cell)
+        if newline == -1
+            # At end of document: append a newline to end of document; this is where the output will go.
+            # This is a very common special case; it's what we would get typing "2+2[shift-enter]"
+            # into a blank worksheet.
+            output_start = @content.length # position where the output will start
+            winston.debug("Add a new input cell at the very end (which will be after the output).")
+        else
+            while true
+                next_cell_start = @content.indexOf(diffsync.MARKERS.cell, newline)
+                if next_cell_start == -1
+                    next_cell_start = @content.length
+                output = @content.indexOf(diffsync.MARKERS.output, newline)
+                if output == -1 or output > next_cell_start
+                    # no more output lines to delete
+                    output_start = next_cell_start  # this is where the output line will start
+                    break
+                else
+                    # delete the line of output we just found
+                    output_end = @content.indexOf('\n', output+1)
+                    @content = @content.slice(0, output) + @content.slice(output_end+1)
+        code = @content.slice(code_start, output_start)
+        output_id   = uuid.v4()
+        output_insert = '\n' + diffsync.MARKERS.output + output_id + diffsync.MARKERS.output + '\n'
+        if next_cell == -1
+            # There is no next cell.
+            output_insert += diffsync.MARKERS.cell + uuid.v4() + diffsync.MARKERS.cell
+        winston.debug("OUTPUT_INSERT = ", output_insert)
+        @content = @content.slice(0, output_start) + output_insert + @content.slice(output_start)
+        return {code:code, output_id:output_id}
+
+
 
 
     ##############################

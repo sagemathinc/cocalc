@@ -29,6 +29,7 @@ However, it is possible to use markText to do everything we need for output, to 
 
 * (0:10?) [x] (0:06) make a class called "WorksheetDocument" that derives from "class SynchronizedDocument" in syncdoc.coffee.
 
+
 * (0:10?) [x] (0:07) make it so editor opens sagews using the new class.
 * (0:15?) [x] (0:04) add handling a keyboard event to the codemirror for "shift-enter".  -- just print something to log
 
@@ -80,18 +81,19 @@ Another optimization will be to wait up to 100ms (?) say for output messages and
 NOTE: output messages do *not* need to have an id tag on them -- that would be wasteful.
 
 WAIT -- instead, we'll mark the document
+
 - (0:15?) [x] test/debug the above, which should work and allow for synchronized sessions with output appearing in all of them.  Then plan further.
 
---> (0:30?) [ ] do processing on client side of new input from server after sync; mark text, so that mark finding works (of course) when doing shift-enter multiple times.
+PHASE 2: get something that works that is in `local_hub` (hence everywhere and synchronized)
 
--->  [ ] make it so that when localhub runs code, it creates output location
--->  [ ] make it so that when localhub evaluates code, it sends it to sage process
--->  [ ] make it so that when localhub gets results back, it puts them in output location
---> [ ] make it so client parses and renders any results appearing in output location.
+- (0:20?) [x] (0:40) do processing on client side of new input from server after sync (i.e., use mark text).
+- (0:20?) [x] (1:00) make it so that when localhub runs code, it deletes old output line and creates new output line
+- (0:20?) [ ] make it so that when localhub evaluates code, it sends it to sage process and also listens for results and puts them in the appropriate output cells (if they exist).
+- (0:25?) [ ] make it so client parses and renders any results appearing in output location, tracking what it has done so far.
+- (0:10?) [ ] local hub: support the session control messages; interrupt, restart, kill, etc., via cell markers.
+- (0:25?) [ ] systematically test/debug the above, and make sure sync really works in practice.
 
-- (0:15?) [ ] local hub: support the session control messages; interrupt, restart, kill
-
-
+PHASE 3:
 
 
 
