@@ -83,7 +83,7 @@ class DiffSyncDoc
             # We maintain our cursor position using the following trick:
             #    1. Insert a non-used unicode character where the cursor is.
             #    2. Apply the patches.
-            #    3. Find the unicode character,, remove it, and put the cursor there.
+            #    3. Find the unicode character, remove it, and put the cursor there.
             #       If the unicode character vanished, just put the cursor at the coordinates
             #       where it used to be (better than nothing).
             # There is a more sophisticated approach described at http://neil.fraser.name/writing/cursor/
@@ -613,12 +613,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return @_cm_lines
         return @_cm_lines = $(@codemirror.getWrapperElement()).find(".CodeMirror-lines")
 
-    process_sage_updates: () =>
+    process_sage_updates: (start) =>
         #console.log("processing Sage updates")
         # For each line in the editor, check if it starts with a cell or output marker and is not already marked.
         # If not marked, mark it appropriately.
         cm = @codemirror
-        for line in [0...cm.lineCount()]
+        if not start?
+            start = 0
+        for line in [start...cm.lineCount()]
             x = cm.getLine(line)
             if x[0] == MARKERS.cell
                 marks = cm.findMarksAt({line:line, ch:1})
@@ -638,6 +640,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             @process_new_output(mark, JSON.parse(s))
                         catch e
                             console.log("TODO/DEBUG: malformed message: '#{s}'")
+            else if x.indexOf(MARKERS.output) != -1
+                console.log("correcting merge/paste issue with output marker line (line=#{line})")
+                ch = x.indexOf(MARKERS.output)
+                cm.replaceRange('\n', {line:line, ch:ch})
+                @process_sage_updates(line)
+                return
+            else if x.indexOf(MARKERS.cell) != -1
+                console.log("correcting merge/paste issue with cell marker (line=#{line})")
+                ch = x.indexOf(MARKERS.cell)
+                cm.replaceRange('\n', {line:line, ch:ch})
+                @process_sage_updates(line)
+                return
 
     process_new_output: (mark, mesg) =>
         #console.log("new output: ", mesg)

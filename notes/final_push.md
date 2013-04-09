@@ -7,11 +7,8 @@ input content of the cell
 - (0:10?) [x] sagews: get rid of trailing whitespace on eval
 - (0:30?) [x] (0:49) sagews: reset CSS inside div output
 - (0:20?) [x] (0:38) sagews: nice horizontal line between cells
-
-
-
-
-- (0:10?) [ ] sagews: when evaluating a cell, put the end of the cell as *high* as possible (not low) -- no whitespace lines.
+- (0:10?) [x] (1:02) sagews: when evaluating a cell, put the end of the cell as *high* as possible (not low) -- no whitespace lines. -- took a long time due to confusion regarding a bug caused by my cursor location code and merging.
+- (0:30?) [x] sagews/editor: try to fix cursor merge bug found above.  -- I think the only valid approach it to fully implement the right algorithm. Bandaide now, which will be to insert newline before any output cells introduced by a merge.  Want this anyways...
 
 - (0:10?) [ ] sagews: local hub: support the session control messages; interrupt, restart, kill, etc., via line-1 markers.
 - (0:25?) [ ] sagews: systematically test/debug the above, and make sure sync really works in practice.
