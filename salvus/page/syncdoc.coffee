@@ -630,17 +630,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 marks = cm.findMarksAt({line:line, ch:1})
                 if marks.length == 0
                     @mark_output_line(line)
-                for c in [cm, @editor.codemirror1]
-                    mark = c.findMarksAt({line:line, ch:1})[0]
-                    if mark.processed < x.length
-                        # new output to process
-                        t = x.slice(mark.processed, x.length-1)
-                        mark.processed = x.length
-                        for s in t.split(MARKERS.output)
-                            try
-                                @process_new_output(mark, JSON.parse(s))
-                            catch e
-                                console.log("TODO/DEBUG: malformed message: '#{s}'")
+                mark = cm.findMarksAt({line:line, ch:1})[0]
+                if mark.processed < x.length
+                    # new output to process
+                    t = x.slice(mark.processed, x.length-1)
+                    mark.processed = x.length
+                    for s in t.split(MARKERS.output)
+                        try
+                            @process_new_output(mark, JSON.parse(s))
+                        catch e
+                            console.log("TODO/DEBUG: malformed message: '#{s}'")
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
@@ -655,7 +654,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 return
 
     process_new_output: (mark, mesg) =>
-        #console.log("new output: ", mesg)
+        console.log("new output: ", mesg)
         output = mark.output
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
@@ -683,7 +682,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
         if mesg.done? and mesg.done
-            output.css('border-left','1px solid #ccc')
+            output.removeClass('sagews-output-running')
+            output.addClass('sagews-output-done')
 
         @refresh_soon()
 
@@ -721,7 +721,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange('\n',{line:line+1,ch:0})
         mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
                      {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
-        mark.processed = 38 # how much of the output line we have processed  [marker]36-char-uuid[marker]
+        mark.processed = 38  # how much of the output line we have processed  [marker]36-char-uuid[marker]
         mark.output = output
         return mark
 

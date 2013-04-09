@@ -683,8 +683,12 @@ class CodeMirrorSession
                 socket.on 'mesg', (type, mesg) =>
                     m = {}
                     for x, y of mesg
-                        if x != 'id'
-                            m[x] = y
+                        if x != 'id' and x != 'event'  # the event is always "output"
+                            if x == 'done'   # don't bother with done=false
+                                if y
+                                    m[x] = y
+                            else
+                                m[x] = y
                     winston.debug("sage --> local_hub: '#{json(mesg)}'")
                     @sage_output_mesg(mesg.id, m)
                     @set_content(@content)
