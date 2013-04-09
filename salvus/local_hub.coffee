@@ -824,7 +824,7 @@ class CodeMirrorSession
         output_insert += diffsync.MARKERS.output + output_id + diffsync.MARKERS.output + '\n'
         if next_cell == -1
             # There is no next cell.
-            output_insert += diffsync.MARKERS.cell + uuid.v4() + diffsync.MARKERS.cell
+            output_insert += diffsync.MARKERS.cell + uuid.v4() + diffsync.MARKERS.cell + '\n'
         @content = @content.slice(0, output_start) + output_insert + @content.slice(output_start)
         return {code:code, output_id:output_id}
 

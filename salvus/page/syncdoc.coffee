@@ -600,11 +600,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         @.on 'sync', @process_sage_updates
         @editor.on 'show', (height) =>
+            w = @cm_lines().width()
             for mark in @codemirror.getAllMarks()
                 if mark.output?
-                    console.log('resizing ', mark.output)
                     mark.output.css('max-height', (height*.9) + 'px')
-                    mark.output.css('width', $(window).width()*.9 + 'px')
+                    mark.output.css('width', (w-25) + 'px')
+                if mark.input?
+                    mark.input.css('width', w + 'px')
+
+    cm_lines: () =>
+        if @_cm_lines?
+            return @_cm_lines
+        return @_cm_lines = $(@codemirror.getWrapperElement()).find(".CodeMirror-lines")
 
     process_sage_updates: () =>
         #console.log("processing Sage updates")
@@ -670,10 +677,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # mark it as such (thus hiding control codes).
         x   = @codemirror.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        input = $("<div class='sagews-input'>&nbsp;</div>")
+        input = $("<div class='sagews-input'></div>").css
+            width : @cm_lines().width() + 'px'
 
         mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
+        
+        mark.input = input
         return mark
 
     mark_output_line: (line) =>
@@ -684,10 +694,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm = @codemirror
 
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
-        ht = $(cm.getWrapperElement()).height()
         output = $("<div class='sagews-output'>").css
-            width        : ($(window).width()*.9) + 'px'
-            'max-height' : .9*ht + 'px';
+            width        : (@cm_lines().width()-25) + 'px'
+            'max-height' : (.9*@cm_lines().height()) + 'px';
 
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
@@ -760,7 +769,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
         uuid = misc.uuid()
-        cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell, {line:line, ch:0})
+        cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell + '\n', {line:line, ch:0})
         return @mark_cell_start(line)
 
 

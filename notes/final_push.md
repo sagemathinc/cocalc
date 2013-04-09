@@ -1,6 +1,7 @@
 - (0:10?) [x] sagews: get rid of trailing whitespace on eval
---> - (0:30?) [ ] sagews: reset CSS inside div output
-- (0:20?) [ ] sagews: nice horizontal line between cells
+- (0:30?) [x] (0:49) sagews: reset CSS inside div output
+- (0:20?) [x] (0:38) sagews: nice horizontal line between cells
+- (0:10?) [ ] sagews: when evaluating a cell, put the end of the cell as *high* as possible (not low) -- no whitespace lines.
 - (0:10?) [ ] sagews: local hub: support the session control messages; interrupt, restart, kill, etc., via line-1 markers.
 - (0:25?) [ ] sagews: systematically test/debug the above, and make sure sync really works in practice.
 - (0:15?) [ ] sagews: when client executes code, have it move the cursor to next input
