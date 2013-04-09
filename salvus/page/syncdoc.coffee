@@ -110,13 +110,15 @@ class DiffSyncDoc
                     cm.replaceRange(c_head, {line:cursor_head.line, ch:cursor_head.ch})
 
             s = @string()
-            new_value = diffsync.dmp.patch_apply(p, s)[0]
+            x = diffsync.dmp.patch_apply(p, s)
+            new_value = x[0]
+            #console.log("patch app info = ", x[1])
             v = new_value.split('\n')
-
             find_cursor = (pos0, chr) ->
                 line  = pos0.line
                 B = 5
-                # We first try an interval around the cursor, since that is where the cursor is most likely to be.
+                # We first try an interval of radius B around the cursor, since
+                # that is where the cursor is most likely to be.
                 for k in [Math.max(0, line-B)...Math.max(0,Math.min(line-B, v.length))].concat([0...v.length])
                     ch = v[k].indexOf(chr)
                     if ch != -1
@@ -129,13 +131,20 @@ class DiffSyncDoc
             else
                 head_pos = anchor_pos
 
-            s = v.join('\n')
+            #console.log("JUST APPLIED PATCH: ", misc.to_json(p))
+            #console.log(misc.to_json(diffsync.dmp.diff_main(s, new_value)))
+
+
+            s = new_value
+
             # Benchmarking reveals that this line 'cm.setValue(s)' is by far the dominant time taker.
             # This can be optimized by taking into account the patch itself (and maybe stuff returned
             # when applying it) to instead only change a small range of the editor.  This is TODO
-            # for later though.  For reference, a 200,000 line doc on a Samsung chromebook takes < 1s still, and about .4 s
-            # on a fast intel laptop.
+            # for later though.  For reference, a 200,000 line doc on a Samsung chromebook
+            # takes < 1s still, and about .4 s on a fast intel laptop.
             cm.setValue(s)
+
+
             cm.setSelection(anchor_pos.pos, head_pos.pos)
             # Remove the markers: complicated since can't remove both simultaneously, and
             # removing one impacts position of the other, when in same line.
@@ -602,16 +611,30 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @editor.on 'show', (height) =>
             w = @cm_lines().width()
             for mark in @codemirror.getAllMarks()
-                if mark.output?
-                    mark.output.css('max-height', (height*.9) + 'px')
-                    mark.output.css('width', (w-25) + 'px')
-                if mark.input?
-                    mark.input.css('width', w + 'px')
+                elt = @elt_at_mark(mark)
+                if elt?
+                    if elt.hasClass('sagews-output')
+                        elt.css('max-height', (height*.9) + 'px')
+                        elt.css('width', (w-25) + 'px')
+                    else if elt.hasClass('sagews-input')
+                        elt.css('width', w + 'px')
+
+    elt_at_mark: (mark) =>
+        opts = mark.getOptions()
+        elt = opts.replacedWith
+        if elt?
+            return $($(elt).children()[0])  # codemirror wraps the element -- maybe a bug in codemirror that it does this.
+
+    cm_wrapper: () =>
+        if @_cm_wrapper?
+            return @_cm_wrapper
+        return @_cm_wrapper = $(@codemirror.getWrapperElement())
 
     cm_lines: () =>
         if @_cm_lines?
             return @_cm_lines
-        return @_cm_lines = $(@codemirror.getWrapperElement()).find(".CodeMirror-lines")
+        return @_cm_lines = @cm_wrapper().find(".CodeMirror-lines")
+
 
     process_sage_updates: (start) =>
         #console.log("processing Sage updates")
@@ -639,7 +662,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         try
                             @process_new_output(mark, JSON.parse(s))
                         catch e
-                            console.log("TODO/DEBUG: malformed message: '#{s}'")
+                            console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
@@ -654,8 +677,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 return
 
     process_new_output: (mark, mesg) =>
-        console.log("new output: ", mesg)
-        output = mark.output
+        #console.log("new output: ", mesg)
+        output = @elt_at_mark(mark)
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
         if mesg.stderr?
@@ -702,7 +725,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
 
-        mark.input = input
         return mark
 
     mark_output_line: (line) =>
@@ -715,14 +737,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
         output = $("<div class='sagews-output'>").css
             width        : (@cm_lines().width()-25) + 'px'
-            'max-height' : (.9*@cm_lines().height()) + 'px';
+            'max-height' : (.9*@cm_wrapper().height()) + 'px'
 
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
+        #console.log("CREATING A MARK")
         mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
                      {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
         mark.processed = 38  # how much of the output line we have processed  [marker]36-char-uuid[marker]
-        mark.output = output
         return mark
 
     current_input_block: () =>

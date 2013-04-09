@@ -19,9 +19,9 @@ input content of the cell
 
 - (0:30?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
 
-- (1:00?) [ ] sagews: I *must* finally switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.
+--> - (1:00?) [ ] sagews: I *must* finally switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.
 
---> - (0:30?) [ ] sagews: when code is submited, then executing, then done have a visual indicator of each state (maybe via gutter)
+- (0:30?) [ ] sagews: when code is submited, then executing, then done have a visual indicator of each state (maybe via gutter)
 
 - (0:30?) [ ] sagews: when code is done, have local hub change the marker to indicate this; have client change visual indicator too.
 
