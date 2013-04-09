@@ -700,19 +700,24 @@ class CodeMirrorSession
         @sage_set_cell_flag(id, diffsync.FLAGS.running)
         {code, output_id} = @sage_initialize_cell_for_execute(id)
         winston.debug("exec code '#{code}'; output id='#{output_id}'")
+        if code == ""
+            @sage_output_mesg(output_id, {done:true})
+
         @set_content(@content)
 
-        @sage_socket (err, socket) =>
-            if err
-                winston.debug("Error getting sage socket: #{err}")
-                return
+        if code != ""
+            @sage_socket (err, socket) =>
+                if err
+                    winston.debug("Error getting sage socket: #{err}")
+                    @sage_output_mesg(output_id, {stderr: "Error getting sage socket (unable to execute code): #{err}", done:true})
+                    return
 
-            socket.write_mesg('json',
-                message.execute_code
-                    id       : output_id
-                    code     : code
-                    preparse : true
-            )
+                socket.write_mesg('json',
+                    message.execute_code
+                        id       : output_id
+                        code     : code
+                        preparse : true
+                )
 
     send_signal_to_sage_session: (sig) =>
         winston.debug("send_signal_to_sage_session -- todo")
@@ -837,7 +842,7 @@ class CodeMirrorSession
             # There is no next cell.
             output_insert += diffsync.MARKERS.cell + uuid.v4() + diffsync.MARKERS.cell + '\n'
         @content = @content.slice(0, output_start) + output_insert + @content.slice(output_start)
-        return {code:code, output_id:output_id}
+        return {code:code.trim(), output_id:output_id}
 
 
 

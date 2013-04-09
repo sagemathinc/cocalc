@@ -9,14 +9,28 @@ input content of the cell
 - (0:20?) [x] (0:38) sagews: nice horizontal line between cells
 - (0:10?) [x] (1:02) sagews: when evaluating a cell, put the end of the cell as *high* as possible (not low) -- no whitespace lines. -- took a long time due to confusion regarding a bug caused by my cursor location code and merging.
 - (0:30?) [x] sagews/editor: try to fix cursor merge bug found above.  -- I think the only valid approach it to fully implement the right algorithm. Bandaide now, which will be to insert newline before any output cells introduced by a merge.  Want this anyways...
+- (0:15?) [x] (0:09) sagews: what's up with infinite loop exec'ing nothing in localhub?
 
-- (0:10?) [ ] sagews: local hub: support the session control messages; interrupt, restart, kill, etc., via line-1 markers.
-- (0:25?) [ ] sagews: systematically test/debug the above, and make sure sync really works in practice.
-- (0:15?) [ ] sagews: when client executes code, have it move the cursor to next input
+- (0:20?) [x] (0:33) sagews: click on separator to make a new cell; make hovering over it change color (?)
+
+- (0:30?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
+
+- (0:20?) [ ] sagews: when client executes code with shift-enter, move the cursor to next input cell
+
+- (0:30?) [ ] sagews: when code is submited, then executing, then done have a visual indicator of each state (maybe via gutter)
+- (0:30?) [ ] sagews: when code is done, have local hub change the marker to indicate this; have client change visual indicator too.
+
+- (0:30?) [ ] sagews: add a button group to the editor ui before "save" with play/interrupt/kill
+- (0:15?) [ ] sagews: local hub: support the session control messages; interrupt, kill, etc., via line-1 markers.; restart should be automatic
 - (0:20?) [ ] sagews: don't require output cell to start at beginning of a line.
 - (0:10?) [ ] sagews/editor: proper filename display and truncation
+- (0:15?) [ ] sagews: handle copy/paste of output
+- (0:30?) [ ] sagews: get showing of images/plotting to work
+
 
 PHASE 3:
+
+- (1:00?) [ ] sagews: modify search command to indicate result in output more sensibly (right now cursor gets big next to output)
 
 
 

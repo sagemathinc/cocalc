@@ -694,6 +694,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         input = $("<div class='sagews-input'></div>").css
             width : @cm_lines().width() + 'px'
 
+        input.click () =>
+            @insert_new_cell(mark.find().from.line)
+
         mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
 
@@ -777,6 +780,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if flag in s
             s = s.replace(new RegExp(flag, "g"), "")
             @set_cell_flagstring(marker, s)
+
+    insert_new_cell: (line) =>
+        @codemirror.replaceRange('\n', {line:line,ch:0})
+        @create_cell_start_marker(line)
+        @process_sage_updates()
 
     create_cell_start_marker: (line) =>
         cm = @codemirror
