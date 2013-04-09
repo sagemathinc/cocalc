@@ -794,18 +794,29 @@ class CodeMirrorSession
 
         newline = @content.indexOf('\n', cell_start)  # next newline after cell_start
         next_cell = @content.indexOf(diffsync.MARKERS.cell, code_start+1)
-        winston.debug("NEXT_CELL = ", next_cell)
         if newline == -1
             # At end of document: append a newline to end of document; this is where the output will go.
             # This is a very common special case; it's what we would get typing "2+2[shift-enter]"
             # into a blank worksheet.
             output_start = @content.length # position where the output will start
+            # Put some extra newlines in, since it is hard to put input at the bottom of the screen.
+            @content += '\n\n\n\n\n'
             winston.debug("Add a new input cell at the very end (which will be after the output).")
         else
             while true
                 next_cell_start = @content.indexOf(diffsync.MARKERS.cell, newline)
                 if next_cell_start == -1
-                    next_cell_start = @content.length
+                    # This is the last cell, so we end the cell after the last line with no whitespace.
+                    next_cell_start = @content.search(/\s+$/)
+                    if next_cell_start == -1
+                        next_cell_start = @content.length+1
+                        @content += '\n\n\n\n\n'
+                    else
+                        while next_cell_start < @content.length and @content[next_cell_start]!='\n'
+                            next_cell_start += 1
+                        if @content[next_cell_start]!='\n'
+                            @content += '\n\n\n\n\n'
+                        next_cell_start += 1
                 output = @content.indexOf(diffsync.MARKERS.output, newline)
                 if output == -1 or output > next_cell_start
                     # no more output lines to delete
@@ -816,7 +827,7 @@ class CodeMirrorSession
                     output_end = @content.indexOf('\n', output+1)
                     @content = @content.slice(0, output) + @content.slice(output_end+1)
         code = @content.slice(code_start+1, output_start)
-        output_id   = uuid.v4()
+        output_id = uuid.v4()
         if output_start > 0 and @content[output_start-1] != '\n'
             output_insert = '\n'
         else

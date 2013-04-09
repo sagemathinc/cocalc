@@ -682,7 +682,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
-        
+
         mark.input = input
         return mark
 
