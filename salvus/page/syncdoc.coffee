@@ -636,14 +636,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
         #console.log("new output: ", mesg)
         output = mark.output
         if mesg.stdout?
-            output.append($("<span style='white-space: pre;'>").text(mesg.stdout))
+            output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
         if mesg.stderr?
-            output.append($("<span style='white-space: pre;color:red'>").text(mesg.stderr))
+            output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
         if mesg.html?
-            output.append($("<div style='font-family:helvetica;  line-height: 1.1em; padding-left: 2em; padding-right:2em;' >").html(mesg.html).mathjax())
+            output.append($("<div class='sagews-output-html'>").html(mesg.html).mathjax())
         if mesg.tex?
             val = mesg.tex
-            elt = $("<span>")
+            elt = $("<span class='sagews-output-tex'>")
             arg = {tex:val.tex}
             if val.display
                 arg.display = true
@@ -656,9 +656,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             switch misc.filename_extension(val.filename)
                 # TODO: harden DOM creation below
                 when 'svg', 'png', 'gif', 'jpg'
-                    output.append($("<img src='#{target}' class='salvus-cell-output-img'>"))
+                    output.append($("<img src='#{target}' class='sagews-output-image'>"))
                 else
-                    output.append($("<a href='#{target}' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
+                    output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
         if mesg.done? and mesg.done
             output.css('border-left','1px solid #ccc')
@@ -670,8 +670,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # mark it as such (thus hiding control codes).
         x   = @codemirror.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        input = $("<div style='border-top:solid 3px blue; margin-top:-3px; margin-left:-1em'>&nbsp;</div>")
-        #input = $("<div>")
+        input = $("<div class='sagews-input'>&nbsp;</div>")
+
         mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
         return mark
@@ -685,7 +685,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
         ht = $(cm.getWrapperElement()).height()
-        output = $("<div class='sage-worksheet-output' style='padding: 3px; margin: 3px; border:1px solid #ddd; border-radius:5px; width:#{$(window).width()*.9}px; max-height:#{.9*ht}px; overflow-y:auto;'>")
+        output = $("<div class='sagews-output'>").css
+            width        : ($(window).width()*.9) + 'px'
+            'max-height' : .9*ht + 'px';
 
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})

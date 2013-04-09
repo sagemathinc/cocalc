@@ -176,3 +176,51 @@ Editor for files in a project
 .salvus-editor-chat-new-chats {
     color:orange;
 }
+
+
+/*********** Synchronized Worksheets *****************/
+
+.sagews-input {
+    border-top:solid 3px blue;
+    margin-top:-3px;
+    margin-left:-1em;
+}
+
+.sagews-output {
+    padding: 3px;
+    margin: 3px;
+    border:1px solid #ddd;
+    border-radius:5px;
+    overflow-y:auto;
+    white-space:normal;
+}
+
+.sagews-output-html {
+    font-family:helvetica;
+    padding-left: 2em;
+    padding-right:2em;
+}
+
+.sagews-output-stdout {
+    white-space: pre;
+}
+
+.sagews-output-stderr {
+    white-space: pre;
+    color:red;
+}
+
+.sagews-output-tex {
+
+}
+
+.sagews-output-image {
+
+}
+
+
+.sagews-output-link {
+
+}
+
+
