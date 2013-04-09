@@ -698,7 +698,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @insert_new_cell(mark.find().from.line)
 
         mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
-                {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
+                {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
 
         mark.input = input
         return mark
@@ -718,7 +718,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
         mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
-                     {inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
+                     {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
         mark.processed = 38 # how much of the output line we have processed  [marker]36-char-uuid[marker]
         mark.output = output
         return mark
@@ -751,8 +751,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else
             marker = x[0]
         @set_cell_flag(marker, FLAGS.execute)
-        @sync_soon()
+        @move_cursor_to_next_cell()
+        @sync_soon()  # just in case the sync below doesn't do it.
         @sync()
+
+    move_cursor_to_next_cell: () =>
+        cm = @codemirror
+        line = cm.getCursor().line + 1
+        while line < cm.lineCount()
+            x = cm.getLine(line)
+            if x.length > 0 and x[0] == MARKERS.cell
+                cm.setCursor({line:line+1, ch:0})
+                return
+            line += 1
+
 
     ##########################################
     # Codemirror-based cell manipulation code

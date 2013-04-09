@@ -13,9 +13,9 @@ input content of the cell
 
 - (0:20?) [x] (0:33) sagews: click on separator to make a new cell; make hovering over it change color (?)
 
-- (0:30?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
+- (0:20?) [x] (0:18) sagews: when client executes code with shift-enter, move the cursor to next input cell
 
-- (0:20?) [ ] sagews: when client executes code with shift-enter, move the cursor to next input cell
+- (0:30?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
 
 - (0:30?) [ ] sagews: when code is submited, then executing, then done have a visual indicator of each state (maybe via gutter)
 - (0:30?) [ ] sagews: when code is done, have local hub change the marker to indicate this; have client change visual indicator too.
