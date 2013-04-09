@@ -188,9 +188,7 @@ Editor for files in a project
 }
 
 .sagews-input:hover {
-    height: 1ex;
-    box-shadow: 2px 2px 2px #ccc;
-    border-top: solid 1px #99f;
+    border:solid 4px #99f;
 }
 
 .sagews-output {

@@ -630,16 +630,17 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 marks = cm.findMarksAt({line:line, ch:1})
                 if marks.length == 0
                     @mark_output_line(line)
-                mark = cm.findMarksAt({line:line, ch:1})[0]
-                if mark.processed < x.length
-                    # new output to process
-                    t = x.slice(mark.processed, x.length-1)
-                    mark.processed = x.length
-                    for s in t.split(MARKERS.output)
-                        try
-                            @process_new_output(mark, JSON.parse(s))
-                        catch e
-                            console.log("TODO/DEBUG: malformed message: '#{s}'")
+                for c in [cm, @editor.codemirror1]
+                    mark = c.findMarksAt({line:line, ch:1})[0]
+                    if mark.processed < x.length
+                        # new output to process
+                        t = x.slice(mark.processed, x.length-1)
+                        mark.processed = x.length
+                        for s in t.split(MARKERS.output)
+                            try
+                                @process_new_output(mark, JSON.parse(s))
+                            catch e
+                                console.log("TODO/DEBUG: malformed message: '#{s}'")
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
@@ -689,7 +690,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
     mark_cell_start: (line) =>
         # Assuming the proper text is in the document for a new cell at this line,
         # mark it as such (thus hiding control codes).
-        x   = @codemirror.getLine(line)
+        cm = @codemirror
+        x   = cm.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
         input = $("<div class='sagews-input'></div>").css
             width : @cm_lines().width() + 'px'
@@ -697,7 +699,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         input.click () =>
             @insert_new_cell(mark.find().from.line)
 
-        mark = @codemirror.markText({line:line, ch:0}, {line:line, ch:end+1},
+        mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
 
         mark.input = input

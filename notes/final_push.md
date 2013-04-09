@@ -15,6 +15,8 @@ input content of the cell
 
 - (0:20?) [x] (0:18) sagews: when client executes code with shift-enter, move the cursor to next input cell
 
+- (0:10?) [x] (0:08) sagews: make split screen mode work so I can play with it; if it is not useful or slow, kill it (?) -- let's make it a different view; seems useful for it to be "hide all output".  
+
 - (0:30?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
 
 - (0:30?) [ ] sagews: when code is submited, then executing, then done have a visual indicator of each state (maybe via gutter)
