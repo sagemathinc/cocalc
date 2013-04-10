@@ -189,6 +189,8 @@ Editor for files in a project
 
 .sagews-input:hover {
     border:solid 4px #99f;
+    cursor: pointer;
+        cursor: hand;
 }
 
 .sagews-output {
