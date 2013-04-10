@@ -4,22 +4,10 @@ input content of the cell
 ...
 [marker.output][output uuid of cell][marker.output]{json output mesg}[marker.output]{json output mesg}[marker.output]...[marker.output]
 
-- (0:10?) [x] sagews: get rid of trailing whitespace on eval
-- (0:30?) [x] (0:49) sagews: reset CSS inside div output
-- (0:20?) [x] (0:38) sagews: nice horizontal line between cells
-- (0:10?) [x] (1:02) sagews: when evaluating a cell, put the end of the cell as *high* as possible (not low) -- no whitespace lines. -- took a long time due to confusion regarding a bug caused by my cursor location code and merging.
-- (0:30?) [x] sagews/editor: try to fix cursor merge bug found above.  -- I think the only valid approach it to fully implement the right algorithm. Bandaide now, which will be to insert newline before any output cells introduced by a merge.  Want this anyways...
-- (0:15?) [x] (0:09) sagews: what's up with infinite loop exec'ing nothing in localhub?
+- (0:45?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
 
-- (0:20?) [x] (0:33) sagews: click on separator to make a new cell; make hovering over it change color (?)
+ - (1:00?) [ ] sagews: I *must* finally switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.; this will be a few lines of code in syncod.coffee
 
-- (0:20?) [x] (0:18) sagews: when client executes code with shift-enter, move the cursor to next input cell
-
-- (0:10?) [x] (0:08) sagews: make split screen mode work so I can play with it; if it is not useful or slow, kill it (?) -- let's make it a different view; seems useful for it to be "hide all output".
-
-- (0:30?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
-
---> - (1:00?) [ ] sagews: I *must* finally switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.
 
 - (0:30?) [ ] sagews: when code is submited, then executing, then done have a visual indicator of each state (maybe via gutter)
 
@@ -31,17 +19,19 @@ input content of the cell
 - (0:10?) [ ] sagews/editor: proper filename display and truncation
 - (0:15?) [ ] sagews: handle copy/paste of output
 - (0:30?) [ ] sagews: get showing of images/plotting to work
+- (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
+- (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
+
+- (?) [ ] sagews:
+- (?) [ ] sagews:
+- (?) [ ] sagews:
+- (?) [ ] sagews:
 
 
 PHASE 3:
 
 - (1:00?) [ ] sagews: modify search command to indicate result in output more sensibly (right now cursor gets big next to output)
-
-
-
-
-
-
+- (1:00?) [ ] Modify the editor find command to have the option of doing a "fuzzy search" using the diff-patch-match library?!
 
 
 
@@ -460,3 +450,20 @@ PHASE 2: get something that works that is in `local_hub` (hence everywhere and s
 - (0:20?) [x] (1:00) make it so that when localhub runs code, it deletes old output line and creates new output line
 --> - (0:20?) [ ] make it so that when localhub evaluates code, it sends it to sage process and also listens for results and puts them in the appropriate output cells (if they exist).
 - (0:25?) [ ] make it so client parses and renders any results appearing in output location, tracking what it has done so far.
+
+
+
+
+
+- (0:10?) [x] sagews: get rid of trailing whitespace on eval
+- (0:30?) [x] (0:49) sagews: reset CSS inside div output
+- (0:20?) [x] (0:38) sagews: nice horizontal line between cells
+- (0:10?) [x] (1:02) sagews: when evaluating a cell, put the end of the cell as *high* as possible (not low) -- no whitespace lines. -- took a long time due to confusion regarding a bug caused by my cursor location code and merging.
+- (0:30?) [x] sagews/editor: try to fix cursor merge bug found above.  -- I think the only valid approach it to fully implement the right algorithm. Bandaide now, which will be to insert newline before any output cells introduced by a merge.  Want this anyways...
+- (0:15?) [x] (0:09) sagews: what's up with infinite loop exec'ing nothing in localhub?
+
+- (0:20?) [x] (0:33) sagews: click on separator to make a new cell; make hovering over it change color (?)
+
+- (0:20?) [x] (0:18) sagews: when client executes code with shift-enter, move the cursor to next input cell
+
+- (0:10?) [x] (0:08) sagews: make split screen mode work so I can play with it; if it is not useful or slow, kill it (?) -- let's make it a different view; seems useful for it to be "hide all output".

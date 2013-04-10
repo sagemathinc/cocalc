@@ -60,7 +60,7 @@ class DiffSyncDoc
         if @opts.string?
             return @opts.string
         else
-            return @opts.cm.getValue()
+            return @opts.cm.getValue()  # WARNING: this is *not* cached.
 
     diff: (v1) =>
         # TODO: when either is a codemirror object, can use knowledge of where/if
@@ -109,7 +109,14 @@ class DiffSyncDoc
                 else
                     cm.replaceRange(c_head, {line:cursor_head.line, ch:cursor_head.ch})
 
+            t = misc.mswalltime()
             s = @string()
+            console.log('t0 = ', misc.mswalltime(t))
+            t = misc.mswalltime()
+            s = @string()
+            console.log('t1 = ', misc.mswalltime(t))
+
+
             x = diffsync.dmp.patch_apply(p, s)
             new_value = x[0]
             #console.log("patch app info = ", x[1])
@@ -120,8 +127,8 @@ class DiffSyncDoc
                 # We first try an interval of radius B around the cursor, since
                 # that is where the cursor is most likely to be.
                 for k in [Math.max(0, line-B)...Math.max(0,Math.min(line-B, v.length))].concat([0...v.length])
-                    ch = v[k].indexOf(chr)
-                    if ch != -1
+                    ch = v[k]?.indexOf(chr)
+                    if ch? and ch != -1
                         return pos:{line:k, ch:ch}, marker:true
                 return pos:pos0, marker:false
 
@@ -131,18 +138,26 @@ class DiffSyncDoc
             else
                 head_pos = anchor_pos
 
-            #console.log("JUST APPLIED PATCH: ", misc.to_json(p))
             #console.log(misc.to_json(diffsync.dmp.diff_main(s, new_value)))
 
+            if true
+                s = new_value
+                # Benchmarking reveals that this line 'cm.setValue(s)' is by far the dominant time taker.
+                # This can be optimized by taking into account the patch itself (and maybe stuff returned
+                # when applying it) to instead only change a small range of the editor.  This is TODO
+                # for later though.  For reference, a 200,000 line doc on a Samsung chromebook
+                # takes < 1s still, and about .4 s on a fast intel laptop.
+                cm.setValue(s)
+            else
+                for chunk in diffsync.dmp.diff_main(s, new_value)
+                    console.log(chunk)
 
-            s = new_value
 
-            # Benchmarking reveals that this line 'cm.setValue(s)' is by far the dominant time taker.
-            # This can be optimized by taking into account the patch itself (and maybe stuff returned
-            # when applying it) to instead only change a small range of the editor.  This is TODO
-            # for later though.  For reference, a 200,000 line doc on a Samsung chromebook
-            # takes < 1s still, and about .4 s on a fast intel laptop.
-            cm.setValue(s)
+                if cm.getValue() != new_value
+                    console.log("BUG! ")
+                    console.log(cm.getValue())
+                    console.log(new_value)
+                    cm.setValue(s)
 
 
             cm.setSelection(anchor_pos.pos, head_pos.pos)
@@ -723,7 +738,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @insert_new_cell(mark.find().from.line)
 
         mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1},
-                {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
+                {shared:false, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
 
         return mark
 
@@ -743,7 +758,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange('\n',{line:line+1,ch:0})
         #console.log("CREATING A MARK")
         mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
-                     {shared:true, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
+                     {shared:false, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
         mark.processed = 38  # how much of the output line we have processed  [marker]36-char-uuid[marker]
         return mark
 
