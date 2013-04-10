@@ -217,7 +217,7 @@ $(".salvus-explore").top_navbar
 $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
-    label   : "Accounts"
+    label   : "Projects"
     icon : 'icon-tasks'
     close   : false
 
