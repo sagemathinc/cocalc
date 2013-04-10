@@ -48,7 +48,7 @@ CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT]
 ####################
 # Running a subprocess
 ####################
-def run(args, maxtime=10, verbose=True):
+def run(args, maxtime=30, verbose=True):
     """
     Run the command line specified by args (using subprocess.Popen)
     and return the stdout and stderr, killing the subprocess if it
