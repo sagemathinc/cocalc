@@ -1148,21 +1148,20 @@ class exports.Connection extends EventEmitter
 #################################################
 
 #check = require('validator').check
-check = (s) -> true
 
 exports.is_valid_email_address = (email) ->
-    try
-        check(email).isEmail()
-        return true
-    catch err
-        return false
+    return "@" in email # TODO: currently validator disabled due to issue browserify-ing validator
+    #try
+    #    check(email).isEmail()
+    #    return true
+    #catch err
+    #    return false
 
 exports.is_valid_password = (password) ->
-    try
-        check(password).len(3, 64)
+    if password.length >= 6 and password.length <= 64
         return [true, '']
-    catch err
-        return [false, 'Password must be between 3 and 64 characters in length.']
+    else
+        return [false, 'Password must be between 6 and 64 characters in length.']
 
 exports.issues_with_create_account = (mesg) ->
     issues = {}
