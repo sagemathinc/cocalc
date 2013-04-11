@@ -1,20 +1,10 @@
-[marker.input][uuid of cell][metadata][marker.start]
-...
-input content of the cell
-...
-[marker.output][output uuid of cell][marker.output]{json output mesg}[marker.output]{json output mesg}[marker.output]...[marker.output]
 
- - (1:00?) [x] sagews: switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.; this will be a few lines of code in syncdoc.coffee
-
-- (1:30?) [ ] sagews: design/implement a way to make evaluation of code blocks optimally fast for the client requesting a specific eval.  This is absolutely critical, and could impact other design choices.
-
+- (1:30?) [ ] sagews: design/implement a way to make evaluation of code blocks optimally fast for the client requesting a specific eval.  This is absolutely critical, and could impact other design choices, so let's get it done.
 - (1:00?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
-
 - (1:30?) [ ] sagews: tab completion.
 - (1:30?) [ ] sagews: move interacts over to new worksheets
 - (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
-- (0:30?) [ ] sagews: when code is submited, then executing, then done have a visual indicator of each state (maybe via gutter)
-- (0:30?) [ ] sagews: when code is done, have local hub change the marker to indicate this; have client change visual indicator too.
+- (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)
 - (0:30?) [ ] sagews: add a button group to the editor ui before "save" with play/interrupt/kill
 - (0:15?) [ ] sagews: local hub: support the session control messages; interrupt, kill, etc., via line-1 markers.; restart should be automatic
 - (0:20?) [ ] sagews: don't require output cell to start at beginning of a line.
@@ -25,7 +15,6 @@ input content of the cell
 - (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
 - (0:30?) [ ] fix filename in editor display, e.g., maybe make it way smaller.
 - (1:30?) [ ] syncdoc: implement sophisticated cursor relocation code, instead of my funny special character code.  This should be possible now that we apply a patch in chuncks.
-
 
 
 PHASE 3:
@@ -473,3 +462,12 @@ PHASE 2: get something that works that is in `local_hub` (hence everywhere and s
 - (0:20?) [x] (0:18) sagews: when client executes code with shift-enter, move the cursor to next input cell
 
 - (0:10?) [x] (0:08) sagews: make split screen mode work so I can play with it; if it is not useful or slow, kill it (?) -- let's make it a different view; seems useful for it to be "hide all output".
+
+[marker.input][uuid of cell][metadata][marker.start]
+...
+input content of the cell
+...
+[marker.output][output uuid of cell][marker.output]{json output mesg}[marker.output]{json output mesg}[marker.output]...[marker.output]
+
+ - (1:00?) [x] sagews: switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.; this will be a few lines of code in syncdoc.coffee
+

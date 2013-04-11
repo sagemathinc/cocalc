@@ -636,7 +636,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
         opts0 =
             cursor_interval : opts.cursor_interval
-            sync_interval   : opts.sync_interval
+            sync_interval   : 1 #opts.sync_interval  # trying 1ms as a test.
         super @editor, opts0, () =>
             @process_sage_updates()
 
@@ -779,7 +779,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
         #console.log("CREATING A MARK")
-        mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
+        start = {line:line, ch:0}
+        #end = {line:line, ch:cm.getLine(line).length}
+        end = {line:line+1, ch:0}
+        mark = cm.markText(start, end,
                      {shared:false, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
         mark.processed = 38  # how much of the output line we have processed  [marker]36-char-uuid[marker]
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
