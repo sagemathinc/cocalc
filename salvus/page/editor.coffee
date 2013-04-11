@@ -783,8 +783,8 @@ class CodeMirrorEditor extends FileEditor
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 1000   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval   : 50   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval     : 50   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()

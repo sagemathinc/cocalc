@@ -1,8 +1,20 @@
+- (1:00?) [ ] sagews: misc robustness cleanups related to processing control codes
+
+- (1:00?) [ ] sagews: direct way for client to communicate with localhub, instead of using snc, so much faster and also allow for communication that shouldn't be shared (e.g., tab completion!)
 
 - (1:30?) [ ] sagews: tab completion.
+
+- (0:15?) [ ] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to "d".
+
+- (1:00?) [ ] sagews: hide/show output
+- (1:00?) [ ] sagews: hide/show input
+
+- (1:00?) [ ] sagews: implement first line metadata, since it will impact everything else.
+
+- (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)
+
 - (1:00?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
 - (1:30?) [ ] sagews: interacts need to work in new worksheets
-- (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)
 - (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
 - (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
 - (0:30?) [ ] sagews: add a button group to the editor ui before "save" with play/interrupt/kill
@@ -11,7 +23,10 @@
 - (0:15?) [ ] sagews: handle copy/paste of output better (don't show codes)
 - (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
 - (0:30?) ] ] sagews: move the cursor when making new cell at the bottom.
-- (0:45?) [ ] sagews: alt-enter/control-enter evaluate
+- (0:45?) [ ] sagews: alt-enter/control-enter evaluate in different ways
+- (0:30?) [ ] sagews: ctrl-; = split cell
+- (0:30?) [ ] sagews: ctrl-backspace = join cell
+
 
 
 

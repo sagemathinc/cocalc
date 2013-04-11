@@ -194,10 +194,11 @@ Editor for files in a project
 }
 
 .sagews-output {
-    padding: 3px;
-    margin: 3px;
+    padding: 6px;
+    margin: 2px;
     border:1px solid #ddd;
     border-radius:5px;
+    box-shadow: 2px 2px 1px #ddd;
     overflow-y:auto;
     white-space:normal;
 }

@@ -377,15 +377,17 @@ class SynchronizedDocument extends EventEmitter
     sync_soon: (wait) =>
         if not wait?
             wait = @opts.sync_interval
+        else if wait <= 0
+            wait = 1
         if @_sync_soon?
             # We have already set a timer to do a sync soon.
             #console.log("not sync_soon since -- We have already set a timer to do a sync soon.")
             return
         do_sync = () =>
-            delete @_sync_soon
             @sync (didnt_sync) =>
+                delete @_sync_soon
                 if didnt_sync
-                    @sync_soon(Math.min(5000, wait*1.5))
+                    @sync_soon(Math.min(3000, (wait*1.5)))
         @_sync_soon = setTimeout(do_sync, wait)
 
     ui_synced: (synced) =>
@@ -636,7 +638,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
         opts0 =
             cursor_interval : opts.cursor_interval
-            sync_interval   : 1 #opts.sync_interval  # trying 1ms as a test.
+            sync_interval   : opts.sync_interval
         super @editor, opts0, () =>
             @process_sage_updates()
 
@@ -678,10 +680,25 @@ class SynchronizedWorksheet extends SynchronizedDocument
             start = 0
         for line in [start...cm.lineCount()]
             x = cm.getLine(line)
+
             if x[0] == MARKERS.cell
                 marks = cm.findMarksAt({line:line, ch:1})
                 if marks.length == 0
                     @mark_cell_start(line)
+                else
+                    first = true
+                    for mark in marks
+                        if not first # there should only be one mark
+                            mark.clear()
+                            continue
+                        first = false
+                        # The mark should only span one line: insertions when applying a patch can unfortunately
+                        # mess this up, so we have to re-do any that accidentally span multiple lines.
+                        m = mark.find()
+                        if m.from.line != m.to.line
+                            mark.clear()
+                            @mark_cell_start(line)
+
             else if x[0] == MARKERS.output
                 marks = cm.findMarksAt({line:line, ch:1})
                 if marks.length == 0
@@ -749,8 +766,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     mark_cell_start: (line) =>
         # Assuming the proper text is in the document for a new cell at this line,
-        # mark it as such (thus hiding control codes).
-        cm = @codemirror
+        # mark it as such. This hides control codes and places a cell separation
+        # element, which may be clicked to create a new cell.
+        cm  = @codemirror
         x   = cm.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
         input = $("<div class='sagews-input'></div>").css
@@ -760,7 +778,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @insert_new_cell(mark.find().from.line)
 
         mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1},
-                {shared:false, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:input[0]})
+                {shared:false, inclusiveLeft:false, inclusiveRight:false, atomic:true, replacedWith:input[0]})
 
         return mark
 
@@ -780,10 +798,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange('\n',{line:line+1,ch:0})
         #console.log("CREATING A MARK")
         start = {line:line, ch:0}
-        #end = {line:line, ch:cm.getLine(line).length}
-        end = {line:line+1, ch:0}
-        mark = cm.markText(start, end,
-                     {shared:false, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
+        end = {line:line, ch:cm.getLine(line).length}
+        #end = {line:line+1, ch:0}
+        #mark = cm.markText(start, end, {shared:false, inclusiveLeft:false, inclusiveRight: true, atomic:true, className:"sagews-output"})#, replacedWith:output[0]})
+        mark = cm.markText(start, end, {shared:false, inclusiveLeft:false, inclusiveRight: true, atomic:true,  replacedWith:output[0]})
         mark.processed = 38  # how much of the output line we have processed  [marker]36-char-uuid[marker]
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         return mark
@@ -817,8 +835,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             marker = x[0]
         @set_cell_flag(marker, FLAGS.execute)
         @move_cursor_to_next_cell()
-        @sync_soon()  # just in case the sync below doesn't do it.
         @sync()
+        @sync_soon(1)
 
     move_cursor_to_next_cell: () =>
         cm = @codemirror
