@@ -1152,6 +1152,11 @@ class Client extends EventEmitter
         @get_codemirror_session mesg, (err, session) =>
             if not err
                 session.get_content(@, mesg)
+                
+    mesg_codemirror_get_content: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.get_content(@, mesg)
 
 
 ##############################
