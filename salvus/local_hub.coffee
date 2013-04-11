@@ -633,6 +633,7 @@ class CodeMirrorSession
     constructor: (mesg, cb) ->
         @path = mesg.path
         @session_uuid = mesg.session_uuid
+        @_sage_output_cb = {}
 
         # The downstream clients of this local hub -- these are global hubs
         @diffsync_clients = {}
@@ -681,6 +682,16 @@ class CodeMirrorSession
                     winston.debug("codemirror session #{@session_uuid} sage socket terminated.")
 
                 socket.on 'mesg', (type, mesg) =>
+                    #winston.debug("sage session: received message #{type}, #{misc.to_json(mesg)}")
+                    if type != 'json'
+                        return
+                    c = @_sage_output_cb[mesg.id]
+                    if c?
+                        c(mesg)
+                        if mesg.done
+                            delete @_sage_output_cb[mesg.id]
+                        return
+
                     m = {}
                     for x, y of mesg
                         if x != 'id' and x != 'event'  # the event is always "output"
@@ -698,12 +709,12 @@ class CodeMirrorSession
 
                 cb(false, @_sage_socket)
 
-    sage_execute: (id) =>
-        winston.debug("exec request for cell with id #{id}")
+    sage_execute_cell: (id) =>
+        #winston.debug("exec request for cell with id #{id}")
         @sage_remove_cell_flag(id, diffsync.FLAGS.execute)
         @sage_set_cell_flag(id, diffsync.FLAGS.running)
         {code, output_id} = @sage_initialize_cell_for_execute(id)
-        winston.debug("exec code '#{code}'; output id='#{output_id}'")
+        #winston.debug("exec code '#{code}'; output id='#{output_id}'")
         if code == ""
             @sage_output_mesg(output_id, {done:true})
 
@@ -723,6 +734,23 @@ class CodeMirrorSession
                         preparse : true
                 )
 
+    # Execute code in the Sage session associated to this sync'd editor session
+    sage_execute_code: (client_socket, mesg) =>
+        #winston.debug("sage_execute_code '#{misc.to_json(mesg)}")
+        @_sage_output_cb[mesg.id] = (resp) =>
+            #winston.debug("sage_execute_code -- got output: #{misc.to_json(resp)}")
+            client_socket.write_mesg('json', resp)
+        @sage_socket (err, socket) =>
+            #winston.debug("sage_execute_code: #{misc.to_json(err)}, #{socket}")
+            if err
+                #winston.debug("Error getting sage socket: #{err}")
+                resp = message.output(stderr: "Error getting sage socket (unable to execute code): #{err}", done:true)
+                client_socket.write_mesg('json', resp)
+            else
+                #winston.debug("sage_execute_code: writing request message -- #{misc.to_json(mesg)}")
+                mesg.event = 'execute_code'
+                socket.write_mesg('json', mesg)
+
     send_signal_to_sage_session: (sig) =>
         winston.debug("send_signal_to_sage_session -- todo")
 
@@ -740,7 +768,7 @@ class CodeMirrorSession
             id  = @content.slice(i+1,i+37)
             flags = @content.slice(i+37, j)
             if diffsync.FLAGS.execute in flags
-                @sage_execute(id)
+                @sage_execute_cell(id)
             i = j + 1
 
 
@@ -1091,8 +1119,7 @@ class CodeMirrorSessions
             when 'codemirror_get_content'
                 session.get_content(client_socket, mesg)
             when 'codemirror_execute_code'
-                client_socket.write_mesg('json', message.output(id:mesg.id, stdout:"TODO"))
-                client_socket.write_mesg('json', message.output(id:mesg.id, stdout:"STUB", done:true))
+                session.sage_execute_code(client_socket, mesg)
             else
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session event: #{mesg.event}."))
 

@@ -284,7 +284,7 @@ class SynchronizedDocument extends EventEmitter
         salvus_client.send(
             message.codemirror_execute_code
                 id   : uuid
-                code : "2+2"
+                code : "a=5; print(a+a)"
                 session_uuid : @session_uuid
         )
         if cb?

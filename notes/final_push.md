@@ -3,11 +3,13 @@
 - (0:20?) [x] (1:00) codemirror exec message: route through hub properly
 
 ---
-- (0:20?) [ ] codemirror exec message: handle in local hub, and test in client
+- (0:20?) [x] (0:35) codemirror exec message: handle in local hub, and test in client
 
 - (0:30?) [ ] codemirror sync session: add introspection messages
 - (1:00?) [ ] sagews: implement tab completion using the codemirror introspection messages
 - (1:30?) [ ] sagews: implement interacts using exec message
+- (0:15?) [ ] sagews: set path of session on startup to same as file.
+
 
 ---
 
