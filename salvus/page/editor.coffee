@@ -853,7 +853,10 @@ class CodeMirrorEditor extends FileEditor
         if editor.somethingSelected()
             CodeMirror.commands.defaultTab(editor)
         else
-            editor.tab_as_space()
+            @tab_nothing_selected(editor)
+
+    tab_nothing_selected: (editor) =>
+        editor.tab_as_space()
 
     init_edit_buttons: () =>
         that = @
@@ -1042,6 +1045,8 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
         when "sagews"
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.execute
+            E.tab_nothing_selected = () => E.syncdoc.introspect()
+
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E

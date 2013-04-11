@@ -297,7 +297,7 @@ class SynchronizedDocument extends EventEmitter
         if opts.cb?
             salvus_client.execute_callbacks[uuid] = opts.cb
 
-    introspect: (opts) =>
+    introspect_line: (opts) =>
         opts = defaults opts,
             line     : required
             preparse : true
@@ -684,6 +684,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt.css('width', (w-25) + 'px')
                     else if elt.hasClass('sagews-input')
                         elt.css('width', w + 'px')
+
+    introspect: () =>
+        pos  = @codemirror.getCursor()
+        line = @codemirror.getLine(pos.line).slice(0, pos.ch)
+        @introspect_line
+            line : line
+            cb   : (err, resp) =>
+                console.log(err, resp)
 
     elt_at_mark: (mark) =>
         opts = mark.getOptions()
