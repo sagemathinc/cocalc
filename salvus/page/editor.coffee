@@ -929,8 +929,10 @@ class CodeMirrorEditor extends FileEditor
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
-            @save_button.find('span').text("Saving...")
-            spin = setTimeout((() => @save_button.find(".spinner").show()), 100)
+            show_save = () =>
+                @save_button.find('span').text("Saving...")
+                @save_button.find(".spinner").show()
+            spin = setTimeout(show_save, 250)
             @editor.save @filename, (err) =>
                 clearTimeout(spin)
                 @save_button.find(".spinner").hide()
@@ -939,6 +941,8 @@ class CodeMirrorEditor extends FileEditor
                     @save_button.addClass('disabled')
                     @has_unsaved_changes(false)
         return false
+
+
 
     init_change_event: () =>
         @codemirror.on 'change', (instance, changeObj) =>

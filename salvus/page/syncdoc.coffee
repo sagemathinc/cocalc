@@ -109,13 +109,7 @@ class DiffSyncDoc
                 else
                     cm.replaceRange(c_head, {line:cursor_head.line, ch:cursor_head.ch})
 
-            t = misc.mswalltime()
             s = @string()
-            console.log('t0 = ', misc.mswalltime(t))
-            t = misc.mswalltime()
-            s = @string()
-            console.log('t1 = ', misc.mswalltime(t))
-
 
             x = diffsync.dmp.patch_apply(p, s)
             new_value = x[0]
@@ -140,25 +134,46 @@ class DiffSyncDoc
 
             #console.log(misc.to_json(diffsync.dmp.diff_main(s, new_value)))
 
-            if true
-                s = new_value
-                # Benchmarking reveals that this line 'cm.setValue(s)' is by far the dominant time taker.
-                # This can be optimized by taking into account the patch itself (and maybe stuff returned
-                # when applying it) to instead only change a small range of the editor.  This is TODO
-                # for later though.  For reference, a 200,000 line doc on a Samsung chromebook
-                # takes < 1s still, and about .4 s on a fast intel laptop.
-                cm.setValue(s)
-            else
-                for chunk in diffsync.dmp.diff_main(s, new_value)
-                    console.log(chunk)
+            next_pos = (val, pos) ->
+                # This functions answers the question:
+                # If you were to insert the string val at the CodeMirror position pos
+                # in a codemirror document, at what position (in codemirror) would
+                # the inserted string end at?
+                number_of_newlines = (val.match(/\n/g)||[]).length
+                if number_of_newlines == 0
+                    return {line:pos.line, ch:pos.ch+val.length}
+                else
+                    return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
 
+            pos = {line:0, ch:0}  # start at the beginning
+            for chunk in diffsync.dmp.diff_main(s, new_value)
+                #console.log(chunk)
+                op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
+                val = chunk[1] # the actual text to leave same, delete, or add
+                pos1 = next_pos(val, pos)
+                switch op
+                    when 0 # stay the same
+                        # Move our pos pointer to the next position
+                        pos = pos1
+                        #console.log("skipping to ", pos1)
+                    when -1 # delete
+                        # Delete until where val ends; don't change pos pointer.
+                        cm.replaceRange("", pos, pos1)
+                        #console.log("deleting from ", pos, " to ", pos1)
+                    when +1 # insert
+                        # Insert the new text right here.
+                        cm.replaceRange(val, pos)
+                        #console.log("inserted new text at ", pos)
+                        # Move our pointer to just beyond the text we just inserted.
+                        pos = pos1
 
-                if cm.getValue() != new_value
-                    console.log("BUG! ")
-                    console.log(cm.getValue())
-                    console.log(new_value)
-                    cm.setValue(s)
-
+            ###
+            if cm.getValue() != new_value
+                console.log("** BUG in new patch application code! ** ")
+                #console.log("cm val = '#{cm.getValue()}'")
+                #console.log("new_value = '#{new_value}'")
+                cm.setValue(new_value)
+            ###
 
             cm.setSelection(anchor_pos.pos, head_pos.pos)
             # Remove the markers: complicated since can't remove both simultaneously, and
@@ -379,13 +394,13 @@ class SynchronizedDocument extends EventEmitter
                 clearTimeout(@_ui_synced_timer)
                 delete @_ui_synced_timer
             @element.find(".salvus-editor-codemirror-not-synced").hide()
-            @element.find(".salvus-editor-codemirror-synced").show()
+            #@element.find(".salvus-editor-codemirror-synced").show()
         else
             if @_ui_synced_timer?
                 return
             show_spinner = () =>
                 @element.find(".salvus-editor-codemirror-not-synced").show()
-                @element.find(".salvus-editor-codemirror-synced").hide()
+                #@element.find(".salvus-editor-codemirror-synced").hide()
             @_ui_synced_timer = setTimeout(show_spinner, 1500)
 
     sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
@@ -569,8 +584,11 @@ class SynchronizedDocument extends EventEmitter
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
-            @save_button.find('span').text("Saving...")
-            spin = setTimeout((() => @save_button.find(".spinner").show()), 100)
+            # Only show the spin/saving indicator *after* a short delay, in case we can't save super-quickly.
+            show_save = () =>
+                @save_button.find('span').text("Saving...")
+                @save_button.find(".spinner").show()
+            spin = setTimeout(show_save, 250)
             @save (err) =>
                 clearTimeout(spin)
                 @save_button.find(".spinner").hide()
@@ -669,6 +687,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if marks.length == 0
                     @mark_output_line(line)
                 mark = cm.findMarksAt({line:line, ch:1})[0]
+                uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
+                if mark.uuid != uuid # uuid changed -- completely new output
+                    mark.processed = 38
+                    @elt_at_mark(mark).html('')
                 if mark.processed < x.length
                     # new output to process
                     t = x.slice(mark.processed, x.length-1)
@@ -760,6 +782,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark = cm.markText({line:line, ch:0}, {line:line, ch:cm.getLine(line).length},
                      {shared:false, inclusiveLeft:false, inclusiveRight: false, atomic:true, replacedWith:output[0]})
         mark.processed = 38  # how much of the output line we have processed  [marker]36-char-uuid[marker]
+        mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         return mark
 
     current_input_block: () =>
