@@ -1,20 +1,23 @@
 
-- (1:30?) [ ] sagews: design/implement a way to make evaluation of code blocks optimally fast for the client requesting a specific eval.  This is absolutely critical, and could impact other design choices, so let's get it done.
-- (1:00?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
 - (1:30?) [ ] sagews: tab completion.
-- (1:30?) [ ] sagews: move interacts over to new worksheets
-- (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
+- (1:00?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
+- (1:30?) [ ] sagews: interacts need to work in new worksheets
 - (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)
+- (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
+- (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
 - (0:30?) [ ] sagews: add a button group to the editor ui before "save" with play/interrupt/kill
 - (0:15?) [ ] sagews: local hub: support the session control messages; interrupt, kill, etc., via line-1 markers.; restart should be automatic
-- (0:20?) [ ] sagews: don't require output cell to start at beginning of a line.
-- (0:10?) [ ] sagews/editor: proper filename display and truncation
-- (0:15?) [ ] sagews: handle copy/paste of output
-- (0:30?) [ ] sagews: get showing of images/plotting to work
+- (0:30?) [ ] sagews/editor: proper filename display and truncation
+- (0:15?) [ ] sagews: handle copy/paste of output better (don't show codes)
 - (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
-- (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
-- (0:30?) [ ] fix filename in editor display, e.g., maybe make it way smaller.
+- (0:30?) ] ] sagews: move the cursor when making new cell at the bottom.
+- (0:45?) [ ] sagews: alt-enter/control-enter evaluate
+
+
+
+
 - (1:30?) [ ] syncdoc: implement sophisticated cursor relocation code, instead of my funny special character code.  This should be possible now that we apply a patch in chuncks.
+
 
 
 PHASE 3:
@@ -471,3 +474,4 @@ input content of the cell
 
  - (1:00?) [x] sagews: switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.; this will be a few lines of code in syncdoc.coffee
 
+- (1:30?) [x] (0:20) sagews: design/implement a way to make evaluation of code blocks optimally fast for the client requesting a specific eval.  This is absolutely critical, and could impact other design choices, so let's get it done.   [I just tweaked a standard sync parameter... but it feels much more usable now.  Maybe just optimizing sync is the way to go.]
