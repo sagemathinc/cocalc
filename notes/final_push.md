@@ -1,8 +1,16 @@
 
 - (0:15?) [x] (0:13) codemirror execute code -- define message
-- (0:20?) [x] (1:00 ) codemirror exec message: route through hub properly
-- (0:15?) [ ] codemirror exec message: handle in local hub
-- (1:30?) [ ] sagews: tab completion, using the codemirro execute code message.
+- (0:20?) [x] (1:00) codemirror exec message: route through hub properly
+
+---
+- (0:20?) [ ] codemirror exec message: handle in local hub, and test in client
+
+- (0:30?) [ ] codemirror sync session: add introspection messages
+- (1:00?) [ ] sagews: implement tab completion using the codemirror introspection messages
+- (1:30?) [ ] sagews: implement interacts using exec message
+
+---
+
 
 - (0:15?) [ ] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to "d".
 
@@ -14,7 +22,6 @@
 - (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)
 
 - (1:00?) [ ] sagews/localhub: need to implement the BLOB-->hub socket stuff... that's why I can't send images etc.
-- (1:30?) [ ] sagews: interacts need to work in new worksheets
 - (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
 - (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
 - (0:30?) [ ] sagews: add a button group to the editor ui before "save" with play/interrupt/kill
