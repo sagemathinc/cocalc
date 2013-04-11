@@ -214,6 +214,8 @@ message
 
 
 
+
+
 ############################################
 # CodeMirror editor sessions
 #############################################
@@ -321,6 +323,15 @@ message
     session_uuid : required
     preparse     : true
     allow_cache  : true
+
+# Introspection in the context of a codemirror editing session.
+# client --> hub --> sage_server
+message
+    event              : 'codemirror_introspect'
+    id                 : undefined
+    session_uuid       : required
+    line               : required
+    preparse           : true
 
 
 ############################################

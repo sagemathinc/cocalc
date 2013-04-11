@@ -748,8 +748,37 @@ class CodeMirrorSession
                 client_socket.write_mesg('json', resp)
             else
                 #winston.debug("sage_execute_code: writing request message -- #{misc.to_json(mesg)}")
-                mesg.event = 'execute_code'
+                mesg.event = 'execute_code'   # event that sage session understands
                 socket.write_mesg('json', mesg)
+
+    sage_call: (opts) =>
+        opts = defaults opts,
+            mesg : required
+            cb   : undefined
+
+        f = (resp) =>
+            opts.cb?(false, resp)
+            delete @_sage_output_cb[opts.mesg.id]   # exactly one response
+
+        @sage_socket (err, socket) =>
+            if err
+                opts.cb?("error getting sage socket -- #{err}")
+            else
+                @_sage_output_cb[opts.mesg.id] = f
+                socket.write_mesg('json', opts.mesg)
+
+    sage_introspect:(client_socket, mesg) =>
+        mesg.event = 'introspect' # event that sage session understand
+        @sage_call
+            mesg : mesg
+            cb : (err, resp) =>
+                if err
+                    resp = message.error(error:"Error getting sage socket (unable to introspect): #{err}")
+                    client_socket.write_mesg('json', resp)
+                else
+                    client_socket.write_mesg('json', resp)
+
+
 
     send_signal_to_sage_session: (sig) =>
         winston.debug("send_signal_to_sage_session -- todo")
@@ -1120,6 +1149,8 @@ class CodeMirrorSessions
                 session.get_content(client_socket, mesg)
             when 'codemirror_execute_code'
                 session.sage_execute_code(client_socket, mesg)
+            when 'codemirror_introspect'
+                session.sage_introspect(client_socket, mesg)
             else
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session event: #{mesg.event}."))
 

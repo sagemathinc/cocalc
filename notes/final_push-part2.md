@@ -9,6 +9,8 @@ After first deploy, top priority, in order:
 * (0:30?) [ ] FEATURE: donation link
 * (1:00?) [ ] FEATURE: way user can self-report that they donated, how much, and when; stored in a "donations" table?
 
+* (5:00?) [ ] FEATURE: consider swapping out term.js for hterm: https://github.com/macton/hterm
+
 ---------------------------------------
 
 
