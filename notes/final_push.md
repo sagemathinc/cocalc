@@ -1,8 +1,8 @@
-- (1:00?) [ ] sagews: misc robustness cleanups related to processing control codes
 
-- (1:00?) [ ] sagews: direct way for client to communicate with localhub, instead of using snc, so much faster and also allow for communication that shouldn't be shared (e.g., tab completion!)
+- (0:15?) [x] (0:13) codemirror execute code -- define message
 
-- (1:30?) [ ] sagews: tab completion.
+
+- (1:30?) [ ] sagews: tab completion, using the executecode message.
 
 - (0:15?) [ ] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to "d".
 
@@ -490,3 +490,5 @@ input content of the cell
  - (1:00?) [x] sagews: switch to directly applying the patches to the codemirror buffer, since right now, the *entire* output is being re-rendered every single time... since all the marks go away on sync.; this will be a few lines of code in syncdoc.coffee
 
 - (1:30?) [x] (0:20) sagews: design/implement a way to make evaluation of code blocks optimally fast for the client requesting a specific eval.  This is absolutely critical, and could impact other design choices, so let's get it done.   [I just tweaked a standard sync parameter... but it feels much more usable now.  Maybe just optimizing sync is the way to go.]
+
+- (1:00?) [x] sagews: misc robustness cleanups related to processing control codes

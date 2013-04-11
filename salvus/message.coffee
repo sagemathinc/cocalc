@@ -309,6 +309,20 @@ message
     date         : undefined
     mesg         : required     # arbitrary message, can have event, etc., attributes.
 
+# This is used so that a client can execute code in the Sage process that is running
+# controlled by a codemirror sync session.  This is mainly used for synchronized worksheets
+# that are embedded in a single codemirror editor.
+# client --> hub --> local_hub --> sage_server
+message
+    event        : 'codemirror_execute_code'
+    id           : undefined
+    code         : required
+    data         : undefined
+    session_uuid : required
+    preparse     : true
+    allow_cache  : true
+
+
 ############################################
 # Ping/pong
 #############################################
