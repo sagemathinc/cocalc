@@ -1152,11 +1152,11 @@ class Client extends EventEmitter
         @get_codemirror_session mesg, (err, session) =>
             if not err
                 session.get_content(@, mesg)
-                
-    mesg_codemirror_get_content: (mesg) =>
+
+    mesg_codemirror_execute_code: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err
-                session.get_content(@, mesg)
+                session.execute_code(@, mesg)
 
 
 ##############################
@@ -1558,6 +1558,23 @@ class CodeMirrorSession
     get_content: (client, mesg) =>
         client.push_to_client( message.codemirror_content(id:mesg.id, content:@diffsync_server.live) )
 
+    execute_code: (client, mesg) =>
+        @local_hub.call
+            multi_response : true
+            mesg : mesg
+            cb   : (err, resp) =>
+                if err
+                    winston.debug("Server error executing code in local codemirror session -- #{err} -- reconnecting")
+                    @reconnect () =>
+                        resp = message.reconnect(id:mesg.id, reason:"error executing code-- #{err}")
+                        client.push_to_client(resp)
+                else
+                    if resp.done
+                        @local_hub.remove_multi_response_listener(resp.id)
+                    resp.id = mesg.id
+                    client.push_to_client(resp)
+
+
 ##############################
 # LocalHub
 ##############################
@@ -1610,6 +1627,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @address = "#{username}@#{host}"
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
+        @_multi_response = {}
         @local_hub_socket  (err,socket) =>
             if err
                 cb("Unable to start and connect to local hub #{@address} -- #{err}")
@@ -1636,10 +1654,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             opts.cb("Erro sending message to session #{opts.session_uuid} -- #{e}")
 
 
-    # handle incoming JSON messages from the local_hub that do *NOT* have an id tag
+    # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
+    # except those in @_multi_response.
     handle_mesg: (mesg) =>
         if mesg.id?
-            return # handled elsewhere
+            @_multi_response[mesg.id]?(false, mesg)
+            return
         if mesg.event == 'codemirror_diffsync_ready'
             @get_codemirror_session
                 session_uuid : mesg.session_uuid
@@ -1704,25 +1724,32 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                             delete @_status
                             @new_socket(cb, retries + 1)
 
+    remove_multi_response_listener: (id) =>
+        delete @_multi_response[id]
+
     call: (opts) =>
         opts = defaults opts,
             mesg    : required
             timeout : 10
+            multi_response : false   # timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
             cb      : undefined
 
         if not opts.mesg.id?
             opts.mesg.id = uuid.v4()
 
-        @local_hub_socket (err, socket) ->
+        @local_hub_socket (err, socket) =>
             if err
                 opts.cb?(err)
                 return
             socket.write_mesg 'json', opts.mesg
-            socket.recv_mesg type:'json', id:opts.mesg.id, timeout:opts.timeout, cb:(mesg) ->
-                if mesg.event == 'error'
-                    opts.cb(true, mesg.error)
-                else
-                    opts.cb(false, mesg)
+            if opts.multi_response
+                @_multi_response[opts.mesg.id] = opts.cb
+            else
+                socket.recv_mesg type:'json', id:opts.mesg.id, timeout:opts.timeout, cb:(mesg) =>
+                    if mesg.event == 'error'
+                        opts.cb(true, mesg.error)
+                    else
+                        opts.cb(false, mesg)
 
     ####################################################
     # Session management

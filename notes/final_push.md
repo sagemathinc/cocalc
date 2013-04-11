@@ -1,8 +1,8 @@
 
 - (0:15?) [x] (0:13) codemirror execute code -- define message
-
-
-- (1:30?) [ ] sagews: tab completion, using the executecode message.
+- (0:20?) [x] (1:00 ) codemirror exec message: route through hub properly
+- (0:15?) [ ] codemirror exec message: handle in local hub
+- (1:30?) [ ] sagews: tab completion, using the codemirro execute code message.
 
 - (0:15?) [ ] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to "d".
 

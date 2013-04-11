@@ -1090,6 +1090,9 @@ class CodeMirrorSessions
                 session.read_from_disk(client_socket, mesg)
             when 'codemirror_get_content'
                 session.get_content(client_socket, mesg)
+            when 'codemirror_execute_code'
+                client_socket.write_mesg('json', message.output(id:mesg.id, stdout:"TODO"))
+                client_socket.write_mesg('json', message.output(id:mesg.id, stdout:"STUB", done:true))
             else
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session event: #{mesg.event}."))
 

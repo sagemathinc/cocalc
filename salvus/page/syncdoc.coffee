@@ -279,6 +279,17 @@ class SynchronizedDocument extends EventEmitter
         # store pref in localStorage to not auto-open this file next time
         @editor.local_storage('auto_open', false)
 
+    execute_code: (cb) =>
+        uuid = misc.uuid()
+        salvus_client.send(
+            message.codemirror_execute_code
+                id   : uuid
+                code : "2+2"
+                session_uuid : @session_uuid
+        )
+        if cb?
+            salvus_client.execute_callbacks[uuid] = cb
+
     connect: (cb) =>
         @element.find(".salvus-editor-codemirror-loading").show()
         @_remove_listeners()
@@ -296,6 +307,10 @@ class SynchronizedDocument extends EventEmitter
                     cb(resp.event); return
 
                 @session_uuid = resp.session_uuid
+
+
+                ## TEST execute_code message
+                @execute_code((resp) => console.log(misc.to_json(resp)))
 
                 # Render the chat
                 @element.find(".salvus-editor-codemirror-chat-output").html('')
