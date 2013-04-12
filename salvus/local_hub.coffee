@@ -691,29 +691,33 @@ class CodeMirrorSession
 
                 socket.on 'mesg', (type, mesg) =>
                     #winston.debug("sage session: received message #{type}, #{misc.to_json(mesg)}")
-                    if type != 'json'
-                        return
-                    c = @_sage_output_cb[mesg.id]
-                    if c?
-                        c(mesg)
-                        if mesg.done
-                            delete @_sage_output_cb[mesg.id]
-                        return
+                    switch type
+                        when 'blob'
+                            winston.debug("codemirror session: got blob from sage session; forwarding to all connected hubs.")
+                            for id, ds_client of @diffsync_clients
+                                ds_client.remote.socket.write_mesg('blob', mesg)
+                        when 'json'
+                            c = @_sage_output_cb[mesg.id]
+                            if c?
+                                c(mesg)
+                                if mesg.done
+                                    delete @_sage_output_cb[mesg.id]
+                                return
 
-                    m = {}
-                    for x, y of mesg
-                        if x != 'id' and x != 'event'  # the event is always "output"
-                            if x == 'done'   # don't bother with done=false
-                                if y
-                                    m[x] = y
-                            else
-                                m[x] = y
-                    winston.debug("sage --> local_hub: '#{json(mesg)}'")
-                    @sage_output_mesg(mesg.id, m)
-                    @set_content(@content)
-                    # Suggest to all connected clients to sync.
-                    for id, ds_client of @diffsync_clients
-                        ds_client.remote.sync_ready()
+                            m = {}
+                            for x, y of mesg
+                                if x != 'id' and x != 'event'  # the event is always "output"
+                                    if x == 'done'   # don't bother with done=false
+                                        if y
+                                            m[x] = y
+                                    else
+                                        m[x] = y
+                            winston.debug("sage --> local_hub: '#{json(mesg)}'")
+                            @sage_output_mesg(mesg.id, m)
+                            @set_content(@content)
+                            # Suggest to all connected clients to sync.
+                            for id, ds_client of @diffsync_clients
+                                ds_client.remote.sync_ready()
 
                 cb(false, @_sage_socket)
 

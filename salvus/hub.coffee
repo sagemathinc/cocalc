@@ -1692,6 +1692,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if not err
                         session.broadcast_mesg_to_clients(mesg)
 
+    handle_blob: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            blob : required
+
+        winston.debug("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
+        # Store blob in DB.
+        save_blob(uuid:opts.uuid, value:opts.blob, ttl:600)
+
     # The unique standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
         if @_socket?
@@ -1712,7 +1721,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 @_socket = socket
 
                 socket.on 'mesg', (type, mesg) =>
-                    @handle_mesg(mesg)
+                    switch type
+                        when 'blob'
+                            @handle_blob(mesg)
+                        when 'json'
+                            @handle_mesg(mesg)
 
                 socket.on 'end', () =>
                     delete @_status
