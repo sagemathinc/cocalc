@@ -674,8 +674,16 @@ class CodeMirrorSession
             if err
                 cb(err)
             else
-                winston.debug("Successfully opened a Sage session.")
+                winston.debug("Successfully opened a Sage session for worksheet '#{@path}'")
                 @_sage_socket = socket
+
+                # Set path to be the same as the file.
+                mesg = message.execute_code
+                    id       : misc.uuid()
+                    code     : "os.chdir(salvus.data['path'])"
+                    data     : {path: misc.path_split(@path).head}
+                    preparse : false
+                socket.write_mesg('json', mesg)
 
                 socket.on 'end', () =>
                     @_sage_socket = undefined

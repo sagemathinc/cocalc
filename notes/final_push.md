@@ -9,12 +9,13 @@
 - (0:45?) [x] (1:05) sagews: ui for introspection -- docstring and source code
 - (0:15?) [x] sagews: hub/ local hub: support sending signals to sage process; also make "esc" and "control-c" interrupt the process
 
-
-
-- (1:30?) [ ] sagews: implement interacts using exec message
-- (0:15?) [ ] sagews: set path of session on startup to same as file.
+- (0:15?) [x] (0:30) sagews: set path of session on startup to same as file.
 
 - (0:15?) [ ] sagews: make it so "sagews" are the worksheets (basically change what the new button makes)
+
+
+- (2:00?) [ ] sagews: implement interacts (using exec message)
+
 
 ---
 
