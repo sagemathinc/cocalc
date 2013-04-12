@@ -11,7 +11,7 @@
 
 - (0:15?) [x] (0:30) sagews: set path of session on startup to same as file.
 
-- (0:15?) [ ] sagews: make it so "sagews" are the worksheets (basically change what the new button makes)
+- (0:15?) [x] (0:13+) sagews: make it so "sagews" are the worksheets (basically change what the new button makes)
 
 
 - (2:00?) [ ] sagews: implement interacts (using exec message)

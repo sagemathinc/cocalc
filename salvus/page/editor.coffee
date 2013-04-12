@@ -80,6 +80,11 @@ file_associations['sage-terminal'] =
     icon   : 'icon-credit-card'
     opts   : {}
 
+file_associations['term'] =
+    editor : 'terminal'
+    icon   : 'icon-credit-card'
+    opts   : {}
+
 file_associations['sage-worksheet'] =
     editor : 'worksheet'
     icon   : 'icon-list-ul'

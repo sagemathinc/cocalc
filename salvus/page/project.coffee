@@ -847,7 +847,7 @@ class ProjectPage
             return s
 
         @new_file_tab.find("a[href=#new-terminal]").click () =>
-            p = path('.sage-terminal')
+            p = path('.term')
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
@@ -857,6 +857,10 @@ class ProjectPage
             return false
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
+            create_file('.sagews')
+            return false
+
+        @new_file_tab.find("a[href=#old-worksheet]").click () =>
             p = path('.sage-worksheet')
             if p.length == 0
                 @new_file_tab_input.focus()
@@ -866,8 +870,8 @@ class ProjectPage
             @editor.display_tab(p)
             return false
 
-        create_file = () =>
-            p = path()
+        create_file = (ext) =>
+            p = path(ext)
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
