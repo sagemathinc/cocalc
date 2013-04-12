@@ -34,6 +34,7 @@ message  = require('message')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
+
 async = require('async')
 
 templates = $("#salvus-editor-templates")
@@ -690,8 +691,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
         line = @codemirror.getLine(pos.line).slice(0, pos.ch)
         @introspect_line
             line : line
-            cb   : (err, resp) =>
-                console.log(err, resp)
+            cb   : (err, mesg) =>
+                console.log(err, mesg)
+                if err
+                    alert_message(type:"error", message:"Unable to introspect -- #{err}")
+                else if mesg.event == "error"
+                    alert_message(type:"error", message:"Unable to introspect -- #{mesg.error}")
+                else
+                    from = {line:pos.line, ch:pos.ch - mesg.target.length}
+                    switch mesg.event
+                        when 'introspect_completions'
+                            @codemirror.showCompletions
+                                from             : from
+                                to               : pos
+                                completions      : mesg.completions
+                                target           : mesg.target
+                                completions_size : @editor.opts.completions_size
+
 
     elt_at_mark: (mark) =>
         opts = mark.getOptions()

@@ -786,6 +786,8 @@ class CodeMirrorEditor extends FileEditor
             cursor_interval   : 250   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
             sync_interval     : 250   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
+            completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
+
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
         @element.find(".salvus-editor-codemirror-filename").text(
@@ -1046,7 +1048,6 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.execute
             E.tab_nothing_selected = () => E.syncdoc.introspect()
-
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E

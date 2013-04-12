@@ -4,11 +4,14 @@
 - (0:30?) [x] (0:40?) codemirror sync session: add introspection messages
 
 ---
-- (0:20?) [x] (0:20) sagews: implement tab completion using the codemirror introspection messages
-- (0:45?) [ ] sagews: ui for introspection
+- (0:20?) [x] (0:20) sagews: implement tab completion without UI using the codemirror introspection messages
+- (0:45?) [x] (1:12) sagews: ui for introspection -- completions
+- (0:45?) [ ] sagews: ui for introspection -- docstring and source code
 
 - (1:30?) [ ] sagews: implement interacts using exec message
 - (0:15?) [ ] sagews: set path of session on startup to same as file.
+
+- (0:15?) [ ] sagews: make it so "sagews" are the worksheets (basically change what the new button makes)
 
 ---
 

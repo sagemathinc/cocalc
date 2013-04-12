@@ -1,3 +1,5 @@
+{IS_MOBILE}    = require("feature")
+
 misc = require('misc')
 
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
@@ -237,3 +239,89 @@ CodeMirror.defineExtension 'setValueNoJump', (value) ->
     @setCursor(pos)
     @scrollTo(scroll.left, scroll.top)
     @scrollIntoView(pos)
+
+
+
+
+# This is an improved rewrite of simple-hint.js from the CodeMirror3 distribution.
+CodeMirror.defineExtension 'showCompletions', (opts) ->
+    {from, to, completions, target, completions_size} = defaults opts,
+        from             : required
+        to               : required
+        completions      : required
+        target           : required
+        completions_size : 20
+
+    if completions.length == 0
+        return
+
+    start_cursor_pos = @getCursor()
+    that = @
+    insert = (str) ->
+        pos = that.getCursor()
+        from.line = pos.line
+        to.line   = pos.line
+        shift = pos.ch - start_cursor_pos.ch
+        from.ch += shift
+        to.ch   += shift
+        that.replaceRange(str, from, to)
+
+    if completions.length == 1
+        insert(target + completions[0])
+        return
+
+    sel = $("<select>").css('width','auto')
+    complete = $("<div>").addClass("salvus-completions").append(sel)
+    for c in completions
+        sel.append($("<option>").text(target + c))
+    sel.find(":first").attr("selected", true)
+    sel.attr("size", Math.min(completions_size, completions.length))
+    pos = @cursorCoords(from)
+
+    complete.css
+        left : pos.left   + 'px'
+        top  : pos.bottom + 'px'
+    $("body").append(complete)
+    # If we're at the edge of the screen, then we want the menu to appear on the left of the cursor.
+    winW = window.innerWidth or Math.max(document.body.offsetWidth, document.documentElement.offsetWidth)
+    if winW - pos.left < sel.attr("clientWidth")
+        complete.css(left: (pos.left - sel.attr("clientWidth")) + "px")
+    # Hide scrollbar
+    if completions.length <= completions_size
+        complete.css(width: (sel.attr("clientWidth") - 1) + "px")
+
+    done = false
+
+    close = () ->
+        if done
+            return
+        done = true
+        complete.remove()
+
+    pick = () ->
+        insert(sel.val())
+        close()
+        if not IS_MOBILE
+            setTimeout((() -> that.focus()), 50)
+
+    sel.blur(pick)
+    sel.dblclick(pick)
+    if not IS_MOBILE  # do not do this on mobile, since it makes it unusable!
+        sel.click(pick)
+    sel.keydown (event) ->
+        code = event.keyCode
+        switch code
+            when 13 # enter
+                pick()
+                return false
+            when 27
+                close()
+                that.focus()
+                return false
+            else
+                if code != 38 and code != 40 and code != 33 and code != 34 and not CodeMirror.isModifierKey(event)
+                    close()
+                    that.focus()
+                    # Pass to CodeMirror (e.g., backspace)
+                    that.triggerOnKeyDown(event)
+    sel.focus()
