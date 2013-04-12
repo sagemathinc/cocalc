@@ -13,6 +13,7 @@ After first deploy, top priority, in order:
 
 ---------------------------------------
 
+(1:00?) [ ] %md -- autolink detection
 
 (1:00?) [ ] "Any decent text editor should make email-style quoting easy. For example, with BBEdit, you can make a selection and choose Increase Quote Level from the Text menu."  (from markdown definition)
 

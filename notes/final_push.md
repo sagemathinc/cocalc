@@ -13,8 +13,12 @@
 
 - (0:15?) [x] (0:13+) sagews: make it so "sagews" are the worksheets (basically change what the new button makes)
 
+- (0:10?) [x] (0:22) hide line 0 and make line numbering start at 0 to avoid a lot of confusion for users.
+
 
 - (2:00?) [ ] sagews: implement interacts (using exec message)
+
+
 
 
 ---
@@ -54,8 +58,8 @@ PHASE 3:
 - (1:00?) [ ] Modify the editor find command to have the option of doing a "fuzzy search" using the diff-patch-match library?!
 
 
-- (0:20?) [ ] tooltip over connecting speed looks absur
-
+- (0:20?) [ ] tooltip over connecting speed looks absurd
+- (0:30?) [ ] call .show() on editor after resize, since codemirror formatting gets all messed up.
 
 
 @@@@@@@@@@@@@@@@@@@@@

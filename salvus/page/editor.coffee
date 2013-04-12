@@ -776,6 +776,7 @@ class CodeMirrorEditor extends FileEditor
             mode              : required
             delete_trailing_whitespace : true   # delete all trailing whitespace on save
             line_numbers      : true
+            first_line_number : 1
             indent_unit       : 4
             tab_size          : 4
             smart_indent      : true
@@ -788,22 +789,25 @@ class CodeMirrorEditor extends FileEditor
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 250   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 250   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval   : 500   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval     : 500   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
             completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
-        @element.find(".salvus-editor-codemirror-filename").text(
-                         misc.trunc(@filename.slice(@filename.length-20),16))
+
+        filename = @filename
+        if filename.length > 30
+            filename = "…" + filename.slice(filename.length-30)
+        @element.find(".salvus-editor-codemirror-filename").text(filename)
 
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
 
         make_editor = (node) =>
             return CodeMirror.fromTextArea node,
-                firstLineNumber : 1
+                firstLineNumber : opts.first_line_number
                 autofocus       : false
                 mode            : opts.mode
                 lineNumbers     : opts.line_numbers
@@ -1047,13 +1051,15 @@ class CodeMirrorEditor extends FileEditor
                 @codemirror1.focus()
 
 codemirror_session_editor = (editor, filename, extra_opts) ->
+    ext = filename_extension(filename)
+        
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
     opts =
         cursor_interval : E.opts.cursor_interval
         sync_interval   : E.opts.sync_interval
 
-    switch filename_extension(filename)
+    switch ext
         when "sagews"
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.execute

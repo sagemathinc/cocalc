@@ -36,7 +36,7 @@ Editor for files in a project
 
 .salvus-editor-codemirror-filename {
     margin-left:3em;
-    font-size: 14pt;
+    font-size: 10pt;
     font-weight: bold;
     color:#555;
 }
@@ -202,6 +202,11 @@ Editor for files in a project
     box-shadow: 2px 2px 1px #ddd;
     overflow-y:auto;
     white-space:normal;
+}
+
+/* Undo bootstrap's madness */
+li {
+    line-height:normal;
 }
 
 .sagews-output-html {

@@ -912,7 +912,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         c = cm.getCursor().line
         start = c
         end = c
-        while start > 1
+        while start > 0
             line = cm.getLine(start)
             if line.length > 0 and line[0] == MARKERS.cell
                 break
