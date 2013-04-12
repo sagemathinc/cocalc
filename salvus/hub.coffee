@@ -1161,7 +1161,12 @@ class Client extends EventEmitter
     mesg_codemirror_introspect: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
             if not err
-                session.introspect(@, mesg)
+                session.client_call(@, mesg)
+
+    mesg_codemirror_send_signal: (mesg) =>
+        @get_codemirror_session mesg, (err, session) =>
+            if not err
+                session.client_call(@, mesg)
 
 ##############################
 # Create the SockJS Server
@@ -1577,18 +1582,17 @@ class CodeMirrorSession
                         @local_hub.remove_multi_response_listener(resp.id)
                     client.push_to_client(resp)
 
-    introspect: (client, mesg) =>
+    client_call: (client, mesg) =>
         @local_hub.call
             mesg : mesg
             cb   : (err, resp) =>
                 if err
-                    winston.debug("Server error introspecting local codemirror session -- #{err} -- reconnecting")
+                    winston.debug("client_call: error -- #err -- reconnecting")
                     @reconnect () =>
                         resp = message.reconnect(id:mesg.id, reason:"error introspecting code-- #{err}")
                         client.push_to_client(resp)
                 else
                     client.push_to_client(resp)
-
 
 ##############################
 # LocalHub

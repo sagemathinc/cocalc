@@ -7,6 +7,9 @@
 - (0:20?) [x] (0:20) sagews: implement tab completion without UI using the codemirror introspection messages
 - (0:45?) [x] (1:12) sagews: ui for introspection -- completions
 - (0:45?) [x] (1:05) sagews: ui for introspection -- docstring and source code
+- (0:15?) [x] sagews: hub/ local hub: support sending signals to sage process; also make "esc" and "control-c" interrupt the process
+
+
 
 - (1:30?) [ ] sagews: implement interacts using exec message
 - (0:15?) [ ] sagews: set path of session on startup to same as file.
@@ -28,7 +31,6 @@
 - (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
 - (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
 - (0:30?) [ ] sagews: add a button group to the editor ui before "save" with play/interrupt/kill
-- (0:15?) [ ] sagews: local hub: support the session control messages; interrupt, kill, etc., via line-1 markers.; restart should be automatic
 - (0:30?) [ ] sagews/editor: proper filename display and truncation
 - (0:15?) [ ] sagews: handle copy/paste of output better (don't show codes)
 - (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
@@ -51,7 +53,7 @@ PHASE 3:
 - (1:00?) [ ] Modify the editor find command to have the option of doing a "fuzzy search" using the diff-patch-match library?!
 
 
-
+- (0:20?) [ ] tooltip over connecting speed looks absur
 
 
 

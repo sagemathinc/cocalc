@@ -778,10 +778,11 @@ class CodeMirrorSession
                 else
                     client_socket.write_mesg('json', resp)
 
-
-
-    send_signal_to_sage_session: (sig) =>
-        winston.debug("send_signal_to_sage_session -- todo")
+    send_signal_to_sage_session: (client_socket, mesg) =>
+        if @_sage_socket?
+            process_kill(@_sage_socket.pid, mesg.signal)
+        if mesg.id? and client_socket?
+            client_socket.write_mesg('json', message.signal_sent(id:mesg.id))
 
     sage_update: () =>
         # scan the string @content for execution requests, etc...
@@ -927,7 +928,7 @@ class CodeMirrorSession
             # send FIN packet so that Sage process may terminate naturally
             @_sage_socket.end()
             # ... then, brutally kill it if need be (a few seconds later). :-)
-            setTimeout( (() => @send_signal_to_sage_session(9)), 10000 )
+            setTimeout( (() => @send_signal_to_sage_session(signal:9)), 10000 )
 
     set_content: (value) =>
         @is_active = true
@@ -1151,6 +1152,8 @@ class CodeMirrorSessions
                 session.sage_execute_code(client_socket, mesg)
             when 'codemirror_introspect'
                 session.sage_introspect(client_socket, mesg)
+            when 'codemirror_send_signal'
+                session.send_signal_to_sage_session(client_socket, mesg)
             else
                 client_socket.write_mesg('json', message.error(id:mesg.id, error:"Unknown CodeMirror session event: #{mesg.event}."))
 
@@ -1374,19 +1377,7 @@ handle_mesg = (socket, mesg, handler) ->
             when 'write_file_to_project'
                 write_file_to_project(socket, mesg)
             when 'send_signal'
-                switch mesg.signal
-                    when 2
-                        signal = 'SIGINT'
-                    when 3
-                        signal = 'SIGQUIT'
-                    when 9
-                        signal = 'SIGKILL'
-                    else
-                        throw("only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
-                try
-                    process.kill(mesg.pid, signal)
-                catch e
-                    # it's normal to get an exception when sending a signal... to a process that doesn't exist.
+                process_kill(mesg.pid, mesg.signal)
                 if mesg.id?
                     socket.write_mesg('json', message.signal_sent(id:mesg.id))
             when 'terminate_session'
@@ -1398,6 +1389,22 @@ handle_mesg = (socket, mesg, handler) ->
     catch e
         winston.debug(new Error().stack)
         winston.error "ERROR: '#{e}' handling message '#{json(mesg)}'"
+
+process_kill = (pid, signal) ->
+    switch signal
+        when 2
+            signal = 'SIGINT'
+        when 3
+            signal = 'SIGQUIT'
+        when 9
+            signal = 'SIGKILL'
+        else
+            winston.debug("BUG -- process_kill: only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
+            return
+    try
+        process.kill(pid, signal)
+    catch e
+        # it's normal to get an exception when sending a signal... to a process that doesn't exist.
 
 
 server = net.createServer (socket) ->

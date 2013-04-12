@@ -700,6 +700,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt.css('width', (w-25) + 'px')
                     else if elt.hasClass('sagews-input')
                         elt.css('width', w + 'px')
+    interrupt: () =>
+        @send_signal(signal:2)
+        @close_on_action()
+
+    send_signal: (opts) =>
+        opts = defaults opts,
+            signal : 2
+            cb     : undefined
+        salvus_client.call
+            message: message.codemirror_send_signal
+                signal : opts.signal
+                session_uuid : @session_uuid
+            cb : opts.cb
 
     introspect: () =>
         pos  = @codemirror.getCursor()

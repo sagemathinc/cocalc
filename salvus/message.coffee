@@ -333,6 +333,14 @@ message
     line               : required
     preparse           : true
 
+# client --> hub --> local_hub
+message
+    event        : 'codemirror_send_signal'
+    id           : undefined
+    session_uuid : required
+    signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
+
+
 
 ############################################
 # Ping/pong
