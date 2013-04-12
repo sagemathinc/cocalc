@@ -823,8 +823,10 @@ class CodeMirrorEditor extends FileEditor
                     "Shift-Cmd-."       : (editor)   => @change_font_size(editor, +1)
                     "Shift-Cmd-,"       : (editor)   => @change_font_size(editor, -1)
                     "Shift-Tab"    : (editor)   => editor.unindent_selection()
-                    "Ctrl-Space"  : "indentAuto"
+                    "Ctrl-Space"   : "indentAuto"
                     "Tab"          : (editor)   => @press_tab_key(editor)
+                    "Esc"          : (editor) => @interrupt_key()
+                    "Ctrl-C"       : (editor) => @interrupt_key()
 
         @codemirror = make_editor(elt[0])
 
@@ -850,6 +852,9 @@ class CodeMirrorEditor extends FileEditor
 
     action_key: () =>
         @click_save_button()
+
+    interrupt_key: () =>
+        # does nothing for generic editor, but important, e.g., for the sage worksheet editor.
 
     press_tab_key: (editor) =>
         if editor.somethingSelected()
@@ -1047,6 +1052,7 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
         when "sagews"
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.execute
+            E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)

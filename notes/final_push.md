@@ -6,7 +6,7 @@
 ---
 - (0:20?) [x] (0:20) sagews: implement tab completion without UI using the codemirror introspection messages
 - (0:45?) [x] (1:12) sagews: ui for introspection -- completions
-- (0:45?) [ ] sagews: ui for introspection -- docstring and source code
+- (0:45?) [x] (1:05) sagews: ui for introspection -- docstring and source code
 
 - (1:30?) [ ] sagews: implement interacts using exec message
 - (0:15?) [ ] sagews: set path of session on startup to same as file.

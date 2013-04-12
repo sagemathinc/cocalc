@@ -662,6 +662,21 @@ class SynchronizedDocument extends EventEmitter
             @codemirror.refresh()
         @_refresh_soon = setTimeout(do_refresh, wait)
 
+    interrupt: () =>
+        @close_on_action()
+
+    close_on_action: (element) =>
+        if element?
+            if not @_close_on_action_elements?
+                @_close_on_action_elements = [element]
+            else
+                @_close_on_action_elements.push(element)
+        else if @_close_on_action_elements?
+            for e in @_close_on_action_elements
+                e.remove()
+            @_close_on_action_elements = []
+
+
 MARKERS = diffsync.MARKERS
 
 FLAGS = diffsync.FLAGS
@@ -692,13 +707,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @introspect_line
             line : line
             cb   : (err, mesg) =>
-                console.log(err, mesg)
                 if err
                     alert_message(type:"error", message:"Unable to introspect -- #{err}")
                 else if mesg.event == "error"
                     alert_message(type:"error", message:"Unable to introspect -- #{mesg.error}")
                 else
                     from = {line:pos.line, ch:pos.ch - mesg.target.length}
+                    elt = undefined
                     switch mesg.event
                         when 'introspect_completions'
                             @codemirror.showCompletions
@@ -708,6 +723,24 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 target           : mesg.target
                                 completions_size : @editor.opts.completions_size
 
+                        when 'introspect_docstring'
+                            elt = @codemirror.showIntrospect
+                                from      : from
+                                content   : mesg.docstring
+                                target    : mesg.target
+                                type      : "docstring"
+
+                        when 'introspect_source_code'
+                            elt = @codemirror.showIntrospect
+                                from      : from
+                                content   : mesg.source_code
+                                target    : mesg.target
+                                type      : "source-code"
+
+                        else
+                            console.log("BUG -- introspect_line -- unknown event #{mesg.event}")
+                    if elt?
+                        @close_on_action(elt)
 
     elt_at_mark: (mark) =>
         opts = mark.getOptions()
@@ -880,6 +913,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return {start:start, end:end}
 
     execute: () =>
+        @close_on_action()
         block = @current_input_block()
         cm = @codemirror
         x = cm.findMarksAt({line:block.start,ch:1})

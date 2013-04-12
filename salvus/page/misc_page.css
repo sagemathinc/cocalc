@@ -6,6 +6,7 @@
   overflow: hidden;
   box-shadow: 8px 8px 4px #bbb;
   border: 3px solid #99f;
+  border-radius: 5
 }
 
 .salvus-completions select {
@@ -15,4 +16,36 @@
   padding: 3;
   margin: 3;
   font-family: monospace;
+}
+
+.salvus-codemirror-introspect {
+    z-index : 100;
+    width:60%;
+    padding:0px;
+    box-shadow: 3px 6px 6px 6px #aaa;
+}
+
+.salvus-codemirror-introspect-title {
+    font-size        : 18pt;
+    padding          : 1ex;
+    border-bottom    : 1px solid grey;
+}
+
+.salvus-codemirror-introspect-content {
+    font-size        : 10pt;
+    font-family      : "Courier New";
+    background-color : #fffff8;
+    white-space      : pre;
+    padding          : 1ex;
+    max-height       : 600px;
+    overflow         : auto;
+}
+
+.salvus-codemirror-introspect-close {
+    font-size : 20pt;
+}
+
+.salvus-codemirror-introspect-close:hover {
+    color            : white;
+    background-color :  orange;
 }

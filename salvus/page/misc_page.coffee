@@ -2,6 +2,8 @@
 
 misc = require('misc')
 
+templates = $("#salvus-misc-templates")
+
 exports.is_shift_enter = (e) -> e.which is 13 and e.shiftKey
 exports.is_enter       = (e) -> e.which is 13 and not e.shiftKey
 exports.is_ctrl_enter  = (e) -> e.which is 13 and e.ctrlKey
@@ -325,3 +327,29 @@ CodeMirror.defineExtension 'showCompletions', (opts) ->
                     # Pass to CodeMirror (e.g., backspace)
                     that.triggerOnKeyDown(event)
     sel.focus()
+    return sel
+
+CodeMirror.defineExtension 'showIntrospect', (opts) ->
+    opts = defaults opts,
+        from      : required
+        content   : required
+        type      : required   # 'docstring', 'source-code' -- TODO: curr ignored
+        target    : required
+    editor = @
+    element = templates.find(".salvus-codemirror-introspect").clone()
+    element.find(".salvus-codemirror-introspect-title").text(opts.target)
+    element.find(".salvus-codemirror-introspect-content").text(opts.content)
+    element.find(".salvus-codemirror-introspect-close").click () -> element.remove()
+    pos = editor.cursorCoords(opts.from)
+    element.css
+        left : pos.left + 'px'
+        top  : pos.bottom + 'px'
+    $("body").prepend element
+    if not IS_MOBILE
+        element.draggable(handle: element.find(".salvus-cell-introspect-title")).resizable
+            alsoResize : element.find(".salvus-cell-introspect-content")
+            maxHeight: 650
+            handles : 'all'
+    element.focus()
+    return element
+
