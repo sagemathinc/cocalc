@@ -1,3 +1,8 @@
+
+[ ] setup new chromebook running salvus: 
+
+
+
 - (0:15?) [x] (0:13) codemirror execute code -- define message
 - (0:20?) [x] (1:00) codemirror exec message: route through hub properly
 - (0:20?) [x] (0:35) codemirror exec message: handle in local hub, and test in client

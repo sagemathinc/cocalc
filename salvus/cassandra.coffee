@@ -50,8 +50,9 @@ exports.create_schema = (conn, cb) ->
     t = misc.walltime()
     blocks = require('fs').readFileSync('db_schema.cql', 'utf8').split('CREATE')
     f = (s, cb) ->
+        console.log(s)
         if s.length > 0
-            conn.cql("CREATE "+s, [], (e,r)->console.log(e) if e; cb(null,0))
+            conn.cql("CREATE "+s, [], ((e,r)->console.log(e) if e; cb(null,0)))
         else
             cb(null, 0)
     async.mapSeries(blocks, f, (err, results) ->
@@ -964,8 +965,6 @@ class exports.Salvus extends exports.Cassandra
                         description : opts.description
                         public      : opts.public
                         quota       : opts.quota
-                        idle_timeout: opts.idle_timeout
-                        current_branch : 'master'
                     where : {project_id: opts.project_id}
                     json  : ['quota', 'location']
                     cb    : (error, result) ->

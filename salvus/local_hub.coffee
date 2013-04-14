@@ -30,7 +30,6 @@ misc           = require 'misc'
 misc_node      = require 'misc_node'
 winston        = require 'winston'
 temp           = require 'temp'
-sync_obj       = require 'sync_obj'
 
 diffsync       = require 'diffsync'
 

@@ -29,7 +29,6 @@ fs      = require 'fs'
 mime    = require('mime')
 
 # salvus libraries
-sync_obj = require('sync_obj')
 sage    = require("sage")               # sage server
 misc    = require("misc")
 {defaults, required} = require 'misc'

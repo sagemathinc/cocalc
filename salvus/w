@@ -1,1 +1,2 @@
+. salvus-env
 watch2 *.coffee page/*.html page/*.coffee page/*.css ./make_coffee
