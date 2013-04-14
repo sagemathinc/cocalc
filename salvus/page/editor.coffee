@@ -835,7 +835,7 @@ class CodeMirrorEditor extends FileEditor
                     "Ctrl-Space"   : "indentAuto"
                     "Tab"          : (editor)   => @press_tab_key(editor)
                     "Esc"          : (editor) => @interrupt_key()
-                    "Ctrl-C"       : (editor) => @interrupt_key()
+                    #"Ctrl-C"       : (editor) => @interrupt_key()  # this breaks copy on windows/linux!
 
         @codemirror = make_editor(elt[0])
 
@@ -1052,7 +1052,7 @@ class CodeMirrorEditor extends FileEditor
 
 codemirror_session_editor = (editor, filename, extra_opts) ->
     ext = filename_extension(filename)
-        
+
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
     opts =
