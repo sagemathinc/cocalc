@@ -1942,6 +1942,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @call
             mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, project_id:opts.project_id, path:opts.path)
             cb   : (err, resp) =>
+                winston.debug("new codemirror session: local_hub --> hub: #{err}, #{misc.to_json(resp)}")
                 if err
                     opts.cb(err)
                 else if resp.event == 'error'
