@@ -1,5 +1,14 @@
 
 
+- (0:15?) [x] (0:08)creating new file puts [object Object] at the end of the name.
+- (1:00?) [ ] why is it (mainly worksheets) so damned slow while typing?
+
+
+
+- (0:30?) [ ] control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
+
+- (1:00?) [ ] make a new plan to get this thing released, with no shortcuts, ASAP; teaching be damned. The nightmare has begun.
+
 - (0:20?) [ ] implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
 - (0:20?) [ ] make new markdown mode that leaves content of $'s untouched (wraps them all in spans?).
 - (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)

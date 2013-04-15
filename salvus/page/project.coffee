@@ -905,7 +905,7 @@ class ProjectPage
                         @display_tab("project-file-listing")
             return false
 
-        @new_file_tab.find("a[href=#new-file]").click(create_file)
+        @new_file_tab.find("a[href=#new-file]").click(() => create_file())
         @new_file_tab.find("a[href=#new-folder]").click(create_folder)
         @new_file_tab_input.keyup (event) =>
             if event.keyCode == 13
