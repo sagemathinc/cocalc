@@ -84,7 +84,9 @@ exports.uuid = ->
         return v.toString(16);
     });`
 
-exports.is_valid_uuid_string = (uuid) -> /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
+exports.is_valid_uuid_string = (uuid) ->
+    return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
+    # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
 
 # Return a very rough benchmark of the number of times f will run per second.
 exports.times_per_second = (f, max_time=5, max_loops=1000) ->

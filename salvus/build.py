@@ -164,6 +164,8 @@ def build_cassandra():
         print "copying over"
         cmd('cp -rv * "%s"'%target2, path)
         cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(TARGET, 'bin')), path)
+        print "building python library"
+        cmd("cd pylib && python setup.py install")
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start

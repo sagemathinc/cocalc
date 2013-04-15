@@ -789,8 +789,8 @@ class CodeMirrorEditor extends FileEditor
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 500   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 500   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval   : 3000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval     : 250   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
             completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
@@ -1061,6 +1061,10 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
 
     switch ext
         when "sagews"
+            # temporary.
+            opts =
+                cursor_interval : 2000
+                sync_interval : 50
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.execute
             E.interrupt_key = E.syncdoc.interrupt

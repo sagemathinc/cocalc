@@ -13,6 +13,7 @@ After first deploy, top priority, in order:
 
 ---------------------------------------
 
+(1:00?) [ ] make a 64x64 hidpi favicon -- see http://nashape.com/blog/2012/09/12/big-favicons/
 (1:00?) [ ] BUG -- downloading a file that starts with "." removes the ".".
 
 (1:00?) [ ] %md -- autolink detection

@@ -22,10 +22,9 @@ exports.setUp = (cb) ->
     async.series([
         (cb) -> conn.connect(cb)
         (cb) -> conn.cql("DROP KEYSPACE test", [], () -> cb(null))
-        (cb) -> conn.cql("CREATE KEYSPACE test WITH strategy_class = 'SimpleStrategy' AND strategy_options:replication_factor=3", [], cb)
+        (cb) -> conn.cql("CREATE KEYSPACE test WITH replication = {'class':'SimpleStrategy', 'replication_factor':3}", [], cb)
         (cb) -> conn.cql("USE test", [], cb)
         (cb) -> cassandra.create_schema(conn, cb)
-        (cb) -> conn.cql("UPDATE sage_servers SET running='true' WHERE address='localhost'", [], cb)
         (cb) -> database = new cassandra.Salvus(keyspace:'test', cb:cb)
         (cb) -> conn.close(); cb()
     ], cb)

@@ -46,6 +46,9 @@ exports.days_ago = (d) -> exports.hours_ago(24*d)
 DEFAULT_PLAN_ID = "13814000-1dd2-11b2-0000-fe8ebeead9df"
 
 
+exports.create_default_plan = (conn, cb) ->
+    conn.cql("UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=#{DEFAULT_PLAN_ID}",[],cb)
+
 exports.create_schema = (conn, cb) ->
     t = misc.walltime()
     blocks = require('fs').readFileSync('db_schema.cql', 'utf8').split('CREATE')
@@ -60,8 +63,7 @@ exports.create_schema = (conn, cb) ->
         winston.info(err)
         if not err
             # create default plan 0
-            conn.cql("UPDATE plans SET current='true', name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=?",
-                 [DEFAULT_PLAN_ID], (error, results) => cb(error) if error)
+            exports.create_default_plan(conn, (error, results) => cb(error) if error)
 
         cb(err)
     )
@@ -331,9 +333,15 @@ class exports.Cassandra extends EventEmitter
                         # TODO: check if fixed in new Helenus driver...
                         # This is not a CQL-injection vector though, since we explicitly write out each case:
                         if x
-                            where += "#{key} #{op} 'true'"
+                            where += "#{key} #{op} true"
                         else
-                            where += "#{key} #{op} 'false'"
+                            where += "#{key} #{op} false"
+                    else if misc.is_valid_uuid_string(x2)
+                        # The Helenus driver is completely totally
+                        # broken regarding uuid's (their own UUID type
+                        # doesn't work at all). (as of April 15, 2013)
+                        # This is of course scary/dangerous since what if x2 is accidentally a uuid!
+                        where += "#{key} #{op} #{x2}"
                     else
                         where += "#{key} #{op} ?"
                         vals.push(x2)
@@ -346,12 +354,18 @@ class exports.Cassandra extends EventEmitter
             if key in json
                 val = to_json(val)
             if val?  # only consider properties with defined values
-                if typeof(val) != 'boolean'
+                if misc.is_valid_uuid_string(val)
+                    # The Helenus driver is completely totally
+                    # broken regarding uuid's (their own UUID type
+                    # doesn't work at all). (as of April 15, 2013)
+                    # This is of course scary/dangerous since what if x2 is accidentally a uuid!
+                    set += "#{key}=#{val},"
+                else if typeof(val) != 'boolean'
                     set += "#{key}=?,"
                     vals.push(val)
                 else
                     # TODO: here we work around a driver bug :-(
-                    set += "#{key}='#{val}',"
+                    set += "#{key}=#{val},"
         return set.slice(0,-1)
 
     close: () ->
@@ -431,6 +445,9 @@ class exports.Cassandra extends EventEmitter
 
     cql: (query, vals, cb) ->
         #winston.debug("About to query db #{query}...")
+        # TODO: sometimes allow filtering is needed -- TODO -- fix this.
+        if query.slice(0,6).toLowerCase() == 'select'
+            query += '   ALLOW FILTERING'
         @conn.cql query, vals, (error, results) =>
             if error
                 winston.error("Query cql('#{query}','params=#{vals}') caused a CQL error:\n#{error}")
@@ -1148,9 +1165,14 @@ class exports.Salvus extends exports.Cassandra
             cb         : opts.cb
 
 
+quote_if_not_uuid = (s) ->
+    if misc.is_valid_uuid_string(s)
+        return "#{s}"
+    else
+        return "'#{s}'"
 
 array_of_strings_to_cql_list = (a) ->
-    '(' + ("'#{x}'" for x in a).join(',') + ')'
+    '(' + (quote_if_not_uuid(x) for x in a).join(',') + ')'
 
 exports.db_test1 = (n, m) ->
     # Store n large strings of length m in the uuid:value store, then delete them.

@@ -449,6 +449,7 @@ class SynchronizedDocument extends EventEmitter
             clearTimeout(@_sync_soon)
             delete @_sync_soon
         before = @dsync_client.live.string()
+        #console.log("sync started")
         @dsync_client.push_edits (err) =>
             #console.log("dsync_client result: ", err)
             if err
@@ -464,6 +465,7 @@ class SynchronizedDocument extends EventEmitter
                 cb?(err)
             else
                 # We just completed a successful sync.
+                #console.log("sync done")
                 @_sync_failures = 0
                 @_syncing = false
                 @emit 'sync'
