@@ -452,7 +452,7 @@ class exports.Cassandra extends EventEmitter
             if error
                 winston.error("Query cql('#{query}','params=#{vals}') caused a CQL error:\n#{error}")
             else
-                winston.debug("query completed")
+                #winston.debug("query completed")
             if error
                 @emit('error', error)
             cb?(error, results)

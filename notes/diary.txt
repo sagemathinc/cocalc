@@ -12087,3 +12087,57 @@ def mat(s):
 
 
 
+-----------
+
+Notes when upgrading cassandra:
+
+
+Have to remake database from scratch, since so much has changed.
+
+coffee -o node_modules/tests -c tests/*.coffee
+
+a = require('./node_modules/tests/test_cassandra'); a.setUp(console.log)
+
+
+ * CURRENT ISSUE -- cassandra.coffee's use of uuid's just don't work.  In what format must uuid's be given?
+ * Once that is sorted out and make an account, need to set the account to wstein in the database.
+
+Does it work with big blobs? no... but this *must* just be a timeout issue...
+
+c = new (require('cassandra').Cassandra)(keyspace:'test', timeout:60000)
+x = c.key_value_store(name:'x'); x.set(key:'x', value:(new Buffer(1e7)).toString('hex'))
+
+
+
+c = new (require('cassandra').Cassandra)(keyspace:'test');
+u = new (require('helenus').UUID)('fd88cf9c-798f-4fb8-8ce2-a509380fb7ea')
+# FAIL
+x = c.uuid_value_store(name:'x'); x.set(uuid:u, value:'x')
+
+#This WORKS!
+
+c.conn.cql("update uuid_value set value=? where uuid=fd88cf9c-798f-4fb8-8ce2-a509380fb7ea and name=?", ['y', 'y'], console.log)
+
+c.conn.cql("update uuid_value set value=? where uuid=#{u.hex} and name=?", ['z', 'z'], console.log)
+
+Directly with cqlsh?
+
+cqlsh:test> update uuid_value set  uuid='fd88cf9c-798f-4fb8-8ce2-a509380fb7ea'  where name='x' and value='x';
+Bad Request: Invalid STRING constant (fd88cf9c-798f-4fb8-8ce2-a509380fb7ea) for uuid of type uuid
+
+This worked:
+
+cqlsh:test> update uuid_value set value='x' where uuid=fd88cf9c-798f-4fb8-8ce2-a509380fb7ea and name='x';
+
+
+
+What about "cassandra-client"?  Totally broken; doesn't even support cql3???
+
+Connection = require('cassandra-client').Connection;
+con = new Connection(host:'localhost', port:9160, keyspace:'test')
+con.execute("update uuid_value set value=? where uuid=? and name=?", ['x', u, 'x'])
+
+
+
+
+----
