@@ -809,9 +809,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 mark = cm.findMarksAt({line:line, ch:1})[0]
                 uuid = cm.getRange({line:line,ch:1}, {line:line,ch:37})
                 if mark.uuid != uuid # uuid changed -- completely new output
+                    #console.log("uuid change: new x = ", x)
                     mark.processed = 38
+                    mark.uuid = uuid
                     @elt_at_mark(mark).html('')
                 if mark.processed < x.length
+                    #console.log("length change; x = ", x)
                     # new output to process
                     t = x.slice(mark.processed, x.length-1)
                     mark.processed = x.length

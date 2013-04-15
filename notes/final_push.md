@@ -1,8 +1,7 @@
 
 
-- (0:15?) [x] (0:08)creating new file puts [object Object] at the end of the name.
-- (1:00?) [ ] why is it (mainly worksheets) so damned slow while typing?
-
+- (0:15?) [x] (0:08) creating new file puts [object Object] at the end of the name.
+--> - (1:00?) [ ] why is it (mainly worksheets) so damned slow while typing?
 
 
 - (0:30?) [ ] control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
