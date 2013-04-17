@@ -19,3 +19,13 @@ How to setup SMC from scratch on a single new Linux machine:
    - Built /root/skel/.sagemathcloud, so new projects don't require a build.
 
 
+---
+# April 15, 2013
+
+I'm thinking about the end game.
+
+
+
+
+
+

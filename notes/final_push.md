@@ -1,20 +1,83 @@
 
 
-- (0:15?) [x] (0:08) creating new file puts [object Object] at the end of the name.
---> - (1:00?) [ ] why is it (mainly worksheets) so damned slow while typing?
+(3:00?) [ ]  Write code to dump the cassandra database to the filesystem (?), so I can upgrade current cloud.sagemath.org, etc.  This will be good to have in general for backups.  This shouldn't be *too* hard, now that I've fixed the schema...
 
+It turns out that this is very easy, because of
+   http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
+
+---
+
+Top missing features:
+
+- sync codemirror worksheets: implement everything for them
+- "publish": browse other people's projects, and collaborate in realtime
+- scalable deployment
+
+The options:
+
+- store highly compressed backup of project (with internal rsnapshot) in cassandra, but there will *always* be a copy of the project extracted on some machine, which is needed for people to browse it.
+
+or
+
+- have numerous copies of all projects with nginx pointed out them.
+
+or both, but with just one static copy, somehow organized... (?) at some point someday.
+
+
+---
+
+# Deployment Plan -- what do we need in place?
+
+This is pretty neat -- this should be how cloud starts -- just have a worksheet, and have it suck you into more:
+
+This is also a sketch of our architecture:
+
+    http://sketchboard.me/Xydh8wrYRCtR
+
+- each project is stored as a sequence of highly compressed blobs in the database
+- we use tar to store only modified files
+
+- storage of each user project somehow, either on FS or in database -- DATABASE.
+- modify admin.py config to properly set these (from data/local/cassandra/cassandra.yaml) to be large:
+    thrift_framed_transport_size_in_mb: 1500
+    thrift_max_message_length_in_mb: 1600
+
+- I tried using "xz" compression on `node_modules`, as a test:
+
+time tar -cf - node_modules | xz -9 -c - > foo.tar.xz
+
+It is only 5MB (20 seconds) versus 8.4MB (6 seconds) using "tar jcf".
+The original directory is 52MB.
+
+Try storing as a blob:
+
+- multiple hubs
+- cassandra deployed on multiple machines
+- backup of cassandra database (?)
+- redirect of cloud.sagemath.org (non-secure version)
+
+- easy way to upgrade everything, including forcing restart of localhubs:
+   -- push out new static code to 4 locations (for now).
+   -- update a ver
+
+
+---
+- (3:00?) [ ] upgrade haproxy and get rid of using stunnel.  This tutorial looks helpful:
+        http://blog.exceliance.fr/2012/09/10/how-to-get-ssl-with-haproxy-getting-rid-of-stunnel-stud-nginx-or-pound/
+Maybe as easy as this:
+              bind :443 ssl crt /etc/haproxy/site.pem
 
 - (0:30?) [ ] control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
-
-- (1:00?) [ ] make a new plan to get this thing released, with no shortcuts, ASAP; teaching be damned. The nightmare has begun.
-
 - (0:20?) [ ] implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
 - (0:20?) [ ] make new markdown mode that leaves content of $'s untouched (wraps them all in spans?).
 - (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)
 - (3:00?) [ ] sagews: implement interacts (using exec message)
 
 
+
 ---
+
+- (0:30?) [ ] account creation: checking that user clicked on the terms button isn't working.
 
 - (0:15?) [ ] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to "d".
 - (1:00?) [ ] sagews: hide/show output
@@ -520,3 +583,30 @@ input content of the cell
 
  (1:00?) [x] (3:00) upgrade cassandra, to see if I can store projects in db then.  Maybe old cassandra was just broken?!
 
+
+- (0:15?) [x] (0:08) creating new file puts [object Object] at the end of the name.
+- (1:00?) [x] (0:45) why is it (mainly worksheets) so damned slow while typing -- rendering everything every time.
+
+
+* figure out what the deal is with timeouts when storing large data:
+   - changing helenus timeout definitely doesn't help
+   - what about using python driver? *SAME* fail.  So it is on the server side.
+
+     import cassandra
+     cassandra.KEYSPACE = 'test'
+     cassandra.NODES=['localhost']
+     a = cassandra.UUIDValueStore('x')
+     a[u] = 'x'*(int(2*1e7))  # BOOM!
+    [Errno 104] Connection reset by peer
+    Connected to localhost
+
+I added 00 to the end of two constants in data/local/cassandra/cassandra.yaml and the problem vanished, so this
+is a server-side configuration issue, which is easy to resolve.  Thus storing user projects in the database is an
+option, at least.
+
+    # Frame size for thrift (maximum field length).
+    thrift_framed_transport_size_in_mb: 1500
+
+    # The max length of a thrift message, including all fields and
+    # internal thrift overhead.
+    thrift_max_message_length_in_mb: 1600

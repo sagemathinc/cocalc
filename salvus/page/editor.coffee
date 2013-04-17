@@ -205,6 +205,8 @@ class exports.Editor
         @project_path = opts.project_page.project.location.path
         @project_id = opts.project_page.project.project_id
         @element = templates.find(".salvus-editor").clone().show()
+
+
         @nav_tabs = @element.find(".nav-pills")
 
         @tabs = {}   # filename:{useful stuff}
@@ -790,7 +792,7 @@ class CodeMirrorEditor extends FileEditor
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
             cursor_interval   : 3000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 250   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            sync_interval     : 1000   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
             completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
@@ -1063,8 +1065,8 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
         when "sagews"
             # temporary.
             opts =
-                cursor_interval : 2000
-                sync_interval : 50
+                cursor_interval : 3000
+                sync_interval   : 1000
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.execute
             E.interrupt_key = E.syncdoc.interrupt

@@ -943,7 +943,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @set_cell_flag(marker, FLAGS.execute)
         @move_cursor_to_next_cell()
         @sync()
-        @sync_soon(1)
+
+    _diffsync_ready: (mesg) =>
+        if mesg.session_uuid == @session_uuid
+            console.log("sync now")
+            @sync()
 
     move_cursor_to_next_cell: () =>
         cm = @codemirror
