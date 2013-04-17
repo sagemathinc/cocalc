@@ -1,9 +1,48 @@
 
+- (0:45?) [ ] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to not.
+- (0:30?) [ ] sagews: visually change state of editor when code exec is requested ("x"), is executing ("r" mode)
+- (0:30?) [ ] sagews: tab on a new line tries to complete on empty instead of inserting a tab
+- (0:45?) [ ] sagews: evaluate and insert new cell at bottom should move cursor to new cell
+- (0:30?) [ ] sagews: handle paste of output better (don't ever show codes)
+- (1:00?) [ ] sagews: undo doesn't work in worksheets right now, at least after sync/compute (??)
+- (0:30?) [ ] sagews: control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
+- (0:30?) [ ] sagews: implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
+- (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatbility
+- (0:45?) [ ] sagews: play button to submit code to execute
+- (0:45?) [ ] sagews: button to interrupt code to execute
+- (0:45?) [ ] sagews: button to kill sage process
+- (3:00?) [ ] sagews: implement interacts (using exec message)
+- (1:00?) [ ] sagews: hide/show output
+- (1:00?) [ ] sagews: hide/show input
+- (1:00?) [ ] sagews: timer when evaluating code, but don't use jquery countdown, since it wastes resources at all times.
+- (0:45?) [ ] sagews: eliminate jquery countdown (while not breaking old worksheets)
+- (0:30?) [ ] sagews: proper filename display / truncation
+- (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
+- (0:30?) ] ] sagews: move the cursor when making new cell at the bottom.
+- (0:45?) [ ] sagews: control-enter evaluate and split
+- (0:30?) [ ] sagews: ctrl-; = split cell
+- (0:30?) [ ] sagews: ctrl-backspace = join cell
 
-(3:00?) [ ]  Write code to dump the cassandra database to the filesystem (?), so I can upgrade current cloud.sagemath.org, etc.  This will be good to have in general for backups.  This shouldn't be *too* hard, now that I've fixed the schema...
 
+
+@@@@@@@@@@@@
+
+
+
+- (1:30?) [ ] syncdoc: implement sophisticated cursor relocation code, instead of my funny special character code.  This should be possible now that we apply a patch in chuncks.
+- (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells (?)  NEW release! http://www.tinymce.com/
+- (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
+
+
+
+---
+
+- (0:30?) [ ] account creation: checking that user clicked on the terms button isn't working.
+- (3:00?) [ ]  Write code to dump the cassandra database to the filesystem (?), so I can upgrade current cloud.sagemath.org, etc.  This will be good to have in general for backups.  This shouldn't be *too* hard, now that I've fixed the schema...
 It turns out that this is very easy, because of
    http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
+
+
 
 ---
 
@@ -67,41 +106,6 @@ Try storing as a blob:
 Maybe as easy as this:
               bind :443 ssl crt /etc/haproxy/site.pem
 
-- (0:30?) [ ] control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
-- (0:20?) [ ] implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
-- (0:20?) [ ] make new markdown mode that leaves content of $'s untouched (wraps them all in spans?).
-- (0:45?) [ ] sagews: when code is submited, then executing, then done, have a visual indicator of each state (maybe via gutter)
-- (3:00?) [ ] sagews: implement interacts (using exec message)
-
-
-
----
-
-- (0:30?) [ ] account creation: checking that user clicked on the terms button isn't working.
-
-- (0:15?) [ ] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to "d".
-- (1:00?) [ ] sagews: hide/show output
-- (1:00?) [ ] sagews: hide/show input
-- (1:00?) [ ] sagews: implement first line metadata, since it will impact everything else.
-- (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
-- (0:30?) [ ] sagews: modify %md so that in $'s and $$'s the underscores are ignored.
-- (0:30?) [ ] sagews: add a button group to the editor ui before "save" with play/interrupt/kill
-- (0:30?) [ ] sagews/editor: proper filename display and truncation
-- (0:15?) [ ] sagews: handle copy/paste of output better (don't show codes)
-- (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
-- (0:30?) ] ] sagews: move the cursor when making new cell at the bottom.
-- (0:45?) [ ] sagews: alt-enter/control-enter evaluate in different ways
-- (0:30?) [ ] sagews: ctrl-; = split cell
-- (0:30?) [ ] sagews: ctrl-backspace = join cell
-
-
-
-
-
-- (1:30?) [ ] syncdoc: implement sophisticated cursor relocation code, instead of my funny special character code.  This should be possible now that we apply a patch in chuncks.
-
-
-
 PHASE 3:
 
 - (1:00?) [ ] sagews: modify search command to indicate result in output more sensibly (right now cursor gets big next to output)
@@ -118,15 +122,9 @@ PHASE 3:
 
 * (1:00?) [ ] FEATURE: make it so "create a new file" allows you to just paste a URL in the filename blank... to get a file from the web!
 
-* (0:30?) [ ] REMOVE: disable/hide the section feature; this will be moved to a higher level.
-
-* (0:15?) [ ] BUG: I broke interact; now editor part of cell is shown in output interact?!
-
 * (0:15?) [ ] BUG: need block of empty whitespace at bottom of cell.
-* (0:15?) [ ] BUG: moving cursor over cells with hidden input (?)
-* (0:30?) [ ] FEATURE: spinner to indicate when docs are loading... some are quite slow right now.
-* (0:20?) [ ] BIG BUG: worksheets -- the css position of tab completion is wrong; it doesn't move with the worksheet!
-* (0:30?) [ ] BUG: worksheet path is still not set correctly
+* (0:20?) [ ] BIG BUG: worksheets -- the css position of tab completion is wrong; it doesn't move with the worksheet! (not sure I care)
+* (0:30?) [x] BUG: worksheet path is still not set correctly
 * (0:30?) [ ] BUG: terminal path is not set correctly.
 * (1:00?) [ ] BUG: don't allow editing a file if it is above a certain relatively small size...
 * (0:45?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
