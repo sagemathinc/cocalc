@@ -838,6 +838,7 @@ class CodeMirrorEditor extends FileEditor
                     "Shift-Cmd-,"       : (editor)   => @change_font_size(editor, -1)
                     "Shift-Tab"    : (editor)   => editor.unindent_selection()
                     "Ctrl-Space"   : "indentAuto"
+                    "Ctrl-Shift-Space"   : "indentAuto"
                     "Tab"          : (editor)   => @press_tab_key(editor)
                     "Esc"          : (editor) => @interrupt_key()
                     #"Ctrl-C"       : (editor) => @interrupt_key()  # this breaks copy on windows/linux!
@@ -927,10 +928,15 @@ class CodeMirrorEditor extends FileEditor
 
     change_font_size: (cm, delta) =>
         elt = $(cm.getWrapperElement())
-        s = elt.css('font-size')
-        new_size = parseInt(s.slice(0,s.length-2)) + delta
+        size = elt.data('font-size')
+        if not size?
+            s = elt.css('font-size')
+            size = parseInt(s.slice(0,s.length-2))
+        new_size = size + delta
         if new_size > 1
             elt.css('font-size', new_size + 'px')
+            elt.data('font-size', new_size)
+        @show()
 
     toggle_split_view: (cm) =>
         @_split_view = not @_split_view

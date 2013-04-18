@@ -632,6 +632,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         super @editor, opts0, () =>
             @process_sage_updates()
 
+        @init_worksheet_buttons()
         @on 'sync', @process_sage_updates
 
         @editor.on 'show', (height) =>
@@ -657,6 +658,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @_apply_changeObj(changeObj)
                 @sync_soon()
                 @process_sage_updates()
+
+    init_worksheet_buttons: () =>
+        buttons = @editor.element.find(".salvus-editor-codemirror-worksheet-buttons")
+        buttons.show()
+        buttons.find("a[href=#execute]").click () =>
+
+            return false
 
     _is_dangerous_undo_step: (cm, changes) =>
         for c in changes

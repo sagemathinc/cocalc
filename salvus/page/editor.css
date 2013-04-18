@@ -195,8 +195,8 @@ Editor for files in a project
 .sagews-input:hover {
     cursor: pointer;
     cursor: hand;
-    background-color:#5bb75b;
-    background-image: linear-gradient(to bottom,#62c462,#51a351);
+    background-color:#0044cc;
+    background-image: linear-gradient(to bottom, #0088cc, #0044cc);
 }
 
 .sagews-output {

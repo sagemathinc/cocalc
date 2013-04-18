@@ -15,13 +15,16 @@
 
 - (0:45?) [x] (0:43) sagews: make it so cursor is never invisible... or better, if it enters a marked line, it is moved out automatically.  For example, put cursor at end of a cell input and type r or x then move cursor out, and we get a spinner!
 
-- (0:45?) [ ] sagews: play button to submit code to execute
+- (0:20?) [x] (0:20) editor: refresh after font resize
+
+--> - (0:45?) [ ] (0:20+) sagews: play button to submit code to execute
 - (0:45?) [ ] sagews: button to interrupt code to execute
 - (0:45?) [ ] sagews: button to kill sage process
 - (0:15?) [ ] sagews: button to split cell
 
 
 - (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
+
 
 
 - (1:00?) [ ] sagews: hide/show output
