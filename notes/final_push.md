@@ -7,8 +7,9 @@
 
 ---
 
-- (0:30?) [ ] sagews: handle undo/redo better -- dont' show codes
-- (1:00?) [ ] sagews: undo doesn't work in worksheets right now, at least after sync/compute (??)
+- (0:30?) [ ] sagews: handle undo/redo better -- dont' show codes; it just has too much in the undo buffer... but, I wonder if it would be better just to have a nice browser through the past states using the synclog. (?)
+
+
 - (0:30?) [ ] sagews: control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
 - (0:30?) [ ] sagews: implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
 - (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatbility

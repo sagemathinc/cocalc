@@ -76,64 +76,13 @@ class DiffSyncDoc
 
     patch_in_place: (p) =>
         if @opts.string
-            console.log("patching string in place")  # should never need to happen
+            console.log("patching string in place -- should never happen")
             @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
         else
             cm = @opts.cm
-
-            # We maintain our cursor position using the following trick:
-            #    1. Insert a non-used unicode character where the cursor is.
-            #    2. Apply the patches.
-            #    3. Find the unicode character, remove it, and put the cursor there.
-            #       If the unicode character vanished, just put the cursor at the coordinates
-            #       where it used to be (better than nothing).
-            # There is a more sophisticated approach described at http://neil.fraser.name/writing/cursor/
-            # but it is harder to implement given that we'll have to dive into the details of his
-            # patch_apply implementation.  This thing below took only a few minutes to implement.
-            scroll = cm.getScrollInfo()
-
-            cursor_anchor = cm.getCursor('anchor')
-            cursor_head   = cm.getCursor('head')
-            range = not (cursor_anchor.line == cursor_head.line and cursor_anchor.ch == cursor_head.ch)
-
-            c_anchor = "\uFE10"   # chosen from http://billposer.org/Linguistics/Computation/UnicodeRanges.html
-                                # since it is (1) undefined, and (2) looks like a cursor..
-            if range
-                c_head   = "\uFE11"
-
-            cm.replaceRange(c_anchor, cursor_anchor)
-            if range
-                # Have to put the other symbol on the *outside* of the selection, which depends on
-                # on whether anchor is before or after head.
-                if cursor_head.line > cursor_anchor.line or (cursor_head.line == cursor_anchor.line and cursor_head.ch >= cursor_anchor.ch)
-                    cm.replaceRange(c_head, {line:cursor_head.line, ch:cursor_head.ch+1})
-                else
-                    cm.replaceRange(c_head, {line:cursor_head.line, ch:cursor_head.ch})
-
             s = @string()
-
             x = diffsync.dmp.patch_apply(p, s)
             new_value = x[0]
-            #console.log("patch app info = ", x[1])
-            v = new_value.split('\n')
-            find_cursor = (pos0, chr) ->
-                line  = pos0.line
-                B = 5
-                # We first try an interval of radius B around the cursor, since
-                # that is where the cursor is most likely to be.
-                for k in [Math.max(0, line-B)...Math.max(0,Math.min(line-B, v.length))].concat([0...v.length])
-                    ch = v[k]?.indexOf(chr)
-                    if ch? and ch != -1
-                        return pos:{line:k, ch:ch}, marker:true
-                return pos:pos0, marker:false
-
-            anchor_pos = find_cursor(cursor_anchor, c_anchor)
-            if range
-                head_pos   = find_cursor(cursor_head, c_head)
-            else
-                head_pos = anchor_pos
-
-            #console.log(misc.to_json(diffsync.dmp.diff_main(s, new_value)))
 
             next_pos = (val, pos) ->
                 # This functions answers the question:
@@ -147,7 +96,9 @@ class DiffSyncDoc
                     return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
 
             pos = {line:0, ch:0}  # start at the beginning
-            for chunk in diffsync.dmp.diff_main(s, new_value)
+            diff = diffsync.dmp.diff_main(s, new_value)
+
+            for chunk in diff
                 #console.log(chunk)
                 op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
                 val = chunk[1] # the actual text to leave same, delete, or add
@@ -167,32 +118,6 @@ class DiffSyncDoc
                         #console.log("inserted new text at ", pos)
                         # Move our pointer to just beyond the text we just inserted.
                         pos = pos1
-
-            ###
-            if cm.getValue() != new_value
-                console.log("** BUG in new patch application code! ** ")
-                #console.log("cm val = '#{cm.getValue()}'")
-                #console.log("new_value = '#{new_value}'")
-                cm.setValue(new_value)
-            ###
-
-            cm.setSelection(anchor_pos.pos, head_pos.pos)
-            # Remove the markers: complicated since can't remove both simultaneously, and
-            # removing one impacts position of the other, when in same line.
-            pos = undefined
-            if anchor_pos.marker
-                pos = anchor_pos.pos
-                cm.replaceRange("", pos, {line:pos.line, ch:pos.ch+1})
-            if range and head_pos.marker
-                pos1 = head_pos.pos
-                if pos? and pos1.line == pos.line
-                    if pos1.ch > pos.ch
-                        pos1.ch -= 1
-                cm.replaceRange("", pos1, {line:pos1.line, ch:pos1.ch+1})
-
-            cm.scrollTo(scroll.left, scroll.top)
-            cm.scrollIntoView(anchor_pos.pos)  # just in case
-
 
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
@@ -259,11 +184,16 @@ class SynchronizedDocument extends EventEmitter
                 @codemirror.on 'change', (instance, changeObj) =>
                     #console.log("change #{misc.to_json(changeObj)}")
                     if changeObj.origin?
+                        if changeObj.origin == 'undo'
+                            @on_undo(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @ui_synced(false)
                             @sync_soon()
             # Done initializing and have got content.
             cb?()
+
+    on_undo: () =>
+        # do nothing in base class
 
     _add_listeners: () =>
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
@@ -711,6 +641,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
 
         @codemirror.on 'beforeChange', (instance, changeObj) =>
+            #console.log("beforeChange: #{misc.to_json(changeObj)}")
             if changeObj.origin == 'paste'
                 changeObj.cancel()
                 # WARNING: The Codemirror manual says "Note: you may not do anything
@@ -720,6 +651,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @_apply_changeObj(changeObj)
                 @sync_soon()
                 @process_sage_updates()
+
+    on_undo: () =>
+        #console.log("worksheet undo")
+        #console.log(@codemirror.getHistory())
 
 
     interrupt: () =>

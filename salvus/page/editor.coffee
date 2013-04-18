@@ -984,7 +984,8 @@ class CodeMirrorEditor extends FileEditor
         pos = @local_storage("cursor")
         if pos?
             @codemirror.setCursor(pos)
-            @codemirror.scrollIntoView({line:pos.line-5, ch:0})   # todo -- would be better to center rather than a magic "5".
+            # todo -- would be better to center rather than a magic "5".
+            @codemirror.scrollIntoView({line:pos.line-5, ch:0})
 
     show: () =>
         if not (@element? and @codemirror?)
