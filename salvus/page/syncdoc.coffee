@@ -255,10 +255,13 @@ class SynchronizedDocument extends EventEmitter
                 @ui_synced(true)
                 @editor.init_autosave()
                 @sync_soon()  # do a first sync asap.
+
                 @codemirror.on 'change', (instance, changeObj) =>
-                    if changeObj.origin? and changeObj.origin != 'setValue'
-                        @ui_synced(false)
-                        @sync_soon()
+                    #console.log("change #{misc.to_json(changeObj)}")
+                    if changeObj.origin?
+                        if changeObj.origin != 'setValue'
+                            @ui_synced(false)
+                            @sync_soon()
             # Done initializing and have got content.
             cb?()
 
@@ -693,7 +696,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         super @editor, opts0, () =>
             @process_sage_updates()
 
-        @.on 'sync', @process_sage_updates
+        @on 'sync', @process_sage_updates
+
         @editor.on 'show', (height) =>
             w = @cm_lines().width()
             for mark in @codemirror.getAllMarks()
@@ -704,6 +708,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt.css('width', (w-25) + 'px')
                     else if elt.hasClass('sagews-input')
                         elt.css('width', w + 'px')
+
+
+        @codemirror.on 'beforeChange', (instance, changeObj) =>
+            if changeObj.origin == 'paste'
+                changeObj.cancel()
+                # WARNING: The Codemirror manual says "Note: you may not do anything
+                # from a "beforeChange" handler that would cause changes to the
+                # document or its visualization."  I think this is OK below though
+                # since we just canceled the change.
+                @_apply_changeObj(changeObj)
+                @sync_soon()
+                @process_sage_updates()
+
+
     interrupt: () =>
         @send_signal(signal:2)
         @close_on_action()
@@ -841,10 +859,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     t = x.slice(mark.processed, x.length-1)
                     mark.processed = x.length
                     for s in t.split(MARKERS.output)
-                        try
-                            @process_new_output(mark, JSON.parse(s))
-                        catch e
-                            console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
+                        if s.length > 0
+                            try
+                                @process_new_output(mark, JSON.parse(s))
+                            catch e
+                                console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
