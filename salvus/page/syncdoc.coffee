@@ -804,7 +804,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             mark.clear()
                             @mark_cell_start(line)
                 flagstring = x.slice(37,x.length-1)
+                mark = cm.findMarksAt({line:line, ch:1})[0]
+                elt = @elt_at_mark(mark)
                 #console.log("flagstring='#{flagstring}'")
+                if 'x' in flagstring
+                    # execute requested
+                    elt.spin(true)
+                else if 'r' in flagstring
+                    # code is running on remote local hub.
+                    elt.spin(color:'green')
+                else
+                    # code is not running
+                    elt.spin(false)
+
 
             else if x[0] == MARKERS.output
                 marks = cm.findMarksAt({line:line, ch:1})
