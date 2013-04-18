@@ -668,6 +668,8 @@ class SynchronizedDocument extends EventEmitter
         @close_on_action()
 
     close_on_action: (element) =>
+        # Close popups (e.g., introspection) that are set to be closed when an
+        # action, such as "execute", occurs.
         if element?
             if not @_close_on_action_elements?
                 @_close_on_action_elements = [element]
@@ -905,6 +907,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1},
                 {shared:false, inclusiveLeft:false, inclusiveRight:false, atomic:true, replacedWith:input[0]})
+        mark.type = MARKERS.cell
 
         return mark
 
@@ -922,14 +925,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
-        #console.log("CREATING A MARK")
         start = {line:line, ch:0}
         end = {line:line, ch:cm.getLine(line).length}
-        #end = {line:line+1, ch:0}
-        #mark = cm.markText(start, end, {shared:false, inclusiveLeft:false, inclusiveRight: true, atomic:true, className:"sagews-output"})#, replacedWith:output[0]})
-        mark = cm.markText(start, end, {shared:false, inclusiveLeft:false, inclusiveRight: true, atomic:true,  replacedWith:output[0]})
-        mark.processed = 38  # how much of the output line we have processed  [marker]36-char-uuid[marker]
+        opts =
+            shared         : false
+            inclusiveLeft  : false
+            inclusiveRight : true
+            atomic         : true
+            replacedWith   : output[0]
+        mark = cm.markText(start, end, opts)
+        # mark.processed stores how much of the output line we
+        # have processed  [marker]36-char-uuid[marker]
+        mark.processed = 38
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
+        mark.type = MARKERS.output
         return mark
 
     current_input_block: () =>
@@ -951,15 +960,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return {start:start, end:end}
 
     execute: () =>
-        @close_on_action()
+        @close_on_action()  # close introspect popups
         block = @current_input_block()
-        cm = @codemirror
-        x = cm.findMarksAt({line:block.start,ch:1})
-        if x.length == 0
-            # create cell start mark
-            marker = @create_cell_start_marker(block.start)
-        else
-            marker = x[0]
+        # create or get cell start mark
+        marker = @cell_start_marker(block.start)
         @set_cell_flag(marker, FLAGS.execute)
         @move_cursor_to_next_cell()
         @sync()
@@ -975,10 +979,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
         while line < cm.lineCount()
             x = cm.getLine(line)
             if x.length > 0 and x[0] == MARKERS.cell
-                cm.setCursor({line:line+1, ch:0})
+                cm.setCursor(line:line+1, ch:0)
                 return
             line += 1
-
+        # there is no next cell, so we create one at the last non-whitespace line
+        while line > 0 and $.trim(cm.getLine(line)).length == 0
+            line -= 1
+        @cell_start_marker(line+1)
+        cm.setCursor(line:line+2, ch:0)
 
     ##########################################
     # Codemirror-based cell manipulation code
@@ -1008,12 +1016,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @set_cell_flagstring(marker, s)
 
     insert_new_cell: (line) =>
-        @codemirror.replaceRange('\n', {line:line,ch:0})
-        @create_cell_start_marker(line)
+        @codemirror.replaceRange('\n', {line:line, ch:0})
+        @cell_start_marker(line)
         @process_sage_updates()
 
-    create_cell_start_marker: (line) =>
+    cell_start_marker: (line) =>
         cm = @codemirror
+        x = cm.findMarksAt(line:line, ch:1)
+        if x.length > 0 and x[0].type == MARKERS.cell
+            # already properly marked
+            return x[0]
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
         uuid = misc.uuid()
