@@ -717,8 +717,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cb : opts.cb
 
     introspect: () =>
+        # TODO: obviously this wouldn't work in both sides of split worksheet.
         pos  = @codemirror.getCursor()
         line = @codemirror.getLine(pos.line).slice(0, pos.ch)
+        if pos.ch == 0 or line[pos.ch-1] in ")]}'\"\t "
+            @codemirror.tab_as_space()
+            return
         @introspect_line
             line : line
             cb   : (err, mesg) =>

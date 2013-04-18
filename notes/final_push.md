@@ -2,7 +2,8 @@
 - (0:45?) [x] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to not.
 - (0:30?) [x] (0:19) sagews: visually change state of editor when code exec is requested ("x"), is executing ("r" mode)
 
-- (0:30?) [ ] sagews: tab on a new line tries to complete on empty instead of inserting a tab
+--> - (0:30?) [ ] sagews: tab on a new line tries to complete on empty instead of inserting a tab
+
 - (0:45?) [ ] sagews: evaluate and insert new cell at bottom should move cursor to new cell
 - (0:30?) [ ] sagews: handle paste of output better (don't ever show codes)
 - (1:00?) [ ] sagews: undo doesn't work in worksheets right now, at least after sync/compute (??)
