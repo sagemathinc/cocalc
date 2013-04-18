@@ -181,11 +181,10 @@ Editor for files in a project
 /*********** Synchronized Worksheets *****************/
 
 .sagews-input {
-    /* border:solid 1px #e4e4e4; */
-    margin-top:-6px;
-    border-top: solid 1px black;
-    margin-left:-1ex;
-    height: 0px;
+    margin-top: -.7ex;
+    margin-left: -1ex;
+    height: 2px;
+    background-color: grey;
 }
 
 .sagews-input:hover {
