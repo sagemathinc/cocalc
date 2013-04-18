@@ -1823,7 +1823,7 @@ def show_3d_plot(obj, **kwds):
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
-def show(obj, svg=False, **kwds):
+def show(obj, svg=True, **kwds):
     if isinstance(obj, (Graphics, GraphicsArray)):
         show_2d_plot(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):

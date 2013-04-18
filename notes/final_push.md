@@ -7,7 +7,7 @@
 
 ---
 
-- (0:30?) [ ] sagews: handle undo/redo better -- dont' show codes; it just has too much in the undo buffer... but, I wonder if it would be better just to have a nice browser through the past states using the synclog. (?)
+- (0:30?) [ ] sagews: handle undo/redo better -- dont' show codes; it just has too much in the undo buffer...; removed custom cursor handling.  Current plan: mark some undo steps as "skip", and on undo, do another undo when hit a skip.
 
 
 - (0:30?) [ ] sagews: control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
@@ -28,7 +28,7 @@
 - (0:30?) [ ] sagews: ctrl-; = split cell
 - (0:30?) [ ] sagews: ctrl-backspace = join cell
 
-
+- (3:00?) [ ] syncdoc: browse through past versions -- "timeline view".
 
 @@@@@@@@@@@@
 

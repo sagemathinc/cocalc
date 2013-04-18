@@ -97,7 +97,6 @@ class DiffSyncDoc
 
             pos = {line:0, ch:0}  # start at the beginning
             diff = diffsync.dmp.diff_main(s, new_value)
-
             for chunk in diff
                 #console.log(chunk)
                 op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
@@ -118,6 +117,7 @@ class DiffSyncDoc
                         #console.log("inserted new text at ", pos)
                         # Move our pointer to just beyond the text we just inserted.
                         pos = pos1
+
 
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
@@ -186,13 +186,17 @@ class SynchronizedDocument extends EventEmitter
                     if changeObj.origin?
                         if changeObj.origin == 'undo'
                             @on_undo(instance, changeObj)
+                        if changeObj.origin == 'redo'
+                            @on_redo(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @ui_synced(false)
                             @sync_soon()
             # Done initializing and have got content.
             cb?()
 
-    on_undo: () =>
+    on_undo: (instance, changeObj) =>
+        # do nothing in base class
+    on_redo: (instance, changeObj) =>
         # do nothing in base class
 
     _add_listeners: () =>
@@ -652,10 +656,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @sync_soon()
                 @process_sage_updates()
 
-    on_undo: () =>
-        #console.log("worksheet undo")
-        #console.log(@codemirror.getHistory())
+    _is_dangerous_undo_step: (cm, changes) =>
+        for c in changes
+            if c.from.line == c.to.line
+                line = cm.getLine(c.from.line)
+                if line? and line.length > 0 and (line[0] == MARKERS.output or line[0] == MARKERS.cell)
+                    return true
+            for t in c.text
+                if MARKERS.output in t or MARKERS.cell in t
+                    return true
+        return false
 
+    on_undo: (cm, changeObj) =>
+        u = cm.getHistory().undone
+        if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
+            cm.undo()
+
+    on_redo: (cm, changeObj) =>
+        u = cm.getHistory().done
+        if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
+            cm.redo()
 
     interrupt: () =>
         @send_signal(signal:2)
