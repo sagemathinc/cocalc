@@ -933,13 +933,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
             end += 1
         return {start:start, end:end}
 
-    execute: () =>
+    execute: (opts) =>
+        opts = defaults opts,
+            advance : true
+            split   : false
+
         @close_on_action()  # close introspect popups
         block = @current_input_block()
         # create or get cell start mark
         marker = @cell_start_marker(block.start)
         @set_cell_flag(marker, FLAGS.execute)
-        @move_cursor_to_next_cell()
+
+        if opts.advance
+            @move_cursor_to_next_cell()
         @sync()
 
     _diffsync_ready: (mesg) =>

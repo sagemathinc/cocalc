@@ -822,7 +822,9 @@ class CodeMirrorEditor extends FileEditor
                 theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
                 extraKeys       :
-                    "Shift-Enter"  : (editor)   => @action_key()
+                    "Shift-Enter"  : (editor)   => @action_key(advance:true, split:false)
+                    "Alt-Enter"    : (editor)   => @action_key(advance:false, split:false)
+                    "Ctrl-Enter"   : (editor)   => @action_key(advance:true, split:true)
                     "Ctrl-S"       : (editor)   => @click_save_button()
                     "Cmd-S"        : (editor)   => @click_save_button()
                     "Ctrl-L"       : (editor)   => @goto_line(editor)
@@ -861,7 +863,7 @@ class CodeMirrorEditor extends FileEditor
 
         @_split_view = false
 
-    action_key: () =>
+    action_key: (opts) =>   # options are ignored by default; worksheets use them....
         @click_save_button()
 
     interrupt_key: () =>
@@ -962,8 +964,6 @@ class CodeMirrorEditor extends FileEditor
                     @save_button.addClass('disabled')
                     @has_unsaved_changes(false)
         return false
-
-
 
     init_change_event: () =>
         @codemirror.on 'change', (instance, changeObj) =>

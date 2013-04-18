@@ -4,14 +4,16 @@
 - (0:30?) [x] (0:12) sagews: tab on a new line tries to complete on empty instead of inserting a tab
 - (0:45?) [x] (1:00) sagews: evaluate and insert new cell at bottom should move cursor to new cell
 - (0:30?) [x] (0:51) sagews: handle paste better -- don't ever show codes
+- (0:30?) [x] (1:30) sagews: handle undo/redo better -- dont' show codes; it just has too much in the undo buffer...; removed custom cursor handling.  Current plan: mark some undo steps as "skip", and on undo, do another undo when hit a skip.  This took longer than expected, but seems OK.
+
 
 ---
 
-- (0:30?) [ ] sagews: handle undo/redo better -- dont' show codes; it just has too much in the undo buffer...; removed custom cursor handling.  Current plan: mark some undo steps as "skip", and on undo, do another undo when hit a skip.
+- (0:30?) [x] (0:10) sagews: implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
+
+- (0:45?) [ ] sagews: control-enter evaluate and split
 
 
-- (0:30?) [ ] sagews: control-o shortcut to open file doesn't work on chromebook, since it is already taken by chrome (control-shift-o works)
-- (0:30?) [ ] sagews: implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
 - (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatbility
 - (0:45?) [ ] sagews: play button to submit code to execute
 - (0:45?) [ ] sagews: button to interrupt code to execute
@@ -24,7 +26,6 @@
 - (0:30?) [ ] sagews: proper filename display / truncation
 - (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
 - (0:30?) ] ] sagews: move the cursor when making new cell at the bottom.
-- (0:45?) [ ] sagews: control-enter evaluate and split
 - (0:30?) [ ] sagews: ctrl-; = split cell
 - (0:30?) [ ] sagews: ctrl-backspace = join cell
 
