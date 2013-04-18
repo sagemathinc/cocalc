@@ -776,8 +776,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     process_sage_updates: (start) =>
         #console.log("processing Sage updates")
-        # For each line in the editor, check if it starts with a cell or output marker and is not already marked.
-        # If not marked, mark it appropriately.
+        # For each line in the editor (or starting at line start), check if the line
+        # starts with a cell or output marker and is not already marked.
+        # If not marked, mark it appropriately, and possibly process any
+        # changes to that line.
         cm = @codemirror
         if not start?
             start = 0
@@ -801,6 +803,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         if m.from.line != m.to.line
                             mark.clear()
                             @mark_cell_start(line)
+                flagstring = x.slice(37,x.length-1)
+                #console.log("flagstring='#{flagstring}'")
 
             else if x[0] == MARKERS.output
                 marks = cm.findMarksAt({line:line, ch:1})
@@ -946,7 +950,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
-            console.log("sync now")
+            #console.log("sync now")
             @sync()
 
     move_cursor_to_next_cell: () =>

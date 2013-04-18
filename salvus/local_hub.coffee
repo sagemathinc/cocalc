@@ -633,6 +633,7 @@ class CodeMirrorSession
         @path = mesg.path
         @session_uuid = mesg.session_uuid
         @_sage_output_cb = {}
+        @_sage_output_to_input_id = {}
 
         # The downstream clients of this local hub -- these are global hubs
         @diffsync_clients = {}
@@ -723,19 +724,18 @@ class CodeMirrorSession
     sage_execute_cell: (id) =>
         #winston.debug("exec request for cell with id #{id}")
         @sage_remove_cell_flag(id, diffsync.FLAGS.execute)
-        @sage_set_cell_flag(id, diffsync.FLAGS.running)
         {code, output_id} = @sage_initialize_cell_for_execute(id)
         #winston.debug("exec code '#{code}'; output id='#{output_id}'")
-        if code == ""
-            @sage_output_mesg(output_id, {done:true})
 
         @set_content(@content)
-
         if code != ""
+            @_sage_output_to_input_id[output_id] = id
+            @sage_set_cell_flag(id, diffsync.FLAGS.running)
             @sage_socket (err, socket) =>
                 if err
                     winston.debug("Error getting sage socket: #{err}")
-                    @sage_output_mesg(output_id, {stderr: "Error getting sage socket (unable to execute code): #{err}", done:true})
+                    @sage_output_mesg(output_id, {stderr: "Error getting sage socket (unable to execute code): #{err}"})
+                    @sage_remove_cell_flag(id, diffsync.FLAGS.running)
                     return
 
                 socket.write_mesg('json',
@@ -814,6 +814,19 @@ class CodeMirrorSession
 
 
     sage_output_mesg: (output_id, mesg) =>
+        cell_id = @_sage_output_to_input_id[output_id]
+        #winston.debug("output_id=#{output_id}; cell_id=#{cell_id}; map=#{misc.to_json(@_sage_output_to_input_id)}")
+        if mesg.done? and mesg.done and cell_id?
+            @sage_remove_cell_flag(cell_id, diffsync.FLAGS.running)
+            delete @_sage_output_to_input_id[output_id]
+            delete mesg.done # not needed
+            if mesg.stdout == "\n"   # not needed for proper display in notebook
+                delete mesg.stdout
+            if mesg.stderr == "\n"   # not needed for proper display in notebook
+                delete mesg.stderr
+            if misc.is_empty_object(mesg)
+                return
+
         i = @content.indexOf(diffsync.MARKERS.output + output_id)
         if i == -1
             # no such output cell anymore -- ignore (?) -- or we could make such a cell...?

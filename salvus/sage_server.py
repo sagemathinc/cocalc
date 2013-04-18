@@ -156,10 +156,10 @@ class Message(object):
     def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None):
         m = self._new('output')
         m['id'] = id
-        if stdout is not None: m['stdout'] = stdout
-        if stderr is not None: m['stderr'] = stderr
-        if html is not None: m['html'] = html
-        if tex is not None: m['tex'] = tex
+        if stdout is not None and len(stdout) > 0: m['stdout'] = stdout
+        if stderr is not None and len(stderr) > 0: m['stderr'] = stderr
+        if html is not None  and len(html) > 0: m['html'] = html
+        if tex is not None and len(tex)>0: m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if interact is not None: m['interact'] = interact
