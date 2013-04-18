@@ -37,7 +37,9 @@ message  = require('message')
 
 async = require('async')
 
-templates = $("#salvus-editor-templates")
+templates           = $("#salvus-editor-templates")
+cell_start_template = templates.find(".sagews-input")
+output_template     = templates.find(".sagews-output")
 
 class DiffSyncDoc
     # Define exactly one of cm or string.
@@ -873,16 +875,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm  = @codemirror
         x   = cm.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
-        input = $("<div class='sagews-input'></div>").css
+        input = cell_start_template.clone().css
             width : @cm_lines().width() + 'px'
 
         input.click () =>
             @insert_new_cell(mark.find().from.line)
 
-        mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1},
-                {shared:false, inclusiveLeft:false, inclusiveRight:false, atomic:true, replacedWith:input[0]})
+        opts =
+            shared         : false
+            inclusiveLeft  : false
+            inclusiveRight : true
+            atomic         : true
+            replacedWith   : input[0]
+        mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1}, opts)
         mark.type = MARKERS.cell
-
         return mark
 
     mark_output_line: (line) =>
@@ -893,7 +899,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm = @codemirror
 
         # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
-        output = $("<div class='sagews-output'>").css
+        output = output_template.clone().css
             width        : (@cm_lines().width()-25) + 'px'
             'max-height' : (.9*@cm_wrapper().height()) + 'px'
 
@@ -937,12 +943,28 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts = defaults opts,
             advance : true
             split   : false
+            execute : true  # if false, do whatever else we would do, but don't actually execute code.
+            cm      : @codemirror
 
         @close_on_action()  # close introspect popups
+        if opts.split
+            pos = opts.cm.getCursor()
+            @split_cell_at(pos)
+            if opts.execute
+                opts.split = false
+                opts.advance = false
+                opts.cm.setCursor(line:pos.line, ch:0)
+                @execute(opts)
+                @move_cursor_to_next_cell()
+                @execute(opts)
+            return
+
         block = @current_input_block()
         # create or get cell start mark
         marker = @cell_start_marker(block.start)
-        @set_cell_flag(marker, FLAGS.execute)
+
+        if opts.execute
+            @set_cell_flag(marker, FLAGS.execute)
 
         if opts.advance
             @move_cursor_to_next_cell()
@@ -952,6 +974,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.session_uuid == @session_uuid
             #console.log("sync now")
             @sync()
+
+    split_cell_at: (pos) =>
+        # Split the cell at the given pos.
+        @cell_start_marker(pos.line)
+        @sync_soon()
 
     move_cursor_to_next_cell: () =>
         cm = @codemirror

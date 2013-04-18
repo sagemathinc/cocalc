@@ -11,23 +11,28 @@
 
 - (0:30?) [x] (0:10) sagews: implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
 
-- (0:45?) [ ] sagews: control-enter evaluate and split
+- (0:45?) [x] (0:35) sagews: control-enter evaluate and split; ctrl-; = split cell
 
+- (0:45?) [x] (0:43) sagews: make it so cursor is never invisible... or better, if it enters a marked line, it is moved out automatically.  For example, put cursor at end of a cell input and type r or x then move cursor out, and we get a spinner!
 
-- (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatbility
 - (0:45?) [ ] sagews: play button to submit code to execute
 - (0:45?) [ ] sagews: button to interrupt code to execute
 - (0:45?) [ ] sagews: button to kill sage process
-- (3:00?) [ ] sagews: implement interacts (using exec message)
+- (0:15?) [ ] sagews: button to split cell
+
+
+- (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
+
+
 - (1:00?) [ ] sagews: hide/show output
 - (1:00?) [ ] sagews: hide/show input
+- (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatbility
+
+- (3:00?) [ ] sagews: implement interacts (using exec message)
 - (1:00?) [ ] sagews: timer when evaluating code, but don't use jquery countdown, since it wastes resources at all times.
 - (0:45?) [ ] sagews: eliminate jquery countdown (while not breaking old worksheets)
 - (0:30?) [ ] sagews: proper filename display / truncation
 - (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
-- (0:30?) ] ] sagews: move the cursor when making new cell at the bottom.
-- (0:30?) [ ] sagews: ctrl-; = split cell
-- (0:30?) [ ] sagews: ctrl-backspace = join cell
 
 - (3:00?) [ ] syncdoc: browse through past versions -- "timeline view".
 

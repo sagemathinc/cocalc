@@ -825,6 +825,7 @@ class CodeMirrorEditor extends FileEditor
                     "Shift-Enter"  : (editor)   => @action_key(advance:true, split:false)
                     "Alt-Enter"    : (editor)   => @action_key(advance:false, split:false)
                     "Ctrl-Enter"   : (editor)   => @action_key(advance:true, split:true)
+                    "Ctrl-;"       : (editor)   => @action_key(split:true, execute:false, advance:false)
                     "Ctrl-S"       : (editor)   => @click_save_button()
                     "Cmd-S"        : (editor)   => @click_save_button()
                     "Ctrl-L"       : (editor)   => @goto_line(editor)
