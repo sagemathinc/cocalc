@@ -41,7 +41,7 @@
 
 @@@@@@@@@@@@
 
-
+- (1:00) [ ] syncdoc: last edit sometimes doesn't cause other clients to sync -- broadcast doesn't happen or something (?)
 
 - (1:30?) [ ] syncdoc: implement sophisticated cursor relocation code, instead of my funny special character code.  This should be possible now that we apply a patch in chuncks.
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells (?)  NEW release! http://www.tinymce.com/

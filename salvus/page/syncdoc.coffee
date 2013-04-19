@@ -660,10 +660,17 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @process_sage_updates()
 
     init_worksheet_buttons: () =>
-        buttons = @editor.element.find(".salvus-editor-codemirror-worksheet-buttons")
+        buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
         buttons.show()
+        buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
         buttons.find("a[href=#execute]").click () =>
-
+            @execute()
+            return false
+        buttons.find("a[href=#interrupt]").click () =>
+            @interrupt()
+            return false
+        buttons.find("a[href=#kill]").click () =>
+            @kill()
             return false
 
     _is_dangerous_undo_step: (cm, changes) =>
@@ -688,8 +695,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.redo()
 
     interrupt: () =>
-        @send_signal(signal:2)
         @close_on_action()
+        @send_signal(signal:2)
+
+    kill: () =>
+        @close_on_action()
+        # Set any running cells to not running.
+        for marker in @codemirror.getAllMarks()
+            if marker.type == MARKERS.cell
+                @remove_cell_flag(marker,FLAGS.execute)
+                @remove_cell_flag(marker,FLAGS.running)
+        @send_signal(signal:3)
+        setTimeout(( () => @send_signal(signal:9) ), 500 )
+
 
     send_signal: (opts) =>
         opts = defaults opts,
@@ -947,7 +965,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             end += 1
         return {start:start, end:end}
 
-    execute: (opts) =>
+    execute: (opts={}) =>
         opts = defaults opts,
             advance : true
             split   : false

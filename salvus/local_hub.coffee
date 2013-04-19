@@ -668,7 +668,16 @@ class CodeMirrorSession
     ##############################
     sage_socket: (cb) =>  # cb(err, socket)
         if @_sage_socket?
-            cb(false, @_sage_socket); return
+            try
+                process.kill(@_sage_socket.pid, 0)
+                # process is still running fine
+                cb(false, @_sage_socket)
+                return
+            catch e
+                # sage process is dead.
+                @_sage_socket = undefined
+                @sage_update(kill:true)
+
         winston.debug("Opening a Sage session.")
         get_sage_socket (err, socket) =>
             if err
@@ -722,14 +731,15 @@ class CodeMirrorSession
                 cb(false, @_sage_socket)
 
     sage_execute_cell: (id) =>
-        #winston.debug("exec request for cell with id #{id}")
+        winston.debug("exec request for cell with id #{id}")
         @sage_remove_cell_flag(id, diffsync.FLAGS.execute)
         {code, output_id} = @sage_initialize_cell_for_execute(id)
-        #winston.debug("exec code '#{code}'; output id='#{output_id}'")
+        winston.debug("exec code '#{code}'; output id='#{output_id}'")
 
         @set_content(@content)
         if code != ""
             @_sage_output_to_input_id[output_id] = id
+            winston.debug("start running -- #{id}")
             @sage_set_cell_flag(id, diffsync.FLAGS.running)
             @sage_socket (err, socket) =>
                 if err
@@ -737,7 +747,7 @@ class CodeMirrorSession
                     @sage_output_mesg(output_id, {stderr: "Error getting sage socket (unable to execute code): #{err}"})
                     @sage_remove_cell_flag(id, diffsync.FLAGS.running)
                     return
-
+                winston.debug("Sending execute message to sage socket.")
                 socket.write_mesg('json',
                     message.execute_code
                         id       : output_id
@@ -795,9 +805,11 @@ class CodeMirrorSession
         if mesg.id? and client_socket?
             client_socket.write_mesg('json', message.signal_sent(id:mesg.id))
 
-    sage_update: () =>
+    sage_update: (opts={}) =>
+        opts = defaults opts,
+            kill : false    # if true, just remove all running flags.
         # scan the string @content for execution requests, etc...
-        winston.debug("sage_update")
+        winston.debug("sage_update: opts=#{misc.to_json(opts)}")
         i = 0
         while true
             i = @content.indexOf(diffsync.MARKERS.cell, i)
@@ -808,8 +820,15 @@ class CodeMirrorSession
                 break  # corrupt (TODO)
             id  = @content.slice(i+1,i+37)
             flags = @content.slice(i+37, j)
-            if diffsync.FLAGS.execute in flags
-                @sage_execute_cell(id)
+            if opts.kill
+                new_flags = ''
+                for t in flags
+                    if t != diffsync.FLAGS.running
+                        new_flags += t
+                @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
+            else
+                if diffsync.FLAGS.execute in flags
+                    @sage_execute_cell(id)
             i = j + 1
 
 
@@ -1003,10 +1022,12 @@ class CodeMirrorSession
                     changed = (before != @content)
                     if changed
                         # We also suggest to other clients to update their state.
-                        for id, ds_client of @diffsync_clients
-                            if socket.id != id
-                                ds_client.remote.sync_ready()
+                        @tell_clients_to_update(socket)
 
+    tell_clients_to_update: (exclude) =>
+        for id, ds_client of @diffsync_clients
+            if not exclude? or exclude.id != id
+                ds_client.remote.sync_ready()
 
     sync_filesystem: (cb) =>
         @is_active = true
@@ -1372,7 +1393,7 @@ project_exec = (socket, mesg) ->
 
 
 ###############################################
-# Handle a message form the client
+# Handle a message from the client
 ###############################################
 
 handle_mesg = (socket, mesg, handler) ->
