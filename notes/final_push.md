@@ -1,190 +1,62 @@
 
-- (0:45?) [x] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to not.
-- (0:30?) [x] (0:19) sagews: visually change state of editor when code exec is requested ("x"), is executing ("r" mode)
-- (0:30?) [x] (0:12) sagews: tab on a new line tries to complete on empty instead of inserting a tab
-- (0:45?) [x] (1:00) sagews: evaluate and insert new cell at bottom should move cursor to new cell
-- (0:30?) [x] (0:51) sagews: handle paste better -- don't ever show codes
-- (0:30?) [x] (1:30) sagews: handle undo/redo better -- dont' show codes; it just has too much in the undo buffer...; removed custom cursor handling.  Current plan: mark some undo steps as "skip", and on undo, do another undo when hit a skip.  This took longer than expected, but seems OK.
-
-
----
-
-- (0:30?) [x] (0:10) sagews: implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
-
-- (0:45?) [x] (0:35) sagews: control-enter evaluate and split; ctrl-; = split cell
-
-- (0:45?) [x] (0:43) sagews: make it so cursor is never invisible... or better, if it enters a marked line, it is moved out automatically.  For example, put cursor at end of a cell input and type r or x then move cursor out, and we get a spinner!
-
-- (0:20?) [x] (0:20) editor: refresh after font resize
-
---> - (0:45?) [ ] (0:20+) sagews: play button to submit code to execute
-- (0:45?) [ ] sagews: button to interrupt code to execute
-- (0:45?) [ ] sagews: button to kill sage process
-- (0:15?) [ ] sagews: button to split cell
-
-
-- (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
-
-
-
-- (1:00?) [ ] sagews: hide/show output
 - (1:00?) [ ] sagews: hide/show input
-- (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatbility
+- (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility
+- (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
-- (3:00?) [ ] sagews: implement interacts (using exec message)
+- (1:00?) [ ] gitls: upgrade to new version from Andrew -- https://mail.google.com/mail/u/0/#search/git-ls/13e158a70ab27771
+- (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
+- (1:00?) [ ] sagews: hide/show output
 - (1:00?) [ ] sagews: timer when evaluating code, but don't use jquery countdown, since it wastes resources at all times.
 - (0:45?) [ ] sagews: eliminate jquery countdown (while not breaking old worksheets)
 - (0:30?) [ ] sagews: proper filename display / truncation
 - (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
+- (0:30?) [ ] mathjax: make SVG the default... otherwise, worksheets suck; and people usually won't know to change the default.
+- (1:00?) [ ] syncdoc: last edit sometimes doesn't cause other clients to sync -- broadcast doesn't happen or something (?)
 
-- (3:00?) [ ] syncdoc: browse through past versions -- "timeline view".
-
-@@@@@@@@@@@@
-
-- (1:00) [ ] syncdoc: last edit sometimes doesn't cause other clients to sync -- broadcast doesn't happen or something (?)
-
-- (1:30?) [ ] syncdoc: implement sophisticated cursor relocation code, instead of my funny special character code.  This should be possible now that we apply a patch in chuncks.
-- (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells (?)  NEW release! http://www.tinymce.com/
 - (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
-
-
-
----
-
+- (3:00?) [ ] sagews: implement interacts (using exec message)
 - (0:30?) [ ] account creation: checking that user clicked on the terms button isn't working.
 - (3:00?) [ ]  Write code to dump the cassandra database to the filesystem (?), so I can upgrade current cloud.sagemath.org, etc.  This will be good to have in general for backups.  This shouldn't be *too* hard, now that I've fixed the schema...
-It turns out that this is very easy, because of
    http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
 
-
-
----
-
-Top missing features:
-
-- sync codemirror worksheets: implement everything for them
-- "publish": browse other people's projects, and collaborate in realtime
-- scalable deployment
-
-The options:
-
-- store highly compressed backup of project (with internal rsnapshot) in cassandra, but there will *always* be a copy of the project extracted on some machine, which is needed for people to browse it.
-
-or
-
-- have numerous copies of all projects with nginx pointed out them.
-
-or both, but with just one static copy, somehow organized... (?) at some point someday.
-
-
----
-
-# Deployment Plan -- what do we need in place?
-
-This is pretty neat -- this should be how cloud starts -- just have a worksheet, and have it suck you into more:
-
-This is also a sketch of our architecture:
-
-    http://sketchboard.me/Xydh8wrYRCtR
-
-- each project is stored as a sequence of highly compressed blobs in the database
-- we use tar to store only modified files
-
-- storage of each user project somehow, either on FS or in database -- DATABASE.
-- modify admin.py config to properly set these (from data/local/cassandra/cassandra.yaml) to be large:
-    thrift_framed_transport_size_in_mb: 1500
-    thrift_max_message_length_in_mb: 1600
-
-- I tried using "xz" compression on `node_modules`, as a test:
-
-time tar -cf - node_modules | xz -9 -c - > foo.tar.xz
-
-It is only 5MB (20 seconds) versus 8.4MB (6 seconds) using "tar jcf".
-The original directory is 52MB.
-
-Try storing as a blob:
-
-- multiple hubs
-- cassandra deployed on multiple machines
-- backup of cassandra database (?)
-- redirect of cloud.sagemath.org (non-secure version)
-
-- easy way to upgrade everything, including forcing restart of localhubs:
-   -- push out new static code to 4 locations (for now).
-   -- update a ver
-
-
----
-- (3:00?) [ ] upgrade haproxy and get rid of using stunnel.  This tutorial looks helpful:
-        http://blog.exceliance.fr/2012/09/10/how-to-get-ssl-with-haproxy-getting-rid-of-stunnel-stud-nginx-or-pound/
-Maybe as easy as this:
-              bind :443 ssl crt /etc/haproxy/site.pem
-
-PHASE 3:
-
+- (3:00?) [ ] way to browse other people's projects, collaborate, fork
 - (1:00?) [ ] sagews: modify search command to indicate result in output more sensibly (right now cursor gets big next to output)
 - (1:00?) [ ] Modify the editor find command to have the option of doing a "fuzzy search" using the diff-patch-match library?!
-
-
-- (0:20?) [ ] tooltip over connecting speed looks absurd
-- (0:30?) [ ] call .show() on editor after resize, since codemirror formatting gets all messed up.
-
-
-@@@@@@@@@@@@@@@@@@@@@
-
-* (?) [ ] IDEA: instead of having chat only in that file, could have a meta file with chat... and also editor preferences for that file (?)  NOT SURE.
-
+- (0:45?) [ ] tooltip over connecting speed looks absurd
 * (1:00?) [ ] FEATURE: make it so "create a new file" allows you to just paste a URL in the filename blank... to get a file from the web!
-
 * (0:15?) [ ] BUG: need block of empty whitespace at bottom of cell.
 * (0:20?) [ ] BIG BUG: worksheets -- the css position of tab completion is wrong; it doesn't move with the worksheet! (not sure I care)
-* (0:30?) [x] BUG: worksheet path is still not set correctly
 * (0:30?) [ ] BUG: terminal path is not set correctly.
 * (1:00?) [ ] BUG: don't allow editing a file if it is above a certain relatively small size...
 * (0:45?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
 * (0:30?) [ ] MAJOR BUG: when a worksheet asks for a non-existent session, it should failover and ask for a new session; right now it doesn't.
 * (1:00?) [ ] BUG: terminal sessions need to reconnect when they timeout!
-* (0:45?) [ ] BUG: when we get this in the `local_hub`, then the `sage_server` needs to be automatically started:
-    debug: connect_to_session -- type='sage'
-    debug: make a connection to a new sage session.
-    debug: Got sage server port = undefined
-    debug: can't determine sage server port; probably sage server not running
-
-* (1:30?) [ ] SYNC: rewrite page/sync\_worksheet.coffee to use worksheet diff/patch
-* (1:30?) [ ] SYNC: sync worksheet -- exactly copy all client/hub/local hub code for syncing codemirror sessions: CodeMirror |--> SageWorksheet test that it works and provides a parallel and 100% working sync system.
-* (1:30?) [ ] SYNC: modify editor to use sync\_worksheet  enhanced version of worksheet
 * (0:45?) [ ] SYNC: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
-* (0:45?) [ ] SYNC BUG: often we start editing a document on first sync the cursor moves back 4 characters.  Maybe take what I currently do and combine it with "fuzzy search"...?
-
+* (0:45?) [ ] SYNC BUG: often we start editing a document on *first sync* (only) the cursor moves back 4 characters. WHY?  (Facebook on android does this same thing, incidentally!)
 * (1:30?) [ ] BUG: entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code; latexing totally broken.
-
 * (1:30?) [ ] DEPLOY: define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
 * (1:30?) [ ] DEPLOY: deploy and test
 * (1:00?) [ ] SAFETY: setup rsnapshot so it is used for every account and noted in database.
-
 * (0:30?) [ ] BUG: file browser destroys long filenames now.
-
-
-@@@@
-
 * (0:15?) [ ] BUG: after pasting something big in terminal paste blank, page gets scrolled up all wrong.
-* (1:00?) [ ] FEATURE: default worksheet percent modes.
-* (1:00?) [ ] BUG: rewrite "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
+* (1:30?) [ ] sagews: default worksheet percent modes.
+* (1:00?) [ ] BUG in sage execute: "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
 * (0:30?) [ ] DESIGN: After doing certain operations with checked cells, uncheck them all: hide/show ops.
 * (0:45?) [ ] BUG: when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
 * (0:45?) [ ] BUG: move recent files (etc.) thing to the database; it's too frustrating/confusing tieing to the computer.
-* (0:30?) [ ] BUG: sometimes need more space the bottom of the worksheet
 * (0:30?) [ ] BUG: os x "control-o" should also accept command-o
 * (0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize and show top navbar events.
-* (0:45?) [ ] BUG -- editor synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up -- sync the window with focus?
 
 
 
+---
 
 # DONE
 
-(0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
-(0:30?) [x] Add a new tab at the top called "Explore" that is to the left of "Your Projects"
+* (0:45?) [x] BUG -- editor synchronization and split docs aren't done -- cursor/selection in bottom doc gets messed up -- sync the window with focus?
+* (0:30?) [x] BUG: worksheet path is still not set correctly
+*(0:30?)  [x] (0:14) apply security updates and reboot 01salvus (done) and 06salvus (done)
+* (0:30?) [x] Add a new tab at the top called "Explore" that is to the left of "Your Projects"
 
 = UX =
 (0:20?)  [x] (0:06) do not delete whitespace on line that contains the cursor (codemirror plugin)
@@ -622,3 +494,26 @@ option, at least.
     # The max length of a thrift message, including all fields and
     # internal thrift overhead.
     thrift_max_message_length_in_mb: 1600
+
+
+
+
+- (0:45?) [x] sagews: in local hub when code execution done, instead of including a message with done:true, change state of cell from "r" to not.
+- (0:30?) [x] (0:19) sagews: visually change state of editor when code exec is requested ("x"), is executing ("r" mode)
+- (0:30?) [x] (0:12) sagews: tab on a new line tries to complete on empty instead of inserting a tab
+- (0:45?) [x] (1:00) sagews: evaluate and insert new cell at bottom should move cursor to new cell
+- (0:30?) [x] (0:51) sagews: handle paste better -- don't ever show codes
+- (0:30?) [x] (1:30) sagews: handle undo/redo better -- dont' show codes; it just has too much in the undo buffer...; removed custom cursor handling.  Current plan: mark some undo steps as "skip", and on undo, do another undo when hit a skip.  This took longer than expected, but seems OK.
+
+- (0:30?) [x] (0:10) sagews: implement alt-enter to evaluate without moving the cursor, since I need that for teaching.
+
+- (0:45?) [x] (0:35) sagews: control-enter evaluate and split; ctrl-; = split cell
+
+- (0:45?) [x] (0:43) sagews: make it so cursor is never invisible... or better, if it enters a marked line, it is moved out automatically.  For example, put cursor at end of a cell input and type r or x then move cursor out, and we get a spinner!
+
+- (0:20?) [x] (0:20) editor: refresh after font resize
+
+- (0:45?) [x] (0:20+) sagews: play button to submit code to execute
+- (0:45?) [x] sagews: button to interrupt code to execute
+- (0:45?) [x] sagews: button to kill sage process
+- (0:15?) [x] sagews: button to split cell

@@ -880,13 +880,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.append(elt.mathjax(arg))
         if mesg.file?
             val = mesg.file
-            target = "/blobs/#{val.filename}?uuid=#{val.uuid}"
-            switch misc.filename_extension(val.filename)
-                # TODO: harden DOM creation below
-                when 'svg', 'png', 'gif', 'jpg'
-                    output.append($("<img src='#{target}' class='sagews-output-image'>"))
-                else
-                    output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
+            if not val.show? or val.show
+                target = "/blobs/#{val.filename}?uuid=#{val.uuid}"
+                switch misc.filename_extension(val.filename)
+                    # TODO: harden DOM creation below
+                    when 'svg', 'png', 'gif', 'jpg'
+                        output.append($("<img src='#{target}' class='sagews-output-image'>"))
+                    else
+                        output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
         if mesg.done? and mesg.done
             output.removeClass('sagews-output-running')
@@ -995,6 +996,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if opts.advance
             @move_cursor_to_next_cell()
         @sync()
+        setTimeout( (() => @sync_soon()), 100 )
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid

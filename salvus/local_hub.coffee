@@ -971,7 +971,8 @@ class CodeMirrorSession
             # send FIN packet so that Sage process may terminate naturally
             @_sage_socket.end()
             # ... then, brutally kill it if need be (a few seconds later). :-)
-            setTimeout( (() => @send_signal_to_sage_session(signal:9)), 10000 )
+            if @_sage_socket.pid?
+                setTimeout( (() => process_kill(@_sage_socket.pid, 9)), 3000 )
 
     set_content: (value) =>
         @is_active = true

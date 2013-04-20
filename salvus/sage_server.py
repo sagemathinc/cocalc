@@ -380,8 +380,8 @@ class Salvus(object):
         the server will include a header that tells the browser to
         download the file to disk instead of displaying it.
 
-        If show=False, also returns the url.  This can be useful for
-        constructing custom HTML that directly accesses blobs.
+        If show=False, only returns the url (and sends JSON message with show:false).
+        This can be useful for constructing custom HTML that directly accesses blobs.
         """
         file_uuid = self._conn.send_file(filename)
         self._flush_stdio()

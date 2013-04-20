@@ -1,3 +1,57 @@
+
+
+
+
+---
+The options:
+
+- store highly compressed backup of project (with internal rsnapshot) in cassandra, but there will *always* be a copy of the project extracted on some machine, which is needed for people to browse it.
+
+or
+
+- have numerous copies of all projects with nginx pointed out them.
+
+or both, but with just one static copy, somehow organized... (?) at some point someday.
+
+
+---
+
+# Deployment Plan -- what do we need in place?
+
+This is pretty neat -- this should be how cloud starts -- just have a worksheet, and have it suck you into more:
+
+This is also a sketch of our architecture:
+
+    http://sketchboard.me/Xydh8wrYRCtR
+
+- each project is stored as a sequence of highly compressed blobs in the database
+- we use tar to store only modified files
+
+- storage of each user project somehow, either on FS or in database -- DATABASE.
+- modify admin.py config to properly set these (from data/local/cassandra/cassandra.yaml) to be large:
+    thrift_framed_transport_size_in_mb: 1500
+    thrift_max_message_length_in_mb: 1600
+
+- I tried using "xz" compression on `node_modules`, as a test:
+
+time tar -cf - node_modules | xz -9 -c - > foo.tar.xz
+
+It is only 5MB (20 seconds) versus 8.4MB (6 seconds) using "tar jcf".
+The original directory is 52MB.
+
+Try storing as a blob:
+
+- multiple hubs
+- cassandra deployed on multiple machines
+- backup of cassandra database (?)
+- redirect of cloud.sagemath.org (non-secure version)
+
+- easy way to upgrade everything, including forcing restart of localhubs:
+   -- push out new static code to 4 locations (for now).
+   -- update a ver
+
+
+
 After first deploy, top priority, in order:
 
 * (0:30?) [ ] REMOVE: worksheet1.html -- why is it there?
@@ -11,7 +65,17 @@ After first deploy, top priority, in order:
 
 * (5:00?) [ ] FEATURE: consider swapping out term.js for hterm: https://github.com/macton/hterm
 
+
+- (3:00?) [ ] upgrade haproxy and get rid of using stunnel.  This tutorial looks helpful:
+        http://blog.exceliance.fr/2012/09/10/how-to-get-ssl-with-haproxy-getting-rid-of-stunnel-stud-nginx-or-pound/
+Maybe as easy as this:
+              bind :443 ssl crt /etc/haproxy/site.pem
+
 ---------------------------------------
+
+
+- (1:00?) [ ] syncdoc: store sync history for each file on filesystem (next to chat)
+- (2:00?) [ ] syncdoc: browse through past versions -- "some sort of timeline view".
 
 (1:00?) [ ] make a 64x64 hidpi favicon -- see http://nashape.com/blog/2012/09/12/big-favicons/
 (1:00?) [ ] BUG -- downloading a file that starts with "." removes the ".".

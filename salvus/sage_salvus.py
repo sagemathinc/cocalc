@@ -1427,7 +1427,7 @@ def cython(code=None, **kwds):
             html_filename = os.path.join(path, n)
     if html_filename is not None:
         html_url = salvus.file(html_filename, show=False)
-        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code >> </a>"%html_url)
+        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code &nbsp;<i class='icon-external-link'></i></a>"%html_url)
 
 cython.__doc__ += sage.misc.cython.cython.__doc__
 
