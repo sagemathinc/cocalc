@@ -664,7 +664,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
         buttons.find("a[href=#execute]").click () =>
-            @execute(execute:true, advance:true)
+            @action(execute:true, advance:true)
+            return false
+        buttons.find("a[href=#toggle-input]").click () =>
+            @action(execute:false, toggle_input:true)
+            return false
+        buttons.find("a[href=#toggle-output]").click () =>
+            @action(execute:false, toggle_output:true)
             return false
         buttons.find("a[href=#interrupt]").click () =>
             @interrupt()
@@ -876,8 +882,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @process_sage_updates(line)
                 return
 
+    ##################################################################################
+    # Toggle visibility of input/output portions of cells -
+    #    This is purely a client-side display function; it doesn't change
+    #    the document or cause any sync to happen!
+    ##################################################################################
+
+    # hide_input: hide input part of cell that has start marker at the given line.
     hide_input: (line) =>
-        #console.log("hiding input part of cell starting at #{line}")
         end = line+1
         cm = @codemirror
         while end < cm.lineCount()
@@ -895,13 +907,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             inclusiveRight : true
             atomic         : true
             replacedWith   : hide[0]
-        #console.log("NEW replacing from line #{line} to line #{end}")
         marker = cm.markText({line:line, ch:0}, {line:end-1, ch:cm.getLine(end-1).length}, opts)
         marker.type = 'hide_input'
         @editor.show()
 
     show_input: (line) =>
-        #console.log("showing input part of cell starting at #{line}")
         cm = @codemirror
         for marker in cm.findMarksAt({line:line+1, ch:0})
             if marker.type == 'hide_input'
@@ -909,14 +919,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @editor.show()
 
     hide_output: (line) =>
-        #console.log("hiding output part of cell starting at #{line}")
         mark = @find_output_mark(line)
         if mark?
             @elt_at_mark(mark).addClass('sagews-output-hide')
             @editor.show()
 
     show_output: (line) =>
-        #console.log("showing output part of cell starting at #{line}")
         mark = @find_output_mark(line)
         if mark?
             @elt_at_mark(mark).removeClass('sagews-output-hide')
@@ -995,7 +1003,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
 
         if cm.lineCount() < line + 2
-            cm.replaceRange('\n',{line:line+1,ch:0})
+            cm.replaceRange('\n', {line:line+1,ch:0})
         start = {line:line, ch:0}
         end = {line:line, ch:cm.getLine(line).length}
         opts =
@@ -1013,7 +1021,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         # Double click output to toggle input
         output.dblclick () =>
-            @execute(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+            @action(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
 
         return mark
 
@@ -1065,20 +1073,42 @@ class SynchronizedWorksheet extends SynchronizedDocument
             end += 1
         return {start:start, end:end}
 
-    execute: (opts={}) =>
+    action: (opts={}) =>
         opts = defaults opts,
-            pos     : undefined # if given, use this pos; otherwise, use where cursor is
+            pos     : undefined # if given, use this pos; otherwise, use where cursor is or all cells in selection
             advance : false
-            split   : false
+            split   : false # split cell at cursor (selection is ignored)
             execute : false # if false, do whatever else we would do, but don't actually execute code.
-            toggle_input : false  # if true; toggle whether input is displayed
-            toggle_output : false # if true; toggle whether output is displayed
+            toggle_input  : false  # if true; toggle whether input is displayed; ranges all toggle same as first
+            toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             cm      : @codemirror
 
         if opts.pos?
             pos = opts.pos
         else
-            pos = opts.cm.getCursor()
+            if opts.cm.somethingSelected() and not opts.split
+                start = opts.cm.getCursor('start').line
+                end   = opts.cm.getCursor('end').line
+                # Expand both ends of the selection to contain cell containing cursor
+                start = @current_input_block(start).start
+                end   = @current_input_block(end).end
+
+                # These @_toggle attributes are used to ensure that we toggle all the input and output
+                # view states so they end up the same.
+                @_toggle_input_range  = 'wait'
+                @_toggle_output_range = 'wait'
+
+                # For each line in the range, check if it is the beginning of a cell; if so do the action on it.
+                for line in [start..end]  # include end
+                    if opts.cm.getLine(line)[0] == MARKERS.cell
+                        opts.pos = {line:line, ch:0}
+                        @action(opts)
+
+                delete @_toggle_input_range
+                delete @_toggle_output_range
+                return
+            else
+                pos = opts.cm.getCursor()
 
         @close_on_action()  # close introspect popups
         if opts.split
@@ -1087,9 +1117,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 opts.split = false
                 opts.advance = false
                 opts.cm.setCursor(line:pos.line, ch:0)
-                @execute(opts)
+                @action(opts)
                 @move_cursor_to_next_cell()
-                @execute(opts)
+                @action(opts)
             else
                 @sync_soon()
             return
@@ -1101,16 +1131,33 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if opts.toggle_input
             if FLAGS.hide_input in @get_cell_flagstring(marker)
-                @remove_cell_flag(marker, FLAGS.hide_input)
+                # input is currently hidden
+                if @_toggle_input_range != 'hide'
+                    @remove_cell_flag(marker, FLAGS.hide_input)   # show input
+                if @_toggle_input_range == 'wait'
+                    @_toggle_input_range = 'show'
             else
-                @set_cell_flag(marker, FLAGS.hide_input)
+                # input is currently shown
+                if @_toggle_input_range != 'show'
+                    @set_cell_flag(marker, FLAGS.hide_input)  # hide input
+                if @_toggle_input_range == 'wait'
+                    @_toggle_input_range = 'hide'
+
             @sync_soon()
 
         if opts.toggle_output
             if FLAGS.hide_output in @get_cell_flagstring(marker)
-                @remove_cell_flag(marker, FLAGS.hide_output)
+                # output is currently hidden
+                if @_toggle_output_range != 'hide'
+                    @remove_cell_flag(marker, FLAGS.hide_output)  # show output
+                if @_toggle_output_range == 'wait'
+                    @_toggle_output_range = 'show'
             else
-                @set_cell_flag(marker, FLAGS.hide_output)
+                if @_toggle_output_range != 'show'
+                    @set_cell_flag(marker, FLAGS.hide_output)
+                if @_toggle_output_range == 'wait'
+                    @_toggle_output_range = 'hide'
+
             @sync_soon()
 
         if opts.execute

@@ -1087,7 +1087,7 @@ codemirror_session_editor = (editor, filename, extra_opts) ->
                 cursor_interval : 2000
                 sync_interval   : 250
             E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
-            E.action_key = E.syncdoc.execute
+            E.action_key = E.syncdoc.action
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         else
