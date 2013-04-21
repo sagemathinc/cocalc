@@ -74,9 +74,6 @@ Maybe as easy as this:
 ---------------------------------------
 
 
-- (1:00?) [ ] syncdoc: store sync history for each file on filesystem (next to chat)
-- (2:00?) [ ] syncdoc: browse through past versions -- "some sort of timeline view".
-
 (1:00?) [ ] make a 64x64 hidpi favicon -- see http://nashape.com/blog/2012/09/12/big-favicons/
 (1:00?) [ ] BUG -- downloading a file that starts with "." removes the ".".
 

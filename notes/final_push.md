@@ -1,11 +1,20 @@
 
-- (1:00?) [ ] sagews: hide/show input
+sagews: hide/show input/output
+
+
+- (0:15?) [x] (0:05) define new cell flags for hidden input
+- (0:30?) [ ] make client renderer support them (test them using raw mode).
+- (0:30?) [ ] sagews: implement some quick gui stuff or toggling input hide: keyboard shortcut
+- (0:30?) [ ] sagews: implement gui for toggling input hide: icon at top or gutter (?)
+- (0:30?) [ ] sagews: %hide mode -- support it.
+
+
 - (1:00?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
+- (1:00?) [ ] make "play button at top" execute all selected cells when a range is selected.
 
 - (1:00?) [ ] gitls: upgrade to new version from Andrew -- https://mail.google.com/mail/u/0/#search/git-ls/13e158a70ab27771
 - (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
-- (1:00?) [ ] sagews: hide/show output
 - (1:00?) [ ] sagews: timer when evaluating code, but don't use jquery countdown, since it wastes resources at all times.
 - (0:45?) [ ] sagews: eliminate jquery countdown (while not breaking old worksheets)
 - (0:30?) [ ] sagews: proper filename display / truncation
@@ -18,6 +27,9 @@
 - (0:30?) [ ] account creation: checking that user clicked on the terms button isn't working.
 - (3:00?) [ ]  Write code to dump the cassandra database to the filesystem (?), so I can upgrade current cloud.sagemath.org, etc.  This will be good to have in general for backups.  This shouldn't be *too* hard, now that I've fixed the schema...
    http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
+
+- (1:00?) [ ] syncdoc: store sync history for each file on filesystem (next to chat)
+- (2:00?) [ ] syncdoc: browse through past versions -- "some sort of timeline view".
 
 - (3:00?) [ ] way to browse other people's projects, collaborate, fork
 - (1:00?) [ ] sagews: modify search command to indicate result in output more sensibly (right now cursor gets big next to output)
