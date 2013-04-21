@@ -1257,7 +1257,7 @@ class Cell
     constructor : (opts) ->
         opts = defaults opts,
             output_mark : required
-
+            #cell_mark   : required # where cell starts
 
 
 ################################

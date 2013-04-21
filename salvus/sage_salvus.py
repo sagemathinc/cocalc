@@ -1072,23 +1072,20 @@ class Cell(object):
         """
         Hide the 'input' or 'output' component of a cell.
         """
-        if component not in ['input', 'output']:
-            raise ValueError, "component must be either 'input' or 'output'."
-        salvus.javascript("cell.hide('%s')"%component)
+        salvus.hide(component)
 
-    def show(self, component='editor'):
+    def show(self, component='input'):
         """
         Show the 'input' or 'output' component of a cell.
         """
-        if component not in ['input', 'output']:
-            raise ValueError, "component must be either 'input' or 'output'."
-        salvus.javascript("cell.show('%s')"%component)
+        salvus.show(component)
 
     def hideall(self):
         """
         Hide the input and output fields of the cell in which this code executes.
         """
-        salvus.javascript("cell.hide('input'); cell.hide('output')")
+        salvus.hide('input')
+        salvus.hide('output')
 
     #def input(self, val=None):
     #    """
@@ -1122,7 +1119,7 @@ class HTML:
     """
     def __call__(self, s, *args, **kwds):
         salvus.html(s, *args, **kwds)
-        cell.hide('editor')
+        cell.hide('input')
 
     def table(self):
         pass
@@ -1830,7 +1827,7 @@ def auto(s):
     """
     return s # the do-nothing block decorator.
 
-def hide(component='editor'):
+def hide(component='input'):
     """
     Hide a component of a cell.  By default, hide hides the the code
     editor part of the cell, but you can hide other parts by passing
@@ -2225,4 +2222,4 @@ def md(s):
     """
     import markdown2
     html(markdown2.markdown(s))
-    cell.hide('editor')
+    cell.hide('input')

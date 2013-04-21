@@ -153,7 +153,7 @@ class Message(object):
     def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None and len(stdout) > 0: m['stdout'] = stdout
@@ -167,6 +167,8 @@ class Message(object):
         if file is not None: m['file'] = file    # = {'filename':..., 'uuid':...}
         if done is not None: m['done'] = done
         if once is not None: m['once'] = once
+        if hide is not None: m['hide'] = hide
+        if show is not None: m['show'] = show
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -549,6 +551,24 @@ class Salvus(object):
         """
         kwds['coffeescript'] = True
         return self.javascript(*args, **kwds)
+
+    def _check_component(self, component):
+        if component not in ['input', 'output']:
+            raise ValueError("component must be 'input' or 'output'")
+
+    def hide(self, component):
+        """
+        Hide the given component ('input' or 'output') of the cell.
+        """
+        self._check_component(component)
+        self._conn.send_json(message.output(self._id, hide=component))
+
+    def show(self, component):
+        """
+        Show the given component ('input' or 'output') of the cell.
+        """
+        self._check_component(component)
+        self._conn.send_json(message.output(self._id, show=component))
 
     def notify(self, once=None, **kwds):
         """

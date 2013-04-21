@@ -142,7 +142,7 @@ message
     allow_cache  : true
 
 # Output resulting from evaluating code that is displayed by the browser.
-# sage_server --> hub_i --> hub_j --> browser
+# sage_server --> local hub --> hubs --> clients
 message
     event        : 'output'
     id           : undefined   # the id for this particular computation
@@ -150,7 +150,9 @@ message
     stderr       : undefined   # error text stream -- colored to indicate an error
     html         : undefined   # arbitrary html stream
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
-    javascript   : undefined   # javascript code evaluation stream -- see also 'execute_javascript' to run code that is not saved as part of the output
+    hide         : undefined   # 'input' or 'output'; hide display of given component of cell
+    show         : undefined   # 'input' or 'output'; show display of given component of cell
+    javascript   : undefined   # javascript code evaluation stream (see also 'execute_javascript' to run code directly in browser that is not part of the output stream).
     interact     : undefined   # create an interact layout defined by a JSON object
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
     file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://cloud.sagemath.org/blobs/filename?uuid=[the uuid]
