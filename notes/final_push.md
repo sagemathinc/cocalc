@@ -3,7 +3,8 @@ sagews: hide/show input/output
 
 
 - (0:15?) [x] (0:05) define new cell flags for hidden input
-- (0:30?) [ ] make client renderer support them (test them using raw mode).
+- (0:30?) [x] (1:55) make client renderer support them (test them using raw mode) -- this took a LONG time (?).
+
 - (0:30?) [ ] sagews: implement some quick gui stuff or toggling input hide: keyboard shortcut
 - (0:30?) [ ] sagews: implement gui for toggling input hide: icon at top or gutter (?)
 - (0:30?) [ ] sagews: %hide mode -- support it.

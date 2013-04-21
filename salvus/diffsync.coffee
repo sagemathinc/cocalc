@@ -554,9 +554,9 @@ exports.FLAGS =
     execute     : "x"   # request that cell be executed
     running     : "r"   # cell currently running
     interrupt   : "c"   # request execution of cell be interrupted
-    hide_input  : "h"   # hide input part of cell
+    hide_input  : "i"   # hide input part of cell
     hide_output : "o"   # hide output part of cell
-    
+
 
 
 

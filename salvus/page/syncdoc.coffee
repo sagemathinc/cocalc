@@ -804,26 +804,40 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             mark.clear()
                             continue
                         first = false
-                        # The mark should only span one line: insertions when applying a patch can unfortunately
-                        # mess this up, so we have to re-do any that accidentally span multiple lines.
+                        # The mark should only span one line:
+                        #   insertions when applying a patch can unfortunately mess this up,
+                        #   so we have to re-do any that accidentally span multiple lines.
                         m = mark.find()
                         if m.from.line != m.to.line
                             mark.clear()
                             @mark_cell_start(line)
-                flagstring = x.slice(37,x.length-1)
+                flagstring = x.slice(37, x.length-1)
                 mark = cm.findMarksAt({line:line, ch:1})[0]
-                elt = @elt_at_mark(mark)
-                #console.log("flagstring='#{flagstring}'")
-                if 'x' in flagstring
-                    # execute requested
-                    elt.spin(true)
-                else if 'r' in flagstring
-                    # code is running on remote local hub.
-                    elt.spin(color:'green')
-                else
-                    # code is not running
-                    elt.spin(false)
+                if flagstring != mark.flagstring
+                    if not mark.flagstring?
+                        mark.flagstring = ''
+                    # only do something if the flagstring changed.
+                    elt = @elt_at_mark(mark)
+                    if FLAGS.execute in flagstring
+                        # execute requested
+                        elt.spin(true)
+                    else if FLAGS.running in flagstring
+                        # code is running on remote local hub.
+                        elt.spin(color:'green')
+                    else
+                        # code is not running
+                        elt.spin(false)
+                    if FLAGS.hide_input in flagstring and FLAGS.hide_input not in mark.flagstring
+                        @hide_input(line)
+                    else if FLAGS.hide_input in mark.flagstring and FLAGS.hide_input not in flagstring
+                        @show_input(line)
 
+                    if FLAGS.hide_output in flagstring and FLAGS.hide_output not in mark.flagstring
+                        @hide_output(line)
+                    else if FLAGS.hide_output in mark.flagstring and FLAGS.hide_output not in flagstring
+                        @show_output(line)
+
+                    mark.flagstring = flagstring
 
             else if x[0] == MARKERS.output
                 marks = cm.findMarksAt({line:line, ch:1})
@@ -847,18 +861,64 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 @process_new_output(mark, JSON.parse(s))
                             catch e
                                 console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
+
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
                 cm.replaceRange('\n', {line:line, ch:ch})
                 @process_sage_updates(line)
                 return
+
             else if x.indexOf(MARKERS.cell) != -1
                 console.log("correcting merge/paste issue with cell marker (line=#{line})")
                 ch = x.indexOf(MARKERS.cell)
                 cm.replaceRange('\n', {line:line, ch:ch})
                 @process_sage_updates(line)
                 return
+
+    hide_input: (line) =>
+        #console.log("hiding input part of cell starting at #{line}")
+        end = line+1
+        cm = @codemirror
+        while end < cm.lineCount()
+            c = cm.getLine(end)[0]
+            if c == MARKERS.cell or c == MARKERS.output
+                break
+            end += 1
+
+        line += 1
+        end -= 1
+
+        hide = $("<span>")
+        opts =
+            shared         : false
+            inclusiveLeft  : true
+            inclusiveRight : true
+            atomic         : true
+            replacedWith   : hide[0]
+        #console.log("NEW replacing from line #{line} to line #{end}")
+        marker = cm.markText({line:line, ch:0}, {line:end, ch:0}, opts)
+        marker.type = 'hide_input'
+
+    show_input: (line) =>
+        #console.log("showing input part of cell starting at #{line}")
+        cm = @codemirror
+        for marker in cm.findMarksAt({line:line+1, ch:0})
+            if marker.type == 'hide_input'
+                marker.clear()
+
+    hide_output: (line) =>
+        #console.log("hiding output part of cell starting at #{line}")
+        mark = @find_output_mark(line)
+        if mark?
+            @elt_at_mark(mark).addClass('hide')
+
+    show_output: (line) =>
+        #console.log("showing output part of cell starting at #{line}")
+        mark = @find_output_mark(line)
+        if mark?
+            @elt_at_mark(mark).removeClass('hide')
+
 
     process_new_output: (mark, mesg) =>
         #console.log("new output: ", mesg)
@@ -947,6 +1007,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
         return mark
+
+    find_output_line: (line) =>
+        # Given a line number in the editor, return the nearest (greater or equal) line number that
+        # is an output line, or undefined if there is no output line before the next cell.
+        cm = @codemirror
+        if cm.getLine(line)[0] == MARKERS.output
+            return line
+        line += 1
+        while line < cm.lineCount() - 1
+            x = cm.getLine(line)
+            if x.length > 0
+                if x[0] == MARKERS.output
+                    return line
+                if x[0] == MARKERS.cell
+                    return undefined
+            line += 1
+        return undefined
+
+    find_output_mark: (line) =>
+        # Same as find_output_line, but returns the actual mark (or undefined).
+        n = @find_output_line(line)
+        if n?
+            for mark in @codemirror.findMarksAt({line:n, ch:0})
+                if mark.type == MARKERS.output
+                    return mark
+        return undefined
 
     current_input_block: () =>
         cm = @codemirror
