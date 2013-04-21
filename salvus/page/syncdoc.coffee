@@ -925,7 +925,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     process_new_output: (mark, mesg) =>
         #console.log("new output: ", mesg)
         output = @elt_at_mark(mark)
-        output.removeClass('sagews-output-hide')  # appearance of output shows output 
+        output.removeClass('sagews-output-hide')  # appearance of output shows output
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
         if mesg.stderr?
@@ -993,6 +993,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             width        : (@cm_lines().width()-25) + 'px'
             'max-height' : (.9*@cm_wrapper().height()) + 'px'
 
+
         if cm.lineCount() < line + 2
             cm.replaceRange('\n',{line:line+1,ch:0})
         start = {line:line, ch:0}
@@ -1009,6 +1010,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.processed = 38
         mark.uuid = cm.getRange({line:line, ch:1}, {line:line, ch:37})
         mark.type = MARKERS.output
+
+        # Double click output to toggle input
+        output.dblclick () =>
+            @execute(pos:{line:mark.find().from.line-1, ch:0}, toggle_input:true)
+
         return mark
 
     find_output_line: (line) =>
@@ -1037,19 +1043,23 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     return mark
         return undefined
 
-    current_input_block: () =>
+    # Returns start and end lines of the current input block (if line is undefined),
+    # or of the block that contains the given line number.
+    current_input_block: (line) =>
         cm = @codemirror
-        c = cm.getCursor().line
-        start = c
-        end = c
+        if not line?
+            line = cm.getCursor().line
+
+        start = line
+        end   = line
         while start > 0
-            line = cm.getLine(start)
-            if line.length > 0 and line[0] == MARKERS.cell
+            x = cm.getLine(start)
+            if x.length > 0 and x[0] == MARKERS.cell
                 break
             start -= 1
         while end < cm.lineCount()-1
-            line = cm.getLine(end)
-            if line.length > 0 and line[0] == MARKERS.cell
+            x = cm.getLine(end)
+            if x.length > 0 and x[0] == MARKERS.cell
                 end -= 1
                 break
             end += 1
@@ -1057,17 +1067,21 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     execute: (opts={}) =>
         opts = defaults opts,
+            pos     : undefined # if given, use this pos; otherwise, use where cursor is
             advance : false
             split   : false
             execute : false # if false, do whatever else we would do, but don't actually execute code.
             toggle_input : false  # if true; toggle whether input is displayed
             toggle_output : false # if true; toggle whether output is displayed
             cm      : @codemirror
-        #console.log("execute: ", opts)
+
+        if opts.pos?
+            pos = opts.pos
+        else
+            pos = opts.cm.getCursor()
 
         @close_on_action()  # close introspect popups
         if opts.split
-            pos = opts.cm.getCursor()
             @split_cell_at(pos)
             if opts.execute
                 opts.split = false
@@ -1078,7 +1092,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @execute(opts)
             return
 
-        block = @current_input_block()
+        block = @current_input_block(pos.line)
 
         # create or get cell start mark
         marker = @cell_start_marker(block.start)

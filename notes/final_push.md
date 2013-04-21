@@ -4,10 +4,11 @@ sagews: hide/show input/output
 - (0:30?) [x] (1:55) make client renderer support them (test them using raw mode) -- this took a LONG time (?).
 
 - (0:30?) [x] (0:38) sagews: toggling input/output hide: via keyboard shortcut
+- (0:20?) [x] (0:18) sagews: double click output to toggle input
+
 - (0:30?) [ ] sagews: implement gui for toggling input hide: icon at top or gutter (?)
 - (0:30?) [ ] sagews: %hide mode / command -- support it (so %md works with it)
 - (0:30?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility; also ensure autohide works.
-- (0:30?) [ ] sagews: double click output to show input
 
 ---
 ## Deployment
