@@ -1090,6 +1090,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @execute(opts)
                 @move_cursor_to_next_cell()
                 @execute(opts)
+            else
+                @sync_soon()
             return
 
         block = @current_input_block(pos.line)
@@ -1102,21 +1104,24 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @remove_cell_flag(marker, FLAGS.hide_input)
             else
                 @set_cell_flag(marker, FLAGS.hide_input)
+            @sync_soon()
 
         if opts.toggle_output
             if FLAGS.hide_output in @get_cell_flagstring(marker)
                 @remove_cell_flag(marker, FLAGS.hide_output)
             else
                 @set_cell_flag(marker, FLAGS.hide_output)
-
+            @sync_soon()
 
         if opts.execute
             @set_cell_flag(marker, FLAGS.execute)
+            @sync()
+            setTimeout( (() => @sync_soon()), 50 )
+            setTimeout( (() => @sync_soon()), 200 )
 
         if opts.advance
             @move_cursor_to_next_cell()
-        @sync()
-        setTimeout( (() => @sync_soon()), 100 )
+
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
