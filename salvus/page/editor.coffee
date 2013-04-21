@@ -40,10 +40,12 @@ codemirror_associations =
     js     : 'javascript'
     lua    : 'lua'
     md     : 'markdown'
+    pl     : 'text/x-perl'
     r      : 'r'
     rst    : 'rst'
+    rb     : 'text/x-ruby'
     sage   : 'python'
-    sagews : 'python'
+    sagews : 'sagews'
     scala  : 'text/x-scala'
     sh     : 'shell'
     spyx   : 'python'
@@ -106,6 +108,40 @@ for ext in ['png', 'jpg', 'gif', 'svg']
 file_associations['pdf'] =
     editor : 'pdf'
     opts   : {}
+
+
+# Multiplex'd worksheet mode
+
+MARKERS = require('diffsync').MARKERS
+
+sagews_decorator_modes = [
+    ['coffeescript', 'coffeescript'],
+    ['cython'      , 'python'],
+    ['file'        , 'text'],
+    ['html'        , 'htmlmixed'],
+    ['javascript'  , 'javascript'],
+    ['latex'       , 'stex']
+    ['lisp'        , 'ecl'],
+    ['md'          , 'markdown'],
+    ['perl'        , 'text/x-perl'],
+    ['python3'     , 'python'],
+    ['python'      , 'python'],
+    ['ruby'        , 'text/x-ruby'],   # !! more specific name must be first or get mismatch!
+    ['r'           , 'r'],
+    ['sage'        , 'python'],
+    ['script'      , 'shell'],
+    ['sh'          , 'shell'],
+]
+
+
+
+
+CodeMirror.defineMode "sagews", (config) ->
+    console.log("sagews define mode being called!")
+    options = []
+    for x in sagews_decorator_modes
+        options.push(open:"%" + x[0], close : MARKERS.cell, mode : CodeMirror.getMode(config, x[1]))
+    return CodeMirror.multiplexingMode(CodeMirror.getMode(config, "python"), options...)
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.

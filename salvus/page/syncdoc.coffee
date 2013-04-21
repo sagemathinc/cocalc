@@ -819,7 +819,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             @mark_cell_start(line)
                 flagstring = x.slice(37, x.length-1)
                 mark = cm.findMarksAt({line:line, ch:1})[0]
-                if flagstring != mark.flagstring
+                # It's possible mark isn't defined above, in case of some weird file corruption (say
+                # intentionally by the user).  That's why we have "mark?" in the condition below.
+                if mark? and flagstring != mark.flagstring
                     if not mark.flagstring?
                         mark.flagstring = ''
                     # only do something if the flagstring changed.
