@@ -11,9 +11,7 @@ sagews: hide/show input/output
 
 - (0:30?) [x] (0:37) sagews: re-implementing the javascript and coffeescript commands
 
---> - (1:00?) [ ] sagews: make salvus.hide/show work via new output message by directly modifying doc on local hub; safer, more secure, and far more efficient
-
-- (0:15?) [ ] rewrite %hide mode / command -- support it (so %md works with it)
+- (1:00?) [x] (1:00) sagews: make salvus.hide/show work via new output message by directly modifying doc on local hub; safer, more secure, and far more efficient; rewrite %hide mode / command -- support it (so %md works with it)
 
 - (0:30?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility; also ensure autohide works.
 
@@ -22,6 +20,8 @@ sagews: hide/show input/output
 ---
 ## Deployment
 
+- (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
+
 - (1:00?) [ ] deploy: create the file that describes topology of everything.
 - (1:00?) [ ] deploy: create VM template for running user code
 - (2:00?) [ ] deploy: implement ability to backup projects compressed to the database.  E.g., any project never backed up or modified in the last n hours.... gets saved to DB as *highly* compressed tarball.
@@ -29,7 +29,6 @@ sagews: hide/show input/output
 - (1:00?) [ ] deploy: upgrade db on cloud.sagemath.org
 - (1:00?) [ ] deploy: run code that backs up all projects to DB
 - (1:00?) [ ] deploy: copy database over to new machines
-- (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work
 - (1:00?) [ ] deploy: setup full-size lvm for the 4 machines (all identical)
 - (1:00?) [ ] deploy: setup password auth and security for cassandra on machines, as added level of protection.
 

@@ -835,16 +835,45 @@ class CodeMirrorSession
     sage_output_mesg: (output_id, mesg) =>
         cell_id = @_sage_output_to_input_id[output_id]
         #winston.debug("output_id=#{output_id}; cell_id=#{cell_id}; map=#{misc.to_json(@_sage_output_to_input_id)}")
+
+        if mesg.hide?
+            # Hide a single component (also, do not record the message itself in the
+            # document, just its impact).
+            flag = undefined
+            if mesg.hide == 'input'
+                flag = diffsync.FLAGS.hide_input
+            else if mesg.hide == 'output'
+                flag = diffsync.FLAGS.hide_output
+            if flag?
+                @sage_set_cell_flag(cell_id, flag)
+            else
+                winston.debug("invalid hide component: '#{mesg.hide}'")
+            delete mesg.hide
+
+        if mesg.show?
+            # Show a single component of cell.
+            flag = undefined
+            if mesg.show== 'input'
+                flag = diffsync.FLAGS.hide_input
+            else if mesg.show == 'output'
+                flag = diffsync.FLAGS.hide_output
+            if flag?
+                @sage_remove_cell_flag(cell_id, flag)
+            else
+                winston.debug("invalid hide component: '#{mesg.hide}'")
+            delete mesg.show
+
         if mesg.done? and mesg.done and cell_id?
             @sage_remove_cell_flag(cell_id, diffsync.FLAGS.running)
             delete @_sage_output_to_input_id[output_id]
             delete mesg.done # not needed
-            if mesg.stdout == "\n"   # not needed for proper display in notebook
+            if /^\s\s*/.test(mesg.stdout)   # final whitespace not needed for proper display
                 delete mesg.stdout
-            if mesg.stderr == "\n"   # not needed for proper display in notebook
+            if /^\s\s*/.test(mesg.stderr)
                 delete mesg.stderr
-            if misc.is_empty_object(mesg)
-                return
+
+        if misc.is_empty_object(mesg)
+            return
 
         i = @content.indexOf(diffsync.MARKERS.output + output_id)
         if i == -1
