@@ -678,15 +678,6 @@ class Salvus(object):
             return self._py(filename, **opts)
         raise NotImplementedError("require file of type %s not implemented"%ext)
 
-    def note(self, id, val=None):
-        raise NotImplementedError
-
-    def editor(self, id, val=None):
-        raise NotImplementedError
-
-    def output(self, id, val=None):
-        raise NotImplementedError
-
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
     salvus = Salvus(conn=conn, id=id, data=data)

@@ -960,6 +960,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     else
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
+        if mesg.javascript? and @editor.opts.allow_javascript_eval
+            (() ->
+             cell = new Cell(output_mark:mark)
+             code = mesg.javascript.code
+             if mesg.javascript.coffeescript
+                code = CoffeeScript.compile(code)
+             obj  = JSON.parse(mesg.obj)
+             # The eval below is an intentional CSS vulnerability in the fundamental design of Salvus.
+             # Note that there is an allow_javascript document option, which (at some point) users
+             # will be able to set.
+             eval(code)
+            )()
+
         if mesg.done? and mesg.done
             output.removeClass('sagews-output-running')
             output.addClass('sagews-output-done')
@@ -1238,6 +1251,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
         uuid = misc.uuid()
         cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell + '\n', {line:line, ch:0})
         return @mark_cell_start(line)
+
+
+class Cell
+    constructor : (opts) ->
+        opts = defaults opts,
+            output_mark : required
+
 
 
 ################################

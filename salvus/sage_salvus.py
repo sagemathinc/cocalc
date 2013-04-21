@@ -1068,58 +1068,42 @@ class Cell(object):
         """
         return salvus._id
 
-    def hide(self, component='editor'):
+    def hide(self, component='input'):
         """
-        Hide a component of the cell in which this code is called.  By
-        default, hide hides the the code editor part of the cell, but
-        you can show other parts by passing in an optional argument:
-
-              'editor', 'note', 'output'
-
-        Use the unhide function to reveal a cell component.
+        Hide the 'input' or 'output' component of a cell.
         """
-        if component not in ['editor', 'note', 'output']:
-            raise ValueError, "component must be one of 'editor', 'note', 'output'."
+        if component not in ['input', 'output']:
+            raise ValueError, "component must be either 'input' or 'output'."
         salvus.javascript("cell.hide('%s')"%component)
 
     def show(self, component='editor'):
         """
-        Show a component of the cell in which this code is called.  By
-        default, show shows the the code editor part of the cell, but
-        you can show other parts by passing in an optional argument:
-
-              'editor', 'note', 'output'
+        Show the 'input' or 'output' component of a cell.
         """
-        if component not in ['editor', 'note', 'output']:
-            raise ValueError, "component must be one of 'editor', 'note', 'output'."
+        if component not in ['input', 'output']:
+            raise ValueError, "component must be either 'input' or 'output'."
         salvus.javascript("cell.show('%s')"%component)
 
     def hideall(self):
         """
-        Hide the note, editor, and output fields of the cell in which this code executes.
+        Hide the input and output fields of the cell in which this code executes.
         """
-        salvus.javascript("cell.hide('note'); cell.hide('editor'); cell.hide('output'); cell.hide('insert')")
+        salvus.javascript("cell.hide('input'); cell.hide('output')")
 
-    def note(self, val=None):
-        """
-        Get or set the value of the note component of the cell in
-        which this code executes.
-        """
-        return salvus.note(val, self._id)
-
-    def editor(self, val=None):
-        """
-        Get or set the value of the code editor component of the cell in
-        which this code executes.
-        """
-        return salvus.editor(val, self._id)
-
-    def output(self, val=None):
-        """
-        Get or set the value of the output component of the cell in
-        which this code executes.
-        """
-        return salvus.output(val, self._id)
+    #def input(self, val=None):
+    #    """
+    #    Get or set the value of the input component of the cell in
+    #    which this code executes.
+    #    """
+    #    salvus.javascript("cell.set_input(obj)", obj=val)
+    #
+    #def output(self, val=None):
+    #    """
+    #    Get or set the value of the output component of the cell in
+    #    which this code executes.
+    #    """
+    #    salvus.javascript("cell.set_output(obj)", obj=val)
+    #    return salvus.output(val, self._id)
 
 cell = Cell()
 
@@ -1852,22 +1836,20 @@ def hide(component='editor'):
     editor part of the cell, but you can hide other parts by passing
     in an optional argument:
 
-              'editor', 'note', 'output'
+              'input', 'output'
 
     Use the cell.show(...) function to reveal a cell component.
     """
-    if component not in ['editor', 'note', 'output']:
+    if component not in ['input', 'output']:
         # Allow %hide to work, for compatability with sagenb.
-        hide('editor')
+        hide('input')
         return component
     cell.hide(component)
-
 
 def hideall(code=None):
     cell.hideall()
     if code is not None: # for backwards compat with sagenb
         return code
-
 
 
 ##########################################################

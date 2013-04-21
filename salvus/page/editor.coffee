@@ -777,6 +777,7 @@ class CodeMirrorEditor extends FileEditor
         opts = @opts = defaults opts,
             mode              : required
             delete_trailing_whitespace : true   # delete all trailing whitespace on save
+            allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
             line_numbers      : true
             first_line_number : 1
             indent_unit       : 4
