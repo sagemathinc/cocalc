@@ -664,7 +664,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
         buttons.find("a[href=#execute]").click () =>
-            @execute()
+            @execute(execute:true, advance:true)
             return false
         buttons.find("a[href=#interrupt]").click () =>
             @interrupt()
@@ -887,7 +887,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             end += 1
 
         line += 1
-        end -= 1
 
         hide = $("<span>")
         opts =
@@ -897,8 +896,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             atomic         : true
             replacedWith   : hide[0]
         #console.log("NEW replacing from line #{line} to line #{end}")
-        marker = cm.markText({line:line, ch:0}, {line:end, ch:0}, opts)
+        marker = cm.markText({line:line, ch:0}, {line:end-1, ch:cm.getLine(end-1).length}, opts)
         marker.type = 'hide_input'
+        @editor.show()
 
     show_input: (line) =>
         #console.log("showing input part of cell starting at #{line}")
@@ -906,23 +906,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
         for marker in cm.findMarksAt({line:line+1, ch:0})
             if marker.type == 'hide_input'
                 marker.clear()
+                @editor.show()
 
     hide_output: (line) =>
         #console.log("hiding output part of cell starting at #{line}")
         mark = @find_output_mark(line)
         if mark?
-            @elt_at_mark(mark).addClass('hide')
+            @elt_at_mark(mark).addClass('sagews-output-hide')
+            @editor.show()
 
     show_output: (line) =>
         #console.log("showing output part of cell starting at #{line}")
         mark = @find_output_mark(line)
         if mark?
-            @elt_at_mark(mark).removeClass('hide')
-
+            @elt_at_mark(mark).removeClass('sagews-output-hide')
+            @editor.show()
 
     process_new_output: (mark, mesg) =>
         #console.log("new output: ", mesg)
         output = @elt_at_mark(mark)
+        output.removeClass('sagews-output-hide')  # appearance of output shows output 
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
         if mesg.stderr?
@@ -1054,10 +1057,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     execute: (opts={}) =>
         opts = defaults opts,
-            advance : true
+            advance : false
             split   : false
-            execute : true  # if false, do whatever else we would do, but don't actually execute code.
+            execute : false # if false, do whatever else we would do, but don't actually execute code.
+            toggle_input : false  # if true; toggle whether input is displayed
+            toggle_output : false # if true; toggle whether output is displayed
             cm      : @codemirror
+        #console.log("execute: ", opts)
 
         @close_on_action()  # close introspect popups
         if opts.split
@@ -1073,8 +1079,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return
 
         block = @current_input_block()
+
         # create or get cell start mark
         marker = @cell_start_marker(block.start)
+
+        if opts.toggle_input
+            if FLAGS.hide_input in @get_cell_flagstring(marker)
+                @remove_cell_flag(marker, FLAGS.hide_input)
+            else
+                @set_cell_flag(marker, FLAGS.hide_input)
+
+        if opts.toggle_output
+            if FLAGS.hide_output in @get_cell_flagstring(marker)
+                @remove_cell_flag(marker, FLAGS.hide_output)
+            else
+                @set_cell_flag(marker, FLAGS.hide_output)
+
 
         if opts.execute
             @set_cell_flag(marker, FLAGS.execute)

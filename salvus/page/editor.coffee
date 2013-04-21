@@ -822,26 +822,37 @@ class CodeMirrorEditor extends FileEditor
                 theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
                 extraKeys       :
-                    "Shift-Enter"  : (editor)   => @action_key(advance:true, split:false)
-                    "Alt-Enter"    : (editor)   => @action_key(advance:false, split:false)
-                    "Ctrl-Enter"   : (editor)   => @action_key(advance:true, split:true)
+                    "Shift-Enter"  : (editor)   => @action_key(execute: true, advance:true, split:false)
+                    "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
+                    "Ctrl-Enter"   : (editor)   => @action_key(execute: true, advance:true, split:true)
                     "Ctrl-;"       : (editor)   => @action_key(split:true, execute:false, advance:false)
+                    "Cmd-;"        : (editor)   => @action_key(split:true, execute:false, advance:false)
+                    "Ctrl-\\"    : (editor)   => @action_key(execute:false, toggle_input:true)
+                    #"Cmd-x"  : (editor)   => @action_key(execute:false, toggle_input:true)
+                    "Shift-Ctrl-\\" : (editor)   => @action_key(execute:false, toggle_output:true)
+                    #"Shift-Cmd-y"  : (editor)   => @action_key(execute:false, toggle_output:true)
+
                     "Ctrl-S"       : (editor)   => @click_save_button()
                     "Cmd-S"        : (editor)   => @click_save_button()
+
                     "Ctrl-L"       : (editor)   => @goto_line(editor)
                     "Cmd-L"        : (editor)   => @goto_line(editor)
+
                     "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
                     "Cmd-I"        : (editor)   => @toggle_split_view(editor)
-                    "Shift-Ctrl-."       : (editor)   => @change_font_size(editor, +1)
-                    "Shift-Ctrl-,"       : (editor)   => @change_font_size(editor, -1)
-                    "Shift-Cmd-."       : (editor)   => @change_font_size(editor, +1)
-                    "Shift-Cmd-,"       : (editor)   => @change_font_size(editor, -1)
+
+                    "Shift-Ctrl-." : (editor)   => @change_font_size(editor, +1)
+                    "Shift-Ctrl-," : (editor)   => @change_font_size(editor, -1)
+                    "Shift-Cmd-."  : (editor)   => @change_font_size(editor, +1)
+                    "Shift-Cmd-,"  : (editor)   => @change_font_size(editor, -1)
+
                     "Shift-Tab"    : (editor)   => editor.unindent_selection()
-                    "Ctrl-Space"       : "indentAuto"
-                    "Ctrl-1" : "indentAuto"
+
+                    "Ctrl-Space"   : "indentAuto"
+                    "Ctrl-'"       : "indentAuto"
+
                     "Tab"          : (editor)   => @press_tab_key(editor)
-                    "Esc"          : (editor) => @interrupt_key()
-                    #"Ctrl-C"       : (editor) => @interrupt_key()  # this breaks copy on windows/linux!
+                    "Esc"          : (editor)   => @interrupt_key()
 
         @codemirror = make_editor(elt[0])
 

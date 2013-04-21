@@ -242,4 +242,9 @@ li {
 
 }
 
+.sagews-output-hide {
+    height : 0px;
+    background: #eee;
+    padding: 4px;
+}
 
