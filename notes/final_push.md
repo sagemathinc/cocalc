@@ -13,13 +13,15 @@ sagews: hide/show input/output
 
 - (1:00?) [x] (1:00) sagews: make salvus.hide/show work via new output message by directly modifying doc on local hub; safer, more secure, and far more efficient; rewrite %hide mode / command -- support it (so %md works with it)
 
---> - (0:45?) [ ] sagews: dynamic syntax highlight modes in each cell
+- (0:45?) [x] (1:42) sagews: dynamic syntax highlight modes in each cell
+
+- (0:30?) [x]  (1:18) %auto decorator; super useful, so make it work! -- finally, this time I think it is right; no bullshit parsing or hacks.
 
 - (0:30?) [ ] sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility; also ensure autohide works.
 
-
-
 - (0:45?) [ ] sagews: javascript(once=True) isn't respected; needs to use a different channel... (broadcast)
+
+
 
 ---
 ## Deployment

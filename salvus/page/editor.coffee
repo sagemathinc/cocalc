@@ -133,11 +133,7 @@ sagews_decorator_modes = [
     ['sh'          , 'shell'],
 ]
 
-
-
-
 CodeMirror.defineMode "sagews", (config) ->
-    console.log("sagews define mode being called!")
     options = []
     for x in sagews_decorator_modes
         options.push(open:"%" + x[0], close : MARKERS.cell, mode : CodeMirror.getMode(config, x[1]))

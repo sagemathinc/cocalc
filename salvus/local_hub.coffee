@@ -728,7 +728,11 @@ class CodeMirrorSession
                             for id, ds_client of @diffsync_clients
                                 ds_client.remote.sync_ready()
 
+                # Submit all auto cells to be evaluated.
+                @sage_update(auto:true)
+
                 cb(false, @_sage_socket)
+
 
     sage_execute_cell: (id) =>
         winston.debug("exec request for cell with id #{id}")
@@ -736,10 +740,14 @@ class CodeMirrorSession
         {code, output_id} = @sage_initialize_cell_for_execute(id)
         winston.debug("exec code '#{code}'; output id='#{output_id}'")
 
+        #if diffsync.FLAGS.auto in @sage_get_cell_flagstring(id) and 'auto' not in code
+        #@sage_remove_cell_flag(id, diffsync.FLAGS.auto)
+
         @set_content(@content)
         if code != ""
             @_sage_output_to_input_id[output_id] = id
             winston.debug("start running -- #{id}")
+
             @sage_set_cell_flag(id, diffsync.FLAGS.running)
             @sage_socket (err, socket) =>
                 if err
@@ -808,6 +816,7 @@ class CodeMirrorSession
     sage_update: (opts={}) =>
         opts = defaults opts,
             kill : false    # if true, just remove all running flags.
+            auto : false    # if true, run all cells that have the auto flag set
         # scan the string @content for execution requests, etc...
         winston.debug("sage_update: opts=#{misc.to_json(opts)}")
         i = 0
@@ -829,6 +838,10 @@ class CodeMirrorSession
             else
                 if diffsync.FLAGS.execute in flags
                     @sage_execute_cell(id)
+                else if opts.auto and diffsync.FLAGS.auto in flags
+                    @sage_remove_cell_flag(id, diffsync.FLAGS.auto)
+                    @sage_execute_cell(id)
+
             i = j + 1
 
 
@@ -853,7 +866,7 @@ class CodeMirrorSession
         if mesg.show?
             # Show a single component of cell.
             flag = undefined
-            if mesg.show== 'input'
+            if mesg.show == 'input'
                 flag = diffsync.FLAGS.hide_input
             else if mesg.show == 'output'
                 flag = diffsync.FLAGS.hide_output
@@ -862,6 +875,13 @@ class CodeMirrorSession
             else
                 winston.debug("invalid hide component: '#{mesg.hide}'")
             delete mesg.show
+
+        if mesg.auto?
+            # set or unset whether or not cell is automatically executed on startup of worksheet
+            if mesg.auto
+                @sage_set_cell_flag(cell_id, diffsync.FLAGS.auto)
+            else
+                @sage_remove_cell_flag(cell_id, diffsync.FLAGS.auto)
 
         if mesg.done? and mesg.done and cell_id?
             @sage_remove_cell_flag(cell_id, diffsync.FLAGS.running)

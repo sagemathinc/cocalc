@@ -556,6 +556,7 @@ exports.FLAGS =
     interrupt   : "c"   # request execution of cell be interrupted
     hide_input  : "i"   # hide input part of cell
     hide_output : "o"   # hide output part of cell
+    auto        : "a"   # if set, run the cell when the sage session first starts
 
 
 
