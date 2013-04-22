@@ -23,9 +23,33 @@
 - (1:00?) [x] (0:07) sage server: fix parsing of blocks to not string whitespace, since that tricks certain % modes.
 - (0:45?) [x] (0:22) tooltip over connecting speed looks absurd
 
+
 ## Deployment
 
-- (2:00?) [ ] deploy: implement ability to backup projects compressed to the database.  E.g., any project never backed up or modified in the last n hours.... gets saved to DB as *highly* compressed tarball.
+--> - (3:00?) [ ] deploy: implement ability to backup projects compressed to the database.  E.g., any project never backed up or modified in the last n hours.... gets saved to DB as *highly* compressed tarball.
+
+   - we want the following backups 7z compressed... when project active:
+
+       hourly
+       daily
+       weekly
+       monthly
+       yearly
+
+## Operations:
+
+- list all backups in database
+- create project from past known version
+- create new hourly
+- create new daily
+- create new weekly
+- create new monthly
+- create new yearly
+- create first backup (level 0)
+
+
+
+
 - (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
 - (1:00?) [ ] deploy: create the file that describes topology of everything.
 - (1:00?) [ ] deploy: create a VM for running user code
