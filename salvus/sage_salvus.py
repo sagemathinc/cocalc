@@ -1113,20 +1113,16 @@ _html = sage.misc.html.HTML()
 
 class HTML:
     """
-    Cell mode that renders everything after %html as HTML, then hides the editor part of the cell.
-
-    NOTE: Double click to edit the input.
+    Cell mode that renders everything after %html as HTML.
     """
     def __call__(self, s, *args, **kwds):
         salvus.html(s, *args, **kwds)
-        cell.hide('input')
 
     def table(self):
         pass
 
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
-
 
 def coffeescript(s):
     """
@@ -2219,13 +2215,18 @@ def restore(vars=None):
 
 restore.__doc__ += sage.misc.reset.restore.__doc__
 
-
 def md(s):
     """
-    Cell mode that renders everything after %md as markdown, then hides the editor part of the cell.
+    Cell mode that renders everything after %md as markdown.
 
-    NOTE: Double click to edit the input.
+    This uses the Python markdown2 library with the following
+    extras enabled:
+
+         'code-friendly', 'footnotes',
+         'smarty-pants', 'wiki-tables'
+
+    See https://github.com/trentm/python-markdown2/wiki/Extras
     """
     import markdown2
-    html(markdown2.markdown(s))
-    cell.hide('input')
+    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables']
+    html(markdown2.markdown(s, extras=extras))
