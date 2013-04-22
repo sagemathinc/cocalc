@@ -1,60 +1,9 @@
 
-## April 21, 2013:
+- (0:30?) [x] (0:15) bug: yesterday I made it so two new cell dividers are created when evaluating. Wow/how/what?
 
-- (0:15?) [x] (0:05) define new cell flags for hidden input
-- (0:30?) [x] (1:55) make client renderer support them (test them using raw mode) -- this took a LONG time (?).
+## Next day: Deployment
 
-- (0:30?) [x] (0:38) sagews: toggling input/output hide: via keyboard shortcut
-- (0:20?) [x] (0:18) sagews: double click output to toggle input
-- (0:30?) [x] (0:06) sagews: fix sync bugs with toggling input/output.
-- (0:15?) [x] sagews: modify input/output toggle functions so they apply to entire selected range, which is far more powerful.
-- (0:30?) [x] sagews: implement gui for toggling input hide: icon at top or gutter
-
-- (0:30?) [x] (0:37) sagews: re-implementing the javascript and coffeescript commands
-
-- (1:00?) [x] (1:00) sagews: make salvus.hide/show work via new output message by directly modifying doc on local hub; safer, more secure, and far more efficient; rewrite %hide mode / command -- support it (so %md works with it)
-
-- (0:45?) [x] (1:42) sagews: dynamic syntax highlight modes in each cell
-
-- (0:30?) [x]  (1:18) %auto decorator; super useful, so make it work! -- finally, this time I think it is right; no bullshit parsing or hacks.
-
-- (0:30?) [x] (0:30) sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility -- I just enabled "code\_friendly", for the worksheet, which does what we want...
-
-- (1:00?) [x] (0:07) sage server: fix parsing of blocks to not string whitespace, since that tricks certain % modes.
-- (0:45?) [x] (0:22) tooltip over connecting speed looks absurd
-
-
-## Deployment
-
---> - (3:00?) [ ] deploy: implement ability to backup projects compressed to the database.  E.g., any project never backed up or modified in the last n hours.... gets saved to DB as *highly* compressed tarball.
-
-   - we want the following backups 7z compressed... when project active:
-
-       hourly
-       daily
-       weekly
-       monthly
-       yearly
-
-## Operations:
-
-- list all backups in database
-- create project from past known version
-- create new hourly
-- create new daily
-- create new weekly
-- create new monthly
-- create new yearly
-- create first backup
-
-CREATE TABLE project_backups(
-     project_id       uuid,
-     time             timestamp,
-     tarball          blob,    # 7z compressed tarball
-     snar_file        blob,    # tar incremental metadata file
-     level            int,
-     PRIMARY_KEY(uuid, time)
-)
+- (3:00?) [ ] backups: I am going to use bup -- https://github.com/bup/bup/
 
 - (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
 - (1:00?) [ ] deploy: create the file that describes topology of everything.
@@ -605,3 +554,30 @@ option, at least.
 - (0:45?) [x] sagews: button to interrupt code to execute
 - (0:45?) [x] sagews: button to kill sage process
 - (0:15?) [x] sagews: button to split cell
+
+
+
+
+## April 21, 2013:
+
+- (0:15?) [x] (0:05) define new cell flags for hidden input
+- (0:30?) [x] (1:55) make client renderer support them (test them using raw mode) -- this took a LONG time (?).
+
+- (0:30?) [x] (0:38) sagews: toggling input/output hide: via keyboard shortcut
+- (0:20?) [x] (0:18) sagews: double click output to toggle input
+- (0:30?) [x] (0:06) sagews: fix sync bugs with toggling input/output.
+- (0:15?) [x] sagews: modify input/output toggle functions so they apply to entire selected range, which is far more powerful.
+- (0:30?) [x] sagews: implement gui for toggling input hide: icon at top or gutter
+
+- (0:30?) [x] (0:37) sagews: re-implementing the javascript and coffeescript commands
+
+- (1:00?) [x] (1:00) sagews: make salvus.hide/show work via new output message by directly modifying doc on local hub; safer, more secure, and far more efficient; rewrite %hide mode / command -- support it (so %md works with it)
+
+- (0:45?) [x] (1:42) sagews: dynamic syntax highlight modes in each cell
+
+- (0:30?) [x]  (1:18) %auto decorator; super useful, so make it work! -- finally, this time I think it is right; no bullshit parsing or hacks.
+
+- (0:30?) [x] (0:30) sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility -- I just enabled "code\_friendly", for the worksheet, which does what we want...
+
+- (1:00?) [x] (0:07) sage server: fix parsing of blocks to not string whitespace, since that tricks certain % modes.
+- (0:45?) [x] (0:22) tooltip over connecting speed looks absurd

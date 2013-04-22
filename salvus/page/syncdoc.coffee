@@ -986,6 +986,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # mark it as such. This hides control codes and places a cell separation
         # element, which may be clicked to create a new cell.
         cm  = @codemirror
+        if line >= cm.lineCount()-1
+            # If at bottom, insert blank lines.
+            cm.replaceRange("\n\n\n", {line:line+1, ch:0})
         x   = cm.getLine(line)
         end = x.indexOf(MARKERS.cell, 1)
         input = cell_start_template.clone().css
@@ -1126,6 +1129,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 pos = opts.cm.getCursor()
 
         @close_on_action()  # close introspect popups
+
         if opts.split
             @split_cell_at(pos)
             if opts.execute
@@ -1175,14 +1179,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
             @sync_soon()
 
+        if opts.advance
+            @move_cursor_to_next_cell()
+
         if opts.execute
             @set_cell_flag(marker, FLAGS.execute)
             @sync()
             setTimeout( (() => @sync_soon()), 50 )
             setTimeout( (() => @sync_soon()), 200 )
-
-        if opts.advance
-            @move_cursor_to_next_cell()
 
 
     _diffsync_ready: (mesg) =>
