@@ -45,10 +45,16 @@
 - create new weekly
 - create new monthly
 - create new yearly
-- create first backup (level 0)
+- create first backup
 
-
-
+CREATE TABLE project_backups(
+     project_id       uuid,
+     time             timestamp,
+     tarball          blob,    # 7z compressed tarball
+     snar_file        blob,    # tar incremental metadata file
+     level            int,
+     PRIMARY_KEY(uuid, time)
+)
 
 - (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
 - (1:00?) [ ] deploy: create the file that describes topology of everything.
