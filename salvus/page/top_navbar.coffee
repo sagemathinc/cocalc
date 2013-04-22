@@ -260,3 +260,5 @@ toggle_fullscreen = () ->
 
 $(".salvus-fullscreen-activate").click(toggle_fullscreen)
 $(".salvus-fullscreen-deactivate").click(toggle_fullscreen)
+$("#connection_protocol").tooltip(delay:{ show: 500, hide: 100 })
+$("#ping_time").tooltip(delay:{ show: 500, hide: 100 })

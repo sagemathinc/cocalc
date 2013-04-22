@@ -16,9 +16,9 @@
                     <li class="divider-vertical" id="top_navbar-divider-template"></li>
                     <li>
                         <div class="salvus-connection-status">
-                            <span id="connection_status" rel="tooltip" title="Tells you whether or not your computer has established a connection with the server."></span>
-                            <span id="connection_protocol" rel="tooltip" title="This is the type of persistent connection your computer has established with the server; the optimal connection type is 'websocket', but several other options are supported."></span>
-                            <span id="ping_time" rel="tooltip" title="The last ping time is the most recently recorded roundtrip time to send a message to the server, then receive a message back.  Anything below 50ms should feel extremely responsive."></span>
+                            <span id="connection_status"></span>
+                            <span id="connection_protocol" data-toggle="tooltip" data-placement="left" title="Type of connection with server; the optimal connection type is 'websocket'."></span>
+                            <span id="ping_time" data-toggle="tooltip" data-placement="left" title="Most recently recorded roundtrip time to message the server."></span>
                         </div>
                     </li>
                     <li id="connection_bars"  style="margin-right:1em;margin-top:14pt; ">

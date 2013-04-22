@@ -1,5 +1,6 @@
 
-sagews: hide/show input/output
+## April 21, 2013:
+
 - (0:15?) [x] (0:05) define new cell flags for hidden input
 - (0:30?) [x] (1:55) make client renderer support them (test them using raw mode) -- this took a LONG time (?).
 
@@ -19,24 +20,26 @@ sagews: hide/show input/output
 
 - (0:30?) [x] (0:30) sagews: make markdown mode optionally leaves content of $'s untouched (wraps them all in spans?); but should *still* allow $a\_1$ for compatibility -- I just enabled "code\_friendly", for the worksheet, which does what we want...
 
---> - (1:00?) [ ] sage server: fix parsing of blocks to not string whitespace, since that tricks certain % modes.
+- (1:00?) [x] (0:07) sage server: fix parsing of blocks to not string whitespace, since that tricks certain % modes.
+- (0:45?) [x] (0:22) tooltip over connecting speed looks absurd
 
-
-
----
 ## Deployment
 
-- (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
-
-- (1:00?) [ ] deploy: create the file that describes topology of everything.
-- (1:00?) [ ] deploy: create VM template for running user code
 - (2:00?) [ ] deploy: implement ability to backup projects compressed to the database.  E.g., any project never backed up or modified in the last n hours.... gets saved to DB as *highly* compressed tarball.
-- (1:00?) [ ] deploy: implement database dump and restore (to text)
+- (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
+- (1:00?) [ ] deploy: create the file that describes topology of everything.
+- (1:00?) [ ] deploy: create a VM for running user code
+- (1:00?) [ ] deploy: setup full-size lvm for the 4 machines (all identical)
+- (1:00?) [ ] deploy: setup password auth and security for cassandra on machines, as added level of protection.
+
+
+- (1:00?) [ ] deploy: implement database dump and restore (to text) -- http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
 - (1:00?) [ ] deploy: upgrade db on cloud.sagemath.org
 - (1:00?) [ ] deploy: run code that backs up all projects to DB
 - (1:00?) [ ] deploy: copy database over to new machines
-- (1:00?) [ ] deploy: setup full-size lvm for the 4 machines (all identical)
-- (1:00?) [ ] deploy: setup password auth and security for cassandra on machines, as added level of protection.
+
+---
+
 
 
 later but very soon:
@@ -58,28 +61,26 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
-- (1:00?) [ ] make "play button at top" execute all selected cells when a range is selected.
-
 - (1:00?) [ ] gitls: upgrade to new version from Andrew -- https://mail.google.com/mail/u/0/#search/git-ls/13e158a70ab27771
+
 - (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
 - (1:00?) [ ] sagews: timer when evaluating code, but don't use jquery countdown, since it wastes resources at all times.
+
 - (0:45?) [ ] sagews: eliminate jquery countdown (while not breaking old worksheets)
 - (0:30?) [ ] sagews: proper filename display / truncation
-- (1:00?) [ ] sagews: in client cells, set syntax mode for each cell; for starters *reset* it, but also could set based on % modes too.
-- (0:30?) [ ] mathjax: make SVG the default... otherwise, worksheets suck; and people usually won't know to change the default.
+
 - (1:00?) [ ] syncdoc: last edit sometimes doesn't cause other clients to sync -- broadcast doesn't happen or clients ignore request -- maybe not implemented (?)
 
 - (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
-- (3:00?) [ ] sagews: implement interacts (using exec message)
-- (3:00?) [ ] Write code to dump the cassandra database to the filesystem (?), so I can upgrade current cloud.sagemath.org, etc.  This will be good to have in general for backups.  This shouldn't be *too* hard, now that I've fixed the schema...
-   http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
+
+- (3:00?) [ ] sagews: re-implement interact (using exec message)
 
 - (1:00?) [ ] syncdoc: store sync history for each file on filesystem (next to chat)
+
 - (2:00?) [ ] syncdoc: browse through past versions -- "some sort of timeline view".
 
 - (1:00?) [ ] sagews: modify search command to indicate result in output more sensibly (right now cursor gets big next to output)
 - (1:00?) [ ] Modify the editor find command to have the option of doing a "fuzzy search" using the diff-patch-match library?!
-- (0:45?) [ ] tooltip over connecting speed looks absurd
 * (1:00?) [ ] FEATURE: make it so "create a new file" allows you to just paste a URL in the filename blank... to get a file from the web!
 * (0:15?) [ ] BUG: need block of empty whitespace at bottom of cell.
 * (0:20?) [ ] BIG BUG: worksheets -- the css position of tab completion is wrong; it doesn't move with the worksheet! (not sure I care)
