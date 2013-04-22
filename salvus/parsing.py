@@ -138,9 +138,7 @@ def divide_into_blocks(code):
     global dec_counter
     code, literals, state = strip_string_literals(code)
 
-    ## attempt to not remove blank lines -- didn't work.
-    ##code = code.splitlines()
-    code = [x for x in code.splitlines() if x.strip()]  # remove blank lines
+    code = code.splitlines()
 
     # Compute the line-level code decorators.
     c = list(code)
@@ -181,6 +179,8 @@ def divide_into_blocks(code):
     except Exception, mesg:
         code = c
 
+    code = [x for x in code if x.strip()]  # take only non-empty lines now for Python code.
+    
     # Compute the blocks
     blocks = []
     ## Attempt to completely disable block parsing (didn't work)
