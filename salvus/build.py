@@ -1,21 +1,23 @@
 #!/usr/bin/env python
 
 """
-Building the main components of sagews from source, ensuring that all
+Building the main components of cloud.sagemath.org from source, ensuring that all
 important (usually security-related) options are compiled in.
 
-The components of sagews are:
+The components are:
 
-    * python -- language (used mainly for admin control and sage)
-    * node -- language (for web server)
+    * python -- build managements and some packages
+    * node.js -- dynamic async; most things
     * nginx -- static web server
-    * haproxy -- proxy and load ballancer
+    * haproxy -- proxy and load balancer
+    * stunnel -- ssl termination
     * tinc -- p2p vpn
-    * protobuf -- google's messaging api and format
-    * cassandra -- distributed p2p database
-    * sage (which we do not build here, yet -- perhaps we should)
+    * cassandra -- distributed database
+    * bup -- git-ish backup
+    * sage -- we do *not* build or include Sage; it must be available system-wide or for
+      user in order for worksheets to work (everything but worksheets should work without Sage).
 
-This supports OS X and Ubuntu 12.04 on AMD and Intel.
+Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
@@ -177,23 +179,6 @@ def build_cassandra():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
-def build_protobuf():
-    log.info('building protobuf'); start = time.time()
-    try:
-        path = extract_package('protobuf')
-        cmd('./configure --prefix="%s"'%TARGET, path)
-        cmd('make -j %s'%NCPU, path)
-        cmd('make install', path)
-        cmd('python setup.py install', os.path.join(path, 'python'))
-        try:
-            cmd('sage setup.py install', os.path.join(path, 'python'))
-        except:
-            # fine -- this just means Sage isn't installed on this node
-            pass
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start
-
 def build_python_packages():
     log.info('building python_packages'); start = time.time()
     try:
@@ -250,9 +235,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_cassandra', dest='build_cassandra', action='store_const', const=True, default=False,
                         help="build the cassandra database server")
 
-    parser.add_argument('--build_protobuf', dest='build_protobuf', action='store_const', const=True, default=False,
-                        help="build Google's protocol buffers compiler")
-
     parser.add_argument('--build_node_modules', dest='build_node_modules', action='store_const', const=True, default=False,
                         help="install all node packages")
 
@@ -289,9 +271,6 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_cassandra:
             times['cassandra'] = build_cassandra()
-
-        if args.build_all or args.build_protobuf:
-            times['protobuf'] = build_protobuf()
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()

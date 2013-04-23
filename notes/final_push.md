@@ -1,6 +1,8 @@
 
 ## Deployment
 
+- (0:15?) [ ] remove google protobuf; I'm not using it all
+
 - (1:00?) [x] (0:51) backups:  include bup in salvus itself (instead of system wide), for install stability.
 
 I am going to use bup for backups -- https://github.com/bup/bup/
