@@ -16,6 +16,10 @@ The components of sagews are:
     * sage (which we do not build here, yet -- perhaps we should)
 
 This supports OS X and Ubuntu 12.04 on AMD and Intel.
+
+Before building, do:
+
+   sudo apt-get install iperf dpkg-dev texlive gv imagemagick make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev mercurial
 """
 
 import logging, os, shutil, subprocess, sys, time
@@ -46,7 +50,10 @@ PYTHON_PACKAGES = [
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
     'cql',                # interface to Cassandra
-    'markdown2'
+    'markdown2',
+    'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
+    'pyxattr',            # used by bup
+    'pylibacl'            # used by bup
     ]
 
 if not os.path.exists(BUILD):
@@ -198,6 +205,15 @@ def build_python_packages():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
+def build_bup():
+    log.info('building bup'); start = time.time()
+    try:
+        path = extract_package('bup')
+        cmd('git pull && make install PREFIX="%s"'%TARGET, path)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start
+
 def build_node_modules():
     log.info('building node_modules'); start = time.time()
     try:
@@ -243,6 +259,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="install all Python packages")
 
+    parser.add_argument('--build_bup', dest='build_bup', action='store_const', const=True, default=False,
+                        help="install bup (git-style incremental compressed snapshots)")
+
     args = parser.parse_args()
 
     try:
@@ -276,6 +295,9 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()
+
+        if args.build_all or args.build_bup:
+            times['bup'] = build_bup()
 
     finally:
         if times:

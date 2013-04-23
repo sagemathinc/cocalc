@@ -1,9 +1,10 @@
 
-- (0:30?) [x] (0:15) bug: yesterday I made it so two new cell dividers are created when evaluating. Wow/how/what?
+## Deployment
 
-## Next day: Deployment
+- (1:00?) [x] (0:51) backups:  include bup in salvus itself (instead of system wide), for install stability.
 
-- (3:00?) [ ] backups: I am going to use bup -- https://github.com/bup/bup/
+I am going to use bup for backups -- https://github.com/bup/bup/
+Do snapshots frequently by *randomly* targeting n backup destinations and recording success, timestamp, location in db.   Present unified view of all snaps by time to user.  Viola - scalable durable safe distributed snapshots!
 
 - (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
 - (1:00?) [ ] deploy: create the file that describes topology of everything.
@@ -20,12 +21,14 @@
 ---
 
 
-
 later but very soon:
+- (2:00?) [ ] first sync jumps the cursor back several spaces, which is FRICKIN' ANNOYING AS HELL!
+- (1:00?) [ ] highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
 - (0:30?) [ ] account creation: checking that user clicked on the terms button -- fix it.
 - (2:00?) [ ] way to browse other people's projects
 - (1:30?) [ ] deploy: browse-able aggressive rsnapshot on local vm's
 - (0:45?) [ ] sagews: javascript(once=True) isn't respected; needs to use a different channel... (broadcast?)
+- (0:45?) [ ] sagews: in %md cell mode, bold is nearly invisible due to some CSS error. Ugh.
 
 ---
 
@@ -581,3 +584,6 @@ option, at least.
 
 - (1:00?) [x] (0:07) sage server: fix parsing of blocks to not string whitespace, since that tricks certain % modes.
 - (0:45?) [x] (0:22) tooltip over connecting speed looks absurd
+
+- (0:30?) [x] (0:15) bug: yesterday I made it so two new cell dividers are created when evaluating. Wow/how/what?
+
