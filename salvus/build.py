@@ -21,7 +21,16 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   sudo apt-get install iperf dpkg-dev texlive gv imagemagick make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev mercurial
+   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev
+
+For users, do:
+
+   sudo apt-get install emacs vim texlive gv imagemagick texlive-latex-extra octave mercurial
+
+Also, make sure to do "install_scripts('/usr/local/bin/')" from within Sage (as root).
+
+
+
 """
 
 import logging, os, shutil, subprocess, sys, time
