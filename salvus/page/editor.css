@@ -79,6 +79,12 @@ Editor for files in a project
     color:#bbb;
 }
 
+.salvus-editor-latex-buttons {
+    z-index      : 1000;
+    margin-right : 80px;
+    box-shadow   : 6px 6px 6px #aaa;
+}
+
 .salvus-editor-pdf-preview {
     border: 2px solid #888;
 }

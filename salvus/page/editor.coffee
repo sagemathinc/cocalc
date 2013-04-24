@@ -1331,6 +1331,9 @@ class LatexEditor extends FileEditor
         @preview.update()
 
     _init_buttons: () =>
+
+        @element.find(".salvus-editor-latex-buttons").draggable()
+
         @element.find("a[href=#latex_editor]").click () =>
             @show_page('latex_editor')
             @latex_editor.focus()
