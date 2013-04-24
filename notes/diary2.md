@@ -2,8 +2,7 @@ How to setup SMC from scratch on a single new Linux machine:
 
 1. Install packages:
 
-   apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs git zlib1g-dev openjdk-7
--jre libbz2-dev
+   apt-get install iperf dpkg-dev texlive make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev emacs git zlib1g-dev openjdk-7-jre libbz2-dev
 
 2. Build as usual.
 

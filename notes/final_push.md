@@ -1,14 +1,29 @@
 
+- (0:45?) [x] (0:31) fix latex editor so usable; need it to write an exam!
+
 ## Deployment
 
-- (0:15?) [ ] remove google protobuf; I'm not using it all
+- (0:15?) [x] remove google protobuf; I'm not using it all
 
 - (1:00?) [x] (0:51) backups:  include bup in salvus itself (instead of system wide), for install stability.
 
 I am going to use bup for backups -- https://github.com/bup/bup/
 Do snapshots frequently by *randomly* targeting n backup destinations and recording success, timestamp, location in db.   Present unified view of all snaps by time to user.  Viola - scalable durable safe distributed snapshots!
 
-- (0:30?) [ ] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
+- (0:20?) [ ] project storage: add bup support to project database schema.
+
+- (1:30?) [ ] project storage: and method to LocalHub class to make a snapshot of a project (--exclude some things), and store in database that this happened.  Exclude .sagemathcloud, .sage, .cache, .forever, .ssh.
+
+- (1:00?) [ ] project storage: add code to query database for this information:
+               all projects that do not have at least n backups since last activity, with activity >= k seconds in the past
+
+- (1:00?) [ ] project storage: use query above to make backups (choose at random, inc counter, do it)
+
+
+---
+
+- (0:30?) [x] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
+
 - (1:00?) [ ] deploy: create the file that describes topology of everything.
 - (1:00?) [ ] deploy: create a VM for running user code
 - (1:00?) [ ] deploy: setup full-size lvm for the 4 machines (all identical)
@@ -75,7 +90,6 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 * (1:00?) [ ] BUG: terminal sessions need to reconnect when they timeout!
 * (0:45?) [ ] SYNC: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
 * (0:45?) [ ] SYNC BUG: often we start editing a document on *first sync* (only) the cursor moves back 4 characters. WHY?  (Facebook on android does this same thing, incidentally!)
-* (1:30?) [ ] BUG: entering/leaving fullscreen mode with worksheets makes page size all wrong sometimes; need to redo all editor display code; latexing totally broken.
 * (1:30?) [ ] DEPLOY: define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
 * (1:30?) [ ] DEPLOY: deploy and test
 * (1:00?) [ ] SAFETY: setup rsnapshot so it is used for every account and noted in database.
