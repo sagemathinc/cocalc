@@ -1,16 +1,83 @@
+## Top UI BUGS:
 
-- (0:45?) [x] (0:31) fix latex editor so usable; need it to write an exam!
+- terminal disconnects
+- first sync -- cursor jumps back 6 characters; worksheets show secret codes
+- copy/paste in terminal sucks
+- editor slow when wide (?)
 
-## Deployment
+## Goal for Thursday April 25, 2013: Deployment! (12 hours; 9:30am-11pm minus breaks)
 
-- (0:15?) [x] remove google protobuf; I'm not using it all
+01/03/06/07 salvus
 
-- (1:00?) [x] (0:51) backups:  include bup in salvus itself (instead of system wide), for install stability.
+128.95.242.135 cloud1   # 06salvus
+128.95.242.137 cloud2   # 07salvus
+128.95.224.237 cloud3   # 03salvus
+128.95.224.230 cloud4   # 01salvus
 
-I am going to use bup for backups -- https://github.com/bup/bup/
+ --> [ ] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
+     [ ] (0:05?) create new file "backup.coffee"
+     [ ] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
+     [ ] (0:10?) backup: ensure init of a bup archive for target
+     [ ] (0:15?) backup: connect to database and obtain list of all projects (by uuid) and their current location
+     [ ] (0:30?) backup: bup each project to target (branch=uuid), excluding .sagemathcloud and .sage paths.
+     [ ] (0:30?) backup: copy database schema to target (won't use, but could be useful)
+     [ ] (0:30?) backup: copy each database table to branch in target
+     [ ] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
+
+ [ ] (2:00?) Restore complete state from archive; TEST.
+     [ ] (0:30?) restore: a version of a given project to a given username@host (default to latest)
+     [ ] (0:30?) restore: create a new keyspace with current schema (as in db_schema.sql)
+     [ ] (0:30?) restore: restore all (or any particular) table to keyspace
+     [ ] (0:30?) restore: restore all project: use db query; if machine target machine doesn't exist, assign a new one.
+
+ [ ] (1:00) Define deployment file/conf.
+     [ ] (0:30?) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
+     [ ] (0:30?) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
+     [ ] (0:30?) Reduce some firewalling, maybe (?)
+
+ [x] (3:00) Prepare kvm base image on 06salvus with everything configured and installed for all components of system (except stunnel).
+     [x] (0:45?) vmhosts: ensure substantial lvm space available for persistent images (512GB on all machines for now)
+     [x] (0:15?) image: apt-get update; apt-get upgrade
+     [x] (0:15?) image: apt-get install everything listed in build.py
+     [x] (0:30?) image: build sage-5.8 just released
+     [x] (0:30?) image: build pull of latest salvus source
+     [x] (0:15?) image: rsync it out to other machines (01,03,07)
+     [x] (1:00?) image: make /home/salvus/vm/images the max possible size.
+
+cloud4:
+
+umount
+lvremove
+
+mv vm/images vm/images.0
+
+pvcreate /dev/sdb1
+vgextend 07salvus /dev/sdb1
+pvcreate /dev/sdc1
+vgextend 07salvus /dev/sdc1
+
+`   export GROUP=03salvus; lvcreate --name /dev/mapper/$GROUP-salvus_images -l 100%FREE  $GROUP; mkfs.ext4 /dev/mapper/$GROUP-salvus_images; echo "/dev/mapper/$GROUP-salvus_images  /home/salvus/vm/images ext4 defaults 1 1" >> /etc/fstab; mount -a; chown salvus. /home/salvus/vm/images/; rm -rf /home/salvus/vm/images/lost+found/
+
+time rsync --sparse -uaxvH images.0/ images/
+
+(x) cloud1
+(x) cloud2
+(x) cloud3
+(x) cloud4
+
+ [ ] (3:00) Deploy.
+     [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
+     [ ] (0:30?) deploy: verify distributed cassandra really working
+     [ ] (0:30?) deploy: update the cloud.sagemath.org database snapshot; stop cloud.sagemath.org
+     [ ] (0:15?) deploy: Update DNS for cloud.sagemath.org to new deployment
+     [ ] (0:45?) deploy: restore database and all projects from cloud.sagemath.org
+
+
+---
+
 Do snapshots frequently by *randomly* targeting n backup destinations and recording success, timestamp, location in db.   Present unified view of all snaps by time to user.  Viola - scalable durable safe distributed snapshots!
 
-- (0:20?) [ ] project storage: add bup support to project database schema.
+- (0:30?) [ ] project storage: add bup support to project database schema.
 
 - (1:30?) [ ] project storage: and method to LocalHub class to make a snapshot of a project (--exclude some things), and store in database that this happened.  Exclude .sagemathcloud, .sage, .cache, .forever, .ssh.
 
@@ -56,7 +123,7 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
     1.6G    stunnel-0.log
 
 
-
+- (1:00?) [ ] sagews bug -- html.iframe gets updated/refreshed on all executes. why?
 
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
@@ -602,4 +669,12 @@ option, at least.
 - (0:45?) [x] (0:22) tooltip over connecting speed looks absurd
 
 - (0:30?) [x] (0:15) bug: yesterday I made it so two new cell dividers are created when evaluating. Wow/how/what?
+
+
+- (0:45?) [x] (0:31) fix latex editor so usable; need it to write an exam!
+- (0:15?) [x] remove google protobuf; I'm not using it all
+
+- (1:00?) [x] (0:51) backups:  include bup in salvus itself (instead of system wide), for install stability.
+
+I am going to use bup for backups -- https://github.com/bup/bup/
 

@@ -21,15 +21,26 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev
+   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2
 
-For users, do:
+For users:
 
-   sudo apt-get install emacs vim texlive gv imagemagick texlive-latex-extra octave mercurial
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic
+
 
 Also, make sure to do "install_scripts('/usr/local/bin/')" from within Sage (as root).
 
 
+Sage optional packages:
+
+./sage -i database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gmpy gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
+
+Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
+
+  wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.5-common.deb
+  wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
+  sudo apt-get install libntl-5.4.2 libpari-gmp3
+  sudo dpkg -i Macaulay2-1.5-common.deb Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
 
 """
 

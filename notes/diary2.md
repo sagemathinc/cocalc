@@ -23,6 +23,35 @@ How to setup SMC from scratch on a single new Linux machine:
 
 I'm thinking about the end game.
 
+---
+# April 25, 2013 -- deployment day notes
+
+VM's
+     # check that no base vm is running
+     virsh --connect qemu:///session list --all
+     export PREV=salvus-20130402; export NAME=salvus-20130425; qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
+
+
+     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+       # IMPORTANT!
+       sudo chown og-rwx -R salvus
+
+       sudo apt-get update; sudo apt-get upgrade;
+       sudo reboot -h now
+       cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
+       . salvus-env
+
+
+# for example:
+       ./build.py --build_stunnel --build_nodejs --build_nodejs_packages --build_haproxy --build_nginx --build_cassandra --build_python_packages
+
+     virsh --connect qemu:///session undefine $NAME
+     virsh --connect qemu:///session destroy $NAME
+     virsh --connect qemu:///session list --all
+
+     cd ~/salvus/salvus; . salvus-env;  push_vm_images_base.py
 
 
 
