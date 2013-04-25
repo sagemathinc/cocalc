@@ -14,8 +14,8 @@
 128.95.224.237 cloud3   # 03salvus
 128.95.224.230 cloud4   # 01salvus
 
- --> [ ] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
-     [ ] (0:05?) create new file "backup.coffee"
+ [ ] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
+     [x] (0:05?) create new file "backup.coffee"
      [ ] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
      [ ] (0:10?) backup: ensure init of a bup archive for target
      [ ] (0:15?) backup: connect to database and obtain list of all projects (by uuid) and their current location
