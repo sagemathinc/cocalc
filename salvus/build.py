@@ -194,7 +194,7 @@ def build_bup():
     log.info('building bup'); start = time.time()
     try:
         path = extract_package('bup')
-        cmd('git pull && make install PREFIX="%s"'%TARGET, path)
+        cmd('make install PREFIX="%s"'%TARGET, path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
