@@ -16,11 +16,10 @@
 
  [ ] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
      [x] (0:05?) create new file "backup.coffee"
-     [ ] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
-     [ ] (0:10?) backup: ensure init of a bup archive for target
+     [x] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
+     [x] (0:10?) backup: ensure init of a bup archive for target
      [ ] (0:15?) backup: connect to database and obtain list of all projects (by uuid) and their current location
      [ ] (0:30?) backup: bup each project to target (branch=uuid), excluding .sagemathcloud and .sage paths.
-     [ ] (0:30?) backup: copy database schema to target (won't use, but could be useful)
      [ ] (0:30?) backup: copy each database table to branch in target
      [ ] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
 
