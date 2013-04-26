@@ -5,6 +5,9 @@ Backup -- Make a complete snapshotted dump of the system or individual projects 
 
 ###
 
+
+EXCLUDES=['.bup', '.sage', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var']
+
 async = require('async')
 misc  = require('misc')
 
@@ -67,9 +70,26 @@ class Backup
                 cb(false, @)
         )
 
-    backup_all_projects: () =>
+    backup_all_projects: (cb) =>
         # Backup all projects to the backup archive.  This creates a new commit
         # for each modified project.
+        @projects (err, v) =>
+            if err
+                cb?(err)
+            else
+                winston.debug("Backing up #{v.length} projects...")
+                f = () =>
+                    if v.length > 0
+                        x = v.pop()
+                        @backup_project x[0], x[1], (err) =>
+                            if err
+                                cb?(err)
+                            else
+                                # do another
+                                f()
+                    else
+                        cb?() # all done successfully
+                f() # start it going.
 
     projects: (cb) =>    # cb(err, list_of_pairs))
         # Query database for list of all (project_id, location) pairs.
@@ -85,9 +105,36 @@ class Backup
                     cb(false, results)
 
 
-    _backup_project: (project_id, location) =>
+    backup_project: (project_id, location, cb) =>   # cb(err)
         # Backup the project with given id at the given location, if anything has changed
         # since the last backup.
+        if location.username.length != 8
+            # skip these that I use for devel/testing
+            cb?()
+            return
+
+        user = "#{location.username}@#{location.host}"
+
+        # First make the index on the remote machine
+        args = ['on', user, 'index']
+        for path in EXCLUDES
+            args.push('--exclude')
+            args.push(path)
+        args.push('.')
+        bup
+            args    : args
+            timeout : 3600
+            cb      : (err, out) =>
+                if err
+                    # Error making the index
+                    cb?(err)
+                else
+                    # Make index, now create the backup.
+                    bup
+                        args    : ['on', user, 'save', '--strip', '-9', '-n', project_id, '.']
+                        timeout : 3600  # data could take a while to transfer (?)
+                        cb      ( err, out) =>
+                            cb?(err)
 
     dump_keyspace: () =>
         # Dump all contents of database to data/backup/db/keyspace/ (which is first deleted),

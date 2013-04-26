@@ -19,7 +19,32 @@
      [x] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
      [x] (0:10?) backup: ensure init of a bup archive for target
      [x] (0:15?) (0:25) backup: connect to database and obtain list of all projects (by uuid) and their current location
-     [ ] (0:30?) backup: bup each project to target (branch=uuid), excluding .sagemathcloud and .sage paths.
+     [x] (0:30?) (1:01) backup: bup each project to target (branch=uuid), excluding .sagemathcloud and .sage paths.
+
+    bup on d9b8d530@localhost index --exclude .bup --exclude .sage --exclude .sagemathcloud --exclude .forever --exclude .cache --exclude .fontconfig --exclude .texmf-var .
+
+After updating the index, can do this to see exactly what changed (if anything) to know if there is a need to make a backup; this is not so useful if anything else is backing up same projects.
+
+    bup on d9b8d530@localhost index -m -s
+
+Now make backup:
+
+    export BUP_DIR=data/backup/bup/
+    bup on d9b8d530@localhost save --strip -9 -n a835a7a5-508c-44a9-90d2-158b9f07db87 .
+
+And restore:
+
+    bup restore a835a7a5-508c-44a9-90d2-158b9f07db87/latest/. --outdir=xyz
+
+Browse live backup:
+
+    mkdir data/backup/live
+    bup fuse data/backup/live
+    fusermount -u data/backup/live  # must do this before any new additions will appear!
+
+
+
+
      [ ] (0:30?) backup: copy each database table to branch in target
      [ ] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
 
