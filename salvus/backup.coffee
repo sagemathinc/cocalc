@@ -12,6 +12,7 @@ misc  = require('misc')
 misc_node = require('misc_node')
 winston = require('winston')
 
+cassandra = require('cassandra')
 
 BACKUP_DIR = process.env['SALVUS_ROOT'] + '/data/backup/'
 
@@ -43,36 +44,46 @@ bup = (opts) ->
 exports.backup = (opts) ->
     opts = defaults opts,
         keyspace : 'test'
-        db_host  : 'localhost'
+        hosts    : ['localhost']
         cb       : required
-    new Backup(opts.keyspace, opts.db_host, opts.cb)
+    new Backup(opts.keyspace, opts.hosts, opts.cb)
 
 class Backup
-    constructor: (@keyspace, @db_host, cb) ->
-        that = @
+    constructor: (@keyspace, @hosts, cb) ->
         async.series([
-            (cb) ->
+            (cb) =>
                  misc_node.execute_code
                      command : "mkdir"
                      args    : ['-p', process.env['BUP_DIR']]
                      cb      : cb
-            (cb) ->
+            (cb) =>
                 bup(args:'init', cb:cb)  # initialize bup dir, if necessary
-        ], (err) ->
+            (cb) =>
+                @db = new cassandra.Salvus(keyspace:@keyspace, hosts:@hosts, cb:cb)
+        ], (err) =>
             if err
-                console.log("done init - err=#{err}")
                 cb(err)
             else
-                console.log("init; success")
-                cb(false, that)
+                cb(false, @)
         )
 
     backup_all_projects: () =>
         # Backup all projects to the backup archive.  This creates a new commit
         # for each modified project.
 
-    _projects: () =>
+    projects: (cb) =>    # cb(err, list_of_pairs))
         # Query database for list of all (project_id, location) pairs.
+        @db.select
+            table     : 'projects'
+            json      : ['location']
+            columns   : ['project_id', 'location']
+            objectify : false
+            cb        : (error, results) ->
+                if error
+                    cb(error)
+                else
+                    cb(false, results)
+
 
     _backup_project: (project_id, location) =>
         # Backup the project with given id at the given location, if anything has changed

@@ -288,6 +288,7 @@ class exports.Cassandra extends EventEmitter
 
         @keyspace = opts.keyspace
         console.log("keyspace = #{opts.keyspace}")
+        console.log("hosts = #{opts.hosts}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
             keyspace  :  opts.keyspace
