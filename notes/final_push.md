@@ -5,7 +5,7 @@
 - copy/paste in terminal sucks
 - editor slow when wide (?)
 
-## Goal for Thursday April 25, 2013: Deployment! (12 hours; 9:30am-11pm minus breaks)
+## Goal for Saturday April 27, 2013: Deployment!
 
 01/03/06/07 salvus
 
@@ -14,110 +14,32 @@
 128.95.224.237 cloud3   # 03salvus
 128.95.224.230 cloud4   # 01salvus
 
- [x] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
-     [x] (0:05?) create new file "backup.coffee"
-     [x] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
-     [x] (0:10?) backup: ensure init of a bup archive for target
-     [x] (0:15?) (0:25) backup: connect to database and obtain list of all projects (by uuid) and their current location
-     [x] (0:30?) (1:01) backup: bup each project to target (branch=uuid), excluding .sagemathcloud and .sage paths.
+ TODO:
 
-    bup on d9b8d530@localhost index --exclude .bup --exclude .sage --exclude .sagemathcloud --exclude .forever --exclude .cache --exclude .fontconfig --exclude .texmf-var .
-
-After updating the index, can do this to see exactly what changed (if anything) to know if there is a need to make a backup; this is not so useful if anything else is backing up same projects.
-
-    bup on d9b8d530@localhost index -m -s
-
-Now make backup:
-
-    export BUP_DIR=data/backup/bup/
-    bup on d9b8d530@localhost save --strip -9 -n a835a7a5-508c-44a9-90d2-158b9f07db87 .
-
-And restore:
-
-    bup restore a835a7a5-508c-44a9-90d2-158b9f07db87/latest/. --outdir=xyz
-
-Browse live backup:
-
-    mkdir data/backup/live
-    bup fuse data/backup/live
-    fusermount -u data/backup/live  # must do this before any new additions will appear!
-
-
-    fusermount -u data/backup/live >/dev/null; mkdir -p data/backup/live; bup fuse data/backup/live
-    ls  data/backup/live
-
-     [x] (0:49) backup: ran project backup on cloud.sagemath.org and fixed a number of issues.
-
-     [x] (0:30?) backup: copy each database table to branch in target
-
-    require('backup').backup(cb:(err,b) -> b.dump_keyspace_to_filesystem(console.log))
-
-# Show all tables in schema
-
-    DESCRIBE TABLES
-
-    select columnfamily_name from system.schema_columnfamilies
-
-# Dump table to disk
-
-    copy projects to '/home/wstein/tmp/foo' with HEADER=true
-    copy projects2 from '/home/wstein/tmp/foo' with HEADER=true
-
-
-     [x] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
-
-  require('backup').backup(cb:(err,b) -> b.backup_all_projects(console.log))
-
- [ ] (2:00?) Restore complete state from archive; TEST.
+ [ ] (3:30?) Restore complete state from archive; TEST.
      [ ] (0:30?) restore: a version of a given project to a given username@host (default to latest)
      [ ] (0:30?) restore: create a new keyspace with current schema (as in db_schema.sql)
      [ ] (0:30?) restore: restore all (or any particular) table to keyspace
-     [ ] (0:30?) restore: restore all project: use db query; if machine target machine doesn't exist, assign a new one.
+     [ ] (0:30?) restore: regarding projects: write latest times for backup to db;
+     [ ] (1:30?) when opening project, if not deployed (or deployment doesn't exist), resume from latest local bup snapshot.
 
- [ ] (1:00) Define deployment file/conf.
+ [ ] (2:00) Define deployment file/conf.
      [ ] (0:30?) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
-     [ ] (0:30?) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
-     [ ] (0:30?) Reduce some firewalling, maybe (?)
-
- [ ] (3:00) Prepare kvm base image on 06salvus with everything configured and installed for all components of system (except stunnel).
-
-     [ ] (0:30?) install bup system-wide on base vm.
-
-     [x] (0:45?) vmhosts: ensure substantial lvm space available for persistent images (512GB on all machines for now)
-     [x] (0:15?) image: apt-get update; apt-get upgrade
-     [x] (0:15?) image: apt-get install everything listed in build.py
-     [x] (0:30?) image: build sage-5.8 just released
-     [x] (0:30?) image: build pull of latest salvus source
-     [x] (0:15?) image: rsync it out to other machines (01,03,07)
-     [x] (1:00?) image: make /home/salvus/vm/images the max possible size.
-
-cloud4:
-
-umount
-lvremove
-
-mv vm/images vm/images.0
-
-pvcreate /dev/sdb1
-vgextend 07salvus /dev/sdb1
-pvcreate /dev/sdc1
-vgextend 07salvus /dev/sdc1
-
-`   export GROUP=03salvus; lvcreate --name /dev/mapper/$GROUP-salvus_images -l 100%FREE  $GROUP; mkfs.ext4 /dev/mapper/$GROUP-salvus_images; echo "/dev/mapper/$GROUP-salvus_images  /home/salvus/vm/images ext4 defaults 1 1" >> /etc/fstab; mount -a; chown salvus. /home/salvus/vm/images/; rm -rf /home/salvus/vm/images/lost+found/
-
-time rsync --sparse -uaxvH images.0/ images/
-
-(x) cloud1
-(x) cloud2
-(x) cloud3
-(x) cloud4
+     [ ] (0:45?) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
+     [ ] (0:45?) Reduce some firewalling, maybe (?)
 
  [ ] (3:00) Deploy.
+     [ ] (0:15?) update salvus on vm
+     [ ] (0:30?) install bup system-wide on base vm.
+     [ ] (0:15?) push vm's out
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
      [ ] (0:30?) deploy: verify distributed cassandra really working
-     [ ] (0:30?) deploy: update the cloud.sagemath.org database snapshot; stop cloud.sagemath.org
+     [ ] (0:30?) deploy: account creation...
+
+ [ ] (2:15) Switch over
+     [ ] (1:30?) deploy: update the cloud.sagemath.org database snapshot; stop cloud.sagemath.org
      [ ] (0:15?) deploy: Update DNS for cloud.sagemath.org to new deployment
-     [ ] (0:45?) deploy: restore database and all projects from cloud.sagemath.org
+     [ ] (0:30?) deploy: restore database and all projects from cloud.sagemath.org
 
 
 ---
@@ -724,4 +646,96 @@ option, at least.
 - (1:00?) [x] (0:51) backups:  include bup in salvus itself (instead of system wide), for install stability.
 
 I am going to use bup for backups -- https://github.com/bup/bup/
+
+---
+
+
+
+ [x] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
+     [x] (0:05?) create new file "backup.coffee"
+     [x] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
+     [x] (0:10?) backup: ensure init of a bup archive for target
+     [x] (0:15?) (0:25) backup: connect to database and obtain list of all projects (by uuid) and their current location
+     [x] (0:30?) (1:01) backup: bup each project to target (branch=uuid), excluding .sagemathcloud and .sage paths.
+
+    bup on d9b8d530@localhost index --exclude .bup --exclude .sage --exclude .sagemathcloud --exclude .forever --exclude .cache --exclude .fontconfig --exclude .texmf-var .
+
+After updating the index, can do this to see exactly what changed (if anything) to know if there is a need to make a backup; this is not so useful if anything else is backing up same projects.
+
+    bup on d9b8d530@localhost index -m -s
+
+Now make backup:
+
+    export BUP_DIR=data/backup/bup/
+    bup on d9b8d530@localhost save --strip -9 -n a835a7a5-508c-44a9-90d2-158b9f07db87 .
+
+And restore:
+
+    bup restore a835a7a5-508c-44a9-90d2-158b9f07db87/latest/. --outdir=xyz
+
+Browse live backup:
+
+    mkdir data/backup/live
+    bup fuse data/backup/live
+    fusermount -u data/backup/live  # must do this before any new additions will appear!
+
+
+    fusermount -u data/backup/live >/dev/null; mkdir -p data/backup/live; bup fuse data/backup/live
+    ls  data/backup/live
+
+     [x] (0:49) backup: ran project backup on cloud.sagemath.org and fixed a number of issues.
+
+     [x] (0:30?) backup: copy each database table to branch in target
+
+    require('backup').backup(cb:(err,b) -> b.dump_keyspace_to_filesystem(console.log))
+
+# Show all tables in schema
+
+    DESCRIBE TABLES
+
+    select columnfamily_name from system.schema_columnfamilies
+
+# Dump table to disk
+
+    copy projects to '/home/wstein/tmp/foo' with HEADER=true
+    copy projects2 from '/home/wstein/tmp/foo' with HEADER=true
+
+
+     [x] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
+
+  require('backup').backup(cb:(err,b) -> b.backup_all_projects(console.log))
+
+---
+
+[ ] (3:00) Prepare kvm base image on 06salvus with everything configured and installed for all components of system (except stunnel).
+
+     [x] (0:45?) vmhosts: ensure substantial lvm space available for persistent images (512GB on all machines for now)
+     [x] (0:15?) image: apt-get update; apt-get upgrade
+     [x] (0:15?) image: apt-get install everything listed in build.py
+     [x] (0:30?) image: build sage-5.8 just released
+     [x] (0:30?) image: build pull of latest salvus source
+     [x] (0:15?) image: rsync it out to other machines (01,03,07)
+     [x] (1:00?) image: make /home/salvus/vm/images the max possible size.
+
+cloud4:
+
+umount
+lvremove
+
+mv vm/images vm/images.0
+
+pvcreate /dev/sdb1
+vgextend 07salvus /dev/sdb1
+pvcreate /dev/sdc1
+vgextend 07salvus /dev/sdc1
+
+`   export GROUP=03salvus; lvcreate --name /dev/mapper/$GROUP-salvus_images -l 100%FREE  $GROUP; mkfs.ext4 /dev/mapper/$GROUP-salvus_images; echo "/dev/mapper/$GROUP-salvus_images  /home/salvus/vm/images ext4 defaults 1 1" >> /etc/fstab; mount -a; chown salvus. /home/salvus/vm/images/; rm -rf /home/salvus/vm/images/lost+found/
+
+time rsync --sparse -uaxvH images.0/ images/
+
+(x) cloud1
+(x) cloud2
+(x) cloud3
+(x) cloud4
+
 
