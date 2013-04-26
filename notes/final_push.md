@@ -44,9 +44,10 @@ Browse live backup:
 
 
 
-
      [ ] (0:30?) backup: copy each database table to branch in target
      [ ] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
+
+  require('backup').backup(cb:(err,b) -> b.backup_all_projects(console.log))
 
  [ ] (2:00?) Restore complete state from archive; TEST.
      [ ] (0:30?) restore: a version of a given project to a given username@host (default to latest)
@@ -59,7 +60,10 @@ Browse live backup:
      [ ] (0:30?) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
      [ ] (0:30?) Reduce some firewalling, maybe (?)
 
- [x] (3:00) Prepare kvm base image on 06salvus with everything configured and installed for all components of system (except stunnel).
+ [ ] (3:00) Prepare kvm base image on 06salvus with everything configured and installed for all components of system (except stunnel).
+
+     [ ] (0:30?) install bup system-wide on base vm.
+
      [x] (0:45?) vmhosts: ensure substantial lvm space available for persistent images (512GB on all machines for now)
      [x] (0:15?) image: apt-get update; apt-get upgrade
      [x] (0:15?) image: apt-get install everything listed in build.py

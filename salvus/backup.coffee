@@ -6,7 +6,7 @@ Backup -- Make a complete snapshotted dump of the system or individual projects 
 ###
 
 
-EXCLUDES=['.bup', '.sage', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var']
+EXCLUDES=['.bup', '.sage', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash']
 
 async = require('async')
 misc  = require('misc')
@@ -77,11 +77,13 @@ class Backup
             if err
                 cb?(err)
             else
-                winston.debug("Backing up #{v.length} projects...")
+                start = v.length
+                winston.debug("Backing up #{start} projects...")
                 f = () =>
                     if v.length > 0
                         x = v.pop()
                         @backup_project x[0], x[1], (err) =>
+                            winston.debug("#{v.length} of #{start} projects remain...")
                             if err
                                 cb?(err)
                             else
@@ -108,7 +110,7 @@ class Backup
     backup_project: (project_id, location, cb) =>   # cb(err)
         # Backup the project with given id at the given location, if anything has changed
         # since the last backup.
-        if location.username.length != 8
+        if not location? or not location.username? or location.username.length != 8
             # skip these that I use for devel/testing
             cb?()
             return
@@ -133,7 +135,7 @@ class Backup
                     bup
                         args    : ['on', user, 'save', '--strip', '-9', '-n', project_id, '.']
                         timeout : 3600  # data could take a while to transfer (?)
-                        cb      ( err, out) =>
+                        cb      : ( err, out) =>
                             cb?(err)
 
     dump_keyspace: () =>
