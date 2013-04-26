@@ -17,7 +17,8 @@ winston = require('winston')
 
 cassandra = require('cassandra')
 
-BACKUP_DIR = process.env['SALVUS_ROOT'] + '/data/backup/'
+BACKUP_DIR  = process.env['SALVUS_ROOT'] + '/data/backup/'
+DB_DUMP_DIR = BACKUP_DIR + '/db_dump'
 
 process.env['BUP_DIR'] = BACKUP_DIR + '/bup'
 
@@ -138,10 +139,65 @@ class Backup
                         cb      : ( err, out) =>
                             cb?(err)
 
-    dump_keyspace: () =>
+    dump_keyspace: (cb) =>
         # Dump all contents of database to data/backup/db/keyspace/ (which is first deleted),
         # then saves this directory to the bup archive (to "cassandra-"keyspace
         # branch with the commit the current timestamp).
+        target = undefined
+        async.series([
+            (cb) =>
+                @dump_keyspace_to_filesystem (err, _target) =>
+                    target = _target
+                    cb(err)
+            (cb) =>
+                bup
+                    args : ['index', target]
+                    timeout : 3600
+                    cb : cb
+            (cb) =>
+                bup
+                    args : ['save', '--strip', '-9', '-n', 'db-' + @keyspace, target]
+                    timeout : 1000000 # could be large
+                    cb : cb
+        ], cb)
+
+    dump_keyspace_to_filesystem: (cb) =>
+        target = DB_DUMP_DIR + '/' + @keyspace
+        tables = undefined
+        async.series([
+            (cb) =>
+                 misc_node.execute_code
+                    command : "mkdir"
+                    args    : ['-p', target]
+                    cb      : cb
+            (cb) =>
+                @db.select
+                    table   : 'system.schema_columnfamilies'
+                    columns : ['columnfamily_name']
+                    cb      : (err, _tables) =>
+                        if err
+                            cb(err)
+                        else
+                            tables = (x[0] for x in _tables)
+                            cb()
+            (cb) =>
+                winston.debug("Dumping tables #{misc.to_json(tables)}")
+                f = () =>
+                    if tables.length == 0
+                        cb()  # done successfully; move on
+                    else
+                        table = tables.pop()
+                        cmd = "echo \"copy #{table} to '#{target}/#{table}' with HEADER=true;\" | cqlsh -3 -k #{@keyspace}"
+                        winston.debug(cmd)
+                        misc_node.execute_code
+                            command : cmd
+                            timeout : 10000000 # it could take a very long time! -- effectively infinite
+                            cb      : (err, output) =>
+                                console.log(err, misc.to_json(output))
+                                f() # do the next one (ignore errors)
+                f() # start it
+        ], (err) -> cb?(err, target))
+
 
     dump_table: (table) =>
         # Dump all contents of the given table to data/backup/db/keyspace/table

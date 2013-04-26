@@ -14,7 +14,7 @@
 128.95.224.237 cloud3   # 03salvus
 128.95.224.230 cloud4   # 01salvus
 
- [ ] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
+ [x] (3:00?) Ability to make a *complete* efficient dump of system state to an archive:
      [x] (0:05?) create new file "backup.coffee"
      [x] (0:15?) backup: create a class with methods for each of the following, and one that does all; stubs.
      [x] (0:10?) backup: ensure init of a bup archive for target
@@ -43,9 +43,28 @@ Browse live backup:
     fusermount -u data/backup/live  # must do this before any new additions will appear!
 
 
+    fusermount -u data/backup/live >/dev/null; mkdir -p data/backup/live; bup fuse data/backup/live
+    ls  data/backup/live
 
-     [ ] (0:30?) backup: copy each database table to branch in target
-     [ ] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
+     [x] (0:49) backup: ran project backup on cloud.sagemath.org and fixed a number of issues.
+
+     [x] (0:30?) backup: copy each database table to branch in target
+
+    require('backup').backup(cb:(err,b) -> b.dump_keyspace_to_filesystem(console.log))
+
+# Show all tables in schema
+
+    DESCRIBE TABLES
+
+    select columnfamily_name from system.schema_columnfamilies
+
+# Dump table to disk
+
+    copy projects to '/home/wstein/tmp/foo' with HEADER=true
+    copy projects2 from '/home/wstein/tmp/foo' with HEADER=true
+
+
+     [x] (0:45?) backup: run/debug this on cloud.sagemath.org (excluding my home directory project!)
 
   require('backup').backup(cb:(err,b) -> b.backup_all_projects(console.log))
 
