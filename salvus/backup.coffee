@@ -169,10 +169,18 @@ class Backup
             host       : required  # source of restore
             timeout    : 30
             cb         : undefined # cb(err)
+        
         misc_node.execute_code
             command : 'ssh'
-            args    : [opts.host, 'salvus/salvus/scripts/restore_project', opts.project_id, misc.to_json(opts.location)]
-            cb      : opts.cb
+            args    : [opts.host, 'salvus/salvus/scripts/restore_project',
+                       '--project_id=' + opts.project_id,
+                       '--username=' + opts.location.username,
+                       '--host=' + opts.location.host,
+                       '--port=' + opts.location.port,
+                       '--path=' + opts.location.path]
+            cb      : (err, output) =>
+                winston.debug("output : #{misc.to_json(output)}")
+                opts.cb?(err)
 
     restore_project: (opts) =>
         opts = defaults opts,

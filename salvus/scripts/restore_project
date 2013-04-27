@@ -3,4 +3,4 @@
 cd $HOME/salvus/salvus
 . salvus-env
 
-scripts/restore_project.py $1 $2
+scripts/restore_project.py "$@"

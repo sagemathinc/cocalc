@@ -770,3 +770,11 @@ cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-
 
     require('backup').backup(cb:(err,b) -> b.start_project_snapshotter())
 
+    require('backup').backup(cb:(err,b) -> b._restore_project_from_host(project_id:'29ab00c4-09a4-4f2f-a468-19088243d66b', location:{"username":"cb33df53","host":"localhost",'path':'.',port:22}, host:'localhost'))
+
+
+    require('backup').backup(cb:(err,b) -> b.restore_project(project_id:'29ab00c4-09a4-4f2f-a468-19088243d66b', location:{"username":"cb33df53","host":"localhost",'path':'.',port:22}))
+    
+    
+
+
