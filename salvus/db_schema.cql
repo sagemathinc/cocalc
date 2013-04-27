@@ -247,6 +247,12 @@ CREATE TABLE project_blobs (
 );
 CREATE INDEX ON project_blobs(project_id);
 
+CREATE TABLE project_snapshots (
+    project_id uuid,
+    time       timestamp,
+    host       varchar,
+    PRIMARY KEY(project_id, time)
+);
 
 ////////////////////////////////////////////
 // Sessions -- live compute sessions

@@ -1,11 +1,12 @@
-## Top UI BUGS:
+## Top BUGS:
 
+- `local_hub`: pushes out output *too* often/quickly; make a for loop and kill the browser with sync requests...
 - terminal disconnects
 - first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - copy/paste in terminal sucks
 - editor slow when wide (?)
 
-## Goal for Saturday April 27, 2013: Deployment!
+## Deployment!
 
 01/03/06/07 salvus
 
@@ -14,14 +15,23 @@
 128.95.224.237 cloud3   # 03salvus
 128.95.224.230 cloud4   # 01salvus
 
- TODO:
+ [ ] (2:150?) Restore information from archive; TEST.
+-->     [ ] (0:30?) (0:14) add database table to track snapshots of projects (project_id/when/where):
+          queries:
+            -- host that has latest snapshot
+select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b order by time desc limit 1;
 
- [ ] (3:30?) Restore complete state from archive; TEST.
-     [ ] (0:30?) restore: a version of a given project to a given username@host (default to latest)
-     [ ] (0:30?) restore: create a new keyspace with current schema (as in db_schema.sql)
-     [ ] (0:30?) restore: restore all (or any particular) table to keyspace
-     [ ] (0:30?) restore: regarding projects: write latest times for backup to db;
-     [ ] (1:30?) when opening project, if not deployed (or deployment doesn't exist), resume from latest local bup snapshot.
+            -- list of all snapshots (date/location) in a given range of dates.
+
+cqlsh:test> select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b and time>1267021261000 and time<13670212610000;
+
+     [ ] (0:30?) when using project, make regular local bup snapshots of project, and store this fact in database
+     [ ] (1:30?) when opening project, if not deployed (or deployment doesn't exist), resume from *latest* working global bup snapshot.
+
+ [ ] (1:30?) Restore information from archive; TEST.
+     [ ] (0:30?) restore: create keyspace with current schema (as in db_schema.sql)
+     [ ] (0:30?) restore: restore all tables from archive keyspace
+     [ ] (0:30?) restore: copy each project that is *newer* than known to its location in local archive and update database accordingly.
 
  [ ] (2:00) Define deployment file/conf.
      [ ] (0:30?) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
