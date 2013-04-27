@@ -19,7 +19,7 @@
 
      [x] (1:00?) (4:30-- way, way longer than expected. Wow.) add a function "restore_project" to backup, which takes as input a project_id, location, timeout, and optional time, and restores project to that location.  If the time is given, find snapshot with closest time and uses it; otherwise use globally newest snapshot.   If timeout elapses and can't contact snapshot location, try again with next best one. If location doesn't exist, give error.
 
-     [ ] (0:45?) when opening project, if not deployed (or deployment doesn't exist), resume from *latest* working global bup snapshot.
+-->  [x] (0:45?) (1:05) when opening project, if no location doesn't exist, resume from *latest* working global bup snapshot, if there is one.
 
      [ ] (0:30?) in backup.coffee, address this: "HOST = 'localhost' # TODO"
 

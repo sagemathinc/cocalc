@@ -820,9 +820,12 @@ class Client extends EventEmitter
                         cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
                 new_project mesg.project_id, (err, _project) =>
-                    project = _project
-                    database.touch_project(project_id:mesg.project_id, location:project.location)
-                    cb(err)
+                    if err
+                        cb(err)
+                    else
+                        project = _project
+                        database.touch_project(project_id:mesg.project_id, location:project.location)
+                        cb()
         ], (err) =>
                 if err
                     if mesg.id?
@@ -1942,7 +1945,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @call
             mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, project_id:opts.project_id, path:opts.path)
             cb   : (err, resp) =>
-                winston.debug("new codemirror session: local_hub --> hub: #{err}, #{misc.to_json(resp)}")
+                #winston.debug("new codemirror session: local_hub --> hub: #{err}, #{misc.to_json(resp)}")
                 if err
                     opts.cb(err)
                 else if resp.event == 'error'
@@ -2237,21 +2240,48 @@ class Project
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
         winston.debug("Instantiating Project class for project with id #{@project_id}.")
-        database.get_project_location
-            project_id : @project_id
-            cb         : (err, location) =>
-                winston.debug("Location of project #{misc.to_json(location)}")
-                @location = location
+        async.series([
+            (cb) =>
+                database.get_project_location
+                    project_id : @project_id
+                    cb         : (err, location) =>
+                        if err
+                            cb(err); return
+                        if location?
+                            @location = location
+                            cb(); return
+                        new_random_unix_user
+                            cb : (err, location) =>
+                                if err
+                                    cb("project location not defined -- and allocating new one led to error -- #{err}")
+                                else
+                                    # Copy project's files from the most recent snapshot to the
+                                    # new unix user account.
+                                    backup_server.restore_project
+                                        project_id : @project_id
+                                        location   : location
+                                        cb         : (err) =>
+                                            if err
+                                                cb(err)
+                                            else
+                                                database.set_project_location
+                                                    project_id : @project_id
+                                                    location   : location
+                                                @location = location
+                                                cb()
+            (cb) =>
+                winston.debug("Location of project #{misc.to_json(@location)}")
                 new_local_hub
-                    username : location.username
-                    host     : location.host
-                    port     : location.port
+                    username : @location.username
+                    host     : @location.host
+                    port     : @location.port
                     cb       : (err, hub) =>
                         if err
                             cb(err)
                         else
                             @local_hub = hub
-                            cb(false, @)
+                            cb()
+        ], (err) => cb(err, @))
 
     _fixpath: (obj) =>
         if obj?
