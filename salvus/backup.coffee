@@ -22,7 +22,7 @@ DB_DUMP_DIR = BACKUP_DIR + '/db_dump'
 
 process.env['BUP_DIR'] = BACKUP_DIR + '/bup'
 
-HOST = 'localhost' # TODO
+HOST = os.popen('hostname').read().strip()
 
 bup = (opts) ->
     opts = defaults opts,

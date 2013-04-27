@@ -19,14 +19,10 @@
 
      [x] (1:00?) (4:30-- way, way longer than expected. Wow.) add a function "restore_project" to backup, which takes as input a project_id, location, timeout, and optional time, and restores project to that location.  If the time is given, find snapshot with closest time and uses it; otherwise use globally newest snapshot.   If timeout elapses and can't contact snapshot location, try again with next best one. If location doesn't exist, give error.
 
--->  [x] (0:45?) (1:05) when opening project, if no location doesn't exist, resume from *latest* working global bup snapshot, if there is one.
+    [x] (0:45?) (1:05) when opening project, if no location doesn't exist, resume from *latest* working global bup snapshot, if there is one.
 
-     [ ] (0:30?) in backup.coffee, address this: "HOST = 'localhost' # TODO"
+    [x] (0:30?) (0:04) in backup.coffee, address this: "HOST = 'localhost' # TODO"
 
- [ ] (1:30?) Restore information from archive; TEST.
-     [ ] (0:30?) restore: create keyspace with current schema (as in db_schema.sql)
-     [ ] (0:30?) restore: restore all tables from archive keyspace
-     [ ] (0:30?) restore: copy each project that is *newer* than known to its location in local archive and update database accordingly.
 
  [ ] (2:00) Define deployment file/conf.
      [ ] (0:30?) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
@@ -41,7 +37,12 @@
      [ ] (0:30?) deploy: verify distributed cassandra really working
      [ ] (0:30?) deploy: account creation...
 
- [ ] (2:15) Switch over
+ [ ] (1:30?) Restore information from archive; TEST.
+     [ ] (0:30?) restore: create keyspace with current schema (as in db_schema.sql)
+     [ ] (0:30?) restore: restore all tables from archive keyspace
+     [ ] (0:30?) restore: copy each project that is *newer* than known to its location in local archive and update database accordingly.
+
+[ ] (2:15) Switch over
      [ ] (1:30?) deploy: update the cloud.sagemath.org database snapshot; stop cloud.sagemath.org
      [ ] (0:15?) deploy: Update DNS for cloud.sagemath.org to new deployment
      [ ] (0:30?) deploy: restore database and all projects from cloud.sagemath.org
