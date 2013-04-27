@@ -6,7 +6,7 @@ Backup -- Make a complete snapshotted dump of the system or individual projects 
 ###
 
 
-EXCLUDES=['.bup', '.sage', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash']
+EXCLUDES=['.bup', '.sage', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
 
 async = require('async')
 misc  = require('misc')
@@ -137,7 +137,7 @@ class Backup
                 else
                     # Make index, now create the backup.
                     bup
-                        args    : ['on', user, 'save', '--strip', '-9', '-n', project_id, '.']
+                        args    : ['on', user, 'save', '-9', '--strip', '-n', project_id, '.']
                         timeout : 3600  # data could take a while to transfer (?)
                         cb      : ( err, out) =>
                             cb?(err)

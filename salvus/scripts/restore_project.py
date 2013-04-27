@@ -41,7 +41,7 @@ try:
 
 finally:
     print "Deleting '%s'..."%restore_path
-    #shutil.rmtree(restore_path, ignore_errors=True)
+    shutil.rmtree(restore_path, ignore_errors=True)
 
 
 

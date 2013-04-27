@@ -766,7 +766,7 @@ Put this in backup.coffee as thing that gets going; maybe hub will start it, may
 
 cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-4f2f-a468-19088243d66b) and host='wstein@localhost';
 
-    require('backup').backup(cb:(err,b) -> b.snapshot_active_projects())
+    require('backup').backup(cb:(err,b) -> b.snapshot_active_projects(max_snapshot_age:1))
 
-    require('backup').backup(cb:(err,b) -> b.start_project_snapshotter(interval:10))
+    require('backup').backup(cb:(err,b) -> b.start_project_snapshotter())
 
