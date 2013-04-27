@@ -169,7 +169,7 @@ class Backup
             host       : required  # source of restore
             timeout    : 30
             cb         : undefined # cb(err)
-        
+
         misc_node.execute_code
             command : 'ssh'
             args    : [opts.host, 'salvus/salvus/scripts/restore_project',
@@ -216,25 +216,26 @@ class Backup
                             cb()
             (cb) =>
                 f = () =>
-                    while true
-                        if snapshots.length == 0
-                            cb("Unable to restore backup -- no available working snapshots of project.")
-                            return
-                        [time, host] = snapshots.pop()
-                        if attempted[host]?
-                            continue
-                        attempted[host] = true
-                        @restore_project
-                            project_id : opts.project_id
-                            location   : opts.location
-                            host       : host
-                            cb         : (err, result) =>
-                                if err
-                                    # Try again
-                                    f()
-                                else
-                                    # Success!
-                                    cb()
+                    if snapshots.length == 0
+                        cb("Unable to restore backup -- no available working snapshots of project.")
+                        return
+                    [time, host] = snapshots.pop()
+                    if attempted[host]?
+                        f()  # try again with next snapshot
+                        # TODO: rewrite this somehow to not use recursion
+                        return
+                    attempted[host] = true
+                    @restore_project
+                        project_id : opts.project_id
+                        location   : opts.location
+                        host       : host
+                        cb         : (err, result) =>
+                            if err
+                                # Try again
+                                f()
+                            else
+                                # Success!
+                                cb()
                 # Start trying
                 f()
         ], (err) =>

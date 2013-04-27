@@ -17,7 +17,7 @@
 
 
 
-     [ ] (1:00?) add a function "restore_project" to backup, which takes as input a project_id, location, timeout, and optional time, and restores project to that location.  If the time is given, find snapshot with closest time and uses it; otherwise use globally newest snapshot.   If timeout elapses and can't contact snapshot location, try again with next best one. If location doesn't exist, give error.
+     [x] (1:00?) (4:30-- way, way longer than expected. Wow.) add a function "restore_project" to backup, which takes as input a project_id, location, timeout, and optional time, and restores project to that location.  If the time is given, find snapshot with closest time and uses it; otherwise use globally newest snapshot.   If timeout elapses and can't contact snapshot location, try again with next best one. If location doesn't exist, give error.
 
      [ ] (0:45?) when opening project, if not deployed (or deployment doesn't exist), resume from *latest* working global bup snapshot.
 
@@ -774,7 +774,7 @@ cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-
 
 
     require('backup').backup(cb:(err,b) -> b.restore_project(project_id:'29ab00c4-09a4-4f2f-a468-19088243d66b', location:{"username":"cb33df53","host":"localhost",'path':'.',port:22}))
-    
-    
+
+
 
 

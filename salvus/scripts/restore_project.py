@@ -37,7 +37,13 @@ def bup(cmd):
 restore_path = os.path.join(BACKUP, 'restore', project_id)
 
 try:
-    os.makedirs(restore_path)
+    try:
+        os.makedirs(restore_path)
+    except Exception, mesg:
+        print mesg  # non-fatal -- delete and try again
+        shutil.rmtree(restore_path, ignore_errors=True)
+        os.makedirs(restore_path)
+
     bup("restore --outdir '%s' %s/latest/."%(restore_path, project_id))
     cmd = "rsync -axH '%s/' %s@%s:%s"%(restore_path, username, host, path)
     print cmd
