@@ -25,9 +25,10 @@
 
 
  [ ] (2:00) Define deployment file/conf.
-     [ ] (0:30?) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
-     [ ] (0:45?) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
-     [ ] (0:45?) Reduce some firewalling, maybe (?)
+     [x] (0:30?) (0:30) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
+     [ ] (0:45?) (0:15+) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
+     [ ] (0:45?) Reduce some firewalling, at least for outgoing connections from user compute machines (so they can use the net).
+
 
  [ ] (3:00) Deploy.
      [ ] (0:15?) update salvus on vm

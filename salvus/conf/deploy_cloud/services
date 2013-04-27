@@ -1,0 +1,42 @@
+# services
+
+[vm]
+cloud1   {'hostname':'cassandra1', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130427', 'disk':'cassandra:256'}
+cloud1   {'hostname':'web1',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130427', 'disk':'web:2000'}
+cloud1   {'hostname':'compute1a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130427', 'disk':'home1a:128'}
+
+cloud2   {'hostname':'cassandra2', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130427', 'disk':'cassandra:256'}
+cloud2   {'hostname':'web2',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130427', 'disk':'web:2000'}
+cloud2   {'hostname':'compute2a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130427', 'disk':'home2a:128'}
+
+cloud3   {'hostname':'cassandra3', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130427', 'disk':'cassandra:256'}
+cloud3   {'hostname':'web3',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130427', 'disk':'web:256'}
+cloud3   {'hostname':'compute3a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130427', 'disk':'home3a:128'}
+
+cloud4   {'hostname':'cassandra4', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130427', 'disk':'cassandra:256'}
+cloud4   {'hostname':'web4',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130427', 'disk':'web:256'}
+cloud4   {'hostname':'compute4a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130427', 'disk':'home4a:128'}
+
+
+[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'}
+# N=4; [i * (2**127 / N) for i in range(N)]
+cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'initial_token':0}
+cassandra2    {'seed':True,  'topology':'DC0:RAC0', 'initial_token':42535295865117307932921825928971026432}
+cassandra3    {'seed':True,  'topology':'DC1:RAC0', 'initial_token':85070591730234615865843651857942052864}
+cassandra4    {'seed':False, 'topology':'DC1:RAC0', 'initial_token':127605887595351923798765477786913079296}
+
+[stunnel] {'sudo':True}
+edge
+
+[haproxy] {'sudo':True}
+edge {'insecure_redirect_port':80, 'sitename':'cloud.sagemath.org'}
+
+[nginx]
+nginx
+
+[hub]
+hub
+
+
+
+
