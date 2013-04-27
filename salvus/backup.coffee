@@ -22,6 +22,8 @@ DB_DUMP_DIR = BACKUP_DIR + '/db_dump'
 
 process.env['BUP_DIR'] = BACKUP_DIR + '/bup'
 
+HOST = 'localhost' # TODO
+
 bup = (opts) ->
     opts = defaults opts,
         args    : []
@@ -202,17 +204,50 @@ class Backup
     dump_table: (table) =>
         # Dump all contents of the given table to data/backup/db/keyspace/table
 
-    restore_keyspace: (keyspace, commit) ->
+    restore_keyspace: (keyspace, commit) =>
         # 1. Restore the given keyspace (and commit, if given) from the bup archive
         # to the directory data/backup/db/keyspace
         # 2. Copy all data from the given backup into the current keyspace of the
         # database @keyspace.  If you want the result to be exactly what was backed up
         # in data/backup/db/keyspace call init_database first.
 
-    init_keyspace: () ->
+    init_keyspace: () =>
         # Delete everything from @keyspace, then initialize all tables
         # using the current db_schema file.
 
+    snapshot_active_projects: (opts) =>
+        opts = defaults opts,
+            # For each project we consider, if our snapshot of it is older than max_snapshot_age, we make a snapshot
+            max_snapshot_age : 60*5
+            # cb(err, list of project ids where we made a snapshot)
+            cb : undefined
+        @db.select
+            table   : 'recently_modified_projects'
+            columns : ['project_id', 'location']
+            objectify : true
+            cb : (err, projects) =>
+                if err
+                    opts.cb?(err); return
+                ids = [proj.project_id for proj in projects]
+                query = "select project_id from project_snapshots where project_id in (#{ids.join(',')}) and host='#{HOST}' and time>=#{time}"
+                @db.cql query, [], (err, result) =>
+                    if err
+                        opts.cb?(err); return
+                    done = {}
+                    for x in result
+                        done[x.get('project_id')] = true
+                    # We launch all the snapshots in parallel, since most of the work is on the VM
+                    # hosts that make the indexes, which happens elsewhere.  Also, bup seems to work
+                    # just fine with making multiple snapshots at the same time (of different things).
+                    for proj in projects
+                        if not done[proj.project_id]?
+                            @backup_project(proj.project_id, proj.location)
 
+    start_project_snapshotter: (opts) =>
+        opts = defaults opts,
+            interval : 60   # every this many seconds, wake up, query database, and make snapshots of touched projects
 
+        f = () =>
+            @snapshot_active_projects(max_age:opts.interval)
 
+        setInterval(f, opts.interval)

@@ -16,17 +16,28 @@
 128.95.224.230 cloud4   # 01salvus
 
  [ ] (2:150?) Restore information from archive; TEST.
--->     [ ] (0:30?) (0:14) add database table to track snapshots of projects (project_id/when/where):
+     [x] (0:30?) (0:14) add database table to track snapshots of projects (project_id/when/where):
           queries:
             -- host that has latest snapshot
+
 select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b order by time desc limit 1;
 
             -- list of all snapshots (date/location) in a given range of dates.
 
 cqlsh:test> select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b and time>1267021261000 and time<13670212610000;
 
-     [ ] (0:30?) when using project, make regular local bup snapshots of project, and store this fact in database
+-->     [ ] (0:30?) make regular local bup snapshots of recently modified projects, and store this fact in database
+
+Put this in backup.coffee as thing that gets going; maybe hub will start it, maybe hub won't.  We can test it outside hub.
+
+1. find all projects touched in the last k minutes
+2. query for snapshots with this hub as host of those projects having a backup in the last k minutes
+3. for any that don't have a  snapshot, make a snapshot
+
+cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-4f2f-a468-19088243d66b) and host='wstein@localhost';
+
      [ ] (1:30?) when opening project, if not deployed (or deployment doesn't exist), resume from *latest* working global bup snapshot.
+     [ ] (0:30?) in backup.coffee, address this: "HOST = 'localhost' # TODO"
 
  [ ] (1:30?) Restore information from archive; TEST.
      [ ] (0:30?) restore: create keyspace with current schema (as in db_schema.sql)

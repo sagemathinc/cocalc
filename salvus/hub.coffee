@@ -819,9 +819,9 @@ class Client extends EventEmitter
                     else
                         cb("Internal error -- unknown permission type '#{permission}'")
             (cb) =>
-                database.touch_project(project_id:mesg.project_id)
                 new_project mesg.project_id, (err, _project) =>
                     project = _project
+                    database.touch_project(project_id:mesg.project_id, location:project.location)
                     cb(err)
         ], (err) =>
                 if err

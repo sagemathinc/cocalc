@@ -219,9 +219,10 @@ CREATE TABLE projects (
      title            varchar,
      description      varchar,
      public           boolean,  // whether or not the project is visible to everybody in the world
-     last_edited      timestamp,// timestamp of last save of the project
 
-     location         varchar,  // the host on which deployed: JSON -- {username:, host:, port:, path:}
+     last_edited      timestamp,// timestamp of last modification of the project
+
+     location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
      quota            varchar,  // JSON
 
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
@@ -229,8 +230,6 @@ CREATE TABLE projects (
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 );
-
-CREATE INDEX ON projects(account_id);
 
 CREATE TABLE project_users (
      project_id       uuid,
@@ -247,12 +246,20 @@ CREATE TABLE project_blobs (
 );
 CREATE INDEX ON project_blobs(project_id);
 
+/* Whenever a project is touched, we also add it to this table with a ttl. */
+CREATE TABLE recently_modified_projects (
+    project_id uuid  PRIMARY KEY,
+    location   varchar
+);
+
 CREATE TABLE project_snapshots (
     project_id uuid,
     time       timestamp,
     host       varchar,
     PRIMARY KEY(project_id, time)
 );
+
+CREATE INDEX ON project_snapshots(host);
 
 ////////////////////////////////////////////
 // Sessions -- live compute sessions

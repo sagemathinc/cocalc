@@ -945,6 +945,7 @@ class exports.Salvus extends exports.Cassandra
     touch_project: (opts) ->
         opts = defaults opts,
             project_id : required
+            location   : undefined
             size       : undefined
             cb         : undefined
 
@@ -956,7 +957,15 @@ class exports.Salvus extends exports.Cassandra
             table : 'projects'
             set   : set
             where : {project_id : opts.project_id}
-            cb : opts.cb
+            cb    : (err, result) =>
+                if err or not opts.location?
+                    opts.cb?(err); return
+                @update
+                    table : 'recently_modified_projects'
+                    set   : {location:opts.location}
+                    where : {project_id : opts.project_id}
+                    ttl   : 3600   # 1 hour -- just a guess; this may need tuning as Salvus grows!
+                    cb    : opts.cb
 
     create_project: (opts) ->
         opts = defaults opts,
