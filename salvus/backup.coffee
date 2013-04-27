@@ -114,11 +114,12 @@ class Backup
         # Backup the project with given id at the given location, if anything has changed
         # since the last backup.
         if not location? or not location.username? or location.username.length != 8
-            # skip these that I use for devel/testing
+            winston.debug("skip snapshot of #{misc.to_json(location)}; only for devel/testing")
             cb?()
             return
 
         user = "#{location.username}@#{location.host}"
+        winston.debug("backing up project at #{user}")
 
         # First make the index on the remote machine
         args = ['on', user, 'index']
@@ -215,39 +216,60 @@ class Backup
         # Delete everything from @keyspace, then initialize all tables
         # using the current db_schema file.
 
-    snapshot_active_projects: (opts) =>
+    snapshot_active_projects: (opts={}) =>
         opts = defaults opts,
             # For each project we consider, if our snapshot of it is older than max_snapshot_age, we make a snapshot
             max_snapshot_age : 60*5
             # cb(err, list of project ids where we made a snapshot)
             cb : undefined
+
         @db.select
             table   : 'recently_modified_projects'
             columns : ['project_id', 'location']
+            json    : ['location']
             objectify : true
             cb : (err, projects) =>
                 if err
                     opts.cb?(err); return
-                ids = [proj.project_id for proj in projects]
-                query = "select project_id from project_snapshots where project_id in (#{ids.join(',')}) and host='#{HOST}' and time>=#{time}"
-                @db.cql query, [], (err, result) =>
-                    if err
-                        opts.cb?(err); return
-                    done = {}
-                    for x in result
-                        done[x.get('project_id')] = true
-                    # We launch all the snapshots in parallel, since most of the work is on the VM
-                    # hosts that make the indexes, which happens elsewhere.  Also, bup seems to work
-                    # just fine with making multiple snapshots at the same time (of different things).
-                    for proj in projects
-                        if not done[proj.project_id]?
-                            @backup_project(proj.project_id, proj.location)
+                @db.select
+                    table     : 'project_snapshots'
+                    columns   : ['project_id']
+                    where     : {host:HOST, time:{'>=':cassandra.seconds_ago(opts.max_snapshot_age)}}
+                    objectify : false
+                    cb        : (err, results) =>
+                        if err
+                            opts.cb?(err); return
+                        winston.debug("results = #{misc.to_json(results)}")
+                        done = {}
+                        for x in results
+                            done[x[0]] = true
+                        winston.debug("done = #{misc.to_json(done)}")
+                        # We launch all the snapshots in parallel, since most of the work is on the VM
+                        # hosts that make the indexes, which happens elsewhere.  Also, bup seems to work
+                        # just fine with making multiple snapshots at the same time (of different things).
+                        do_backup = (proj) =>
+                            winston.debug("Backing up #{misc.to_json(proj)}")
+                            @backup_project proj.project_id, proj.location, (err) =>
+                                if not err
+                                    # record in database that we successfully made a backup
+                                    @db.update
+                                        table : 'project_snapshots'
+                                        set   : {host: HOST}
+                                        where : {project_id:proj.project_id, time:cassandra.now()}
+                                else
+                                    winston.debug("FAIL making backup of #{misc.to_json(proj)} -- #{err}")
 
-    start_project_snapshotter: (opts) =>
+                        for proj in projects
+                            if not done[proj.project_id]?
+                                do_backup(proj)
+
+                        opts.cb?()
+
+    start_project_snapshotter: (opts={}) =>
         opts = defaults opts,
-            interval : 60   # every this many seconds, wake up, query database, and make snapshots of touched projects
+            interval : 5*60   # every this many *seconds*, wake up, query database, and make snapshots
 
         f = () =>
-            @snapshot_active_projects(max_age:opts.interval)
+            @snapshot_active_projects(max_snapshot_age:opts.interval)
 
-        setInterval(f, opts.interval)
+        setInterval(f, opts.interval*1000)

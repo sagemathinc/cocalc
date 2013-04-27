@@ -962,9 +962,12 @@ class exports.Salvus extends exports.Cassandra
                     opts.cb?(err); return
                 @update
                     table : 'recently_modified_projects'
+                    json  : ['location']
                     set   : {location:opts.location}
                     where : {project_id : opts.project_id}
-                    ttl   : 3600   # 1 hour -- just a guess; this may need tuning as Salvus grows!
+                    # This ttl is closely related to the timing
+                    # in start_project_snapshotter (of backup.coffee).
+                    ttl   : 15*60   # 15 minutes -- just a guess; this may need tuning as Salvus grows!
                     cb    : opts.cb
 
     create_project: (opts) ->

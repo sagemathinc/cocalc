@@ -3740,11 +3740,20 @@ clean_up_on_shutdown = () ->
 #############################################
 # Start everything running
 #############################################
+backup_server = undefined
 exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
-    database = new cass.Salvus(hosts:program.database_nodes.split(','), keyspace:program.keyspace)
+    hosts = program.database_nodes.split(',')
+    database = new cass.Salvus(hosts:hosts, keyspace:program.keyspace)
+    require('backup').backup
+        keyspace : program.keyspace
+        hosts    : hosts
+        cb       : (err, r) ->
+            backup_server = r
+            backup_server.start_project_snapshotter()
+
     init_sockjs_server()
     init_stateless_exec()
     http_server.listen(program.port, program.host)

@@ -26,7 +26,7 @@ select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-190882
 
 cqlsh:test> select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b and time>1267021261000 and time<13670212610000;
 
--->     [ ] (0:30?) make regular local bup snapshots of recently modified projects, and store this fact in database
+-->     [x] (0:30?) (3:16) make regular local bup snapshots of recently modified projects, and store this fact in database  [took 6 times as long as expected!]
 
 Put this in backup.coffee as thing that gets going; maybe hub will start it, maybe hub won't.  We can test it outside hub.
 
@@ -35,6 +35,10 @@ Put this in backup.coffee as thing that gets going; maybe hub will start it, may
 3. for any that don't have a  snapshot, make a snapshot
 
 cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-4f2f-a468-19088243d66b) and host='wstein@localhost';
+
+    require('backup').backup(cb:(err,b) -> b.snapshot_active_projects())
+
+    require('backup').backup(cb:(err,b) -> b.start_project_snapshotter(interval:10))
 
      [ ] (1:30?) when opening project, if not deployed (or deployment doesn't exist), resume from *latest* working global bup snapshot.
      [ ] (0:30?) in backup.coffee, address this: "HOST = 'localhost' # TODO"
