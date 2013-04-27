@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+cd $HOME/salvus/salvus
+. salvus-env
+
+scripts/restore_project.py $1 $2

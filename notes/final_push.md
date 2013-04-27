@@ -15,32 +15,12 @@
 128.95.224.237 cloud3   # 03salvus
 128.95.224.230 cloud4   # 01salvus
 
- [ ] (2:150?) Restore information from archive; TEST.
-     [x] (0:30?) (0:14) add database table to track snapshots of projects (project_id/when/where):
-          queries:
-            -- host that has latest snapshot
 
-select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b order by time desc limit 1;
 
-            -- list of all snapshots (date/location) in a given range of dates.
+     [ ] (1:00?) add a function "restore_project" to backup, which takes as input a project_id, location, timeout, and optional time, and restores project to that location.  If the time is given, find snapshot with closest time and uses it; otherwise use globally newest snapshot.   If timeout elapses and can't contact snapshot location, try again with next best one. If location doesn't exist, give error.
 
-cqlsh:test> select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b and time>1267021261000 and time<13670212610000;
+     [ ] (0:45?) when opening project, if not deployed (or deployment doesn't exist), resume from *latest* working global bup snapshot.
 
--->     [x] (0:30?) (3:16) make regular local bup snapshots of recently modified projects, and store this fact in database  [took 6 times as long as expected!]
-
-Put this in backup.coffee as thing that gets going; maybe hub will start it, maybe hub won't.  We can test it outside hub.
-
-1. find all projects touched in the last k minutes
-2. query for snapshots with this hub as host of those projects having a backup in the last k minutes
-3. for any that don't have a  snapshot, make a snapshot
-
-cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-4f2f-a468-19088243d66b) and host='wstein@localhost';
-
-    require('backup').backup(cb:(err,b) -> b.snapshot_active_projects())
-
-    require('backup').backup(cb:(err,b) -> b.start_project_snapshotter(interval:10))
-
-     [ ] (1:30?) when opening project, if not deployed (or deployment doesn't exist), resume from *latest* working global bup snapshot.
      [ ] (0:30?) in backup.coffee, address this: "HOST = 'localhost' # TODO"
 
  [ ] (1:30?) Restore information from archive; TEST.
@@ -763,4 +743,30 @@ time rsync --sparse -uaxvH images.0/ images/
 (x) cloud3
 (x) cloud4
 
+---
+
+ [ ] (2:150?) Restore information from archive; TEST.
+     [x] (0:30?) (0:14) add database table to track snapshots of projects (project_id/when/where):
+          queries:
+            -- host that has latest snapshot
+
+select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b order by time desc limit 1;
+
+            -- list of all snapshots (date/location) in a given range of dates.
+
+cqlsh:test> select * from project_snapshots  where project_id=29ab00c4-09a4-4f2f-a468-19088243d66b and time>1267021261000 and time<13670212610000;
+
+-->     [x] (0:30?) (3:16) make regular local bup snapshots of recently modified projects, and store this fact in database  [took 6 times as long as expected!]
+
+Put this in backup.coffee as thing that gets going; maybe hub will start it, maybe hub won't.  We can test it outside hub.
+
+1. find all projects touched in the last k minutes
+2. query for snapshots with this hub as host of those projects having a backup in the last k minutes
+3. for any that don't have a  snapshot, make a snapshot
+
+cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-4f2f-a468-19088243d66b) and host='wstein@localhost';
+
+    require('backup').backup(cb:(err,b) -> b.snapshot_active_projects())
+
+    require('backup').backup(cb:(err,b) -> b.start_project_snapshotter(interval:10))
 

@@ -142,6 +142,100 @@ class Backup
                         cb      : ( err, out) =>
                             cb?(err)
 
+
+    snapshots: (opts) =>
+        # Return snapshots times and locations of a given project.
+        opts = defaults opts,
+            project_id   : required
+            limit        : undefined
+            cb           : required
+                      # cb(err, sorted -- starting with newest -- list of pairs [time, host])
+
+        where = {project_id: opts.project_id}
+        @db.select
+            table     : 'project_snapshots'
+            where     : where
+            limit     : opts.limit
+            columns   : ['time', 'host']
+            objectify : false
+            order_by  : 'time'
+            cb        : opts.cb
+
+    # ssh into host (unless 'localhost') and restore newest snapshot of project to location.
+    _restore_project_from_host: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            location   : required  # target of restore
+            host       : required  # source of restore
+            timeout    : 30
+            cb         : undefined # cb(err)
+        misc_node.execute_code
+            command : 'ssh'
+            args    : [opts.host, 'salvus/salvus/scripts/restore_project', opts.project_id, misc.to_json(opts.location)]
+            cb      : opts.cb
+
+    restore_project: (opts) =>
+        opts = defaults opts,
+            project_id   : required
+            location     : required   # location to restore *to*
+            host         : undefined  # if given, just attempt to restore latest version from this host
+            cb           : undefined  # cb(err, {time:? host:?})
+            # TODO:
+            # time         : undefined  # choose global backup with timestamp closest to this.
+
+        if opts.host?
+            @_restore_project_from_host(opts)
+            return
+
+        snapshots = undefined
+        attempted = {}
+        time      = undefined
+        host      = undefined
+        async.series([
+            (cb) =>
+                if opts.host?
+                    cb(); return
+                # Find best-match backup on a host not in the exclude_host list.
+                # TODO: I'm just going to write a quick db query that gets all backups
+                # and find the right one.  Later, this can be made more scalable and faster.
+                @snapshots
+                    project_id : opts.project_id
+                    cb         : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            snapshots = results
+                            cb()
+            (cb) =>
+                f = () =>
+                    while true
+                        if snapshots.length == 0
+                            cb("Unable to restore backup -- no available working snapshots of project.")
+                            return
+                        [time, host] = snapshots.pop()
+                        if attempted[host]?
+                            continue
+                        attempted[host] = true
+                        @restore_project
+                            project_id : opts.project_id
+                            location   : opts.location
+                            host       : host
+                            cb         : (err, result) =>
+                                if err
+                                    # Try again
+                                    f()
+                                else
+                                    # Success!
+                                    cb()
+                # Start trying
+                f()
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else
+                opts.cb?(false, {time:time, host:host})
+        )
+
     dump_keyspace: (cb) =>
         # Dump all contents of database to data/backup/db/keyspace/ (which is first deleted),
         # then saves this directory to the bup archive (to "cassandra-"keyspace

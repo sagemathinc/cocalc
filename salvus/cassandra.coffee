@@ -412,6 +412,7 @@ class exports.Cassandra extends EventEmitter
             json      : []          # list of columns that should be converted from JSON format
             timestamp : []          # list of columns to retrieve in the form {value:'value of that column', timestamp:timestamp of that column}
                                     # timestamp columns must not be part of the primary key
+            order_by : undefined    # if given, adds an "ORDER BY opts.order_by"
 
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
@@ -420,6 +421,8 @@ class exports.Cassandra extends EventEmitter
             query += " WHERE #{where} "
         if opts.limit?
             query += " LIMIT #{opts.limit} "
+        if opts.order_by?
+            query += " ORDER BY #{opts.order_by} "
         @cql(query, vals,
             (error, results) ->
                 if opts.objectify
