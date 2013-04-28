@@ -192,8 +192,11 @@ def build_cassandra():
         print "copying over"
         cmd('cp -rv * "%s"'%target2, path)
         cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(TARGET, 'bin')), path)
+        print "making symlink so can use fast JNA java native thing"
+        cmd("ln -sf /usr/share/java/jna.jar %s/local/cassandra/lib/"%DATA, path)
+
         print "building python library"
-        cmd("cd pylib && python setup.py install")
+        cmd("cd pylib && python setup.py install", path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
