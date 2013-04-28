@@ -560,6 +560,10 @@ class Cassandra(Process):
                         j = len(r)
                     r = r[:i] + '%s: %s'%(k,v) + r[j+i:]
 
+                if 'initial_token' not in kwds:
+                    # Make sure initial_token is not set.
+                    r = r.replace("\ninitial_token:","\n#initial_token:")
+
             elif topology and name == 'cassandra-topology.properties':
 
                 r = topology
