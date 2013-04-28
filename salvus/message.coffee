@@ -156,7 +156,7 @@ message
     javascript   : undefined   # javascript code evaluation stream (see also 'execute_javascript' to run code directly in browser that is not part of the output stream).
     interact     : undefined   # create an interact layout defined by a JSON object
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
-    file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://cloud.sagemath.org/blobs/filename?uuid=[the uuid]
+    file         : undefined   # used for passing a file -- is an object {filename:..., uuid:..., show:true}; the file is at https://cloud.sagemath.com/blobs/filename?uuid=[the uuid]
     done         : false       # the sequences of messages for a given code evaluation is done.
     session_uuid : undefined   # the uuid of the session that produced this output
     once         : undefined   # if given, message is transient; it is not saved by the worksheet, etc.

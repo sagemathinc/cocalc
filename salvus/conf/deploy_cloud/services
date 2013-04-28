@@ -29,7 +29,7 @@ cassandra4    {'seed':True, 'topology':'DC1:RAC0', 'num_tokens':256}
 edge
 
 [haproxy] {'sudo':True}
-edge {'insecure_redirect_port':80, 'sitename':'cloud.sagemath.org'}
+edge {'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
 
 [nginx]
 nginx

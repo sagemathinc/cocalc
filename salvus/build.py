@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Building the main components of cloud.sagemath.org from source, ensuring that all
+Building the main components of cloud.sagemath.com from source, ensuring that all
 important (usually security-related) options are compiled in.
 
 The components are:

@@ -15,108 +15,65 @@
 128.95.224.237 cloud3   # 03salvus
 128.95.224.230 cloud4   # 01salvus
 
+[ ] (3:00?) VM installs/deploys
+
+     [x] (0:30?) create automated bup backups cloud1->cloud2, etc.; backup everything except vm images.
+     [x] (1:00?) (1:00) bup of everything to disk, for an extra level of backup, since I have 4TB just sitting there unused (leave 1TB to expand /home); this is meant only for the next few months, not long term.
+
+     lvcreate --name salvus --size 3000G data
+     mkfs.ext4 /dev/data/salvus
+     # edit /etc/fstab to add mount of /home/salvus to be /dev/data/salvus:
+        # Salvus backup
+        UUID=d84d5f43-8cf9-404b-9edb-3b4401127cf4 /home/salvus ext4 defaults,noauto 0 0
+     # change permissions:
+     chown salvus /home/salvus
+
+     # install bup systemwide
+      apt-get install python2.6-dev python-fuse  python-pyxattr python-pylibacl linux-libc-dev; git clone git://github.com/bup/bup; cd bup; make install
+
+      # and on cloud*
+      apt-get install python2.7-dev python-fuse  python-pyxattr python-pylibacl linux-libc-dev; git clone git://github.com/bup/bup; cd bup; make install
+
+     # setup ssh key access to cloud1-4
+      ssh-keygen -b 2048
+      ssh-copy-id cloud4   # etc.
+
+     # setup a script to backup everything from cloud1-4 except vm/images/backup:
+
+        salvus@disk:~$ more bin/backup-cloud
+        #!/usr/bin/env python
+
+        import os
+
+        BUP_DIR="/home/salvus/vm/images/backup/bup"
+        for host in ['cloud1', 'cloud2', 'cloud3', 'cloud4']:
+            cmd = "BUP_DIR=%s  time bup on %s index --exclude %s  /home/salvus/"%(BUP_DIR, host, BUP_DIR)
+            print cmd
+            os.system(cmd)
+            cmd = "time bup on %s save -9 -n %s ."%(host, host)
+            os.system(cmd)
+
+     # setup cron to make such a backup every 6 hours (revisit frequency later)
+            0 */6 * * * /home/salvus/bin/backup-cloudt
 
 
-     [x] (1:00?) (4:30-- way, way longer than expected. Wow.) add a function "restore_project" to backup, which takes as input a project_id, location, timeout, and optional time, and restores project to that location.  If the time is given, find snapshot with closest time and uses it; otherwise use globally newest snapshot.   If timeout elapses and can't contact snapshot location, try again with next best one. If location doesn't exist, give error.
 
-    [x] (0:45?) (1:05) when opening project, if no location doesn't exist, resume from *latest* working global bup snapshot, if there is one.
+     --> [x] (1:00?) get cert for cloud.sagemath.com
 
-    [x] (0:30?) (0:04) in backup.coffee, address this: "HOST = 'localhost' # TODO"
+    # paste this into go-daddy form:
+     openssl req -new -newkey rsa:2048 -nodes -keyout cloud.sagemath.key -out cloud.sagemath.csr
+     # get file from them, extract, and:
+     cat cloud.sagemath.key cloud.sagemath.com.crt gd_bundle.crt > nopassphrase.pem
 
-
- [x] (2:00) Define deployment file/conf.
-     [x] (0:30?) (0:30) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
-     [x] (0:45?) (0:45) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
-     [x] (0:45?) Reduce some firewalling, at least for outgoing connections from user compute machines (so they can use the net); this is not needed, due to not having a "compute" server anymore.
-
-
- [ ] Deploy -- this could take WAY longer, depending on bugs/issues we find!
-     [x] (0:15?) update salvus on vm
-
-    virsh_list
-    export PREV=salvus-20130425; export NAME=salvus-20130427;
-    qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
-    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
-    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
-
-    [x] (0:30?) )(0:04) install bup system-wide on base vm.
-
-sudo apt-get install python2.7-dev python-fuse python-pyxattr python-pylibacl linux-libc-dev
-git clone git://github.com/bup/bup
-cd bup; sudo make install
-cd ..; sudo rm -rf bup
-
-    [x] (1:00?) (2:00) create account creation script so salvus@vm != root@vm, and accounts created in /mnt/home/
-
-This requires putting -- via visudo -- this line:
-
-      salvus ALL=(ALL)   NOPASSWD:  /home/salvus/salvus/salvus/scripts/create_unix_user.py ""
-
-   [x] (0:15?) (0:06) setup skel/ on base vm to have .sagemathcloud path.
-
-rsync -axvHL local_hub_template/ ~/.sagemathcloud/
-cd ~/.sagemathcloud
-time ./build # takes 40 seconds
-tar jcvf sagemathcloud.tar .sagemathcloud
-cd salvus/salvus/scripts/skel/
-tar xvf ~/sagemathcloud.tar
-
-   [x] (0:20?) (0:04) make sure account creation script is actually run on the right computer.
-
--->   [ ] (0:45?) (+0:17) ensure quotas are setup and work on base vm.
-
-sudo apt-get install quota quotatool
-
-I added this to /etc/rc.local:
-
-if [ -d /mnt/home ]; then
-    touch /mnt/home/aquota.user /mnt/home/aquota.group
-    quotaon -a
-fi
-
-####
-
-Now debug this:
-
-    ./vm.py --ip_address=10.1.1.2 --hostname=compute1 --disk=home:1 --base=salvus-20130427
-
-
-It turns out quota support was removed from ubuntu (?!): http://www.virtualmin.com/node/23522
-
-   apt-get install linux-image-extra-virtual
-
-# if this works, do this to the base image ... and put a note in build.py
-
-
-     [x] (1:00?) (0:15) setup tinc vpn between cloud1,2,3,4, since I can't get anywhere further without that.
-
-     [x] (0:05) config tinc on base vm then remove any git stuff:
-       git reset --soft HEAD^
-       git reset HEAD conf/tinc_hosts/salvus-base
-
-
-     [x] (0:20?) in base vm, get rid of touching files in /mnt/home/ on startup to enable quota -- this is wrong.
-
-
- ---
-
-     [ ] (1:30?) serious problem -- user machines: accounts vanish since /etc/passwd etc are gone on reboot.
-                 need a solution, e.g., maybe copy those files over to persistent when making a new account,
-                 and restore on boot.  since no actual passwords, should be safe.  Or recreate on reboot.
-                 Making /etc/stuff a symlink does *NOT* work; must copy over.
-
-     [ ] (0:45?) make it so /tmp is "mount -o bind" to /mnt/home/tmp" so it gets that quota and has lots of space.
-
-     [ ] (0:30?) use /mnt/backup instead of data/backup when possible (again, so persistent).
-
------
-
+     [ ] (0:30?) use /mnt/backup instead of data/backup when possible (again, so persistent) -- just needs to be tested.
      [ ] (0:15?) push new vm's out again
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
      [ ] (0:30?) deploy: verify distributed cassandra really working
      [ ] (0:30?) deploy: account creation...
 
-
+     [x] (0:30?) when cloud3,4 come back:
+        xx - ssh cloud3 chmod og-rwx -R /home/salvus
+        xx - install bup systemwide
 
  [ ] (1:30?) Restore information from archive; TEST.
      [ ] (0:30?) restore: create keyspace with current schema (as in db_schema.sql)
@@ -129,23 +86,11 @@ It turns out quota support was removed from ubuntu (?!): http://www.virtualmin.c
      [ ] (0:30?) deploy: restore database and all projects from cloud.sagemath.org
 
 
----
 
-Do snapshots frequently by *randomly* targeting n backup destinations and recording success, timestamp, location in db.   Present unified view of all snaps by time to user.  Viola - scalable durable safe distributed snapshots!
-
-- (0:30?) [ ] project storage: add bup support to project database schema.
-
-- (1:30?) [ ] project storage: and method to LocalHub class to make a snapshot of a project (--exclude some things), and store in database that this happened.  Exclude .sagemathcloud, .sage, .cache, .forever, .ssh.
-
-- (1:00?) [ ] project storage: add code to query database for this information:
-               all projects that do not have at least n backups since last activity, with activity >= k seconds in the past
-
-- (1:00?) [ ] project storage: use query above to make backups (choose at random, inc counter, do it)
 
 
 ---
 
-- (0:30?) [x] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
 
 - (1:00?) [ ] deploy: create the file that describes topology of everything.
 - (1:00?) [ ] deploy: create a VM for running user code
@@ -855,6 +800,111 @@ cqlsh:test> select * from project_snapshots  where project_id in (29ab00c4-09a4-
 
 
     require('backup').backup(cb:(err,b) -> b.restore_project(project_id:'29ab00c4-09a4-4f2f-a468-19088243d66b', location:{"username":"cb33df53","host":"localhost",'path':'.',port:22}))
+
+
+
+- (0:30?) [x] deploy: make sure 4 machines have kernel opts that Keith reported are needed now for reboot to work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e2db89829eed81
+
+
+
+
+
+
+
+     [x] (1:00?) (4:30-- way, way longer than expected. Wow.) add a function "restore_project" to backup, which takes as input a project_id, location, timeout, and optional time, and restores project to that location.  If the time is given, find snapshot with closest time and uses it; otherwise use globally newest snapshot.   If timeout elapses and can't contact snapshot location, try again with next best one. If location doesn't exist, give error.
+
+    [x] (0:45?) (1:05) when opening project, if no location doesn't exist, resume from *latest* working global bup snapshot, if there is one.
+
+    [x] (0:30?) (0:04) in backup.coffee, address this: "HOST = 'localhost' # TODO"
+
+
+ [x] (2:00) Define deployment file/conf.
+     [x] (0:30?) (0:30) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
+     [x] (0:45?) (0:45) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
+     [x] (0:45?) Reduce some firewalling, at least for outgoing connections from user compute machines (so they can use the net); this is not needed, due to not having a "compute" server anymore.
+
+
+ [ ] Deploy -- this could take WAY longer, depending on bugs/issues we find!
+     [x] (0:15?) update salvus on vm
+
+    virsh_list
+    export PREV=salvus-20130425; export NAME=salvus-20130427;
+    qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+    [x] (0:30?) )(0:04) install bup system-wide on base vm.
+
+sudo apt-get install python2.7-dev python-fuse python-pyxattr python-pylibacl linux-libc-dev
+git clone git://github.com/bup/bup
+cd bup; sudo make install
+cd ..; sudo rm -rf bup
+
+    [x] (1:00?) (2:00) create account creation script so salvus@vm != root@vm, and accounts created in /mnt/home/
+
+This requires putting -- via visudo -- this line:
+
+      salvus ALL=(ALL)   NOPASSWD:  /home/salvus/salvus/salvus/scripts/create_unix_user.py ""
+
+   [x] (0:15?) (0:06) setup skel/ on base vm to have .sagemathcloud path.
+
+rsync -axvHL local_hub_template/ ~/.sagemathcloud/
+cd ~/.sagemathcloud
+time ./build # takes 40 seconds
+tar jcvf sagemathcloud.tar .sagemathcloud
+cd salvus/salvus/scripts/skel/
+tar xvf ~/sagemathcloud.tar
+
+   [x] (0:20?) (0:04) make sure account creation script is actually run on the right computer.
+
+-->   [ ] (0:45?) (+0:17) ensure quotas are setup and work on base vm.
+
+sudo apt-get install quota quotatool
+
+I added this to /etc/rc.local:
+
+if [ -d /mnt/home ]; then
+    touch /mnt/home/aquota.user /mnt/home/aquota.group
+    quotaon -a
+fi
+
+####
+
+Now debug this:
+
+    ./vm.py --ip_address=10.1.1.2 --hostname=compute1 --disk=home:1 --base=salvus-20130427
+
+
+It turns out quota support was removed from ubuntu (?!): http://www.virtualmin.com/node/23522
+
+   apt-get install linux-image-extra-virtual
+
+# if this works, do this to the base image ... and put a note in build.py
+
+
+     [x] (1:00?) (0:15) setup tinc vpn between cloud1,2,3,4, since I can't get anywhere further without that.
+
+     [x] (0:05) config tinc on base vm then remove any git stuff:
+       git reset --soft HEAD^
+       git reset HEAD conf/tinc_hosts/salvus-base
+
+
+     [x] (0:20?) in base vm, get rid of touching files in /mnt/home/ on startup to enable quota -- this is wrong.
+
+
+ ---
+
+     [x] (1:30?) serious problem -- user machines: accounts vanish since /etc/passwd etc are gone on reboot.
+                 need a solution, e.g., maybe copy those files over to persistent when making a new account,
+                 and restore on boot.  since no actual passwords, should be safe.  Or recreate on reboot.
+                 Making /etc/stuff a symlink does *NOT* work; must copy over.
+
+     [x] (0:45?) make it so /tmp is "mount -o bind" to /mnt/home/tmp" so it gets that quota and has lots of space.
+
+---
+
+
+
 
 
 
