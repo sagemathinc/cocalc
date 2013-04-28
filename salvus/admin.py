@@ -223,7 +223,8 @@ class Process(object):
                  pidfile, logfile=None, monitor_database=None,
                  start_cmd=None, stop_cmd=None, reload_cmd=None,
                  start_using_system = False,
-                 service=None):
+                 service=None,
+                 term_signal=15):
         self._name = name
         self._port = port
         self._id = str(id)
@@ -237,6 +238,7 @@ class Process(object):
         self._logfile = logfile
         self._monitor_database = monitor_database
         self._monitor_pidfile = os.path.splitext(pidfile)[0] + '-log.pid'
+        self._term_signal = term_signal
 
     def id(self):
         return self._id
@@ -312,7 +314,7 @@ class Process(object):
         if self._stop_cmd is not None:
             print run(self._stop_cmd)
         else:
-            kill(pid)
+            kill(pid, self._term_signal)
         try:
             if os.path.exists(self._pidfile): unlink(self._pidfile)
         except Exception, msg:
@@ -621,8 +623,9 @@ class Vm(Process):
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
                          start_cmd = start_cmd,
-                         monitor_database=monitor_database)
-
+                         monitor_database=monitor_database,
+                         term_signal = 2   # must use 2 (=SIGINT) instead of 15 or 9 for proper cleanup!
+                         )
 
 #################################
 # Classical Sage Notebook Server

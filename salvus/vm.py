@@ -14,8 +14,6 @@ vm.py -- create and run a virtual machine based on the standard
 
 import logging, os, shutil, socket, tempfile, time
 
-import daemon
-
 from admin import run, sh
 
 conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
@@ -276,10 +274,11 @@ if __name__ == "__main__":
 
     try:
         if args.daemon:
-            with daemon.DaemonContext():
-                main()
+            import daemon
+            daemon.daemonize(args.pidfile)
+            main()
         else:
             main()
     finally:
-        if args.pidfile:
+        if args.pidfile and os.path.exists(args.pidfile):
             os.unlink(args.pidfile)
