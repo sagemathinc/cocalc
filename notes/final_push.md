@@ -59,7 +59,7 @@ tar jcvf sagemathcloud.tar .sagemathcloud
 cd salvus/salvus/scripts/skel/
 tar xvf ~/sagemathcloud.tar
 
-   [ ] (0:20?) make sure account creation script is actually run on the right computer.
+   [x] (0:20?) make sure account creation script is actually run on the right computer.
 
    [ ] (0:45?) ensure quotas are setup and work on base vm.
 sudo apt-get install quota
