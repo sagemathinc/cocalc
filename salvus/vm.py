@@ -134,7 +134,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 try:
                     f = open(fstab,'a')
                     for i,x in enumerate(persistent_images):
-                        f.write("\n/dev/vd%s1   /mnt/%s   ext4   defaults   0   1\n"%(chr(98+i),x[1]))
+                        f.write("\n/dev/vd%s1   /mnt/%s   ext4   defaults,usrquota,grpquota   0   1\n"%(chr(98+i),x[1]))
                         mnt_point = os.path.join(tmp_path, 'mnt/%s'%x[1])
                         os.makedirs(mnt_point)
                 finally:
