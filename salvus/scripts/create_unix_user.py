@@ -40,7 +40,7 @@ def cmd(args):
 
 # Using a random username helps to massively reduce the chances of race conditions...
 # Also, it means this sudo script doesn't have to take arguments (which are a security risk).
-alpha    =  string.ascii_lowercase + string.digits
+alpha    =  string.ascii_letters + string.digits
 username =  ''.join([random.choice(alpha) for _ in range(8)])
 
 out = cmd(['useradd', '-b', BASE_DIR, '-m', '-U', '-k', skel, username])
