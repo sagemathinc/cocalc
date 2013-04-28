@@ -14,7 +14,7 @@ if os.path.exists('/mnt/home/'):
     else:
         os.system("mkdir -p /mnt/home/etc/")
 
-    # Setup /tmp so it is on the external disk image (and has that quota)
-    os.system("mkdir -p /mnt/home/tmp/; mount -o bind /mnt/home/tmp /tmp; chmod a+rw /tmp/")
+    # Setup /tmp so it is on the external disk image (has that quota) and is clean, since this is a fresh boot.
+    os.system("rm -rf /mnt/home/tmp; mkdir -p /mnt/home/tmp/; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/tmp /tmp; chmod a+rwx /mnt/home/tmp/")
 
 
