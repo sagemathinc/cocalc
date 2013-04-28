@@ -394,7 +394,7 @@ class Stunnel(Process):
                          start_cmd  = [os.path.join(base, DATA, 'local/bin', 'stunnel'), self._stunnel_conf])
 
     def _pre_start(self):
-        pem = os.path.join(SECRETS, 'sagemath/nopassphrase.pem')
+        pem = os.path.join(SECRETS, 'sagemath.com/nopassphrase.pem')
         if not os.path.exists(pem):
             raise RuntimeError("stunnel requires that the secret '%s' exists"%pem)
 
