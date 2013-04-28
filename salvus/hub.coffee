@@ -490,7 +490,7 @@ class Client extends EventEmitter
         if handler?
             handler(mesg)
         else
-            @push_to_client(message.error(error:"The Salvus hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
+            @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
 
     ######################################################
     # Plug into an existing sage session
@@ -3103,7 +3103,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true); return
                     if count >= 3
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Salvus will not send more than 2 password resets to #{mesg.email_address} per hour."))
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Will not send more than 2 password resets to #{mesg.email_address} per hour."))
                         cb(true)
                         return
                     cb()
@@ -3156,7 +3156,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 ttl   : 60*15,
                 cb    : (error, results) ->
                     if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal Salvus error generating password reset for #{mesg.email_address}."))
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error generating password reset for #{mesg.email_address}."))
                         cb(true); return
                     else
                         cb()
@@ -3165,22 +3165,22 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
-                Somebody just requested to change the password on your Salvus account.
+                Somebody just requested to change the password on your SageMath cloud account.
                 If you requested this password change, please change your password by
                 following the link below:
 
-                     https://cloud.sagemath.org#forgot##{id}
+                     https://cloud.sagemath.com#forgot##{id}
 
                 If you don't want to change your password, ignore this message.
                 """
 
             send_email
-                subject : 'Salvus password reset confirmation'
+                subject : 'SageMath cloud password reset confirmation'
                 body    : body
                 to      : mesg.email_address
                 cb      : (error) ->
                     if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal Salvus error sending password reset email to #{mesg.email_address}."))
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address}."))
                         cb(true)
                     else
                         push_to_client(message.forgot_password_response(id:mesg.id))

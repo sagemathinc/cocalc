@@ -17,7 +17,7 @@ winston = require('winston')
 
 cassandra = require('cassandra')
 
-BACKUP_DIR  = process.env['SALVUS_ROOT'] + '/data/backup/'
+BACKUP_DIR  = process.env['SALVUS_BACKUP']
 DB_DUMP_DIR = BACKUP_DIR + '/db_dump'
 
 process.env['BUP_DIR'] = BACKUP_DIR + '/bup'
@@ -117,7 +117,7 @@ class Backup
     backup_project: (project_id, location, cb) =>   # cb(err)
         # Backup the project with given id at the given location, if anything has changed
         # since the last backup.
-        if not location? or not location.username? or location.username.length != 3
+        if not location? or not location.username? or location.username.length != 8
             winston.debug("skip snapshot of #{misc.to_json(location)}; only for devel/testing")
             cb?()
             return

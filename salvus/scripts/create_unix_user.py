@@ -40,9 +40,8 @@ def cmd(args):
 
 # Using a random username helps to massively reduce the chances of race conditions...
 # Also, it means this sudo script doesn't have to take arguments (which are a security risk).
-
-alpha    =  string.ascii_lowercase + string.digits
-username =  ''.join([random.choice(alpha) for _ in range(3)])
+alpha    =  string.ascii_letters + string.digits
+username =  ''.join([random.choice(alpha) for _ in range(8)])
 
 out = cmd(['useradd', '-b', BASE_DIR, '-m', '-U', '-k', skel, username])
 
@@ -51,11 +50,15 @@ out = cmd(['useradd', '-b', BASE_DIR, '-m', '-U', '-k', skel, username])
 # megabytes_to_blocks = (mb) -> Math.floor(mb*1000000/BLOCK_SIZE) + 1
 # ensure host system is setup with quota for this to do anything: http://www.ubuntugeek.com/how-to-setup-disk-quotas-in-ubuntu.html
 
-disk_soft_mb = 100 # 100 megabytes
+disk_soft_mb = 512 # 250 megabytes
 disk_soft = disk_soft_mb * 245
 disk_hard = 2*disk_soft
-inode_soft = 5000
+inode_soft = 20000
 inode_hard = 2*inode_soft
 cmd(["setquota", '-u', username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
 
 print username
+
+# Save account info so it persists through reboots/upgrades/etc.
+if os.path.exists("/mnt/home/etc/"):
+    cmd("cp /etc/passwd /etc/shadow /etc/group /mnt/home/etc/")

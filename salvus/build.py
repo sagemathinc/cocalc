@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Building the main components of cloud.sagemath.org from source, ensuring that all
+Building the main components of cloud.sagemath.com from source, ensuring that all
 important (usually security-related) options are compiled in.
 
 The components are:
@@ -25,8 +25,7 @@ Before building, do:
 
 For users:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic
-
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool
 
 Also, make sure to do "install_scripts('/usr/local/bin/')" from within Sage (as root).
 
