@@ -31,16 +31,30 @@
 
 
  [ ] Deploy -- this could take WAY longer, depending on bugs/issues we find!
--->     [ ] (0:15?) update salvus on vm
+     [x] (0:15?) update salvus on vm
 
     virsh_list
     export PREV=salvus-20130425; export NAME=salvus-20130427; qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
 
+    [x] (0:30?) )(0:04) install bup system-wide on base vm.
 
-     [ ] (0:30?) install bup system-wide on base vm.
-     [ ] (0:45?) make it so new accounts get created on persistent disk (and in root there is script to make accounts)
-     [ ] (0:45?) create an suid root account creation script so salvus@vm != root@vm
+sudo apt-get install python2.7-dev python-fuse python-pyxattr python-pylibacl linux-libc-dev
+git clone git://github.com/bup/bup
+cd bup; sudo make install
+cd ..; sudo rm -rf bup
+
+--->     [x] (1:00?) create an suid root account creation script so salvus@vm != root@vm, and accounts created in /mnt/home/
+
+This requires putting -- via visudo -- this line:
+
+      salvus ALL=(ALL)   NOPASSWD:  /home/salvus/salvus/salvus/scripts/create_unix_user.py ""
+
+
+     [ ] (0:15?) setup skel/ on base vm to have .sagemathcloud path.
+
+     [ ] (0:45?) ensure quotas are setup and work on base vm.
+
      [ ] (0:15?) push new vm's out again
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
      [ ] (0:30?) deploy: verify distributed cassandra really working

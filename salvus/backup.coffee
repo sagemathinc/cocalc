@@ -22,7 +22,11 @@ DB_DUMP_DIR = BACKUP_DIR + '/db_dump'
 
 process.env['BUP_DIR'] = BACKUP_DIR + '/bup'
 
-HOST = os.popen('hostname').read().strip()
+exec = require('child_process').exec
+HOST = undefined
+exec 'hostname', (err, stdout, stderr) ->
+    HOST = stdout.trim()           # delete trailing newline
+    console.log("'#{HOST}'")
 
 bup = (opts) ->
     opts = defaults opts,
@@ -113,7 +117,7 @@ class Backup
     backup_project: (project_id, location, cb) =>   # cb(err)
         # Backup the project with given id at the given location, if anything has changed
         # since the last backup.
-        if not location? or not location.username? or location.username.length != 8
+        if not location? or not location.username? or location.username.length != 3
             winston.debug("skip snapshot of #{misc.to_json(location)}; only for devel/testing")
             cb?()
             return

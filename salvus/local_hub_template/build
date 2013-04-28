@@ -60,3 +60,9 @@ if system("./install_npm_modules"):
 system("./make_coffee")
 
 open('installed', 'w')
+
+# First build leaves an empty directory laying around; delete it if empty.
+try:
+    os.rmdir('tmp')
+except: 
+    pass

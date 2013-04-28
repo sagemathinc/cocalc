@@ -27,3 +27,5 @@ salvus/static/mercury/js/mercury.min.js
 salvus/static/mercury/src/build
 
 salvus/static/codemirror-3.1/*
+
+salvus/scripts/skel/.sagemathcloud
