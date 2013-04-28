@@ -34,8 +34,10 @@
      [x] (0:15?) update salvus on vm
 
     virsh_list
-    export PREV=salvus-20130425; export NAME=salvus-20130427; qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
-     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+    export PREV=salvus-20130425; export NAME=salvus-20130427;
+    qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
 
     [x] (0:30?) )(0:04) install bup system-wide on base vm.
 
@@ -59,10 +61,32 @@ tar jcvf sagemathcloud.tar .sagemathcloud
 cd salvus/salvus/scripts/skel/
 tar xvf ~/sagemathcloud.tar
 
-   [x] (0:20?) make sure account creation script is actually run on the right computer.
+   [x] (0:20?) (0:04) make sure account creation script is actually run on the right computer.
 
-   [ ] (0:45?) ensure quotas are setup and work on base vm.
-sudo apt-get install quota
+-->   [ ] (0:45?) (+0:17) ensure quotas are setup and work on base vm.
+
+sudo apt-get install quota quotatool
+
+I added this to /etc/rc.local:
+
+if [ -d /mnt/home ]; then
+    touch /mnt/home/aquota.user /mnt/home/aquota.group
+    quotaon -a
+fi
+
+####
+
+Now debug this:
+
+    ./vm.py --ip_address=10.1.1.2 --hostname=compute1 --disk=home:1 --base=salvus-20130427
+
+
+
+     [x] (1:00?) (0:15) setup tinc vpn between cloud1,2,3,4, since I can't get anywhere further without that.
+
+     [x] (0:05) config tinc on base vm then remove any git stuff:
+       git reset --soft HEAD^
+       git reset HEAD conf/tinc_hosts/salvus-base
 
      [ ] (0:15?) push new vm's out again
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works

@@ -25,8 +25,7 @@ Before building, do:
 
 For users:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic
-
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool
 
 Also, make sure to do "install_scripts('/usr/local/bin/')" from within Sage (as root).
 
