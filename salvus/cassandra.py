@@ -117,8 +117,9 @@ def cursor_execute(query, param_dict=None, keyspace=None, timeout=1):
     return cur
 
 
-def keyspace_exists(con, keyspace):
+def keyspace_exists(keyspace):
     try:
+        con = connect(keyspace="")
         con.cursor().execute("use " + keyspace)
         return True
     except cql.ProgrammingError:
@@ -127,12 +128,11 @@ def keyspace_exists(con, keyspace):
 def init_salvus_schema(keyspace=None):
     if keyspace is None:
         keyspace = KEYSPACE
-    con = connect(keyspace=None)
+    con = connect(keyspace='')
     cursor = con.cursor()
-    if not keyspace_exists(con, keyspace):
-        cursor.execute("CREATE KEYSPACE %s WITH strategy_class = 'SimpleStrategy' and strategy_options:replication_factor=3"%keyspace)
-        # for when I'm rich:
-        #cursor.execute("CREATE KEYSPACE salvus WITH strategy_class = 'NetworkTopologyStrategy' AND strategy_options:DC0 = 3 AND strategy_options:DC1 = 3 and strategy_options:DC2 = 3")
+    if not keyspace_exists(keyspace):
+        #cursor.execute("CREATE KEYSPACE %s WITH strategy_class = 'SimpleStrategy' and strategy_options:replication_factor=3"%keyspace)
+        cursor.execute("CREATE KEYSPACE %s WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0' : 1, 'DC1' : 1}"%keyspace)
     cursor.execute("USE %s"%keyspace)
     for s in open('db_schema.cql').read().split('CREATE'):
         if s:

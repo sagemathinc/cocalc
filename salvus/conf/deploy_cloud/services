@@ -21,9 +21,9 @@ cloud4   {'hostname':'compute4a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salv
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'}
 # N=4; [i * (2**127 / N) for i in range(N)]
 cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra2    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}
 cassandra3    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
-cassandra4    {'seed':True, 'topology':'DC1:RAC0', 'num_tokens':256}
+cassandra4    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
 edge

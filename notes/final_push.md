@@ -65,25 +65,46 @@
      # get file from them, extract, and:
      cat cloud.sagemath.key cloud.sagemath.com.crt gd_bundle.crt > nopassphrase.pem
 
-     [ ] (0:30?) use /mnt/backup instead of data/backup when possible (again, so persistent) -- just needs to be tested.
-     [ ] (0:15?) push new vm's out again
-     [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
-     [ ] (0:30?) deploy: verify distributed cassandra really working
-     [ ] (0:30?) deploy: account creation...
-
      [x] (0:30?) when cloud3,4 come back:
         xx - ssh cloud3 chmod og-rwx -R /home/salvus
         xx - install bup systemwide
 
- [ ] (1:30?) Restore information from archive; TEST.
-     [ ] (0:30?) restore: create keyspace with current schema (as in db_schema.sql)
-     [ ] (0:30?) restore: restore all tables from archive keyspace
-     [ ] (0:30?) restore: copy each project that is *newer* than known to its location in local archive and update database accordingly.
+     [x] (0:30?) (0:06) setup DNS for cloud.sagemath.com
 
- [ ] (2:15) Switch over
-     [ ] (1:30?) deploy: update the cloud.sagemath.org database snapshot; stop cloud.sagemath.org
-     [ ] (0:15?) deploy: Update DNS for cloud.sagemath.org to new deployment
-     [ ] (0:30?) deploy: restore database and all projects from cloud.sagemath.org
+
+---
+
+     [x] (0:30?) (0:16) use /mnt/backup instead of data/backup when possible (again, so persistent) -- just needs to be tested.
+
+     [x] (1:00?) make sure cassandra can have initialization of schema on first use if no schema; actually this must be done manually on adding a new node by doing this in python:
+
+         import cassandra; cassandra.set_nodes(['localhost'])
+         cassandra.init_salvus_schema('salvus')
+
+     [ ] (0:15?) update salvus in a new base vm
+     [ ] (0:15?) push out vm's
+
+
+     
+
+     [ ] (0:30?) deploy: start stunnels and confirm working, fix issues
+     [ ] (0:30?) deploy: start all vm's and confirm working, fix issues
+     [ ] (0:30?) deploy: start haproxy's and confirm working, fix issues
+     [ ] (0:30?) deploy: start nginx and confirm working, fix issues
+     [ ] (1:00?) deploy: start cassandra,  confirm working, fix issues
+     [ ] (1:00?) deploy: start hubs, confirm working, fix issues
+
+     [ ] (0:45?) test: account creation.
+     [ ] (0:45?) test: project creation and quotas
+     [ ] (0:45?) test: password reset
+     [ ] (0:45?) test: doc editing
+     [ ] (0:45?) test: console
+     [ ] (0:45?) test: worksheets
+
+
+
+
+  [ ] (1:00) add big link at front/top of cloud.sagemath.org strongly suggesting users switch to cloud.sagemath.com.
 
 
 
