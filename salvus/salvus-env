@@ -1,6 +1,14 @@
+#!/usr/bin/env bash
+
 P=`pwd`
 
 export SALVUS_ROOT="$P"
+
+if [ -d /mnt/backup ]; then
+   export SALVUS_BACKUP=/mnt/backup/
+else
+   export SALVUS_BACKUP="$SALVUS_ROOT"/data/backup/
+fi
 
 export BUP_DIR=$SALVUS_ROOT/data/backup/bup
 
