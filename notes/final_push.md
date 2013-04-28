@@ -76,18 +76,33 @@
 
      [x] (0:30?) (0:16) use /mnt/backup instead of data/backup when possible (again, so persistent) -- just needs to be tested.
 
-     [x] (1:00?) make sure cassandra can have initialization of schema on first use if no schema; actually this must be done manually on adding a new node by doing this in python:
+     [x] (1:00?) (0:38) make sure cassandra can have initialization of schema on first use if no schema; actually this must be done manually on adding a new node by doing this in python:
 
          import cassandra; cassandra.set_nodes(['localhost'])
          cassandra.init_salvus_schema('salvus')
 
-     [ ] (0:15?) update salvus in a new base vm
-     [ ] (0:15?) push out vm's
+     [x] (0:15?) (0:06) update salvus in a new base vm, and hosts
 
+on cloud1:
 
-     
+     cd salvus; git pull  # type login/password
+     ssh cloud2 "cd salvus && git pull cloud1:salvus/"
+     ssh cloud3 "cd salvus && git pull cloud1:salvus/"
+     ssh cloud4 "cd salvus && git pull cloud1:salvus/"
+
+Start new base vm:
+
+    export PREV=salvus-20130427; export NAME=salvus-20130428;
+    qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+     [x] (0:15?) (0:01) push out vm's
+     [x] (0:10?) update services conf file base image; make cloud1/cloud3 the admins also, and re-update cloud1
 
      [ ] (0:30?) deploy: start stunnels and confirm working, fix issues
+
+     
      [ ] (0:30?) deploy: start all vm's and confirm working, fix issues
      [ ] (0:30?) deploy: start haproxy's and confirm working, fix issues
      [ ] (0:30?) deploy: start nginx and confirm working, fix issues
