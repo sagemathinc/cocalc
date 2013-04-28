@@ -11,7 +11,7 @@ if os.path.exists('/mnt/home/'):
     # Restore user accounts
     if os.path.exists('/mnt/home/etc/'):
         os.system("cp /mnt/home/etc/* /etc/")
-    else
+    else:
         os.system("mkdir -p /mnt/home/etc/")
 
     # Setup /tmp so it is on the external disk image (and has that quota)
