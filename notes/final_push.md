@@ -24,26 +24,28 @@
     [x] (0:30?) (0:04) in backup.coffee, address this: "HOST = 'localhost' # TODO"
 
 
- [ ] (2:00) Define deployment file/conf.
+ [x] (2:00) Define deployment file/conf.
      [x] (0:30?) (0:30) write the file based on existing one.  4 hosts; 1 web machine per; 1 db machine per; n compute per.
      [x] (0:45?) (0:45) Learn how latest easier-to-expand Cassandra cluster now works; update conf accordingly.
-     [ ] (0:45?) Reduce some firewalling, at least for outgoing connections from user compute machines (so they can use the net).
+     [x] (0:45?) Reduce some firewalling, at least for outgoing connections from user compute machines (so they can use the net); this is not needed, due to not having a "compute" server anymore.
 
 
- [ ] (3:00) Deploy.
+ [ ] (3:00) Deploy -- this could take WAY longer, depending on bugs/issues we find!
      [ ] (0:15?) update salvus on vm
      [ ] (0:30?) install bup system-wide on base vm.
-     [ ] (0:15?) push vm's out
+     [ ] (0:15?) push vm's out again
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
      [ ] (0:30?) deploy: verify distributed cassandra really working
      [ ] (0:30?) deploy: account creation...
+
+
 
  [ ] (1:30?) Restore information from archive; TEST.
      [ ] (0:30?) restore: create keyspace with current schema (as in db_schema.sql)
      [ ] (0:30?) restore: restore all tables from archive keyspace
      [ ] (0:30?) restore: copy each project that is *newer* than known to its location in local archive and update database accordingly.
 
-[ ] (2:15) Switch over
+ [ ] (2:15) Switch over
      [ ] (1:30?) deploy: update the cloud.sagemath.org database snapshot; stop cloud.sagemath.org
      [ ] (0:15?) deploy: Update DNS for cloud.sagemath.org to new deployment
      [ ] (0:30?) deploy: restore database and all projects from cloud.sagemath.org
