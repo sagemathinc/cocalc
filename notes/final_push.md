@@ -44,16 +44,25 @@ git clone git://github.com/bup/bup
 cd bup; sudo make install
 cd ..; sudo rm -rf bup
 
---->     [x] (1:00?) create an suid root account creation script so salvus@vm != root@vm, and accounts created in /mnt/home/
+    [x] (1:00?) (2:00) create account creation script so salvus@vm != root@vm, and accounts created in /mnt/home/
 
 This requires putting -- via visudo -- this line:
 
       salvus ALL=(ALL)   NOPASSWD:  /home/salvus/salvus/salvus/scripts/create_unix_user.py ""
 
+   [x] (0:15?) (0:06) setup skel/ on base vm to have .sagemathcloud path.
 
-     [ ] (0:15?) setup skel/ on base vm to have .sagemathcloud path.
+rsync -axvHL local_hub_template/ ~/.sagemathcloud/
+cd ~/.sagemathcloud
+time ./build # takes 40 seconds
+tar jcvf sagemathcloud.tar .sagemathcloud
+cd salvus/salvus/scripts/skel/
+tar xvf ~/sagemathcloud.tar
 
-     [ ] (0:45?) ensure quotas are setup and work on base vm.
+   [ ] (0:20?) make sure account creation script is actually run on the right computer.
+
+   [ ] (0:45?) ensure quotas are setup and work on base vm.
+sudo apt-get install quota
 
      [ ] (0:15?) push new vm's out again
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
