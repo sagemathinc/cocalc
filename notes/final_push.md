@@ -30,10 +30,18 @@
      [x] (0:45?) Reduce some firewalling, at least for outgoing connections from user compute machines (so they can use the net); this is not needed, due to not having a "compute" server anymore.
 
 
- [ ] (3:00) Deploy -- this could take WAY longer, depending on bugs/issues we find!
-     [ ] (0:15?) update salvus on vm
+ [ ] Deploy -- this could take WAY longer, depending on bugs/issues we find!
+-->     [ ] (0:15?) update salvus on vm
+
+    virsh_list
+    export PREV=salvus-20130425; export NAME=salvus-20130427; qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+
+
      [ ] (0:30?) install bup system-wide on base vm.
-     [ ] (0:15?) push vm's out again
+     [ ] (0:45?) make it so new accounts get created on persistent disk (and in root there is script to make accounts)
+     [ ] (0:45?) create an suid root account creation script so salvus@vm != root@vm
+     [ ] (0:15?) push new vm's out again
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
      [ ] (0:30?) deploy: verify distributed cassandra really working
      [ ] (0:30?) deploy: account creation...
@@ -368,9 +376,8 @@ features;
      virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole  --graphics vnc,port=8121
      virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
 
-       # IMPORTANT!
-       sudo chown og-rwx -R salvus
 
+       sudo chown og-rwx -R salvus      # IMPORTANT!
        sudo apt-get update; sudo apt-get upgrade;
        sudo reboot -h now
        cd salvus/salvus; git pull https://github.com/williamstein/salvus.git
