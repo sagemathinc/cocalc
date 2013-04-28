@@ -7,6 +7,9 @@ import os
 
 if os.path.exists('/mnt/home/'):
     # Compute machine
+    if not os.path.exists('/mnt/home/aquota.group'):
+        os.system("quotacheck -cug /mnt/home")
+        os.system("quotaon -a")
 
     # Restore user accounts
     if os.path.exists('/mnt/home/etc/'):
