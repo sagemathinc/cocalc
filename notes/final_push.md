@@ -81,12 +81,35 @@ Now debug this:
     ./vm.py --ip_address=10.1.1.2 --hostname=compute1 --disk=home:1 --base=salvus-20130427
 
 
+It turns out quota support was removed from ubuntu (?!): http://www.virtualmin.com/node/23522
+
+   apt-get install linux-image-extra-virtual
+
+# if this works, do this to the base image ... and put a note in build.py
+
 
      [x] (1:00?) (0:15) setup tinc vpn between cloud1,2,3,4, since I can't get anywhere further without that.
 
      [x] (0:05) config tinc on base vm then remove any git stuff:
        git reset --soft HEAD^
        git reset HEAD conf/tinc_hosts/salvus-base
+
+
+     [x] (0:20?) in base vm, get rid of touching files in /mnt/home/ on startup to enable quota -- this is wrong.
+
+
+ ---
+
+     [ ] (1:30?) serious problem -- user machines: accounts vanish since /etc/passwd etc are gone on reboot.
+                 need a solution, e.g., maybe copy those files over to persistent when making a new account,
+                 and restore on boot.  since no actual passwords, should be safe.  Or recreate on reboot.
+                 Making /etc/stuff a symlink does *NOT* work; must copy over.
+
+     [ ] (0:45?) make it so /tmp is "mount -o bind" to /mnt/home/tmp" so it gets that quota and has lots of space.
+
+     [ ] (0:30?) use /mnt/backup instead of data/backup when possible (again, so persistent).
+
+-----
 
      [ ] (0:15?) push new vm's out again
      [ ] (1:00?) deploy: start everything running, and verify each component on each machine works
