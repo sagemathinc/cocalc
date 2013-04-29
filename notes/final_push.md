@@ -173,16 +173,29 @@ Failed to create new project 'test' -- "command 'ssh' (args=10.1.1.4 sudo salvus
      [x] (0:45?) test: console
      [x] (0:45?) test: worksheets
 
-  [ ] (0:20?) fix the crappy bash prompt:
+  [x] (0:20?) fix the crappy bash prompt:
 
-  [ ] (0:45?) test: password reset
 
   [ ] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
 
 
+-->  [ ] (0:45?) test: password reset -- "Error sending password reset message to 'wstein@gmail.com'. Internal error sending password reset email to wstein@gmail.com."  LOG SAYS:
+info: Unable to read the file 'data/secrets/salvusmath_email_password', which is needed to send emails.
+
+Shutdown all VM's and do the following to base machine:
+   - create 'data/secrets/salvusmath_email_password'
+   - update salvus rewpo.
+
+Then restart everything and test again, including password reset.
+
   [ ] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
 
-Next:
+  
+
+
+---
+
+Next session:
 
  [ ] (1:00) nothing automatically sets which are the compute machines in the database; this should be done by admin when it starts them.  Do manually for now (?).
 
@@ -194,13 +207,6 @@ Next:
      update compute_servers set running=true, score=1 where host='10.1.4.4';
 
 [ ] (1:30) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
-
-
-
----
-
-
-
 
 - (1:00?) [ ] deploy: implement database dump and restore (to text) -- http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
 - (1:00?) [ ] deploy: upgrade db on cloud.sagemath.org
