@@ -2711,7 +2711,7 @@ new_random_unix_user = (opts) ->
     # Now replenish the cache for next time.
     replenish_random_unix_user_cache()
 
-new_random_unix_user_cache_target_size = 1
+new_random_unix_user_cache_target_size = 2
 new_random_unix_user.cache = []
 replenish_random_unix_user_cache = () ->
     cache = new_random_unix_user.cache
