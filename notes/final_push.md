@@ -165,21 +165,22 @@ I then did this (see below):
     [x] (0:45?) test: account creation.
 "Received an invalid message back from the server when requesting account settings. mesg={"event":"error","id":"4538d700-3e83-4f43-9edb-3d8dcbc67002","error":"No plan with id 13814000-1dd2-11b2-0000-fe8ebeead9df"}"
 
--->      [ ] (0:45?) test: project creation and quotas
+-->      [x] (0:45?) test: project creation and quotas
 
 Failed to create new project 'test' -- "command 'ssh' (args=10.1.1.4 sudo salvus/salvus/scripts/create_unix_user.py) exited with nonzero code 255 -- stderr='Host key verification failed.\r\n'"
 
-     [ ] (0:45?) test: password reset
-     [ ] (0:45?) test: doc editing
-     [ ] (0:45?) test: console
-     [ ] (0:45?) test: worksheets
+     [x] (0:45?) test: doc editing
+     [x] (0:45?) test: console
+     [x] (0:45?) test: worksheets
+
+  [ ] (0:20?) fix the crappy bash prompt:
+
+  [ ] (0:45?) test: password reset
+
+  [ ] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
 
 
-  [ ] (1:00) add big link at front/top of cloud.sagemath.org strongly suggesting users switch to cloud.sagemath.com.
-
- [ ] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
-
-
+  [ ] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
 
 Next:
 
