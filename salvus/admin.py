@@ -1331,8 +1331,8 @@ class Services(object):
         for service in ['haproxy','nginx','hub']:
             log.info(" ** Starting %s", service)
             self.start(service, parallel=True, wait=False)
-        log.info(" ** Starting compute")
-        self.start('compute', parallel=False, wait=False)
+        #log.info(" ** Starting compute")
+        #self.start('compute', parallel=False, wait=False)
 
     def stop_system(self):
         if 'cassandra' in self._services:

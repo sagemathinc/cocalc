@@ -219,6 +219,69 @@ account was made.
   --> [ ] update base vm and restart everything.
 
 
+    cd salvus/salvus
+    . salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.stop_system()
+    s.status('all')
+    # possibly manually look to ensure that vm's are gone
+    salvus@cloud1:~$ ssh cloud2 ls vm/images/temporary/
+    salvus@cloud1:~$ ssh cloud3 ls vm/images/temporary/
+    salvus@cloud1:~$ ssh cloud4 ls vm/images/temporary/
+
+    export PREV=salvus-20130427; export NAME=salvus-20130428;
+    #qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+    cd salvus/salvus
+    . salvus-env
+    git pull
+    ./make_coffee
+    # fix /etc/ssh/ssh_config
+    sudo shutdown -h now
+
+
+ Then
+
+    cd vm/images/base/
+    ./push
+
+And
+
+    cd salvus
+    git pull
+    push_salvus
+
+Finally,
+
+    cd salvus/salvus
+
+Finally,
+
+    cd salvus/salvus
+
+Finally,
+
+    cd salvus/salvus
+    . salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.start_system()
+salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.start_system()
+
+    . salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.start_system()
+
+
+This worked well, I think....
+
 
 ---
 
