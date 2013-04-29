@@ -100,39 +100,113 @@ Start new base vm:
      [x] (0:15?) (0:01) push out vm's
      [x] (0:10?) update services conf file base image; make cloud1/cloud3 the admins also, and re-update cloud1
 
-     [ ] (0:30?) deploy: start stunnels and confirm working, fix issues
+     [x] (0:30?) (0:27) deploy: start stunnels and confirm working, fix issues
+     [x] (0:30?) (1:02) deploy: start all vm's and confirm working, fix issues
 
-     
-     [ ] (0:30?) deploy: start all vm's and confirm working, fix issues
-     [ ] (0:30?) deploy: start haproxy's and confirm working, fix issues
-     [ ] (0:30?) deploy: start nginx and confirm working, fix issues
-     [ ] (1:00?) deploy: start cassandra,  confirm working, fix issues
-     [ ] (1:00?) deploy: start hubs, confirm working, fix issues
+     [x] (0:30?) (0:06)deploy: start haproxy's and confirm working, fix issues
 
-     [ ] (0:45?) test: account creation.
-     [ ] (0:45?) test: project creation and quotas
-     [ ] (0:45?) test: password reset
-     [ ] (0:45?) test: doc editing
-     [ ] (0:45?) test: console
-     [ ] (0:45?) test: worksheets
+     [x] (0:30?) deploy: start nginx and confirm working, fix issues
+
+-->     [x] (1:00?) (0:59) deploy: start cassandra,  confirm working, fix issues
+
+Won't start -- segfaults.
+I do this:
+
+    apt-get remove openjdk-6-*
+
+so it will use the installed jdk-7.
+Note that scilab gets removed too.
+It starts!  But I see this in the log:
+ INFO 15:43:24,786 JNA not found. Native methods will be disabled.
+
+I try re-install scilab, which puts the java back to be old.
+So I try:
+
+    apt-get autoremove
+    sudo update-alternatives --config java
+
+now everything works.  Regarding JNA:
+
+salvus@cassandra1:~/salvus/salvus/data/local/cassandra/lib$ ln -s /usr/share/java/jna.jar .
+
+This works, but it still says:
+
+  "OpenJDK is not recommended. Please upgrade to the newest Oracle Java release"
+
+Stop all VM's
+On base VM: Switch to Java JDK and should re-install cassandra
+
+   apt-get install python-software-properties
+   add-apt-repository ppa:webupd8team/java
+   apt-get update
+   apt-get install oracle-java7-installer
+   update-alternatives --config java
+
+---
+
+NOw initialize databases on *one* node (it auto-propogates):
+
+         cd salvus/salvus/; . salvus-env; ipython
+
+         import cassandra; cassandra.set_nodes(['10.1.1.2'])   # etc. DO NOT USE 'localhost'
+         cassandra.init_salvus_schema('salvus')
+
+I then did this (see below):
+
+        salvus@web3:~/salvus/salvus$ cqlsh -k salvus 10.1.1.2
+        Connected to salvus at 10.1.1.2:9160.
+        [cqlsh 2.3.0 | Cassandra 1.2.3 | CQL spec 3.0.0 | Thrift protocol 19.35.0]
+        Use HELP for help.
+        cqlsh:salvus> UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df;
 
 
+    [x] (1:00?) deploy: start hubs, confirm working, fix issues
+
+    [x] (0:45?) test: account creation.
+"Received an invalid message back from the server when requesting account settings. mesg={"event":"error","id":"4538d700-3e83-4f43-9edb-3d8dcbc67002","error":"No plan with id 13814000-1dd2-11b2-0000-fe8ebeead9df"}"
+
+-->      [x] (0:45?) test: project creation and quotas
+
+Failed to create new project 'test' -- "command 'ssh' (args=10.1.1.4 sudo salvus/salvus/scripts/create_unix_user.py) exited with nonzero code 255 -- stderr='Host key verification failed.\r\n'"
+
+     [x] (0:45?) test: doc editing
+     [x] (0:45?) test: console
+     [x] (0:45?) test: worksheets
+
+  [x] (0:20?) fix the crappy bash prompt:
 
 
-  [ ] (1:00) add big link at front/top of cloud.sagemath.org strongly suggesting users switch to cloud.sagemath.com.
+  [ ] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
 
 
+-->  [ ] (0:45?) test: password reset -- "Error sending password reset message to 'wstein@gmail.com'. Internal error sending password reset email to wstein@gmail.com."  LOG SAYS:
+info: Unable to read the file 'data/secrets/salvusmath_email_password', which is needed to send emails.
 
+Shutdown all VM's and do the following to base machine:
+   - create 'data/secrets/salvusmath_email_password'
+   - update salvus rewpo.
+
+Then restart everything and test again, including password reset.
+
+  [ ] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
+
+  
 
 
 ---
 
+Next session:
 
-- (1:00?) [ ] deploy: create the file that describes topology of everything.
-- (1:00?) [ ] deploy: create a VM for running user code
-- (1:00?) [ ] deploy: setup full-size lvm for the 4 machines (all identical)
-- (1:00?) [ ] deploy: setup password auth and security for cassandra on machines, as added level of protection.
+ [ ] (1:00) nothing automatically sets which are the compute machines in the database; this should be done by admin when it starts them.  Do manually for now (?).
 
+ cqlsh:salvus>
+
+     update compute_servers set running=true, score=1 where host='10.1.1.4';
+     update compute_servers set running=true, score=1 where host='10.1.2.4';
+     update compute_servers set running=true, score=1 where host='10.1.3.4';
+     update compute_servers set running=true, score=1 where host='10.1.4.4';
+
+[ ] (1:30) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
 
 - (1:00?) [ ] deploy: implement database dump and restore (to text) -- http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
 - (1:00?) [ ] deploy: upgrade db on cloud.sagemath.org

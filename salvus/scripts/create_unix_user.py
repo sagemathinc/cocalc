@@ -12,7 +12,7 @@ scripts/skel to massively speed up new project creation.
 
 """
 
-BASE_DIR='/mnt/home/'
+BASE_DIR='/mnt/home'
 
 from subprocess import Popen, PIPE
 import os, random, string, sys, uuid

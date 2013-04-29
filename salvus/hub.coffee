@@ -2711,7 +2711,7 @@ new_random_unix_user = (opts) ->
     # Now replenish the cache for next time.
     replenish_random_unix_user_cache()
 
-new_random_unix_user_cache_target_size = 1
+new_random_unix_user_cache_target_size = 2
 new_random_unix_user.cache = []
 replenish_random_unix_user_cache = () ->
     cache = new_random_unix_user.cache
@@ -2761,7 +2761,7 @@ new_random_unix_user_no_cache = (opts) ->
             # ssh to that computer and create account using script
             misc_node.execute_code
                 command : 'ssh'
-                args    : [host, 'sudo', 'salvus/salvus/scripts/create_unix_user.py']
+                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'salvus/salvus/scripts/create_unix_user.py']
                 timeout : 20
                 bash    : false
                 err_on_exit: true
