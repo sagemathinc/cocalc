@@ -952,7 +952,9 @@ class ProjectPage
             elt.show()
 
         # Clear the filename and focus on it
-        @new_file_tab_input.val(misc.to_iso(new Date()).replace(/-|:/g,'').replace('T','_')).focus()
+        now = misc.to_iso(new Date()).replace(/-|:/g,'').replace('T','_')
+        now = now.slice(0, now.length-2)
+        @new_file_tab_input.val(now).focus()
         @get_from_web_input.val('')
 
 

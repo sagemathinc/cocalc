@@ -194,8 +194,15 @@ Then restart everything and test again, including password reset.
 
   [x] test password reset again.
 
-  [ ] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
+  [x] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
 
+
+  [x] make worksheet/file/etc creation easier by having a default name.
+  [x] get rid of word "ping" in status (too much space)
+
+  [ ] debug and get project snapshotting working; this is very, very important!
+
+  [ ] update base vm and restart everything.
 
 
 
