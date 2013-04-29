@@ -176,21 +176,48 @@ Failed to create new project 'test' -- "command 'ssh' (args=10.1.1.4 sudo salvus
   [x] (0:20?) fix the crappy bash prompt:
 
 
-  [ ] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
+  [x] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
 
 
--->  [ ] (0:45?) test: password reset -- "Error sending password reset message to 'wstein@gmail.com'. Internal error sending password reset email to wstein@gmail.com."  LOG SAYS:
+ [x] (0:45?) test: password reset -- "Error sending password reset message to 'wstein@gmail.com'. Internal error sending password reset email to wstein@gmail.com."  LOG SAYS:
 info: Unable to read the file 'data/secrets/salvusmath_email_password', which is needed to send emails.
 
 Shutdown all VM's and do the following to base machine:
    - create 'data/secrets/salvusmath_email_password'
-   - update salvus rewpo.
+   - update salvus repo.
 
 Then restart everything and test again, including password reset.
 
-  [ ] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
+---
 
-  
+  [x] TODO: 'Failed to create new project 'test4' -- "command 'ssh' (args=10.1.2.4 sudo salvus/salvus/scripts/create_unix_user.py) exited with nonzero code 255 -- stderr='Host key verification failed.\r\n'"'
+
+  [x] test password reset again.
+
+  [x] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
+
+
+  [x] make worksheet/file/etc creation easier by having a default name.
+  [x] get rid of word "ping" in status (too much space)
+
+  [ ] debug and get project snapshotting working; this is very, very important!
+
+  require('backup').backup(keyspace:'salvus', hosts:['10.1.1.2'], cb:(err,b) -> b.snapshot_active_projects(max_snapshot_age:1))
+
+Solution: It was more of the strict host key business. I'm going to edit
+
+/etc/ssh/ssh_config
+
+in the base machine and put this line:
+
+StrictHostKeyChecking no
+
+then snapshots should work.  They already were working on machines where the
+account was made.
+
+
+  --> [ ] update base vm and restart everything.
+
 
 
 ---
