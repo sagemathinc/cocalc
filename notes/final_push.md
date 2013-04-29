@@ -202,7 +202,21 @@ Then restart everything and test again, including password reset.
 
   [ ] debug and get project snapshotting working; this is very, very important!
 
-  [ ] update base vm and restart everything.
+  require('backup').backup(keyspace:'salvus', hosts:['10.1.1.2'], cb:(err,b) -> b.snapshot_active_projects(max_snapshot_age:1))
+
+Solution: It was more of the strict host key business. I'm going to edit
+
+/etc/ssh/ssh_config
+
+in the base machine and put this line:
+
+StrictHostKeyChecking no
+
+then snapshots should work.  They already were working on machines where the
+account was made.
+
+
+  --> [ ] update base vm and restart everything.
 
 
 
