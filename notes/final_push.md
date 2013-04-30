@@ -2,7 +2,7 @@
 # Next round:
 ------------
 
- [ ] (0:30?) the connection type takes up too much space still -- truncate at 9 chars.
+ [ ] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
 
  [ ] (0:30?) fix terms of usage being required
 
