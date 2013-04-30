@@ -2,19 +2,20 @@
 # Next round:
 ------------
 
- [ ] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+ [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+
+ [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
+ [x] add link to https://github.com/sagemath/cloud for "bug reports".
+ [x] add a donation link
+ [x] add link to sagemath.org
+ [x] add link to sagemath facebook page
+ [x] add link to sagemath g+ page.
 
  [ ] (0:30?) fix terms of usage being required
 
  [ ] (0:30?) force SVG to be the default math renderer.
 
- [ ] (0:30?) link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
-
- [ ] (0:30?) add link to https://github.com/williamstein/cloud for "bug reports".
-
  [ ] (0:30?) %hideall doesn't hide output, but should.
-
- [ ] (0:30?) add a donation link
 
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
 
@@ -45,6 +46,8 @@
 - (2:00?) [ ] way to browse other people's projects
 - (0:45?) [ ] sagews: javascript(once=True) isn't respected; needs to use a different channel... (broadcast?)
 - (0:45?) [ ] sagews: in %md cell mode, bold is nearly invisible due to some CSS error. Ugh.
+
+- (2:00?) [ ] make caching of newly created blank projects something that is stored in the database, not the hub.
 
 - (?) [ ] some logs get HUGE:
 wstein@u:~/salvus/salvus/data/logs$ du -sch *
