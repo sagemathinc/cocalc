@@ -1,321 +1,50 @@
-## Top BUGS:
 
-- `local_hub`: pushes out output *too* often/quickly; make a for loop and kill the browser with sync requests...
-- terminal disconnects
-- first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- copy/paste in terminal sucks
-- editor slow when wide (?)
+# Next round:
+------------
 
-## Deployment!
+ [ ] (0:30?) the connection type takes up too much space still -- truncate at 9 chars.
 
-01/03/06/07 salvus
+ [ ] (0:30?) fix terms of usage being required
 
-128.95.242.135 cloud1   # 06salvus
-128.95.242.137 cloud2   # 07salvus
-128.95.224.237 cloud3   # 03salvus
-128.95.224.230 cloud4   # 01salvus
+ [ ] (0:30?) force SVG to be the default math renderer.
 
-[ ] (3:00?) VM installs/deploys
+ [ ] (0:30?) link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
 
-     [x] (0:30?) create automated bup backups cloud1->cloud2, etc.; backup everything except vm images.
-     [x] (1:00?) (1:00) bup of everything to disk, for an extra level of backup, since I have 4TB just sitting there unused (leave 1TB to expand /home); this is meant only for the next few months, not long term.
+ [ ] (0:30?) add link to https://github.com/williamstein/cloud for "bug reports".
 
-     lvcreate --name salvus --size 3000G data
-     mkfs.ext4 /dev/data/salvus
-     # edit /etc/fstab to add mount of /home/salvus to be /dev/data/salvus:
-        # Salvus backup
-        UUID=d84d5f43-8cf9-404b-9edb-3b4401127cf4 /home/salvus ext4 defaults,noauto 0 0
-     # change permissions:
-     chown salvus /home/salvus
+ [ ] (0:30?) %hideall doesn't hide output, but should.
 
-     # install bup systemwide
-      apt-get install python2.6-dev python-fuse  python-pyxattr python-pylibacl linux-libc-dev; git clone git://github.com/bup/bup; cd bup; make install
+ [ ] (0:30?) add a donation link
 
-      # and on cloud*
-      apt-get install python2.7-dev python-fuse  python-pyxattr python-pylibacl linux-libc-dev; git clone git://github.com/bup/bup; cd bup; make install
+ [ ] (1:00?) add a way to self-report donation (get recorded in database)
 
-     # setup ssh key access to cloud1-4
-      ssh-keygen -b 2048
-      ssh-copy-id cloud4   # etc.
+ [ ] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
 
-     # setup a script to backup everything from cloud1-4 except vm/images/backup:
+ [ ] (1:00?) ability to delete projects.
 
-        salvus@disk:~$ more bin/backup-cloud
-        #!/usr/bin/env python
+ [ ] (1:00?) put everything in "local hub template" in cloud sagemath repo
 
-        import os
+ [ ] (3:00?) why does codemirror feel so slow: take 2?
 
-        BUP_DIR="/home/salvus/vm/images/backup/bup"
-        for host in ['cloud1', 'cloud2', 'cloud3', 'cloud4']:
-            cmd = "BUP_DIR=%s  time bup on %s index --exclude %s  /home/salvus/"%(BUP_DIR, host, BUP_DIR)
-            print cmd
-            os.system(cmd)
-            cmd = "time bup on %s save -9 -n %s ."%(host, host)
-            os.system(cmd)
+ [ ] (3:00?) @interact, yet again.
 
-     # setup cron to make such a backup every 6 hours (revisit frequency later)
-            0 */6 * * * /home/salvus/bin/backup-cloudt
+[ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
+[ ] (3:00?)  terminal disconnects
 
+[ ] (3:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
-     --> [x] (1:00?) get cert for cloud.sagemath.com
+[ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
 
-    # paste this into go-daddy form:
-     openssl req -new -newkey rsa:2048 -nodes -keyout cloud.sagemath.key -out cloud.sagemath.csr
-     # get file from them, extract, and:
-     cat cloud.sagemath.key cloud.sagemath.com.crt gd_bundle.crt > nopassphrase.pem
+[ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
 
-     [x] (0:30?) when cloud3,4 come back:
-        xx - ssh cloud3 chmod og-rwx -R /home/salvus
-        xx - install bup systemwide
+- (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
-     [x] (0:30?) (0:06) setup DNS for cloud.sagemath.com
-
-
----
-
-     [x] (0:30?) (0:16) use /mnt/backup instead of data/backup when possible (again, so persistent) -- just needs to be tested.
-
-     [x] (1:00?) (0:38) make sure cassandra can have initialization of schema on first use if no schema; actually this must be done manually on adding a new node by doing this in python:
-
-         import cassandra; cassandra.set_nodes(['localhost'])
-         cassandra.init_salvus_schema('salvus')
-
-     [x] (0:15?) (0:06) update salvus in a new base vm, and hosts
-
-on cloud1:
-
-     cd salvus; git pull  # type login/password
-     ssh cloud2 "cd salvus && git pull cloud1:salvus/"
-     ssh cloud3 "cd salvus && git pull cloud1:salvus/"
-     ssh cloud4 "cd salvus && git pull cloud1:salvus/"
-
-Start new base vm:
-
-    export PREV=salvus-20130427; export NAME=salvus-20130428;
-    qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
-    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
-    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
-
-     [x] (0:15?) (0:01) push out vm's
-     [x] (0:10?) update services conf file base image; make cloud1/cloud3 the admins also, and re-update cloud1
-
-     [x] (0:30?) (0:27) deploy: start stunnels and confirm working, fix issues
-     [x] (0:30?) (1:02) deploy: start all vm's and confirm working, fix issues
-
-     [x] (0:30?) (0:06)deploy: start haproxy's and confirm working, fix issues
-
-     [x] (0:30?) deploy: start nginx and confirm working, fix issues
-
--->     [x] (1:00?) (0:59) deploy: start cassandra,  confirm working, fix issues
-
-Won't start -- segfaults.
-I do this:
-
-    apt-get remove openjdk-6-*
-
-so it will use the installed jdk-7.
-Note that scilab gets removed too.
-It starts!  But I see this in the log:
- INFO 15:43:24,786 JNA not found. Native methods will be disabled.
-
-I try re-install scilab, which puts the java back to be old.
-So I try:
-
-    apt-get autoremove
-    sudo update-alternatives --config java
-
-now everything works.  Regarding JNA:
-
-salvus@cassandra1:~/salvus/salvus/data/local/cassandra/lib$ ln -s /usr/share/java/jna.jar .
-
-This works, but it still says:
-
-  "OpenJDK is not recommended. Please upgrade to the newest Oracle Java release"
-
-Stop all VM's
-On base VM: Switch to Java JDK and should re-install cassandra
-
-   apt-get install python-software-properties
-   add-apt-repository ppa:webupd8team/java
-   apt-get update
-   apt-get install oracle-java7-installer
-   update-alternatives --config java
-
----
-
-NOw initialize databases on *one* node (it auto-propogates):
-
-         cd salvus/salvus/; . salvus-env; ipython
-
-         import cassandra; cassandra.set_nodes(['10.1.1.2'])   # etc. DO NOT USE 'localhost'
-         cassandra.init_salvus_schema('salvus')
-
-I then did this (see below):
-
-        salvus@web3:~/salvus/salvus$ cqlsh -k salvus 10.1.1.2
-        Connected to salvus at 10.1.1.2:9160.
-        [cqlsh 2.3.0 | Cassandra 1.2.3 | CQL spec 3.0.0 | Thrift protocol 19.35.0]
-        Use HELP for help.
-        cqlsh:salvus> UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df;
-
-
-    [x] (1:00?) deploy: start hubs, confirm working, fix issues
-
-    [x] (0:45?) test: account creation.
-"Received an invalid message back from the server when requesting account settings. mesg={"event":"error","id":"4538d700-3e83-4f43-9edb-3d8dcbc67002","error":"No plan with id 13814000-1dd2-11b2-0000-fe8ebeead9df"}"
-
--->      [x] (0:45?) test: project creation and quotas
-
-Failed to create new project 'test' -- "command 'ssh' (args=10.1.1.4 sudo salvus/salvus/scripts/create_unix_user.py) exited with nonzero code 255 -- stderr='Host key verification failed.\r\n'"
-
-     [x] (0:45?) test: doc editing
-     [x] (0:45?) test: console
-     [x] (0:45?) test: worksheets
-
-  [x] (0:20?) fix the crappy bash prompt:
-
-
-  [x] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
-
-
- [x] (0:45?) test: password reset -- "Error sending password reset message to 'wstein@gmail.com'. Internal error sending password reset email to wstein@gmail.com."  LOG SAYS:
-info: Unable to read the file 'data/secrets/salvusmath_email_password', which is needed to send emails.
-
-Shutdown all VM's and do the following to base machine:
-   - create 'data/secrets/salvusmath_email_password'
-   - update salvus repo.
-
-Then restart everything and test again, including password reset.
-
----
-
-  [x] TODO: 'Failed to create new project 'test4' -- "command 'ssh' (args=10.1.2.4 sudo salvus/salvus/scripts/create_unix_user.py) exited with nonzero code 255 -- stderr='Host key verification failed.\r\n'"'
-
-  [x] test password reset again.
-
-  [x] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
-
-
-  [x] make worksheet/file/etc creation easier by having a default name.
-  [x] get rid of word "ping" in status (too much space)
-
-  [ ] debug and get project snapshotting working; this is very, very important!
-
-  require('backup').backup(keyspace:'salvus', hosts:['10.1.1.2'], cb:(err,b) -> b.snapshot_active_projects(max_snapshot_age:1))
-
-Solution: It was more of the strict host key business. I'm going to edit
-
-/etc/ssh/ssh_config
-
-in the base machine and put this line:
-
-StrictHostKeyChecking no
-
-then snapshots should work.  They already were working on machines where the
-account was made.
-
-
-  --> [ ] update base vm and restart everything.
-
-
-    cd salvus/salvus
-    . salvus-env
-    ipython
-    import admin; s = admin.Services('conf/deploy_cloud/')
-    s.stop_system()
-    s.status('all')
-    # possibly manually look to ensure that vm's are gone
-    salvus@cloud1:~$ ssh cloud2 ls vm/images/temporary/
-    salvus@cloud1:~$ ssh cloud3 ls vm/images/temporary/
-    salvus@cloud1:~$ ssh cloud4 ls vm/images/temporary/
-
-    export PREV=salvus-20130427; export NAME=salvus-20130428;
-    #qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
-    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
-    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
-
-    cd salvus/salvus
-    . salvus-env
-    git pull
-    ./make_coffee
-    # fix /etc/ssh/ssh_config
-    sudo shutdown -h now
-
-
- Then
-
-    cd vm/images/base/
-    ./push
-
-And
-
-    cd salvus
-    git pull
-    push_salvus
-
-Finally,
-
-    cd salvus/salvus
-
-Finally,
-
-    cd salvus/salvus
-
-Finally,
-
-    cd salvus/salvus
-    . salvus-env
-    ipython
-    import admin; s = admin.Services('conf/deploy_cloud/')
-    s.start_system()
-salvus-env
-    ipython
-    import admin; s = admin.Services('conf/deploy_cloud/')
-    s.start_system()
-
-    . salvus-env
-    ipython
-    import admin; s = admin.Services('conf/deploy_cloud/')
-    s.start_system()
-
-
-This worked well, I think....
-
-
----
-
-Next session:
-
- [ ] (1:00) nothing automatically sets which are the compute machines in the database; this should be done by admin when it starts them.  Do manually for now (?).
-
- cqlsh:salvus>
-
-     update compute_servers set running=true, score=1 where host='10.1.1.4';
-     update compute_servers set running=true, score=1 where host='10.1.2.4';
-     update compute_servers set running=true, score=1 where host='10.1.3.4';
-     update compute_servers set running=true, score=1 where host='10.1.4.4';
-
-[ ] (1:30) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
-
-- (1:00?) [ ] deploy: implement database dump and restore (to text) -- http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
-- (1:00?) [ ] deploy: upgrade db on cloud.sagemath.org
-- (1:00?) [ ] deploy: run code that backs up all projects to DB
-- (1:00?) [ ] deploy: copy database over to new machines
-
----
-
-
-later but very soon:
-- (2:00?) [ ] first sync jumps the cursor back several spaces, which is FRICKIN' ANNOYING AS HELL!
 - (1:00?) [ ] highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
 - (0:30?) [ ] account creation: checking that user clicked on the terms button -- fix it.
 - (2:00?) [ ] way to browse other people's projects
-- (1:30?) [ ] deploy: browse-able aggressive rsnapshot on local vm's
 - (0:45?) [ ] sagews: javascript(once=True) isn't respected; needs to use a different channel... (broadcast?)
 - (0:45?) [ ] sagews: in %md cell mode, bold is nearly invisible due to some CSS error. Ugh.
-
----
 
 - (?) [ ] some logs get HUGE:
 wstein@u:~/salvus/salvus/data/logs$ du -sch *
@@ -326,11 +55,8 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 
 - (1:00?) [ ] sagews bug -- html.iframe gets updated/refreshed on all executes. why?
 
-- (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
-
-- (1:00?) [ ] gitls: upgrade to new version from Andrew -- https://mail.google.com/mail/u/0/#search/git-ls/13e158a70ab27771
-
 - (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
+
 - (1:00?) [ ] sagews: timer when evaluating code, but don't use jquery countdown, since it wastes resources at all times.
 
 - (0:45?) [ ] sagews: eliminate jquery countdown (while not breaking old worksheets)
@@ -358,9 +84,6 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 * (1:00?) [ ] BUG: terminal sessions need to reconnect when they timeout!
 * (0:45?) [ ] SYNC: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
 * (0:45?) [ ] SYNC BUG: often we start editing a document on *first sync* (only) the cursor moves back 4 characters. WHY?  (Facebook on android does this same thing, incidentally!)
-* (1:30?) [ ] DEPLOY: define topology file for first deployment (note: edge {'insecure_redirect_port':80, 'sitename':'salv.us'})
-* (1:30?) [ ] DEPLOY: deploy and test
-* (1:00?) [ ] SAFETY: setup rsnapshot so it is used for every account and noted in database.
 * (0:30?) [ ] BUG: file browser destroys long filenames now.
 * (0:15?) [ ] BUG: after pasting something big in terminal paste blank, page gets scrolled up all wrong.
 * (1:30?) [ ] sagews: default worksheet percent modes.
@@ -1105,6 +828,300 @@ It turns out quota support was removed from ubuntu (?!): http://www.virtualmin.c
 
 
 
+## Deployment!
+
+01/03/06/07 salvus
+
+128.95.242.135 cloud1   # 06salvus
+128.95.242.137 cloud2   # 07salvus
+128.95.224.237 cloud3   # 03salvus
+128.95.224.230 cloud4   # 01salvus
+
+[ ] (3:00?) VM installs/deploys
+
+     [x] (0:30?) create automated bup backups cloud1->cloud2, etc.; backup everything except vm images.
+     [x] (1:00?) (1:00) bup of everything to disk, for an extra level of backup, since I have 4TB just sitting there unused (leave 1TB to expand /home); this is meant only for the next few months, not long term.
+
+     lvcreate --name salvus --size 3000G data
+     mkfs.ext4 /dev/data/salvus
+     # edit /etc/fstab to add mount of /home/salvus to be /dev/data/salvus:
+        # Salvus backup
+        UUID=d84d5f43-8cf9-404b-9edb-3b4401127cf4 /home/salvus ext4 defaults,noauto 0 0
+     # change permissions:
+     chown salvus /home/salvus
+
+     # install bup systemwide
+      apt-get install python2.6-dev python-fuse  python-pyxattr python-pylibacl linux-libc-dev; git clone git://github.com/bup/bup; cd bup; make install
+
+      # and on cloud*
+      apt-get install python2.7-dev python-fuse  python-pyxattr python-pylibacl linux-libc-dev; git clone git://github.com/bup/bup; cd bup; make install
+
+     # setup ssh key access to cloud1-4
+      ssh-keygen -b 2048
+      ssh-copy-id cloud4   # etc.
+
+     # setup a script to backup everything from cloud1-4 except vm/images/backup:
+
+        salvus@disk:~$ more bin/backup-cloud
+        #!/usr/bin/env python
+
+        import os
+
+        BUP_DIR="/home/salvus/vm/images/backup/bup"
+        for host in ['cloud1', 'cloud2', 'cloud3', 'cloud4']:
+            cmd = "BUP_DIR=%s  time bup on %s index --exclude %s  /home/salvus/"%(BUP_DIR, host, BUP_DIR)
+            print cmd
+            os.system(cmd)
+            cmd = "time bup on %s save -9 -n %s ."%(host, host)
+            os.system(cmd)
+
+     # setup cron to make such a backup every 6 hours (revisit frequency later)
+            0 */6 * * * /home/salvus/bin/backup-cloudt
+
+
+
+     --> [x] (1:00?) get cert for cloud.sagemath.com
+
+    # paste this into go-daddy form:
+     openssl req -new -newkey rsa:2048 -nodes -keyout cloud.sagemath.key -out cloud.sagemath.csr
+     # get file from them, extract, and:
+     cat cloud.sagemath.key cloud.sagemath.com.crt gd_bundle.crt > nopassphrase.pem
+
+     [x] (0:30?) when cloud3,4 come back:
+        xx - ssh cloud3 chmod og-rwx -R /home/salvus
+        xx - install bup systemwide
+
+     [x] (0:30?) (0:06) setup DNS for cloud.sagemath.com
+
+
+---
+
+     [x] (0:30?) (0:16) use /mnt/backup instead of data/backup when possible (again, so persistent) -- just needs to be tested.
+
+     [x] (1:00?) (0:38) make sure cassandra can have initialization of schema on first use if no schema; actually this must be done manually on adding a new node by doing this in python:
+
+         import cassandra; cassandra.set_nodes(['localhost'])
+         cassandra.init_salvus_schema('salvus')
+
+     [x] (0:15?) (0:06) update salvus in a new base vm, and hosts
+
+on cloud1:
+
+     cd salvus; git pull  # type login/password
+     ssh cloud2 "cd salvus && git pull cloud1:salvus/"
+     ssh cloud3 "cd salvus && git pull cloud1:salvus/"
+     ssh cloud4 "cd salvus && git pull cloud1:salvus/"
+
+Start new base vm:
+
+    export PREV=salvus-20130427; export NAME=salvus-20130428;
+    qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+     [x] (0:15?) (0:01) push out vm's
+     [x] (0:10?) update services conf file base image; make cloud1/cloud3 the admins also, and re-update cloud1
+
+     [x] (0:30?) (0:27) deploy: start stunnels and confirm working, fix issues
+     [x] (0:30?) (1:02) deploy: start all vm's and confirm working, fix issues
+
+     [x] (0:30?) (0:06)deploy: start haproxy's and confirm working, fix issues
+
+     [x] (0:30?) deploy: start nginx and confirm working, fix issues
+
+-->     [x] (1:00?) (0:59) deploy: start cassandra,  confirm working, fix issues
+
+Won't start -- segfaults.
+I do this:
+
+    apt-get remove openjdk-6-*
+
+so it will use the installed jdk-7.
+Note that scilab gets removed too.
+It starts!  But I see this in the log:
+ INFO 15:43:24,786 JNA not found. Native methods will be disabled.
+
+I try re-install scilab, which puts the java back to be old.
+So I try:
+
+    apt-get autoremove
+    sudo update-alternatives --config java
+
+now everything works.  Regarding JNA:
+
+salvus@cassandra1:~/salvus/salvus/data/local/cassandra/lib$ ln -s /usr/share/java/jna.jar .
+
+This works, but it still says:
+
+  "OpenJDK is not recommended. Please upgrade to the newest Oracle Java release"
+
+Stop all VM's
+On base VM: Switch to Java JDK and should re-install cassandra
+
+   apt-get install python-software-properties
+   add-apt-repository ppa:webupd8team/java
+   apt-get update
+   apt-get install oracle-java7-installer
+   update-alternatives --config java
+
+---
+
+NOw initialize databases on *one* node (it auto-propogates):
+
+         cd salvus/salvus/; . salvus-env; ipython
+
+         import cassandra; cassandra.set_nodes(['10.1.1.2'])   # etc. DO NOT USE 'localhost'
+         cassandra.init_salvus_schema('salvus')
+
+I then did this (see below):
+
+        salvus@web3:~/salvus/salvus$ cqlsh -k salvus 10.1.1.2
+        Connected to salvus at 10.1.1.2:9160.
+        [cqlsh 2.3.0 | Cassandra 1.2.3 | CQL spec 3.0.0 | Thrift protocol 19.35.0]
+        Use HELP for help.
+        cqlsh:salvus> UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df;
+
+
+    [x] (1:00?) deploy: start hubs, confirm working, fix issues
+
+    [x] (0:45?) test: account creation.
+"Received an invalid message back from the server when requesting account settings. mesg={"event":"error","id":"4538d700-3e83-4f43-9edb-3d8dcbc67002","error":"No plan with id 13814000-1dd2-11b2-0000-fe8ebeead9df"}"
+
+-->      [x] (0:45?) test: project creation and quotas
+
+Failed to create new project 'test' -- "command 'ssh' (args=10.1.1.4 sudo salvus/salvus/scripts/create_unix_user.py) exited with nonzero code 255 -- stderr='Host key verification failed.\r\n'"
+
+     [x] (0:45?) test: doc editing
+     [x] (0:45?) test: console
+     [x] (0:45?) test: worksheets
+
+  [x] (0:20?) fix the crappy bash prompt:
+
+
+  [x] (0:30) remove "WARNING: This is a highly experimental unstable website. All data will definitely be randomly deleted without notice. USE AT YOUR OWN RISK." and restart web vm's.
+
+
+ [x] (0:45?) test: password reset -- "Error sending password reset message to 'wstein@gmail.com'. Internal error sending password reset email to wstein@gmail.com."  LOG SAYS:
+info: Unable to read the file 'data/secrets/salvusmath_email_password', which is needed to send emails.
+
+Shutdown all VM's and do the following to base machine:
+   - create 'data/secrets/salvusmath_email_password'
+   - update salvus repo.
+
+Then restart everything and test again, including password reset.
+
+---
+
+  [x] TODO: 'Failed to create new project 'test4' -- "command 'ssh' (args=10.1.2.4 sudo salvus/salvus/scripts/create_unix_user.py) exited with nonzero code 255 -- stderr='Host key verification failed.\r\n'"'
+
+  [x] test password reset again.
+
+  [x] (1:00) add big link at front/top of cloud.sagemath.org VERY strongly suggesting users switch to cloud.sagemath.com.
+
+
+  [x] make worksheet/file/etc creation easier by having a default name.
+  [x] get rid of word "ping" in status (too much space)
+
+  [x] debug and get project snapshotting working; this is very, very important!
+
+  require('backup').backup(keyspace:'salvus', hosts:['10.1.1.2'], cb:(err,b) -> b.snapshot_active_projects(max_snapshot_age:1))
+
+Solution: It was more of the strict host key business. I'm going to edit
+
+/etc/ssh/ssh_config
+
+in the base machine and put this line:
+
+StrictHostKeyChecking no
+
+then snapshots should work.  They already were working on machines where the
+account was made.
+
+
+  --> [x] update base vm and restart everything.
+
+
+    cd salvus/salvus
+    . salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.stop_system()
+    s.status('all')
+    # possibly manually look to ensure that vm's are gone
+    salvus@cloud1:~$ ssh cloud2 ls vm/images/temporary/
+    salvus@cloud1:~$ ssh cloud3 ls vm/images/temporary/
+    salvus@cloud1:~$ ssh cloud4 ls vm/images/temporary/
+
+    export PREV=salvus-20130427; export NAME=salvus-20130428;
+    #qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+    virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
+    virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
+
+    cd salvus/salvus
+    . salvus-env
+    git pull
+    ./make_coffee
+    # fix /etc/ssh/ssh_config
+    sudo shutdown -h now
+
+
+ Then
+
+    cd vm/images/base/
+    ./push
+
+And
+
+    cd salvus
+    git pull
+    push_salvus
+
+Finally,
+
+    cd salvus/salvus
+
+Finally,
+
+    cd salvus/salvus
+
+Finally,
+
+    cd salvus/salvus
+    . salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.start_system()
+salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.start_system()
+
+    . salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.start_system()
+
+
+This worked well, I think....
+
+
+---
+
+Next session:
+
+ [ ] (1:00) nothing automatically sets which are the compute machines in the database; this should be done by admin when it starts them.  Do manually for now (?).
+
+ cqlsh:salvus>
+
+     update compute_servers set running=true, score=1 where host='10.1.1.4';
+     update compute_servers set running=true, score=1 where host='10.1.2.4';
+     update compute_servers set running=true, score=1 where host='10.1.3.4';
+     update compute_servers set running=true, score=1 where host='10.1.4.4';
+
+- (1:00?) [x] deploy: implement database dump and restore (to text) -- http://www.datastax.com/dev/blog/simple-data-importing-and-exporting-with-cassandra
+- (1:00?) [ ] deploy: upgrade db on cloud.sagemath.org
+- (1:00?) [ ] deploy: run code that backs up all projects to DB
+- (1:00?) [ ] deploy: copy database over to new machines
 
 
 
