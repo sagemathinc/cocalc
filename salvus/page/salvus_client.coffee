@@ -12,7 +12,7 @@ salvus_client.on "connecting", () ->
 
 salvus_client.on "connected", (protocol) ->
     $("#connection_status").html("")
-    $("#connection_protocol").html(protocol)
+    $("#connection_protocol").html(protocol.slice(0,9))   # more than 9 characters takes too much space.
     $("#connection_bars").show()
 
 salvus_client.on "ping", (ping_time) ->
