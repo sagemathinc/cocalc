@@ -819,7 +819,7 @@ class CodeMirrorEditor extends FileEditor
             undo_depth        : 1000
             match_brackets    : true
             line_wrapping     : true
-            theme             : "solarized"  # see static/codemirror*/themes or head.html
+            #theme             : "solarized"  # see static/codemirror*/themes or head.html
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
@@ -852,7 +852,7 @@ class CodeMirrorEditor extends FileEditor
                 electricChars   : opts.electric_chars
                 undoDepth       : opts.undo_depth
                 matchBrackets   : opts.match_brackets
-                theme           : opts.theme
+                #theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
                 extraKeys       :
                     "Shift-Enter"  : (editor)   => @action_key(execute: true, advance:true, split:false)
