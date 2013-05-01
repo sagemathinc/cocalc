@@ -16,6 +16,8 @@
 
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
 
+ [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
+
  [ ] (1:30?) ability to delete projects.
 
  [ ] (1:30?) ability to change repo to be private.
