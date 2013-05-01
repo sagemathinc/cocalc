@@ -2,16 +2,7 @@
 # Next round:
 ------------
 
- [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
-
- [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
- [x] add link to https://github.com/sagemath/cloud for "bug reports".
- [x] add a donation link
- [x] add link to sagemath.org
- [x] add link to sagemath facebook page
- [x] add link to sagemath g+ page.
-
- [ ] add file page : make it OVERFLOW- Auto !!
+ [ ] (1:00) add file page : make it OVERFLOW- Auto !!
 
  [ ] (0:30?) fix terms of usage being required
 
@@ -24,8 +15,6 @@
  [ ] (0:30?) %hideall doesn't hide output, but should.
 
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
-
- [ ] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
 
  [ ] (1:30?) ability to delete projects.
 
@@ -1132,6 +1121,16 @@ Next session:
 - (1:00?) [ ] deploy: run code that backs up all projects to DB
 - (1:00?) [ ] deploy: copy database over to new machines
 
+
+ [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+
+ [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
+ [x] add link to https://github.com/sagemath/cloud for "bug reports".
+ [x] add a donation link
+ [x] add link to sagemath.org
+ [x] add link to sagemath facebook page
+ [x] add link to sagemath g+ page.
+ [x] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
 
 
 
