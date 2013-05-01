@@ -3,7 +3,6 @@
 ------------
 
 3:25pm - 6:00pm on Wednesday, May 1, 2013
-
  [x] (0:30?) (0:12) add file page : make it visible by fixing CSS
  [ ] (0:30?) fix terms of usage being required
  [ ] (0:30?) force SVG to be the default math renderer.
@@ -19,7 +18,9 @@
 
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
 
- [ ] (1:30?) ability to delete projects.
+ [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
+
+[ ] (1:30?) ability to delete projects.
 
  [ ] (1:30?) ability to change repo to be private.
 
@@ -34,6 +35,8 @@
  [ ] (3:00?)  terminal disconnects
 
  [ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
+
+ - [ ] (1:00?) quota in my "devel" project looks suspicious (type "quota -v").; on compute2a everything is fine.  No clue what is going on here.
 
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
@@ -1126,11 +1129,21 @@ Next session:
 
  [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
 
+<<<<<<< HEAD
+=======
+ [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+
+>>>>>>> bc8cfef117666dba7c7b72d0d518710287a197a5
  [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
  [x] add link to https://github.com/sagemath/cloud for "bug reports".
  [x] add a donation link
  [x] add link to sagemath.org
  [x] add link to sagemath facebook page
  [x] add link to sagemath g+ page.
+<<<<<<< HEAD
+=======
+ [x] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
+
+>>>>>>> bc8cfef117666dba7c7b72d0d518710287a197a5
 
 
