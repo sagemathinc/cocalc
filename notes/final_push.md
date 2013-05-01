@@ -36,6 +36,8 @@
 
 [ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
 
+ - [ ] (1:00?) quota in my "devel" project looks suspicious (type "quota -v").; on compute2a everything is fine.  No clue what is going on here.
+
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
 - (1:00?) [ ] highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
