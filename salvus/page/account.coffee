@@ -196,28 +196,34 @@ top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 $("#create_account-button").click((event) ->
     destroy_create_account_tooltips()
 
-    opts = {agreed_to_terms:$("#create_account-agreed_to_terms").is(":checked") == "on"}
+    opts = {}
     for field in create_account_fields
-        opts[field] = $("#create_account-#{field}").val()
-        opts.cb = (error, mesg) ->
-            if error
-                alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
-                return
-            switch mesg.event
-                when "account_creation_failed"
-                    for key, val of mesg.reason
-                        $("#create_account-#{key}").popover(
-                            title:val
-                            trigger:"manual"
-                            placement:"left"
-                            template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
-                        ).popover("show")
-                when "signed_in"
-                    alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
-                    signed_in(mesg)
-                else
-                    # should never ever happen
-                    alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
+        elt = $("#create_account-#{field}")
+        if elt[0].type == "checkbox"
+            v = elt.is(":checked")
+        else
+            v = elt.val()
+        opts[field] = v
+
+    opts.cb = (error, mesg) ->
+        if error
+            alert_message(type:"error", message: "There was an unexpected error trying to create a new account.  Please try again later.")
+            return
+        switch mesg.event
+            when "account_creation_failed"
+                for key, val of mesg.reason
+                    $("#create_account-#{key}").popover(
+                        title:val
+                        trigger:"manual"
+                        placement:"left"
+                        template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
+                    ).popover("show")
+            when "signed_in"
+                alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
+                signed_in(mesg)
+            else
+                # should never ever happen
+                alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
     salvus_client.create_account(opts)
 )

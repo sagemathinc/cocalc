@@ -4,7 +4,8 @@
 
 3:25pm - 6:00pm on Wednesday, May 1, 2013
  [x] (0:30?) (0:12) add file page : make it visible by fixing CSS
- [ ] (0:30?) fix terms of usage being required
+ [x] (0:30?) (0:24) fix terms of usage being required
+
  [ ] (0:30?) force SVG to be the default math renderer.
  [ ] (1:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
