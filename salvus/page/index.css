@@ -99,4 +99,6 @@ body { padding-top:60px; }
   width:1ex !important;
 }
 
-
+.CodeMirror-wrap {
+  line-height: normal;
+}
