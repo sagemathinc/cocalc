@@ -2,30 +2,22 @@
 # Next round:
 ------------
 
- [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+3:25pm - 6:00pm on Wednesday, May 1, 2013
 
- [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
- [x] add link to https://github.com/sagemath/cloud for "bug reports".
- [x] add a donation link
- [x] add link to sagemath.org
- [x] add link to sagemath facebook page
- [x] add link to sagemath g+ page.
-
- [ ] add file page : make it OVERFLOW- Auto !!
-
+ [x] (0:30?) (0:12) add file page : make it visible by fixing CSS
  [ ] (0:30?) fix terms of usage being required
-
  [ ] (0:30?) force SVG to be the default math renderer.
+ [ ] (1:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
- [ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
+---
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
+
+ [ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
 
  [ ] (0:30?) %hideall doesn't hide output, but should.
 
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
-
- [ ] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
 
  [ ] (1:30?) ability to delete projects.
 
@@ -39,11 +31,9 @@
 
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
-[ ] (3:00?)  terminal disconnects
+ [ ] (3:00?)  terminal disconnects
 
-[ ] (3:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
-[ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
+ [ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
 
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
@@ -1132,6 +1122,15 @@ Next session:
 - (1:00?) [ ] deploy: run code that backs up all projects to DB
 - (1:00?) [ ] deploy: copy database over to new machines
 
+---
 
+ [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+
+ [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
+ [x] add link to https://github.com/sagemath/cloud for "bug reports".
+ [x] add a donation link
+ [x] add link to sagemath.org
+ [x] add link to sagemath facebook page
+ [x] add link to sagemath g+ page.
 
 
