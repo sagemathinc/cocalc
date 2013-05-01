@@ -11,9 +11,15 @@
  [x] add link to sagemath facebook page
  [x] add link to sagemath g+ page.
 
+ [ ] add file page : make it OVERFLOW- Auto !!
+
  [ ] (0:30?) fix terms of usage being required
 
  [ ] (0:30?) force SVG to be the default math renderer.
+
+ [ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
+
+ [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
 
  [ ] (0:30?) %hideall doesn't hide output, but should.
 
@@ -21,7 +27,9 @@
 
  [ ] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
 
- [ ] (1:00?) ability to delete projects.
+ [ ] (1:30?) ability to delete projects.
+
+ [ ] (1:30?) ability to change repo to be private.
 
  [ ] (1:00?) put everything in "local hub template" in cloud sagemath repo
 
@@ -29,15 +37,13 @@
 
  [ ] (3:00?) @interact, yet again.
 
-[ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
+ [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
 [ ] (3:00?)  terminal disconnects
 
 [ ] (3:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
 [ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
-
-[ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
 
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
@@ -1055,8 +1061,8 @@ account was made.
     salvus@cloud1:~$ ssh cloud3 ls vm/images/temporary/
     salvus@cloud1:~$ ssh cloud4 ls vm/images/temporary/
 
-    export PREV=salvus-20130427; export NAME=salvus-20130428;
-    #qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
+    export PREV=salvus-20130428; export NAME=salvus-20130430;
+    qemu-img create -b ~/vm/images/base/$PREV.img -f qcow2 ~/vm/images/base/$NAME.img
     virt-install --cpu host --network user,model=virtio --name $NAME --vcpus=16 --ram 32768 --import --disk ~/vm/images/base/$NAME.img,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole
     virsh -c qemu:///session qemu-monitor-command --hmp $NAME 'hostfwd_add ::2222-:22'; ssh localhost -p 2222
 
