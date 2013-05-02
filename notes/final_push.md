@@ -9,14 +9,22 @@
  [x] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
  [x] (0:30?) (0:12) on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
 
- [ ] (0:05?) reduce number of cached projects to 1 until project cache is moved to database from hub.
+ [x] (0:05?) reduce number of cached projects to 1 until project cache is moved to database from hub.
 
 --> [ ] (0:30?) upgrade cloud server, announce on list, and mention in this email thread that wrapping equations now supported (include a screenshot using
 show(expand((x+1)^50))) <https://mail.google.com/mail/u/0/?shva=1#search/mathjax+wrapping/13e454cb56930ef0>
 
+ - update services file
+ - make new vm with new name, upgraded salvus, apt-get, etc.
+ - sync out to other machines
+ - restart just the web vm's (?)
+ - start all services (which will only start web vm services).
+
 ---
 
- [ ] (1:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
+ [ ] (1:00?) configure new 4TB disks on cloud3, cloud4
+
+ [ ] (2:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
