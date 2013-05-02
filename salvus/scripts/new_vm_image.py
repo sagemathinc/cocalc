@@ -26,6 +26,14 @@ if next == "":
    # make image name salvus-date   
    next = time.strftime("salvus-%Y-%m-%d")
 
+
+defined_machines = os.popen("virsh_list").read()
+
+for machine in [prev, next]:
+    if machine in defined_machines:
+        print "%s is currently defined.  Please undefine it before proceeding further, in order to avoid any possible corruption."%machine
+        sys.exit(1)
+
 prev_path = os.path.join(VM_PATH, prev + '.img')
 next_path = os.path.join(VM_PATH, next + '.img')
 
@@ -41,7 +49,7 @@ cmd("virt-install --cpu host --network user,model=virtio --name %s --vcpus=16 --
 
 cmd("virsh -c qemu:///session qemu-monitor-command --hmp %s 'hostfwd_add ::2222-:22'"%next)
 
-cmd("ssh localhost -p 2222")
+print "To connect, do\n\t\t ssh localhost -p 2222"
 
 print """
 You probably want to do something like this:
