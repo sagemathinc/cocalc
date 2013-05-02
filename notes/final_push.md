@@ -2,30 +2,22 @@
 # Next round:
 ------------
 
-3:25pm - 6:00pm on Wednesday, May 1, 2013
- [x] (0:30?) (0:12) add file page : make it visible by fixing CSS
- [x] (0:30?) (0:24) fix terms of usage being required
- [x] (0:30?) (0:15) force SVG to be the default math renderer; also enable equation wrapping
- [x] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
- [x] (0:30?) (0:12) on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
 
- [x] (0:05?) reduce number of cached projects to 1 until project cache is moved to database from hub.
+ [ ] (3:00?) @interact
 
---> [ ] (0:30?) upgrade cloud server, announce on list, and mention in this email thread that wrapping equations now supported (include a screenshot using
-show(expand((x+1)^50))) <https://mail.google.com/mail/u/0/?shva=1#search/mathjax+wrapping/13e454cb56930ef0>
+ [ ] (1:00?) (0:50+ so far -- in progress in screen on cloud1) upgrade deployed vm to sage-5.9: http://sage.math.washington.edu/home/release/sage-5.9/sage-5.9.tar
+             - delete current sage version: 20130502
+             - download and install/test from source in a next vm image
+             - install markdown2
+             - install list of good optional packages.
 
- - update services file
- - make new vm with new name, upgraded salvus, apt-get, etc.
- - sync out to other machines
- - restart just the web vm's (?)
- - start all services (which will only start web vm services).
+ [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
 
----
+ [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automaticalliy when they hit a key (?)
 
  [ ] (1:00?) configure new 4TB disks on cloud3, cloud4
 
  [ ] (2:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
 
@@ -37,19 +29,16 @@ show(expand((x+1)^50))) <https://mail.google.com/mail/u/0/?shva=1#search/mathjax
 
  [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
 
-[ ] (1:30?) ability to delete projects.
+ [ ] (1:30?) ability to delete projects.
 
  [ ] (1:30?) ability to change repo to be private.
 
  [ ] (1:00?) put everything in "local hub template" in cloud sagemath repo
 
- [ ] (3:00?) why does codemirror feel so slow: take 2?
-
- [ ] (3:00?) @interact, yet again.
+ [ ] (3:00?) why does editing feel so slow: take 2?
 
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
- [ ] (3:00?)  terminal disconnects
 
  [ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
 
@@ -1081,6 +1070,9 @@ account was made.
     git pull
     ./make_coffee
     # fix /etc/ssh/ssh_config
+    sudo su
+    apt-get update; apt-get upgrade
+    reboot -h now
     sudo shutdown -h now
 
 
@@ -1150,17 +1142,33 @@ Next session:
 =======
  [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
 
->>>>>>> bc8cfef117666dba7c7b72d0d518710287a197a5
+
  [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
  [x] add link to https://github.com/sagemath/cloud for "bug reports".
  [x] add a donation link
  [x] add link to sagemath.org
  [x] add link to sagemath facebook page
  [x] add link to sagemath g+ page.
-<<<<<<< HEAD
-=======
  [x] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
 
->>>>>>> bc8cfef117666dba7c7b72d0d518710287a197a5
 
 
+3:25pm - 6:00pm on Wednesday, May 1, 2013
+ [x] (0:30?) (0:12) add file page : make it visible by fixing CSS
+ [x] (0:30?) (0:24) fix terms of usage being required
+ [x] (0:30?) (0:15) force SVG to be the default math renderer; also enable equation wrapping
+ [x] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
+ [x] (0:30?) (0:12) on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
+
+ [x] (0:05?) reduce number of cached projects to 1 until project cache is moved to database from hub.
+
+--> [x] (0:30?) (0:43) upgrade cloud server, announce on list, and mention in this email thread that wrapping equations now supported (include a screenshot using
+show(expand((x+1)^50))) <https://mail.google.com/mail/u/0/?shva=1#search/mathjax+wrapping/13e454cb56930ef0>
+
+ - update services file
+ - make new vm with new name, upgraded salvus, apt-get, etc.
+ - sync out to other machines
+ - restart just the web vm's (?)
+ - start all services (which will only start web vm services).
+
+---
