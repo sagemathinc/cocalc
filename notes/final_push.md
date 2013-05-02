@@ -3,10 +3,21 @@
 ------------
 
 
+ [ ] (3:00?) @interact
+
+ [ ] (1:00?) (0:50+ so far -- in progress in screen on cloud1) upgrade deployed vm to sage-5.9: http://sage.math.washington.edu/home/release/sage-5.9/sage-5.9.tar
+             - delete current sage version: 20130502
+             - download and install/test from source in a next vm image
+             - install markdown2
+             - install list of good optional packages.
+
+ [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
+
+ [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automaticalliy when they hit a key (?)
+
  [ ] (1:00?) configure new 4TB disks on cloud3, cloud4
 
  [ ] (2:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
 
@@ -18,19 +29,16 @@
 
  [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
 
-[ ] (1:30?) ability to delete projects.
+ [ ] (1:30?) ability to delete projects.
 
  [ ] (1:30?) ability to change repo to be private.
 
  [ ] (1:00?) put everything in "local hub template" in cloud sagemath repo
 
- [ ] (3:00?) why does codemirror feel so slow: take 2?
-
- [ ] (3:00?) @interact, yet again.
+ [ ] (3:00?) why does editing feel so slow: take 2?
 
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
- [ ] (3:00?)  terminal disconnects
 
  [ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
 
