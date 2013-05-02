@@ -4,7 +4,7 @@
 
 [ ] (3:00?) @interact  (0:20 planning)
     [x] (0:10?) (0:04) interact: copy css to interact.css and rename to salvus-interact from salvus-cell-interact
-    [ ] (0:10?) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
+    [x] (0:10?) (0:18) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
     [ ] (0:30?) interact: copy script from cell.coffee to interact.coffee and restructure code layout
     [ ] (0:10?) interact: include interact.* in appropriate places and ensure builds/starts
     [ ] (0:30?) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
