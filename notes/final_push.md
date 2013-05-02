@@ -5,12 +5,10 @@
 3:25pm - 6:00pm on Wednesday, May 1, 2013
  [x] (0:30?) (0:12) add file page : make it visible by fixing CSS
  [x] (0:30?) (0:24) fix terms of usage being required
-
  [x] (0:30?) (0:15) force SVG to be the default math renderer; also enable equation wrapping
+ [x] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
 
---> [ ] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
-
- [ ] (0:30?) *critical* -- on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
+ [x] (0:30?) (0:12) *critical* -- on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
 
  [ ] (1:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
