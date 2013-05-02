@@ -1337,8 +1337,8 @@ class Services(object):
     def stop_system(self):
         if 'cassandra' in self._services:
             self.stop('cassandra', parallel=True, wait=True)
-        for service in ['haproxy','nginx','hub']:   # sometimes these aren't running in a VM, so start process of stopping them
-            self.stop(service, parallel=True, wait=False)
+        for service in ['haproxy','nginx','hub']:   
+            self.stop(service, parallel=True, wait=True)
         if 'vm' in self._services:
             self.stop('vm', parallel=True)
         while True:
