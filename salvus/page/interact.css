@@ -1,0 +1,32 @@
+
+.salvus-interact-control-grid {
+    border : 1px solid grey;
+    display: inline-block;
+    margin: 1ex;
+    padding: 1ex;
+    box-shadow: 3px 3px 1px #ccc;
+}
+
+.salvus-interact-control-selector-buttonbox {
+    background-color:#f0f0f0;
+    padding:5px;
+    border:1px solid #ccc;
+    border-radius:3px;
+}
+
+.salvus-interact-output-container {
+    background-color:#fff;
+    padding:1ex;
+    border:1px solid #ccc;
+    border-radius:3px;
+    margin: 1ex;
+}
+
+.salvus-interact-control-slider {
+    margin-top:4px;
+}
+
+.salvus-interact-input-box-font {
+    font-family : "Courier New";
+    font-size   : 13pt;
+}

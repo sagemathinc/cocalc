@@ -2,20 +2,72 @@
 # Next round:
 ------------
 
+[ ] (3:00?) @interact  (0:20 planning)
+    [x] (0:10?) (0:04) interact: copy css to interact.css and rename to salvus-interact from salvus-cell-interact
+    [ ] (0:10?) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
+    [ ] (0:30?) interact: copy script from cell.coffee to interact.coffee and restructure code layout
+    [ ] (0:10?) interact: include interact.* in appropriate places and ensure builds/starts
+    [ ] (0:30?) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+    [ ] (0:30?) interact: enable interacts, using the above
+    (tomorrow: debug)
 
- [ ] (3:00?) @interact
 
- [ ] (1:00?) (0:50+ so far -- in progress in screen on cloud1) upgrade deployed vm to sage-5.9: http://sage.math.washington.edu/home/release/sage-5.9/sage-5.9.tar
+ [ ] (1:00?) (0:44+) configure new 4TB disks on cloud3, cloud4
+
+    use fdisk to format (1 4TB partition):
+       fdisk /dev/sdb
+       1 partition; type "8e" = "linux lvm"
+
+    vgextend 03salvus /dev/sdb1
+
+    Crap, fail. Obviously, we just got only 2TB more, not 4TB.  Mistake of using fdisk.
+    Also, I forgot to do "pvcreate /dev/sdb1", which could be the problem.
+
+    vgreduce 03salvus /dev/sdb1
+
+    Start parted, then
+
+    (parted) mklabel gpt
+    (parted) unit TB
+    FAIL
+
+    apt-get install gdisk
+    gdisk /dev/sdb
+    # delete existing partition and make new 4TB 1; then set type to 8e00, then exit
+    #
+
+    pvcreate /dev/sdb1
+    vgextend 03salvus /dev/sdb1
+
+    # Now enlarge the logical volumn and partition!
+
+      root@cloud4:/home/salvus# lvextend -l 100%FREE /dev/mapper/01salvus-salvus_images
+      Extending logical volume salvus_images to 3.64 TiB
+      Logical volume salvus_images successfully resized
+
+      resize2fs /dev/mapper/01salvus-salvus_images  # start about 12:15pm
+
+When above resize2fs finishes and works, do this on cloud3:
+
+
+      resize2fs /dev/mapper/03salvus-salvus_images
+
+
+ [ ] (1:00?) (0:50+ so far -- in progress in screen on cloud1) write script to automate, then upgrade deployed vm to sage-5.9: http://sage.math.washington.edu/home/release/sage-5.9/sage-5.9.tar
              - delete current sage version: 20130502
              - download and install/test from source in a next vm image
              - install markdown2
              - install list of good optional packages.
 
+ [ ] (0:30?) restart all compute machines with new sage-5.9 image.
+
+ ---
+  [ ] (1:00?) fix terminal resize; bottom line is often cut off.
+
+
  [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
 
  [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automaticalliy when they hit a key (?)
-
- [ ] (1:00?) configure new 4TB disks on cloud3, cloud4
 
  [ ] (2:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
