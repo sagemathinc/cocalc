@@ -7,15 +7,17 @@
  [x] (0:30?) (0:24) fix terms of usage being required
  [x] (0:30?) (0:15) force SVG to be the default math renderer; also enable equation wrapping
  [x] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
+ [x] (0:30?) (0:12) on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
 
- [x] (0:30?) (0:12) *critical* -- on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
+ [ ] (0:05?) reduce number of cached projects to 1 until project cache is moved to database from hub.
 
- [ ] (1:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
- [ ] (0:30?) upgrade cloud server *and* mention in this email thread that wrapping equations now supported (include a screenshot using
+--> [ ] (0:30?) upgrade cloud server, announce on list, and mention in this email thread that wrapping equations now supported (include a screenshot using
 show(expand((x+1)^50))) <https://mail.google.com/mail/u/0/?shva=1#search/mathjax+wrapping/13e454cb56930ef0>
 
 ---
+
+ [ ] (1:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
 
