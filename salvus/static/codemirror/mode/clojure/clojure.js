@@ -14,7 +14,7 @@ CodeMirror.defineMode("clojure", function () {
     }
 
     var atoms = makeKeywords("true false nil");
-    
+
     var keywords = makeKeywords(
       "defn defn- def def- defonce defmulti defmethod defmacro defstruct deftype defprotocol defrecord defproject deftest slice defalias defhinted defmacro- defn-memo defnk defnk defonce- defunbound defunbound- defvar defvar- let letfn do case cond condp for loop recur when when-not when-let when-first if if-let if-not . .. -> ->> doto and or dosync doseq dotimes dorun doall load import unimport ns in-ns refer try catch finally throw with-open with-local-vars binding gen-class gen-and-load-class gen-and-save-class handler-case handle");
 
@@ -44,8 +44,7 @@ CodeMirror.defineMode("clojure", function () {
         sign: /[+-]/,
         exponent: /e/i,
         keyword_char: /[^\s\(\[\;\)\]]/,
-        basic: /[\w\$_\-]/,
-        lang_keyword: /[\w*+!\-_?:\/]/
+        symbol: /[\w*+!\-\._?:\/]/
     };
 
     function stateStack(indent, type, prev) { // represents a state stack object
@@ -195,10 +194,10 @@ CodeMirror.defineMode("clojure", function () {
                             popStack(state);
                         }
                     } else if ( ch == ":" ) {
-                        stream.eatWhile(tests.lang_keyword);
+                        stream.eatWhile(tests.symbol);
                         return ATOM;
                     } else {
-                        stream.eatWhile(tests.basic);
+                        stream.eatWhile(tests.symbol);
 
                         if (keywords && keywords.propertyIsEnumerable(stream.current())) {
                             returnType = KEYWORD;

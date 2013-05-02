@@ -30,6 +30,7 @@
       <input type="hidden" id="download" name="download" value="codemirror-compressed.js"/>
       <p>Version: <select id="version" onchange="setVersion(this);" style="padding: 1px">
         <option value="http://codemirror.net/">HEAD</option>
+        <option value="http://marijnhaverbeke.nl/git/codemirror?a=blob_plain;hb=v3.12;f=">3.12</option>
         <option value="http://marijnhaverbeke.nl/git/codemirror?a=blob_plain;hb=v3.11;f=">3.11</option>
         <option value="http://marijnhaverbeke.nl/git/codemirror?a=blob_plain;hb=v3.1;f=">3.1</option>
         <option value="http://marijnhaverbeke.nl/git/codemirror?a=blob_plain;hb=v3.02;f=">3.02</option>
@@ -80,6 +81,7 @@
           <option value="http://codemirror.net/mode/ecl/ecl.js">ecl.js</option>
           <option value="http://codemirror.net/mode/erlang/erlang.js">erlang.js</option>
           <option value="http://codemirror.net/mode/gfm/gfm.js">gfm.js</option>
+          <option value="http://codemirror.net/mode/gas/gas.js">gas.js</option>
           <option value="http://codemirror.net/mode/go/go.js">go.js</option>
           <option value="http://codemirror.net/mode/groovy/groovy.js">groovy.js</option>
           <option value="http://codemirror.net/mode/haskell/haskell.js">haskell.js</option>
@@ -143,6 +145,7 @@
           <option value="http://codemirror.net/addon/fold/xml-fold.js">xml-fold.js</option>
           <option value="http://codemirror.net/addon/fold/brace-fold.js">brace-fold.js</option>
           <option value="http://codemirror.net/addon/fold/indent-fold.js">indent-fold.js</option>
+          <option value="http://codemirror.net/addon/hint/show-hint.js">show-hint.js</option>
           <option value="http://codemirror.net/addon/hint/javascript-hint.js">javascript-hint.js</option>
           <option value="http://codemirror.net/addon/hint/xml-hint.js">xml-hint.js</option>
           <option value="http://codemirror.net/addon/hint/html-hint.js">html-hint.js</option>
@@ -168,7 +171,7 @@
           <option value="http://codemirror.net/keymap/emacs.js">emacs.js</option>
           <option value="http://codemirror.net/keymap/vim.js">vim.js</option>
         </optgroup>
-      </select></p>
+      </select>
 
       <p>
         <button type="submit">Compress</button> with <a href="http://github.com/mishoo/UglifyJS/">UglifyJS</a>

@@ -8,7 +8,9 @@
 
  [x] (0:30?) (0:15) force SVG to be the default math renderer; also enable equation wrapping
 
---> [ ] (0:35?) upgrade to newest codemirror (3.12): http://codemirror.net/
+--> [ ] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
+
+ [ ] (0:30?) *critical* -- on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
 
  [ ] (1:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
