@@ -5,11 +5,12 @@
 [ ] (3:00?) @interact  (0:20 planning)
     [x] (0:10?) (0:04) interact: copy css to interact.css and rename to salvus-interact from salvus-cell-interact
     [x] (0:10?) (0:18) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
-    [ ] (0:30?) interact: copy script from cell.coffee to interact.coffee and restructure code layout
-    [ ] (0:10?) interact: include interact.* in appropriate places and ensure builds/starts
+    [x] (0:30?) (0:70) interact: copy script from cell.coffee to interact.coffee and restructure code layout
+    [ ] (0:30?) interact: enable interacts, using the above, with stub for exec
+    [ ] (0:30?) interact: get sage_execute to work
     [ ] (0:30?) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
-    [ ] (0:30?) interact: enable interacts, using the above
-    (tomorrow: debug)
+    [ ] (1:0?) interact: debug/test -- make one worksheet with all interacts.
+    [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
 
 
  [ ] (1:00?) (0:44+) configure new 4TB disks on cloud3, cloud4

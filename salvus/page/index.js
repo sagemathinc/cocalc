@@ -38,6 +38,8 @@ syncdoc.coffee
 
 editor.coffee
 
+interact.coffee
+
 project.coffee
 projects.coffee
 
