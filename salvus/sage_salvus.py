@@ -1801,12 +1801,23 @@ from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
 def show(obj, svg=False, **kwds):
+    """
+    Show an expression, typeset nicely in tex, or a 2d or 3d graphics object.
+
+       - svg: (default False); if true, render graphics using svg.  This is False by default,
+         since at least Google Chrome mis-renders this as empty:
+              line([(10, 0), (10, 15)], color='black').show(svg=True)
+              
+       - display: (default: True); if true use display math for expression (big and centered). 
+    """
     if isinstance(obj, (Graphics, GraphicsArray)):
         show_2d_plot(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):
         show_3d_plot(obj, **kwds)
     else:
-        salvus.tex(obj, display=True, **kwds)
+        if 'display' not in kwds:
+            kwds['display'] = True
+        salvus.tex(obj, **kwds)
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show

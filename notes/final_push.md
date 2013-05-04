@@ -2,38 +2,20 @@
 # Next round:
 ------------
 
- [ ] @interact
-    [x] (0:20) planning
-    [x] (0:10?) (0:04) interact: copy css to interact.css and rename to salvus-interact from salvus-cell-interact
-    [x] (0:10?) (0:18) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
-    [x] (0:30?) (0:70) interact: copy script from cell.coffee to interact.coffee and restructure code layout
-    [x] (0:30?) (1:07) interact: enable interacts, using the above, with stub for exec
-
-    [x] (0:45?) (0:18) interact: get sage_execute to work
-
-    [x] (0:45?) (0:25) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
-
-    [x] (0:30?) (0:50+) interact: make it so setting variables works from the python side.
-
-    [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts.
-
-    [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
-
----
-
- [ ] (0:30) disable draggable of tabs for now; just causes confusion.
-
- [ ] (0:15?) (0:03+) change default rendering back to svg=False for plots.
+ [x] (0:15?) (0:19) change default rendering back to svg=False for plots.
      Put something in docstring about this with
      dashed line example (https://mail.google.com/mail/u/0/?shva=1#starred/13e6a16d768d26a3)
 
- [ ] (0:30) push out new version and post message to list
-
  [ ] (1:00) the top pill bar is now scrollable horizontally, which is absurd.
 
- [ ] (1:30) import sws files
+ [ ] (0:30) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
 
- [ ] (1:00?) properly fix search (so current term position is in center of screen)
+ [ ] (0:30) disable draggable of tabs for now; just causes confusion.
+
+ [ ] (0:30) push out new version and post message to list
+
+
+ [ ] (1:30) import sws files
 
  [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
@@ -148,6 +130,10 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 
 
 
+    [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
+    [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
+
+---
 ---
 
 # DONE
@@ -1266,3 +1252,21 @@ When above resize2fs finishes and works, do this on cloud3:
              - install list of good optional packages.
 
  ---
+
+
+ [x] @interact
+    [x] (0:20) planning
+    [x] (0:10?) (0:04) interact: copy css to interact.css and rename to salvus-interact from salvus-cell-interact
+    [x] (0:10?) (0:18) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
+    [x] (0:30?) (0:70) interact: copy script from cell.coffee to interact.coffee and restructure code layout
+    [x] (0:30?) (1:07) interact: enable interacts, using the above, with stub for exec
+
+    [x] (0:45?) (0:18) interact: get sage_execute to work
+
+    [x] (0:45?) (0:25) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+
+    [x] (0:30?) (0:50+) interact: make it so setting variables works from the python side.
+
+
+
+
