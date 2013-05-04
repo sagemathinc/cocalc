@@ -325,7 +325,6 @@ message
     data         : undefined
     session_uuid : required
     preparse     : true
-    allow_cache  : true
 
 # Introspection in the context of a codemirror editing session.
 # client --> hub --> sage_server

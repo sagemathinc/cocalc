@@ -932,6 +932,33 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @elt_at_mark(mark).removeClass('sagews-output-hide')
             @editor.show()
 
+    execute_code: (opts) ->
+        opts = defaults opts,
+            code     : required
+            cb       : undefined
+            data     : undefined
+            preparse : true
+            uuid     : undefined
+
+        if opts.uuid?
+            uuid = opts.uuid
+        else
+            uuid = misc.uuid()
+
+        if opts.cb?
+            salvus_client.execute_callbacks[uuid] = opts.cb
+
+        salvus_client.send(
+            message.codemirror_execute_code
+                session_uuid : @session_uuid
+                id           : uuid
+                code         : opts.code
+                data         : opts.data
+                preparse     : opts.preparse
+        )
+
+        return uuid
+
     interact: (output, desc) =>
         # Create and insert DOM objects corresponding to the interact
         elt = $("<div class='sagews-output-interact'>")
@@ -939,18 +966,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         elt.append(interact_elt)
         output.append(elt)
 
-        # Function that gets called by the interact to update its output in some way.
-        execute_code = (opts) =>
-            opts = defaults opts,
-                code     : required
-                data     : undefined
-                preparse : true
-                cb       : required
-            console.log("interact - execute_code: #{misc.to_json(opts)}")
-            opts.cb({stdout:misc.to_json(opts)})
-
         # Call jQuery plugin to make it all happen.
-        interact_elt.sage_interact(desc:desc, execute_code:execute_code)
+        interact_elt.sage_interact(desc:desc, execute_code:@execute_code)
 
     process_new_output: (mark, mesg) =>
         #console.log("new output: ", mesg)

@@ -125,7 +125,10 @@ class Interact
                         first = false
 
                     # TODO: for testing
-                    output.append($("<span>").text(misc.to_json(mesg)))
+                    if mesg.stdout
+                        output.append($("<span>").text(mesg.stdout))
+
+
 
                     if mesg.done
                         # stop the stopwatch

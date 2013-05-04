@@ -8,10 +8,15 @@
     [x] (0:10?) (0:18) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
     [x] (0:30?) (0:70) interact: copy script from cell.coffee to interact.coffee and restructure code layout
     [x] (0:30?) (1:07) interact: enable interacts, using the above, with stub for exec
-    
-    [ ] (0:30?) interact: get sage_execute to work
-    [ ] (0:30?) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+
+    [x] (0:45?) (0:18) interact: get sage_execute to work
+
+    [ ] (0:45?) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+
     [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts.
+
+
+
     [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
 
 
@@ -22,6 +27,8 @@
      dashed line example (https://mail.google.com/mail/u/0/?shva=1#starred/13e6a16d768d26a3)
 
  [ ] (0:30) push out new version and post message to list
+
+ [ ] (1:00) the top pill bar is now scrollable horizontally, which is absurd.
 
  [ ] (1:30) import sws files
 
