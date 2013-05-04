@@ -11,9 +11,9 @@
 
     [x] (0:45?) (0:18) interact: get sage_execute to work
 
-    [x] (0:45?) (0:18) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+    [x] (0:45?) (0:25) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
 
-    [ ] (0:30?) interact: make it so setting variables works from the python side.
+    [x] (0:30?) (0:50+) interact: make it so setting variables works from the python side.
 
     [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts.
 

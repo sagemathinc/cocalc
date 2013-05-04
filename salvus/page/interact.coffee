@@ -53,6 +53,7 @@ class Interact
             stop : undefined
 
         @element = templates.find(".salvus-interact-container").clone()
+        @element.attr('id', opts.desc.id).data('interact', @)
         @opts.elt.replaceWith(@element)
         @initialize_interact()
 

@@ -231,7 +231,7 @@ class InteractFunction(object):
             desc = new_control.jsonable()
         # set the id of the containing interact
         desc['id'] = self.interact_cell._uuid
-        salvus.javascript("cell._set_interact_var(obj)", obj=jsonable(desc))
+        salvus.javascript("worksheet.set_interact_var(obj)", obj=jsonable(desc))
 
     def __getattr__(self, arg):
         I = self.__dict__['interact_cell']

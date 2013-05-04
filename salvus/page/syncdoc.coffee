@@ -868,10 +868,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
                             output = @elt_at_mark(mark)
                             # appearance of output shows output (bad design?)
                             output.removeClass('sagews-output-hide')
-                            #try
-                            @process_output_mesg(mesg:JSON.parse(s), element:output)
-                            #catch e
-                            #    console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
+                            try
+                               @process_output_mesg(mesg:JSON.parse(s), element:output)
+                            catch e
+                                log("BUG: error rendering output: '#{s}' -- #{e}")
 
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
@@ -976,6 +976,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts = defaults opts,
             mesg    : required
             element : required
+            mark     : undefined
         mesg = opts.mesg
         output = opts.element
         # mesg = object
@@ -1017,16 +1018,20 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
         if mesg.javascript? and @editor.opts.allow_javascript_eval
-            (() ->
-             cell = new Cell(output_mark:mark)
+            (() =>
+             cell      = new Cell(output :opts.element)
+             worksheet = new Worksheet(@)
+
              code = mesg.javascript.code
              if mesg.javascript.coffeescript
-                code = CoffeeScript.compile(code)
+                 code = CoffeeScript.compile(code)
              obj  = JSON.parse(mesg.obj)
+
+             #console.log("executing script: '#{code}', obj='#{mesg.obj}'")
+
              # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
              # Note that there is an allow_javascript document option, which (at some point) users
              # will be able to set.
-             console.log("executing javascript: '#{code}'")
              eval(code)
             )()
 
@@ -1317,8 +1322,17 @@ class SynchronizedWorksheet extends SynchronizedDocument
 class Cell
     constructor : (opts) ->
         opts = defaults opts,
-            output_mark : required
+            output : required # jquery wrapped output area
             #cell_mark   : required # where cell starts
+
+class Worksheet
+
+    constructor : (@worksheet) ->
+
+    set_interact_var : (opts) =>
+        elt = @worksheet.element.find("#" + opts.id)
+        elt.data('interact').set_interact_var(opts)
+
 
 
 ################################
