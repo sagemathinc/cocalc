@@ -1,4 +1,13 @@
-{defaults, required} = require('misc')
+###
+Interact -- Client side of interact implementation.
+
+This file defines a jQuery plugin ".sage_interact(...)" that replaces a DOM element
+by one with interactive controls and output.
+###
+
+misc = require('misc')
+
+{defaults, required} = misc
 
 # Interact jQuery plugin
 $.fn.extend
@@ -10,8 +19,9 @@ $.fn.extend
             stop         : undefined
 
         @each () ->
-            elt = $(this)
-            interact = new Interact(elt:elt, desc:opts.desc, execute_code:opts.execute_code, start:opts.start, stop:opts.stop)
+            elt      = $(this)
+            opts.elt = elt
+            interact = new Interact(opts)
             elt.data("interact", interact)
             return interact.element
 
@@ -19,7 +29,7 @@ templates = $(".salvus-interact-templates")
 
 class Interact
     constructor: (opts) ->
-        @opts = defaults
+        @opts = defaults opts,
             # elt = a jQuery wrapped DOM element that will be replaced by the interact
             elt  : required
             # desc = an object that describes the interact controls, etc.
@@ -87,30 +97,21 @@ class Interact
                         labels[arg] = label
                     t = $("<div class='span#{span} salvus-interact-var-#{arg}'></div>")
                     fluid_row.append(t)
-            elt.append(fluid_row)
+            @element.append(fluid_row)
 
         # Create cell for the output stream from the function to appear in, if it is defined above
-        output = elt.find(".salvus-interact-var-")   # empty string is output
-        output_cells = []
-        for C in output
-            div = $("<div>")
-            $(C).append(div)
-            o = div.salvus_cell
-                show    : ['output']
-                session : @opts.session
-            output_cells.push(o.data('cell'))
+        output = @element.find(".salvus-interact-var-")   # empty string is output
 
         # Define the update function, which communicates with the server.
         done = true
         update = (vals) =>
-            if not done
-                @opts.session.interrupt()
-
-            for output_cell in output_cells
-                if not desc.flicker
-                    height = output_cell._output.height()
-                    output_cell._output.css('min-height', height)
-                output_cell.delete_output()
+            # TODO: flicker?
+            #for output_cell in output_cells
+            #    if not desc.flicker
+            #        height = output_cell._output.height()
+            #        output_cell._output.css('min-height', height)
+            #    output_cell.delete_output()
+            output.html("")
 
             done = false
             first = true
@@ -122,8 +123,10 @@ class Interact
                     if first
                         @opts.start?()
                         first = false
-                    for output_cell in output_cells
-                        output_cell.append_output_in_mesg(mesg)
+
+                    # TODO: for testing
+                    output.append($("<span>").text(misc.to_json(mesg)))
+
                     if mesg.done
                         # stop the stopwatch
                         @opts.stop?()
@@ -164,7 +167,7 @@ parse_width = (width) ->
 interact_control = (desc, update) ->
     # Create and return a detached DOM element elt that represents
     # the interact control described by desc.  It will call update
-    # when it changes.  If elt.data('refresh') is defined, it will
+    # when it changes.  If @element.data('refresh') is defined, it will
     # be called after the control is inserted into the DOM.
 
     # Generic initialization code

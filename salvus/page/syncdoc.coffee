@@ -865,10 +865,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     mark.processed = x.length
                     for s in t.split(MARKERS.output)
                         if s.length > 0
-                            try
+                            #try
                                 @process_new_output(mark, JSON.parse(s))
-                            catch e
-                                console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
+                            #catch e
+                            #    console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
 
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
@@ -932,6 +932,26 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @elt_at_mark(mark).removeClass('sagews-output-hide')
             @editor.show()
 
+    interact: (output, desc) =>
+        # Create and insert DOM objects corresponding to the interact
+        elt = $("<div class='sagews-output-interact'>")
+        interact_elt = $("<span>")
+        elt.append(interact_elt)
+        output.append(elt)
+
+        # Function that gets called by the interact to update its output in some way.
+        execute_code = (opts) =>
+            opts = defaults opts,
+                code     : required
+                data     : undefined
+                preparse : true
+                cb       : required
+            console.log("interact - execute_code: #{misc.to_json(opts)}")
+            opts.cb({stdout:misc.to_json(opts)})
+
+        # Call jQuery plugin to make it all happen.
+        interact_elt.sage_interact(desc:desc, execute_code:execute_code)
+
     process_new_output: (mark, mesg) =>
         #console.log("new output: ", mesg)
         output = @elt_at_mark(mark)
@@ -940,8 +960,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
+
         if mesg.html?
             output.append($("<div class='sagews-output-html'>").html(mesg.html).mathjax())
+
+        if mesg.interact?
+            @interact(output, mesg.interact)
+
         if mesg.tex?
             val = mesg.tex
             elt = $("<span class='sagews-output-tex'>")
@@ -951,6 +976,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             else
                 arg.inline = true
             output.append(elt.mathjax(arg))
+
         if mesg.file?
             val = mesg.file
             if not val.show? or val.show
@@ -969,9 +995,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
              if mesg.javascript.coffeescript
                 code = CoffeeScript.compile(code)
              obj  = JSON.parse(mesg.obj)
-             # The eval below is an intentional CSS vulnerability in the fundamental design of Salvus.
+             # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
              # Note that there is an allow_javascript document option, which (at some point) users
              # will be able to set.
+             console.log("executing javascript: '#{code}'")
              eval(code)
             )()
 
