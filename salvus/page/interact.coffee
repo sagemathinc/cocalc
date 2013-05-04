@@ -13,10 +13,11 @@ misc = require('misc')
 $.fn.extend
     sage_interact: (opts) ->
         opts = defaults opts,     # see comments for Interact below.
-            desc         : required
-            execute_code : required
-            start        : undefined
-            stop         : undefined
+            desc                : required
+            execute_code        : required
+            process_output_mesg : required
+            start               : undefined
+            stop                : undefined
 
         @each () ->
             elt      = $(this)
@@ -40,6 +41,12 @@ class Interact
             #        id = execute_code(code:?, data:?, preparse:?, cb:(mesg) => )
             #
             execute_code : required
+            #
+            # process_output_mesg = message to deal with output from execute_code
+            #           process_output_mesg(element:jQuery wrapped output DOM element, mesg:message output from execute_code)
+
+            process_output_mesg : required
+
             # start(@) called when execution of code starts due to user manipulating a control
             start : undefined
             # stop(@) called when execution stops
@@ -124,11 +131,7 @@ class Interact
                         @opts.start?()
                         first = false
 
-                    # TODO: for testing
-                    if mesg.stdout
-                        output.append($("<span>").text(mesg.stdout))
-
-
+                    @opts.process_output_mesg(mesg:mesg, element:output)
 
                     if mesg.done
                         # stop the stopwatch

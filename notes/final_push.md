@@ -11,14 +11,15 @@
 
     [x] (0:45?) (0:18) interact: get sage_execute to work
 
-    [ ] (0:45?) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+    [x] (0:45?) (0:18) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+
+    [ ] (0:30?) interact: make it so setting variables works from the python side.
 
     [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts.
 
-
-
     [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
 
+---
 
  [ ] (0:30) disable draggable of tabs for now; just causes confusion.
 

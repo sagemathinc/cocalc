@@ -865,8 +865,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     mark.processed = x.length
                     for s in t.split(MARKERS.output)
                         if s.length > 0
+                            output = @elt_at_mark(mark)
+                            # appearance of output shows output (bad design?)
+                            output.removeClass('sagews-output-hide')
                             #try
-                                @process_new_output(mark, JSON.parse(s))
+                            @process_output_mesg(mesg:JSON.parse(s), element:output)
                             #catch e
                             #    console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
 
@@ -967,14 +970,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
         output.append(elt)
 
         # Call jQuery plugin to make it all happen.
-        interact_elt.sage_interact(desc:desc, execute_code:@execute_code)
+        interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:@process_output_mesg)
 
-    process_new_output: (mark, mesg) =>
+    process_output_mesg: (opts) =>
+        opts = defaults opts,
+            mesg    : required
+            element : required
+        mesg = opts.mesg
+        output = opts.element
+        # mesg = object
+        # output = jQuery wrapped element
+
         #console.log("new output: ", mesg)
-        output = @elt_at_mark(mark)
-        output.removeClass('sagews-output-hide')  # appearance of output shows output
+
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
+
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
