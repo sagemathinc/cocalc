@@ -2,67 +2,50 @@
 # Next round:
 ------------
 
-[ ] (3:00?) @interact  (0:20 planning)
+ [ ] @interact
+    [x] (0:20) planning
     [x] (0:10?) (0:04) interact: copy css to interact.css and rename to salvus-interact from salvus-cell-interact
     [x] (0:10?) (0:18) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
     [x] (0:30?) (0:70) interact: copy script from cell.coffee to interact.coffee and restructure code layout
-    [ ] (0:30?) interact: enable interacts, using the above, with stub for exec
+    [x] (0:30?) (1:07) interact: enable interacts, using the above, with stub for exec
+    
     [ ] (0:30?) interact: get sage_execute to work
     [ ] (0:30?) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
-    [ ] (1:0?) interact: debug/test -- make one worksheet with all interacts.
+    [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts.
     [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
 
 
- [ ] (1:00?) (0:44+) configure new 4TB disks on cloud3, cloud4
+ [ ] (0:30) disable draggable of tabs for now; just causes confusion.
 
-    use fdisk to format (1 4TB partition):
-       fdisk /dev/sdb
-       1 partition; type "8e" = "linux lvm"
+ [ ] (0:15?) (0:03+) change default rendering back to svg=False for plots.
+     Put something in docstring about this with
+     dashed line example (https://mail.google.com/mail/u/0/?shva=1#starred/13e6a16d768d26a3)
 
-    vgextend 03salvus /dev/sdb1
+ [ ] (0:30) push out new version and post message to list
 
-    Crap, fail. Obviously, we just got only 2TB more, not 4TB.  Mistake of using fdisk.
-    Also, I forgot to do "pvcreate /dev/sdb1", which could be the problem.
+ [ ] (1:30) import sws files
 
-    vgreduce 03salvus /dev/sdb1
+ [ ] (1:00?) properly fix search (so current term position is in center of screen)
 
-    Start parted, then
+ [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
-    (parted) mklabel gpt
-    (parted) unit TB
-    FAIL
+ [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra somehow.
 
-    apt-get install gdisk
-    gdisk /dev/sdb
-    # delete existing partition and make new 4TB 1; then set type to 8e00, then exit
-    #
+ [ ] worksheet fail with local_hub log:
+         Trace
+            at process.daemon.pidFile (/mnt/home/D6VXKxGo/.sagemathcloud/node_modules/local_hub.js:1986:24)
+            at process.EventEmitter.emit (events.js:126:20)
+            at Timer.list.ontimeout (timers.js:104:21)
+         error: Uncaught exception: Error: This socket is closed.
 
-    pvcreate /dev/sdb1
-    vgextend 03salvus /dev/sdb1
+ [ ] (0:10?) do this to salvus-editor-chat-title as a quick fix:
+position: fixed;
+z-index: 10;
+right: 0;
 
-    # Now enlarge the logical volumn and partition!
-
-      root@cloud4:/home/salvus# lvextend -l 100%FREE /dev/mapper/01salvus-salvus_images
-      Extending logical volume salvus_images to 3.64 TiB
-      Logical volume salvus_images successfully resized
-
-      resize2fs /dev/mapper/01salvus-salvus_images  # start about 12:15pm
-
-When above resize2fs finishes and works, do this on cloud3:
+ [ ] (0:15?) hit shift-enter when it doesn't do anything --> give an error alert. (?)
 
 
-      resize2fs /dev/mapper/03salvus-salvus_images
-
-
- [ ] (1:00?) (0:50+ so far -- in progress in screen on cloud1) write script to automate, then upgrade deployed vm to sage-5.9: http://sage.math.washington.edu/home/release/sage-5.9/sage-5.9.tar
-             - delete current sage version: 20130502
-             - download and install/test from source in a next vm image
-             - install markdown2
-             - install list of good optional packages.
-
- [ ] (0:30?) restart all compute machines with new sage-5.9 image.
-
- ---
   [ ] (1:00?) fix terminal resize; bottom line is often cut off.
 
 
@@ -1225,3 +1208,53 @@ show(expand((x+1)^50))) <https://mail.google.com/mail/u/0/?shva=1#search/mathjax
  - start all services (which will only start web vm services).
 
 ---
+
+
+[x] (1:00?) (0:44+) configure new 4TB disks on cloud3, cloud4
+
+    use fdisk to format (1 4TB partition):
+       fdisk /dev/sdb
+       1 partition; type "8e" = "linux lvm"
+
+    vgextend 03salvus /dev/sdb1
+
+    Crap, fail. Obviously, we just got only 2TB more, not 4TB.  Mistake of using fdisk.
+    Also, I forgot to do "pvcreate /dev/sdb1", which could be the problem.
+
+    vgreduce 03salvus /dev/sdb1
+
+    Start parted, then
+
+    (parted) mklabel gpt
+    (parted) unit TB
+    FAIL
+
+    apt-get install gdisk
+    gdisk /dev/sdb
+    # delete existing partition and make new 4TB 1; then set type to 8e00, then exit
+    #
+
+    pvcreate /dev/sdb1
+    vgextend 03salvus /dev/sdb1
+
+    # Now enlarge the logical volumn and partition!
+
+      root@cloud4:/home/salvus# lvextend -l 100%FREE /dev/mapper/01salvus-salvus_images
+      Extending logical volume salvus_images to 3.64 TiB
+      Logical volume salvus_images successfully resized
+
+      resize2fs /dev/mapper/01salvus-salvus_images  # start about 12:15pm
+
+When above resize2fs finishes and works, do this on cloud3:
+
+
+      resize2fs /dev/mapper/03salvus-salvus_images
+
+
+ [x] (1:00?) (0:50+ so far -- in progress in screen on cloud1) write script to automate, then upgrade deployed vm to sage-5.9: http://sage.math.washington.edu/home/release/sage-5.9/sage-5.9.tar
+             - delete current sage version: 20130502
+             - download and install/test from source in a next vm image
+             - install markdown2
+             - install list of good optional packages.
+
+ ---
