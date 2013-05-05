@@ -353,12 +353,14 @@ class Console extends EventEmitter
                         @blur()
                 )
         else
+            # TODO:  *leak!!* these should be deleted when the terminal is closed
+
             $(document).on 'mousedown', (e) =>
                 t = $(e.target)
                 if t.hasParent($(@terminal.element)).length > 0
                     @focus()
                 else
-                    @blur()
+                    @blur()                   
 
     _init_fullscreen: () =>
         fullscreen = @element.find("a[href=#fullscreen]")

@@ -15,6 +15,8 @@
 
  [x] (1:00) (0:15) terminal copy -- highlight and then it *unhighlights*; is it possible to keep the selection?  Is it possible to just copy instantly without requiring control-c
 
+ [x] (0:30) (1:15) see whether it is possible to set copy buffer from javascript or not... (yet again); if so, don't require control-c in terminal; ANSWER: no, not for now; can partly do using flash and a click (not so useful), or as a Chrome Extension (for later!).
+
  [ ] (0:45) make worksheet save persist linked objects
 
  [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
