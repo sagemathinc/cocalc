@@ -526,12 +526,12 @@ class exports.Editor
             open_file(filename)
             return false
 
-        link.draggable
-            zIndex      : 1000
-            containment : "parent"
-            stop        : () =>
-                ignore_clicks = true
-                setTimeout( (() -> ignore_clicks=false), 100)
+        #link.draggable
+        #    zIndex      : 1000
+        #    containment : "parent"
+        #    stop        : () =>
+        #        ignore_clicks = true
+        #        setTimeout( (() -> ignore_clicks=false), 100)
 
         @tabs[filename].open_file_pill = link
 

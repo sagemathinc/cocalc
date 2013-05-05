@@ -6,11 +6,11 @@
      Put something in docstring about this with
      dashed line example (https://mail.google.com/mail/u/0/?shva=1#starred/13e6a16d768d26a3)
 
- [ ] (1:00) the top pill bar is now scrollable horizontally, which is absurd.
-
  [ ] (0:30) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
 
- [ ] (0:30) disable draggable of tabs for now; just causes confusion.
+ [x] (0:15) (0:03) disable draggable of tabs for now; just causes confusion.
+
+ [ ] (1:00) the top pill bar is now scrollable horizontally, which is absurd.
 
  [ ] (0:30) push out new version and post message to list
 
