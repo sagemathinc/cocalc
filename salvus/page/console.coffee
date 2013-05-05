@@ -390,6 +390,10 @@ class Console extends EventEmitter
             @resize()
             return false
 
+        @element.find("a[href=#paste]").click () =>
+            bootbox.alert("Press Control+Shift+V (or Command+V) to paste.  To copy, highlight text then press Control+C (or Command+C); when no text is highlighted, Control+C sends the usual interrupt.")
+            return false
+
         @element.find(".salvus-console-up").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.from - 1, ch:0})
@@ -416,6 +420,18 @@ class Console extends EventEmitter
                 @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
 
     _init_paste_bin: () =>
+        pb = @element.find(".salvus-console-textarea")
+
+        f = (evt) =>
+            console.log("blur/paste event")
+            data = pb.val()
+            console.log("data = ", data)
+            pb.val('')
+            @session?.write_data(data)
+
+        pb.on('paste', (() -> setTimeout(f,0)))
+
+    xxx_init_paste_bin: () =>
         paste_bins = [@element.find(".salvus-console-paste-bin"),
                       @element.find(".salvus-console-textarea")]
 
@@ -561,8 +577,7 @@ class Console extends EventEmitter
             $(document).on('keydown', @mobile_keydown)
         else
             @terminal.focus()
-            if not @is_focused
-                @element.find(".salvus-console-textarea").focus()
+            @element.find(".salvus-console-textarea").focus()
 
         @is_focused = true
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')

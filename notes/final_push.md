@@ -11,22 +11,31 @@
 
  [x] (0:45) (0:15) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop. (we will still need to implement output message optimization, but buffering already helps a lot).
 
- [ ] (1:00) terminal copy paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
+ [ ] (1:00) (1:05) terminal paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
 
- [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
+ [ ] (1:00) terminal copy -- highlight and then it *unhighlights*; is it possible to keep the selection?  Is it possible to just copy instantly without requiring control-c
 
  [ ] (0:45) make worksheet save persist linked objects
+
+ [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
 
  [ ] (0:30) push out new version and post message to list
 
  ---
+
+ [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+ [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
+
+ ---
+
  [ ] (1:30) ability to open sws files
 
  [ ] (1:00) button in settings to reset the smc server
 
  [ ] (1:30?) ability to delete projects.
 
- [ ] (1:30?) ability to change repo to be private.
+ [ ] (1:30?) ability to change project to be private.
 
  [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
@@ -45,8 +54,6 @@
 
  [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
- [ ] (2:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
 
  [ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
@@ -55,14 +62,11 @@
 
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
 
- [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
-
  [ ] (3:00?) why does editing feel so slow: take 2?
 
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
 
- [ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
 
  - [ ] (1:00?) quota in my "devel" project looks suspicious (type "quota -v").; on compute2a everything is fine.  No clue what is going on here.
 
@@ -1286,3 +1290,5 @@ When above resize2fs finishes and works, do this on cloud3:
  [x] (0:30) more interact issues exposed by %exercise
 
  [x] (0:30) move file buttons to left (not way off to right).
+
+ [x] (3:00?) - copy/paste in terminal sucks; look into hterm... -- HTERM is chrome-only according to <https://groups.google.com/a/chromium.org/forum/?fromgroups=#!topic/chromium-hterm/K_I62Z6Gwuo>, hence not an option.
