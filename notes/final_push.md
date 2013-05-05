@@ -7,19 +7,20 @@
 
  [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
 
- [x] (1:00) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
+ [x] (1:00) (0:10) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
 
- [ ] (1:30) ability to open sws files
+ [x] (0:45) (0:15) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop. (we will still need to implement output message optimization, but buffering already helps a lot).
+
+ [ ] (1:00) terminal copy paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
 
  [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
 
- [ ] (0:30) push out new version and post message to list
-
  [ ] (0:45) make worksheet save persist linked objects
 
- [ ] (0:45) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop.
+ [ ] (0:30) push out new version and post message to list
 
  ---
+ [ ] (1:30) ability to open sws files
 
  [ ] (1:00) button in settings to reset the smc server
 

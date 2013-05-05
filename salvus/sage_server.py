@@ -13,7 +13,7 @@ For debugging, this may help:
 
 """
 
-# NOTE: This file is GPL'd 
+# NOTE: This file is GPL'd
 # because it imports the Sage library.  This file is not directly
 # imported by anything else in Salvus; the Python process it runs is
 # used over a TCP connection.
@@ -252,7 +252,7 @@ class BufferedOutputStream(object):
 
     def write(self, output):
         self._buf += output
-        self.flush()
+        #self.flush()
         t = time.time()
         if ((len(self._buf) >= self._flush_size) or
                   (t - self._last_flush_time >= self._flush_interval)):

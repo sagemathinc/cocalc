@@ -197,7 +197,7 @@ class Console extends EventEmitter
                 # TODO -- these are all basically bugs, I think...
                 # That said, try/catching them is better than having
                 # the whole terminal just be broken.
-                
+
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
@@ -419,13 +419,15 @@ class Console extends EventEmitter
         paste_bins = [@element.find(".salvus-console-paste-bin"),
                       @element.find(".salvus-console-textarea")]
 
+        f = (evt) =>
+            for pb in paste_bins
+                data = pb.val()
+                pb.val('')
+                @session?.write_data(data)
         for paste_bin in paste_bins
             paste_bin.tooltip(delay:{ show: 500, hide: 100 })
-            paste_bin.live 'blur keyup paste', (evt) =>
-                for pb in paste_bins
-                    data = pb.val()
-                    pb.val('')
-                    @session?.write_data(data)
+            paste_bin.on('blur', f)
+            paste_bin.on('paste', f)
 
     #######################################################################
     # Public API
