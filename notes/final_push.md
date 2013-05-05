@@ -1,8 +1,13 @@
+
+
+
  [x] (0:45) (0:31) clicking on filename should open file; make a rename button
 
  [x] (1:00) (0:10) upgrade to latest twitter bootstrap
 
- [ ] (1:00) upgrade to latest jquery
+ [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
+
+ [ ] (1:00) upgrade to latest sockjs
 
  [ ] (1:30) ability to open sws files
 
