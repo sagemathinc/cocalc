@@ -1,19 +1,9 @@
 
-# Next round:
-------------
-
- [x] (0:15?) (0:19) change default rendering back to svg=False for plots.
-     Put something in docstring about this with
-     dashed line example (https://mail.google.com/mail/u/0/?shva=1#starred/13e6a16d768d26a3)
-
- [ ] (0:30) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
-
- [x] (0:15) (0:03) disable draggable of tabs for now; just causes confusion.
+--> [ ] (0:30) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
 
  [ ] (1:00) the top pill bar is now scrollable horizontally, which is absurd.
 
  [ ] (0:30) push out new version and post message to list
-
 
  [ ] (1:30) import sws files
 
@@ -28,13 +18,9 @@
             at Timer.list.ontimeout (timers.js:104:21)
          error: Uncaught exception: Error: This socket is closed.
 
- [x] (0:10?) (0:03) do this to salvus-editor-chat-title as a quick fix: "position: fixed;z-index: 10; right: 0;"
-
  [ ] (0:15?) hit shift-enter when it doesn't do anything --> give an error alert. (?)
 
-
-  [ ] (1:00?) fix terminal resize; bottom line is often cut off.
-
+ [ ] (1:00?) fix terminal resize; bottom line is often cut off.
 
  [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
 
@@ -1265,5 +1251,14 @@ When above resize2fs finishes and works, do this on cloud3:
     [x] (0:30?) (0:50+) interact: make it so setting variables works from the python side.
 
 
+
+
+
+ [x] (0:15?) (0:19) change default rendering back to svg=False for plots.
+     Put something in docstring about this with
+     dashed line example (https://mail.google.com/mail/u/0/?shva=1#starred/13e6a16d768d26a3)
+
+ [x] (0:15) (0:03) disable draggable of tabs for now; just causes confusion.
+ [x] (0:10?) (0:03) do this to salvus-editor-chat-title as a quick fix: "position: fixed;z-index: 10; right: 0;"
 
 

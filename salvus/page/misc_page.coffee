@@ -346,8 +346,8 @@ CodeMirror.defineExtension 'showIntrospect', (opts) ->
         top  : pos.bottom + 'px'
     $("body").prepend element
     if not IS_MOBILE
-        element.draggable(handle: element.find(".salvus-cell-introspect-title")).resizable
-            alsoResize : element.find(".salvus-cell-introspect-content")
+        element.draggable(handle: element.find(".salvus-codemirror-introspect-title")).resizable
+            alsoResize : element.find(".salvus-codemirror-introspect-content")
             maxHeight: 650
             handles : 'all'
     element.focus()
