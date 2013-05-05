@@ -7,7 +7,7 @@
 
  [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
 
- [ ] (1:00) upgrade to latest sockjs
+ [x] (1:00) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
 
  [ ] (1:30) ability to open sws files
 
