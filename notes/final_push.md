@@ -28,10 +28,7 @@
             at Timer.list.ontimeout (timers.js:104:21)
          error: Uncaught exception: Error: This socket is closed.
 
- [ ] (0:10?) do this to salvus-editor-chat-title as a quick fix:
-position: fixed;
-z-index: 10;
-right: 0;
+ [x] (0:10?) (0:03) do this to salvus-editor-chat-title as a quick fix: "position: fixed;z-index: 10; right: 0;"
 
  [ ] (0:15?) hit shift-enter when it doesn't do anything --> give an error alert. (?)
 

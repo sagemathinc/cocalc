@@ -138,7 +138,10 @@ Editor for files in a project
     color     : #666;
     font-size : 18pt;
     font-weight: bold;
-    margin-right: 1em;
+    position: fixed;
+    z-index: 10;
+    right: 0;
+
 }
 
 .salvus-editor-codemirror-chat-output {
@@ -254,6 +257,6 @@ li {
     padding: 4px;
 }
 
-.sagews-output-interact {    
+.sagews-output-interact {
 }
 
