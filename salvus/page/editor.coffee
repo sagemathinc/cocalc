@@ -895,7 +895,7 @@ class CodeMirrorEditor extends FileEditor
 
         buf = @codemirror.linkedDoc({sharedHist: true})
         @codemirror1.swapDoc(buf)
-        $(@codemirror1.getWrapperElement()).css('border-top':'2px solid #aaa', 'box-shadow': '#777 6px 6px 6px 6px')
+        $(@codemirror1.getWrapperElement()).css('border-top':'2px solid #aaa')
 
         @codemirror.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror

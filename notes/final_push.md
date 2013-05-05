@@ -1,18 +1,8 @@
  [ ] (0:30) push out new version and post message to list
 
- [x] (0:30) (0:07) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
-
- [x] (1:00) (0:17) fix some style (the top pill bar is now scrollable horizontally, which is confusing).
-
- [x] (0:30) (0:05) make buttons smaller
-
- [x] (0:30) more interact issues exposed by %exercise
-
- --> [ ] (0:30) move file buttons to left (not way off to right).
-
  [ ] (0:45) clicking on filename should open file; make a rename button
 
- [ ] (0:30) make resize use actual top of editor, not computed, in case of title wraparound.
+ [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
 
  [ ] (1:30) import sws files
 
@@ -28,8 +18,6 @@
             at process.EventEmitter.emit (events.js:126:20)
             at Timer.list.ontimeout (timers.js:104:21)
          error: Uncaught exception: Error: This socket is closed.
-
- [ ] (0:15?) hit shift-enter when it doesn't do anything --> give an error alert. (?)
 
  [ ] (1:00?) fix terminal resize; bottom line is often cut off.
 
@@ -52,8 +40,6 @@
  [ ] (1:30?) ability to delete projects.
 
  [ ] (1:30?) ability to change repo to be private.
-
- [ ] (1:00?) put everything in "local hub template" in cloud sagemath repo
 
  [ ] (3:00?) why does editing feel so slow: take 2?
 
@@ -1272,4 +1258,15 @@ When above resize2fs finishes and works, do this on cloud3:
  [x] (0:15) (0:03) disable draggable of tabs for now; just causes confusion.
  [x] (0:10?) (0:03) do this to salvus-editor-chat-title as a quick fix: "position: fixed;z-index: 10; right: 0;"
 
+[x] (1:00?) put everything in "local hub template" in cloud sagemath repo
 
+
+ [x] (0:30) (0:07) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
+
+ [x] (1:00) (0:17) fix some style (the top pill bar is now scrollable horizontally, which is confusing).
+
+ [x] (0:30) (0:05) make buttons smaller
+
+ [x] (0:30) more interact issues exposed by %exercise
+
+ [x] (0:30) move file buttons to left (not way off to right).
