@@ -326,13 +326,13 @@
 
 <div class="row span10 well well-small project-file-link">
     <div class="span lighten" style="width: 10px;">
-        <i class="icon-move hide project-file-drag-handle   project-file-buttons " > </i>
+        <i class="icon-move hide project-file-drag-handle   project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
     </div>
     <div class="span" style="width:60px">
         <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
-            <a class="btn btn-small" href="#open-file"><i class="icon-edit"> </i> </a>
-            <a class="btn btn-small" href="#download-file"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
-            <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+            <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file"><i class="icon-edit"> </i> </a>
+            <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+            <a class="btn btn-danger btn-small" href="#delete-file"  data-toggle="tooltip" data-placement="bottom" title="Delete file"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
         </span>
     </div>
 
@@ -344,7 +344,7 @@
     </div>
 
     <div class="span" style="width:15em;">
-        <a href="#rename"><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
+        <a href="#open-file"><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
     </div>
 
     <div class="span smallish" style="width:140px;">
@@ -362,16 +362,20 @@
 </div>
 <div class="row span10 well well-small project-directory-link">
     <div class="span lighten" style="width: 10px;">
-        <i class="icon-move hide project-file-drag-handle  project-file-buttons "> </i>
+
+        <i class="icon-move hide project-file-drag-handle  project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>
+
     </div>
     <div class="span" style="width:60px">
         <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
-            <a class="btn btn-small" href="#open-file"><i class="icon-edit"> </i> </a>
-            <a class="btn btn-small" href="#download-file"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
-            <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+
+            <a class="btn btn-small" href="#rename-file" data-toggle="tooltip" data-placement="bottom" title="Rename folder"><i class="icon-edit"> </i> </a>
+            <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download folder (as archive)"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+            <a class="btn btn-danger btn-small" href="#delete-file" data-toggle="tooltip" data-placement="bottom" title="Move folder to the trash"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+
         </span>
     </div>
-    
+
     <div class="span" style="width: 10px;">
         <!--
         <i class="icon-check-empty lighten"> </i>
@@ -381,7 +385,7 @@
         <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
     <div class="span" style="width:15em;">
-        <a  href="#rename" class="project-directory-name"></a>
+        <a  href="#open-file" class="project-directory-name"></a>
     </div>
 </div>
 

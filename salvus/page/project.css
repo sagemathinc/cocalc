@@ -38,12 +38,6 @@
     height:1.8em;
 }
 
-.project-file-link-one-click {
-    border: 1px solid blue;
-    border-radius: 4px;
-    padding: 5px;
-}
-
 .project-file-link:hover {
     background-color:#efe;
 }

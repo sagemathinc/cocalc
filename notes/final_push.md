@@ -1,12 +1,22 @@
- [ ] (0:30) push out new version and post message to list
+ [x] (0:45) (0:31) clicking on filename should open file; make a rename button
 
- [ ] (0:45) clicking on filename should open file; make a rename button
+ [ ] (1:00) upgrade to latest twitter bootstrap
+
+ [ ] (1:00) upgrade to latest jquery
+
+ [ ] (1:30) ability to open sws files
 
  [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
 
- [ ] (1:30) import sws files
+ [ ] (0:30) push out new version and post message to list
+
+ ---
 
  [ ] (1:00) button in settings to reset the smc server
+
+ [ ] (1:30?) ability to delete projects.
+
+ [ ] (1:30?) ability to change repo to be private.
 
  [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
@@ -36,10 +46,6 @@
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
 
  [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
-
- [ ] (1:30?) ability to delete projects.
-
- [ ] (1:30?) ability to change repo to be private.
 
  [ ] (3:00?) why does editing feel so slow: take 2?
 
