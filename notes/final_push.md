@@ -19,13 +19,14 @@
 
  [x] (0:30) (0:42) I found more cases where paste again doesn't work. fix.  UGH.  It's basically impossible to solve both the copy and paste problems at the same time in a general way... since to copy nicely, you have to be in a mode where paste doesn't work.  I've implemented a copromise, which is that paste when there is a copy selection.  This is not ideal, but is much better than it was.  I'll try something better in the future.
 
- [ ] (0:45) make worksheet save persist linked objects
-
- [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
+--> [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
 
  [ ] (0:30) push out new version and post message to list
 
  ---
+
+ [ ] (0:45) make worksheet save persist linked objects
+
 
  [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
