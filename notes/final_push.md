@@ -1,6 +1,6 @@
  [x] (0:45) (0:31) clicking on filename should open file; make a rename button
 
- [ ] (1:00) upgrade to latest twitter bootstrap
+ [x] (1:00) (0:10) upgrade to latest twitter bootstrap
 
  [ ] (1:00) upgrade to latest jquery
 
@@ -9,6 +9,10 @@
  [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
 
  [ ] (0:30) push out new version and post message to list
+
+ [ ] (0:45) make worksheet save persist linked objects
+
+ [ ] (0:45) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop.
 
  ---
 
