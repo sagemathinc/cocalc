@@ -7,9 +7,8 @@
 }
 
 .project-file-listing-container {
-    overflow-y: auto;
-    overflow-x: hidden;
-
+    /* overflow-y: auto;
+    overflow-x: hidden; */
 }
 
 .project-file-listing-current_path {

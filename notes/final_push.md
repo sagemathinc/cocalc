@@ -1,7 +1,7 @@
 
---> [ ] (0:30) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
+ [x] (0:30) (0:07) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
 
- [ ] (1:00) the top pill bar is now scrollable horizontally, which is absurd.
+ [x] (1:00) (0:17) fix some style (the top pill bar is now scrollable horizontally, which is confusing).
 
  [ ] (0:30) push out new version and post message to list
 
