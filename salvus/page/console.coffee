@@ -353,7 +353,7 @@ class Console extends EventEmitter
                         @blur()
                 )
         else
-            $(document).on 'click', (e) =>
+            $(document).on 'mousedown', (e) =>
                 t = $(e.target)
                 if t.hasParent($(@terminal.element)).length > 0
                     @focus()
@@ -423,27 +423,11 @@ class Console extends EventEmitter
         pb = @element.find(".salvus-console-textarea")
 
         f = (evt) =>
-            console.log("blur/paste event")
             data = pb.val()
-            console.log("data = ", data)
             pb.val('')
             @session?.write_data(data)
 
         pb.on('paste', (() -> setTimeout(f,0)))
-
-    xxx_init_paste_bin: () =>
-        paste_bins = [@element.find(".salvus-console-paste-bin"),
-                      @element.find(".salvus-console-textarea")]
-
-        f = (evt) =>
-            for pb in paste_bins
-                data = pb.val()
-                pb.val('')
-                @session?.write_data(data)
-        for paste_bin in paste_bins
-            paste_bin.tooltip(delay:{ show: 500, hide: 100 })
-            paste_bin.on('blur', f)
-            paste_bin.on('paste', f)
 
     #######################################################################
     # Public API
