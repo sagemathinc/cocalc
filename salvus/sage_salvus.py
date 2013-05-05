@@ -230,7 +230,7 @@ class InteractFunction(object):
             I._controls[arg] = new_control
             desc = new_control.jsonable()
         # set the id of the containing interact
-        desc['id'] = self.interact_cell._uuid
+        desc['id'] = I._uuid
         salvus.javascript("worksheet.set_interact_var(obj)", obj=jsonable(desc))
 
     def __getattr__(self, arg):
@@ -247,7 +247,8 @@ class InteractFunction(object):
             del I._controls[arg]
         except KeyError:
             pass
-        salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
+        desc = {'id':I._uuid, 'name':arg}
+        salvus.javascript("worksheet.del_interact_var(obj)", obj=jsonable(desc))
 
     def changed(self):
         """
@@ -434,14 +435,16 @@ class Interact(object):
             new_control = interact_control(arg, value)
             I._controls[arg] = new_control
             desc = new_control.jsonable()
-        salvus.javascript("cell._set_interact_var(obj)", obj=desc)
+        desc['id'] = I._uuid
+        salvus.javascript("worksheet.set_interact_var(obj)", obj=desc)
 
     def __delattr__(self, arg):
         try:
             del interact_exec_stack[-1]._controls[arg]
         except KeyError:
             pass
-        salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
+        desc['id'] = I._uuid
+        salvus.javascript("worksheet.del_interact_var(obj)", obj=jsonable(arg))
 
     def __getattr__(self, arg):
         try:
@@ -1807,8 +1810,8 @@ def show(obj, svg=False, **kwds):
        - svg: (default False); if true, render graphics using svg.  This is False by default,
          since at least Google Chrome mis-renders this as empty:
               line([(10, 0), (10, 15)], color='black').show(svg=True)
-              
-       - display: (default: True); if true use display math for expression (big and centered). 
+
+       - display: (default: True); if true use display math for expression (big and centered).
     """
     if isinstance(obj, (Graphics, GraphicsArray)):
         show_2d_plot(obj, svg=svg, **kwds)

@@ -1332,15 +1332,24 @@ class Worksheet
     set_interact_var : (opts) =>
         elt = @worksheet.element.find("#" + opts.id)
         if elt.length == 0
-            console.log("BUG: Attempt to set var of interact with id #{opts.id} failed since no such interact known.")
+            log("BUG: Attempt to set var of interact with id #{opts.id} failed since no such interact known.")
         else
             i = elt.data('interact')
             if not i?
-                console.log("BUG: interact with id #{opts.id} doesn't have corresponding data object set.", elt)
+                log("BUG: interact with id #{opts.id} doesn't have corresponding data object set.", elt)
             else
                 i.set_interact_var(opts)
 
-
+    del_interact_var : (opts) =>
+        elt = @worksheet.element.find("#" + opts.id)
+        if elt.length == 0
+            log("BUG: Attempt to del var of interact with id #{opts.id} failed since no such interact known.")
+        else
+            i = elt.data('interact')
+            if not i?
+                log("BUG: interact with id #{opts.id} doesn't have corresponding data object del.", elt)
+            else
+                i.del_interact_var(opts.name)
 
 ################################
 exports.SynchronizedDocument = SynchronizedDocument

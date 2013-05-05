@@ -1,11 +1,22 @@
+ [ ] (0:30) push out new version and post message to list
 
  [x] (0:30) (0:07) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
 
  [x] (1:00) (0:17) fix some style (the top pill bar is now scrollable horizontally, which is confusing).
 
- [ ] (0:30) push out new version and post message to list
+ [x] (0:30) (0:05) make buttons smaller
+
+ [x] (0:30) more interact issues exposed by %exercise
+
+ [ ] (0:30) move file buttons to left (not way off to right).
+
+ [ ] (0:45) clicking on filename should open file; make a rename button
+
+ [ ] (0:30) make resize use actual top of editor, not computed, in case of title wraparound.
 
  [ ] (1:30) import sws files
+
+ [ ] (1:00) button in settings to reset the smc server
 
  [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
@@ -24,7 +35,7 @@
 
  [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
 
- [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automaticalliy when they hit a key (?)
+ [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
  [ ] (2:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
