@@ -360,7 +360,21 @@ class Console extends EventEmitter
                 if t.hasParent($(@terminal.element)).length > 0
                     @focus()
                 else
-                    @blur()                   
+                    @blur()
+
+            $(document).on 'mouseup', (e) =>
+                t = $(e.target)
+                sel = window.getSelection().toString()
+                if t.hasParent($(@terminal.element)).length > 0 and sel.length == 0
+                    @_focus_hidden_textarea()
+
+            $(@terminal.element).bind 'copy', (e) =>
+                # re-enable paste but only *after* the copy happens
+                setTimeout(@_focus_hidden_textarea, 10)
+
+    _focus_hidden_textarea: () =>
+        t = @element.find(".salvus-console-textarea")
+        t.focus()
 
     _init_fullscreen: () =>
         fullscreen = @element.find("a[href=#fullscreen]")
@@ -563,7 +577,7 @@ class Console extends EventEmitter
             $(document).on('keydown', @mobile_keydown)
         else
             @terminal.focus()
-            @element.find(".salvus-console-textarea").focus()
+            @_focus_hidden_textarea()
 
         @is_focused = true
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
