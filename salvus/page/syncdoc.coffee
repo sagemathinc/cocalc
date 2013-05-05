@@ -1331,7 +1331,14 @@ class Worksheet
 
     set_interact_var : (opts) =>
         elt = @worksheet.element.find("#" + opts.id)
-        elt.data('interact').set_interact_var(opts)
+        if elt.length == 0
+            console.log("BUG: Attempt to set var of interact with id #{opts.id} failed since no such interact known.")
+        else
+            i = elt.data('interact')
+            if not i?
+                console.log("BUG: interact with id #{opts.id} doesn't have corresponding data object set.", elt)
+            else
+                i.set_interact_var(opts)
 
 
 
