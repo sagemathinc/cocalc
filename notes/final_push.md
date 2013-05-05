@@ -8,7 +8,7 @@
 
  [x] (0:30) more interact issues exposed by %exercise
 
- [ ] (0:30) move file buttons to left (not way off to right).
+ --> [ ] (0:30) move file buttons to left (not way off to right).
 
  [ ] (0:45) clicking on filename should open file; make a rename button
 
