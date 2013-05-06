@@ -112,7 +112,7 @@ $.fn.extend
                 mode : 'view'
             t.mathjax()
 
-            t.live 'focus', ->
+            t.on 'focus', ->
                 if t.data('mode') == 'edit'
                     return
                 t.data('mode', 'edit')
@@ -130,7 +130,7 @@ $.fn.extend
                     mode : 'view'
                 t.mathjax()
 
-            t.live 'paste blur keyup', (evt) ->
+            f = (evt) ->
                 t = $(this)
                 if opts.onchange? and not t.data('change-timer')
                     t.data('change-timer', true)
@@ -148,6 +148,9 @@ $.fn.extend
                         opts.interval
                     )
 
+            t.on('paste', f)
+            t.on('blur', f)
+            t.on('keyup', f)
 
             return t
 
@@ -357,7 +360,7 @@ CodeMirror.defineExtension 'showIntrospect', (opts) ->
 ###
 # This doesn't work yet, since it can only work when this is a
 # Chrome Extension, which I haven't done yet.  See http://www.pakzilla.com/2012/03/20/how-to-copy-to-clipboard-in-chrome-extension/
-# This is how hterm works. 
+# This is how hterm works.
 # Copy the given text to the clipboard.  This will only work
 # on a very limited range of browsers (like Chrome!),
 # but when it does... it is nice.
