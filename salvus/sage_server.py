@@ -505,7 +505,8 @@ class Salvus(object):
 
     def _execute_interact(self, id, vals):
         if id not in sage_salvus.interacts:
-            raise RuntimeError, "Error: No interact with id %s"%id
+            print "(Evaluate this cell to use this interact.)"
+            #raise RuntimeError, "Error: No interact with id %s"%id
         else:
             sage_salvus.interacts[id](vals)
 
