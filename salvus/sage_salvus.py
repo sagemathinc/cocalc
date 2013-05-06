@@ -230,8 +230,8 @@ class InteractFunction(object):
             I._controls[arg] = new_control
             desc = new_control.jsonable()
         # set the id of the containing interact
-        desc['id'] = self.interact_cell._uuid
-        salvus.javascript("cell._set_interact_var(obj)", obj=jsonable(desc))
+        desc['id'] = I._uuid
+        salvus.javascript("worksheet.set_interact_var(obj)", obj=jsonable(desc))
 
     def __getattr__(self, arg):
         I = self.__dict__['interact_cell']
@@ -247,7 +247,8 @@ class InteractFunction(object):
             del I._controls[arg]
         except KeyError:
             pass
-        salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
+        desc = {'id':I._uuid, 'name':arg}
+        salvus.javascript("worksheet.del_interact_var(obj)", obj=jsonable(desc))
 
     def changed(self):
         """
@@ -434,14 +435,16 @@ class Interact(object):
             new_control = interact_control(arg, value)
             I._controls[arg] = new_control
             desc = new_control.jsonable()
-        salvus.javascript("cell._set_interact_var(obj)", obj=desc)
+        desc['id'] = I._uuid
+        salvus.javascript("worksheet.set_interact_var(obj)", obj=desc)
 
     def __delattr__(self, arg):
         try:
             del interact_exec_stack[-1]._controls[arg]
         except KeyError:
             pass
-        salvus.javascript("cell._del_interact_var(obj)", obj=jsonable(arg))
+        desc['id'] = I._uuid
+        salvus.javascript("worksheet.del_interact_var(obj)", obj=jsonable(arg))
 
     def __getattr__(self, arg):
         try:
@@ -1800,13 +1803,24 @@ def show_3d_plot(obj, **kwds):
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
-def show(obj, svg=True, **kwds):
+def show(obj, svg=False, **kwds):
+    """
+    Show an expression, typeset nicely in tex, or a 2d or 3d graphics object.
+
+       - svg: (default False); if true, render graphics using svg.  This is False by default,
+         since at least Google Chrome mis-renders this as empty:
+              line([(10, 0), (10, 15)], color='black').show(svg=True)
+
+       - display: (default: True); if true use display math for expression (big and centered).
+    """
     if isinstance(obj, (Graphics, GraphicsArray)):
         show_2d_plot(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):
         show_3d_plot(obj, **kwds)
     else:
-        salvus.tex(obj, display=True, **kwds)
+        if 'display' not in kwds:
+            kwds['display'] = True
+        salvus.tex(obj, **kwds)
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show

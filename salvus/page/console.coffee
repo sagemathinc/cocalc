@@ -197,7 +197,7 @@ class Console extends EventEmitter
                 # TODO -- these are all basically bugs, I think...
                 # That said, try/catching them is better than having
                 # the whole terminal just be broken.
-                
+
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
@@ -353,12 +353,28 @@ class Console extends EventEmitter
                         @blur()
                 )
         else
-            $(document).on 'click', (e) =>
+            # TODO:  *leak!!* these should be deleted when the terminal is closed
+
+            $(document).on 'mousedown', (e) =>
                 t = $(e.target)
                 if t.hasParent($(@terminal.element)).length > 0
                     @focus()
                 else
                     @blur()
+
+            $(document).on 'mouseup', (e) =>
+                t = $(e.target)
+                sel = window.getSelection().toString()
+                if t.hasParent($(@terminal.element)).length > 0 and sel.length == 0
+                    @_focus_hidden_textarea()
+
+            $(@terminal.element).bind 'copy', (e) =>
+                # re-enable paste but only *after* the copy happens
+                setTimeout(@_focus_hidden_textarea, 10)
+
+    _focus_hidden_textarea: () =>
+        t = @element.find(".salvus-console-textarea")
+        t.focus()
 
     _init_fullscreen: () =>
         fullscreen = @element.find("a[href=#fullscreen]")
@@ -390,6 +406,10 @@ class Console extends EventEmitter
             @resize()
             return false
 
+        @element.find("a[href=#paste]").click () =>
+            bootbox.alert("Press Control+Shift+V (or Command+V) to paste.  To copy, highlight text then press Control+C (or Command+C); when no text is highlighted, Control+C sends the usual interrupt.")
+            return false
+
         @element.find(".salvus-console-up").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.from - 1, ch:0})
@@ -416,16 +436,14 @@ class Console extends EventEmitter
                 @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
 
     _init_paste_bin: () =>
-        paste_bins = [@element.find(".salvus-console-paste-bin"),
-                      @element.find(".salvus-console-textarea")]
+        pb = @element.find(".salvus-console-textarea")
 
-        for paste_bin in paste_bins
-            paste_bin.tooltip(delay:{ show: 500, hide: 100 })
-            paste_bin.live 'blur keyup paste', (evt) =>
-                for pb in paste_bins
-                    data = pb.val()
-                    pb.val('')
-                    @session?.write_data(data)
+        f = (evt) =>
+            data = pb.val()
+            pb.val('')
+            @session?.write_data(data)
+
+        pb.on('paste', (() -> setTimeout(f,0)))
 
     #######################################################################
     # Public API
@@ -559,8 +577,7 @@ class Console extends EventEmitter
             $(document).on('keydown', @mobile_keydown)
         else
             @terminal.focus()
-            if not @is_focused
-                @element.find(".salvus-console-textarea").focus()
+            @_focus_hidden_textarea()
 
         @is_focused = true
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')

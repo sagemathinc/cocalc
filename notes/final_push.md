@@ -1,49 +1,79 @@
+# May 5, 2013
 
-# Next round:
-------------
+ [x] (0:45) (0:31) clicking on filename should open file; make a rename button
 
- [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+ [x] (1:00) (0:10) upgrade to latest twitter bootstrap
 
- [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
- [x] add link to https://github.com/sagemath/cloud for "bug reports".
- [x] add a donation link
- [x] add link to sagemath.org
- [x] add link to sagemath facebook page
- [x] add link to sagemath g+ page.
+ [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
 
- [ ] add file page : make it OVERFLOW- Auto !!
+ [x] (1:00) (0:10) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
 
- [ ] (0:30?) fix terms of usage being required
+ [x] (0:45) (0:15) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop. (we will still need to implement output message optimization, but buffering already helps a lot).
 
- [ ] (0:30?) force SVG to be the default math renderer.
+ [x] (1:00) (1:05) terminal paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
 
- [ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
+ [x] (1:00) (0:15) terminal copy -- highlight and then it *unhighlights*; is it possible to keep the selection?  Is it possible to just copy instantly without requiring control-c
+
+ [x] (0:30) (1:15) see whether it is possible to set copy buffer from javascript or not... (yet again); if so, don't require control-c in terminal; ANSWER: no, not for now; can partly do using flash and a click (not so useful), or as a Chrome Extension (for later!).
+
+ [x] (0:30) (0:42) I found more cases where paste again doesn't work. fix.  UGH.  It's basically impossible to solve both the copy and paste problems at the same time in a general way... since to copy nicely, you have to be in a mode where paste doesn't work.  I've implemented a copromise, which is that paste when there is a copy selection.  This is not ideal, but is much better than it was.  I'll try something better in the future.
+
+ [x] (0:30) (0:10) make resize use actual top of editor, not computed, in case of title wrap-around.
+
+ [ ] (0:30) push out new version and post message to list
+
+
+ ---
+
+ [ ] (0:45) make worksheet save persist linked objects
+
+
+ [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+ [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
+
+ ---
+
+ [ ] (1:30) ability to open sws files
+
+ [ ] (1:00) button in settings to reset the smc server
+
+ [ ] (1:30?) ability to delete projects.
+
+ [ ] (1:30?) ability to change project to be private.
+
+ [ ] (1:00?) make hub do "bup fsck -g" regularly.
+
+ [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra somehow.
+
+ [ ] worksheet fail with local_hub log:
+         Trace
+            at process.daemon.pidFile (/mnt/home/D6VXKxGo/.sagemathcloud/node_modules/local_hub.js:1986:24)
+            at process.EventEmitter.emit (events.js:126:20)
+            at Timer.list.ontimeout (timers.js:104:21)
+         error: Uncaught exception: Error: This socket is closed.
+
+ [ ] (1:00?) fix terminal resize; bottom line is often cut off.
+
+ [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
+
+ [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
+
+ [ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
 
  [ ] (0:30?) %hideall doesn't hide output, but should.
 
  [ ] (1:00?) add a way to self-report donation (get recorded in database)
 
- [ ] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
-
- [ ] (1:30?) ability to delete projects.
-
- [ ] (1:30?) ability to change repo to be private.
-
- [ ] (1:00?) put everything in "local hub template" in cloud sagemath repo
-
- [ ] (3:00?) why does codemirror feel so slow: take 2?
-
- [ ] (3:00?) @interact, yet again.
+ [ ] (3:00?) why does editing feel so slow: take 2?
 
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
-[ ] (3:00?)  terminal disconnects
 
-[ ] (3:00?)  first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
-[ ] (3:00?) - copy/paste in terminal sucks; look into hterm...
+ - [ ] (1:00?) quota in my "devel" project looks suspicious (type "quota -v").; on compute2a everything is fine.  No clue what is going on here.
 
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
 
@@ -105,6 +135,10 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 
 
 
+    [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
+    [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
+
+---
 ---
 
 # DONE
@@ -1071,6 +1105,9 @@ account was made.
     git pull
     ./make_coffee
     # fix /etc/ssh/ssh_config
+    sudo su
+    apt-get update; apt-get upgrade
+    reboot -h now
     sudo shutdown -h now
 
 
@@ -1132,6 +1169,131 @@ Next session:
 - (1:00?) [ ] deploy: run code that backs up all projects to DB
 - (1:00?) [ ] deploy: copy database over to new machines
 
+---
+
+ [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+
+<<<<<<< HEAD
+=======
+ [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
+
+
+ [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
+ [x] add link to https://github.com/sagemath/cloud for "bug reports".
+ [x] add a donation link
+ [x] add link to sagemath.org
+ [x] add link to sagemath facebook page
+ [x] add link to sagemath g+ page.
+ [x] (0:15?) make sure to install markdown2 into the Sage install on the base VM... and make sure that it doesn't get forgotten again!
 
 
 
+3:25pm - 6:00pm on Wednesday, May 1, 2013
+ [x] (0:30?) (0:12) add file page : make it visible by fixing CSS
+ [x] (0:30?) (0:24) fix terms of usage being required
+ [x] (0:30?) (0:15) force SVG to be the default math renderer; also enable equation wrapping
+ [x] (0:35?) (0:37) upgrade to newest codemirror (v3.12): http://codemirror.net/
+ [x] (0:30?) (0:12) on first load of project, second level menu/tab bar is placed too low! introduced by changing "add file page" CSS (?)
+
+ [x] (0:05?) reduce number of cached projects to 1 until project cache is moved to database from hub.
+
+--> [x] (0:30?) (0:43) upgrade cloud server, announce on list, and mention in this email thread that wrapping equations now supported (include a screenshot using
+show(expand((x+1)^50))) <https://mail.google.com/mail/u/0/?shva=1#search/mathjax+wrapping/13e454cb56930ef0>
+
+ - update services file
+ - make new vm with new name, upgraded salvus, apt-get, etc.
+ - sync out to other machines
+ - restart just the web vm's (?)
+ - start all services (which will only start web vm services).
+
+---
+
+
+[x] (1:00?) (0:44+) configure new 4TB disks on cloud3, cloud4
+
+    use fdisk to format (1 4TB partition):
+       fdisk /dev/sdb
+       1 partition; type "8e" = "linux lvm"
+
+    vgextend 03salvus /dev/sdb1
+
+    Crap, fail. Obviously, we just got only 2TB more, not 4TB.  Mistake of using fdisk.
+    Also, I forgot to do "pvcreate /dev/sdb1", which could be the problem.
+
+    vgreduce 03salvus /dev/sdb1
+
+    Start parted, then
+
+    (parted) mklabel gpt
+    (parted) unit TB
+    FAIL
+
+    apt-get install gdisk
+    gdisk /dev/sdb
+    # delete existing partition and make new 4TB 1; then set type to 8e00, then exit
+    #
+
+    pvcreate /dev/sdb1
+    vgextend 03salvus /dev/sdb1
+
+    # Now enlarge the logical volumn and partition!
+
+      root@cloud4:/home/salvus# lvextend -l 100%FREE /dev/mapper/01salvus-salvus_images
+      Extending logical volume salvus_images to 3.64 TiB
+      Logical volume salvus_images successfully resized
+
+      resize2fs /dev/mapper/01salvus-salvus_images  # start about 12:15pm
+
+When above resize2fs finishes and works, do this on cloud3:
+
+
+      resize2fs /dev/mapper/03salvus-salvus_images
+
+
+ [x] (1:00?) (0:50+ so far -- in progress in screen on cloud1) write script to automate, then upgrade deployed vm to sage-5.9: http://sage.math.washington.edu/home/release/sage-5.9/sage-5.9.tar
+             - delete current sage version: 20130502
+             - download and install/test from source in a next vm image
+             - install markdown2
+             - install list of good optional packages.
+
+ ---
+
+
+ [x] @interact
+    [x] (0:20) planning
+    [x] (0:10?) (0:04) interact: copy css to interact.css and rename to salvus-interact from salvus-cell-interact
+    [x] (0:10?) (0:18) interact: copy html to interact.html and rename to salvus-interact from salvus-cell-interact
+    [x] (0:30?) (0:70) interact: copy script from cell.coffee to interact.coffee and restructure code layout
+    [x] (0:30?) (1:07) interact: enable interacts, using the above, with stub for exec
+
+    [x] (0:45?) (0:18) interact: get sage_execute to work
+
+    [x] (0:45?) (0:25) interact: refactor code in syncdoc so rendering output message can be done to marked text widget div *or* to output dom object (a div) in the output div.
+
+    [x] (0:30?) (0:50+) interact: make it so setting variables works from the python side.
+
+
+
+
+
+ [x] (0:15?) (0:19) change default rendering back to svg=False for plots.
+     Put something in docstring about this with
+     dashed line example (https://mail.google.com/mail/u/0/?shva=1#starred/13e6a16d768d26a3)
+
+ [x] (0:15) (0:03) disable draggable of tabs for now; just causes confusion.
+ [x] (0:10?) (0:03) do this to salvus-editor-chat-title as a quick fix: "position: fixed;z-index: 10; right: 0;"
+
+[x] (1:00?) put everything in "local hub template" in cloud sagemath repo
+
+
+ [x] (0:30) (0:07) set a handle for dragging pop-up docstring; right now can't copy/paste out from it!
+
+ [x] (1:00) (0:17) fix some style (the top pill bar is now scrollable horizontally, which is confusing).
+
+ [x] (0:30) (0:05) make buttons smaller
+
+ [x] (0:30) more interact issues exposed by %exercise
+
+ [x] (0:30) move file buttons to left (not way off to right).
+
+ [x] (3:00?) - copy/paste in terminal sucks; look into hterm... -- HTERM is chrome-only according to <https://groups.google.com/a/chromium.org/forum/?fromgroups=#!topic/chromium-hterm/K_I62Z6Gwuo>, hence not an option.

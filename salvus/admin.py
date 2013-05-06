@@ -1169,7 +1169,11 @@ class Services(object):
         else:
             timeout = 30
 
-        cmd = "import admin; print admin.%s(id=0%s,**%r).%s()"%(name, db_string, options, action)
+
+        if 'id' not in options:
+            options['id'] = 0
+
+        cmd = "import admin; print admin.%s(%s, **%r).%s()"%(name, db_string, options, action)
 
         if name == "Cassandra":
             self.cassandra_firewall(address, action)
@@ -1209,7 +1213,7 @@ class Services(object):
 
 
         name = service.capitalize()
-        db_string = "" if (name=='Compute' or not hasattr(self, '_cassandra')) else ",monitor_database='%s'"%(','.join(self._cassandra))
+        db_string = "" if (name=='Compute' or not hasattr(self, '_cassandra')) else "monitor_database='%s'"%(','.join(self._cassandra))
         v = self._hostopts(service, host, opts)
 
         self._hosts.password()  # can't get password in thread
@@ -1337,8 +1341,8 @@ class Services(object):
     def stop_system(self):
         if 'cassandra' in self._services:
             self.stop('cassandra', parallel=True, wait=True)
-        for service in ['haproxy','nginx','hub']:   # sometimes these aren't running in a VM, so start process of stopping them
-            self.stop(service, parallel=True, wait=False)
+        for service in ['haproxy','nginx','hub']:   
+            self.stop(service, parallel=True, wait=True)
         if 'vm' in self._services:
             self.stop('vm', parallel=True)
         while True:

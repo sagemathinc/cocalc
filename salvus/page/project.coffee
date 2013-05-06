@@ -1048,6 +1048,7 @@ class ProjectPage
                         that.update_file_list_tab()
                         return false
                     t.droppable(drop:file_dropped_on_directory, scope:'files')
+                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".icon-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     file_or_listing.append(t)
 
                 # Show the files
@@ -1100,6 +1101,7 @@ class ProjectPage
                         axis           : 'y'
                         scope          : 'files'
 
+                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".icon-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     # Finally add our new listing entry to the list:
                     directory_is_empty = false
                     file_or_listing.append(t)
@@ -1160,27 +1162,19 @@ class ProjectPage
             return false
 
         # Opening a file
-        b.find("a[href=#open-file]").click open
+        file_link = t.find("a[href=#open-file]")
+        file_link.click open
 
         # Clicking on link -- open the file
         t.click open
 
-
         # Renaming a file
-        if not IS_MOBILE
-            rename_link = t.find('a[href=#rename]')
-            rename_link.click () =>
-                @click_to_rename_file(path, rename_link)
-                return false
+        rename_link = t.find('a[href=#rename-file]')
+        rename_link.click () =>
+            @click_to_rename_file(path, file_link)
+            return false
 
     click_to_rename_file: (path, link) =>
-        # First click changes CSS, second click makes it editable using contenteditable.
-        if not link.data('clicked')?
-            # change CSS
-            link.addClass('project-file-link-one-click')
-            link.data('clicked', true)
-            return
-
         if link.attr('contenteditable')
             # already done.
             return

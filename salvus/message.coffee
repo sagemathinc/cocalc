@@ -152,7 +152,7 @@ message
     tex          : undefined   # tex/latex stream -- is an object {tex:..., display:...}
     hide         : undefined   # 'input' or 'output'; hide display of given component of cell
     show         : undefined   # 'input' or 'output'; show display of given component of cell
-    auto         : undefined   # true or false; sets whether or not cell auto-executess on process restart          
+    auto         : undefined   # true or false; sets whether or not cell auto-executess on process restart
     javascript   : undefined   # javascript code evaluation stream (see also 'execute_javascript' to run code directly in browser that is not part of the output stream).
     interact     : undefined   # create an interact layout defined by a JSON object
     obj          : undefined   # used for passing any JSON-able object along as output; this is used, e.g., by interact.
@@ -315,8 +315,8 @@ message
     mesg         : required     # arbitrary message, can have event, etc., attributes.
 
 # This is used so that a client can execute code in the Sage process that is running
-# controlled by a codemirror sync session.  This is mainly used for synchronized worksheets
-# that are embedded in a single codemirror editor.
+# controlled by a codemirror sync session.  This is mainly used to implement interact
+# in synchronized worksheets that are embedded in a single codemirror editor.
 # client --> hub --> local_hub --> sage_server
 message
     event        : 'codemirror_execute_code'
@@ -325,7 +325,6 @@ message
     data         : undefined
     session_uuid : required
     preparse     : true
-    allow_cache  : true
 
 # Introspection in the context of a codemirror editing session.
 # client --> hub --> sage_server

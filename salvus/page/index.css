@@ -9,6 +9,7 @@ account.css
 projects.css
 project.css
 editor.css
+interact.css
 explore.css
 consoles.css
 top_navbar.css
@@ -57,7 +58,8 @@ top_navbar.css
 
 
 
-body { padding-top:60px; }
+body { padding-top:41px; }
+
 /* workaround responsive bootstrap menu issue */
 /*
 @media (max-width: 979px) { body { padding-top: 0px; } }
@@ -99,4 +101,6 @@ body { padding-top:60px; }
   width:1ex !important;
 }
 
-
+.CodeMirror-wrap {
+  line-height: normal;
+}

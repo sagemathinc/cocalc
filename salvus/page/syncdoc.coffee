@@ -865,10 +865,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     mark.processed = x.length
                     for s in t.split(MARKERS.output)
                         if s.length > 0
+                            output = @elt_at_mark(mark)
+                            # appearance of output shows output (bad design?)
+                            output.removeClass('sagews-output-hide')
                             try
-                                @process_new_output(mark, JSON.parse(s))
+                               @process_output_mesg(mesg:JSON.parse(s), element:output)
                             catch e
-                                console.log("TODO/DEBUG: malformed message: '#{s}' -- #{e}")
+                                log("BUG: error rendering output: '#{s}' -- #{e}")
 
             else if x.indexOf(MARKERS.output) != -1
                 console.log("correcting merge/paste issue with output marker line (line=#{line})")
@@ -932,16 +935,67 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @elt_at_mark(mark).removeClass('sagews-output-hide')
             @editor.show()
 
-    process_new_output: (mark, mesg) =>
+    execute_code: (opts) ->
+        opts = defaults opts,
+            code     : required
+            cb       : undefined
+            data     : undefined
+            preparse : true
+            uuid     : undefined
+
+        if opts.uuid?
+            uuid = opts.uuid
+        else
+            uuid = misc.uuid()
+
+        if opts.cb?
+            salvus_client.execute_callbacks[uuid] = opts.cb
+
+        salvus_client.send(
+            message.codemirror_execute_code
+                session_uuid : @session_uuid
+                id           : uuid
+                code         : opts.code
+                data         : opts.data
+                preparse     : opts.preparse
+        )
+
+        return uuid
+
+    interact: (output, desc) =>
+        # Create and insert DOM objects corresponding to the interact
+        elt = $("<div class='sagews-output-interact'>")
+        interact_elt = $("<span>")
+        elt.append(interact_elt)
+        output.append(elt)
+
+        # Call jQuery plugin to make it all happen.
+        interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:@process_output_mesg)
+
+    process_output_mesg: (opts) =>
+        opts = defaults opts,
+            mesg    : required
+            element : required
+            mark     : undefined
+        mesg = opts.mesg
+        output = opts.element
+        # mesg = object
+        # output = jQuery wrapped element
+
         #console.log("new output: ", mesg)
-        output = @elt_at_mark(mark)
-        output.removeClass('sagews-output-hide')  # appearance of output shows output
+
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
+
         if mesg.stderr?
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
+
         if mesg.html?
             output.append($("<div class='sagews-output-html'>").html(mesg.html).mathjax())
+
+        if mesg.interact?
+            @interact(output, mesg.interact)
+
         if mesg.tex?
             val = mesg.tex
             elt = $("<span class='sagews-output-tex'>")
@@ -951,6 +1005,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             else
                 arg.inline = true
             output.append(elt.mathjax(arg))
+
         if mesg.file?
             val = mesg.file
             if not val.show? or val.show
@@ -963,13 +1018,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
         if mesg.javascript? and @editor.opts.allow_javascript_eval
-            (() ->
-             cell = new Cell(output_mark:mark)
+            (() =>
+             cell      = new Cell(output :opts.element)
+             worksheet = new Worksheet(@)
+
              code = mesg.javascript.code
              if mesg.javascript.coffeescript
-                code = CoffeeScript.compile(code)
+                 code = CoffeeScript.compile(code)
              obj  = JSON.parse(mesg.obj)
-             # The eval below is an intentional CSS vulnerability in the fundamental design of Salvus.
+
+             #console.log("executing script: '#{code}', obj='#{mesg.obj}'")
+
+             # The eval below is an intentional cross-site scripting vulnerability in the fundamental design of Salvus.
              # Note that there is an allow_javascript document option, which (at some point) users
              # will be able to set.
              eval(code)
@@ -1262,9 +1322,34 @@ class SynchronizedWorksheet extends SynchronizedDocument
 class Cell
     constructor : (opts) ->
         opts = defaults opts,
-            output_mark : required
+            output : required # jquery wrapped output area
             #cell_mark   : required # where cell starts
 
+class Worksheet
+
+    constructor : (@worksheet) ->
+
+    set_interact_var : (opts) =>
+        elt = @worksheet.element.find("#" + opts.id)
+        if elt.length == 0
+            log("BUG: Attempt to set var of interact with id #{opts.id} failed since no such interact known.")
+        else
+            i = elt.data('interact')
+            if not i?
+                log("BUG: interact with id #{opts.id} doesn't have corresponding data object set.", elt)
+            else
+                i.set_interact_var(opts)
+
+    del_interact_var : (opts) =>
+        elt = @worksheet.element.find("#" + opts.id)
+        if elt.length == 0
+            log("BUG: Attempt to del var of interact with id #{opts.id} failed since no such interact known.")
+        else
+            i = elt.data('interact')
+            if not i?
+                log("BUG: interact with id #{opts.id} doesn't have corresponding data object del.", elt)
+            else
+                i.del_interact_var(opts.name)
 
 ################################
 exports.SynchronizedDocument = SynchronizedDocument

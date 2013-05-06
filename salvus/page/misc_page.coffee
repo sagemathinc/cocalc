@@ -346,10 +346,29 @@ CodeMirror.defineExtension 'showIntrospect', (opts) ->
         top  : pos.bottom + 'px'
     $("body").prepend element
     if not IS_MOBILE
-        element.draggable(handle: element.find(".salvus-cell-introspect-title")).resizable
-            alsoResize : element.find(".salvus-cell-introspect-content")
+        element.draggable(handle: element.find(".salvus-codemirror-introspect-title")).resizable
+            alsoResize : element.find(".salvus-codemirror-introspect-content")
             maxHeight: 650
             handles : 'all'
     element.focus()
     return element
 
+
+###
+# This doesn't work yet, since it can only work when this is a
+# Chrome Extension, which I haven't done yet.  See http://www.pakzilla.com/2012/03/20/how-to-copy-to-clipboard-in-chrome-extension/
+# This is how hterm works. 
+# Copy the given text to the clipboard.  This will only work
+# on a very limited range of browsers (like Chrome!),
+# but when it does... it is nice.
+exports.copy_to_clipboard = (text) ->
+    copyDiv = document.createElement('div')
+    copyDiv.contentEditable = true
+    document.body.appendChild(copyDiv)
+    copyDiv.innerHTML = text
+    copyDiv.unselectable = "off"
+    copyDiv.focus()
+    document.execCommand('SelectAll')
+    document.execCommand("Copy", false, null)
+    document.body.removeChild(copyDiv)
+###

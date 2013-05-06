@@ -62,11 +62,6 @@
             <!-- Tabs -- place where you click on them -->
             <ul class="nav nav-pills  project-pages">
                 <!-- Settings specific to this project -->
-                <li class="super-menu pull-right"><a href="#project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> </a></li>
-
-                <!-- Search -->
-                <li class="super-menu project-search-menu-item pull-right"><a href="#project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i></a></li>
-
                 <!-- Browse through files in the project -->
                 <li class="super-menu">
                     <a href="#project-file-listing"  data-toggle="tooltip" data-placement="right" title="Browse files"><i class="project-control-icon icon-folder-open-alt"></i> Files</a></li>
@@ -77,6 +72,10 @@
                 <!-- Create a new file (or, etc.)-->
                 <li class="super-menu"><a href="#project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> New</a></li>
 
+                <li class="super-menu "><a href="#project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> </a></li>
+
+                <!-- Search -->
+                <li class="super-menu project-search-menu-item"><a href="#project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i></a></li>
 
 
             </ul>
@@ -191,14 +190,13 @@
                         <div class="span3">
                             <h3><i class="icon-exchange"> </i> From the web</h3>
                         </div>
-                       <div class="span8" style="padding-top: 4px;">
+                        <div class="span5" style="padding-top: 4px;">
                             <input class="project-import-from-web" type="text" placeholder="Paste a link to something on the web here..." style="width:100%">
                         </div>
-                    </div>
-                    <div class="row">
-                        <div class="offset3 span3">
+                        <div class="span3">
                             <a class="btn btn-large" href="#import-from-web"><i class="icon-external-link"> </i> Copy into my project</a>
                         </div>
+
                     </div>
                 </div>
             </div>
@@ -326,9 +324,16 @@
     </div>
 </div>
 
-<div class="row span12 well well-small project-file-link">
+<div class="row span10 well well-small project-file-link">
     <div class="span lighten" style="width: 10px;">
-        <i class="icon-move hide project-file-drag-handle   project-file-buttons " > </i>
+        <i class="icon-move hide project-file-drag-handle   project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
+    </div>
+    <div class="span" style="width:60px">
+        <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
+            <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file"><i class="icon-edit"> </i> </a>
+            <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+            <a class="btn btn-danger btn-small" href="#delete-file"  data-toggle="tooltip" data-placement="bottom" title="Delete file"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+        </span>
     </div>
 
     <div class="span" style="width: 10px;">
@@ -339,7 +344,7 @@
     </div>
 
     <div class="span" style="width:15em;">
-        <a href="#rename"><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
+        <a href="#open-file"><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
     </div>
 
     <div class="span smallish" style="width:140px;">
@@ -354,18 +359,23 @@
         <span class="project-file-last-commit-date-container"><span class="project-file-last-commit-date"></span></span>
         (<a class="project-file-last-commit-message lighten"></a>)
     </div>
-    <div class="pull-right">
+</div>
+<div class="row span10 well well-small project-directory-link">
+    <div class="span lighten" style="width: 10px;">
+
+        <i class="icon-move hide project-file-drag-handle  project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>
+
+    </div>
+    <div class="span" style="width:60px">
         <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
-            <a class="btn btn-small" href="#open-file"><i class="icon-edit"> </i> </a>
-            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
-            <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+
+            <a class="btn btn-small" href="#rename-file" data-toggle="tooltip" data-placement="bottom" title="Rename folder"><i class="icon-edit"> </i> </a>
+            <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download folder (as archive)"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+            <a class="btn btn-danger btn-small" href="#delete-file" data-toggle="tooltip" data-placement="bottom" title="Move folder to the trash"><i class="icon-trash"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
+
         </span>
     </div>
-</div>
-<div class="row span12 well well-small project-directory-link">
-    <div class="span lighten" style="width: 10px;">
-        <i class="icon-move hide project-file-drag-handle  project-file-buttons "> </i>
-    </div>
+
     <div class="span" style="width: 10px;">
         <!--
         <i class="icon-check-empty lighten"> </i>
@@ -375,14 +385,7 @@
         <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
     </div>
     <div class="span" style="width:15em;">
-        <a  href="#rename" class="project-directory-name"></a>
-    </div>
-    <div class="pull-right">
-        <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
-            <a class="btn btn-small" href="#open-file"><i class=" icon-folder-open-alt"> </i> </a>
-            <a class="btn btn-success btn-small" href="#download-file"><i class="icon-cloud-download"> </i> </a>
-            <a class="btn btn-danger btn-small" href="#delete-file"><i class="icon-trash"> </i> </a>
-        </span>
+        <a  href="#open-file" class="project-directory-name"></a>
     </div>
 </div>
 

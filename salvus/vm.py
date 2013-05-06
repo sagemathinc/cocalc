@@ -183,9 +183,12 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
             virsh('destroy', hostname)
 
     finally:
-        try: os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
+        try: 
+            os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
         except: pass
-        os.unlink(new_img)
+        try:
+            os.unlink(new_img)
+        except: pass
 
 def run_virtualbox(ip_address, hostname, vcpus, ram, vnc, disk, base):
     raise NotImplementedError
