@@ -1,5 +1,4 @@
-
-
+# May 5, 2013
 
  [x] (0:45) (0:31) clicking on filename should open file; make a rename button
 
@@ -19,9 +18,10 @@
 
  [x] (0:30) (0:42) I found more cases where paste again doesn't work. fix.  UGH.  It's basically impossible to solve both the copy and paste problems at the same time in a general way... since to copy nicely, you have to be in a mode where paste doesn't work.  I've implemented a copromise, which is that paste when there is a copy selection.  This is not ideal, but is much better than it was.  I'll try something better in the future.
 
---> [ ] (0:30) make resize use actual top of editor, not computed, in case of title wrap-around.
+ [x] (0:30) (0:10) make resize use actual top of editor, not computed, in case of title wrap-around.
 
  [ ] (0:30) push out new version and post message to list
+
 
  ---
 
