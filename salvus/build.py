@@ -32,7 +32,7 @@ Also, make sure to do "install_scripts('/usr/local/bin/')" from within Sage (as 
 
 Sage optional packages:
 
-./sage -i database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gmpy gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
+./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gmpy gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
 
 Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
