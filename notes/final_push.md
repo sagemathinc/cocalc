@@ -1,32 +1,14 @@
-# May 5, 2013
 
- [x] (0:45) (0:31) clicking on filename should open file; make a rename button
+ [x] (0:30?) (0:12) rename link broken now due to jquery upgrade
 
- [x] (1:00) (0:10) upgrade to latest twitter bootstrap
+ [x] (0:10?) (0:17) remove any uses of "live" from jquery code (jquery upgrade deprecated this).
 
- [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
-
- [x] (1:00) (0:10) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
-
- [x] (0:45) (0:15) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop. (we will still need to implement output message optimization, but buffering already helps a lot).
-
- [x] (1:00) (1:05) terminal paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
-
- [x] (1:00) (0:15) terminal copy -- highlight and then it *unhighlights*; is it possible to keep the selection?  Is it possible to just copy instantly without requiring control-c
-
- [x] (0:30) (1:15) see whether it is possible to set copy buffer from javascript or not... (yet again); if so, don't require control-c in terminal; ANSWER: no, not for now; can partly do using flash and a click (not so useful), or as a Chrome Extension (for later!).
-
- [x] (0:30) (0:42) I found more cases where paste again doesn't work. fix.  UGH.  It's basically impossible to solve both the copy and paste problems at the same time in a general way... since to copy nicely, you have to be in a mode where paste doesn't work.  I've implemented a copromise, which is that paste when there is a copy selection.  This is not ideal, but is much better than it was.  I'll try something better in the future.
-
- [x] (0:30) (0:10) make resize use actual top of editor, not computed, in case of title wrap-around.
-
- [ ] (0:30) push out new version and post message to list
+ [ ] (0:30?) (0:08) "RuntimeError: Error: No interact with id 36d22d1a-1af9-45f9-ac6c-3b28834edebd" --> html message "evaluate to create interact"
 
 
- ---
+
 
  [ ] (0:45) make worksheet save persist linked objects
-
 
  [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
@@ -1173,10 +1155,6 @@ Next session:
 
  [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
 
-<<<<<<< HEAD
-=======
- [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
-
 
  [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
  [x] add link to https://github.com/sagemath/cloud for "bug reports".
@@ -1297,3 +1275,44 @@ When above resize2fs finishes and works, do this on cloud3:
  [x] (0:30) move file buttons to left (not way off to right).
 
  [x] (3:00?) - copy/paste in terminal sucks; look into hterm... -- HTERM is chrome-only according to <https://groups.google.com/a/chromium.org/forum/?fromgroups=#!topic/chromium-hterm/K_I62Z6Gwuo>, hence not an option.
+
+ ---
+
+ # May 6 -- storm testing deploy:
+
+     import cassandra; cassandra.set_nodes(['10.2.1.2'])
+     cassandra.init_salvus_schema('salvus')
+
+    UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df;
+
+
+    update compute_servers set running=true, score=1 where host='10.2.1.4';
+    update compute_servers set running=true, score=1 where host='10.2.2.4';
+    update compute_servers set running=true, score=1 where host='10.2.3.4';
+    update compute_servers set running=true, score=1 where host='10.2.4.4';
+
+
+
+# May 5, 2013
+
+ [x] (0:45) (0:31) clicking on filename should open file; make a rename button
+
+ [x] (1:00) (0:10) upgrade to latest twitter bootstrap
+
+ [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
+
+ [x] (1:00) (0:10) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
+
+ [x] (0:45) (0:15) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop. (we will still need to implement output message optimization, but buffering already helps a lot).
+
+ [x] (1:00) (1:05) terminal paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
+
+ [x] (1:00) (0:15) terminal copy -- highlight and then it *unhighlights*; is it possible to keep the selection?  Is it possible to just copy instantly without requiring control-c
+
+ [x] (0:30) (1:15) see whether it is possible to set copy buffer from javascript or not... (yet again); if so, don't require control-c in terminal; ANSWER: no, not for now; can partly do using flash and a click (not so useful), or as a Chrome Extension (for later!).
+
+ [x] (0:30) (0:42) I found more cases where paste again doesn't work. fix.  UGH.  It's basically impossible to solve both the copy and paste problems at the same time in a general way... since to copy nicely, you have to be in a mode where paste doesn't work.  I've implemented a copromise, which is that paste when there is a copy selection.  This is not ideal, but is much better than it was.  I'll try something better in the future.
+
+ [x] (0:30) (0:10) make resize use actual top of editor, not computed, in case of title wrap-around.
+
+ [x] (0:30) (1:30) push out new version and post message to list

@@ -1170,6 +1170,7 @@ class ProjectPage
 
         # Renaming a file
         rename_link = t.find('a[href=#rename-file]')
+
         rename_link.click () =>
             @click_to_rename_file(path, file_link)
             return false
@@ -1194,7 +1195,6 @@ class ProjectPage
 
         # Capture leaving box
         link.on 'blur', rename
-        link.live 'blur', rename
 
         # Capture pressing enter
         link.keydown (evt) ->

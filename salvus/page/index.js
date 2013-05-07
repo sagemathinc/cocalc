@@ -31,7 +31,7 @@ console.coffee
 account.coffee
 
 
-worksheet1.coffee
+#worksheet1.coffee
 #worksheet2.coffee
 
 syncdoc.coffee
