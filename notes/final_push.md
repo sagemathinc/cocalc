@@ -1,11 +1,21 @@
+ [x] (0:45) make it so in admin, this is possible... wow, I just spent 30 minutes to discover that I already fully implemented this!
+             s.restart('vm', hostname='web1')
 
- [x] (0:30?) (0:12) rename link broken now due to jquery upgrade
+ --> [ ] (0:30) release new version; only need to update web hosts, given the minimal changes so far:
+       - updated services file to use new 2013-05-07 image and push to repo
+       - create 2013-05-07 image with updates and updated salvus
+       - sync base image out
+       On storm:
+       - stop hub and nginx
+       - stop web vm's
+       - start web vm's
+       - start hub and nginx
+       - verify all works
+      Then do the same on cloud.
 
- [x] (0:10?) (0:17) remove any uses of "live" from jquery code (jquery upgrade deprecated this).
+ ----
 
- [ ] (0:30?) (0:08) "RuntimeError: Error: No interact with id 36d22d1a-1af9-45f9-ac6c-3b28834edebd" --> html message "evaluate to create interact"
-
-
+ [ ] (1:00) idea: make a stats tab -- for all to see -- under "?" page with:
 
 
  [ ] (0:45) make worksheet save persist linked objects
@@ -13,8 +23,6 @@
  [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
  [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
-
- ---
 
  [ ] (1:30) ability to open sws files
 
@@ -1316,3 +1324,12 @@ When above resize2fs finishes and works, do this on cloud3:
  [x] (0:30) (0:10) make resize use actual top of editor, not computed, in case of title wrap-around.
 
  [x] (0:30) (1:30) push out new version and post message to list
+
+
+
+ [x] (0:30?) (0:12) rename link broken now due to jquery upgrade
+
+ [x] (0:10?) (0:17) remove any uses of "live" from jquery code (jquery upgrade deprecated this).
+
+ [x] (0:30?) (0:08) "RuntimeError: Error: No interact with id 36d22d1a-1af9-45f9-ac6c-3b28834edebd" --> html message "evaluate to create interact"
+
