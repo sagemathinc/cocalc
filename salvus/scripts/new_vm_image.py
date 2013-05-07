@@ -58,10 +58,13 @@ You probably want to do something like this:
     . salvus-env
     git pull
     ./make_coffee
-    # fix /etc/ssh/ssh_config
     sudo su
     apt-get update; apt-get upgrade
+
+    # Build new sage; if so, delete notebook() line from local/bin/sage-banner
+
     reboot -h now
+    ssh localhost -p 2222
     sudo shutdown -h now
 
  Then
