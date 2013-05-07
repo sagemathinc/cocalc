@@ -1,21 +1,21 @@
 # services
 
 [vm]
-cloud1   {'hostname':'cassandra1', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130501', 'disk':'cassandra:256'}
-cloud1   {'hostname':'web1',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130501', 'disk':'backup:256'}
-cloud1   {'hostname':'compute1a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130501', 'disk':'home:128'}
+cloud1   {'hostname':'cassandra1', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-2013-05-07', 'disk':'cassandra:256'}
+cloud1   {'hostname':'web1',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-2013-05-07', 'disk':'backup:256'}
+cloud1   {'hostname':'compute1a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-05-07', 'disk':'home:128'}
 
-cloud2   {'hostname':'cassandra2', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130501', 'disk':'cassandra:256'}
-cloud2   {'hostname':'web2',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130501', 'disk':'backup:256'}
-cloud2   {'hostname':'compute2a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130501', 'disk':'home:128'}
+cloud2   {'hostname':'cassandra2', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-2013-05-07', 'disk':'cassandra:256'}
+cloud2   {'hostname':'web2',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-2013-05-07', 'disk':'backup:256'}
+cloud2   {'hostname':'compute2a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-05-07', 'disk':'home:128'}
 
-cloud3   {'hostname':'cassandra3', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130501', 'disk':'cassandra:256'}
-cloud3   {'hostname':'web3',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130501', 'disk':'backup:256'}
-cloud3   {'hostname':'compute3a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130501', 'disk':'home:128'}
+cloud3   {'hostname':'cassandra3', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-2013-05-07', 'disk':'cassandra:256'}
+cloud3   {'hostname':'web3',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-2013-05-07', 'disk':'backup:256'}
+cloud3   {'hostname':'compute3a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-05-07', 'disk':'home:128'}
 
-cloud4   {'hostname':'cassandra4', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-20130501', 'disk':'cassandra:256'}
-cloud4   {'hostname':'web4',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-20130501', 'disk':'backup:256'}
-cloud4   {'hostname':'compute4a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-20130501', 'disk':'home:128'}
+cloud4   {'hostname':'cassandra4', 'vcpus':4, 'ram':16, 'vnc':9000, 'base':'salvus-2013-05-07', 'disk':'cassandra:256'}
+cloud4   {'hostname':'web4',       'vcpus':4, 'ram':16, 'vnc':9003, 'base':'salvus-2013-05-07', 'disk':'backup:256'}
+cloud4   {'hostname':'compute4a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-05-07', 'disk':'home:128'}
 
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'}
