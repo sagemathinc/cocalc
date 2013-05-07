@@ -23,14 +23,27 @@ Before building, do:
 
    sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2
 
-For users:
+
+For users, do all the following:
+
+# EASY PACKAGES:
 
    sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex
 
-Also, make sure to do "install_scripts('/usr/local/bin/')" from within Sage (as root).
+# SAGE SCRIPTS:
+  Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
 
+# POLYMAKE:
+  # From http://www.polymake.org/doku.php/howto/install
 
-Sage optional packages:
+  * sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
+
+  # Then... get latest from http://www.polymake.org/doku.php/download/start and do
+  * ./configure; make -j32; sudo make install
+
+  # Then delete the polymake build directory.
+
+# OPTIONAL SAGE PACKAGES
 
 ./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gmpy gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
 
@@ -74,7 +87,8 @@ PYTHON_PACKAGES = [
     'markdown2',
     'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
     'pyxattr',            # used by bup
-    'pylibacl'            # used by bup
+    'pylibacl',           # used by bup
+    'pip', 'virtualenv'   # Maybe not used yet...
     ]
 
 if not os.path.exists(BUILD):

@@ -1,38 +1,6 @@
- [ ] install polymake  on base machine (unless too big?)
-
- [ ] refresh current tab editor on display (clicking tab at top).
-
- [ ] make it easy for users to install own packages locally:
-      - pip, virtualenv systemwide.
-
-[x] (0:45) make it so in admin, this is possible... wow, I just spent 30 minutes to discover that I already fully implemented this!
-             s.restart('vm', hostname='web1')
-
- --> [x] (0:30) (0:32) release new version; only need to update web hosts, given the minimal changes so far:
-       - updated services file to use new 2013-05-07 image and push to repo
-       - create 2013-05-07 image with updates and updated salvus
-       - sync base image out
-       On storm:
-       - stop hub and nginx
-       - stop web vm's
-       - start web vm's
-       - start hub and nginx
-
-import admin; s = admin.Services('conf/deploy_storm/')
-s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="storm-web%s"%i) for i in range(1,5)]
-s._hosts.ping()
-
-       - verify all works
-      Then do the same on cloud.
-
-s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="web%s"%i) for i in range(1,5)]
-s._hosts.ping()
-s.start("hub", wait=False); s.start("nginx", wait=False)
-
- ----
+ [ ] deploy new base vm for users.
 
  [ ] (1:00) idea: make a stats tab -- for all to see -- under "?" page with:
-
 
  [ ] (0:45) make worksheet save persist linked objects
 
@@ -1349,3 +1317,33 @@ When above resize2fs finishes and works, do this on cloud3:
 
  [x] (0:30?) (0:08) "RuntimeError: Error: No interact with id 36d22d1a-1af9-45f9-ac6c-3b28834edebd" --> html message "evaluate to create interact"
 
+ [x] install polymake-2.12
+
+ [x] start taking steps to make it easy for users to install own packages locally by installing these
+      - pip, virtualenv systemwide.
+
+[x] (0:45) make it so in admin, this is possible... wow, I just spent 30 minutes to discover that I already fully implemented this!
+             s.restart('vm', hostname='web1')
+
+ --> [x] (0:30) (0:32) release new version; only need to update web hosts, given the minimal changes so far:
+       - updated services file to use new 2013-05-07 image and push to repo
+       - create 2013-05-07 image with updates and updated salvus
+       - sync base image out
+       On storm:
+       - stop hub and nginx
+       - stop web vm's
+       - start web vm's
+       - start hub and nginx
+
+import admin; s = admin.Services('conf/deploy_storm/')
+s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="storm-web%s"%i) for i in range(1,5)]
+s._hosts.ping()
+
+       - verify all works
+      Then do the same on cloud.
+
+s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="web%s"%i) for i in range(1,5)]
+s._hosts.ping()
+s.start("hub", wait=False); s.start("nginx", wait=False)
+
+ ----
