@@ -1,4 +1,11 @@
- [x] (0:45) make it so in admin, this is possible... wow, I just spent 30 minutes to discover that I already fully implemented this!
+ [ ] install polymake  on base machine (unless too big?)
+
+ [ ] refresh current tab editor on display (clicking tab at top).
+
+ [ ] make it easy for users to install own packages locally:
+      - pip, virtualenv systemwide.
+
+[x] (0:45) make it so in admin, this is possible... wow, I just spent 30 minutes to discover that I already fully implemented this!
              s.restart('vm', hostname='web1')
 
  --> [x] (0:30) (0:32) release new version; only need to update web hosts, given the minimal changes so far:
