@@ -20,7 +20,7 @@ next = args.next
 
 if prev == "":
    # make it the most recent image
-   prev = os.popen("ls -1t ~/vm/images/base/|head -1").read().strip().rstrip('.img')
+   prev = os.popen("ls -1t ~/vm/images/base/*.img|head -1").read().strip().rstrip('.img')
 
 if next == "":
    # make image name salvus-date   
