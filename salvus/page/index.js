@@ -12,8 +12,6 @@ misc_page.coffee
 
 salvus_client.coffee
 
-tracking.coffee
-
 top_navbar.coffee
 
 alerts.coffee

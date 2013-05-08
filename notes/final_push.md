@@ -1,4 +1,8 @@
+ [x] (0:30) (0:10) add google analytics for https://cloud.sagemath.com
+
  [x] (0:45) (0:11) very bad reproducible CSS/html bug: open two projects in salvus in one browser tab, resize browser, switch back to other project -- screen doesn't resize properly; instead totally corrupted.
+
+ [ ] (0:30) the bup snapshots (except on web1) are broken. GREAT :-(; try to do something to fix them.
 
  [ ] (1:00) idea: make a stats tab -- for all to see -- under "?" page with:
 
@@ -8,7 +12,7 @@
 
  [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
- [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
+ [ ] (1:00?) new project default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
 
  [ ] (1:30) ability to open sws files
 
