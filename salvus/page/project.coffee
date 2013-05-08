@@ -127,6 +127,8 @@ class ProjectPage
             onshow: () =>
                 if @project?
                     document.title = "SMC: #{@project.title}"
+                @editor?.refresh()
+
             onfullscreen: (entering) =>
                 if @project?
                     if entering
@@ -134,7 +136,6 @@ class ProjectPage
                     else
                         @show_tabs()
                     $(window).resize()
-
 
         $(window).resize () => @window_resize()
         @_update_file_listing_size()

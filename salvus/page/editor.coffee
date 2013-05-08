@@ -288,6 +288,9 @@ class exports.Editor
         else
             return 0
 
+    refresh: () =>
+        @_window_resize_while_editing()
+
     _window_resize_while_editing: () =>
         @resize_open_file_tabs()
         if not @active_tab? or not @_editor_content_visible
