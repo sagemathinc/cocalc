@@ -1,6 +1,8 @@
- [ ] deploy new base vm for users.
+ [x] (0:45) (0:11) very bad reproducible CSS/html bug: open two projects in salvus in one browser tab, resize browser, switch back to other project -- screen doesn't resize properly; instead totally corrupted.
 
  [ ] (1:00) idea: make a stats tab -- for all to see -- under "?" page with:
+
+ [ ] (1:00) idea: when displaying lots of output, scroll output area to BOTTOM (not top like it is now).
 
  [ ] (0:45) make worksheet save persist linked objects
 
@@ -1345,5 +1347,6 @@ s._hosts.ping()
 s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="web%s"%i) for i in range(1,5)]
 s._hosts.ping()
 s.start("hub", wait=False); s.start("nginx", wait=False)
+1
 
- ----
+[x] deploy new base vm for users: [s.restart('vm', ip_address='10.1.%s.4'%i) for i in range(1,5)]
