@@ -1,8 +1,24 @@
- [x] (0:30) (0:10) add google analytics for https://cloud.sagemath.com
+ [ ] (0:30) sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
+ Test case:
 
- [x] (0:45) (0:11) very bad reproducible CSS/html bug: open two projects in salvus in one browser tab, resize browser, switch back to other project -- screen doesn't resize properly; instead totally corrupted.
+ for x in s.split("\na\nb\n"):
+    if x:
+        print x
 
- [ ] (0:30) the bup snapshots (except on web1) are broken. GREAT :-(; try to do something to fix them.
+Doing
+
+sys.stdout.flush()
+
+works at the end, but doing
+
+sys.stdout.flush(done=True)
+
+or
+
+sys.stdout.flush(done=False)
+
+doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
+
 
  [ ] (1:00) idea: make a stats tab -- for all to see -- under "?" page with:
 
@@ -25,6 +41,8 @@
  [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
  [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra somehow.
+
+ [ ] consider using https://tahoe-lafs.org/trac/tahoe-lafs for storing all user projects in a distributed way; bup isn't reliable enough.
 
  [ ] worksheet fail with local_hub log:
          Trace
@@ -1348,9 +1366,29 @@ s._hosts.ping()
        - verify all works
       Then do the same on cloud.
 
+import admin; s = admin.Services('conf/deploy_cloud/')
 s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="web%s"%i) for i in range(1,5)]
 s._hosts.ping()
 s.start("hub", wait=False); s.start("nginx", wait=False)
 1
 
 [x] deploy new base vm for users: [s.restart('vm', ip_address='10.1.%s.4'%i) for i in range(1,5)]
+
+
+
+ [x] (0:30) (0:10) add google analytics for https://cloud.sagemath.com
+
+ [x] (0:45) (0:11) very bad reproducible CSS/html bug: open two projects in salvus in one browser tab, resize browser, switch back to other project -- screen doesn't resize properly; instead totally1
+ corrupted.
+
+ [x] (0:30) the bup snapshots (except on web1) are broken. GREAT :-(; try to do something to fix them.
+
+ [x] (0:15) update web[i] with latest bugfix regarding resize, and with google analytics
+
+
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="web%s"%i) for i in range(1,5)]
+    s._hosts.ping()
+    s.start("hub", wait=False); s.start("nginx", wait=False)
+
+
