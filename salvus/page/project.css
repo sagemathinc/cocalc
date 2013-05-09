@@ -88,7 +88,7 @@
 .project-search-output  {
     background-color : white;
     font-family      : monospace;
-    overflow-y       : auto;
+    /* overflow-y       : auto; */
     position         : absolute;
     height           : 100%;
     margin-left       : 3em;

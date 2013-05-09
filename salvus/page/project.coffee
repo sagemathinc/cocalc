@@ -645,15 +645,19 @@ class ProjectPage
 
             if name == "project-file-listing"
                 tab.onshow = () ->
+                    that.container.css('position', 'absolute')
                     that.update_file_list_tab()
             else if name == "project-editor"
                 tab.onshow = () ->
+                    that.container.css('position', 'fixed')
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.container.css('position', 'absolute')
                     that.show_new_file_tab()
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.container.css('position', 'absolute')
                     that.update_topbar()
 
         @display_tab("project-file-listing")

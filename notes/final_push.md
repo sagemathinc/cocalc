@@ -1,15 +1,49 @@
-[ ] (1:00?) upgrade bup everywhere -- looks like fsck and race condition work is recent: https://github.com/bup/bup
+[x] (0:30?) (0:20) change pill thing to have fixed position when editing a file (and non-fixed otherwise); this will get rid of pointless scrollbars, which waste space and throw off calculations.
+
+[ ] (0:20?) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that. 
+
+[ ] (0:30?) search output doesn't have to have fixed height + own scroll
+
+[ ] (0:30?) path at top doesn't have to be fixed (note how it looks when scrolling)
+
+[ ] (1:00?) (0:10+)fix terminal resize; bottom line is often cut off.
+
+[ ] (1:00?) save terminal history to file.
+
+[ ] (1:00?) keyboard shortcut to move between files.
+
+[ ] (1:00?) bring back custom eval keys
+
+[ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
+
+[ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+
+[ ] (3:00?) Project snapshots: my bup backup approach to snapshoting projects is efficient but is *not* working; the repo gets corrupted, and then nothing works afterwards.  I need to try a few things more carefully (e.g., maybe one repo per project -- less dedup, but much simpler and more robust; ensure saving isn't interrrupted, and if it is delete pack files; ensure only one save at a time -- maybe there is a race/locking issue I'm ignoring?)
+
+New idea for how to make snapshots of projects:
+
+- Have a separate bup rep for each project; all stored in /mnt/backup.  Thus much less dedup, but easier to use and more reliable.
+- When a hub is going to create a project snapshot it does the following:
+   1. Creates a temporary lock on doing this (using ttl)
+   2. Queries database and ensures that it has all the relevant .bup/* files, which are stored in a table in the database.  Any it doesn't have, it grabs from the database to the local /mnt/backup filesystem.
+   3. It creates the snapshot and runs fsck -g.
+   4. Assuming all is fine, it then copies the *newly* created or modified index files back to Cassandra, which then propogates them to the whole cluster.
+
+Whether or not the above works might depend on how many files are modified.
+Also, we would need to somehow reduce the number of files every once in a while
+since extract 10000 files from the database would take a long time.
+
+
+
+
+
 
 [ ] (1:00?) html/md and non-ascii doesn't work, but it should, e.g, this goes boom.
 %md
 Very Bad Thing™.
 
-[ ] (3:00?) my bup backup approach to snapshoting projects is efficient but is *not* working; the repo gets corrupted, and then nothing works afterwards.  I need to try a few things more carefully (e.g., maybe one repo per project -- less dedup, but much simpler and more robust; ensure saving isn't interrrupted, and if it is delete pack files; ensure only one save at a time -- maybe there is a race/locking issue I'm ignoring?)
-
-[ ] (1:00?) when using an interact on cloud.sagemath.com that produces graphics (lecture 17 of 308), I'm seeing the image in
- output not appearing with some probability.  I'm guessing this has to do with how files get sent from local hub to hub, and there being multiple global hubs... and them not using the database always.
-
-[ ] (0:30?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
+[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
  Test case:
 
  for x in s.split("\na\nb\n"):
@@ -30,19 +64,22 @@ sys.stdout.flush(done=False)
 
 doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
+[ ] (1:00?) upgrade bup everywhere -- looks like fsck and race condition work is recent: https://github.com/bup/bup
+
+[ ] (1:00?) when using an interact on cloud.sagemath.com that produces graphics (lecture 17 of 308), I'm seeing the image in
+ output not appearing with some probability.  I'm guessing this has to do with how files get sent from local hub to hub, and there being multiple global hubs... and them not using the database always.
+
  [ ] (1:00?) interact dropdown selector doesn't work in Firefox -- shows blank input.
 
- [ ] (0:30?) suggest sync broadcast message often doesn't work (maybe on first sync?), i.e., user has to modify buffer to see latest changes upstream
+ [ ] (1:00?) suggest sync broadcast message often doesn't work (maybe on first sync?), i.e., user has to modify buffer to see latest changes upstream
 
  [ ] (1:00?) idea: make a stats tab -- for all to see -- under "?" page with:
 
  [ ] (1:00?) idea: when displaying lots of output, scroll output area to BOTTOM (not top like it is now).
 
- [ ] (0:45?) make worksheet save persist linked objects
+ [ ] (1:30?) make worksheet save persist linked objects
 
- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
- [ ] (1:00?) new project default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
+ [ ] (1:30?) new project default git creds based on project owner cred. (?);
 
  [ ] (1:30?) ability to open sws files
 
@@ -54,7 +91,7 @@ doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
  [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
- [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra somehow.
+ [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra *somehow.*
 
  [ ] consider using https://tahoe-lafs.org/trac/tahoe-lafs for storing all user projects in a distributed way; bup isn't reliable enough.
 
@@ -65,11 +102,7 @@ doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
             at Timer.list.ontimeout (timers.js:104:21)
          error: Uncaught exception: Error: This socket is closed.
 
- [ ] (1:00?) fix terminal resize; bottom line is often cut off.
-
  [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
-
- [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
 
