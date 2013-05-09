@@ -1,6 +1,6 @@
 [x] (0:30?) (0:20) change pill thing to have fixed position when editing a file (and non-fixed otherwise); this will get rid of pointless scrollbars, which waste space and throw off calculations.
 
-[ ] (0:20?) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that. 
+--> [ ] (0:20?) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that. 
 
 [ ] (0:30?) search output doesn't have to have fixed height + own scroll
 
