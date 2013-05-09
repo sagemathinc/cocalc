@@ -280,6 +280,8 @@ class exports.Editor
         for tab in @project_page.tabs
             tab.label.removeClass('active')
 
+        @project_page.container.css('position', 'fixed')
+
 
     # Used for resizing editor windows.
     editor_top_position: () =>

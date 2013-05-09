@@ -1,10 +1,12 @@
 [x] (0:30?) (0:20) change pill thing to have fixed position when editing a file (and non-fixed otherwise); this will get rid of pointless scrollbars, which waste space and throw off calculations.
 
---> [ ] (0:20?) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that. 
+[x] (0:20?) (0:10) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that.
 
-[ ] (0:30?) search output doesn't have to have fixed height + own scroll
+[x] (0:20?) (0:11) "Recent" files list is position:fixed, but shouldn't be.
 
 [ ] (0:30?) path at top doesn't have to be fixed (note how it looks when scrolling)
+
+[ ] (0:30?) search output doesn't have to have fixed height + own scroll
 
 [ ] (1:00?) (0:10+)fix terminal resize; bottom line is often cut off.
 

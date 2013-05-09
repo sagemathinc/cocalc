@@ -649,7 +649,7 @@ class ProjectPage
                     that.update_file_list_tab()
             else if name == "project-editor"
                 tab.onshow = () ->
-                    that.container.css('position', 'fixed')
+                    that.container.css('position', 'absolute')
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
