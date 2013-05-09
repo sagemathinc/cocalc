@@ -1,4 +1,15 @@
- [ ] (0:30) sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
+[ ] (1:00?) upgrade bup everywhere -- looks like fsck and race condition work is recent: https://github.com/bup/bup
+
+[ ] (1:00?) html/md and non-ascii doesn't work, but it should, e.g, this goes boom.
+%md
+Very Bad Thing™.
+
+[ ] (3:00?) my bup backup approach to snapshoting projects is efficient but is *not* working; the repo gets corrupted, and then nothing works afterwards.  I need to try a few things more carefully (e.g., maybe one repo per project -- less dedup, but much simpler and more robust; ensure saving isn't interrrupted, and if it is delete pack files; ensure only one save at a time -- maybe there is a race/locking issue I'm ignoring?)
+
+[ ] (1:00?) when using an interact on cloud.sagemath.com that produces graphics (lecture 17 of 308), I'm seeing the image in
+ output not appearing with some probability.  I'm guessing this has to do with how files get sent from local hub to hub, and there being multiple global hubs... and them not using the database always.
+
+[ ] (0:30?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
  Test case:
 
  for x in s.split("\na\nb\n"):
@@ -19,20 +30,23 @@ sys.stdout.flush(done=False)
 
 doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
+ [ ] (1:00?) interact dropdown selector doesn't work in Firefox -- shows blank input.
 
- [ ] (1:00) idea: make a stats tab -- for all to see -- under "?" page with:
+ [ ] (0:30?) suggest sync broadcast message often doesn't work (maybe on first sync?), i.e., user has to modify buffer to see latest changes upstream
 
- [ ] (1:00) idea: when displaying lots of output, scroll output area to BOTTOM (not top like it is now).
+ [ ] (1:00?) idea: make a stats tab -- for all to see -- under "?" page with:
 
- [ ] (0:45) make worksheet save persist linked objects
+ [ ] (1:00?) idea: when displaying lots of output, scroll output area to BOTTOM (not top like it is now).
+
+ [ ] (0:45?) make worksheet save persist linked objects
 
  [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
  [ ] (1:00?) new project default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
 
- [ ] (1:30) ability to open sws files
+ [ ] (1:30?) ability to open sws files
 
- [ ] (1:00) button in settings to reset the smc server
+ [ ] (1:00?) button in settings to reset the smc server
 
  [ ] (1:30?) ability to delete projects.
 
@@ -70,6 +84,7 @@ doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
 
+[ ] (1:00?) idea: multiline copy from a terminal should delete trailing whitespace... if possible.  I don't know if this is possible, and don't know how this could even be implemented in general.  However, maybe when cloud.sagemath is used as an extension or chromeapp, then it would be possible...
 
  - [ ] (1:00?) quota in my "devel" project looks suspicious (type "quota -v").; on compute2a everything is fine.  No clue what is going on here.
 
@@ -718,6 +733,7 @@ umount
 lvremove
 
 mv vm/images vm/images.0
+1
 
 pvcreate /dev/sdb1
 vgextend 07salvus /dev/sdb1
