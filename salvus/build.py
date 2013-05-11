@@ -54,6 +54,10 @@ Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay
   sudo apt-get install libntl-5.4.2 libpari-gmp3
   sudo dpkg -i Macaulay2-1.5-common.deb Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
 
+Copy over the newest SageTex:
+
+   sudo cp /usr/local/sage/sage-*/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+
 """
 
 import logging, os, shutil, subprocess, sys, time

@@ -1,25 +1,3 @@
-[x] (0:30?) (0:20) change pill thing to have fixed position when editing a file (and non-fixed otherwise); this will get rid of pointless scrollbars, which waste space and throw off calculations.
-
-[x] (0:20?) (0:10) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that.
-
-[x] (0:20?) (0:11) "Recent" files list is position:fixed, but shouldn't be.
-
-[ ] (0:30?) path at top doesn't have to be fixed (note how it looks when scrolling)
-
-[ ] (0:30?) search output doesn't have to have fixed height + own scroll
-
-[ ] (1:00?) (0:10+)fix terminal resize; bottom line is often cut off.
-
-[ ] (1:00?) save terminal history to file.
-
-[ ] (1:00?) keyboard shortcut to move between files.
-
-[ ] (1:00?) bring back custom eval keys
-
-[ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
-
-[ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
 
 [ ] (3:00?) Project snapshots: my bup backup approach to snapshoting projects is efficient but is *not* working; the repo gets corrupted, and then nothing works afterwards.  I need to try a few things more carefully (e.g., maybe one repo per project -- less dedup, but much simpler and more robust; ensure saving isn't interrrupted, and if it is delete pack files; ensure only one save at a time -- maybe there is a race/locking issue I'm ignoring?)
 
@@ -36,9 +14,135 @@ Whether or not the above works might depend on how many files are modified.
 Also, we would need to somehow reduce the number of files every once in a while
 since extract 10000 files from the database would take a long time.
 
+Actually, a simple way to reduce the *number* of files in the database would be to simply use tar to combine
+a bunch of the pack files into a single big file.  This avoids having to repack.
+
+So the database entry would contain:
+
+ - about 10 files that store index, etc., are small, and change on every commit.
+ - a list (cassandra has a list type now!) of tarballs, each containing a bunch of pack files.
+
+And we have one of the above for each project.  It gets distributed, etc., but all extracted, used, updated on the filesystem by hubs.
+Obvious question is how it scales.  How fast?  How much space, etc.
+
+I need a way to make incremental snapshots storing everything about potentially tens of thousands of projects.  They *must* be stored in the database.   I would like to minimize wasted space.
+
+Options:
+
+   - one bup per project --> tarballs, stored in db
+   - zfs + dedup + snapshots + fuse (?)
+   - incremental tarballs (but that's not even dedup'd)
+
+Two benchmark filesets:
+  - the 45MB "my teaching" directory (with two github projects and other misc files); then add salvus github
+  - the sage-5.9 binary, then add sage-5.10 binary (measure scalability and dedup).
+
+Benchmark 1:
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g"
+  - size of initial archive
+  - time to update archive after trivially changing one file
+  - add salvus github checkout
+  - time to create next snapshot
+  - size of archive
+  - make another copy of the salvus github checkout
+  - time to create next snapshot
+  - size of archive
+
+If the above is acceptable, then *maybe* Cassandra's own compression will de-dup across projects, somewhat, and we'll be golden.
+
+Benchmark 2:
+  - time to create initial archive, starting with sage-5.9
+  - size of initial archive
+  - time to update archive after trivially changing one file
+  - add sage-5.10
+  - time to create next snapshot
+  - size of archive
+  - time to create next snapshot, after trivially changing one file
+
+OK, do it, first with bup using default compression options:
+
+Benchmark 1: 44MB data, using bup with default compression
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 1.2s (create index), 4.563 (save), 2.511 (fsck)
+  - size of initial archive: 16M
+  - time to update archive after trivially changing one file: 1.2 (index), 0.340 (save), 0.274 (fsck)
+  - add salvus github checkout: new data size 239M;
+  - time to create next snapshot:  2.754 (index), 9.92 (save), 44.7 (fsck);
+  - size of archive:  archive size is now 196MB.
+  - make another copy of the salvus github checkout: data size 435M
+  - time to create next snapshot: 2.5 (index), 5.648 (save), 0.398 (fsck)
+  - size of archive: 198MB
+
+  Benchmark 1 with "-9":
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 6.3 (save), 3.5 (fsck)
+  - size of initial archive: 15MB
+  - time to update archive after trivially changing one file: 1.6 (index), 0.4 (save), .37 (fsck)
+  - add salvus github checkout: new data size 239M;
+  - time to create next snapshot: 3.3 (index), 24.5s (save), 36s (fsck)
+  - size of archive:  archive size is now 195M
+
+  Benchmark 1 with "-0" (no compression):
+  - time to create: 6.7 (save), 6.6 (fsck)
+  - size: 32MB
+  - clone salvus then save: 4.6 (index), 13.9 (save), 39 (fsck)
+  - size of archive: 224MB
+  - make another copy of salvus, and save again: 4.58s (index), 10s (save), 0.7 fsck
+  - time to restore resulting big archive to "foo": 41s
+
+Benchmark 2 (default compression).
+
+time bup index bench1data
+time bup save --strip -n bench1 bench1data
+time bup fsck -g
+
+  - initial work path size: 3.7GB
+  - time to create initial bup archive: 14.7s (index), 4m43s (save), 4m23s (fsck)
+  - archive size: 969M (before fsck), 1.1G (after fsck)
+  - add second sage-5.10: total data size 7.4G
+  - time to save: 44s (index), 3m26s (save), 2m20s (fsck)
+  - archive size before second fsck: 1.6G, after: 1.6G
+  - time to restore everything:
 
 
 
+
+
+
+[ ] (0:45) "var('x','y')" has to work, since it works in Sage.
+
+[ ] (1:00) MAJOR BUG: click on a 15MB tarball by accident via the file manager, and local hub breaks, and file never comes up; no way to recover.  Impossible for a normal user!
+
+[ ] (1:00, at least) Downloading a 15MB tarball from the cloud thing doesn't work.
+
+[ ] (0:15?) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
+
+    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+
+
+[ ] (0:20?) install into base machine all the packages harald mentioned.
+
+
+[ ] (0:30?) path at top doesn't have to be fixed (note how it looks when scrolling)
+[ ] (0:30?) search output doesn't have to have fixed height + own scroll
+
+[ ] (0:10?) https://mathsaas.com/ points at cloud.sagemath.org (really bsd), but should point at the .com.
+
+[ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
+
+
+[ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
+[ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+---
+
+[ ] (1:00?) (0:10+)fix terminal resize; bottom line is often cut off.
+
+[ ] (1:00?) feature: save terminal history to file.
+
+[ ] (1:00?) feature: keyboard shortcut to move between files.
+
+[ ] (1:00?) feature: bring back custom eval keys in settings
+
+[ ] (1:00?) feature: run sagetex automatically (?)  maybe have checkbox to enable/disable in page that lists log.
 
 
 [ ] (1:00?) html/md and non-ascii doesn't work, but it should, e.g, this goes boom.
@@ -1442,4 +1546,13 @@ s.start("hub", wait=False); s.start("nginx", wait=False)
     s._hosts.ping()
     s.start("hub", wait=False); s.start("nginx", wait=False)
 
+
+[x] (0:30?) (0:20) change pill thing to have fixed position when editing a file (and non-fixed otherwise); this will get rid of pointless scrollbars, which waste space and throw off calculations.
+
+[x] (0:20?) (0:10) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that.
+
+[x] (0:20?) (0:11) "Recent" files list is position:fixed, but shouldn't be.
+
+
+[x] (0:30?) (0:10) push out the few ui tweaks without changing the base image (just pull salvus on the web machines and do "make coffee")
 
