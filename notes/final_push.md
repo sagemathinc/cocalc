@@ -1,110 +1,56 @@
+# Implement project snapshot, restore, browse, stored in the database.
 
-[ ] (3:00?) Project snapshots: my bup backup approach to snapshoting projects is efficient but is *not* working; the repo gets corrupted, and then nothing works afterwards.  I need to try a few things more carefully (e.g., maybe one repo per project -- less dedup, but much simpler and more robust; ensure saving isn't interrrupted, and if it is delete pack files; ensure only one save at a time -- maybe there is a race/locking issue I'm ignoring?)
 
-New idea for how to make snapshots of projects:
+[x] (0:30?) (1:30)[slow due to distractions] learn about cassandra list type and about git files, etc.; not going to use cassandra lists for the actual blobs, etc., since they are for a different problem, and get read completely.
 
-- Have a separate bup rep for each project; all stored in /mnt/backup.  Thus much less dedup, but easier to use and more reliable.
-- When a hub is going to create a project snapshot it does the following:
-   1. Creates a temporary lock on doing this (using ttl)
-   2. Queries database and ensures that it has all the relevant .bup/* files, which are stored in a table in the database.  Any it doesn't have, it grabs from the database to the local /mnt/backup filesystem.
-   3. It creates the snapshot and runs fsck -g.
-   4. Assuming all is fine, it then copies the *newly* created or modified index files back to Cassandra, which then propogates them to the whole cluster.
+[x] (1:00?) (1:30)[distractions] determine exactly what files need to be stored in the database
 
-Whether or not the above works might depend on how many files are modified.
-Also, we would need to somehow reduce the number of files every once in a while
-since extract 10000 files from the database would take a long time.
+   - ordered list of sha1 hashes of the pack/idx files
+   - the actual pack/idx files
+   - store the value in "refs/heads/project"      (this is a file with a hash in it)
 
-Actually, a simple way to reduce the *number* of files in the database would be to simply use tar to combine
-a bunch of the pack files into a single big file.  This avoids having to repack.
+   Optimizations (bup automatically recreates all these files, so storing them in the db is probably a waste of space).
+       - store all objects/pack/*midx* files
+       - objects/pack/bup.bloom
+       - various index cache files
 
-So the database entry would contain:
+   I just tried this branch:
+     git clone https://github.com/zoranzaric/bup.git -b locked-repack locked-repack-2
 
- - about 10 files that store index, etc., are small, and change on every commit.
- - a list (cassandra has a list type now!) of tarballs, each containing a bunch of pack files.
+   and it provides a "bup repack" command.  When run it replaces *all* the idx/pack files, no matter how many,
+   by exactly two files.  I *might* need to use this when the number of snapshots for a given project gets very
+   large, hence extracting it to the local filesystem would involving pulling thousands of tiny files from
+   cassandra, etc., which would be very inefficient.  With bup repack, I would run it, create two new idx/pack
+   pairs, save them to the DB, then change the project meta-info, and delete all the other idx/pack files
+   associated to that project.
 
-And we have one of the above for each project.  It gets distributed, etc., but all extracted, used, updated on the filesystem by hubs.
-Obvious question is how it scales.  How fast?  How much space, etc.
-
-I need a way to make incremental snapshots storing everything about potentially tens of thousands of projects.  They *must* be stored in the database.   I would like to minimize wasted space.
-
-Options:
-
-   - one bup per project --> tarballs, stored in db
-   - zfs + dedup + snapshots + fuse (?)
-   - incremental tarballs (but that's not even dedup'd)
-
-Two benchmark filesets:
-  - the 45MB "my teaching" directory (with two github projects and other misc files); then add salvus github
-  - the sage-5.9 binary, then add sage-5.10 binary (measure scalability and dedup).
-
-Benchmark 1:
-  - time to create initial archive, starting with 45MB teaching, including "fsck -g"
-  - size of initial archive
-  - time to update archive after trivially changing one file
-  - add salvus github checkout
-  - time to create next snapshot
-  - size of archive
-  - make another copy of the salvus github checkout
-  - time to create next snapshot
-  - size of archive
-
-If the above is acceptable, then *maybe* Cassandra's own compression will de-dup across projects, somewhat, and we'll be golden.
-
-Benchmark 2:
-  - time to create initial archive, starting with sage-5.9
-  - size of initial archive
-  - time to update archive after trivially changing one file
-  - add sage-5.10
-  - time to create next snapshot
-  - size of archive
-  - time to create next snapshot, after trivially changing one file
-
-OK, do it, first with bup using default compression options:
-
-Benchmark 1: 44MB data, using bup with default compression
-  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 1.2s (create index), 4.563 (save), 2.511 (fsck)
-  - size of initial archive: 16M
-  - time to update archive after trivially changing one file: 1.2 (index), 0.340 (save), 0.274 (fsck)
-  - add salvus github checkout: new data size 239M;
-  - time to create next snapshot:  2.754 (index), 9.92 (save), 44.7 (fsck);
-  - size of archive:  archive size is now 196MB.
-  - make another copy of the salvus github checkout: data size 435M
-  - time to create next snapshot: 2.5 (index), 5.648 (save), 0.398 (fsck)
-  - size of archive: 198MB
-
-  Benchmark 1 with "-9":
-  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 6.3 (save), 3.5 (fsck)
-  - size of initial archive: 15MB
-  - time to update archive after trivially changing one file: 1.6 (index), 0.4 (save), .37 (fsck)
-  - add salvus github checkout: new data size 239M;
-  - time to create next snapshot: 3.3 (index), 24.5s (save), 36s (fsck)
-  - size of archive:  archive size is now 195M
-
-  Benchmark 1 with "-0" (no compression):
-  - time to create: 6.7 (save), 6.6 (fsck)
-  - size: 32MB
-  - clone salvus then save: 4.6 (index), 13.9 (save), 39 (fsck)
-  - size of archive: 224MB
-  - make another copy of salvus, and save again: 4.58s (index), 10s (save), 0.7 fsck
-  - time to restore resulting big archive to "foo": 41s
-
-Benchmark 2 (default compression).
-
-time bup index bench1data
-time bup save --strip -n bench1 bench1data
-time bup fsck -g
-
-  - initial work path size: 3.7GB
-  - time to create initial bup archive: 14.7s (index), 4m43s (save), 4m23s (fsck)
-  - archive size: 969M (before fsck), 1.1G (after fsck)
-  - add second sage-5.10: total data size 7.4G
-  - time to save: 44s (index), 3m26s (save), 2m20s (fsck)
-  - archive size before second fsck: 1.6G, after: 1.6G
-  - time to restore everything:
+[ ] (1:00?) add functionality to cassaandra.coffee to support what is needed (if necessary)
+[ ] (0:30?) create a table (in db_schema) with one row for each project backup, or add to the existing project schema (not sure which is best).
+[ ] (1:00?) localcopy function
+     INPUT: project_id, path
+     EFFECT:
+         - fuse unmount if needed
+         - pulls what is needed to update bup archive in path to current version in database
+         - fuse mount
+[ ] (1:00?) update function
+     INPUT: project_id, path
+     EFFECT:
+        - does above update to path
+        - makes a new snapshot of remote project (wherever it is) -- save everything except .sagemathcloud and .sage/gap and .forever
+        - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
+          change time is stored in db.
+[ ] (1:00?) push function
+     calls the get function above, then bup restore, then rsync's the result to username@host
+[ ] (1:00?) browse functionality (in hub) -- just ensure there is an updated localcopy, then give back directory listing to project *owner* only.
 
 
 
 
+
+
+
+
+----
 
 
 [ ] (0:45) "var('x','y')" has to work, since it works in Sage.
@@ -1556,3 +1502,106 @@ s.start("hub", wait=False); s.start("nginx", wait=False)
 
 [x] (0:30?) (0:10) push out the few ui tweaks without changing the base image (just pull salvus on the web machines and do "make coffee")
 
+
+[x] (3:00?) Investiage project snapshots ideas: my bup backup approach to snapshoting projects is efficient but is *not* working; the repo gets corrupted, and then nothing works afterwards.  I need to try a few things more carefully (e.g., maybe one repo per project -- less dedup, but much simpler and more robust; ensure saving isn't interrrupted, and if it is delete pack files; ensure only one save at a time -- maybe there is a race/locking issue I'm ignoring?)
+
+New idea for how to make snapshots of projects:
+
+- Have a separate bup rep for each project; all stored in /mnt/backup.  Thus much less dedup, but easier to use and more reliable.
+- When a hub is going to create a project snapshot it does the following:
+   1. Creates a temporary lock on doing this (using ttl)
+   2. Queries database and ensures that it has all the relevant .bup/* files, which are stored in a table in the database.  Any it doesn't have, it grabs from the database to the local /mnt/backup filesystem.
+   3. It creates the snapshot and runs fsck -g.
+   4. Assuming all is fine, it then copies the *newly* created or modified index files back to Cassandra, which then propogates them to the whole cluster.
+
+Whether or not the above works might depend on how many files are modified.
+Also, we would need to somehow reduce the number of files every once in a while
+since extract 10000 files from the database would take a long time.
+
+Actually, a simple way to reduce the *number* of files in the database would be to simply use tar to combine
+a bunch of the pack files into a single big file.  This avoids having to repack.
+
+So the database entry would contain:
+
+ - about 10 files that store index, etc., are small, and change on every commit.
+ - a list (cassandra has a list type now!) of tarballs, each containing a bunch of pack files.
+
+And we have one of the above for each project.  It gets distributed, etc., but all extracted, used, updated on the filesystem by hubs.
+Obvious question is how it scales.  How fast?  How much space, etc.
+
+I need a way to make incremental snapshots storing everything about potentially tens of thousands of projects.  They *must* be stored in the database.   I would like to minimize wasted space.
+
+Options:
+
+   - one bup per project --> tarballs, stored in db
+   - zfs + dedup + snapshots + fuse (?)
+   - incremental tarballs (but that's not even dedup'd)
+
+Two benchmark filesets:
+  - the 45MB "my teaching" directory (with two github projects and other misc files); then add salvus github
+  - the sage-5.9 binary, then add sage-5.10 binary (measure scalability and dedup).
+
+Benchmark 1:
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g"
+  - size of initial archive
+  - time to update archive after trivially changing one file
+  - add salvus github checkout
+  - time to create next snapshot
+  - size of archive
+  - make another copy of the salvus github checkout
+  - time to create next snapshot
+  - size of archive
+
+If the above is acceptable, then *maybe* Cassandra's own compression will de-dup across projects, somewhat, and we'll be golden.
+
+Benchmark 2:
+  - time to create initial archive, starting with sage-5.9
+  - size of initial archive
+  - time to update archive after trivially changing one file
+  - add sage-5.10
+  - time to create next snapshot
+  - size of archive
+  - time to create next snapshot, after trivially changing one file
+
+OK, do it, first with bup using default compression options:
+
+Benchmark 1: 44MB data, using bup with default compression
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 1.2s (create index), 4.563 (save), 2.511 (fsck)
+  - size of initial archive: 16M
+  - time to update archive after trivially changing one file: 1.2 (index), 0.340 (save), 0.274 (fsck)
+  - add salvus github checkout: new data size 239M;
+  - time to create next snapshot:  2.754 (index), 9.92 (save), 44.7 (fsck);
+  - size of archive:  archive size is now 196MB.
+  - make another copy of the salvus github checkout: data size 435M
+  - time to create next snapshot: 2.5 (index), 5.648 (save), 0.398 (fsck)
+  - size of archive: 198MB
+
+  Benchmark 1 with "-9":
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 6.3 (save), 3.5 (fsck)
+  - size of initial archive: 15MB
+  - time to update archive after trivially changing one file: 1.6 (index), 0.4 (save), .37 (fsck)
+  - add salvus github checkout: new data size 239M;
+  - time to create next snapshot: 3.3 (index), 24.5s (save), 36s (fsck)
+  - size of archive:  archive size is now 195M
+
+  Benchmark 1 with "-0" (no compression):
+  - time to create: 6.7 (save), 6.6 (fsck)
+  - size: 32MB
+  - clone salvus then save: 4.6 (index), 13.9 (save), 39 (fsck)
+  - size of archive: 224MB
+  - make another copy of salvus, and save again: 4.58s (index), 10s (save), 0.7 fsck
+  - time to restore resulting big archive to "foo": 41s
+
+Benchmark 2 (default compression).
+
+time bup index bench1data
+time bup save --strip -n bench1 bench1data
+time bup fsck -g
+
+  - initial work path size: 3.7GB
+  - time to create initial bup archive: 14.7s (index), 4m43s (save), 4m23s (fsck)
+  - archive size: 969M (before fsck), 1.1G (after fsck)
+  - add second sage-5.10: total data size 7.4G
+  - time to save: 44s (index), 3m26s (save), 2m20s (fsck)
+  - archive size before second fsck: 1.6G, after: 1.6G
+  - time to restore everything:
