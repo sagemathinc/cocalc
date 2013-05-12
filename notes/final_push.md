@@ -59,6 +59,12 @@ It Works:
          - pulls what is needed to update bup archive in path to current version in database
          - fuse mount
 
+testing:
+
+    t={};require('backup').snapshot(cb:(err,s)->t.s=s);
+    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
+    t.p.snapshot_compute_node(console.log)
+
 [ ] (1:00?) snapshot
      INPUT: project_id, path
      EFFECT:

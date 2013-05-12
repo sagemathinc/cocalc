@@ -5,7 +5,7 @@ Backup -- Make a complete snapshotted dump of the system or individual projects 
 ###
 
 
-EXCLUDES=['.bup', '.sage', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
+EXCLUDES=['.bup', '.sage/gap', '.sage/cache', '.sage/temp', '.sage/tmp', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
 
 async = require('async')
 misc  = require('misc')
@@ -30,7 +30,7 @@ exec 'hostname', (err, stdout, stderr) ->
 bup = (opts) ->
     opts = defaults opts,
         args    : []
-        timeout : 1800
+        timeout : 3600
         bup_dir : process.env['BUP_DIR']
         cb      : (err, output) ->
             if err
@@ -57,7 +57,7 @@ exports.snapshot = (opts) ->
     opts = defaults opts,
         keyspace : 'test'
         hosts    : ['localhost']
-        path     : ['/mnt/backup/snapshot/']
+        path     : ['/mnt/backup/cache/']
         cb       : required
     return new Snapshot(opts.keyspace, opts.hosts, opts.path, opts.cb)
 
@@ -89,11 +89,21 @@ class Snapshot
                     @_projects[project_id] = p
                 cb(err, p)
 
+    user: (project_id, cb) =>
+        @db.get_project_location
+            project_id : project_id
+            cb : (err, location) ->
+                if err
+                    cb(err)
+                else
+                    cb(false, "#{location.username}@#{location.host}")
+
 class Project
     constructor: (@snapshot, @project_id, cb) ->
         # If necessary, initialize the local bup directory for this project
         @last_db_time = 0  # most recent timestamp of any pack file that we know is in the database.
         @bup_dir = @snapshot.path + '/' + @project_id
+        @lock = undefined
         @bup
             args : ['init']
             cb   : (err) => cb(err, @)
@@ -102,6 +112,42 @@ class Project
         opts.bup_dir = @bup_dir
         bup(opts)
 
+    user: (cb) =>
+        # do not cache, since it could change
+        @snapshot.user(@project_id, cb)
+
+    snapshot_compute_node: (cb) =>
+        # Make a new bup snapshot of the remote compute node.
+        args = undefined
+        user = undefined
+        @lock = 'snapshot'
+        async.series([
+            (cb) =>
+                @user (err, _user) =>
+                    if err
+                        cb(err)
+                    else
+                        user = _user
+                        args = ['on', user, 'index']
+                        for path in EXCLUDES
+                            args.push('--exclude')
+                            args.push(path)
+                        args.push('.')
+                        cb()
+            (cb) =>
+                @bup
+                    args    : args
+                    cb      : cb
+            (cb) =>
+                @bup
+                    args    : ['on', user, 'save', '--strip', '-n', 'master', '.']
+                    cb      : cb
+        ], (err) =>
+            @lock = undefined
+            cb(err)
+        )
+
+
     pull_from_database: (cb) =>
         # Get all pack files in the database that are newer than the last one we grabbed.
         # Set refs/heads/master.
@@ -109,9 +155,6 @@ class Project
     push_to_database: (cb) =>
         # Determine which local packfiles are newer than the last one we grabbed
         # or pushed to the database, and save each of them to the database.
-
-    snapshot_compute_node: (cb) =>
-        # Make a new bup snapshot of the remote compute node (if at least one file has changed).
 
     push_to_compute_node: (cb) =>
         # Rsync the newest snapshot to the user@hostname that the database says the project is deployed as;
