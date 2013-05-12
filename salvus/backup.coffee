@@ -294,7 +294,11 @@ class Project
     pull_from_database: (cb) =>
         # Get all pack files in the database that are newer than the last one we grabbed.
         # If we get anything, set refs/heads/master.
+        if @lock?
+            cb("locked"); return
+        @lock   = 'pull'        
         commits = undefined
+        now     = cassandra.now()
         async.series([
             (cb) =>
                 @snapshot.db.select
@@ -315,8 +319,10 @@ class Project
                     fs.writeFile(@head_file, commits[commits.length-1].head, cb)
                  else
                     cb()
-        ], cb)
-
+        ], (err) =>
+            @lock = undefined
+            @last_db_time = now
+        )
 
     push_to_compute_node: (cb) =>
         # Rsync the newest snapshot to the user@hostname that the database says the project is deployed as;
