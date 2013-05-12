@@ -2,7 +2,6 @@
 Backup -- Make a complete snapshotted dump of the system or individual projects to data/backup/
           Restore from this dump.
 
-
 ###
 
 
@@ -31,7 +30,8 @@ exec 'hostname', (err, stdout, stderr) ->
 bup = (opts) ->
     opts = defaults opts,
         args    : []
-        timeout : 10
+        timeout : 1800
+        bup_dir : process.env['BUP_DIR']
         cb      : (err, output) ->
             if err
                 winston.debug("Error -- #{err}")
@@ -48,6 +48,7 @@ bup = (opts) ->
         command : command
         args    : opts.args
         timeout : opts.timeout
+        env     : {BUP_DIR : opts.bup_dir}
         cb      : opts.cb
 
 ##
@@ -62,6 +63,7 @@ exports.snapshot = (opts) ->
 
 class Snapshot
     constructor: (@keyspace, @hosts, @path, cb) ->
+        @_projects = {}
         async.series([
             (cb) =>
                 @db = new cassandra.Salvus(keyspace:@keyspace, hosts:@hosts, cb:cb)
@@ -77,24 +79,58 @@ class Snapshot
                 cb(false, @)
         )
 
-
-    project: (project_id) =>
-        return new Project(@)
+    project: (project_id, cb) =>
+        p = @_projects[project_id]
+        if p?
+            cb(false, p)
+        else
+            new Project @, project_id, (err, p) =>
+                if not err
+                    @_projects[project_id] = p
+                cb(err, p)
 
 class Project
-    constructor: (@snapshot) ->
-        # If necessary, make local bup project directory for this project
-        # If necessary, make local fuse mount point.
-        @_last_time = 0  # we haven't pulled anything from database.
+    constructor: (@snapshot, @project_id, cb) ->
+        # If necessary, initialize the local bup directory for this project
+        @last_db_time = 0  # most recent timestamp of any pack file that we know is in the database.
+        @bup_dir = @snapshot.path + '/' + @project_id
+        @bup
+            args : ['init']
+            cb   : (err) => cb(err, @)
 
-    pull_from_database: () =>
+    bup: (opts) =>
+        opts.bup_dir = @bup_dir
+        bup(opts)
+
+    pull_from_database: (cb) =>
         # Get all pack files in the database that are newer than the last one we grabbed.
+        # Set refs/heads/master.
 
-    push_to_database: () =>
+    push_to_database: (cb) =>
+        # Determine which local packfiles are newer than the last one we grabbed
+        # or pushed to the database, and save each of them to the database.
 
-    snapshot_compute_node: () =>
+    snapshot_compute_node: (cb) =>
+        # Make a new bup snapshot of the remote compute node (if at least one file has changed).
 
-    push_to_compute_node: () =>
+    push_to_compute_node: (cb) =>
+        # Rsync the newest snapshot to the user@hostname that the database says the project is deployed as;
+        # or raise an error if not.
+        if @last_db_time == 0 # nothing to do
+            cb(); return
+
+    snapshots: (cb) =>
+        # Return list of dates of *all* snapshots of this project.
+
+    ls: (opts) =>
+        # Return list of names of files in the given path in the project; directories end in "/".
+        opts = defaults opts,
+            path     : '.'
+            snapshot : 'latest'
+            hidden   : false
+            cb       : undefined
+
+
 
 
 

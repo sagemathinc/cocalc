@@ -28,30 +28,31 @@
 Schema:
 
 
-CREATE TABLE project_bups (
-     project_id  uuid,
-     time        timestamp,     /* when inserted */
-     sha1        varchar,       /* sha1 hash of pack file */
-     pack        blob,          /* contents of pack file */
-     idx         blob,          /* index into this pack file */
-     head        varchar,       /* head, when this pack file was the newest */
-     PRIMARY KEY(project_id, time)
-) WITH CLUSTERING ORDER BY (time ASC);
+    CREATE TABLE project_bups (
+         project_id  uuid,
+         time        timestamp,     /* when inserted */
+         sha1        varchar,       /* sha1 hash of pack file */
+         pack        blob,          /* contents of pack file */
+         idx         blob,          /* index into this pack file */
+         head        varchar,       /* head, when this pack file was the newest */
+         PRIMARY KEY(project_id, time)
+    ) WITH CLUSTERING ORDER BY (time ASC);
 
 
-UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff807', head='7c814e1daea739e910693ff65d5046bf724ff807' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823493;
-UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff817', head='7c814e1daea739e910693ff65d5046bf724ff817' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823500;
-UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff810', head='7c814e1daea739e910693ff65d5046bf724ff810' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823400;
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff807', head='7c814e1daea739e910693ff65d5046bf724ff807' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823493;
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff817', head='7c814e1daea739e910693ff65d5046bf724ff817' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823500;
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff810', head='7c814e1daea739e910693ff65d5046bf724ff810' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823400;
 
-Works:
+It Works:
 
-cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966;
+    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966;
+    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time >= 9390823493;
+
 [x] (0:30?) create a table (in db_schema) with one row for each project backup, or add to the existing project schema (not sure which is best).
-
 
 ### the code below will just go in a new section of backup.coffee.
 
-[ ] (1:00?) pull
+[ ] (1:00?) get_from_database
      INPUT: project_id, path
      EFFECT:
          - fuse unmount if needed
@@ -73,9 +74,7 @@ cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-
 
 
 
-
-
-
+IDEA: If project grows beyond a certain size, refuse to make snapshots... and tell user.
 
 
 ----
