@@ -148,22 +148,31 @@ class Project
         )
 
 
-    pull_from_database: (cb) =>
-        # Get all pack files in the database that are newer than the last one we grabbed.
-        # Set refs/heads/master.
+    snapshots: (cb) =>
+        # Return list of dates of *all* snapshots of this project.
+        @bup
+            args : ['ls', 'master']
+            cb   : (err, output) =>
+                if err
+                    cb(err)
+                else
+                    v = output.stdout.split('\n')
+                    v = v.slice(0, -2)
+                    cb(false, (x.slice(0,-1) for x in v))
 
     push_to_database: (cb) =>
         # Determine which local packfiles are newer than the last one we grabbed
         # or pushed to the database, and save each of them to the database.
+
+    pull_from_database: (cb) =>
+        # Get all pack files in the database that are newer than the last one we grabbed.
+        # Set refs/heads/master.
 
     push_to_compute_node: (cb) =>
         # Rsync the newest snapshot to the user@hostname that the database says the project is deployed as;
         # or raise an error if not.
         if @last_db_time == 0 # nothing to do
             cb(); return
-
-    snapshots: (cb) =>
-        # Return list of dates of *all* snapshots of this project.
 
     ls: (opts) =>
         # Return list of names of files in the given path in the project; directories end in "/".
