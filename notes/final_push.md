@@ -62,10 +62,15 @@ It Works:
 testing:
 
     t={};require('backup').snapshot(cb:(err,s)->t.s=s)
-    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
+
+    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)  # big
+
+    t.s.project("", (err, p) -> t.p=p)  # small
+
     t.p.snapshot_compute_node(console.log)
     t.p.snapshots(console.log)
     t.p.ls(path:'salvus', hidden:true, cb:console.log)
+    t.p.push_to_database(console.log)
 
 
 [ ] (1:00?) snapshot
@@ -76,7 +81,7 @@ testing:
         - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
           change time is stored in db.
 
-[ ] (1:00?) push
+--> [ ] (1:00?) push
      calls the get function above, then bup restore, then rsync's the result to username@host
 
 [ ] (1:00?) browse functionality (in hub) -- just ensure there is an updated localcopy, then give back directory listing to project *owner* only.
@@ -84,6 +89,8 @@ testing:
 
 
 IDEA: If project grows beyond a certain size, refuse to make snapshots... and tell user.
+
+[ ] (1:00) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?)
 
 
 ----

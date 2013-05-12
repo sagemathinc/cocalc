@@ -7,7 +7,10 @@ Backup -- Make a complete snapshotted dump of the system or individual projects 
 
 EXCLUDES=['.bup', '.sage/gap', '.sage/cache', '.sage/temp', '.sage/tmp', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
 
+fs    = require('fs')
+
 async = require('async')
+
 misc  = require('misc')
 
 {defaults, required} = misc
@@ -101,8 +104,11 @@ class Snapshot
 class Project
     constructor: (@snapshot, @project_id, cb) ->
         # If necessary, initialize the local bup directory for this project
-        @last_db_time = 0  # most recent timestamp of any pack file that we know is in the database.
-        @bup_dir = @snapshot.path + '/' + @project_id
+        @last_db_time = '1969-12-31T16:00:00'   # most recent timestamp of any pack file that we know is in the database.
+        @bup_dir  = @snapshot.path + '/' + @project_id
+        @pack_dir = @bup_dir + '/objects/pack'
+        @head_file = @bup_dir + '/refs/heads/master'
+
         @lock = undefined
         @bup
             args : ['init']
@@ -118,11 +124,16 @@ class Project
 
     snapshot_compute_node: (cb) =>
         # Make a new bup snapshot of the remote compute node.
+        if @lock?
+            cb("locked"); return
         args = undefined
         user = undefined
+        head = undefined
+        before = undefined
         @lock = 'snapshot'
         async.series([
             (cb) =>
+                # Create index command.
                 @user (err, _user) =>
                     if err
                         cb(err)
@@ -135,13 +146,40 @@ class Project
                         args.push('.')
                         cb()
             (cb) =>
+                # Run the index command (on the remote compute machine)
                 @bup
                     args    : args
                     cb      : cb
+
             (cb) =>
+                fs.readdir @pack_dir, (err, _before) =>
+                    before = (x for x in _before when misc.filename_extension(x) == 'pack')
+                    cb(err)
+
+            (cb) =>
+                # Save new data to local bup repo (master branch).
                 @bup
-                    args    : ['on', user, 'save', '--strip', '-n', 'master', '.']
-                    cb      : cb
+                    args    : ['on', user, 'save', '-c', '--strip', '-q', '-n', 'master', '.']
+                    cb      : (err, output) =>
+                        if err
+                            cb(err)
+                        else
+                            head = output.stderr.slice(0,-1)
+                            console.log("head = ", head)
+                            cb()
+            (cb) =>
+                # Create file containing the newly created head hash value.
+                fs.readdir @pack_dir, (err, after) =>
+                    console.log("after = ", after)
+                    console.log("before = ", before)
+                    x = (v for v in after when misc.filename_extension(v) == 'pack' and v not in before)
+                    if x.length != 1
+                        cb("there should be exactly one new pack file")
+                    else
+                        head_file = @pack_dir + '/' + x[0].slice(0,-4) + 'head'
+                        console.log("writing ", head_file)
+                        fs.writeFile(head_file, head, cb)
+
         ], (err) =>
             @lock = undefined
             cb(err)
@@ -181,6 +219,75 @@ class Project
     push_to_database: (cb) =>
         # Determine which local packfiles are newer than the last one we grabbed
         # or pushed to the database, and save each of them to the database.
+        if @lock?
+            cb("locked"); return
+        @lock = "push"
+        to_save = undefined
+        files   = undefined
+        async.series([
+            (cb) =>
+                fs.readdir @pack_dir, (err, _files) =>
+                    if err
+                        cb(err)
+                    else
+                        files = _files
+                        cb()
+            (cb) =>
+                needs_to_be_saved = (file, cb) =>
+                    if misc.filename_extension(file) not in ['pack']
+                        cb(false); return
+                    fs.stat @pack_dir + '/' + file, (err, stats) =>
+                        if err
+                            winston.debug("ERROR getting file timestamp for '#{file}' -- '#{err}'")
+                            cb(false)
+                        else
+                            cb(misc.to_iso(stats.mtime) >= @last_db_time)
+                async.filter files, needs_to_be_saved, (results) =>
+                    to_save = results
+                    cb()
+
+            (cb) =>
+                async.map(to_save, @_save_to_database, (err, results) => cb(err))
+
+            (cb) =>
+                @last_db_time = cassandra.now()
+
+        ], (err) =>
+            @lock = undefined
+            cb(err)
+        )
+
+    _save_to_database: (file, cb) =>
+        # Read the pack file, the idx file, and the head file (pointer into idx), and save them to the database.
+        sha1      = file.slice(5,-5)
+        pack_file = @pack_dir + '/' + file
+        idx_file  = pack_file.slice(0,-4) + 'idx'
+        head_file = pack_file.slice(0,-4) + 'head'
+        time      = undefined
+        async.series([
+            (cb) =>
+                fs.stat pack_file, (err, stats) =>
+                    if err
+                        cb(err)
+                    else
+                        time = misc.to_iso(stats.mtime)
+                        cb()
+            (cb) =>
+                async.map [pack_file, idx_file, head_file], fs.readFile, (err, results) =>
+                    if err
+                        cb(err); return
+                    @snapshot.db.update
+                        table : 'project_bups'
+                        set   :
+                            sha1 : sha1
+                            pack : results[0].toString('hex')
+                            idx  : results[1].toString('hex')
+                            head : results[2].toString().slice(0,-1)
+                        where :
+                            project_id : @project_id
+                            time       : time
+                        cb    : cb
+        ], cb)
 
     pull_from_database: (cb) =>
         # Get all pack files in the database that are newer than the last one we grabbed.
