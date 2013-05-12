@@ -164,20 +164,16 @@ class Project
                         if err
                             cb(err)
                         else
-                            head = output.stderr.slice(0,-1)
-                            console.log("head = ", head)
+                            head = output.stderr
                             cb()
             (cb) =>
                 # Create file containing the newly created head hash value.
                 fs.readdir @pack_dir, (err, after) =>
-                    console.log("after = ", after)
-                    console.log("before = ", before)
                     x = (v for v in after when misc.filename_extension(v) == 'pack' and v not in before)
                     if x.length != 1
                         cb("there should be exactly one new pack file")
                     else
                         head_file = @pack_dir + '/' + x[0].slice(0,-4) + 'head'
-                        console.log("writing ", head_file)
                         fs.writeFile(head_file, head, cb)
 
         ], (err) =>
@@ -249,10 +245,8 @@ class Project
             (cb) =>
                 async.map(to_save, @_save_to_database, (err, results) => cb(err))
 
-            (cb) =>
-                @last_db_time = cassandra.now()
-
         ], (err) =>
+            @last_db_time = cassandra.now()
             @lock = undefined
             cb(err)
         )
@@ -289,9 +283,40 @@ class Project
                         cb    : cb
         ], cb)
 
+    _write_to_disk: (commit, cb) =>   # commit = entry from the database as JSON object
+        prefix = @pack_dir + '/pack-' + commit.sha1 + '.'
+        async.parallel([
+            (cb) => fs.writeFile(prefix + 'pack', commit.pack, cb)
+            (cb) => fs.writeFile(prefix + 'idx',  commit.idx,  cb)
+            (cb) => fs.writeFile(prefix + 'head', commit.head, cb)
+        ], cb)
+
     pull_from_database: (cb) =>
         # Get all pack files in the database that are newer than the last one we grabbed.
-        # Set refs/heads/master.
+        # If we get anything, set refs/heads/master.
+        commits = undefined
+        async.series([
+            (cb) =>
+                @snapshot.db.select
+                    table     : 'project_bups'
+                    columns   : ['sha1', 'pack', 'idx', 'head']
+                    objectify : true
+                    where     : {time:{'>':@last_db_time}}
+                    cb        : (err, r) =>
+                        if err
+                            cb(err); return
+                        commits = r
+                        cb()
+            (cb) =>
+                 async.map(commits, @_write_to_disk, (err, results) => cb(err))
+            (cb) =>
+                 # schema ensures that data is stored and returned in date order in the database, so last is newest.
+                 if commits.length > 0
+                    fs.writeFile(@head_file, commits[commits.length-1].head, cb)
+                 else
+                    cb()
+        ], cb)
+
 
     push_to_compute_node: (cb) =>
         # Rsync the newest snapshot to the user@hostname that the database says the project is deployed as;

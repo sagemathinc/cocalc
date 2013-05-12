@@ -62,10 +62,9 @@ It Works:
 testing:
 
     t={};require('backup').snapshot(cb:(err,s)->t.s=s)
+    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p) 
 
-    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)  # big
-
-    t.s.project("", (err, p) -> t.p=p)  # small
+    t.p.pull_from_database(console.log)
 
     t.p.snapshot_compute_node(console.log)
     t.p.snapshots(console.log)
