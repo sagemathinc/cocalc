@@ -160,6 +160,24 @@ class Project
                     v = v.slice(0, -2)
                     cb(false, (x.slice(0,-1) for x in v))
 
+    ls: (opts) =>
+        # Return list of names of files in the given path in the project; directories end in "/".
+        opts = defaults opts,
+            path     : '.'
+            snapshot : 'latest'
+            hidden   : false
+            cb       : required
+        args = ['ls', "master/#{opts.snapshot}/#{opts.path}"]
+        if opts.hidden
+            args.push('-a')
+        @bup
+            args : args
+            cb   : (err, output) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, output.stdout.split('\n').slice(0,-1))
+
     push_to_database: (cb) =>
         # Determine which local packfiles are newer than the last one we grabbed
         # or pushed to the database, and save each of them to the database.
@@ -173,15 +191,6 @@ class Project
         # or raise an error if not.
         if @last_db_time == 0 # nothing to do
             cb(); return
-
-    ls: (opts) =>
-        # Return list of names of files in the given path in the project; directories end in "/".
-        opts = defaults opts,
-            path     : '.'
-            snapshot : 'latest'
-            hidden   : false
-            cb       : undefined
-
 
 
 
