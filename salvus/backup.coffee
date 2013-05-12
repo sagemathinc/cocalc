@@ -7,8 +7,7 @@ Backup -- Make a complete snapshotted dump of the system or individual projects 
 
 EXCLUDES=['.bup', '.sage/gap', '.sage/cache', '.sage/temp', '.sage/tmp', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
 
-#MAX_BLOB_SIZE = 60000000
-MAX_BLOB_SIZE = 10000000
+MAX_BLOB_SIZE = 4000000
 
 fs    = require('fs')
 
@@ -167,7 +166,7 @@ class Project
                         if err
                             cb(err)
                         else
-                            head = output.stderr
+                            head = output.stderr.trim()
                             cb()
             (cb) =>
                 # Create file containing the newly created head hash value.
@@ -246,7 +245,7 @@ class Project
                     cb()
 
             (cb) =>
-                async.map(to_save, @_save_to_database, (err, results) => cb(err))
+                async.mapSeries(to_save, @_save_to_database, (err, results) => cb(err))
 
         ], (err) =>
             @last_db_time = cassandra.now()
@@ -276,7 +275,7 @@ class Project
 
                     pack = results[0]
                     idx  = results[1].toString('hex')
-                    head = results[2].toString().slice(0,-1)
+                    head = results[2].toString()
                     num_chunks = Math.ceil(pack.length / MAX_BLOB_SIZE)
                     console.log("num_chunks = ", num_chunks)
 
@@ -325,18 +324,32 @@ class Project
             cb("locked"); return
         @lock   = 'pull'
         commits = undefined
-        now     = cassandra.now()
         async.series([
             (cb) =>
                 @snapshot.db.select
                     table     : 'project_bups'
-                    columns   : ['sha1', 'pack', 'idx', 'head']
+                    columns   : ['sha1', 'pack', 'idx', 'head', 'number', 'num_chunks']
                     objectify : true
                     where     : {time:{'>':@last_db_time}}
-                    cb        : (err, r) =>
+                    cb        : (err, results) =>
                         if err
                             cb(err); return
-                        commits = r
+                        commits = []
+                        commit = undefined
+                        packs  = []
+                        pack_len = 0
+                        for chunk in results
+                            if chunk.number == 0
+                                commit = {sha1:chunk.sha1, idx:chunk.idx, head:chunk.head}
+                                commits.push(commit)
+                            packs.push(chunk.pack)
+                            pack_len += chunk.pack.length
+
+                        commit.pack = new Buffer(pack_len)
+                        pos = 0
+                        for p in packs
+                            p.copy(commit.pack, pos)
+                            pos += p.length
                         cb()
             (cb) =>
                  async.map(commits, @_write_to_disk, (err, results) => cb(err))
@@ -348,7 +361,8 @@ class Project
                     cb()
         ], (err) =>
             @lock = undefined
-            @last_db_time = now
+            @last_db_time = cassandra.now()
+            cb(err)
         )
 
     push_to_compute_node: (cb) =>

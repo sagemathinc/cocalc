@@ -69,33 +69,32 @@ testing:
     t.p.ls(path:'salvus', hidden:true, cb:console.log)
     t.p.push_to_database(console.log)
 
-Write speed is slow.  I'm trying this fork:
+   Write speed is slow.  I'm trying this fork:
    npm install git://github.com/pooyasencha/helenus.git
 
    NOPE.
 
-Try Python's driver...
+   Try Python's driver... NOPE.
+
+Look, write speed doesn't matter much for this, since it won't hold up anything the user is doing, and only ever
+happens once (and usually is fast).
+`
+
+[x] (0:30?) implement and test chunked *read* from database.
+
+
+[ ] (0:30?) implement and test rsync push.
+[ ] (0:15?) if anything goes wrong pushing commits to db, then delete them all with that sha1.
+
+[ ] (0:05?) merge back to master
+
+---
 
 
 
-
-
-[ ] (1:00?) snapshot
-     INPUT: project_id, path
-     EFFECT:
-        - does above update to path
-        - makes a new snapshot of remote project (wherever it is) -- save everything except .sagemathcloud and .sage/gap and .forever
-        - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
-          change time is stored in db.
-
---> [ ] (1:00?) push
-     calls the get function above, then bup restore, then rsync's the result to username@host
 
 [ ] (1:00?) browse functionality (in hub) -- just ensure there is an updated localcopy, then give back directory listing to project *owner* only.
 
-
-
-IDEA: If project grows beyond a certain size, refuse to make snapshots... and tell user.
 
 [ ] (1:00) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?)
 
