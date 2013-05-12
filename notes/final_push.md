@@ -62,17 +62,26 @@ It Works:
 testing:
 
     t={};require('backup').snapshot(cb:(err,s)->t.s=s)
-    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p) 
+    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
 
     t.p.pull_from_database(console.log)
 
     t.p.snapshot_compute_node(console.log)
     t.p.snapshots(console.log)
-    t.p.ls(path:'salvus', hidden:true, cb:console.log)
+    t.p.ls(path:'.', hidden:true, cb:console.log)
     t.p.push_to_database(console.log)
 
+    t.s.db.select(table:'project_bups', columns:['pack'], where:{project_id:'7ad260c7-3a0d-4db3-a1a5-06c04cbf2757'}, cb:(e,r)->console.log("done"))
 
-[ ] (1:00?) snapshot
+---
+## On storm:
+
+    t={};require('backup').snapshot(keyspace:'salvus', hosts:['10.2.1.2'], cb:(err,s)->t.s=s)
+    t.s.project("0cac77f9-ee2f-4342-bbfa-8389f8231a4b", (err, p) -> t.p=p)
+
+
+
+[x] (1:00?) snapshot
      INPUT: project_id, path
      EFFECT:
         - does above update to path
@@ -80,19 +89,20 @@ testing:
         - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
           change time is stored in db.
 
---> [ ] (1:00?) push
+[x] (1:00?) push
      calls the get function above, then bup restore, then rsync's the result to username@host
+
+
+
+[ ] (1:00?) install this new backup code on storm1, increase RAM of cassandra and web nodes, restart that cluster, then try saving a 150MB pack file and see what happens.
 
 [ ] (1:00?) browse functionality (in hub) -- just ensure there is an updated localcopy, then give back directory listing to project *owner* only.
 
 
 
-IDEA: If project grows beyond a certain size, refuse to make snapshots... and tell user.
-
 [ ] (1:00) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?)
 
 
-----
 
 
 [ ] (0:45) "var('x','y')" has to work, since it works in Sage.
