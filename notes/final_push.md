@@ -63,17 +63,12 @@ testing:
 
     t={};require('backup').snapshot(cb:(err,s)->t.s=s)
     t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
-
     t.p.pull_from_database(console.log)
-
     t.p.snapshot_compute_node(console.log)
     t.p.snapshots(console.log)
     t.p.ls(path:'.', hidden:true, cb:console.log)
     t.p.push_to_database(console.log)
 
-    t.s.db.select(table:'project_bups', columns:['pack'], where:{project_id:'7ad260c7-3a0d-4db3-a1a5-06c04cbf2757'}, cb:(e,r)->console.log("done"))
-
----
 ## On storm:
 
     t={};require('backup').snapshot(keyspace:'salvus', hosts:['10.2.1.2'], cb:(err,s)->t.s=s)
@@ -92,11 +87,27 @@ testing:
 [x] (1:00?) push
      calls the get function above, then bup restore, then rsync's the result to username@host
 
+Write speed is slow.  I'm trying this fork:
+   npm install git://github.com/pooyasencha/helenus.git
 
+   NOPE.
+
+   Try Python's driver... NOPE.
+
+Look, write speed doesn't matter much for this, since it won't hold up anything the user is doing, and only ever
+happens once (and usually is fast).
+`
+
+[x] (0:30?) implement and test chunked *read* from database.
+
+[ ] (0:30?) implement and test rsync push.
+[ ] (0:15?) if anything goes wrong pushing commits to db, then delete them all with that sha1.
 
 [ ] (1:00?) install this new backup code on storm1, increase RAM of cassandra and web nodes, restart that cluster, then try saving a 150MB pack file and see what happens.
 
 [ ] (1:00?) browse functionality (in hub) -- just ensure there is an updated localcopy, then give back directory listing to project *owner* only.
+
+[ ] (0:05?) merge back to master
 
 
 

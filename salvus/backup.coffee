@@ -7,6 +7,8 @@ Backup -- Make a complete snapshotted dump of the system or individual projects 
 
 EXCLUDES=['.bup', '.sage/gap', '.sage/cache', '.sage/temp', '.sage/tmp', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
 
+MAX_BLOB_SIZE = 4000000
+
 fs    = require('fs')
 
 async = require('async')
@@ -164,7 +166,7 @@ class Project
                         if err
                             cb(err)
                         else
-                            head = output.stderr
+                            head = output.stderr.trim()
                             cb()
             (cb) =>
                 # Create file containing the newly created head hash value.
@@ -243,7 +245,7 @@ class Project
                     cb()
 
             (cb) =>
-                async.map(to_save, @_save_to_database, (err, results) => cb(err))
+                async.mapSeries(to_save, @_save_to_database, (err, results) => cb(err))
 
         ], (err) =>
             @last_db_time = cassandra.now()
@@ -270,17 +272,41 @@ class Project
                 async.map [pack_file, idx_file, head_file], fs.readFile, (err, results) =>
                     if err
                         cb(err); return
-                    @snapshot.db.update
-                        table : 'project_bups'
-                        set   :
-                            sha1 : sha1
-                            pack : results[0].toString('hex')
-                            idx  : results[1].toString('hex')
-                            head : results[2].toString().slice(0,-1)
-                        where :
-                            project_id : @project_id
-                            time       : time
-                        cb    : cb
+
+                    pack = results[0]
+                    idx  = results[1].toString('hex')
+                    head = results[2].toString()
+                    num_chunks = Math.ceil(pack.length / MAX_BLOB_SIZE)
+                    console.log("num_chunks = ", num_chunks)
+
+                    f = (number, cb) =>
+                        console.log("handling chunk", number)
+                        set =
+                            sha1       : sha1
+                            pack       : pack.slice(number*MAX_BLOB_SIZE, (number+1)*MAX_BLOB_SIZE).toString('hex')
+                            num_chunks : num_chunks
+
+                        if number == 0
+                            set.idx  = idx
+                            set.head = head
+
+                        console.log("starting call to cassandra...")
+                        @snapshot.db.update
+                            table : 'project_bups'
+                            set   : set
+                            where :
+                                project_id : @project_id
+                                time       : time
+                                number     : number
+                            cb    : (err) =>
+                                console.log("cassandra call returned")
+                                cb(err)
+
+
+                    # We do these in *series* since the whole point is to save memory; logically
+                    # we could do them in parallel, but that would use too much memory, defeating the purpose.
+                    async.eachSeries([0...num_chunks], f, cb)
+
         ], cb)
 
     _write_to_disk: (commit, cb) =>   # commit = entry from the database as JSON object
@@ -296,20 +322,34 @@ class Project
         # If we get anything, set refs/heads/master.
         if @lock?
             cb("locked"); return
-        @lock   = 'pull'        
+        @lock   = 'pull'
         commits = undefined
-        now     = cassandra.now()
         async.series([
             (cb) =>
                 @snapshot.db.select
                     table     : 'project_bups'
-                    columns   : ['sha1', 'pack', 'idx', 'head']
+                    columns   : ['sha1', 'pack', 'idx', 'head', 'number', 'num_chunks']
                     objectify : true
                     where     : {time:{'>':@last_db_time}}
-                    cb        : (err, r) =>
+                    cb        : (err, results) =>
                         if err
                             cb(err); return
-                        commits = r
+                        commits = []
+                        commit = undefined
+                        packs  = []
+                        pack_len = 0
+                        for chunk in results
+                            if chunk.number == 0
+                                commit = {sha1:chunk.sha1, idx:chunk.idx, head:chunk.head}
+                                commits.push(commit)
+                            packs.push(chunk.pack)
+                            pack_len += chunk.pack.length
+
+                        commit.pack = new Buffer(pack_len)
+                        pos = 0
+                        for p in packs
+                            p.copy(commit.pack, pos)
+                            pos += p.length
                         cb()
             (cb) =>
                  async.map(commits, @_write_to_disk, (err, results) => cb(err))
@@ -321,7 +361,8 @@ class Project
                     cb()
         ], (err) =>
             @lock = undefined
-            @last_db_time = now
+            @last_db_time = cassandra.now()
+            cb(err)
         )
 
     push_to_compute_node: (cb) =>
