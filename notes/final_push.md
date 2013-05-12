@@ -5,9 +5,8 @@
 
 [x] (1:00?) (1:30)[distractions] determine exactly what files need to be stored in the database
 
-   - ordered list of sha1 hashes of the pack/idx files
-   - the actual pack/idx files
-   - store the value in "refs/heads/project"      (this is a file with a hash in it)
+   - all the actual pack/idx files
+   - the value in "refs/heads/project"      (this is a file with a hash in it)
 
    Optimizations (bup automatically recreates all these files, so storing them in the db is probably a waste of space).
        - store all objects/pack/*midx* files
@@ -24,23 +23,52 @@
    pairs, save them to the DB, then change the project meta-info, and delete all the other idx/pack files
    associated to that project.
 
-[ ] (1:00?) add functionality to cassaandra.coffee to support what is needed (if necessary)
-[ ] (0:30?) create a table (in db_schema) with one row for each project backup, or add to the existing project schema (not sure which is best).
-[ ] (1:00?) localcopy function
+[x] (1:00?) add functionality to cassaandra.coffee to support what is needed (if necessary) -- nothing needed
+
+Schema:
+
+
+CREATE TABLE project_bups (
+     project_id  uuid,
+     time        timestamp,     /* when inserted */
+     sha1        varchar,       /* sha1 hash of pack file */
+     pack        blob,          /* contents of pack file */
+     idx         blob,          /* index into this pack file */
+     head        varchar,       /* head, when this pack file was the newest */
+     PRIMARY KEY(project_id, time)
+) WITH CLUSTERING ORDER BY (time ASC);
+
+
+UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff807', head='7c814e1daea739e910693ff65d5046bf724ff807' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823493;
+UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff817', head='7c814e1daea739e910693ff65d5046bf724ff817' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823500;
+UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff810', head='7c814e1daea739e910693ff65d5046bf724ff810' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823400;
+
+Works:
+
+cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966;
+[x] (0:30?) create a table (in db_schema) with one row for each project backup, or add to the existing project schema (not sure which is best).
+
+
+### the code below will just go in a new section of backup.coffee.
+
+[ ] (1:00?) pull
      INPUT: project_id, path
      EFFECT:
          - fuse unmount if needed
          - pulls what is needed to update bup archive in path to current version in database
          - fuse mount
-[ ] (1:00?) update function
+
+[ ] (1:00?) snapshot
      INPUT: project_id, path
      EFFECT:
         - does above update to path
         - makes a new snapshot of remote project (wherever it is) -- save everything except .sagemathcloud and .sage/gap and .forever
         - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
           change time is stored in db.
-[ ] (1:00?) push function
+
+[ ] (1:00?) push
      calls the get function above, then bup restore, then rsync's the result to username@host
+
 [ ] (1:00?) browse functionality (in hub) -- just ensure there is an updated localcopy, then give back directory listing to project *owner* only.
 
 

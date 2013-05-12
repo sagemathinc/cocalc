@@ -50,6 +50,60 @@ bup = (opts) ->
         timeout : opts.timeout
         cb      : opts.cb
 
+##
+
+exports.snapshot = (opts) ->
+    opts = defaults opts,
+        keyspace : 'test'
+        hosts    : ['localhost']
+        path     : ['/mnt/backup/snapshot/']
+        cb       : required
+    return new Snapshot(opts.keyspace, opts.hosts, opts.path, opts.cb)
+
+class Snapshot
+    constructor: (@keyspace, @hosts, @path, cb) ->
+        async.series([
+            (cb) =>
+                @db = new cassandra.Salvus(keyspace:@keyspace, hosts:@hosts, cb:cb)
+            (cb) =>
+                 misc_node.execute_code
+                     command : "mkdir"
+                     args    : ['-p', @path]
+                     cb      : cb
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(false, @)
+        )
+
+
+    project: (project_id) =>
+        return new Project(@)
+
+class Project
+    constructor: (@snapshot) ->
+        # If necessary, make local bup project directory for this project
+        # If necessary, make local fuse mount point.
+        @_last_time = 0  # we haven't pulled anything from database.
+
+    pull_from_database: () =>
+        # Get all pack files in the database that are newer than the last one we grabbed.
+
+    push_to_database: () =>
+
+    snapshot_compute_node: () =>
+
+    push_to_compute_node: () =>
+
+
+
+
+
+
+########################
+########################
+
 
 exports.backup = (opts) ->
     opts = defaults opts,

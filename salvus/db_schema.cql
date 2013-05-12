@@ -261,6 +261,23 @@ CREATE TABLE project_snapshots (
 
 CREATE INDEX ON project_snapshots(host);
 
+
+
+/* Table of pack files attached to a project. This gives the entire snapshot history
+   of the project in a git format that can be used with bup. */
+
+CREATE TABLE project_bups (
+     project_id  uuid,
+     time        timestamp,     /* when inserted */
+     sha1        varchar,       /* sha1 hash of pack file */
+     pack        blob,          /* contents of pack file */
+     idx         blob,          /* index into this pack file */
+     head        varchar,       /* head, when this pack file was the newest */
+     PRIMARY KEY(project_id, time)
+) WITH CLUSTERING ORDER BY (time ASC);
+
+
+
 ////////////////////////////////////////////
 // Sessions -- live compute sessions
 ////////////////////////////////////////////
