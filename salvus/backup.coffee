@@ -105,16 +105,39 @@ class Snapshot
 
 class Project
     constructor: (@snapshot, @project_id, cb) ->
+        @lock = 'init'
+
         # If necessary, initialize the local bup directory for this project
-        @last_db_time = '1969-12-31T16:00:00'   # most recent timestamp of any pack file that we know is in the database.
-        @bup_dir  = @snapshot.path + '/' + @project_id
-        @pack_dir = @bup_dir + '/objects/pack'
+        @bup_dir   = @snapshot.path + '/' + @project_id
+        @pack_dir  = @bup_dir + '/objects/pack'
         @head_file = @bup_dir + '/refs/heads/master'
 
-        @lock = undefined
-        @bup
-            args : ['init']
-            cb   : (err) => cb(err, @)
+        # most recent timestamp of any pack file that we know is in the database.
+        @last_db_time = '1969-12-31T16:00:00'
+        files = undefined
+        async.series([
+            (cb) =>
+                @bup
+                    args : ['init']
+                    cb   : cb
+            (cb) =>
+                fs.readdir @pack_dir, (err, _files) =>
+                    files = _files
+                    cb(err)
+            (cb) =>
+                f = (file, cb) =>
+                    if misc.filename_extension(file) != 'pack'
+                        cb()
+                    else
+                        fs.stat @pack_dir + '/' + file, (err, stats) =>
+                            if not err and misc.to_iso(stats.mtime) > @last_db_time
+                                @last_db_time = misc.to_iso(stats.mtime)
+                            cb(err)
+                async.map(files, f, cb)
+        ], (err) =>
+            @lock = undefined
+            cb(err, @)
+        )
 
     bup: (opts) =>
         opts.bup_dir = @bup_dir

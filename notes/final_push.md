@@ -52,22 +52,13 @@ It Works:
 
 ### the code below will just go in a new section of backup.coffee.
 
-[ ] (1:00?) get_from_database
+[x] (1:00?) get_from_database
      INPUT: project_id, path
      EFFECT:
          - fuse unmount if needed
          - pulls what is needed to update bup archive in path to current version in database
          - fuse mount
 
-testing:
-
-    t={};require('backup').snapshot(cb:(err,s)->t.s=s)
-    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
-    t.p.pull_from_database(console.log)
-    t.p.snapshot_compute_node(console.log)
-    t.p.snapshots(console.log)
-    t.p.ls(path:'.', hidden:true, cb:console.log)
-    t.p.push_to_database(console.log)
 
 ## On storm:
 
@@ -100,8 +91,27 @@ happens once (and usually is fast).
 
 [x] (0:30?) implement and test chunked *read* from database.
 
+---
+
+testing:
+
+    t={};require('backup').snapshot(cb:(err,s)->t.s=s)
+    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
+    t.p.pull_from_database(console.log)
+    t.p.snapshot_compute_node(console.log)
+    t.p.snapshots(console.log)
+    t.p.ls(path:'.', hidden:true, cb:console.log)
+    t.p.push_to_database(console.log)
+
+
+--> [ ] (0:30?) set the latest date when creating project object, based on what is in filesystem; important for restarting daemon and not throwing away state.
+
 [ ] (0:30?) implement and test rsync push.
+
 [ ] (0:15?) if anything goes wrong pushing commits to db, then delete them all with that sha1.
+
+
+
 
 [ ] (1:00?) install this new backup code on storm1, increase RAM of cassandra and web nodes, restart that cluster, then try saving a 150MB pack file and see what happens.
 
