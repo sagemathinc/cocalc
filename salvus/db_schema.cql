@@ -284,6 +284,7 @@ CREATE TABLE project_bups (
      PRIMARY KEY(project_id, time, number)
 ) WITH CLUSTERING ORDER BY (time ASC, number ASC) AND compression={ 'sstable_compression' :''};
 
+/* CREATE INDEX ON sha1(project_bups); */
 
 
 ////////////////////////////////////////////

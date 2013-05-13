@@ -104,7 +104,11 @@ testing:
     t.p.push_to_database(console.log)
 
 
---> [ ] (0:30?) set the latest date when creating project object, based on what is in filesystem; important for restarting daemon and not throwing away state.
+[x] (0:30?) set the latest date when creating project object, based on what is in filesystem; important for restarting daemon and not throwing away state.
+
+[x] (0:10?) quick speed test with no compression. (no noticeable difference)
+
+--> [ ] (0:30?) get rid of last_db_time and replace with proper syncing by getting the sha'1 from db.
 
 [ ] (0:30?) implement and test rsync push.
 

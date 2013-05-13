@@ -106,34 +106,23 @@ class Snapshot
 class Project
     constructor: (@snapshot, @project_id, cb) ->
         @lock = 'init'
-
         # If necessary, initialize the local bup directory for this project
         @bup_dir   = @snapshot.path + '/' + @project_id
         @pack_dir  = @bup_dir + '/objects/pack'
         @head_file = @bup_dir + '/refs/heads/master'
-
-        # most recent timestamp of any pack file that we know is in the database.
-        @last_db_time = '1969-12-31T16:00:00'
-        files = undefined
+        @last_time_file = @bup_dir + '/last_db_time'
         async.series([
             (cb) =>
-                @bup
-                    args : ['init']
-                    cb   : cb
-            (cb) =>
-                fs.readdir @pack_dir, (err, _files) =>
-                    files = _files
-                    cb(err)
-            (cb) =>
-                f = (file, cb) =>
-                    if misc.filename_extension(file) != 'pack'
+                fs.exists @last_time_file, (exists) =>
+                    if not exists
+                        @last_db_time = '1969-12-31T16:00:00'
                         cb()
                     else
-                        fs.stat @pack_dir + '/' + file, (err, stats) =>
-                            if not err and misc.to_iso(stats.mtime) > @last_db_time
-                                @last_db_time = misc.to_iso(stats.mtime)
+                        fs.readFile @last_time_file, (err, value) =>
+                            @last_db_time = value.toString()
                             cb(err)
-                async.map(files, f, cb)
+            (cb) =>
+                @bup(args : ['init'], cb:cb)
         ], (err) =>
             @lock = undefined
             cb(err, @)
@@ -271,7 +260,6 @@ class Project
                 async.mapSeries(to_save, @_save_to_database, (err, results) => cb(err))
 
         ], (err) =>
-            @last_db_time = cassandra.now()
             @lock = undefined
             cb(err)
         )
@@ -330,7 +318,13 @@ class Project
                     # we could do them in parallel, but that would use too much memory, defeating the purpose.
                     async.eachSeries([0...num_chunks], f, cb)
 
-        ], cb)
+        ], (err) =>
+            if not err
+                @last_db_time = cassandra.now()
+                fs.writeFile(@last_time_file, @last_db_time, cb)
+            else
+                cb(err)
+        )
 
     _write_to_disk: (commit, cb) =>   # commit = entry from the database as JSON object
         prefix = @pack_dir + '/pack-' + commit.sha1 + '.'
@@ -338,6 +332,9 @@ class Project
             (cb) => fs.writeFile(prefix + 'pack', commit.pack, cb)
             (cb) => fs.writeFile(prefix + 'idx',  commit.idx,  cb)
             (cb) => fs.writeFile(prefix + 'head', commit.head, cb)
+            (cb) =>
+                @last_db_time = misc.to_iso(commit.time)
+                fs.writeFile(@last_time_file, @last_db_time, cb)
         ], cb)
 
     pull_from_database: (cb) =>
@@ -346,53 +343,71 @@ class Project
         if @lock?
             cb("locked"); return
         @lock   = 'pull'
-        commits = undefined
+        commits = []
         async.series([
             (cb) =>
                 @snapshot.db.select
                     table     : 'project_bups'
-                    columns   : ['sha1', 'pack', 'idx', 'head', 'number', 'num_chunks']
+                    columns   : ['sha1', 'pack', 'idx', 'head', 'number', 'num_chunks', 'time']
                     objectify : true
                     where     : {time:{'>':@last_db_time}}
                     cb        : (err, results) =>
                         if err
                             cb(err); return
-                        commits = []
-                        commit = undefined
-                        packs  = []
-                        pack_len = 0
+                        if results.length == 0
+                            cb(); return
+
+                        commits    = []
+                        commit     = undefined
+                        packs      = undefined
+                        num_chunks = 0
+
+                        assemble_pack_file_for_last_commit = () ->
+                            if num_chunks != packs.length
+                                return "wrong number of chunks in database for #{commit.sha1}"
+                            commit.pack = new Buffer(pack_len)
+                            pos = 0
+                            for p in packs
+                                p.copy(commit.pack, pos)
+                                pos += p.length
+                            commits.push(commit)
+                            return false
+
                         for chunk in results
                             if chunk.number == 0
-                                commit = {sha1:chunk.sha1, idx:chunk.idx, head:chunk.head}
-                                commits.push(commit)
+                                if commit?
+                                    err = assemble_pack_file_for_last_commit()
+                                    if err
+                                        cb(err); return
+                                pack_len = 0
+                                packs    = []
+                                commit   = {time:chunk.time, sha1:chunk.sha1, idx:chunk.idx, head:chunk.head}
+                                num_chunks = chunk.num_chunks
+
                             packs.push(chunk.pack)
                             pack_len += chunk.pack.length
 
-                        commit.pack = new Buffer(pack_len)
-                        pos = 0
-                        for p in packs
-                            p.copy(commit.pack, pos)
-                            pos += p.length
-                        cb()
+                        cb(assemble_pack_file_for_last_commit())
+
             (cb) =>
-                 async.map(commits, @_write_to_disk, (err, results) => cb(err))
+                 async.mapSeries(commits, @_write_to_disk, (err, results) => cb(err))
+
             (cb) =>
                  # schema ensures that data is stored and returned in date order in the database, so last is newest.
                  if commits.length > 0
                     fs.writeFile(@head_file, commits[commits.length-1].head, cb)
                  else
                     cb()
+
         ], (err) =>
             @lock = undefined
-            @last_db_time = cassandra.now()
             cb(err)
         )
 
     push_to_compute_node: (cb) =>
         # Rsync the newest snapshot to the user@hostname that the database says the project is deployed as;
         # or raise an error if not.
-        if @last_db_time == 0 # nothing to do
-            cb(); return
+
 
 
 
