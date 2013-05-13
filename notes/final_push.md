@@ -98,6 +98,7 @@ testing:
     t={};require('backup').snapshot(cb:(err,s)->t.s=s)
     t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
     t.p.pull_from_database(console.log)
+    tm=require('misc').walltime(); t.p.pull_from_database((err)->console.log(require('misc').walltime(tm)))
     t.p.snapshot_compute_node(console.log)
     t.p.snapshots(console.log)
     t.p.ls(path:'.', hidden:true, cb:console.log)
@@ -108,7 +109,7 @@ testing:
 
 [x] (0:10?) quick speed test with no compression. (no noticeable difference)
 
---> [ ] (0:30?) get rid of last_db_time and replace with proper syncing by getting the sha'1 from db.
+[ ] lots of little bug fixes and robusteness improvements in db project snapshots
 
 [ ] (0:30?) implement and test rsync push.
 

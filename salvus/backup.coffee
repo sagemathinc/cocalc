@@ -178,7 +178,8 @@ class Project
                         if err
                             cb(err)
                         else
-                            head = output.stderr.trim()
+                            v = output.stderr.trim().split('\n')
+                            head = v[v.length - 1]  # last line of stderr
                             cb()
             (cb) =>
                 # Create file containing the newly created head hash value.
@@ -234,6 +235,7 @@ class Project
         @lock = "push"
         to_save = undefined
         files   = undefined
+        shas_in_db = undefined
         async.series([
             (cb) =>
                 fs.readdir @pack_dir, (err, _files) =>
@@ -243,8 +245,24 @@ class Project
                         files = _files
                         cb()
             (cb) =>
+                @snapshot.db.select
+                    table     : 'project_bups'
+                    columns   : ['sha1']
+                    objectify : false
+                    where     : {project_id:@project_id}
+                    cb        : (err, results) =>
+                        if err
+                            cb(err); return
+                        shas_in_db = (x[0] for x in results)
+                        cb()
+
+            (cb) =>
                 needs_to_be_saved = (file, cb) =>
                     if misc.filename_extension(file) not in ['pack']
+                        # not a pack file
+                        cb(false); return
+                    if file.slice(5,-5) in shas_in_db
+                        # already in database
                         cb(false); return
                     fs.stat @pack_dir + '/' + file, (err, stats) =>
                         if err
@@ -350,7 +368,7 @@ class Project
                     table     : 'project_bups'
                     columns   : ['sha1', 'pack', 'idx', 'head', 'number', 'num_chunks', 'time']
                     objectify : true
-                    where     : {time:{'>':@last_db_time}}
+                    where     : {time:{'>':@last_db_time}, project_id:@project_id}
                     cb        : (err, results) =>
                         if err
                             cb(err); return
@@ -359,12 +377,13 @@ class Project
 
                         commits    = []
                         commit     = undefined
-                        packs      = undefined
+                        packs      = []
                         num_chunks = 0
+                        pack_len  = 0
 
                         assemble_pack_file_for_last_commit = () ->
                             if num_chunks != packs.length
-                                return "wrong number of chunks in database for #{commit.sha1}"
+                                return "wrong number of chunks in database for #{commit.sha1}; got #{packs.length} but expected #{num_chunks}"
                             commit.pack = new Buffer(pack_len)
                             pos = 0
                             for p in packs
