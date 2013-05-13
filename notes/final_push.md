@@ -1,97 +1,4 @@
-# Implement project snapshot, restore, browse, stored in the database.
-
-
-[x] (0:30?) (1:30)[slow due to distractions] learn about cassandra list type and about git files, etc.; not going to use cassandra lists for the actual blobs, etc., since they are for a different problem, and get read completely.
-
-[x] (1:00?) (1:30)[distractions] determine exactly what files need to be stored in the database
-
-   - all the actual pack/idx files
-   - the value in "refs/heads/project"      (this is a file with a hash in it)
-
-   Optimizations (bup automatically recreates all these files, so storing them in the db is probably a waste of space).
-       - store all objects/pack/*midx* files
-       - objects/pack/bup.bloom
-       - various index cache files
-
-   I just tried this branch:
-     git clone https://github.com/zoranzaric/bup.git -b locked-repack locked-repack-2
-
-   and it provides a "bup repack" command.  When run it replaces *all* the idx/pack files, no matter how many,
-   by exactly two files.  I *might* need to use this when the number of snapshots for a given project gets very
-   large, hence extracting it to the local filesystem would involving pulling thousands of tiny files from
-   cassandra, etc., which would be very inefficient.  With bup repack, I would run it, create two new idx/pack
-   pairs, save them to the DB, then change the project meta-info, and delete all the other idx/pack files
-   associated to that project.
-
-[x] (1:00?) add functionality to cassaandra.coffee to support what is needed (if necessary) -- nothing needed
-
-Schema:
-
-
-    CREATE TABLE project_bups (
-         project_id  uuid,
-         time        timestamp,     /* when inserted */
-         sha1        varchar,       /* sha1 hash of pack file */
-         pack        blob,          /* contents of pack file */
-         idx         blob,          /* index into this pack file */
-         head        varchar,       /* head, when this pack file was the newest */
-         PRIMARY KEY(project_id, time)
-    ) WITH CLUSTERING ORDER BY (time ASC);
-
-
-    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff807', head='7c814e1daea739e910693ff65d5046bf724ff807' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823493;
-    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff817', head='7c814e1daea739e910693ff65d5046bf724ff817' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823500;
-    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff810', head='7c814e1daea739e910693ff65d5046bf724ff810' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823400;
-
-It Works:
-
-    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966;
-    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time >= 9390823493;
-
-[x] (0:30?) create a table (in db_schema) with one row for each project backup, or add to the existing project schema (not sure which is best).
-
-### the code below will just go in a new section of backup.coffee.
-
-[x] (1:00?) get_from_database
-     INPUT: project_id, path
-     EFFECT:
-         - fuse unmount if needed
-         - pulls what is needed to update bup archive in path to current version in database
-         - fuse mount
-
-
-## On storm:
-
-    t={};require('backup').snapshot(keyspace:'salvus', hosts:['10.2.1.2'], cb:(err,s)->t.s=s)
-    t.s.project("0cac77f9-ee2f-4342-bbfa-8389f8231a4b", (err, p) -> t.p=p)
-
-
-
-[x] (1:00?) snapshot
-     INPUT: project_id, path
-     EFFECT:
-        - does above update to path
-        - makes a new snapshot of remote project (wherever it is) -- save everything except .sagemathcloud and .sage/gap and .forever
-        - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
-          change time is stored in db.
-
-[x] (1:00?) push
-     calls the get function above, then bup restore, then rsync's the result to username@host
-
-Write speed is slow.  I'm trying this fork:
-   npm install git://github.com/pooyasencha/helenus.git
-
-   NOPE.
-
-   Try Python's driver... NOPE.
-
-Look, write speed doesn't matter much for this, since it won't hold up anything the user is doing, and only ever
-happens once (and usually is fast).
-`
-
-[x] (0:30?) implement and test chunked *read* from database.
-
----
+# Next up: Finish implementing project snapshot, restore, browse, stored in the database.
 
 testing:
 
@@ -104,32 +11,16 @@ testing:
     t.p.ls(path:'.', hidden:true, cb:console.log)
     t.p.push_to_database(console.log)
 
+[ ] (2:00) implement and test restore
 
-[x] (0:30?) set the latest date when creating project object, based on what is in filesystem; important for restarting daemon and not throwing away state.
+[ ] (2:00) figure out how to switch from the current useless backup system to using this new snapshots-to-db and implement
 
-[x] (0:10?) quick speed test with no compression. (no noticeable difference)
+[ ] (2:00) design and implement gui for browsing snapshots and restoring projects.
 
-[ ] lots of little bug fixes and robusteness improvements in db project snapshots
-
-[ ] (0:30?) implement and test rsync push.
-
-[ ] (0:15?) if anything goes wrong pushing commits to db, then delete them all with that sha1.
-
-
-
-
-[ ] (1:00?) install this new backup code on storm1, increase RAM of cassandra and web nodes, restart that cluster, then try saving a 150MB pack file and see what happens.
-
-[ ] (1:00?) browse functionality (in hub) -- just ensure there is an updated localcopy, then give back directory listing to project *owner* only.
-
-[ ] (0:05?) merge back to master
-
+---
 
 
 [ ] (1:00) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?)
-
-
-
 
 [ ] (0:45) "var('x','y')" has to work, since it works in Sage.
 
@@ -1683,3 +1574,106 @@ time bup fsck -g
   - time to save: 44s (index), 3m26s (save), 2m20s (fsck)
   - archive size before second fsck: 1.6G, after: 1.6G
   - time to restore everything:
+
+
+
+
+
+[x] (0:30?) (1:30)[slow due to distractions] learn about cassandra list type and about git files, etc.; not going to use cassandra lists for the actual blobs, etc., since they are for a different problem, and get read completely.
+
+[x] (1:00?) (1:30)[distractions] determine exactly what files need to be stored in the database
+
+   - all the actual pack/idx files
+   - the value in "refs/heads/project"      (this is a file with a hash in it)
+
+   Optimizations (bup automatically recreates all these files, so storing them in the db is probably a waste of space).
+       - store all objects/pack/*midx* files
+       - objects/pack/bup.bloom
+       - various index cache files
+
+   I just tried this branch:
+     git clone https://github.com/zoranzaric/bup.git -b locked-repack locked-repack-2
+
+   and it provides a "bup repack" command.  When run it replaces *all* the idx/pack files, no matter how many,
+   by exactly two files.  I *might* need to use this when the number of snapshots for a given project gets very
+   large, hence extracting it to the local filesystem would involving pulling thousands of tiny files from
+   cassandra, etc., which would be very inefficient.  With bup repack, I would run it, create two new idx/pack
+   pairs, save them to the DB, then change the project meta-info, and delete all the other idx/pack files
+   associated to that project.
+
+[x] (1:00?) add functionality to cassaandra.coffee to support what is needed (if necessary) -- nothing needed
+
+Schema:
+
+
+    CREATE TABLE project_bups (
+         project_id  uuid,
+         time        timestamp,     /* when inserted */
+         sha1        varchar,       /* sha1 hash of pack file */
+         pack        blob,          /* contents of pack file */
+         idx         blob,          /* index into this pack file */
+         head        varchar,       /* head, when this pack file was the newest */
+         PRIMARY KEY(project_id, time)
+    ) WITH CLUSTERING ORDER BY (time ASC);
+
+
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff807', head='7c814e1daea739e910693ff65d5046bf724ff807' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823493;
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff817', head='7c814e1daea739e910693ff65d5046bf724ff817' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823500;
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff810', head='7c814e1daea739e910693ff65d5046bf724ff810' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823400;
+
+It Works:
+
+    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966;
+    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time >= 9390823493;
+
+[x] (0:30?) create a table (in db_schema) with one row for each project backup, or add to the existing project schema (not sure which is best).
+
+### the code below will just go in a new section of backup.coffee.
+
+[x] (1:00?) get_from_database
+     INPUT: project_id, path
+     EFFECT:
+         - fuse unmount if needed
+         - pulls what is needed to update bup archive in path to current version in database
+         - fuse mount
+
+
+## On storm:
+
+    t={};require('backup').snapshot(keyspace:'salvus', hosts:['10.2.1.2'], cb:(err,s)->t.s=s)
+    t.s.project("0cac77f9-ee2f-4342-bbfa-8389f8231a4b", (err, p) -> t.p=p)
+
+
+
+[x] (1:00?) snapshot
+     INPUT: project_id, path
+     EFFECT:
+        - does above update to path
+        - makes a new snapshot of remote project (wherever it is) -- save everything except .sagemathcloud and .sage/gap and .forever
+        - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
+          change time is stored in db.
+
+[x] (1:00?) push
+     calls the get function above, then bup restore, then rsync's the result to username@host
+
+Write speed is slow.  I'm trying this fork:
+   npm install git://github.com/pooyasencha/helenus.git
+
+   NOPE.
+
+   Try Python's driver... NOPE.
+
+Look, write speed doesn't matter much for this, since it won't hold up anything the user is doing, and only ever
+happens once (and usually is fast).
+`
+
+[x] (0:30?) implement and test chunked *read* from database.
+
+
+[x] (0:30?) set the latest date when creating project object, based on what is in filesystem; important for restarting daemon and not throwing away state.
+
+[x] (0:10?) quick speed test with no compression. (no noticeable difference)
+
+[x] lots of little bug fixes and robusteness improvements in db project snapshots
+
+---

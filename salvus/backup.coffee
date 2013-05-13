@@ -423,13 +423,15 @@ class Project
             cb(err)
         )
 
-    push_to_compute_node: (cb) =>
-        # Rsync the newest snapshot to the user@hostname that the database says the project is deployed as;
-        # or raise an error if not.
-
-
-
-
+    restore: (opts) =>
+        opts = defaults opts,
+            path   : '.'
+            commit : 'latest'
+            cb     : required
+       # Restore the given path in the given commit to the deployed project.
+       # If the project has no current location (username@host), raise an error.
+       # If commit is anything except 'latest', then the path will be restored
+       # but with the commit name post-pended to name.
 
 
 
