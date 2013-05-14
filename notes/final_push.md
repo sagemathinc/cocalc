@@ -1,3 +1,16 @@
+[ ] (0:15?) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
+
+    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+
+
+[ ] (0:20?) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
+
+[ ] new deploy, including that paste of cells bugfix.
+
+[x] (0:45?) (0:04) "var('x','y')" has to work, since it works in Sage.
+
+---
+
 # Next up: Finish implementing project snapshot, restore, browse, stored in the database.
 
 testing:
@@ -11,45 +24,32 @@ testing:
     t.p.ls(path:'.', hidden:true, cb:console.log)
     t.p.push_to_database(console.log)
 
-[ ] (2:00) implement and test restore
+[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 
-[ ] (2:00) figure out how to switch from the current useless backup system to using this new snapshots-to-db and implement
+[ ] (2:00?) implement and test restore
 
-[ ] (2:00) design and implement gui for browsing snapshots and restoring projects.
+[ ] (2:00?) figure out how to switch from the current useless backup system to using this new snapshots-to-db and implement
+
+[ ] (2:00?) design and implement gui for browsing snapshots and restoring projects.
 
 ---
 
+[ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
-[ ] (1:00) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?)
+[ ] (1:00?) (0:10+)fix terminal resize; bottom line is often cut off.
 
-[ ] (0:45) "var('x','y')" has to work, since it works in Sage.
+[ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
-[ ] (1:00) MAJOR BUG: click on a 15MB tarball by accident via the file manager, and local hub breaks, and file never comes up; no way to recover.  Impossible for a normal user!
-
-[ ] (1:00, at least) Downloading a 15MB tarball from the cloud thing doesn't work.
-
-[ ] (0:15?) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
-
-    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
-
-
-[ ] (0:20?) install into base machine all the packages harald mentioned.
+[ ] (1:00?) BUG: click on a 15MB tarball by accident via the file manager, and local hub breaks, and file never comes up; no way to recover.  Impossible for a normal user!
 
 
 [ ] (0:30?) path at top doesn't have to be fixed (note how it looks when scrolling)
+
 [ ] (0:30?) search output doesn't have to have fixed height + own scroll
 
 [ ] (0:10?) https://mathsaas.com/ points at cloud.sagemath.org (really bsd), but should point at the .com.
 
 [ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
-
-
-[ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
-[ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
----
-
-[ ] (1:00?) (0:10+)fix terminal resize; bottom line is often cut off.
 
 [ ] (1:00?) feature: save terminal history to file.
 
@@ -1677,3 +1677,10 @@ happens once (and usually is fast).
 [x] lots of little bug fixes and robusteness improvements in db project snapshots
 
 ---
+
+
+
+[x] (1:00?) (0:20) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?) -- this is a result of env bug introduced in `misc_node.coffee`, which I fortunately never deployed.
+
+-- > [x] (1:00?) (0:34) MAJOR UX bug -- if you copy and paste the cell start uuid line (the cell separate line), then the worksheet will have two cells with the same uuid, which causes all hell to break loose (and breaks everything).  Put code in to randomly regenerate pasted uuid's.
+
