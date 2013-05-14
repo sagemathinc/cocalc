@@ -383,7 +383,7 @@ class Client extends EventEmitter
         # There is no point in signing the cookie since its
         # contents are random.
         #
-        # Regarding ttl, we use 1 week.  The database will forget
+        # Regarding ttl, we use 1 month.  The database will forget
         # the cookie automatically at the same time that the
         # browser invalidates it.
         #############################################################
@@ -398,7 +398,7 @@ class Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl              = 7*24*3600     # 7 days
+        ttl              = 30*24*3600     # 30 days
 
         @remember_me_db.set
             key   : @hash_session_id

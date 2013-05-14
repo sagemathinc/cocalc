@@ -5,9 +5,10 @@
 
 [ ] (0:20?) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
 
-[ ] new deploy, including that paste of cells bugfix.
+[ ] (0:15?) (0:02) increase cookie timeout to 1 month; changed this line in hub.coffee:         ttl              = 30*24*3600     # 30 days
 
-[x] (0:45?) (0:04) "var('x','y')" has to work, since it works in Sage.
+
+[ ] new deploy, including that paste of cells bugfix.
 
 ---
 
@@ -34,9 +35,9 @@ testing:
 
 ---
 
-[ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
+[ ] (2:00?) make it so terminal never disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
-[ ] (1:00?) (0:10+)fix terminal resize; bottom line is often cut off.
+[ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
 
 [ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
@@ -1682,5 +1683,7 @@ happens once (and usually is fast).
 
 [x] (1:00?) (0:20) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?) -- this is a result of env bug introduced in `misc_node.coffee`, which I fortunately never deployed.
 
--- > [x] (1:00?) (0:34) MAJOR UX bug -- if you copy and paste the cell start uuid line (the cell separate line), then the worksheet will have two cells with the same uuid, which causes all hell to break loose (and breaks everything).  Put code in to randomly regenerate pasted uuid's.
+[x] (1:00?) (0:34) MAJOR UX bug -- if you copy and paste the cell start uuid line (the cell separate line), then the worksheet will have two cells with the same uuid, which causes all hell to break loose (and breaks everything).  Put code in to randomly regenerate pasted uuid's.
+
+[x] (0:45?) (0:04) "var('x','y')" doesn't work
 
