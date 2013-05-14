@@ -257,10 +257,11 @@ exports.execute_code = (opts) ->
     stderr = ''
     exit_code = undefined
 
+    env = misc.copy(process.env)
+
     if opts.env?
-        env = misc.copy(opts.env)
-    else
-        env = {}
+        for k, v of opt.env
+            env[k] = v
 
     if opts.uid?
         env.HOME = opts.home
