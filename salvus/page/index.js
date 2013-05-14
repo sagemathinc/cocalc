@@ -12,8 +12,6 @@ misc_page.coffee
 
 salvus_client.coffee
 
-tracking.coffee
-
 top_navbar.coffee
 
 alerts.coffee
@@ -31,7 +29,7 @@ console.coffee
 account.coffee
 
 
-worksheet1.coffee
+#worksheet1.coffee
 #worksheet2.coffee
 
 syncdoc.coffee

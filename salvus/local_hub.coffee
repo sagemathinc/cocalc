@@ -817,17 +817,27 @@ class CodeMirrorSession
         opts = defaults opts,
             kill : false    # if true, just remove all running flags.
             auto : false    # if true, run all cells that have the auto flag set
-        # scan the string @content for execution requests, etc...
+        # Here we:
+        #    - scan the string @content for execution requests.
+        #    - also, if we see a cell UUID that we've seen already, we randomly generate
+        #      a new cell UUID; clients can annoyingly generate non-unique UUID's (e.g., via
+        #      cut and paste) so we fix that.
         winston.debug("sage_update: opts=#{misc.to_json(opts)}")
         i = 0
+        prev_ids = {}
         while true
             i = @content.indexOf(diffsync.MARKERS.cell, i)
             if i == -1
                 break
             j = @content.indexOf(diffsync.MARKERS.cell, i+1)
             if j == -1
-                break  # corrupt (TODO)
+                break  # corrupt and is the last one, so not a problem.
             id  = @content.slice(i+1,i+37)
+            if prev_ids[id]?
+                # oops, repeated "unique" id, so fix it.
+                id = uuid.v4()
+                @content = @content.slice(0,i+1) + id + @content.slice(i+37)
+            prev_ids[id] = true
             flags = @content.slice(i+37, j)
             if opts.kill
                 new_flags = ''

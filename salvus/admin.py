@@ -1181,9 +1181,6 @@ class Services(object):
         elif name == "Stunnel":
             self.stunnel_key_files(address, action)
 
-        elif name == "Hub":
-            self.hub_secrets(address, action)
-
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 
         if name == "Compute":
@@ -1236,24 +1233,6 @@ class Services(object):
                 self._hosts.putdir(ip_address, os.path.join(SECRETS, 'sagemath'), BASE)
         # avoid race condition where file is there but not there.
         time.sleep(.5)
-
-    def hub_secrets(self, hostname, action):
-        return
-        ## # TODO -- none of the relevant functionality that uses these secret files is
-        ## # implemented in the hub server yet (it's for login/logout/internode comm)
-        ## target = os.path.join(BASE, SECRETS)
-        ## files = ['server.crt', 'server.key']
-        ## for ip_address in self._hosts[hostname]:
-        ##     if ip_address.startswith('127.'): continue
-        ##     if action == 'stop':
-        ##         for name in files:
-        ##             self._hosts.unlink(ip_address, os.path.join(target, name))
-        ##     elif action in ['start', 'restart']:
-        ##         self._hosts.mkdir(ip_address, target)
-        ##         for name in files:
-        ##             self._hosts.put(ip_address, os.path.join(SECRETS, name), os.path.join(target, name))
-        ## # avoid race condition where file is there but not there.
-        ## time.sleep(.5)
 
     def cassandra_firewall(self, hostname, action):
         if action == "restart":
@@ -1341,7 +1320,7 @@ class Services(object):
     def stop_system(self):
         if 'cassandra' in self._services:
             self.stop('cassandra', parallel=True, wait=True)
-        for service in ['haproxy','nginx','hub']:   
+        for service in ['haproxy','nginx','hub']:
             self.stop(service, parallel=True, wait=True)
         if 'vm' in self._services:
             self.stop('vm', parallel=True)

@@ -2145,7 +2145,7 @@ def dynamic(*args, **kwds):
 
 
 import sage.all
-def var(args, **kwds):
+def var(*args, **kwds):
     """
     Create symbolic variables and inject them into the global namespace.
 

@@ -2,13 +2,17 @@
 Backup -- Make a complete snapshotted dump of the system or individual projects to data/backup/
           Restore from this dump.
 
-
 ###
 
 
-EXCLUDES=['.bup', '.sage', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
+EXCLUDES=['.bup', '.sage/gap', '.sage/cache', '.sage/temp', '.sage/tmp', '.sagemathcloud', '.forever', '.cache', '.fontconfig', '.texmf-var', '.trash', '.npm', '.node-gyp']
+
+MAX_BLOB_SIZE = 4000000
+
+fs    = require('fs')
 
 async = require('async')
+
 misc  = require('misc')
 
 {defaults, required} = misc
@@ -31,7 +35,8 @@ exec 'hostname', (err, stdout, stderr) ->
 bup = (opts) ->
     opts = defaults opts,
         args    : []
-        timeout : 10
+        timeout : 3600
+        bup_dir : process.env['BUP_DIR']
         cb      : (err, output) ->
             if err
                 winston.debug("Error -- #{err}")
@@ -48,7 +53,391 @@ bup = (opts) ->
         command : command
         args    : opts.args
         timeout : opts.timeout
+        env     : {BUP_DIR : opts.bup_dir}
         cb      : opts.cb
+
+##
+
+exports.snapshot = (opts) ->
+    opts = defaults opts,
+        keyspace : 'test'
+        hosts    : ['localhost']
+        path     : ['/mnt/backup/cache/']
+        cb       : required
+    return new Snapshot(opts.keyspace, opts.hosts, opts.path, opts.cb)
+
+class Snapshot
+    constructor: (@keyspace, @hosts, @path, cb) ->
+        @_projects = {}
+        async.series([
+            (cb) =>
+                @db = new cassandra.Salvus(keyspace:@keyspace, hosts:@hosts, cb:cb)
+            (cb) =>
+                 misc_node.execute_code
+                     command : "mkdir"
+                     args    : ['-p', @path]
+                     cb      : cb
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(false, @)
+        )
+
+    project: (project_id, cb) =>
+        p = @_projects[project_id]
+        if p?
+            cb(false, p)
+        else
+            new Project @, project_id, (err, p) =>
+                if not err
+                    @_projects[project_id] = p
+                cb(err, p)
+
+    user: (project_id, cb) =>
+        @db.get_project_location
+            project_id : project_id
+            cb : (err, location) ->
+                if err
+                    cb(err)
+                else
+                    cb(false, "#{location.username}@#{location.host}")
+
+class Project
+    constructor: (@snapshot, @project_id, cb) ->
+        @lock = 'init'
+        # If necessary, initialize the local bup directory for this project
+        @bup_dir   = @snapshot.path + '/' + @project_id
+        @pack_dir  = @bup_dir + '/objects/pack'
+        @head_file = @bup_dir + '/refs/heads/master'
+        @last_time_file = @bup_dir + '/last_db_time'
+        async.series([
+            (cb) =>
+                fs.exists @last_time_file, (exists) =>
+                    if not exists
+                        @last_db_time = '1969-12-31T16:00:00'
+                        cb()
+                    else
+                        fs.readFile @last_time_file, (err, value) =>
+                            @last_db_time = value.toString()
+                            cb(err)
+            (cb) =>
+                @bup(args : ['init'], cb:cb)
+        ], (err) =>
+            @lock = undefined
+            cb(err, @)
+        )
+
+    bup: (opts) =>
+        opts.bup_dir = @bup_dir
+        bup(opts)
+
+    user: (cb) =>
+        # do not cache, since it could change
+        @snapshot.user(@project_id, cb)
+
+    snapshot_compute_node: (cb) =>
+        # Make a new bup snapshot of the remote compute node.
+        if @lock?
+            cb("locked"); return
+        args = undefined
+        user = undefined
+        head = undefined
+        before = undefined
+        @lock = 'snapshot'
+        async.series([
+            (cb) =>
+                # Create index command.
+                @user (err, _user) =>
+                    if err
+                        cb(err)
+                    else
+                        user = _user
+                        args = ['on', user, 'index']
+                        for path in EXCLUDES
+                            args.push('--exclude')
+                            args.push(path)
+                        args.push('.')
+                        cb()
+            (cb) =>
+                # Run the index command (on the remote compute machine)
+                @bup
+                    args    : args
+                    cb      : cb
+
+            (cb) =>
+                fs.readdir @pack_dir, (err, _before) =>
+                    before = (x for x in _before when misc.filename_extension(x) == 'pack')
+                    cb(err)
+
+            (cb) =>
+                # Save new data to local bup repo (master branch).
+                @bup
+                    args    : ['on', user, 'save', '-c', '--strip', '-q', '-n', 'master', '.']
+                    cb      : (err, output) =>
+                        if err
+                            cb(err)
+                        else
+                            v = output.stderr.trim().split('\n')
+                            head = v[v.length - 1]  # last line of stderr
+                            cb()
+            (cb) =>
+                # Create file containing the newly created head hash value.
+                fs.readdir @pack_dir, (err, after) =>
+                    x = (v for v in after when misc.filename_extension(v) == 'pack' and v not in before)
+                    if x.length != 1
+                        cb("there should be exactly one new pack file")
+                    else
+                        head_file = @pack_dir + '/' + x[0].slice(0,-4) + 'head'
+                        fs.writeFile(head_file, head, cb)
+
+        ], (err) =>
+            @lock = undefined
+            cb(err)
+        )
+
+
+    snapshots: (cb) =>
+        # Return list of dates of *all* snapshots of this project.
+        @bup
+            args : ['ls', 'master']
+            cb   : (err, output) =>
+                if err
+                    cb(err)
+                else
+                    v = output.stdout.split('\n')
+                    v = v.slice(0, -2)
+                    cb(false, (x.slice(0,-1) for x in v))
+
+    ls: (opts) =>
+        # Return list of names of files in the given path in the project; directories end in "/".
+        opts = defaults opts,
+            path     : '.'
+            snapshot : 'latest'
+            hidden   : false
+            cb       : required
+        args = ['ls', "master/#{opts.snapshot}/#{opts.path}"]
+        if opts.hidden
+            args.push('-a')
+        @bup
+            args : args
+            cb   : (err, output) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, output.stdout.split('\n').slice(0,-1))
+
+    push_to_database: (cb) =>
+        # Determine which local packfiles are newer than the last one we grabbed
+        # or pushed to the database, and save each of them to the database.
+        if @lock?
+            cb("locked"); return
+        @lock = "push"
+        to_save = undefined
+        files   = undefined
+        shas_in_db = undefined
+        async.series([
+            (cb) =>
+                fs.readdir @pack_dir, (err, _files) =>
+                    if err
+                        cb(err)
+                    else
+                        files = _files
+                        cb()
+            (cb) =>
+                @snapshot.db.select
+                    table     : 'project_bups'
+                    columns   : ['sha1']
+                    objectify : false
+                    where     : {project_id:@project_id}
+                    cb        : (err, results) =>
+                        if err
+                            cb(err); return
+                        shas_in_db = (x[0] for x in results)
+                        cb()
+
+            (cb) =>
+                needs_to_be_saved = (file, cb) =>
+                    if misc.filename_extension(file) not in ['pack']
+                        # not a pack file
+                        cb(false); return
+                    if file.slice(5,-5) in shas_in_db
+                        # already in database
+                        cb(false); return
+                    fs.stat @pack_dir + '/' + file, (err, stats) =>
+                        if err
+                            winston.debug("ERROR getting file timestamp for '#{file}' -- '#{err}'")
+                            cb(false)
+                        else
+                            cb(misc.to_iso(stats.mtime) >= @last_db_time)
+                async.filter files, needs_to_be_saved, (results) =>
+                    to_save = results
+                    cb()
+
+            (cb) =>
+                async.mapSeries(to_save, @_save_to_database, (err, results) => cb(err))
+
+        ], (err) =>
+            @lock = undefined
+            cb(err)
+        )
+
+    _save_to_database: (file, cb) =>
+        # Read the pack file, the idx file, and the head file (pointer into idx), and save them to the database.
+        sha1      = file.slice(5,-5)
+        pack_file = @pack_dir + '/' + file
+        idx_file  = pack_file.slice(0,-4) + 'idx'
+        head_file = pack_file.slice(0,-4) + 'head'
+        time      = undefined
+        async.series([
+            (cb) =>
+                fs.stat pack_file, (err, stats) =>
+                    if err
+                        cb(err)
+                    else
+                        time = misc.to_iso(stats.mtime)
+                        cb()
+            (cb) =>
+                async.map [pack_file, idx_file, head_file], fs.readFile, (err, results) =>
+                    if err
+                        cb(err); return
+
+                    pack = results[0]
+                    idx  = results[1].toString('hex')
+                    head = results[2].toString()
+                    num_chunks = Math.ceil(pack.length / MAX_BLOB_SIZE)
+                    console.log("num_chunks = ", num_chunks)
+
+                    f = (number, cb) =>
+                        console.log("handling chunk", number)
+                        set =
+                            sha1       : sha1
+                            pack       : pack.slice(number*MAX_BLOB_SIZE, (number+1)*MAX_BLOB_SIZE).toString('hex')
+                            num_chunks : num_chunks
+
+                        if number == 0
+                            set.idx  = idx
+                            set.head = head
+
+                        console.log("starting call to cassandra...")
+                        @snapshot.db.update
+                            table : 'project_bups'
+                            set   : set
+                            where :
+                                project_id : @project_id
+                                time       : time
+                                number     : number
+                            cb    : (err) =>
+                                console.log("cassandra call returned")
+                                cb(err)
+
+
+                    # We do these in *series* since the whole point is to save memory; logically
+                    # we could do them in parallel, but that would use too much memory, defeating the purpose.
+                    async.eachSeries([0...num_chunks], f, cb)
+
+        ], (err) =>
+            if not err
+                @last_db_time = cassandra.now()
+                fs.writeFile(@last_time_file, @last_db_time, cb)
+            else
+                cb(err)
+        )
+
+    _write_to_disk: (commit, cb) =>   # commit = entry from the database as JSON object
+        prefix = @pack_dir + '/pack-' + commit.sha1 + '.'
+        async.parallel([
+            (cb) => fs.writeFile(prefix + 'pack', commit.pack, cb)
+            (cb) => fs.writeFile(prefix + 'idx',  commit.idx,  cb)
+            (cb) => fs.writeFile(prefix + 'head', commit.head, cb)
+            (cb) =>
+                @last_db_time = misc.to_iso(commit.time)
+                fs.writeFile(@last_time_file, @last_db_time, cb)
+        ], cb)
+
+    pull_from_database: (cb) =>
+        # Get all pack files in the database that are newer than the last one we grabbed.
+        # If we get anything, set refs/heads/master.
+        if @lock?
+            cb("locked"); return
+        @lock   = 'pull'
+        commits = []
+        async.series([
+            (cb) =>
+                @snapshot.db.select
+                    table     : 'project_bups'
+                    columns   : ['sha1', 'pack', 'idx', 'head', 'number', 'num_chunks', 'time']
+                    objectify : true
+                    where     : {time:{'>':@last_db_time}, project_id:@project_id}
+                    cb        : (err, results) =>
+                        if err
+                            cb(err); return
+                        if results.length == 0
+                            cb(); return
+
+                        commits    = []
+                        commit     = undefined
+                        packs      = []
+                        num_chunks = 0
+                        pack_len  = 0
+
+                        assemble_pack_file_for_last_commit = () ->
+                            if num_chunks != packs.length
+                                return "wrong number of chunks in database for #{commit.sha1}; got #{packs.length} but expected #{num_chunks}"
+                            commit.pack = new Buffer(pack_len)
+                            pos = 0
+                            for p in packs
+                                p.copy(commit.pack, pos)
+                                pos += p.length
+                            commits.push(commit)
+                            return false
+
+                        for chunk in results
+                            if chunk.number == 0
+                                if commit?
+                                    err = assemble_pack_file_for_last_commit()
+                                    if err
+                                        cb(err); return
+                                pack_len = 0
+                                packs    = []
+                                commit   = {time:chunk.time, sha1:chunk.sha1, idx:chunk.idx, head:chunk.head}
+                                num_chunks = chunk.num_chunks
+
+                            packs.push(chunk.pack)
+                            pack_len += chunk.pack.length
+
+                        cb(assemble_pack_file_for_last_commit())
+
+            (cb) =>
+                 async.mapSeries(commits, @_write_to_disk, (err, results) => cb(err))
+
+            (cb) =>
+                 # schema ensures that data is stored and returned in date order in the database, so last is newest.
+                 if commits.length > 0
+                    fs.writeFile(@head_file, commits[commits.length-1].head, cb)
+                 else
+                    cb()
+
+        ], (err) =>
+            @lock = undefined
+            cb(err)
+        )
+
+    restore: (opts) =>
+        opts = defaults opts,
+            path   : '.'
+            commit : 'latest'
+            cb     : required
+       # Restore the given path in the given commit to the deployed project.
+       # If the project has no current location (username@host), raise an error.
+       # If commit is anything except 'latest', then the path will be restored
+       # but with the commit name post-pended to name.
+
+
+
+
+########################
+########################
 
 
 exports.backup = (opts) ->

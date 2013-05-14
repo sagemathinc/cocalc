@@ -1,42 +1,111 @@
-# May 5, 2013
+[ ] (0:15?) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
 
- [x] (0:45) (0:31) clicking on filename should open file; make a rename button
-
- [x] (1:00) (0:10) upgrade to latest twitter bootstrap
-
- [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
-
- [x] (1:00) (0:10) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
-
- [x] (0:45) (0:15) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop. (we will still need to implement output message optimization, but buffering already helps a lot).
-
- [x] (1:00) (1:05) terminal paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
-
- [x] (1:00) (0:15) terminal copy -- highlight and then it *unhighlights*; is it possible to keep the selection?  Is it possible to just copy instantly without requiring control-c
-
- [x] (0:30) (1:15) see whether it is possible to set copy buffer from javascript or not... (yet again); if so, don't require control-c in terminal; ANSWER: no, not for now; can partly do using flash and a click (not so useful), or as a Chrome Extension (for later!).
-
- [x] (0:30) (0:42) I found more cases where paste again doesn't work. fix.  UGH.  It's basically impossible to solve both the copy and paste problems at the same time in a general way... since to copy nicely, you have to be in a mode where paste doesn't work.  I've implemented a copromise, which is that paste when there is a copy selection.  This is not ideal, but is much better than it was.  I'll try something better in the future.
-
- [x] (0:30) (0:10) make resize use actual top of editor, not computed, in case of title wrap-around.
-
- [ ] (0:30) push out new version and post message to list
+    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
 
 
- ---
+[ ] (0:20?) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
 
- [ ] (0:45) make worksheet save persist linked objects
+[ ] (0:15?) (0:02) increase cookie timeout to 1 month; changed this line in hub.coffee:         ttl              = 30*24*3600     # 30 days
 
 
- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+[ ] new deploy, including that paste of cells bugfix.
 
- [ ] (1:00?) default git creds based on project owner cred. (?); also I had a weird issue with "git config" command not found.
+---
 
- ---
+# Next up: Finish implementing project snapshot, restore, browse, stored in the database.
 
- [ ] (1:30) ability to open sws files
+testing:
 
- [ ] (1:00) button in settings to reset the smc server
+    t={};require('backup').snapshot(cb:(err,s)->t.s=s)
+    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
+    t.p.pull_from_database(console.log)
+    tm=require('misc').walltime(); t.p.pull_from_database((err)->console.log(require('misc').walltime(tm)))
+    t.p.snapshot_compute_node(console.log)
+    t.p.snapshots(console.log)
+    t.p.ls(path:'.', hidden:true, cb:console.log)
+    t.p.push_to_database(console.log)
+
+[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
+
+[ ] (2:00?) implement and test restore
+
+[ ] (2:00?) figure out how to switch from the current useless backup system to using this new snapshots-to-db and implement
+
+[ ] (2:00?) design and implement gui for browsing snapshots and restoring projects.
+
+---
+
+[ ] (2:00?) make it so terminal never disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
+
+[ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
+
+[ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+[ ] (1:00?) BUG: click on a 15MB tarball by accident via the file manager, and local hub breaks, and file never comes up; no way to recover.  Impossible for a normal user!
+
+
+[ ] (0:30?) path at top doesn't have to be fixed (note how it looks when scrolling)
+
+[ ] (0:30?) search output doesn't have to have fixed height + own scroll
+
+[ ] (0:10?) https://mathsaas.com/ points at cloud.sagemath.org (really bsd), but should point at the .com.
+
+[ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
+
+[ ] (1:00?) feature: save terminal history to file.
+
+[ ] (1:00?) feature: keyboard shortcut to move between files.
+
+[ ] (1:00?) feature: bring back custom eval keys in settings
+
+[ ] (1:00?) feature: run sagetex automatically (?)  maybe have checkbox to enable/disable in page that lists log.
+
+
+[ ] (1:00?) html/md and non-ascii doesn't work, but it should, e.g, this goes boom.
+%md
+Very Bad Thing™.
+
+[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
+ Test case:
+
+ for x in s.split("\na\nb\n"):
+    if x:
+        print x
+
+Doing
+
+sys.stdout.flush()
+
+works at the end, but doing
+
+sys.stdout.flush(done=True)
+
+or
+
+sys.stdout.flush(done=False)
+
+doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
+
+[ ] (1:00?) upgrade bup everywhere -- looks like fsck and race condition work is recent: https://github.com/bup/bup
+
+[ ] (1:00?) when using an interact on cloud.sagemath.com that produces graphics (lecture 17 of 308), I'm seeing the image in
+ output not appearing with some probability.  I'm guessing this has to do with how files get sent from local hub to hub, and there being multiple global hubs... and them not using the database always.
+
+ [ ] (1:00?) interact dropdown selector doesn't work in Firefox -- shows blank input.
+
+ [ ] (1:00?) suggest sync broadcast message often doesn't work (maybe on first sync?), i.e., user has to modify buffer to see latest changes upstream
+
+ [ ] (1:00?) idea: make a stats tab -- for all to see -- under "?" page with:
+
+ [ ] (1:00?) idea: when displaying lots of output, scroll output area to BOTTOM (not top like it is now).
+
+ [ ] (1:30?) make worksheet save persist linked objects
+
+ [ ] (1:30?) new project default git creds based on project owner cred. (?);
+
+ [ ] (1:30?) ability to open sws files
+
+ [ ] (1:00?) button in settings to reset the smc server
 
  [ ] (1:30?) ability to delete projects.
 
@@ -44,7 +113,9 @@
 
  [ ] (1:00?) make hub do "bup fsck -g" regularly.
 
- [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra somehow.
+ [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra *somehow.*
+
+ [ ] consider using https://tahoe-lafs.org/trac/tahoe-lafs for storing all user projects in a distributed way; bup isn't reliable enough.
 
  [ ] worksheet fail with local_hub log:
          Trace
@@ -53,11 +124,7 @@
             at Timer.list.ontimeout (timers.js:104:21)
          error: Uncaught exception: Error: This socket is closed.
 
- [ ] (1:00?) fix terminal resize; bottom line is often cut off.
-
  [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
-
- [ ] (2:00?) make it so there are never terminal disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
 
@@ -72,6 +139,7 @@
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
 
+[ ] (1:00?) idea: multiline copy from a terminal should delete trailing whitespace... if possible.  I don't know if this is possible, and don't know how this could even be implemented in general.  However, maybe when cloud.sagemath is used as an extension or chromeapp, then it would be possible...
 
  - [ ] (1:00?) quota in my "devel" project looks suspicious (type "quota -v").; on compute2a everything is fine.  No clue what is going on here.
 
@@ -720,6 +788,7 @@ umount
 lvremove
 
 mv vm/images vm/images.0
+1
 
 pvcreate /dev/sdb1
 vgextend 07salvus /dev/sdb1
@@ -1173,10 +1242,6 @@ Next session:
 
  [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
 
-<<<<<<< HEAD
-=======
- [x] (0:30?) (0:05) the connection type takes up too much space still -- truncate at 9 chars.
-
 
  [x] link in help to https://groups.google.com/forum/?fromgroups#!forum/sage-cloud
  [x] add link to https://github.com/sagemath/cloud for "bug reports".
@@ -1297,3 +1362,328 @@ When above resize2fs finishes and works, do this on cloud3:
  [x] (0:30) move file buttons to left (not way off to right).
 
  [x] (3:00?) - copy/paste in terminal sucks; look into hterm... -- HTERM is chrome-only according to <https://groups.google.com/a/chromium.org/forum/?fromgroups=#!topic/chromium-hterm/K_I62Z6Gwuo>, hence not an option.
+
+ ---
+
+ # May 6 -- storm testing deploy:
+
+     import cassandra; cassandra.set_nodes(['10.2.1.2'])
+     cassandra.init_salvus_schema('salvus')
+
+    UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df;
+
+
+    update compute_servers set running=true, score=1 where host='10.2.1.4';
+    update compute_servers set running=true, score=1 where host='10.2.2.4';
+    update compute_servers set running=true, score=1 where host='10.2.3.4';
+    update compute_servers set running=true, score=1 where host='10.2.4.4';
+
+
+
+# May 5, 2013
+
+ [x] (0:45) (0:31) clicking on filename should open file; make a rename button
+
+ [x] (1:00) (0:10) upgrade to latest twitter bootstrap
+
+ [x] (1:00) (0:30) upgrade to latest jquery & jquery-ui
+
+ [x] (1:00) (0:10) upgrade to latest sockjs (0.3.2-->0.3.4 on client; 0.3.5-->0.3.7 on server)
+
+ [x] (0:45) (0:15) re-enable output buffering, since with sync it is too slow sending every print out when doing a big loop. (we will still need to implement output message optimization, but buffering already helps a lot).
+
+ [x] (1:00) (1:05) terminal paste; still JACKED.  Remove the "paste area" (since it screws up css) and fix paste.
+
+ [x] (1:00) (0:15) terminal copy -- highlight and then it *unhighlights*; is it possible to keep the selection?  Is it possible to just copy instantly without requiring control-c
+
+ [x] (0:30) (1:15) see whether it is possible to set copy buffer from javascript or not... (yet again); if so, don't require control-c in terminal; ANSWER: no, not for now; can partly do using flash and a click (not so useful), or as a Chrome Extension (for later!).
+
+ [x] (0:30) (0:42) I found more cases where paste again doesn't work. fix.  UGH.  It's basically impossible to solve both the copy and paste problems at the same time in a general way... since to copy nicely, you have to be in a mode where paste doesn't work.  I've implemented a copromise, which is that paste when there is a copy selection.  This is not ideal, but is much better than it was.  I'll try something better in the future.
+
+ [x] (0:30) (0:10) make resize use actual top of editor, not computed, in case of title wrap-around.
+
+ [x] (0:30) (1:30) push out new version and post message to list
+
+
+
+ [x] (0:30?) (0:12) rename link broken now due to jquery upgrade
+
+ [x] (0:10?) (0:17) remove any uses of "live" from jquery code (jquery upgrade deprecated this).
+
+ [x] (0:30?) (0:08) "RuntimeError: Error: No interact with id 36d22d1a-1af9-45f9-ac6c-3b28834edebd" --> html message "evaluate to create interact"
+
+ [x] install polymake-2.12
+
+ [x] start taking steps to make it easy for users to install own packages locally by installing these
+      - pip, virtualenv systemwide.
+
+[x] (0:45) make it so in admin, this is possible... wow, I just spent 30 minutes to discover that I already fully implemented this!
+             s.restart('vm', hostname='web1')
+
+ --> [x] (0:30) (0:32) release new version; only need to update web hosts, given the minimal changes so far:
+       - updated services file to use new 2013-05-07 image and push to repo
+       - create 2013-05-07 image with updates and updated salvus
+       - sync base image out
+       On storm:
+       - stop hub and nginx
+       - stop web vm's
+       - start web vm's
+       - start hub and nginx
+
+import admin; s = admin.Services('conf/deploy_storm/')
+s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="storm-web%s"%i) for i in range(1,5)]
+s._hosts.ping()
+
+       - verify all works
+      Then do the same on cloud.
+
+import admin; s = admin.Services('conf/deploy_cloud/')
+s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="web%s"%i) for i in range(1,5)]
+s._hosts.ping()
+s.start("hub", wait=False); s.start("nginx", wait=False)
+1
+
+[x] deploy new base vm for users: [s.restart('vm', ip_address='10.1.%s.4'%i) for i in range(1,5)]
+
+
+
+ [x] (0:30) (0:10) add google analytics for https://cloud.sagemath.com
+
+ [x] (0:45) (0:11) very bad reproducible CSS/html bug: open two projects in salvus in one browser tab, resize browser, switch back to other project -- screen doesn't resize properly; instead totally1
+ corrupted.
+
+ [x] (0:30) the bup snapshots (except on web1) are broken. GREAT :-(; try to do something to fix them.
+
+ [x] (0:15) update web[i] with latest bugfix regarding resize, and with google analytics
+
+
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    s.stop('hub'); s.stop('nginx'); [s.restart("vm", hostname="web%s"%i) for i in range(1,5)]
+    s._hosts.ping()
+    s.start("hub", wait=False); s.start("nginx", wait=False)
+
+
+[x] (0:30?) (0:20) change pill thing to have fixed position when editing a file (and non-fixed otherwise); this will get rid of pointless scrollbars, which waste space and throw off calculations.
+
+[x] (0:20?) (0:10) changing pill position got rid of vertical pointless scrollbar, but not horizontal one, when editing. figure out what is causing that.
+
+[x] (0:20?) (0:11) "Recent" files list is position:fixed, but shouldn't be.
+
+
+[x] (0:30?) (0:10) push out the few ui tweaks without changing the base image (just pull salvus on the web machines and do "make coffee")
+
+
+[x] (3:00?) Investiage project snapshots ideas: my bup backup approach to snapshoting projects is efficient but is *not* working; the repo gets corrupted, and then nothing works afterwards.  I need to try a few things more carefully (e.g., maybe one repo per project -- less dedup, but much simpler and more robust; ensure saving isn't interrrupted, and if it is delete pack files; ensure only one save at a time -- maybe there is a race/locking issue I'm ignoring?)
+
+New idea for how to make snapshots of projects:
+
+- Have a separate bup rep for each project; all stored in /mnt/backup.  Thus much less dedup, but easier to use and more reliable.
+- When a hub is going to create a project snapshot it does the following:
+   1. Creates a temporary lock on doing this (using ttl)
+   2. Queries database and ensures that it has all the relevant .bup/* files, which are stored in a table in the database.  Any it doesn't have, it grabs from the database to the local /mnt/backup filesystem.
+   3. It creates the snapshot and runs fsck -g.
+   4. Assuming all is fine, it then copies the *newly* created or modified index files back to Cassandra, which then propogates them to the whole cluster.
+
+Whether or not the above works might depend on how many files are modified.
+Also, we would need to somehow reduce the number of files every once in a while
+since extract 10000 files from the database would take a long time.
+
+Actually, a simple way to reduce the *number* of files in the database would be to simply use tar to combine
+a bunch of the pack files into a single big file.  This avoids having to repack.
+
+So the database entry would contain:
+
+ - about 10 files that store index, etc., are small, and change on every commit.
+ - a list (cassandra has a list type now!) of tarballs, each containing a bunch of pack files.
+
+And we have one of the above for each project.  It gets distributed, etc., but all extracted, used, updated on the filesystem by hubs.
+Obvious question is how it scales.  How fast?  How much space, etc.
+
+I need a way to make incremental snapshots storing everything about potentially tens of thousands of projects.  They *must* be stored in the database.   I would like to minimize wasted space.
+
+Options:
+
+   - one bup per project --> tarballs, stored in db
+   - zfs + dedup + snapshots + fuse (?)
+   - incremental tarballs (but that's not even dedup'd)
+
+Two benchmark filesets:
+  - the 45MB "my teaching" directory (with two github projects and other misc files); then add salvus github
+  - the sage-5.9 binary, then add sage-5.10 binary (measure scalability and dedup).
+
+Benchmark 1:
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g"
+  - size of initial archive
+  - time to update archive after trivially changing one file
+  - add salvus github checkout
+  - time to create next snapshot
+  - size of archive
+  - make another copy of the salvus github checkout
+  - time to create next snapshot
+  - size of archive
+
+If the above is acceptable, then *maybe* Cassandra's own compression will de-dup across projects, somewhat, and we'll be golden.
+
+Benchmark 2:
+  - time to create initial archive, starting with sage-5.9
+  - size of initial archive
+  - time to update archive after trivially changing one file
+  - add sage-5.10
+  - time to create next snapshot
+  - size of archive
+  - time to create next snapshot, after trivially changing one file
+
+OK, do it, first with bup using default compression options:
+
+Benchmark 1: 44MB data, using bup with default compression
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 1.2s (create index), 4.563 (save), 2.511 (fsck)
+  - size of initial archive: 16M
+  - time to update archive after trivially changing one file: 1.2 (index), 0.340 (save), 0.274 (fsck)
+  - add salvus github checkout: new data size 239M;
+  - time to create next snapshot:  2.754 (index), 9.92 (save), 44.7 (fsck);
+  - size of archive:  archive size is now 196MB.
+  - make another copy of the salvus github checkout: data size 435M
+  - time to create next snapshot: 2.5 (index), 5.648 (save), 0.398 (fsck)
+  - size of archive: 198MB
+
+  Benchmark 1 with "-9":
+  - time to create initial archive, starting with 45MB teaching, including "fsck -g": 6.3 (save), 3.5 (fsck)
+  - size of initial archive: 15MB
+  - time to update archive after trivially changing one file: 1.6 (index), 0.4 (save), .37 (fsck)
+  - add salvus github checkout: new data size 239M;
+  - time to create next snapshot: 3.3 (index), 24.5s (save), 36s (fsck)
+  - size of archive:  archive size is now 195M
+
+  Benchmark 1 with "-0" (no compression):
+  - time to create: 6.7 (save), 6.6 (fsck)
+  - size: 32MB
+  - clone salvus then save: 4.6 (index), 13.9 (save), 39 (fsck)
+  - size of archive: 224MB
+  - make another copy of salvus, and save again: 4.58s (index), 10s (save), 0.7 fsck
+  - time to restore resulting big archive to "foo": 41s
+
+Benchmark 2 (default compression).
+
+time bup index bench1data
+time bup save --strip -n bench1 bench1data
+time bup fsck -g
+
+  - initial work path size: 3.7GB
+  - time to create initial bup archive: 14.7s (index), 4m43s (save), 4m23s (fsck)
+  - archive size: 969M (before fsck), 1.1G (after fsck)
+  - add second sage-5.10: total data size 7.4G
+  - time to save: 44s (index), 3m26s (save), 2m20s (fsck)
+  - archive size before second fsck: 1.6G, after: 1.6G
+  - time to restore everything:
+
+
+
+
+
+[x] (0:30?) (1:30)[slow due to distractions] learn about cassandra list type and about git files, etc.; not going to use cassandra lists for the actual blobs, etc., since they are for a different problem, and get read completely.
+
+[x] (1:00?) (1:30)[distractions] determine exactly what files need to be stored in the database
+
+   - all the actual pack/idx files
+   - the value in "refs/heads/project"      (this is a file with a hash in it)
+
+   Optimizations (bup automatically recreates all these files, so storing them in the db is probably a waste of space).
+       - store all objects/pack/*midx* files
+       - objects/pack/bup.bloom
+       - various index cache files
+
+   I just tried this branch:
+     git clone https://github.com/zoranzaric/bup.git -b locked-repack locked-repack-2
+
+   and it provides a "bup repack" command.  When run it replaces *all* the idx/pack files, no matter how many,
+   by exactly two files.  I *might* need to use this when the number of snapshots for a given project gets very
+   large, hence extracting it to the local filesystem would involving pulling thousands of tiny files from
+   cassandra, etc., which would be very inefficient.  With bup repack, I would run it, create two new idx/pack
+   pairs, save them to the DB, then change the project meta-info, and delete all the other idx/pack files
+   associated to that project.
+
+[x] (1:00?) add functionality to cassaandra.coffee to support what is needed (if necessary) -- nothing needed
+
+Schema:
+
+
+    CREATE TABLE project_bups (
+         project_id  uuid,
+         time        timestamp,     /* when inserted */
+         sha1        varchar,       /* sha1 hash of pack file */
+         pack        blob,          /* contents of pack file */
+         idx         blob,          /* index into this pack file */
+         head        varchar,       /* head, when this pack file was the newest */
+         PRIMARY KEY(project_id, time)
+    ) WITH CLUSTERING ORDER BY (time ASC);
+
+
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff807', head='7c814e1daea739e910693ff65d5046bf724ff807' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823493;
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff817', head='7c814e1daea739e910693ff65d5046bf724ff817' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823500;
+    UPDATE project_bups set sha1='7c814e1daea739e910693ff65d5046bf724ff810', head='7c814e1daea739e910693ff65d5046bf724ff810' where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time=9390823400;
+
+It Works:
+
+    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966;
+    cqlsh:test> select * from project_bups where project_id=6a63fd69-c1c7-4960-9299-54cb96523966 and time >= 9390823493;
+
+[x] (0:30?) create a table (in db_schema) with one row for each project backup, or add to the existing project schema (not sure which is best).
+
+### the code below will just go in a new section of backup.coffee.
+
+[x] (1:00?) get_from_database
+     INPUT: project_id, path
+     EFFECT:
+         - fuse unmount if needed
+         - pulls what is needed to update bup archive in path to current version in database
+         - fuse mount
+
+
+## On storm:
+
+    t={};require('backup').snapshot(keyspace:'salvus', hosts:['10.2.1.2'], cb:(err,s)->t.s=s)
+    t.s.project("0cac77f9-ee2f-4342-bbfa-8389f8231a4b", (err, p) -> t.p=p)
+
+
+
+[x] (1:00?) snapshot
+     INPUT: project_id, path
+     EFFECT:
+        - does above update to path
+        - makes a new snapshot of remote project (wherever it is) -- save everything except .sagemathcloud and .sage/gap and .forever
+        - if there were actual changes (!), writes them to db (worry about timeouts/size); make sure last
+          change time is stored in db.
+
+[x] (1:00?) push
+     calls the get function above, then bup restore, then rsync's the result to username@host
+
+Write speed is slow.  I'm trying this fork:
+   npm install git://github.com/pooyasencha/helenus.git
+
+   NOPE.
+
+   Try Python's driver... NOPE.
+
+Look, write speed doesn't matter much for this, since it won't hold up anything the user is doing, and only ever
+happens once (and usually is fast).
+`
+
+[x] (0:30?) implement and test chunked *read* from database.
+
+
+[x] (0:30?) set the latest date when creating project object, based on what is in filesystem; important for restarting daemon and not throwing away state.
+
+[x] (0:10?) quick speed test with no compression. (no noticeable difference)
+
+[x] lots of little bug fixes and robusteness improvements in db project snapshots
+
+---
+
+
+
+[x] (1:00?) (0:20) I can't create new project on my local install; something wrong with PATH not having .sagemathcloud in it... (?) -- this is a result of env bug introduced in `misc_node.coffee`, which I fortunately never deployed.
+
+[x] (1:00?) (0:34) MAJOR UX bug -- if you copy and paste the cell start uuid line (the cell separate line), then the worksheet will have two cells with the same uuid, which causes all hell to break loose (and breaks everything).  Put code in to randomly regenerate pasted uuid's.
+
+[x] (0:45?) (0:04) "var('x','y')" doesn't work
+

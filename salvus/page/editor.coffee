@@ -280,6 +280,8 @@ class exports.Editor
         for tab in @project_page.tabs
             tab.label.removeClass('active')
 
+        @project_page.container.css('position', 'fixed')
+
 
     # Used for resizing editor windows.
     editor_top_position: () =>
@@ -287,6 +289,9 @@ class exports.Editor
             return @element.find(".salvus-editor-content").position().top
         else
             return 0
+
+    refresh: () =>
+        @_window_resize_while_editing()
 
     _window_resize_while_editing: () =>
         @resize_open_file_tabs()

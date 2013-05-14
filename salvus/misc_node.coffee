@@ -30,7 +30,9 @@ net = require('net')
 # data is just a JSON-able object.  When type='blob', data={uuid:..., blob:...};
 # since every blob is tagged with a uuid.
 
-{walltime, defaults, required, to_json} = require 'misc'
+misc = require 'misc'
+
+{walltime, defaults, required, to_json} = misc
 
 message = require 'message'
 
@@ -233,6 +235,7 @@ exports.execute_code = (opts) ->
         home       : undefined
         uid        : undefined
         gid        : undefined
+        env        : undefined   # if given, added to exec environment
         cb         : required
 
     start_time = walltime()
@@ -254,8 +257,14 @@ exports.execute_code = (opts) ->
     stderr = ''
     exit_code = undefined
 
+    env = misc.copy(process.env)
+
+    if opts.env?
+        for k, v of opt.env
+            env[k] = v
+
     if opts.uid?
-        env = {HOME:opts.home}
+        env.HOME = opts.home
 
     tmpfilename = undefined
     ran_code = false

@@ -127,6 +127,8 @@ class ProjectPage
             onshow: () =>
                 if @project?
                     document.title = "SMC: #{@project.title}"
+                @editor?.refresh()
+
             onfullscreen: (entering) =>
                 if @project?
                     if entering
@@ -134,7 +136,6 @@ class ProjectPage
                     else
                         @show_tabs()
                     $(window).resize()
-
 
         $(window).resize () => @window_resize()
         @_update_file_listing_size()
@@ -644,15 +645,19 @@ class ProjectPage
 
             if name == "project-file-listing"
                 tab.onshow = () ->
+                    that.container.css('position', 'absolute')
                     that.update_file_list_tab()
             else if name == "project-editor"
                 tab.onshow = () ->
+                    that.container.css('position', 'absolute')
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.container.css('position', 'absolute')
                     that.show_new_file_tab()
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.container.css('position', 'absolute')
                     that.update_topbar()
 
         @display_tab("project-file-listing")
@@ -1170,6 +1175,7 @@ class ProjectPage
 
         # Renaming a file
         rename_link = t.find('a[href=#rename-file]')
+
         rename_link.click () =>
             @click_to_rename_file(path, file_link)
             return false
@@ -1194,7 +1200,6 @@ class ProjectPage
 
         # Capture leaving box
         link.on 'blur', rename
-        link.live 'blur', rename
 
         # Capture pressing enter
         link.keydown (evt) ->
