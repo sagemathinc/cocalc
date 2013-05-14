@@ -957,8 +957,8 @@ class ProjectPage
             elt.show()
 
         # Clear the filename and focus on it
-        now = misc.to_iso(new Date()).replace(/-|:/g,'').replace('T','_')
-        now = now.slice(0, now.length-2)
+        now = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
+        #now = now.slice(0, now.length-2)  # get rid of seconds.
         @new_file_tab_input.val(now).focus()
         @get_from_web_input.val('')
 
