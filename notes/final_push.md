@@ -1,7 +1,38 @@
+[ ] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
 
-[x] (0:15?) (0:05) change "+ New" date format to be just like in bup, which seems logical.
+[ ] admin: need to make a file with stuff like:
+# How to snapshot all nodes:
+time s._hosts.nodetool('snapshot salvus', wait=True)
 
-[ ] (0:15?) terms of usage error message covers the checkmark making it impossible to click and agree?!
+# How to initiaite repair all nodes (once a week, takes a long time)
+time s._hosts.nodetool('snapshot repair', wait=False)
+
+[ ] (2:00?) Potentially massive bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.
+
+[ ] (1:00?) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
+
+[ ] (1:00?) create a document listing the main technologies used in SMC, and where to learn them (best thing to read).
+
+[ ] (1:00?) am I writing cassandra blobs as string constants -- something about that in docs "Cassandra blobs as string constants"?
+
+[ ] (0:15?) UI: terms of usage error message covers the checkmark making it impossible to click and agree?! fix account.css)
+
+[ ] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
+
+[ ] (1:00?) implement scratch directories, so sage dev is possible.
+
+[ ] (1:00?) make quota work, but only for home
+
+[ ] (2:00?) sometimes GAP broken in deployed vm's:  gap('2') boom!
+
+[ ] (0:15?) UI: when hitting "ctrl-O" to show recent files, tab doesn't get selected, hence page stays fixed so can't scroll my list.
+
+[ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy the file, then open -- appears to be running, but isn't.
+
+[ ] (1:00?) something didn't get properly (monkey) patched:
+    sage.interacts.algebra.polar_prime_spiral()
+
+[ ] (0:30?) upgrade  font-awesome
 
 ---
 
@@ -1698,4 +1729,15 @@ happens once (and usually is fast).
    sudo rm /var/lib/update-notifier/fsck-at-reboot
    sudo tune2fs -c 600 /dev/vda1
 
+
+[x] (0:15?) (0:05) UI: change "+ New" date format to be just like in bup, which seems logical.
+
+
+[x] make the nofile, etc., changes suggested in the cassandra docs.
+[x] configure and use ntp on vm's -- I wasn't and times are all skewed!   http://rbgeek.wordpress.com/2012/04/30/time-synchronization-on-ubuntu-12-04lts-using-ntp/
+
+[x] here is how to use sstable2json:
+    salvus@cassandra1:/mnt/cassandra/conf$
+    export CASSANDRA_CONF=`pwd`
+    sstable2json /mnt/cassandra/lib/data/salvus/successful_sign_ins/salvus-successful_sign_ins-ib-23-Data.db > a
 

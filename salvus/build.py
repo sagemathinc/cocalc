@@ -21,7 +21,7 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2
+   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp
 
 
 For users, do all the following:
@@ -67,7 +67,7 @@ Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay
 Copy over the newest SageTex:
 
    sudo cp /usr/local/sage/sage-*/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
-   
+
 
 """
 
