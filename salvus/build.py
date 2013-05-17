@@ -28,7 +28,7 @@ For users, do all the following:
 
 # EASY PACKAGES:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
@@ -47,6 +47,16 @@ For users, do all the following:
 
 ./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gmpy gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
 
+./sage -sh
+easy_install markdown2
+easy_install pip
+easy_install virtualenv  # not used yet...
+easy_install pandas==0.7.3        # TODO: newer version requires new numpy - see https://mail.google.com/mail/u/0/?shva=1#search/pandas/13e690cc3464efb4
+easy_install statsmodels
+easy_install tables==2.2.1        # TODO: newer version requires new numpy
+
+
+
 Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
   wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.5-common.deb
@@ -57,6 +67,7 @@ Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay
 Copy over the newest SageTex:
 
    sudo cp /usr/local/sage/sage-*/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+   
 
 """
 
@@ -88,11 +99,9 @@ PYTHON_PACKAGES = [
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
     'cql',                # interface to Cassandra
-    'markdown2',
     'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
     'pyxattr',            # used by bup
-    'pylibacl',           # used by bup
-    'pip', 'virtualenv'   # Maybe not used yet...
+    'pylibacl'            # used by bup
     ]
 
 if not os.path.exists(BUILD):

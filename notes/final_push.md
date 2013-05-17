@@ -1,14 +1,7 @@
-[ ] (0:15?) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
 
-    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+[x] (0:15?) (0:05) change "+ New" date format to be just like in bup, which seems logical.
 
-
-[ ] (0:20?) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
-
-[ ] (0:15?) (0:02) increase cookie timeout to 1 month; changed this line in hub.coffee:         ttl              = 30*24*3600     # 30 days
-
-
-[ ] new deploy, including that paste of cells bugfix.
+[ ] (0:15?) terms of usage error message covers the checkmark making it impossible to click and agree?!
 
 ---
 
@@ -138,6 +131,8 @@ doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
+ [ ] update numpy in our sage (then tables/pandas/etc. -- see build), since right now:
+sage: import tables.  This will be fixed automatically by sage-5.10.
 
 [ ] (1:00?) idea: multiline copy from a terminal should delete trailing whitespace... if possible.  I don't know if this is possible, and don't know how this could even be implemented in general.  However, maybe when cloud.sagemath is used as an extension or chromeapp, then it would be possible...
 
@@ -1686,4 +1681,21 @@ happens once (and usually is fast).
 [x] (1:00?) (0:34) MAJOR UX bug -- if you copy and paste the cell start uuid line (the cell separate line), then the worksheet will have two cells with the same uuid, which causes all hell to break loose (and breaks everything).  Put code in to randomly regenerate pasted uuid's.
 
 [x] (0:45?) (0:04) "var('x','y')" doesn't work
+
+
+[x] (0:15?) (0:02) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
+
+    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+
+
+[x] (0:20?) (0:25) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
+
+[x] (0:15?) (0:02) increase cookie timeout to 1 month; changed this line in hub.coffee:         ttl              = 30*24*3600     # 30 days
+
+[x] new deploy, including that paste of cells bugfix.
+
+[x] VM issue with "fsck next boot" not working:
+   sudo rm /var/lib/update-notifier/fsck-at-reboot
+   sudo tune2fs -c 600 /dev/vda1
+
 
