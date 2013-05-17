@@ -43,26 +43,35 @@ For users, do all the following:
 
   # Then delete the polymake build directory.
 
-# OPTIONAL SAGE PACKAGES
-
-./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gmpy gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
-
-./sage -sh
-easy_install markdown2
-easy_install pip
-easy_install virtualenv  # not used yet...
-easy_install pandas==0.7.3        # TODO: newer version requires new numpy - see https://mail.google.com/mail/u/0/?shva=1#search/pandas/13e690cc3464efb4
-easy_install statsmodels
-easy_install tables==2.2.1        # TODO: newer version requires new numpy
-
-
-
-Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
+Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
   wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.5-common.deb
   wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
   sudo apt-get install libntl-5.4.2 libpari-gmp3
   sudo dpkg -i Macaulay2-1.5-common.deb Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
+
+# Install Sage
+
+# Non-sage Python packages into Sage
+
+./sage -sh
+
+easy_install pip
+
+pip install virtualenv  pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap
+
+# Also, edit the banner:
+
+  sage-*/local/bin/sage-banner
+
+# OPTIONAL SAGE PACKAGES
+
+./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
+
+# Then delete wasted space
+
+   rm spkg/optional/*
+
 
 Copy over the newest SageTex:
 
