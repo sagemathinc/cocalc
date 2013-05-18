@@ -1,4 +1,4 @@
-[ ] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+[ ] (0:10?) feature: syntax highlighting for patch files
 
 [ ] admin: need to make a file with stuff like:
 # How to snapshot all nodes:
@@ -6,6 +6,8 @@ time s._hosts.nodetool('snapshot salvus', wait=True)
 
 # How to initiaite repair all nodes (once a week, takes a long time)
 time s._hosts.nodetool('snapshot repair', wait=False)
+
+[ ] (0:45?) tweak "syncing" message: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
 
 [ ] (2:00?) Potentially massive bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.
 
@@ -33,6 +35,8 @@ time s._hosts.nodetool('snapshot repair', wait=False)
     sage.interacts.algebra.polar_prime_spiral()
 
 [ ] (0:30?) upgrade  font-awesome
+
+[ ] (1:00?) feature request: user way to customize the cursor in text editor (vertical line instead of block)
 
 ---
 
@@ -1740,4 +1744,6 @@ happens once (and usually is fast).
     salvus@cassandra1:/mnt/cassandra/conf$
     export CASSANDRA_CONF=`pwd`
     sstable2json /mnt/cassandra/lib/data/salvus/successful_sign_ins/salvus-successful_sign_ins-ib-23-Data.db > a
+
+[x] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
 
