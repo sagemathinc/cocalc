@@ -28,7 +28,7 @@ For users, do all the following:
 
 # EASY PACKAGES:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
@@ -43,12 +43,22 @@ For users, do all the following:
 
   # Then delete the polymake build directory.
 
+# MACAULAY2:
+
 Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
   wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.5-common.deb
   wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
   sudo apt-get install libntl-5.4.2 libpari-gmp3
   sudo dpkg -i Macaulay2-1.5-common.deb Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
+
+# 4ti2: until the optional spkg gets fixed:
+
+  wget
+  tar xvf
+  cd
+  ./configure --prefix=/usr/local/sage/sage-*/local/ 
+  make -j16 install
 
 # Install Sage
 
