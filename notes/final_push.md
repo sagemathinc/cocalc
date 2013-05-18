@@ -2,11 +2,12 @@
 
 [x] (0:15?) (0:07) UI: terms of usage error message covers the checkmark making it impossible to click and agree?! fix account.css
 
-[ ] (1:00?) (0:49) fix math %md mode to *genuinely* escape 100% of stuff in $'s and $$'s.  DO THIS ASAP, since not backward compatible.
+[x] (1:00?) (0:49) fix math %md mode to *genuinely* escape 100% of stuff in $'s and $$'s.  DO THIS ASAP, since not backward compatible.
+
+--> [ ] (0:10?) feature: syntax highlighting for patch files
 
 [ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger
 .
-[ ] (0:10?) feature: syntax highlighting for patch files
 
 [ ] admin: need to make a file with stuff like:
 # How to snapshot all nodes:
