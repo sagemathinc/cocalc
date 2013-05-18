@@ -1,4 +1,11 @@
-[ ] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+[x] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+
+[x] (0:15?) (0:07) UI: terms of usage error message covers the checkmark making it impossible to click and agree?! fix account.css
+
+--> [ ] fix math %md mode to *genuinely* escape 100% of stuff in $'s and $$'s.  DO THIS ASAP, since not backward compatible.
+
+[ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
+
 
 [ ] admin: need to make a file with stuff like:
 # How to snapshot all nodes:
@@ -9,13 +16,16 @@ time s._hosts.nodetool('snapshot repair', wait=False)
 
 [ ] (2:00?) Potentially massive bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.
 
+[ ] (1:00?) do another release of cloud:
+     [ ] make sure to include 4ti2, as explained in build.py
+     [ ] in sage, do "pip install markdown2Mathjax"
+     [ ] fix my class notes to work with correct math markup...
+
 [ ] (1:00?) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
 
 [ ] (1:00?) create a document listing the main technologies used in SMC, and where to learn them (best thing to read).
 
 [ ] (1:00?) am I writing cassandra blobs as string constants -- something about that in docs "Cassandra blobs as string constants"?
-
-[ ] (0:15?) UI: terms of usage error message covers the checkmark making it impossible to click and agree?! fix account.css)
 
 [ ] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
 
@@ -73,8 +83,6 @@ testing:
 [ ] (0:30?) search output doesn't have to have fixed height + own scroll
 
 [ ] (0:10?) https://mathsaas.com/ points at cloud.sagemath.org (really bsd), but should point at the .com.
-
-[ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
 
 [ ] (1:00?) feature: save terminal history to file.
 

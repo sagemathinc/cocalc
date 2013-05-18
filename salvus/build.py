@@ -54,11 +54,13 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 # 4ti2: until the optional spkg gets fixed:
 
-  wget
-  tar xvf
+  cd /tmp/
+  wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz
+  tar xvf 4ti2-1.5.tar.gz
   cd
-  ./configure --prefix=/usr/local/sage/sage-*/local/ 
+  ./configure --prefix=/usr/local/sage/sage-*/local/
   make -j16 install
+  rm -rf 4ti2*
 
 # Install Sage
 
@@ -68,7 +70,7 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 easy_install pip
 
-pip install virtualenv  pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap
+pip install markdown2 markdown2Mathjax virtualenv  pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap
 
 # Also, edit the banner:
 

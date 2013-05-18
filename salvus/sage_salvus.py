@@ -2240,7 +2240,16 @@ def md(s):
          'smarty-pants', 'wiki-tables'
 
     See https://github.com/trentm/python-markdown2/wiki/Extras
+    We also use markdown2Mathjax so that LaTeX is properly
+    typeset in $'s and $$'s.
     """
-    import markdown2
+    from markdown2Mathjax import sanitizeInput, reconstructMath
+    from markdown2 import markdown
+
+    tmp = sanitizeInput(s)
     extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables']
-    html(markdown2.markdown(s, extras=extras))
+    markedDownText = markdown(tmp[0], extras=extras)
+    html(reconstructMath(markedDownText,tmp[1]))
+
+
+
