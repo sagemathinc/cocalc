@@ -213,9 +213,9 @@ $("#create_account-button").click((event) ->
             when "account_creation_failed"
                 for key, val of mesg.reason
                     $("#create_account-#{key}").popover(
-                        title:val
-                        trigger:"manual"
-                        placement:"left"
+                        title     : val
+                        trigger   : "manual"
+                        placement : "left"
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                     ).popover("show")
             when "signed_in"

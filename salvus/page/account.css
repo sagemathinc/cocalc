@@ -1,7 +1,6 @@
 .popover-create-account {
     width: 400px;
     background-color: #ff0077;
-    margin-left:-20px;
 }
 
 .account-error-text {
@@ -9,4 +8,4 @@
 }
 
 .salvus-password-meter {
-}
+} 
