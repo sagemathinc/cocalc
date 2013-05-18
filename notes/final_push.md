@@ -4,9 +4,9 @@
 
 [x] (1:00?) (0:49) fix math %md mode to *genuinely* escape 100% of stuff in $'s and $$'s.  DO THIS ASAP, since not backward compatible.
 
---> [ ] (0:10?) feature: syntax highlighting for patch files
+[x] (0:10?) (0:13) feature: syntax highlighting for patch files
 
-[ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger
+--> [ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger
 .
 
 [ ] admin: need to make a file with stuff like:
