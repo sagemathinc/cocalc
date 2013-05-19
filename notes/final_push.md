@@ -1,18 +1,6 @@
-[x] (0:45?) markdown -- better mathjax escaping; anything in \begin{}/ \end{}, etc. blocks. ?
-[x] (0:05?) (0:05) some sort of highlighting for fortran editing (not good; better than nothing)
-[x] (0:45?) (0:21) tweak "syncing" message to be less annoying.: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
-
-
-[x] (1:00?)  (1:15) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
-
-[x] (0:15?) (0:18) fix recent projects scroll issue (not selected)
-
-[x] (0:30?) (0:10) upgrade font-awesome
-
-[ ] (0:10?) editor top bar margin wrong.
+[x] (1:00?) (0:10) html/md and non-ascii doesn't work, but it should, e.g, this goes boom. md("# Very Bad Thing™.")
 
 [ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy the file, then open -- appears to be running, but isn't.
-
 
 [ ] (1:00?) do another release of cloud (but on storm for now):
 
@@ -35,6 +23,8 @@
 
 
 ------
+
+[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 
 [ ] (3:00?) make it possible to browse snapshots
 
@@ -79,8 +69,6 @@ testing:
     t.p.ls(path:'.', hidden:true, cb:console.log)
     t.p.push_to_database(console.log)
 
-[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
-
 [ ] (2:00?) implement and test restore
 
 [ ] (2:00?) figure out how to switch from the current useless backup system to using this new snapshots-to-db and implement
@@ -88,6 +76,19 @@ testing:
 [ ] (2:00?) design and implement gui for browsing snapshots and restoring projects.
 
 ---
+[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
+ Test case:
+
+ for x in s.split("\na\nb\n"):
+    if x:
+        print x
+Doing
+   sys.stdout.flush()
+works at the end, but doing
+   sys.stdout.flush(done=True)
+or
+   sys.stdout.flush(done=False)
+doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
 [ ] (2:00?) make it so terminal never disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
@@ -112,31 +113,6 @@ testing:
 
 [ ] (1:00?) feature: run sagetex automatically (?)  maybe have checkbox to enable/disable in page that lists log.
 
-
-[ ] (1:00?) html/md and non-ascii doesn't work, but it should, e.g, this goes boom.
-%md
-Very Bad Thing™.
-
-[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
- Test case:
-
- for x in s.split("\na\nb\n"):
-    if x:
-        print x
-
-Doing
-
-sys.stdout.flush()
-
-works at the end, but doing
-
-sys.stdout.flush(done=True)
-
-or
-
-sys.stdout.flush(done=False)
-
-doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
 [ ] (1:00?) upgrade bup everywhere -- looks like fsck and race condition work is recent: https://github.com/bup/bup
 
@@ -1783,3 +1759,12 @@ happens once (and usually is fast).
 
 [x] (0:10?) (0:01) notes/admin.md: need to make a file with stuff about admin procedures.
 
+[x] (0:45?) markdown -- better mathjax escaping; anything in \begin{}/ \end{}, etc. blocks. ?
+[x] (0:05?) (0:05) some sort of highlighting for fortran editing (not good; better than nothing)
+[x] (0:45?) (0:21) tweak "syncing" message to be less annoying.: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
+[x] (1:00?)  (1:15) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
+[x] (0:15?) (0:18) fix recent projects scroll issue (not selected)
+[x] (0:30?) (0:10) upgrade font-awesome
+[x] (0:10?) editor top bar margin wrong.
+
+---

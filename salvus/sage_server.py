@@ -455,7 +455,7 @@ class Salvus(object):
 
     def html(self, html, done=False, once=None):
         self._flush_stdio()
-        self._conn.send_json(message.output(html=str(html), id=self._id, done=done, once=once))
+        self._conn.send_json(message.output(html=unicode(html), id=self._id, done=done, once=once))
         return self
 
     def tex(self, obj, display=False, done=False, once=None):
@@ -477,7 +477,7 @@ class Salvus(object):
 
     def stdout(self, output, done=False, once=None):
         """
-        Send the string output (or str(output) if output is not a
+        Send the string output (or unicode(output) if output is not a
         string) to the standard output stream of the compute cell.
 
         INPUT:
@@ -485,13 +485,13 @@ class Salvus(object):
         - output -- string or object
 
         """
-        stdout = output if isinstance(output, str) else str(output)
+        stdout = output if isinstance(output, (str, unicode)) else unicode(output)
         self._conn.send_json(message.output(stdout=stdout, done=done, id=self._id, once=once))
         return self
 
     def stderr(self, output, done=False, once=None):
         """
-        Send the string output (or str(output) if output is not a
+        Send the string output (or unicode(output) if output is not a
         string) to the standard error stream of the compute cell.
 
         INPUT:
@@ -499,7 +499,7 @@ class Salvus(object):
         - output -- string or object
 
         """
-        stderr = output if isinstance(output, str) else str(output)
+        stderr = output if isinstance(output, (str,unicode)) else unicode(output)
         self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id, once=once))
         return self
 

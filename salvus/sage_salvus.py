@@ -2240,7 +2240,7 @@ def md2html(s):
               ('\\begin{math}', '\\end{math}'),
               ('\\begin{displaymath}', '\\end{displaymath}')
               ]
-    
+
     tmp = [((s,None),None)]
     for d in delims:
         tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
