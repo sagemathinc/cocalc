@@ -7,7 +7,9 @@
 
 [x] (0:15?) (0:18) fix recent projects scroll issue (not selected)
 
-[ ] (0:30?) (0:10) upgrade font-awesome
+[x] (0:30?) (0:10) upgrade font-awesome
+
+[ ] (0:10?) editor top bar margin wrong.
 
 [ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy the file, then open -- appears to be running, but isn't.
 
