@@ -1,5 +1,7 @@
 [x] (0:45?) markdown -- better mathjax escaping; anything in \begin{}/ \end{}, etc. blocks. ?
 
+[x] (0:05?) (0:05) some sort of highlighting for fortran editing (not good; better than nothing)
+
 [ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
 
 

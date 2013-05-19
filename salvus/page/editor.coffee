@@ -31,6 +31,9 @@ codemirror_associations =
     css    : 'css'
     diff   : 'text/x-diff'
     ecl    : 'ecl'
+    f      : 'python'    # Ondrej Certik says Python modes sucks less than other modes, but it still sucks.
+    f90    : 'python'
+    f95    : 'python'
     h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
     java   : 'text/x-java'
