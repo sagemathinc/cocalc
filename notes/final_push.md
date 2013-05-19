@@ -7,6 +7,11 @@
 
 [x] (0:15?) (0:18) fix recent projects scroll issue (not selected)
 
+[ ] (0:30?) (0:10) upgrade font-awesome
+
+[ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy the file, then open -- appears to be running, but isn't.
+
+
 [ ] (1:00?) do another release of cloud (but on storm for now):
 
    [ ] UPDATE VM:
@@ -52,14 +57,8 @@
 
 [ ] (2:00?) sometimes GAP broken in deployed vm's:  gap('2') boom!
 
-[ ] (0:15?) UI: when hitting "ctrl-O" to show recent files, tab doesn't get selected, hence page stays fixed so can't scroll my list.
-
-[ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy the file, then open -- appears to be running, but isn't.
-
 [ ] (1:00?) something didn't get properly (monkey) patched:
     sage.interacts.algebra.polar_prime_spiral()
-
-[ ] (0:30?) upgrade  font-awesome
 
 [ ] (1:00?) feature request: user way to customize the cursor in text editor (vertical line instead of block)
 
