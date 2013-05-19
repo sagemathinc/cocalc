@@ -374,7 +374,7 @@ class SynchronizedDocument extends EventEmitter
             show_spinner = () =>
                 @element.find(".salvus-editor-codemirror-not-synced").show()
                 #@element.find(".salvus-editor-codemirror-synced").hide()
-            @_ui_synced_timer = setTimeout(show_spinner, 2*@opts.sync_interval)
+            @_ui_synced_timer = setTimeout(show_spinner, 4*@opts.sync_interval)
 
     sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
         if @_syncing? and @_syncing

@@ -2,10 +2,11 @@
 
 [x] (0:05?) (0:05) some sort of highlighting for fortran editing (not good; better than nothing)
 
+
 [ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
 
 
-[ ] (0:45?) tweak "syncing" message: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
+[x] (0:45?) (0:21) tweak "syncing" message to be less annoying.: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
 
 [ ] (1:00?) codemirror is broken on chrome now when lines wrap.  Argh.  Cursor gets off by one, even on the codemirror website!  Not sure what to do about this, but it is seriously annoying.
 
