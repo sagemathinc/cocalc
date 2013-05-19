@@ -1,23 +1,45 @@
 [x] (0:45?) markdown -- better mathjax escaping; anything in \begin{}/ \end{}, etc. blocks. ?
-
 [x] (0:05?) (0:05) some sort of highlighting for fortran editing (not good; better than nothing)
+[x] (0:45?) (0:21) tweak "syncing" message to be less annoying.: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
 
+
+[x] (1:00?)  (1:15) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
+
+
+[ ] (1:00?) do another release of cloud (but on storm for now):
+
+   [ ] UPDATE VM:
+     [ ] apt-get update; apt-get upgrade
+     [ ] make sure to include 4ti2, as explained in build.py
+     [ ] in sage, do "pip install markdown2Mathjax"
+     [ ] cassandra upgrade (switch to java6, which they recommend):
+             apt-get install oracle-java6-installer
+             update-alternatives --config java
+             ./build.py --build_cassandra
+   [ ] UPDATE RAM on cassandra and hub nodes to 8GB
+   [ ] restart storm
+
+[ ] (1:00?) on storm: test saving/retrieving various size projects to cassandra
+
+[ ] (1:30?) implement code to automate snapshotting projects, based partly on previous stepo
+
+[ ] (1:00?) deploy on cloud
+
+
+------
+
+[ ] (3:00?) make it possible to browse snapshots
+
+[ ] (1:00?) fix my class notes to work with correct math markup...
 
 [ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
 
 
-[x] (0:45?) (0:21) tweak "syncing" message to be less annoying.: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
+----
 
 [ ] (1:00?) codemirror is broken on chrome now when lines wrap.  Argh.  Cursor gets off by one, even on the codemirror website!  Not sure what to do about this, but it is seriously annoying.
 
 [ ] (2:00?) Potentially massive bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.
-
-[ ] (1:00?) do another release of cloud:
-     [ ] make sure to include 4ti2, as explained in build.py
-     [ ] in sage, do "pip install markdown2Mathjax"
-     [ ] fix my class notes to work with correct math markup...
-
-[ ] (1:00?) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
 
 [ ] (1:00?) am I writing cassandra blobs as string constants? -- something about that in docs "Cassandra blobs as string constants"?
 

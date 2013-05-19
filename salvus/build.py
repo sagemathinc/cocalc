@@ -92,6 +92,8 @@ Copy over the newest SageTex:
 
 """
 
+CASSANDRA_VERSION='1.2.4'   # options here -- http://downloads.datastax.com/community/
+
 import logging, os, shutil, subprocess, sys, time
 
 # Enable logging
@@ -147,6 +149,10 @@ def cmd(s, path):
     if os.system(s):
         raise RuntimeError('command failed: "%s"'%s)
 
+def download(url):
+    # download target of given url to SRC directory
+    cmd("wget '%s'"%url, SRC)
+
 def extract_package(basename):
     # find tar ball in SRC directory, extract it in build directory, and return resulting path
     for filename in os.listdir(SRC):
@@ -155,7 +161,7 @@ def extract_package(basename):
             path = os.path.join(BUILD, filename[:i])
             if os.path.exists(path):
                 shutil.rmtree(path)
-            cmd('tar xvf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
+            cmd('tar xf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
             return path
 
 def build_tinc():
@@ -231,6 +237,11 @@ def build_stunnel():
 def build_cassandra():
     log.info('installing cassandra'); start = time.time()
     try:
+        target = 'dsc-cassandra-%s.tar.gz'%CASSANDRA_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f dsc-cassandra-*.tar.*', SRC)  # remove any source tarballs that might have got left around
+            download('http://downloads.datastax.com/community/dsc-cassandra-%s-bin.tar.gz'%CASSANDRA_VERSION)
+            cmd('mv dsc-cassandra-%s-bin.tar.gz dsc-cassandra-%s.tar.gz'%(CASSANDRA_VERSION, CASSANDRA_VERSION), SRC)
         path = extract_package('dsc-cassandra')
         target2 = os.path.join(TARGET, 'cassandra')
         print target2
