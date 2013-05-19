@@ -620,9 +620,7 @@ class SynchronizedDocument extends EventEmitter
             @_close_on_action_elements = []
 
 
-MARKERS = diffsync.MARKERS
-
-FLAGS = diffsync.FLAGS
+{ MARKERS, FLAGS, ACTION_FLAGS } = diffsync
 
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, opts) ->
@@ -655,6 +653,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 # from a "beforeChange" handler that would cause changes to the
                 # document or its visualization."  I think this is OK below though
                 # since we just canceled the change.
+                @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
                 @_apply_changeObj(changeObj)
                 @sync_soon()
                 @process_sage_updates()
@@ -709,8 +708,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # Set any running cells to not running.
         for marker in @codemirror.getAllMarks()
             if marker.type == MARKERS.cell
-                @remove_cell_flag(marker,FLAGS.execute)
-                @remove_cell_flag(marker,FLAGS.running)
+                for flag in ACTION_FLAGS
+                    @remove_cell_flag(marker, flag)
         @send_signal(signal:3)
         setTimeout(( () => @send_signal(signal:9) ), 500 )
 
@@ -1317,6 +1316,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
         uuid = misc.uuid()
         cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell + '\n', {line:line, ch:0})
         return @mark_cell_start(line)
+
+    remove_cell_flags_from_changeObj: (changeObj, flags) =>
+        # Remove cell flags from *contiguous* text in the changeObj.
+        # This is useful for cut/copy/paste, but useless for
+        # diffsync (where we would not use it anyways).
+        # This function modifies changeObj in place.
+        @remove_cell_flags_from_text(changeObj.text, flags)
+        if changeObj.next?
+            @remove_cell_flags_from_changeObj(changeObj.next, flags)
+
+    remove_cell_flags_from_text: (text, flags) =>
+        # !! The input "text" is an array of strings, one for each line;
+        # this function modifies this array in place.
+        # Replace all lines of the form
+        #    [MARKERS.cell][36-character uuid][flags][MARKERS.cell]
+        # by
+        #    [MARKERS.cell][uuid][flags2][MARKERS.cell]
+        # where flags2 has the flags in the second argument (an array) removed,
+        # or all flags removed if the second argument is undefined
+        for i in [0...text.length]
+            s = text[i]
+            if s.length >= 38 and s[0] == MARKERS.cell
+                if flags?
+                    text[i] = s.slice(0,37) + (x for x in s.slice(37,s.length-1) when x not in flags) + MARKERS.cell
+                else
+                    text[i] = s.slice(0,37) + MARKERS.cell
 
 
 class Cell

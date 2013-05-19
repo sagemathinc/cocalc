@@ -837,6 +837,16 @@ class CodeMirrorSession
                 # oops, repeated "unique" id, so fix it.
                 id = uuid.v4()
                 @content = @content.slice(0,i+1) + id + @content.slice(i+37)
+                # Also, if 'r' in the flags for this cell, remove it since it
+                # can't possibly be already running (given the repeat).
+                flags = @content.slice(i+37, j)
+                if diffsync.FLAGS.running in flags
+                    new_flags = ''
+                    for t in flags
+                        if t != diffsync.FLAGS.running
+                            new_flags += t
+                    @content = @content.slice(0,i+37) + new_flags + @content.slice(j)
+
             prev_ids[id] = true
             flags = @content.slice(i+37, j)
             if opts.kill

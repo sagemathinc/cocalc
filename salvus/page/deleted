@@ -1,3 +1,20 @@
+@remove_cell_flags_from_text(changeObj.text)
+
+
+        start = 0
+        while true
+            i = text.indexOf(MARKERS.cell, start)
+            if i == -1
+                console.log(" ==> '#{text}'")
+                return text
+            j = text.indexOf('\n', i)
+            if j - i >= 38
+                text  = text.slice(0, i+37) + text.slice(j-1,0)
+                start = i + 38
+            else
+                start = j + 1
+
+
 
     xxx_patch_in_place: (p) =>
         if @opts.string

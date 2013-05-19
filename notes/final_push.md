@@ -1,26 +1,51 @@
 [x] (1:00?) (0:10) html/md and non-ascii doesn't work, but it should, e.g, this goes boom. md("# Very Bad Thing™.")
 
-[ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy the file, then open -- appears to be running, but isn't.
+[x] (0:30?) (1:28) Copy/paste of cells should remove "running/execute,etc" marker from newly pasted cells.
 
-[ ] (1:00?) do another release of cloud (but on storm for now):
+[ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy or move the file, then open -- appears to be running, but isn't.
 
-   [ ] UPDATE VM:
-     [ ] apt-get update; apt-get upgrade
-     [ ] make sure to include 4ti2, as explained in build.py
-     [ ] in sage, do "pip install markdown2Mathjax"
-     [ ] cassandra upgrade (switch to java6, which they recommend):
+[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
+ Test case:
+
+ for x in s.split("\na\nb\n"):
+    if x:
+        print x
+Doing
+   sys.stdout.flush()
+works at the end, but doing
+   sys.stdout.flush(done=True)
+or
+   sys.stdout.flush(done=False)
+doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
+
+
+[ ] (0:50?) Update base VM:
+     [ ] (0:03?) apt-get update; apt-get upgrade; reboot
+     [ ] (0:05?) pull new salvus
+     [ ] (0:10?) make sure to include 4ti2, as explained in build.py
+     [ ] (0:15?) upgrade to Macaulay 1.6 (just released today) -- see http://www.math.illinois.edu/Macaulay2/
+     [ ] (0:03?) in Sage, do "pip install markdown2Mathjax"
+     [ ] (0:10?) cassandra upgrade (switch to java6, which they recommend):
              apt-get install oracle-java6-installer
              update-alternatives --config java
              ./build.py --build_cassandra
-   [ ] UPDATE RAM on cassandra and hub nodes to 8GB
-   [ ] restart storm
+
+[ ] (0:15?) UPDATE RAM and base image on cassandra and hub nodes to 8GB and restart storm
 
 [ ] (1:00?) on storm: test saving/retrieving various size projects to cassandra
 
-[ ] (1:30?) implement code to automate snapshotting projects, based partly on previous stepo
+[ ] (1:00?) implement first draft of code to automate snapshotting projects, based partly on previous stepo
+
+[ ] (1:00?) codemirror is broken on chrome now when lines wrap.  Argh.  Cursor gets off by one, even on the codemirror website!  Not sure what to do about this, but it is seriously annoying.  Try (1) on firefox, (2) latest devel codemirror, (3) mailing list
+
+---
+
+
+[ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
+
+[ ] (1:00?) fix my class notes to work with correct math markup...
 
 [ ] (1:00?) deploy on cloud
-
 
 ------
 
@@ -28,14 +53,12 @@
 
 [ ] (3:00?) make it possible to browse snapshots
 
-[ ] (1:00?) fix my class notes to work with correct math markup...
-
 [ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
 
 
 ----
 
-[ ] (1:00?) codemirror is broken on chrome now when lines wrap.  Argh.  Cursor gets off by one, even on the codemirror website!  Not sure what to do about this, but it is seriously annoying.
+[ ] (1:00?) code execution needs another state: "w" for waiting.  E.g., 2 cells, one with sleep(5) and the next with sleep(5) make this clear.
 
 [ ] (2:00?) Potentially massive bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.
 
@@ -76,20 +99,6 @@ testing:
 [ ] (2:00?) design and implement gui for browsing snapshots and restoring projects.
 
 ---
-[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
- Test case:
-
- for x in s.split("\na\nb\n"):
-    if x:
-        print x
-Doing
-   sys.stdout.flush()
-works at the end, but doing
-   sys.stdout.flush(done=True)
-or
-   sys.stdout.flush(done=False)
-doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
-
 [ ] (2:00?) make it so terminal never disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
 [ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
