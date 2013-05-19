@@ -5,6 +5,7 @@
 
 [x] (1:00?)  (1:15) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
 
+[x] (0:15?) (0:18) fix recent projects scroll issue (not selected)
 
 [ ] (1:00?) do another release of cloud (but on storm for now):
 

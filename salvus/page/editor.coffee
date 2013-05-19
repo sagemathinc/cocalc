@@ -266,6 +266,7 @@ class exports.Editor
         $(document).on 'keyup', (ev) =>
             if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
                 @focus()
+                @project_page.display_tab("project-editor")
                 return false
 
 
