@@ -679,6 +679,13 @@ class CodeMirrorSession
                 @sage_update(kill:true)
 
         winston.debug("Opening a Sage session.")
+
+        # Ensure that no cells appear to be running.  This is important
+        # because the worksheet file that we just loaded could have had some
+        # markup that cells cells are running.
+        @sage_update(kill:true)
+
+        # Connect to the local Sage server.
         get_sage_socket (err, socket) =>
             if err
                 cb(err)
