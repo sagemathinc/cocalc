@@ -2233,8 +2233,14 @@ def md2html(s):
     from markdown2Mathjax import sanitizeInput, reconstructMath
     from markdown2 import markdown
 
-    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'), ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'), ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}')]
-
+    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'),
+              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'),
+              ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}'),
+              ('\\begin{eqnarray}', '\\end{eqnarray}'), ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
+              ('\\begin{math}', '\\end{math}'),
+              ('\\begin{displaymath}', '\\end{displaymath}')
+              ]
+    
     tmp = [((s,None),None)]
     for d in delims:
         tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
@@ -2249,7 +2255,7 @@ def md2html(s):
     return markedDownText
 
 def md(s):
-    """
+    r"""
     Cell mode that renders everything after %md as markdown.
 
     This uses the Python markdown2 library with the following
@@ -2259,8 +2265,9 @@ def md(s):
          'smarty-pants', 'wiki-tables'
 
     See https://github.com/trentm/python-markdown2/wiki/Extras
-    We also use markdown2Mathjax so that LaTeX is properly
-    typeset in $'s and $$'s.
+    We also use markdown2Mathjax so that LaTeX will be properly
+    typeset if it is wrapped in $'s and $$'s, \(, \), \[, \],
+    \begin{equation}, \end{equation}, \begin{align}, \end{align}.,
     """
     html(md2html(s))
 
