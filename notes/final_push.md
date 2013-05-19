@@ -2,7 +2,9 @@
 
 [x] (0:30?) (1:28) Copy/paste of cells should remove "running/execute,etc" marker from newly pasted cells.
 
-[ ] (0:30?) `local_hub` -- if we start the sage process for a sage worksheet for any reason, mark all "running" cells as stopped, since they can't be running, and this just confuses the client.  Start infinite thing running in a worksheet, copy or move the file, then open -- appears to be running, but isn't.
+[x] (0:30?) (0:48+) start an infinite computation running in worksheet and see green spinner.  Then click "Stop" red button to kill process; spinner doesn't stop until one types more text to cause a sync, which in turn causes some sort of update.
+
+[ ] (0:30?) (0:08+) `local_hub` -- if we start the sage process for a sage worksheet for any reason, then `local_hub` should mark all "running" cells as stopped, since they can't be running, and this just confuses the client. Better might be to simply ensure that everything is *correct* according to a map in `local_hub` on update.  Reproduce:  Start infinite calc running in a worksheet, copy the file, then open it -- it appears to be running, but isn't.
 
 [ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
  Test case:

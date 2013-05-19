@@ -710,6 +710,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if marker.type == MARKERS.cell
                 for flag in ACTION_FLAGS
                     @remove_cell_flag(marker, flag)
+        @process_sage_updates()
         @send_signal(signal:3)
         setTimeout(( () => @send_signal(signal:9) ), 500 )
 
@@ -722,7 +723,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             message: message.codemirror_send_signal
                 signal : opts.signal
                 session_uuid : @session_uuid
-            cb : opts.cb
+            cb : (err) =>
+                @sync()
+                setTimeout( (() => @sync_soon()), 50 )
+                opts.cb(err)
 
     introspect: () =>
         # TODO: obviously this wouldn't work in both sides of split worksheet.
