@@ -2229,6 +2229,25 @@ def restore(vars=None):
 
 restore.__doc__ += sage.misc.reset.restore.__doc__
 
+def md2html(s):
+    from markdown2Mathjax import sanitizeInput, reconstructMath
+    from markdown2 import markdown
+
+    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'), ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'), ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}')]
+
+    tmp = [((s,None),None)]
+    for d in delims:
+        tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
+
+    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables']
+    markedDownText = markdown(tmp[-1][0][0], extras=extras)
+
+    while len(tmp) > 1:
+        markedDownText = reconstructMath(markedDownText, tmp[-1][0][1], equation_delims=tmp[-1][1])
+        del tmp[-1]
+
+    return markedDownText
+
 def md(s):
     """
     Cell mode that renders everything after %md as markdown.
@@ -2243,13 +2262,7 @@ def md(s):
     We also use markdown2Mathjax so that LaTeX is properly
     typeset in $'s and $$'s.
     """
-    from markdown2Mathjax import sanitizeInput, reconstructMath
-    from markdown2 import markdown
-
-    tmp = sanitizeInput(s)
-    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables']
-    markedDownText = markdown(tmp[0], extras=extras)
-    html(reconstructMath(markedDownText,tmp[1]))
+    html(md2html(s))
 
 
 

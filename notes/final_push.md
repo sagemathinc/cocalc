@@ -1,22 +1,11 @@
-[x] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+[x] (0:45?) markdown -- better mathjax escaping; anything in \begin{}/ \end{}, etc. blocks. ?
 
-[x] (0:15?) (0:07) UI: terms of usage error message covers the checkmark making it impossible to click and agree?! fix account.css
+[ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
 
-[x] (1:00?) (0:49) fix math %md mode to *genuinely* escape 100% of stuff in $'s and $$'s.  DO THIS ASAP, since not backward compatible.
-
-[x] (0:10?) (0:13) feature: syntax highlighting for patch files
-
---> [ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger
-.
-
-[ ] admin: need to make a file with stuff like:
-# How to snapshot all nodes:
-time s._hosts.nodetool('snapshot salvus', wait=True)
-
-# How to initiaite repair all nodes (once a week, takes a long time)
-time s._hosts.nodetool('snapshot repair', wait=False)
 
 [ ] (0:45?) tweak "syncing" message: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
+
+[ ] (1:00?) codemirror is broken on chrome now when lines wrap.  Argh.  Cursor gets off by one, even on the codemirror website!  Not sure what to do about this, but it is seriously annoying.
 
 [ ] (2:00?) Potentially massive bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.
 
@@ -27,9 +16,7 @@ time s._hosts.nodetool('snapshot repair', wait=False)
 
 [ ] (1:00?) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
 
-[ ] (1:00?) create a document listing the main technologies used in SMC, and where to learn them (best thing to read).
-
-[ ] (1:00?) am I writing cassandra blobs as string constants -- something about that in docs "Cassandra blobs as string constants"?
+[ ] (1:00?) am I writing cassandra blobs as string constants? -- something about that in docs "Cassandra blobs as string constants"?
 
 [ ] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
 
@@ -1732,7 +1719,7 @@ happens once (and usually is fast).
 
     sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
 
-
+1
 [x] (0:20?) (0:25) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
 
 [x] (0:15?) (0:02) increase cookie timeout to 1 month; changed this line in hub.coffee:         ttl              = 30*24*3600     # 30 days
@@ -1756,4 +1743,16 @@ happens once (and usually is fast).
     sstable2json /mnt/cassandra/lib/data/salvus/successful_sign_ins/salvus-successful_sign_ins-ib-23-Data.db > a
 
 [x] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+
+[x] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+
+[x] (0:15?) (0:07) UI: terms of usage error message covers the checkmark making it impossible to click and agree?! fix account.css
+
+[x] (1:00?) (0:49) fix math %md mode to *genuinely* escape 100% of stuff in $'s and $$'s.  DO THIS ASAP, since not backward compatible.
+
+[x] (0:10?) (0:13) feature: syntax highlighting for patch files
+
+[x] (1:00?) (0:14) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
+
+[x] (0:10?) (0:01) notes/admin.md: need to make a file with stuff about admin procedures.
 
