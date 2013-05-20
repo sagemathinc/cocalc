@@ -9,6 +9,30 @@ is based on this [Ipython notebook](http://nbviewer.ipython.org/urls/raw.github.
 
 
 ︡0c3f0d3b-1cbe-42a8-867d-9460fc2475d2︡{"html":"<h1>MathJax in Markdown tests</h1>\n\n<h2>William Stein</h2>\n\n<p>This <a href=\"https://cloud.sagemath.com\">https://cloud.sagemath.com</a> worksheet illustrates some examples from the MathJax site, and\nis based on this <a href=\"http://nbviewer.ipython.org/urls/raw.github.com/ipython/ipython/master/examples/notebooks/Typesetting%20Math%20Using%20MathJax.ipynb\">Ipython notebook</a>.</p>\n"}︡
+︠04f3fdb5-ad61-4001-b5a1-ca0d7d75a76a︠
+%md
+# xypic looks great
+$$
+\begin{xy}
+\xymatrix{
+T \ar@/_/[ddr]_y \ar@/^/[drr]^x \ar@{.>}[dr]|-{(x,y)}\\\\     % NOTE! it's \\\\ instead of \\ here because of markdown.
+&X \times_Z Y \ar[d]^q \ar[r]_p & X\ar[d]_f \\\\
+&Y \ar[r]^g &Z}
+\end{xy}
+$$
+
+︡824ff023-31ed-45b8-962e-1b522e2d54b5︡{"html":"<h1>xypic looks great</h1>\n\n<p>$$\\begin{xy}\n\\xymatrix{\nT \\ar@/_/[ddr]_y \\ar@/^/[drr]^x \\ar@{.&gt;}[dr]|-{(x,y)}\\\\     % NOTE! it&#8217;s \\\\ instead of \\ here because of markdown.\n&amp;X \\times_Z Y \\ar[d]^q \\ar[r]_p &amp; X\\ar[d]_f \\\\\n&amp;Y \\ar[r]^g &amp;Z}\n\\end{xy}\n$$</p>\n"}︡
+︠b8b0da05-9293-45b6-9839-9e0c76d54459︠
+%md
+### AMScd is new in Mathjax 2.2; it doesn't look so good below though
+\begin{equation}
+\begin{CD}
+S^{{\mathcal{W}}_\Lambda}\otimes T @>j>> T\\
+@VVV @VV{{\rm End} P}V\\
+(S\otimes T)/I @= (Z\otimes T)/J
+\end{CD}
+\end{equation}
+︡3c8bf4fc-b1f4-417d-9480-904db429c0d4︡{"html":"<h3>AMScd is new in Mathjax 2.2; it doesn&#8217;t look so good below though</h3>\n\n<p>\\begin{equation}\n\\begin{CD}\nS^{{\\mathcal{W}}_\\Lambda}\\otimes T @>j>> T\\\\\n@VVV @VV{{\\rm End} P}V\\\\\n(S\\otimes T)/I @= (Z\\otimes T)/J\n\\end{CD}\n\\end{equation}</p>\n"}︡
 ︠5782a63e-0317-420b-a234-e4d9631fcbae︠
 %md
 \begin{align}
@@ -16,7 +40,7 @@ is based on this [Ipython notebook](http://nbviewer.ipython.org/urls/raw.github.
 \dot{y} & = \rho x - y - xz \\
 \dot{z} & = -\beta z + xy
 \end{align}
-︡d0ea380a-e559-44c9-a986-2eff9d41b7c2︡{"html":"<p>\\begin{align}\n\\dot{x} & = \\sigma(y-x) \\\\\n\\dot{y} & = \\rho x - y - xz \\\\\n\\dot{z} & = -\\beta z + xy\n\\end{align}</p>\n"}︡
+︡745af107-5ef5-4491-a883-363e88573e00︡{"html":"<p>\\begin{align}\n\\dot{x} & = \\sigma(y-x) \\\\\n\\dot{y} & = \\rho x - y - xz \\\\\n\\dot{z} & = -\\beta z + xy\n\\end{align}</p>\n"}︡
 ︠1eb51d48-514a-4a23-b89b-22827eb0c38b︠
 %md
 \begin{equation*}
