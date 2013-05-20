@@ -1,34 +1,23 @@
 5pm - 11pm: 6 hours
 
-[ ] (0:15?) upgrade to mathjax 2.2
+--> [ ] (0:30?) deploy on cloud
 
---> [ ] (0:50?) (0:28+) Update base VM:
-     [x] git pull on host; then push_salvus
-     [x] create new machine: salvus@cloud1:~/salvus/salvus/scripts$ ./new_vm_image.py
-     [x] apt-get update; apt-get upgrade; reboot
-     [x] pull new salvus; . salvus-env; ./make_coffee
-     [x] make sure to build 4ti2 into sage, as explained in build.py
-     [x] upgrade to Macaulay 1.6 (just released today) -- see http://www.math.illinois.edu/Macaulay2/
-     [x] in Sage, do "pip install markdown2Mathjax"
-     [x] cassandra upgrade (switch to java6, which they recommend):
-             apt-get install oracle-java6-installer
-             update-alternatives --config java
-             ./build.py --build_cassandra
+[ ] (1:00?) fix my class notes to work with correct math markup...
 
-[ ] (0:15?) UPDATE RAM and base image on cassandra and hub nodes to 8GB and restart storm
 
-[ ] (1:00?) on storm: test saving/retrieving various size projects to cassandra
+[ ] (1:00?) if pack files are big, there is only one (or no) .head produced. -- deal with this in backup.coffee
 
-[ ] (1:00?) implement first draft of code to automate snapshotting projects, based partly on previous stepo
+[ ] (1:30?) change the query as suggested above (by "THIS WORKS"), so instead of getting all packs at once, we get a single one at a time (or maybe even a single 8MB chunck at a time?)
 
+[ ] (1:00?) implement first draft of code to automate snapshotting projects, based partly on previous step, etc.
+
+
+[ ] (1:00?) increase quotas on compute nodes... since that is needed to do sage dev work online.
 ---
 
 
 [ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
 
-[ ] (1:00?) fix my class notes to work with correct math markup...
-
-[ ] (1:00?) deploy on cloud
 
 ------
 
@@ -1531,7 +1520,7 @@ Options:
 
 Two benchmark filesets:
   - the 45MB "my teaching" directory (with two github projects and other misc files); then add salvus github
-  - the sage-5.9 binary, then add sage-5.10 binary (measure scalability and dedup).
+      - the sage-5.9 binary, then add sage-5.10 binary (measure scalability and dedup).
 
 Benchmark 1:
   - time to create initial archive, starting with 45MB teaching, including "fsck -g"
@@ -1792,3 +1781,91 @@ doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
 I will test sometime do a re-install from scratch to get to the stable or beta channel, but not until I have time free.
 
+
+
+[x] (0:15?) (0:26) upgrade to mathjax 2.2
+
+[x] (0:50?) (0:35) Update base VM:
+     [x] git pull on host; then push_salvus
+     [x] create new machine: salvus@cloud1:~/salvus/salvus/scripts$ ./new_vm_image.py
+     [x] apt-get update; apt-get upgrade; reboot
+     [x] pull new salvus; . salvus-env; ./make_coffee
+     [x] make sure to build 4ti2 into sage, as explained in build.py
+     [x] upgrade to Macaulay 1.6 (just released today) -- see http://www.math.illinois.edu/Macaulay2/
+     [x] in Sage, do "pip install markdown2Mathjax"
+     [x] cassandra upgrade (switch to java6, which they recommend):
+             apt-get install oracle-java6-installer
+             update-alternatives --config java
+             ./build.py --build_cassandra
+
+[x] (0:15?) (0:25) UPDATE RAM and base image on cassandra and hub nodes to 8GB and restart storm
+
+[x] (1:00?) (2:30) on storm: test saving/retrieving various size projects to cassandra
+
+    t={};require('backup').snapshot(keyspace:'salvus', hosts:['10.2.1.2'], cb:(err,s)->t.s=s)
+    t.s.project("0cac77f9-ee2f-4342-bbfa-8389f8231a4b", (err, p) -> t.p=p)
+
+    tm=require('misc').walltime(); t.p.pull_from_database((err)->console.log(require('misc').walltime(tm)))
+
+    tm=require('misc').walltime(); t.p.snapshot_compute_node((err)->console.log(require('misc').walltime(tm)))
+
+    t.p.snapshots(console.log)
+    t.p.ls(path:'.', hidden:true, cb:console.log)
+
+    tm=require('misc').walltime(); t.p.push_to_database((err)->console.log(err, require('misc').walltime(tm)))
+
+Results:
+
+    # 157MB bup archive, MAX_BLOB_SIZE = 4000000
+    # time to make bup snapshot in the first place: 24s
+    # send to DB: 110s
+    # get from DB: 24s
+    # scp from one machine to another: 12s
+
+---
+
+    # 157MB bup archive, MAX_BLOB_SIZE = 1000000
+    # send to DB: 105s
+    # get from DB: 22s
+
+---
+I had to greatly increase params in cassandra.yaml to even test this:
+
+    # 157MB bup archive, MAX_BLOB_SIZE = 8000000
+    # send to DB: 117s
+    # get from DB: 23.5s
+
+    # 157MB bup archive, MAX_BLOB_SIZE = 64000000
+    # send to DB: 98s
+    # get from DB: 23.5s
+
+
+
+---
+
+Sage takes 78s to extract from tarball, takes 3.8GB on disk; over 70,000 files.
+
+    t.s.project("0d2416e5-ee0a-41ce-a882-7a0547a02654", (err, p) -> t.p=p)
+
+    Size of bup archive: 1014MB
+
+    # bup archive of a Sage extract, MAX_BLOB_SIZE = 8000000
+    # time to make bup snapshot in the first place: 233s, updates in 15s
+    # send to DB: 676.7s
+    # get from DB: ??  # causes the Cassandra to crash (with 8GB RAM)
+    # scp from one machine to another: ??
+
+Even with 16GB RAM, it crashes trying to get....
+
+Try the binary driver:
+
+Client = require('cql3').Client; client = new Client('10.2.1.2', 9042)
+
+FAIL -- it is totally broken with latest node.js, etc.  Oh well.  Not maintained.
+
+
+*THIS* works:
+
+    t.s.db.select(table:'project_bups', columns:['pack', 'idx', 'head', 'number', 'num_chunks', 'time'], where:{sha1:'aa822ca353524cb3d1618650621e280c801da721'}, cb:((err,result) -> console.log('done'); t.r=result;0))
+
+Thus the solution is that I have to query a single sha1 at a time, which keeps the size down...
