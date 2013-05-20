@@ -260,7 +260,7 @@ exports.execute_code = (opts) ->
     env = misc.copy(process.env)
 
     if opts.env?
-        for k, v of opt.env
+        for k, v of opts.env
             env[k] = v
 
     if opts.uid?
