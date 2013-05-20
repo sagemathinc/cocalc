@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # This script is run by /etc/rc.local when booting up.  It does special configuration
-# depending on what images are mounted, etc. 
+# depending on what images are mounted, etc.
 
 import os
 
@@ -10,6 +10,9 @@ if os.path.exists('/mnt/home/'):
     if not os.path.exists('/mnt/home/aquota.group'):
         os.system("quotacheck -cug /mnt/home")
         os.system("quotaon -a")
+
+    # disable quotas for now, so that students in my class can do Sage development.
+    os.system('quotaoff -a')
 
     # Restore user accounts
     if os.path.exists('/mnt/home/etc/'):

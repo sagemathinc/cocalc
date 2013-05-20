@@ -282,9 +282,11 @@ CREATE TABLE project_bups (
      idx         blob,          /* index into this pack file */
      head        varchar,       /* head, when this pack file was the newest */
      PRIMARY KEY(project_id, time, number)
-) WITH CLUSTERING ORDER BY (time ASC, number ASC) AND compression={ 'sstable_compression' :''};
+) WITH CLUSTERING ORDER BY (time ASC, number ASC);
 
-/* CREATE INDEX ON sha1(project_bups); */
+/* AND compression={ 'sstable_compression' :''}; */
+
+/* CREATE INDEX ON project_bups(sha1); */
 
 
 ////////////////////////////////////////////
