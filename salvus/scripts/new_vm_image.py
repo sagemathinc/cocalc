@@ -24,7 +24,7 @@ if prev == "":
 
 if next == "":
    # make image name salvus-date   
-   next = time.strftime("salvus-%Y-%m-%d")
+   next = time.strftime("salvus-%Y-%m-%d-%H%M")
 
 
 defined_machines = os.popen("virsh_list").read()
