@@ -21,14 +21,14 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2
+   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jre libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp
 
 
 For users, do all the following:
 
 # EASY PACKAGES:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
@@ -43,22 +43,56 @@ For users, do all the following:
 
   # Then delete the polymake build directory.
 
-# OPTIONAL SAGE PACKAGES
+# MACAULAY2:
 
-./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gmpy gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
-
-Also, install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
+Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
   wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.5-common.deb
   wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
   sudo apt-get install libntl-5.4.2 libpari-gmp3
   sudo dpkg -i Macaulay2-1.5-common.deb Macaulay2-1.5-amd64-Linux-Ubuntu-12.04.deb
 
+# 4ti2: until the optional spkg gets fixed:
+
+  cd /tmp/
+  wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz
+  tar xvf 4ti2-1.5.tar.gz
+  cd
+  ./configure --prefix=/usr/local/sage/sage-*/local/
+  make -j16 install
+  rm -rf 4ti2*
+
+# Install Sage
+
+# Non-sage Python packages into Sage
+
+./sage -sh
+
+easy_install pip
+
+pip install markdown2 markdown2Mathjax virtualenv  pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap
+
+# Also, edit the banner:
+
+  sage-*/local/bin/sage-banner
+
+# OPTIONAL SAGE PACKAGES
+
+./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta 4ti2 biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
+
+# Then delete wasted space
+
+   rm spkg/optional/*
+
+
 Copy over the newest SageTex:
 
    sudo cp /usr/local/sage/sage-*/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
 
+
 """
+
+CASSANDRA_VERSION='1.2.4'   # options here -- http://downloads.datastax.com/community/
 
 import logging, os, shutil, subprocess, sys, time
 
@@ -88,11 +122,9 @@ PYTHON_PACKAGES = [
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
     'cql',                # interface to Cassandra
-    'markdown2',
     'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
     'pyxattr',            # used by bup
-    'pylibacl',           # used by bup
-    'pip', 'virtualenv'   # Maybe not used yet...
+    'pylibacl'            # used by bup
     ]
 
 if not os.path.exists(BUILD):
@@ -117,6 +149,10 @@ def cmd(s, path):
     if os.system(s):
         raise RuntimeError('command failed: "%s"'%s)
 
+def download(url):
+    # download target of given url to SRC directory
+    cmd("wget '%s'"%url, SRC)
+
 def extract_package(basename):
     # find tar ball in SRC directory, extract it in build directory, and return resulting path
     for filename in os.listdir(SRC):
@@ -125,7 +161,7 @@ def extract_package(basename):
             path = os.path.join(BUILD, filename[:i])
             if os.path.exists(path):
                 shutil.rmtree(path)
-            cmd('tar xvf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
+            cmd('tar xf "%s"'%os.path.abspath(os.path.join(SRC, filename)), BUILD)
             return path
 
 def build_tinc():
@@ -201,6 +237,11 @@ def build_stunnel():
 def build_cassandra():
     log.info('installing cassandra'); start = time.time()
     try:
+        target = 'dsc-cassandra-%s.tar.gz'%CASSANDRA_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f dsc-cassandra-*.tar.*', SRC)  # remove any source tarballs that might have got left around
+            download('http://downloads.datastax.com/community/dsc-cassandra-%s-bin.tar.gz'%CASSANDRA_VERSION)
+            cmd('mv dsc-cassandra-%s-bin.tar.gz dsc-cassandra-%s.tar.gz'%(CASSANDRA_VERSION, CASSANDRA_VERSION), SRC)
         path = extract_package('dsc-cassandra')
         target2 = os.path.join(TARGET, 'cassandra')
         print target2

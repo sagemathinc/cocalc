@@ -27,19 +27,23 @@ codemirror_associations =
     cc     : 'text/x-c++src'
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
-    java   : 'text/x-java'
     coffee : 'coffeescript'
-    php    : 'php'
-    py     : 'python'
-    pyx    : 'python'
     css    : 'css'
-    diff   : 'diff'
+    diff   : 'text/x-diff'
     ecl    : 'ecl'
+    f      : 'python'    # Ondrej Certik says Python modes sucks less than other modes, but it still sucks.
+    f90    : 'python'
+    f95    : 'python'
     h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
+    java   : 'text/x-java'
     js     : 'javascript'
     lua    : 'lua'
     md     : 'markdown'
+    patch  : 'text/x-diff'
+    php    : 'php'
+    py     : 'python'
+    pyx    : 'python'
     pl     : 'text/x-perl'
     r      : 'r'
     rst    : 'rst'
@@ -262,6 +266,7 @@ class exports.Editor
         $(document).on 'keyup', (ev) =>
             if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
                 @focus()
+                @project_page.display_tab("project-editor")
                 return false
 
 
@@ -496,7 +501,7 @@ class exports.Editor
 
         link_filename = link.find(".salvus-editor-tab-filename")
         i = filename.lastIndexOf('/')
-        display_name = trunc(filename.slice(i+1),16)
+        display_name = trunc(filename.slice(i+1),24)
         link_filename.text(display_name)
         link.tooltip(title:filename, animation:false, delay: { show: 1000, hide: 100 })
 

@@ -36,6 +36,7 @@ Editor for files in a project
 
 .salvus-editor-codemirror-filename {
     margin-left:3em;
+    margin-right: 5em;
     font-size: 10pt;
     font-weight: bold;
     color:#555;
@@ -75,7 +76,7 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-sync {
-    font-size:13pt;
+    font-size:8pt;
     color:#bbb;
 }
 
@@ -218,10 +219,6 @@ Editor for files in a project
     white-space:normal;
 }
 
-/* Undo bootstrap's madness */
-li {
-    line-height:normal;
-}
 
 .sagews-output-html {
     font-family:helvetica;
@@ -260,3 +257,13 @@ li {
 .sagews-output-interact {
 }
 
+
+
+/* Undo various bootstrap madness (which makes scaling markdown very painful) */
+li {
+    line-height:normal;
+}
+
+code {
+    font-size: inherit;
+}

@@ -2229,8 +2229,33 @@ def restore(vars=None):
 
 restore.__doc__ += sage.misc.reset.restore.__doc__
 
+def md2html(s):
+    from markdown2Mathjax import sanitizeInput, reconstructMath
+    from markdown2 import markdown
+
+    delims = [('\\(','\\)'), ('$$','$$'), ('\\[','\\]'),
+              ('\\begin{equation}', '\\end{equation}'), ('\\begin{equation*}', '\\end{equation*}'),
+              ('\\begin{align}', '\\end{align}'), ('\\begin{align*}', '\\end{align*}'),
+              ('\\begin{eqnarray}', '\\end{eqnarray}'), ('\\begin{eqnarray*}', '\\end{eqnarray*}'),
+              ('\\begin{math}', '\\end{math}'),
+              ('\\begin{displaymath}', '\\end{displaymath}')
+              ]
+
+    tmp = [((s,None),None)]
+    for d in delims:
+        tmp.append((sanitizeInput(tmp[-1][0][0], equation_delims=d), d))
+
+    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables']
+    markedDownText = markdown(tmp[-1][0][0], extras=extras)
+
+    while len(tmp) > 1:
+        markedDownText = reconstructMath(markedDownText, tmp[-1][0][1], equation_delims=tmp[-1][1])
+        del tmp[-1]
+
+    return markedDownText
+
 def md(s):
-    """
+    r"""
     Cell mode that renders everything after %md as markdown.
 
     This uses the Python markdown2 library with the following
@@ -2240,7 +2265,11 @@ def md(s):
          'smarty-pants', 'wiki-tables'
 
     See https://github.com/trentm/python-markdown2/wiki/Extras
+    We also use markdown2Mathjax so that LaTeX will be properly
+    typeset if it is wrapped in $'s and $$'s, \(, \), \[, \],
+    \begin{equation}, \end{equation}, \begin{align}, \end{align}.,
     """
-    import markdown2
-    extras = ['code-friendly', 'footnotes', 'smarty-pants', 'wiki-tables']
-    html(markdown2.markdown(s, extras=extras))
+    html(md2html(s))
+
+
+

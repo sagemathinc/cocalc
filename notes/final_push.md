@@ -1,14 +1,83 @@
-[ ] (0:15?) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
+[x] (1:00?) (0:10) html/md and non-ascii doesn't work, but it should, e.g, this goes boom. md("# Very Bad Thing™.")
 
-    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+[x] (0:30?) (1:28) Copy/paste of cells should remove "running/execute,etc" marker from newly pasted cells.
+
+[x] (0:30?) (0:48+) start an infinite computation running in worksheet and see green spinner.  Then click "Stop" red button to kill process; spinner doesn't stop until one types more text to cause a sync, which in turn causes some sort of update.
+
+[x] (0:30?) (0:15) `local_hub` -- if we start the sage process for a sage worksheet for any reason, then `local_hub` should mark all "running" cells as stopped, since they can't be running, and this just confuses the client. Better might be to simply ensure that everything is *correct* according to a map in `local_hub` on update.  Reproduce:  Start infinite calc running in a worksheet, copy the file, then open it -- it appears to be running, but isn't.
+
+[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
+ Test case:
+
+ for x in s.split("\na\nb\n"):
+    if x:
+        print x
+Doing
+   sys.stdout.flush()
+works at the end, but doing
+   sys.stdout.flush(done=True)
+or
+   sys.stdout.flush(done=False)
+doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
 
-[ ] (0:20?) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
+[ ] (0:50?) Update base VM:
+     [ ] (0:03?) apt-get update; apt-get upgrade; reboot
+     [ ] (0:05?) pull new salvus
+     [ ] (0:10?) make sure to include 4ti2, as explained in build.py
+     [ ] (0:15?) upgrade to Macaulay 1.6 (just released today) -- see http://www.math.illinois.edu/Macaulay2/
+     [ ] (0:03?) in Sage, do "pip install markdown2Mathjax"
+     [ ] (0:10?) cassandra upgrade (switch to java6, which they recommend):
+             apt-get install oracle-java6-installer
+             update-alternatives --config java
+             ./build.py --build_cassandra
 
-[ ] (0:15?) (0:02) increase cookie timeout to 1 month; changed this line in hub.coffee:         ttl              = 30*24*3600     # 30 days
+[ ] (0:15?) UPDATE RAM and base image on cassandra and hub nodes to 8GB and restart storm
+
+[ ] (1:00?) on storm: test saving/retrieving various size projects to cassandra
+
+[ ] (1:00?) implement first draft of code to automate snapshotting projects, based partly on previous stepo
+
+[ ] (1:00?) codemirror is broken on chrome now when lines wrap.  Argh.  Cursor gets off by one, even on the codemirror website!  Not sure what to do about this, but it is seriously annoying.  Try (1) on firefox, (2) latest devel codemirror, (3) mailing list
+
+---
 
 
-[ ] new deploy, including that paste of cells bugfix.
+[ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
+
+[ ] (1:00?) fix my class notes to work with correct math markup...
+
+[ ] (1:00?) deploy on cloud
+
+------
+
+[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
+
+[ ] (3:00?) make it possible to browse snapshots
+
+[ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
+
+
+----
+
+[ ] (1:00?) code execution needs another state: "w" for waiting.  E.g., 2 cells, one with sleep(5) and the next with sleep(5) make this clear.
+
+[ ] (2:00?) Potentially massive bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.
+
+[ ] (1:00?) am I writing cassandra blobs as string constants? -- something about that in docs "Cassandra blobs as string constants"?
+
+[ ] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
+
+[ ] (1:00?) implement scratch directories, so sage dev is possible.
+
+[ ] (1:00?) make quota work, but only for home
+
+[ ] (2:00?) sometimes GAP broken in deployed vm's:  gap('2') boom!
+
+[ ] (1:00?) something didn't get properly (monkey) patched:
+    sage.interacts.algebra.polar_prime_spiral()
+
+[ ] (1:00?) feature request: user way to customize the cursor in text editor (vertical line instead of block)
 
 ---
 
@@ -25,8 +94,6 @@ testing:
     t.p.ls(path:'.', hidden:true, cb:console.log)
     t.p.push_to_database(console.log)
 
-[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
-
 [ ] (2:00?) implement and test restore
 
 [ ] (2:00?) figure out how to switch from the current useless backup system to using this new snapshots-to-db and implement
@@ -34,7 +101,6 @@ testing:
 [ ] (2:00?) design and implement gui for browsing snapshots and restoring projects.
 
 ---
-
 [ ] (2:00?) make it so terminal never disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
 
 [ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
@@ -50,8 +116,6 @@ testing:
 
 [ ] (0:10?) https://mathsaas.com/ points at cloud.sagemath.org (really bsd), but should point at the .com.
 
-[ ] (1:00?) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
-
 [ ] (1:00?) feature: save terminal history to file.
 
 [ ] (1:00?) feature: keyboard shortcut to move between files.
@@ -60,31 +124,6 @@ testing:
 
 [ ] (1:00?) feature: run sagetex automatically (?)  maybe have checkbox to enable/disable in page that lists log.
 
-
-[ ] (1:00?) html/md and non-ascii doesn't work, but it should, e.g, this goes boom.
-%md
-Very Bad Thing™.
-
-[ ] (1:00?) MAJOR; sage bug -- forgot the flush at the end of eval when adding back buffering, so, e.g., some output doesn't appear.
- Test case:
-
- for x in s.split("\na\nb\n"):
-    if x:
-        print x
-
-Doing
-
-sys.stdout.flush()
-
-works at the end, but doing
-
-sys.stdout.flush(done=True)
-
-or
-
-sys.stdout.flush(done=False)
-
-doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
 [ ] (1:00?) upgrade bup everywhere -- looks like fsck and race condition work is recent: https://github.com/bup/bup
 
@@ -138,6 +177,8 @@ doesn't... so I suspect the bug is in `local_hub`'s handling of messages.
 
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
+ [ ] update numpy in our sage (then tables/pandas/etc. -- see build), since right now:
+sage: import tables.  This will be fixed automatically by sage-5.10.
 
 [ ] (1:00?) idea: multiline copy from a terminal should delete trailing whitespace... if possible.  I don't know if this is possible, and don't know how this could even be implemented in general.  However, maybe when cloud.sagemath is used as an extension or chromeapp, then it would be possible...
 
@@ -1687,3 +1728,54 @@ happens once (and usually is fast).
 
 [x] (0:45?) (0:04) "var('x','y')" doesn't work
 
+
+[x] (0:15?) (0:02) get sagetex to work on all compute machines, and repeat this procedure on a new base vm, so it will be permanent.  Also, make it part of the install process when updating sage.
+
+    sudo cp /usr/local/sage/sage-5.9/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+
+1
+[x] (0:20?) (0:25) install into base machine all the packages harald mentioned:  pandas, statsmodels, pytables, etc.https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
+
+[x] (0:15?) (0:02) increase cookie timeout to 1 month; changed this line in hub.coffee:         ttl              = 30*24*3600     # 30 days
+
+[x] new deploy, including that paste of cells bugfix.
+
+[x] VM issue with "fsck next boot" not working:
+   sudo rm /var/lib/update-notifier/fsck-at-reboot
+   sudo tune2fs -c 600 /dev/vda1
+
+
+[x] (0:15?) (0:05) UI: change "+ New" date format to be just like in bup, which seems logical.
+
+
+[x] make the nofile, etc., changes suggested in the cassandra docs.
+[x] configure and use ntp on vm's -- I wasn't and times are all skewed!   http://rbgeek.wordpress.com/2012/04/30/time-synchronization-on-ubuntu-12-04lts-using-ntp/
+
+[x] here is how to use sstable2json:
+    salvus@cassandra1:/mnt/cassandra/conf$
+    export CASSANDRA_CONF=`pwd`
+    sstable2json /mnt/cassandra/lib/data/salvus/successful_sign_ins/salvus-successful_sign_ins-ib-23-Data.db > a
+
+[x] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+
+[x] install sage-5.10.beta3, all optional packages, etc., into base machine, and get stats stuff working :-)
+
+[x] (0:15?) (0:07) UI: terms of usage error message covers the checkmark making it impossible to click and agree?! fix account.css
+
+[x] (1:00?) (0:49) fix math %md mode to *genuinely* escape 100% of stuff in $'s and $$'s.  DO THIS ASAP, since not backward compatible.
+
+[x] (0:10?) (0:13) feature: syntax highlighting for patch files
+
+[x] (1:00?) (0:14) Create "%md" markdown that has inline backtick code, then zoom by increasing font size and that code doesn't get bigger.
+
+[x] (0:10?) (0:01) notes/admin.md: need to make a file with stuff about admin procedures.
+
+[x] (0:45?) markdown -- better mathjax escaping; anything in \begin{}/ \end{}, etc. blocks. ?
+[x] (0:05?) (0:05) some sort of highlighting for fortran editing (not good; better than nothing)
+[x] (0:45?) (0:21) tweak "syncing" message to be less annoying.: https://mail.google.com/mail/u/0/?shva=1#inbox/13eb2eb7f9ec4680
+[x] (1:00?)  (1:15) Cassandra: upgrade from 1.2.3 to 1.2.4 (?)
+[x] (0:15?) (0:18) fix recent projects scroll issue (not selected)
+[x] (0:30?) (0:10) upgrade font-awesome
+[x] (0:10?) editor top bar margin wrong.
+
+---
