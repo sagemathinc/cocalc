@@ -1,3 +1,24 @@
+[ ] (0:45?) sometimes file listing gets updated after we've already changed to another directory!
+
+
+[ ] (0:20?) I see these in ps "bup-on CxL4SM0n@10.2.2.4 save -9"; I thought I removed all "-9"'s.
+
+
+[ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
+%md
+$$\{ foo \}$$
+even though this does
+%md
+$\{ foo \}$
+\[
+   \{ foo \}
+\]
+
+  [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
+
+
+----
+
 5pm - 11pm: 6 hours
 
 --> [ ] (0:30?) deploy on cloud
@@ -29,6 +50,8 @@
 
 
 ----
+
+[ ] (2:00?) idea -- bake in chunking messages over sockjs so we can send huge messages without reset and without stopping other messages; thus can edit large files.
 
 [ ] (1:00?) code execution needs another state: "w" for waiting.  E.g., 2 cells, one with sleep(5) and the next with sleep(5) make this clear.
 
