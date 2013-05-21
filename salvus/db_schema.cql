@@ -261,7 +261,35 @@ CREATE TABLE project_snapshots (
 
 CREATE INDEX ON project_snapshots(host);
 
+////////////////////////////////////////////
+// Snap -- the project snapshot server
+////////////////////////////////////////////
 
+/* The snap servers -- entries in this table should always be inserted with a
+   rather small ttl that is periodically updated. */
+CREATE TABLE snap_servers (
+    host      varchar,     /* hostname:port */
+    key       varchar,
+    PRIMARY KEY(host)
+);
+
+/* Data stored on snap servers about a given project:
+    - this table gets updated whenever a project is snapshotted by a given host.
+    - do not use a ttl, since we will filter first by active host.
+*/
+CREATE TABLE snap_info (
+    host       varchar,  /* hostname:port */
+    project_id uuid,
+    snapshots  varchar,  /* JSON list of timestamps of all snapshots hosted here */
+    PRIMARY KEY (host, project_id)
+);
+
+
+
+////////////////////////////////////////////
+// NOTE: This not actively planned to be used.
+// bup-based snapshosts stored in the database.
+////////////////////////////////////////////
 
 /* Table of pack files attached to a project. This gives the entire snapshot history
    of the project in a git format that can be used with bup.
@@ -287,6 +315,9 @@ CREATE TABLE project_bups (
 /* AND compression={ 'sstable_compression' :''}; */
 
 /* CREATE INDEX ON project_bups(sha1); */
+
+
+
 
 
 ////////////////////////////////////////////

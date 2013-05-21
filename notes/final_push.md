@@ -77,13 +77,14 @@ PLAN:  create something as above as a TCP *service* called "snap".
  - The api provides the following, where what it does doesn't depend on which snap it's called on.
 
       - snapshots(project_id): returns list of all available snapshots of that project
-        on *all* snaps.  This could query the database, parse results, etc.  All snap
+        on *all* snap servers.  This could query the database, parse results, etc.  All snap
         nodes will return the same answer.  The database will have a table "project_snapshots"
         with ttl rows:
 
               (project_id, hostname, port, [list of snapshots])
 
-      - ls(project_id, snapshot_name, path): list of files/directories there
+      - ls(project_id, snapshot_name, path): list of files/directories there; does it locally
+        if we own the snapshot, otherwise punts to the owner of the snapshot
 
       - restore(project_id, snapshot_name, path, user, hostname): extracts, then rsync's relevant
         files to user@hostname:path.snapshot_name, unless snapshot_name=latest and path='.', in
@@ -93,11 +94,22 @@ PLAN:  create something as above as a TCP *service* called "snap".
         and calling this command on it.
 
 
+[x] (0:30?) (0:54) snap: create database schema
+
+[ ] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
+[ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
+[ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
+[ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
+[ ] (0:45?) snap: add actual tcp server functionality
+[ ] (0:45?) snap: write client, which hub will use.
+[ ] (0:45?) snap: implement "snapshots()", which will be via a database query
+[ ] (0:45?) snap: implement "ls"
+[ ] (1:15?) snap: implement UI to actually see/brow result of ls
+[ ] (1:00?) snap: implement "restore()" in snap server.
+[ ] (0:45?) snap: implement UI to restore file/directory
 
 
-[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
-
-[ ] (3:00?) make it possible to browse snapshots
+---
 
 [ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
 
@@ -129,6 +141,7 @@ html, do two things:
   (a) hide by default, and
   (b) have an option to not hide by default, if you don't want that,
 e.g., %md(hide=False)
+Similarly, maybe "%interact" should have %interact(auto=True) by default...
 
 [ ] (1:00?) feature request: user way to customize the cursor in text editor (vertical line instead of block)
 
