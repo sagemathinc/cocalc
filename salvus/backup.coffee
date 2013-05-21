@@ -530,8 +530,8 @@ class Backup
                 else
                     # Make index, now create the backup.
                     bup
-                        args    : ['on', user, 'save', '-9', '--strip', '-n', project_id, '.']
-                        timeout : 3600  # data could take a while to transfer (?)
+                        args    : ['on', user, 'save', '--strip', '-n', project_id, '.']
+                        timeout : 7200  # data could take a while to transfer (?)
                         cb      : ( err, out) =>
                             cb?(err)
 
@@ -655,7 +655,7 @@ class Backup
                     cb : cb
             (cb) =>
                 bup
-                    args : ['save', '--strip', '-9', '-n', 'db-' + @keyspace, target]
+                    args : ['save', '--strip', '-n', 'db-' + @keyspace, target]
                     timeout : 1000000 # could be large
                     cb : cb
         ], cb)
