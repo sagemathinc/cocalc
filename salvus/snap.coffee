@@ -2,6 +2,8 @@
 #
 # snap -- a node.js program that snapshots user projects
 #
+#    coffee -o node_modules/ snap.coffee && echo "require('snap').start_server()" | coffee
+#
 #################################################################
 
 secret_token_length        = 128
@@ -21,12 +23,15 @@ cassandra = require('cassandra')
 
 secret_token = undefined
 
-require('crypto').randomBytes secret_token_length, (ex, buf) ->
-    secret_token = buf.toString('base64')
-    f = () ->
-        winston.debug("registering with database server...")
-        # TODO
-    setInterval(f, 1000*db_ping_interval_seconds)
+
+register = () ->
+    require('crypto').randomBytes secret_token_length, (ex, buf) ->
+        secret_token = buf.toString('base64')
+        f = () ->
+            winston.debug("registering with database server...")
+            # TODO
+        f()
+        setInterval(f, 1000*db_ping_interval_seconds)
 
 handle_mesg = (socket, mesg) ->
     winston.debug("handling mesg")
@@ -46,6 +51,8 @@ server = net.createServer (socket) ->
             socket.on 'mesg', handler
 
 exports.start_server = start_server = () ->
+    winston.info "starting server..."
+    register()
     server.listen program.port, '127.0.0.1', () ->
         winston.info "listening on port #{server.address().port}"
 
@@ -55,11 +62,13 @@ program.usage('[start/stop/restart/status] [options]')
     .parse(process.argv)
 
 if program._name == 'snap.js'
-    winston.debug "Running Snap as a Daemon"
-    process.addListener "uncaughtException", (err) ->
-        winston.error "Uncaught exception: " + err
-        if console? and console.trace?
-            console.trace()
-    console.log("start daemon")
+    winston.debug "snap daemon"
+
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-    console.log("after daemon")
+
+    #process.addListener "uncaughtException", (err) ->
+    #    winston.error "Uncaught exception: " + err
+    #    if console? and console.trace?
+    #        console.trace()
+
+

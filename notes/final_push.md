@@ -1,7 +1,6 @@
 [x] (0:30?) (0:54) snap: create database schema
 [x] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
-
-[ ] (0:15?) snap daemon -- needs to background!
+[x] (0:15?) (0:30) snap daemon -- needs to background!
 
 [ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
 
@@ -15,7 +14,6 @@
 [ ] (1:00?) snap: implement "restore()" in snap server.
 [ ] (0:45?) snap: implement UI to restore file/directory
 [ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
-
 ---
 
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
-echo "snap $@"
+#
+#     coffee -o node_modules/ snap.coffee  && ./snap status
+#
 
 node node_modules/snap.js $@
 
