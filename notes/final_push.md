@@ -96,7 +96,8 @@ PLAN:  create something as above as a TCP *service* called "snap".
 
 [x] (0:30?) (0:54) snap: create database schema
 
-[ ] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
+--> [ ] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
+
 [ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
 [ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 [ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
@@ -107,9 +108,27 @@ PLAN:  create something as above as a TCP *service* called "snap".
 [ ] (1:15?) snap: implement UI to actually see/brow result of ls
 [ ] (1:00?) snap: implement "restore()" in snap server.
 [ ] (0:45?) snap: implement UI to restore file/directory
+[ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
 
 
----
+    wstein@localhost:~$ time buptower
+    Tue May 21 10:56:29 PDT 2013
+    read Linux attr: [Errno 13] Permission denied: '/home/wstein/salvus/salvus/data/logs/stunnel-0.log'
+    Indexing: 295690, done.
+    bup: merging indexes (295782/295782), done.
+    WARNING: 1 errors encountered.
+
+    real    1m52.897s
+    user    1m17.873s
+    sys     0m8.795s
+    Traceback (most recent call last):
+      File "/usr/lib/bup/cmd/bup-midx", line 259, in <module>
+        do_midx_dir(path)
+      File "/usr/lib/bup/cmd/bup-midx", line 183, in do_midx_dir
+        i = git.open_idx(iname)
+      File "/usr/lib/bup/bup/git.py", line 471, in open_idx
+        raise GitError('%s: unrecognized idx file header' % filename)
+    bup.git.GitError: /home/wstein/.bup/index-cache/pixel@05salvus_/pack-b2a48b3f9b35c41443e8e0d4ab6fe5e6896e8b3b.idx: unrecognized idx file header
 
 [ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
 
