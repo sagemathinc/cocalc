@@ -1,8 +1,6 @@
 [ ] (0:45?) sometimes file listing gets updated after we've already changed to another directory!
 
-
 [ ] (0:20?) I see these in ps "bup-on CxL4SM0n@10.2.2.4 save -9"; I thought I removed all "-9"'s.
-
 
 [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
 %md
@@ -17,39 +15,145 @@ $\{ foo \}$
   [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
 
 
-----
+[ ] (1:00?) next release:
+      - install zsh
+      - upgrade to newest bup from the website; fixes corruption issues.
+      - delete all bups so far.
 
-5pm - 11pm: 6 hours
+[ ] (1:00?) make a list of options for backup system, now that I've tried a bunch, and make more benchmarks.
 
---> [ ] (0:30?) deploy on cloud
+1. per project bup + cassandra: problem -- slow; not deduplicated across projects (a killer).
 
-[ ] (1:00?) fix my class notes to work with correct math markup...
+2. global bup + cassandra: problem; kind of pointless, since can't use it unless you check out the entire thing.
+
+3. global bup synchronized across all nodes: impossible, single point of failure.
+
+4. have local bup archives "all over"; store in the database triples
+     (project id, snapshot time, user@host:path-to-bup)
+  and do work to lock local archives and ensure integrity.
+
+  Finding all backups in a location isn't too hard (using fuse this takes a few seconds even on a thousand
+  snapshots and many gigabytes, and could be cached in a file...).  I can write a "repair" function
+  that for each user@host:path-to-bup, determines if all backups are really there.
+
+5. Write a cassandra backend for q3sl and use it: It didn't deal with copying the Sage source code in over 30
+   minutes on my local fast hard drive, so that worries me a *lot*.
 
 
-[ ] (1:00?) if pack files are big, there is only one (or no) .head produced. -- deal with this in backup.coffee
+REQUIREMENTS:
 
-[ ] (1:30?) change the query as suggested above (by "THIS WORKS"), so instead of getting all packs at once, we get a single one at a time (or maybe even a single 8MB chunck at a time?)
+    - x complete restore of 4 GB to user should take less than 10 minutes (?). (since they will have to wait when their machine dies)
 
-[ ] (1:00?) implement first draft of code to automate snapshotting projects, based partly on previous step, etc.
+    - x directory listing of files in any given past snapshots should typically take less than 3 seconds
+
+    - x de-duplication across backed up projects, so that we can encourage sage development, big data, etc.
+
+    - x does not have to save every snapshot forever; some can just vanish.
+
+    - x provide useful time/status info during restore (make a model using data)
+
+    - must scale out easily, i.e., be very easy to add new snapshot storage by putting a
+      machine on the VPN with appropriate ssh access and disk space.
+
+    - system must work fine even if backup machines vanish/come back/etc. (database
+      should correctly reflect *available* backups):
+        - send update to cassandra every n minutes with list of backups with ttl:
+              (project id, snapshot time, user@host:path-to-bup)
+
+    - need a lock and only save one at a time, but can restore many at once (?).
+
+    - it sits there running, querying the database, making snapshots safely, and
+      in order, of projects when they change.
+
+    - to see snapshots/files, use fuse -- can mount multiple at once.
 
 
-[ ] (1:00?) increase quotas on compute nodes... since that is needed to do sage dev work online.
----
+Straight bup over network test on storm, with extracted 4GB binary:
+term 811
 
+    salvus@storm-web3:/mnt/backup$ time bup on CxL4SM0n@10.2.2.4 index .
+    real    0m17.953s
+
+    salvus@storm-web3:/mnt/backup$ time bup on CxL4SM0n@10.2.2.4 save --strip -n test .
+    real    5m0.161s
+
+    salvus@storm-web3:/mnt/backup$ time bup restore --outdir=test test/latest
+    real    3m3.458s
+
+    salvus@storm-web3:/mnt/backup$ time rsync -axH test/ CxL4SM0n@10.2.2.4:test/
+    remote rsync crashed and I had to restart it. (ran out of space)
+    # anyway, was about 5 minutes.
+
+
+PLAN:  create something as above as a TCP *service* called "snap".
+
+ - Store the (hostname, port, key) for each snap service in the cassandra database; the key is just redundant security.
+
+ - Access only over VPN, so don't have to worry about ssl
+
+ - The api provides the following, where what it does doesn't depend on which snap it's called on.
+
+      - snapshots(project_id): returns list of all available snapshots of that project
+        on *all* snap servers.  This could query the database, parse results, etc.  All snap
+        nodes will return the same answer.  The database will have a table "project_snapshots"
+        with ttl rows:
+
+              (project_id, hostname, port, [list of snapshots])
+
+      - ls(project_id, snapshot_name, path): list of files/directories there; does it locally
+        if we own the snapshot, otherwise punts to the owner of the snapshot
+
+      - restore(project_id, snapshot_name, path, user, hostname): extracts, then rsync's relevant
+        files to user@hostname:path.snapshot_name, unless snapshot_name=latest and path='.', in
+        which case `snapshot_name` is omited, since we're *deploying* to a new account.
+        This will work by first checking if this snap has the snapshot and if so, doing the
+        extract/rsync, and if not, then connecting to a snap that has the snapshot
+        and calling this command on it.
+
+
+[x] (0:30?) (0:54) snap: create database schema
+
+--> [ ] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
+
+[ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
+[ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
+[ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
+[ ] (0:45?) snap: add actual tcp server functionality
+[ ] (0:45?) snap: write client, which hub will use.
+[ ] (0:45?) snap: implement "snapshots()", which will be via a database query
+[ ] (0:45?) snap: implement "ls"
+[ ] (1:15?) snap: implement UI to actually see/brow result of ls
+[ ] (1:00?) snap: implement "restore()" in snap server.
+[ ] (0:45?) snap: implement UI to restore file/directory
+[ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
+
+
+    wstein@localhost:~$ time buptower
+    Tue May 21 10:56:29 PDT 2013
+    read Linux attr: [Errno 13] Permission denied: '/home/wstein/salvus/salvus/data/logs/stunnel-0.log'
+    Indexing: 295690, done.
+    bup: merging indexes (295782/295782), done.
+    WARNING: 1 errors encountered.
+
+    real    1m52.897s
+    user    1m17.873s
+    sys     0m8.795s
+    Traceback (most recent call last):
+      File "/usr/lib/bup/cmd/bup-midx", line 259, in <module>
+        do_midx_dir(path)
+      File "/usr/lib/bup/cmd/bup-midx", line 183, in do_midx_dir
+        i = git.open_idx(iname)
+      File "/usr/lib/bup/bup/git.py", line 471, in open_idx
+        raise GitError('%s: unrecognized idx file header' % filename)
+    bup.git.GitError: /home/wstein/.bup/index-cache/pixel@05salvus_/pack-b2a48b3f9b35c41443e8e0d4ab6fe5e6896e8b3b.idx: unrecognized idx file header
 
 [ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
 
-
-------
-
-[ ] (0:30?) using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
-
-[ ] (3:00?) make it possible to browse snapshots
-
 [ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
 
+[ ] (1:30?) refactor "download from web" code; add custom logic so this does the right thing, etc.: https://github.com/williamstein/2013-480/blob/master/lectures/lecture21-walk_through_dev_process-2013-05-17.sagews
 
-----
+[ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
 
 [ ] (2:00?) idea -- bake in chunking messages over sockjs so we can send huge messages without reset and without stopping other messages; thus can edit large files.
 
@@ -70,11 +174,18 @@ $\{ foo \}$
 [ ] (1:00?) something didn't get properly (monkey) patched:
     sage.interacts.algebra.polar_prime_spiral()
 
+[ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
+html, do two things:
+  (a) hide by default, and
+  (b) have an option to not hide by default, if you don't want that,
+e.g., %md(hide=False)
+Similarly, maybe "%interact" should have %interact(auto=True) by default...
+
 [ ] (1:00?) feature request: user way to customize the cursor in text editor (vertical line instead of block)
 
 ---
 
-# Next up: Finish implementing project snapshot, restore, browse, stored in the database.
+# Next up: Finish implementing project snapshot, restore, browse, stored in the datase.
 
 testing:
 
@@ -116,6 +227,10 @@ testing:
 [ ] (1:00?) feature: bring back custom eval keys in settings
 
 [ ] (1:00?) feature: run sagetex automatically (?)  maybe have checkbox to enable/disable in page that lists log.
+
+[ ] (1:30?) feature: hit tab anywhere when using a function to get the signature as a tooltip
+
+[ ] (1:30?) feature: tab completion when using a function could also complete on the keywords -- https://mail.google.com/mail/u/0/#inbox/13ec474c229055d9
 
 
 [ ] (1:00?) upgrade bup everywhere -- looks like fsck and race condition work is recent: https://github.com/bup/bup
@@ -1892,3 +2007,8 @@ FAIL -- it is totally broken with latest node.js, etc.  Oh well.  Not maintained
     t.s.db.select(table:'project_bups', columns:['pack', 'idx', 'head', 'number', 'num_chunks', 'time'], where:{sha1:'aa822ca353524cb3d1618650621e280c801da721'}, cb:((err,result) -> console.log('done'); t.r=result;0))
 
 Thus the solution is that I have to query a single sha1 at a time, which keeps the size down...
+
+
+[x] (1:00?) increase quotas on compute nodes... since that is needed to do sage dev work online.
+
+[x] (0:30?) switch bup included in salvus to just be the latest standard one; the repack thing is not *needed*, due to the midx files... and that I could just make a brand new bup archive every so often (waste a little space, but way simpler).
