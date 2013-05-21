@@ -1,18 +1,22 @@
-[ ] (0:45?) sometimes file listing gets updated after we've already changed to another directory!
+[x] (0:30?) (0:54) snap: create database schema
+[x] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
 
-[ ] (0:20?) I see these in ps "bup-on CxL4SM0n@10.2.2.4 save -9"; I thought I removed all "-9"'s.
+[ ] (0:15?) snap daemon -- needs to background!
 
-[ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
-%md
-$$\{ foo \}$$
-even though this does
-%md
-$\{ foo \}$
-\[
-   \{ foo \}
-\]
+[ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
 
-  [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
+[ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
+[ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
+[ ] (0:45?) snap: add actual tcp server functionality
+[ ] (0:45?) snap: write client, which hub will use.
+[ ] (0:45?) snap: implement "snapshots()", which will be via a database query
+[ ] (0:45?) snap: implement "ls"
+[ ] (1:15?) snap: implement UI to actually see/brow result of ls
+[ ] (1:00?) snap: implement "restore()" in snap server.
+[ ] (0:45?) snap: implement UI to restore file/directory
+[ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
+
+---
 
 
 [ ] (1:00?) next release:
@@ -20,7 +24,7 @@ $\{ foo \}$
       - upgrade to newest bup from the website; fixes corruption issues.
       - delete all bups so far.
 
-[ ] (1:00?) make a list of options for backup system, now that I've tried a bunch, and make more benchmarks.
+[x] (1:00?) make a list of options for backup system, now that I've tried a bunch, and make more benchmarks.
 
 1. per project bup + cassandra: problem -- slow; not deduplicated across projects (a killer).
 
@@ -111,21 +115,6 @@ PLAN:  create something as above as a TCP *service* called "snap".
         and calling this command on it.
 
 
-[x] (0:30?) (0:54) snap: create database schema
-
---> [ ] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
-
-[ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
-[ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
-[ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
-[ ] (0:45?) snap: add actual tcp server functionality
-[ ] (0:45?) snap: write client, which hub will use.
-[ ] (0:45?) snap: implement "snapshots()", which will be via a database query
-[ ] (0:45?) snap: implement "ls"
-[ ] (1:15?) snap: implement UI to actually see/brow result of ls
-[ ] (1:00?) snap: implement "restore()" in snap server.
-[ ] (0:45?) snap: implement UI to restore file/directory
-[ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
 
 
     wstein@localhost:~$ time buptower
@@ -146,6 +135,26 @@ PLAN:  create something as above as a TCP *service* called "snap".
       File "/usr/lib/bup/bup/git.py", line 471, in open_idx
         raise GitError('%s: unrecognized idx file header' % filename)
     bup.git.GitError: /home/wstein/.bup/index-cache/pixel@05salvus_/pack-b2a48b3f9b35c41443e8e0d4ab6fe5e6896e8b3b.idx: unrecognized idx file header
+
+
+---
+
+[ ] (0:45?) sometimes file listing gets updated after we've already changed to another directory!
+
+[ ] (0:20?) I see these in ps "bup-on CxL4SM0n@10.2.2.4 save -9"; I thought I removed all "-9"'s.
+
+[ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
+%md
+$$\{ foo \}$$
+even though this does
+%md
+$\{ foo \}$
+\[
+   \{ foo \}
+\]
+
+  [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
+
 
 [ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
 
