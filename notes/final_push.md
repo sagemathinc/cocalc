@@ -1,8 +1,7 @@
 [x] (0:30?) (0:54) snap: create database schema
 [x] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
 [x] (0:15?) (0:30) snap daemon -- needs to background!
-
-[ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
+[x] (1:00?) (0:31) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
 
 [ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 [ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
@@ -359,10 +358,14 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 
 
 
-    [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
-    [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
+[ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
+[ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
+
+[ ] idea from Dan Grayson: Another feature of the sage math cloud would be compatibility with chrome's excellent scheme for keeping track of your user names and passwords for you. -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ea4bfe65bc36cd
+
 
 ---
+
 ---
 
 # DONE

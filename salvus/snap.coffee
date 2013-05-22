@@ -59,6 +59,8 @@ exports.start_server = start_server = () ->
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "data/pids/snap.pid")
     .option('--logfile [string]', 'write log to this file', String, "data/logs/snap.log")
+    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')    
     .parse(process.argv)
 
 if program._name == 'snap.js'

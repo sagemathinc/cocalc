@@ -498,6 +498,31 @@ class Hub(Process):
 
 
 ####################
+# Snap -- snapshot/backup servers
+####################
+class Snap(Process):
+    def __init__(self, id=0, monitor_database=None, keyspace='salvus'):
+        pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
+        logfile = os.path.join(LOGS, 'snap-%s.log'%id)
+        Process.__init__(self, id, name='snap', port=0,
+                         pidfile = pidfile,
+                         logfile = logfile,
+                         start_cmd = [os.path.join(PWD, 'snap'),
+                                      'start',
+                                      '--database_nodes', monitor_database,
+                                      '--keyspace', keyspace,
+                                      '--pidfile', pidfile,
+                                      '--logfile', logfile],
+                         stop_cmd   = [os.path.join(PWD, 'snap'), 'stop'],
+                         reload_cmd = [os.path.join(PWD, 'snap'), 'restart'])
+
+    def __repr__(self):
+        return "Snap server (id=%s)"%(self.id(),)
+
+
+
+
+####################
 # Compute Server
 ####################
 
@@ -1242,7 +1267,7 @@ class Services(object):
         elif action == "start":
             # hub hosts can connect to CASSANDRA_CLIENT_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin']] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin snap']] +
                         ['allow proto tcp from %s to any port %s'%(host, port)
                                 for host in self._hosts['cassandra admin'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
@@ -1311,7 +1336,7 @@ class Services(object):
         self.wait_until_up('all')
         log.info(" ** Starting cassandra databases.")
         self.start('cassandra', wait=True, parallel=True)
-        for service in ['haproxy','nginx','hub']:
+        for service in ['haproxy', 'nginx', 'hub', 'snap']:
             log.info(" ** Starting %s", service)
             self.start(service, parallel=True, wait=False)
         #log.info(" ** Starting compute")
@@ -1320,7 +1345,7 @@ class Services(object):
     def stop_system(self):
         if 'cassandra' in self._services:
             self.stop('cassandra', parallel=True, wait=True)
-        for service in ['haproxy','nginx','hub']:
+        for service in ['haproxy', 'nginx', 'hub', 'snap']:
             self.stop(service, parallel=True, wait=True)
         if 'vm' in self._services:
             self.stop('vm', parallel=True)
