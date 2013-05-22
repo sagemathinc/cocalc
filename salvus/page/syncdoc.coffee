@@ -726,7 +726,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cb : (err) =>
                 @sync()
                 setTimeout( (() => @sync_soon()), 50 )
-                opts.cb(err)
+                opts.cb?(err)
 
     introspect: () =>
         # TODO: obviously this wouldn't work in both sides of split worksheet.
