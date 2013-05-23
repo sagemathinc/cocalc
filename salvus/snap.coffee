@@ -26,6 +26,8 @@ program   = require('commander')
 daemon    = require("start-stop-daemon")
 cassandra = require('cassandra')
 
+
+
 handle_mesg = (socket, mesg) ->
     winston.debug("handling mesg")
 
@@ -139,6 +141,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "data/pids/snap.pid")
     .option('--logfile [string]', 'write log to this file', String, "data/logs/snap.log")
     .option('--snap_dir [string]', 'all database files are stored here', String, "data/snap")
+    .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 300=5 minutes)', Number, 300)
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')

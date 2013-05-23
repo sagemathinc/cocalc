@@ -268,9 +268,9 @@ CREATE INDEX ON project_snapshots(host);
 /* The snap servers -- entries in this table should always be inserted with a
    rather small ttl that is periodically updated. */
 CREATE TABLE snap_servers (
-    id        uuid,
-    host      varchar,     /* hostname:port */
-    key       varchar,
+    id         uuid,
+    host       varchar,     /* hostname:port */
+    key        varchar,
     PRIMARY KEY(id)
 );
 
