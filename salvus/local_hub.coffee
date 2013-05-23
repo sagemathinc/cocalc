@@ -37,38 +37,7 @@ diffsync       = require 'diffsync'
 
 json = (out) -> misc.trunc(misc.to_json(out),512)
 
-
-# Any non-absolute path is assumed to be relative to the user's home directory.
-# This function converts such a path to an absolute path.
-abspath = (path) ->
-    if path.length == 0
-        return process.env.HOME
-    if path[0] == '/'
-        return path  # already an absolute path
-    return process.env.HOME + '/' + path
-
-# Other path related functions...
-
-# Make sure that that the directory containing the file indicated by
-# the path exists and has the right permissions.
-ensure_containing_directory_exists = (path, cb) ->   # cb(err)
-    path = abspath(path)
-    dir = misc.path_split(path).head  # containing path
-
-    fs.exists dir, (exists) ->
-        if exists
-            cb()
-        else
-            async.series([
-                (cb) ->
-                    if dir != ''
-                        # recursively make sure the entire chain of directories exists.
-                        ensure_containing_directory_exists(dir, cb)
-                    else
-                        cb()
-                (cb) ->
-                    fs.mkdir(dir, 0o700, cb)
-            ], cb)
+{ensure_containing_directory_exists, abspath} = misc_node
 
 #####################################################################
 # Generate the "secret_token" file as

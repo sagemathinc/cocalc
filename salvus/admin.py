@@ -501,16 +501,20 @@ class Hub(Process):
 # Snap -- snapshot/backup servers
 ####################
 class Snap(Process):
-    def __init__(self, id=0, monitor_database=None, keyspace='salvus'):
+    def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus', snap_dir=None):
         pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
         logfile = os.path.join(LOGS, 'snap-%s.log'%id)
+        if snap_dir is None:
+            snap_dir = os.path.join(DATA, 'snap-%s'%id)
         Process.__init__(self, id, name='snap', port=0,
                          pidfile = pidfile,
                          logfile = logfile,
                          start_cmd = [os.path.join(PWD, 'snap'),
                                       'start',
+                                      '--host', host,
                                       '--database_nodes', monitor_database,
                                       '--keyspace', keyspace,
+                                      '--snap_dir', snap_dir,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile],
                          stop_cmd   = [os.path.join(PWD, 'snap'), 'stop'],
@@ -1140,6 +1144,12 @@ class Services(object):
         # HUB options
         if 'hub' in self._options:
             for host, o in self._options['hub']:
+                # very important: set to listen only on our VPN.
+                o['host'] = host
+
+        # SNAP options
+        if 'snap' in self._options:
+            for host, o in self._options['snap']:
                 # very important: set to listen only on our VPN.
                 o['host'] = host
 

@@ -299,10 +299,9 @@ class exports.Cassandra extends EventEmitter
             winston.error(err.name, err.message)
             @emit('error', err)
         )
-        if opts.cb?
-            @conn.connect(opts.cb)
-        else
-            @conn.connect((err) -> )
+
+        @conn.connect (err) =>
+            opts.cb?(err, @)
 
     _where: (where_key, vals, json=[]) ->
         where = "";

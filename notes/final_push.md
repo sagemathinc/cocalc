@@ -3,6 +3,8 @@
 [x] (0:15?) (0:30) snap daemon -- needs to background!
 [x] (1:00?) (0:31) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
 
+--> [ ] (0:15?) snap: make daemon register itself with database on startup.
+
 [ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 [ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
 [ ] (0:45?) snap: add actual tcp server functionality
@@ -15,6 +17,8 @@
 [ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
 ---
 
+[ ] (2:00?) Grayson -- valid html:
+       http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
 
 [ ] (1:00?) next release:
       - install zsh
