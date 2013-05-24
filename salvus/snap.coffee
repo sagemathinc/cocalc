@@ -26,7 +26,204 @@ program   = require('commander')
 daemon    = require("start-stop-daemon")
 cassandra = require('cassandra')
 
+{defaults, required} = misc
 
+########################################
+# Run a bup command
+bup = (opts) ->
+    opts = defaults opts,
+        args    : []
+        timeout : 2*3600   # default timeout of 2 hours (!)
+        bup_dir : bup_dir  # defined below when initializing snap_dir
+        cb      : (err, output) ->
+            if err
+                winston.debug("error -- #{err}")
+            else
+                winston.debug("bup output -- #{misc.to_json(output)}")
+
+    if typeof(opts.args) == "string"
+        command = "bup " + opts.args
+        opts.args = []
+    else
+        command = "bup"
+
+    misc_node.execute_code
+        command : command
+        args    : opts.args
+        timeout : opts.timeout
+        env     : {BUP_DIR : opts.bup_dir}
+        cb      : opts.cb
+
+
+########################################
+
+# Mount the bup archive somewhere.  This is a static view of the
+# archive at mount time and will not reflect updates and new snapshots.
+# You can mount the archive multiple times at once at *different*
+# mount points.
+mount_bup_archive = (opts) ->
+    opts = defaults opts,
+        mountpoint : undefined
+        cb         : required    # (err, mountpoint)
+    if not opts.mountpoint?
+        opts.mountpoint = snap_dir + '/fuse/' + uuid.v4() + '/'
+
+    misc_node.ensure_containing_directory_exists opts.mountpoint, (err) ->
+        if err
+            opts.cb(err)
+        else
+            bup
+                args : ['fuse', opts.mountpoint]
+                cb   : (err) ->
+                    opts.cb(err, opts.mountpoint)
+
+# Unmount the bup archive
+unmount_bup_archive = (opts) ->
+    opts = defaults opts,
+        mountpoint : required
+        cb         : undefined
+
+    misc_node.execute_code
+        command : "fusermount"
+        args    : ["-u", opts.mountpoint]
+        cb       : opts.cb
+
+# Initialize local_snapshots, which is a map with domain the uuid's of projects
+# that are snapshotted locally and values the array of snapshot timestamps
+# for that project. This array is defined at startup, and all code in this
+# file is expected to properly update this map upon making additional snapshots,
+# so we never have to consult the filesystem to know what snapshots we own.
+local_snapshots = undefined
+initialize_local_snapshots = (cb) ->
+    mountpoint = undefined
+    async.series([
+        (cb) ->
+            mount_bup_archive
+                cb:(err, _mountpoint) ->
+                    mountpoint = _mountpoint
+                    cb(err)
+        (cb) ->
+            fs.readdir mountpoint, (err, files) ->
+                if err
+                    cb(err)
+                else
+                    local_snapshots = {}
+                    for f in files
+                        if f[0] != '.'
+                            local_snapshots[f] = []
+                    cb()
+        (cb) ->
+            f = (project_id, cb) ->
+                fs.readdir mountpoint + '/' + project_id, (err, files) ->
+                    n = files.indexOf('current')
+                    if n != -1
+                        files.splice(n, 1)
+                    local_snapshots[project_id] = files
+                    cb()
+            async.map(misc.keys(local_snapshots), f, cb)
+    ], (err) ->
+        if mountpoint?
+            unmount_bup_archive(mountpoint: mountpoint)  # no need to wait on this before calling cb.
+        cb?(err)
+    )
+
+
+# Enqueue the given project to be snapshotted as soon as possible.
+# cb(err) upon completion of snapshot, where cb is optional.
+# It is safe to enqueue a project repeatedly -- it'll get snapshoted
+# at most every snap_interval seconds.
+
+snapshot_queue = []
+
+snapshot_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : undefined
+    winston.debug("snapshotting project -- #{opts.project_id}")
+
+    if opts.project_id == "6a63fd69-c1c7-4960-9299-54cb96523966"
+        # special case -- my own local dev server account shouldn't backup into itself!
+        opts.cb?()
+        return
+    snapshot_queue.push(opts)
+
+monitor_snapshot_queue = () ->
+    if snapshot_queue.length > 0
+        user = undefined
+        {project_id, cb} = snapshot_queue.shift()
+        async.series([
+            # get deployed location of project (which can change at any time!)
+            (cb) ->
+                database.get_project_location
+                    project_id : project_id
+                    cb         : (err, location) ->
+                        if err
+                            cb(err)
+                        else
+                            user = "#{location.username}@{location.host}"
+                            # TODO: support location.port != 22 and location.path != '.'   !!?
+                            cb()
+            # create index
+            (cb) ->
+                bup
+                    args : ['on', user, 'index', '.']
+                    cb   : cb
+            # save
+            (cb) ->
+                bup
+                    args : ['on', user, 'save', '--strip', '-q', '-n', project_id, '.']
+                    cb   : cb
+
+            # update checksums in case of bitrot
+            (cb) ->
+                bup
+                    args : ['fsck', '--quick', '-g']
+                    cb   : cb
+        ], (err) ->
+            cb?(err)
+            setTimeout(monitor_snapshot_queue, 50)
+        )
+    else
+        # check again in a second
+        setTimeout(monitor_snapshot_queue, 1000)
+
+monitor_snapshot_queue()  # start it going.
+
+# snapshot all projects in the given input array, and call opts.cb on completion.
+snapshot_projects = (opts) ->
+    opts = defaults opts,
+        project_ids : required
+        cb          : undefined
+    async.map(opts.project_ids, ((p,cb) -> snapshot_project(project_id:p, cb:cb)), ((err, results) -> opts.cb?(err)))
+
+########################################
+
+# Ensure that every project has at least one local snapshot.
+# TODO: scalability plan -- we will divide projects into snapshot
+# zones based on the first digit of the project_id (say).
+ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
+    # Query the database for a list of all project_id's (at least those
+    # not deleted), then
+    # for each one, check if we have a backup.  If we don't,
+    # queue that project for backing up.  Then drain that queue.
+
+    winston.debug("ensuring all projects have a snapshot")
+    project_ids = undefined
+    async.series([
+        (cb) ->
+             database.get_all_project_ids
+                deleted : false
+                cb      : (err, result) ->
+                    project_ids = result
+                    cb(err)
+        (cb) ->
+            snapshot_projects
+                project_ids : (id for id in project_ids when not local_snapshots[id]?)
+                cb          : cb
+    ])
+
+
+########################################
 
 handle_mesg = (socket, mesg) ->
     winston.debug("handling mesg")
@@ -59,7 +256,12 @@ initialize_snap_dir = (cb) ->
     bup_dir  = snap_dir + '/bup'
     uuid_file = snap_dir + '/server_uuid'
     winston.debug("path=#{snap_dir} should exist")
-    misc_node.ensure_containing_directory_exists(uuid_file, cb)
+    misc_node.ensure_containing_directory_exists uuid_file, (err) ->
+        if err
+            cb(err)
+        else
+            bup(args:['init'])
+            cb()
     # TODO: we could do some significant checks at this point, e.g.,
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
 
@@ -111,7 +313,8 @@ register_with_database = (cb) ->
             cb?()
 
 # Ensure that we maintain and update snapshots of projects, according to our rules.
-snapshot_projects = (cb) ->
+snapshot_active_projects = (cb) ->
+
 
 # Start the network server on a random port, connect to database,
 # start registering, and start snapshoting.
@@ -126,6 +329,8 @@ exports.start_server = start_server = () ->
         (cb) ->
             initialize_snap_dir(cb)
         (cb) ->
+            initialize_local_snapshots(cb)
+        (cb) ->
             initialize_server_uuid(cb)
         (cb) ->
             generate_secret_key(cb)
@@ -134,8 +339,13 @@ exports.start_server = start_server = () ->
         (cb) ->
             register_with_database(cb)
         (cb) ->
-            snapshot_projects(cb)
-    ])
+            ensure_all_projects_have_a_snapshot(cb)
+        (cb) ->
+            snapshot_active_projects(cb)
+    ], (err) ->
+        if err
+            winston.debug("ERROR starting snap server: '#{err}'")
+    )
 
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "data/pids/snap.pid")

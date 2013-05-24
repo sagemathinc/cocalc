@@ -535,7 +535,7 @@ exports.abspath = abspath = (path) ->
 # Other path related functions...
 
 # Make sure that that the directory containing the file indicated by
-# the path exists and has the right permissions.
+# the path exists and has restrictive permissions.
 ensure_containing_directory_exists = (path, cb) ->   # cb(err)
     path = abspath(path)
     dir = misc.path_split(path).head  # containing path

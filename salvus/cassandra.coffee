@@ -1163,6 +1163,21 @@ class exports.Salvus extends exports.Cassandra
             where      : { project_id:opts.project_id }
             cb         : opts.cb
 
+    # Get array of uuid's all *all* projects in the database
+    get_all_project_ids: (opts) =>   # cb(err, [project_id's])
+        opts = defaults opts,
+            cb      : required
+            deleted : false     # by default, only return non-deleted projects
+        @select
+            table   : 'projects'
+            columns : ['project_id']
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, (r[0] for r in results))
+
+
     save_project_bundle: (opts) ->
         opts = defaults opts,
             project_id : required
