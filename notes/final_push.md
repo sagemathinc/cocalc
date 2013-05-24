@@ -3,7 +3,6 @@
 [x] (0:15?) (0:30) snap daemon -- needs to background!
 
 [ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
-
 [ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 [ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
 [ ] (0:45?) snap: add actual tcp server functionality
@@ -19,6 +18,7 @@
 
 [ ] (1:00?) next release:
       - install zsh
+      - install database_pari-20130516 spkg (and add to build.py)
       - upgrade to newest bup from the website; fixes corruption issues.
       - delete all bups so far.
 
@@ -136,6 +136,8 @@ PLAN:  create something as above as a TCP *service* called "snap".
 
 
 ---
+
+[ ] (0:45?) mathjax special case: `$a<b$` is misparsed, whereas `$a < b$` is OK.  We should somehow fix such things in the html function, since mathjax can't.
 
 [ ] (0:45?) sometimes file listing gets updated after we've already changed to another directory!
 
@@ -362,8 +364,16 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
     [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
     [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
 
+
+
+ [ ] this doesn't work:   GraphDatabase().interactive_query(display_cols=['graph6','num_vertices','degree_sequence'],num_vertices=['<=',4],min_degree=2)
 ---
 ---
+
+
+
+
+
 
 # DONE
 
