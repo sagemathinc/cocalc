@@ -16,16 +16,13 @@
 
 [x] (0:30?) (2:22) snap: on startup, ensure that for every project there is at least one snapshot of that project stored here.
 
---> [ ] (0:30?) snap: write code to queue up and make backups
+[x] (0:30?) (0:40) snap: write code to queue up and make backups
 
-
-[ ] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...
+[ ] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
 
 [ ] (0:30?) snap: use possibly slightly modified backup.coffee code to make backups as they are enqueued;  using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 
-
-
-[ ] (0:45?) snap: add actual tcp server functionality
+[ ] (0:45?) snap: implement tcp server functionality
 [ ] (0:45?) snap: write client, which hub will use.
 [ ] (0:45?) snap: implement "snapshots()", which will be via a database query
 [ ] (0:45?) snap: implement "ls"
@@ -33,6 +30,7 @@
 [ ] (1:00?) snap: implement "restore()" in snap server.
 [ ] (0:45?) snap: implement UI to restore file/directory
 [ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
+[ ] (0:30?) snap: on startup, we need to also make snapshots of projects that were active when we weren't watching, due to being offline for some reason.  This can be done later... since it is only a factor when there was a failure.
 ---
 
 [ ] (2:00?) Grayson -- valid html:

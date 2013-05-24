@@ -123,7 +123,13 @@ initialize_local_snapshots = (cb) ->
             async.map(misc.keys(local_snapshots), f, cb)
     ], (err) ->
         if mountpoint?
-            unmount_bup_archive(mountpoint: mountpoint)  # no need to wait on this before calling cb.
+            async.series([
+                (cb) ->
+                    unmount_bup_archive(mountpoint: mountpoint, cb:cb)
+                (cb) ->
+                    fs.unlink(mountpoint, cb)
+            ])
+        winston.debug("local_snapshots = #{misc.to_json(local_snapshots)}")
         cb?(err)
     )
 
@@ -139,7 +145,7 @@ snapshot_project = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : undefined
-    winston.debug("snapshotting project -- #{opts.project_id}")
+    winston.debug("enqueuing project #{opts.project_id} for snapshot")
 
     if opts.project_id == "6a63fd69-c1c7-4960-9299-54cb96523966"
         # special case -- my own local dev server account shouldn't backup into itself!
@@ -151,6 +157,7 @@ monitor_snapshot_queue = () ->
     if snapshot_queue.length > 0
         user = undefined
         {project_id, cb} = snapshot_queue.shift()
+        winston.debug("making a snapshot of project #{project_id}")
         async.series([
             # get deployed location of project (which can change at any time!)
             (cb) ->
@@ -160,7 +167,7 @@ monitor_snapshot_queue = () ->
                         if err
                             cb(err)
                         else
-                            user = "#{location.username}@{location.host}"
+                            user = "#{location.username}@#{location.host}"
                             # TODO: support location.port != 22 and location.path != '.'   !!?
                             cb()
             # create index
@@ -173,7 +180,6 @@ monitor_snapshot_queue = () ->
                 bup
                     args : ['on', user, 'save', '--strip', '-q', '-n', project_id, '.']
                     cb   : cb
-
             # update checksums in case of bitrot
             (cb) ->
                 bup
@@ -184,6 +190,7 @@ monitor_snapshot_queue = () ->
             setTimeout(monitor_snapshot_queue, 50)
         )
     else
+        winston.debug("snapshot queue empty")
         # check again in a second
         setTimeout(monitor_snapshot_queue, 1000)
 
@@ -309,7 +316,7 @@ register_with_database = (cb) ->
         set   : {key:secret_key, host:host}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
-            setInterval(register_with_database, 1000*registration_interval_seconds)
+            setTimeout(register_with_database, 1000*registration_interval_seconds)
             cb?()
 
 # Ensure that we maintain and update snapshots of projects, according to our rules.

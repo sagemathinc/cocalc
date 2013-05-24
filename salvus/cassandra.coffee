@@ -1170,13 +1170,16 @@ class exports.Salvus extends exports.Cassandra
             deleted : false     # by default, only return non-deleted projects
         @select
             table   : 'projects'
-            columns : ['project_id']
+            columns : ['project_id', 'deleted']
             cb      : (err, results) =>
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(false, (r[0] for r in results))
-
+                    if not opts.deleted  # can't do this with a query given current data model.
+                        ans = (r[0] for r in results when not r[1])
+                    else
+                        ans = (r[0] for r in results)
+                    opts.cb(false, ans)
 
     save_project_bundle: (opts) ->
         opts = defaults opts,
