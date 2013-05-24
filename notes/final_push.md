@@ -18,7 +18,7 @@
 
 [x] (0:30?) (0:40) snap: write code to queue up and make backups
 
-[ ] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
+--> [ ] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
 
 [ ] (0:30?) snap: use possibly slightly modified backup.coffee code to make backups as they are enqueued;  using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
 

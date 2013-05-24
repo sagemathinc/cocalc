@@ -967,8 +967,9 @@ class exports.Salvus extends exports.Cassandra
                     json  : ['location']
                     set   : {location:opts.location}
                     where : {project_id : opts.project_id}
-                    # This ttl is closely related to the timing
-                    # in start_project_snapshotter (of backup.coffee).
+                    # This ttl should be substantially bigger than the snapshot_interval
+                    # in snap.coffee, but not too long to make the query and search of
+                    # everything in this table slow.
                     ttl   : 15*60   # 15 minutes -- just a guess; this may need tuning as Salvus grows!
                     cb    : opts.cb
 

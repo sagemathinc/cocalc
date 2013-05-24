@@ -115,7 +115,7 @@ initialize_local_snapshots = (cb) ->
         (cb) ->
             f = (project_id, cb) ->
                 fs.readdir mountpoint + '/' + project_id, (err, files) ->
-                    n = files.indexOf('current')
+                    n = files.indexOf('latest')
                     if n != -1
                         files.splice(n, 1)
                     local_snapshots[project_id] = files
@@ -201,6 +201,9 @@ snapshot_projects = (opts) ->
     opts = defaults opts,
         project_ids : required
         cb          : undefined
+    if opts.project_ids.length == 0  # easy case
+        cb()
+        return
     async.map(opts.project_ids, ((p,cb) -> snapshot_project(project_id:p, cb:cb)), ((err, results) -> opts.cb?(err)))
 
 ########################################
@@ -319,8 +322,38 @@ register_with_database = (cb) ->
             setTimeout(register_with_database, 1000*registration_interval_seconds)
             cb?()
 
+# Return the age of the most recent snapshot, computed using our in memory
+# cache of data about our local bup repo.  Returns a "very large number"
+# in case that we have no backups of the given project yet.
+age_of_most_recent_snapshot = (id) ->
+    snaps = local_snapshots[id]
+    if not snaps?
+        return 99999999999999
+
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
+    project_ids = undefined
+    async.series([
+        (cb) ->
+            @db.select
+                table   : 'recently_modified_projects'
+                columns : ['project_id']
+                objectify : false
+                cb : (err, results) =>
+                    project_ids = (r[0] for r in results)
+                    cb(err)
+        (cb) ->
+            snapshot_projects
+                project_ids : (id for id in project_ids when age_of_most_recent_snapshot(id) >= program.snap_interval)
+                cb          : cb
+    ], (err) ->
+        if err
+            winston.debug("Error snapshoting active projects -- #{err}")
+            # TODO: We need to trigger something more drastic somehow at some point...?
+
+        setTimeout(snapshot_active_projects, 10000)  # check every 10 seconds
+    )
+
 
 
 # Start the network server on a random port, connect to database,
