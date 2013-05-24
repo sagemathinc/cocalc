@@ -1,11 +1,29 @@
 [x] (0:30?) (0:54) snap: create database schema
 [x] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
 [x] (0:15?) (0:30) snap daemon -- needs to background!
+[x] (1:00?) (0:31) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
+[x] (0:15?) (1:30) snap: make daemon register itself with database on startup.
 
-[ ] (1:00?) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
-[ ] (1:00?) snap: import code from backup file and set timer so modified projects get snapshotted automatically (add command line option for how often and how redundant); make sure to create at most one snapshot at a time! Also -- using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
-[ ] (0:45?) snap: write code to set in database (with configurable ttl) the list of backups for each project
-[ ] (0:45?) snap: add actual tcp server functionality
+[x] (0:20?) (0:19) snap: define backup rules and how they are configured (command line options) -- for now, all snaps make a snapshot of all projects at most every `snap_interval` seconds. I can add support for more distribution later, when needed.
+
+
+** Goal is the following: **
+       - every project is backed up to every snap server at least once.
+       - any active project (as defined by the recently_modified_projects table) that
+         has had a file changed, has a snapshot within snap_interval seconds, if possible...
+         though it may be less frequent since we can only do one snapshot at a time.
+         Nonetheless, no one project can dominate snapshots more than others.
+
+[x] (0:30?) (2:22) snap: on startup, ensure that for every project there is at least one snapshot of that project stored here.
+
+[x] (0:30?) (0:40) snap: write code to queue up and make backups
+
+[ ] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
+
+[ ] (0:30?) snap: use possibly slightly modified backup.coffee code to make backups as they are enqueued;  using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
+
+[ ] (0:45?) snap: implement tcp server functionality
+
 [ ] (0:45?) snap: write client, which hub will use.
 [ ] (0:45?) snap: implement "snapshots()", which will be via a database query
 [ ] (0:45?) snap: implement "ls"
@@ -13,8 +31,11 @@
 [ ] (1:00?) snap: implement "restore()" in snap server.
 [ ] (0:45?) snap: implement UI to restore file/directory
 [ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
+[ ] (0:30?) snap: on startup, we need to also make snapshots of projects that were active when we weren't watching, due to being offline for some reason.  This can be done later... since it is only a factor when there was a failure.
 ---
 
+[ ] (2:00?) Grayson -- valid html:
+       http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
 
 [ ] (1:00?) next release:
       - install zsh
@@ -361,13 +382,17 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
 
 
 
-    [ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
-    [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
+[ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
+[ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
+
+[ ] idea from Dan Grayson: Another feature of the sage math cloud would be compatibility with chrome's excellent scheme for keeping track of your user names and passwords for you. -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ea4bfe65bc36cd
+
 
 
 
  [ ] this doesn't work:   GraphDatabase().interactive_query(display_cols=['graph6','num_vertices','degree_sequence'],num_vertices=['<=',4],min_degree=2)
 ---
+
 ---
 
 

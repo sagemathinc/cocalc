@@ -299,10 +299,9 @@ class exports.Cassandra extends EventEmitter
             winston.error(err.name, err.message)
             @emit('error', err)
         )
-        if opts.cb?
-            @conn.connect(opts.cb)
-        else
-            @conn.connect((err) -> )
+
+        @conn.connect (err) =>
+            opts.cb?(err, @)
 
     _where: (where_key, vals, json=[]) ->
         where = "";
@@ -968,8 +967,9 @@ class exports.Salvus extends exports.Cassandra
                     json  : ['location']
                     set   : {location:opts.location}
                     where : {project_id : opts.project_id}
-                    # This ttl is closely related to the timing
-                    # in start_project_snapshotter (of backup.coffee).
+                    # This ttl should be substantially bigger than the snapshot_interval
+                    # in snap.coffee, but not too long to make the query and search of
+                    # everything in this table slow.
                     ttl   : 15*60   # 15 minutes -- just a guess; this may need tuning as Salvus grows!
                     cb    : opts.cb
 
@@ -1163,6 +1163,24 @@ class exports.Salvus extends exports.Cassandra
             columns    : ['filename']
             where      : { project_id:opts.project_id }
             cb         : opts.cb
+
+    # Get array of uuid's all *all* projects in the database
+    get_all_project_ids: (opts) =>   # cb(err, [project_id's])
+        opts = defaults opts,
+            cb      : required
+            deleted : false     # by default, only return non-deleted projects
+        @select
+            table   : 'projects'
+            columns : ['project_id', 'deleted']
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if not opts.deleted  # can't do this with a query given current data model.
+                        ans = (r[0] for r in results when not r[1])
+                    else
+                        ans = (r[0] for r in results)
+                    opts.cb(false, ans)
 
     save_project_bundle: (opts) ->
         opts = defaults opts,
