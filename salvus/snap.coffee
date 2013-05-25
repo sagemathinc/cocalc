@@ -6,8 +6,8 @@
 #
 #################################################################
 
-secret_key_length           = 128
-registration_interval_seconds = 5
+secret_key_length             = 128
+registration_interval_seconds = 15
 
 net       = require 'net'
 winston   = require 'winston'
@@ -16,15 +16,16 @@ fs        = require 'fs'
 
 uuid      = require 'node-uuid'
 async     = require 'async'
+moment    = require 'moment'
 
-backup    = require('backup')
+backup    = require 'backup'
 message   = require 'message'
 misc      = require 'misc'
 misc_node = require 'misc_node'
 
-program   = require('commander')
-daemon    = require("start-stop-daemon")
-cassandra = require('cassandra')
+program   = require 'commander'
+daemon    = require 'start-stop-daemon'
+cassandra = require 'cassandra'
 
 {defaults, required} = misc
 
@@ -129,7 +130,7 @@ initialize_local_snapshots = (cb) ->
                 (cb) ->
                     fs.unlink(mountpoint, cb)
             ])
-        winston.debug("local_snapshots = #{misc.to_json(local_snapshots)}")
+        #winston.debug("local_snapshots = #{misc.to_json(local_snapshots)}")
         cb?(err)
     )
 
@@ -148,7 +149,7 @@ snapshot_project = (opts) ->
     winston.debug("enqueuing project #{opts.project_id} for snapshot")
 
     if opts.project_id == "6a63fd69-c1c7-4960-9299-54cb96523966"
-        # special case -- my own local dev server account shouldn't backup into itself!
+        # special case -- my own local dev server account shouldn't backup into itself
         opts.cb?()
         return
     snapshot_queue.push(opts)
@@ -177,20 +178,25 @@ monitor_snapshot_queue = () ->
                     cb   : cb
             # save
             (cb) ->
+                d = Math.ceil(misc.walltime())
                 bup
-                    args : ['on', user, 'save', '--strip', '-q', '-n', project_id, '.']
-                    cb   : cb
+                    args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', project_id, '.']
+                    cb   : (err) ->
+                        if not err
+                            timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
+                            local_snapshots[project_id].push(timestamp)
+                        cb(err)
             # update checksums in case of bitrot
             (cb) ->
                 bup
                     args : ['fsck', '--quick', '-g']
                     cb   : cb
+
         ], (err) ->
             cb?(err)
             setTimeout(monitor_snapshot_queue, 50)
         )
     else
-        winston.debug("snapshot queue empty")
         # check again in a second
         setTimeout(monitor_snapshot_queue, 1000)
 
@@ -202,7 +208,7 @@ snapshot_projects = (opts) ->
         project_ids : required
         cb          : undefined
     if opts.project_ids.length == 0  # easy case
-        cb()
+        opts.cb?()
         return
     async.map(opts.project_ids, ((p,cb) -> snapshot_project(project_id:p, cb:cb)), ((err, results) -> opts.cb?(err)))
 
@@ -230,8 +236,7 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
             snapshot_projects
                 project_ids : (id for id in project_ids when not local_snapshots[id]?)
                 cb          : cb
-    ])
-
+    ], cb)
 
 ########################################
 
@@ -322,20 +327,41 @@ register_with_database = (cb) ->
             setTimeout(register_with_database, 1000*registration_interval_seconds)
             cb?()
 
-# Return the age of the most recent snapshot, computed using our in memory
+# Convert a bup timestamp to a Javascript Date object
+#   '2013-05-21-124848' --> Tue May 21 2013 12:48:48 GMT-0700 (PDT)
+to_int = (s) ->  # s is a 2-digit string that might be 0 padded.
+    if s[0] == 0
+        return parseInt(s[1])
+    return parseInt(s)
+
+bup_to_Date = (s) ->
+    v = s.split('-')
+    year  = parseInt(v[0])
+    month = to_int(v[1]) - 1   # month is 0-based
+    day   = to_int(v[2])
+    hours = to_int(v[3].slice(0,2))
+    minutes = to_int(v[3].slice(2,4))
+    seconds = to_int(v[3].slice(4,6))
+    return new Date(year, month, day, hours, minutes, seconds, 0)
+
+# Return the age (in seconds) of the most recent snapshot, computed using our in memory
 # cache of data about our local bup repo.  Returns a "very large number"
 # in case that we have no backups of the given project yet.
-age_of_most_recent_snapshot = (id) ->
+age_of_most_recent_snapshot_in_seconds = (id) ->
     snaps = local_snapshots[id]
-    if not snaps?
+    if not snaps? or snaps.length == 0
         return 99999999999999
+    last_time = bup_to_Date(snaps[snaps.length-1])
+    now = new Date()
+    return Math.floor((now - last_time) / 1000.0)
 
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
     project_ids = undefined
+    winston.debug("snapshot_active_projects...")
     async.series([
         (cb) ->
-            @db.select
+            database.select
                 table   : 'recently_modified_projects'
                 columns : ['project_id']
                 objectify : false
@@ -343,8 +369,12 @@ snapshot_active_projects = (cb) ->
                     project_ids = (r[0] for r in results)
                     cb(err)
         (cb) ->
+            winston.debug("recently modified projects: #{misc.to_json(project_ids)}")
+
+            v = (id for id in project_ids when age_of_most_recent_snapshot_in_seconds(id) >= program.snap_interval)
+            winston.debug("needing snapshot: #{misc.to_json(v)}")
             snapshot_projects
-                project_ids : (id for id in project_ids when age_of_most_recent_snapshot(id) >= program.snap_interval)
+                project_ids : v
                 cb          : cb
     ], (err) ->
         if err
@@ -391,7 +421,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "data/pids/snap.pid")
     .option('--logfile [string]', 'write log to this file', String, "data/logs/snap.log")
     .option('--snap_dir [string]', 'all database files are stored here', String, "data/snap")
-    .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 300=5 minutes)', Number, 300)
+    .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 120 = 2 minutes)', Number, 10)
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')

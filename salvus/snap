@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 #
-#     coffee -o node_modules/ snap.coffee  && ./snap status
 #
 
 node node_modules/snap.js $@

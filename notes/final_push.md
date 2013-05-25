@@ -1,8 +1,4 @@
-
-
-[ ] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
-
-[ ] (0:30?) snap: use possibly slightly modified backup.coffee code to make backups as they are enqueued;  using "bup index -p -m -u 2013-308" one can tell which files changed since last save, hence avoid making a snapshot if nothing changed
+[x] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
 
 [ ] (0:45?) snap: implement tcp server functionality
 
@@ -16,126 +12,24 @@
 [ ] (0:30?) snap: on startup, we need to also make snapshots of projects that were active when we weren't watching, due to being offline for some reason.  This can be done later... since it is only a factor when there was a failure.
 ---
 
-[ ] (2:00?) Grayson -- valid html:
-       http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
-
 [ ] (1:00?) next release:
-      - install zsh
-      - install database_pari-20130516 spkg (and add to build.py)
+      - add these to build.py and install via apt-get
+            zsh
+            python3
+            ipython3 [1]
+            cython
+            htop
+            ccache
+            python-virtualenv
+            clang
+      - npm install moment
+      - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
+      - install database_pari-20130516 spkg
       - upgrade to newest bup from the website; fixes corruption issues.
       - delete all bups so far.
 
-[x] (1:00?) make a list of options for backup system, now that I've tried a bunch, and make more benchmarks.
-
-1. per project bup + cassandra: problem -- slow; not deduplicated across projects (a killer).
-
-2. global bup + cassandra: problem; kind of pointless, since can't use it unless you check out the entire thing.
-
-3. global bup synchronized across all nodes: impossible, single point of failure.
-
-4. have local bup archives "all over"; store in the database triples
-     (project id, snapshot time, user@host:path-to-bup)
-  and do work to lock local archives and ensure integrity.
-
-  Finding all backups in a location isn't too hard (using fuse this takes a few seconds even on a thousand
-  snapshots and many gigabytes, and could be cached in a file...).  I can write a "repair" function
-  that for each user@host:path-to-bup, determines if all backups are really there.
-
-5. Write a cassandra backend for q3sl and use it: It didn't deal with copying the Sage source code in over 30
-   minutes on my local fast hard drive, so that worries me a *lot*.
-
-
-REQUIREMENTS:
-
-    - x complete restore of 4 GB to user should take less than 10 minutes (?). (since they will have to wait when their machine dies)
-
-    - x directory listing of files in any given past snapshots should typically take less than 3 seconds
-
-    - x de-duplication across backed up projects, so that we can encourage sage development, big data, etc.
-
-    - x does not have to save every snapshot forever; some can just vanish.
-
-    - x provide useful time/status info during restore (make a model using data)
-
-    - must scale out easily, i.e., be very easy to add new snapshot storage by putting a
-      machine on the VPN with appropriate ssh access and disk space.
-
-    - system must work fine even if backup machines vanish/come back/etc. (database
-      should correctly reflect *available* backups):
-        - send update to cassandra every n minutes with list of backups with ttl:
-              (project id, snapshot time, user@host:path-to-bup)
-
-    - need a lock and only save one at a time, but can restore many at once (?).
-
-    - it sits there running, querying the database, making snapshots safely, and
-      in order, of projects when they change.
-
-    - to see snapshots/files, use fuse -- can mount multiple at once.
-
-
-Straight bup over network test on storm, with extracted 4GB binary:
-term 811
-
-    salvus@storm-web3:/mnt/backup$ time bup on CxL4SM0n@10.2.2.4 index .
-    real    0m17.953s
-
-    salvus@storm-web3:/mnt/backup$ time bup on CxL4SM0n@10.2.2.4 save --strip -n test .
-    real    5m0.161s
-
-    salvus@storm-web3:/mnt/backup$ time bup restore --outdir=test test/latest
-    real    3m3.458s
-
-    salvus@storm-web3:/mnt/backup$ time rsync -axH test/ CxL4SM0n@10.2.2.4:test/
-    remote rsync crashed and I had to restart it. (ran out of space)
-    # anyway, was about 5 minutes.
-
-
-PLAN:  create something as above as a TCP *service* called "snap".
-
- - Store the (hostname, port, key) for each snap service in the cassandra database; the key is just redundant security.
-
- - Access only over VPN, so don't have to worry about ssl
-
- - The api provides the following, where what it does doesn't depend on which snap it's called on.
-
-      - snapshots(project_id): returns list of all available snapshots of that project
-        on *all* snap servers.  This could query the database, parse results, etc.  All snap
-        nodes will return the same answer.  The database will have a table "project_snapshots"
-        with ttl rows:
-
-              (project_id, hostname, port, [list of snapshots])
-
-      - ls(project_id, snapshot_name, path): list of files/directories there; does it locally
-        if we own the snapshot, otherwise punts to the owner of the snapshot
-
-      - restore(project_id, snapshot_name, path, user, hostname): extracts, then rsync's relevant
-        files to user@hostname:path.snapshot_name, unless snapshot_name=latest and path='.', in
-        which case `snapshot_name` is omited, since we're *deploying* to a new account.
-        This will work by first checking if this snap has the snapshot and if so, doing the
-        extract/rsync, and if not, then connecting to a snap that has the snapshot
-        and calling this command on it.
-
-
-
-
-    wstein@localhost:~$ time buptower
-    Tue May 21 10:56:29 PDT 2013
-    read Linux attr: [Errno 13] Permission denied: '/home/wstein/salvus/salvus/data/logs/stunnel-0.log'
-    Indexing: 295690, done.
-    bup: merging indexes (295782/295782), done.
-    WARNING: 1 errors encountered.
-
-    real    1m52.897s
-    user    1m17.873s
-    sys     0m8.795s
-    Traceback (most recent call last):
-      File "/usr/lib/bup/cmd/bup-midx", line 259, in <module>
-        do_midx_dir(path)
-      File "/usr/lib/bup/cmd/bup-midx", line 183, in do_midx_dir
-        i = git.open_idx(iname)
-      File "/usr/lib/bup/bup/git.py", line 471, in open_idx
-        raise GitError('%s: unrecognized idx file header' % filename)
-    bup.git.GitError: /home/wstein/.bup/index-cache/pixel@05salvus_/pack-b2a48b3f9b35c41443e8e0d4ab6fe5e6896e8b3b.idx: unrecognized idx file header
+[ ] (2:00?) Grayson -- valid html:
+       http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
 
 
 ---
@@ -2057,4 +1951,117 @@ Thus the solution is that I have to query a single sha1 at a time, which keeps t
 [x] (0:30?) (2:22) snap: on startup, ensure that for every project there is at least one snapshot of that project stored here.
 
 [x] (0:30?) (0:40) snap: write code to queue up and make backups
+
+
+[x] (1:00?) make a list of options for backup system, now that I've tried a bunch, and make more benchmarks.
+
+1. per project bup + cassandra: problem -- slow; not deduplicated across projects (a killer).
+
+2. global bup + cassandra: problem; kind of pointless, since can't use it unless you check out the entire thing.
+
+3. global bup synchronized across all nodes: impossible, single point of failure.
+
+4. have local bup archives "all over"; store in the database triples
+     (project id, snapshot time, user@host:path-to-bup)
+  and do work to lock local archives and ensure integrity.
+
+  Finding all backups in a location isn't too hard (using fuse this takes a few seconds even on a thousand
+  snapshots and many gigabytes, and could be cached in a file...).  I can write a "repair" function
+  that for each user@host:path-to-bup, determines if all backups are really there.
+
+5. Write a cassandra backend for q3sl and use it: It didn't deal with copying the Sage source code in over 30
+   minutes on my local fast hard drive, so that worries me a *lot*.
+
+
+REQUIREMENTS:
+
+    - x complete restore of 4 GB to user should take less than 10 minutes (?). (since they will have to wait when their machine dies)
+
+    - x directory listing of files in any given past snapshots should typically take less than 3 seconds
+
+    - x de-duplication across backed up projects, so that we can encourage sage development, big data, etc.
+
+    - x does not have to save every snapshot forever; some can just vanish.
+
+    - x provide useful time/status info during restore (make a model using data)
+
+    - must scale out easily, i.e., be very easy to add new snapshot storage by putting a
+      machine on the VPN with appropriate ssh access and disk space.
+
+    - system must work fine even if backup machines vanish/come back/etc. (database
+      should correctly reflect *available* backups):
+        - send update to cassandra every n minutes with list of backups with ttl:
+              (project id, snapshot time, user@host:path-to-bup)
+
+    - need a lock and only save one at a time, but can restore many at once (?).
+
+    - it sits there running, querying the database, making snapshots safely, and
+      in order, of projects when they change.
+
+    - to see snapshots/files, use fuse -- can mount multiple at once.
+
+
+Straight bup over network test on storm, with extracted 4GB binary:
+term 811
+
+    salvus@storm-web3:/mnt/backup$ time bup on CxL4SM0n@10.2.2.4 index .
+    real    0m17.953s
+
+    salvus@storm-web3:/mnt/backup$ time bup on CxL4SM0n@10.2.2.4 save --strip -n test .
+    real    5m0.161s
+
+    salvus@storm-web3:/mnt/backup$ time bup restore --outdir=test test/latest
+    real    3m3.458s
+
+    salvus@storm-web3:/mnt/backup$ time rsync -axH test/ CxL4SM0n@10.2.2.4:test/
+    remote rsync crashed and I had to restart it. (ran out of space)
+    # anyway, was about 5 minutes.
+
+
+PLAN:  create something as above as a TCP *service* called "snap".
+
+ - Store the (hostname, port, key) for each snap service in the cassandra database; the key is just redundant security.
+
+ - Access only over VPN, so don't have to worry about ssl
+
+ - The api provides the following, where what it does doesn't depend on which snap it's called on.
+
+      - snapshots(project_id): returns list of all available snapshots of that project
+        on *all* snap servers.  This could query the database, parse results, etc.  All snap
+        nodes will return the same answer.  The database will have a table "project_snapshots"
+        with ttl rows:
+
+              (project_id, hostname, port, [list of snapshots])
+
+      - ls(project_id, snapshot_name, path): list of files/directories there; does it locally
+        if we own the snapshot, otherwise punts to the owner of the snapshot
+
+      - restore(project_id, snapshot_name, path, user, hostname): extracts, then rsync's relevant
+        files to user@hostname:path.snapshot_name, unless snapshot_name=latest and path='.', in
+        which case `snapshot_name` is omited, since we're *deploying* to a new account.
+        This will work by first checking if this snap has the snapshot and if so, doing the
+        extract/rsync, and if not, then connecting to a snap that has the snapshot
+        and calling this command on it.
+
+
+
+
+    wstein@localhost:~$ time buptower
+    Tue May 21 10:56:29 PDT 2013
+    read Linux attr: [Errno 13] Permission denied: '/home/wstein/salvus/salvus/data/logs/stunnel-0.log'
+    Indexing: 295690, done.
+    bup: merging indexes (295782/295782), done.
+    WARNING: 1 errors encountered.
+
+    real    1m52.897s
+    user    1m17.873s
+    sys     0m8.795s
+    Traceback (most recent call last):
+      File "/usr/lib/bup/cmd/bup-midx", line 259, in <module>
+        do_midx_dir(path)
+      File "/usr/lib/bup/cmd/bup-midx", line 183, in do_midx_dir
+        i = git.open_idx(iname)
+      File "/usr/lib/bup/bup/git.py", line 471, in open_idx
+        raise GitError('%s: unrecognized idx file header' % filename)
+    bup.git.GitError: /home/wstein/.bup/index-cache/pixel@05salvus_/pack-b2a48b3f9b35c41443e8e0d4ab6fe5e6896e8b3b.idx: unrecognized idx file header
 

@@ -79,7 +79,7 @@ pip install markdown2 markdown2Mathjax virtualenv  pandas statsmodels numexpr ta
 
 # OPTIONAL SAGE PACKAGES
 
-./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
+./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
 
 # Then delete wasted space
 
@@ -115,7 +115,8 @@ NODE_MODULES = [
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
-    'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest'
+    'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
+    'moment'
     ]
 
 PYTHON_PACKAGES = [
