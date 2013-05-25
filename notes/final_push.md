@@ -1,22 +1,4 @@
-[x] (0:30?) (0:54) snap: create database schema
-[x] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
-[x] (0:15?) (0:30) snap daemon -- needs to background!
-[x] (1:00?) (0:31) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
-[x] (0:15?) (1:30) snap: make daemon register itself with database on startup.
 
-[x] (0:20?) (0:19) snap: define backup rules and how they are configured (command line options) -- for now, all snaps make a snapshot of all projects at most every `snap_interval` seconds. I can add support for more distribution later, when needed.
-
-
-** Goal is the following: **
-       - every project is backed up to every snap server at least once.
-       - any active project (as defined by the recently_modified_projects table) that
-         has had a file changed, has a snapshot within snap_interval seconds, if possible...
-         though it may be less frequent since we can only do one snapshot at a time.
-         Nonetheless, no one project can dominate snapshots more than others.
-
-[x] (0:30?) (2:22) snap: on startup, ensure that for every project there is at least one snapshot of that project stored here.
-
-[x] (0:30?) (0:40) snap: write code to queue up and make backups
 
 [ ] (0:20?) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
 
@@ -2054,3 +2036,25 @@ Thus the solution is that I have to query a single sha1 at a time, which keeps t
 [x] (1:00?) increase quotas on compute nodes... since that is needed to do sage dev work online.
 
 [x] (0:30?) switch bup included in salvus to just be the latest standard one; the repack thing is not *needed*, due to the midx files... and that I could just make a brand new bup archive every so often (waste a little space, but way simpler).
+
+
+[x] (0:30?) (0:54) snap: create database schema
+[x] (1:00?) snap: create snap.coffee and "snap" with command line interface to start/stop simple snap daemon. On startup, update the (hostname, port, key) entry in the database.
+[x] (0:15?) (0:30) snap daemon -- needs to background!
+[x] (1:00?) (0:31) snap: add new class and code to admin.py to start/stop them; modify local deploy services file.
+[x] (0:15?) (1:30) snap: make daemon register itself with database on startup.
+
+[x] (0:20?) (0:19) snap: define backup rules and how they are configured (command line options) -- for now, all snaps make a snapshot of all projects at most every `snap_interval` seconds. I can add support for more distribution later, when needed.
+
+
+** Goal is the following: **
+       - every project is backed up to every snap server at least once.
+       - any active project (as defined by the recently_modified_projects table) that
+         has had a file changed, has a snapshot within snap_interval seconds, if possible...
+         though it may be less frequent since we can only do one snapshot at a time.
+         Nonetheless, no one project can dominate snapshots more than others.
+
+[x] (0:30?) (2:22) snap: on startup, ensure that for every project there is at least one snapshot of that project stored here.
+
+[x] (0:30?) (0:40) snap: write code to queue up and make backups
+
