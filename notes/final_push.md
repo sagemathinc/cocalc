@@ -35,7 +35,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (11:00?) misc
 - [x] (0:30?) (0:33) upgrade codemirror
-2 - [ ] (0:15?) upgrade jQuery
+- [x] (0:15?) (0:04) upgrade jQuery
 
 - [ ] (2:00?) make it so terminal never disconnects;
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
