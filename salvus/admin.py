@@ -472,10 +472,13 @@ frontend unsecured *:$port
 ####################
 class Hub(Process):
     def __init__(self, id=0, host='', port=HUB_PORT, tcp_port=HUB_TCP_PORT,
-                 monitor_database=None, keyspace='salvus', debug=False):
+                 monitor_database=None, keyspace='salvus', debug=False,
+                 logfile=None, pidfile=None):
         self._port = port
-        pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'hub-%s.log'%id)
+        if pidfile is None:
+            pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
+        if logfile is None:
+            logfile = os.path.join(LOGS, 'hub-%s.log'%id)
         extra = []
         if debug:
             extra.append('-g')
@@ -501,9 +504,13 @@ class Hub(Process):
 # Snap -- snapshot/backup servers
 ####################
 class Snap(Process):
-    def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus', snap_dir=None):
-        pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
-        logfile = os.path.join(LOGS, 'snap-%s.log'%id)
+    def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
+                 snap_dir=None, logfile=None, pidfile=None):
+        if pidfile is None:
+            pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
+        if logfile is None:
+            logfile = os.path.join(LOGS, 'snap-%s.log'%id)
+
         if snap_dir is None:
             snap_dir = os.path.join(DATA, 'snap-%s'%id)
         Process.__init__(self, id, name='snap', port=0,

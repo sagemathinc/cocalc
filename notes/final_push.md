@@ -21,7 +21,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (7:00?) finish snapshotting implementation, including UI
 
-3 - [ ] (0:30?) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file)
+- [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
 - [ ] (2:00?) snap: implement tcp server functions -- ls, restore, projects
 - [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
 - [ ] (1:30?) snap: implement UI to actually see/browse/restore files

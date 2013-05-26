@@ -27,7 +27,6 @@ cassandra = require 'cassandra'
 
 {defaults, required} = misc
 
-########################################
 # Run a bup command
 bup = (opts) ->
     opts = defaults opts,
@@ -54,7 +53,7 @@ bup = (opts) ->
         cb      : opts.cb
 
 
-########################################
+##----
 
 # Mount the bup archive somewhere.  This is a static view of the
 # archive at mount time and will not reflect updates and new snapshots.
@@ -126,7 +125,7 @@ initialize_local_snapshots = (cb) ->
                 (cb) ->
                     unmount_bup_archive(mountpoint: mountpoint, cb:cb)
                 (cb) ->
-                    fs.unlink(mountpoint, cb)
+                    fs.rmdir(mountpoint, cb)
             ])
         #winston.debug("local_snapshots = #{misc.to_json(local_snapshots)}")
         cb?(err)
@@ -201,8 +200,6 @@ monitor_snapshot_queue = () ->
         # check again in a second
         setTimeout(monitor_snapshot_queue, 1000)
 
-monitor_snapshot_queue()  # start it going.
-
 # snapshot all projects in the given input array, and call opts.cb on completion.
 snapshot_projects = (opts) ->
     opts = defaults opts,
@@ -213,7 +210,7 @@ snapshot_projects = (opts) ->
         return
     async.map(opts.project_ids, ((p,cb) -> snapshot_project(project_id:p, cb:cb)), ((err, results) -> opts.cb?(err)))
 
-########################################
+##--
 
 # Ensure that every project has at least one local snapshot.
 # TODO: scalability plan -- we will divide projects into snapshot
@@ -239,7 +236,7 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
                 cb          : cb
     ], cb)
 
-########################################
+##------------------------------------
 
 handle_mesg = (socket, mesg) ->
     winston.debug("handling mesg")
@@ -386,7 +383,6 @@ snapshot_active_projects = (cb) ->
     )
 
 
-
 # Start the network server on a random port, connect to database,
 # start registering, and start snapshoting.
 listen_port = undefined
@@ -410,6 +406,9 @@ exports.start_server = start_server = () ->
         (cb) ->
             register_with_database(cb)
         (cb) ->
+            monitor_snapshot_queue()
+            cb()
+        (cb) ->
             ensure_all_projects_have_a_snapshot(cb)
         (cb) ->
             snapshot_active_projects(cb)
@@ -429,18 +428,16 @@ program.usage('[start/stop/restart/status] [options]')
     .parse(process.argv)
 
 if program._name == 'snap.js'
-    winston.debug "snap daemon"
+    #    winston.debug "snap daemon"
 
-    conf =
-        pidFile:program.pidfile
-        outFile:program.logfile
-        errFile:program.logfile
+    conf = {pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}
 
-    #daemon(conf, start_server)
+    process.addListener "uncaughtException", (err) ->
+        winston.error "Uncaught exception: " + err
+        if console? and console.trace?
+            console.trace()
 
-    #process.addListener "uncaughtException", (err) ->
-    #    winston.error "Uncaught exception: " + err
-    #    if console? and console.trace?
-    #        console.trace()
+    daemon(conf, start_server)
+
 
 
