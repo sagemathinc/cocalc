@@ -1,6 +1,6 @@
 CodeMirror.defineMode('smalltalk', function(config) {
 
-  var specialChars = /[+\-\/\\*~<>=@%|&?!.:;^]/;
+  var specialChars = /[+\-\/\\*~<>=@%|&?!.,:;^]/;
   var keywords = /true|false|nil|self|super|thisContext/;
 
   var Context = function(tokenizer, parent) {
@@ -36,11 +36,14 @@ CodeMirror.defineMode('smalltalk', function(config) {
       token = nextString(stream, new Context(nextString, context));
 
     } else if (aChar === '#') {
-      stream.eatWhile(/[^ .]/);
+      stream.eatWhile(/[^ .\[\]()]/);
       token.name = 'string-2';
 
     } else if (aChar === '$') {
-      stream.eatWhile(/[^ ]/);
+      if (stream.next() === '<') {
+        stream.eatWhile(/[^ >]/);
+        stream.next();
+      }
       token.name = 'string-2';
 
     } else if (aChar === '|' && state.expectVariable) {
@@ -118,7 +121,6 @@ CodeMirror.defineMode('smalltalk', function(config) {
       state.context = token.context;
       state.expectVariable = token.eos;
 
-      state.lastToken = token;
       return token.name;
     },
 

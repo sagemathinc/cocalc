@@ -14,9 +14,10 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
         - update salvus; remember to do ./make_coffee
         - test it on storm, including new snapshots being *made*.
         - deploy on cloud
-- [ ] (1:00?) sunday deploy with snaps UI
+- [ ] (1:00?) sunday -- deploy with snaps UI
 - [ ] (1:00?) make quota work again, but make it 20GB for now.
-- [ ] (1:00?) mondaydeploy with bugfixes and project sharing
+- [ ] (1:00?) monday -- deploy with bugfixes and project sharing
+- [ ] (1:00?) create a python doctest file that verifies each optional python package is actually installed...
 
 #### (7:00?) finish snapshotting implementation, including UI
 
@@ -33,7 +34,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 
 #### (11:00?) misc
-1 - [ ] (0:30?) upgrade codemirror
+- [x] (0:30?) (0:33) upgrade codemirror
 2 - [ ] (0:15?) upgrade jQuery
 
 - [ ] (2:00?) make it so terminal never disconnects;
@@ -58,6 +59,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 - [ ] (0:30?) BUG: terminal path is not set correctly based on file path
 - [ ] (0:45?) BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore.
 - [ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
+- [ ] (1:00?) make it possible to enable VIM keybindings in codemirror editor.
 - [ ] (1:00?) codemirror find is annoying -- make it better (so thing found is visible!)
 
 ### (5:00?) re-enable responsive mode and implement layout stuff to work there.
@@ -76,7 +78,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 - [ ] (2:00?) gap broken -- gap('2+3') fails on cloud (but works on my laptop!)
 - [ ] (2:00?) Grayson -- ensure valid html: http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
-- [ ] (1:00?) update codemirror display more, e.g., after making output.
+- [ ] (1:00?) update codemirror display more, e.g., after making output.  see https://groups.google.com/forum/#!topic/codemirror/aYpevIzBUYk
 - [ ] (0:45?) mathjax special case: `$a<b$` is misparsed, whereas `$a < b$` is OK.  We should somehow fix such things in the html function, since mathjax can't.
 - [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
 - [ ] (1:00?) show(matplotlib graphic) -- might as well work

@@ -774,8 +774,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         @close_on_action(elt)
 
     elt_at_mark: (mark) =>
-        opts = mark.getOptions()
-        elt = opts.replacedWith
+        elt = mark.replacedWith
         if elt?
             return $($(elt).children()[0])  # codemirror wraps the element -- maybe a bug in codemirror that it does this.
 
