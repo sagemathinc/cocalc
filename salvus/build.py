@@ -30,7 +30,7 @@ For users, do all the following:
 
 # EASY PACKAGES:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
@@ -54,15 +54,6 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
   sudo apt-get install libntl-5.4.2 libpari-gmp3
   sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
 
-# 4ti2: until the optional spkg gets fixed:
-
-  cd /tmp/
-  wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
-  ./configure --prefix=/usr/local/sage/sage-*/local/
-  time make -j16    # <20 seconds
-  make install      # this *must* be a separate step!!
-  cd ..; rm -rf 4ti2*
-
 # Install Sage
 
 # Non-sage Python packages into Sage
@@ -71,7 +62,9 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 easy_install pip
 
-pip install markdown2 markdown2Mathjax virtualenv  pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap h5py netcdf4
+# pip install each of these in a row
+
+[os.system("pip install %s"%s) for s in 'markdown2 markdown2Mathjax virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap h5py netcdf4'.split()]
 
 # Also, edit the banner:
 
@@ -85,6 +78,14 @@ pip install markdown2 markdown2Mathjax virtualenv  pandas statsmodels numexpr ta
 
    rm spkg/optional/*
 
+# 4ti2 into sage: until the optional spkg gets fixed:
+
+  cd /tmp/
+  wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
+  ./configure --prefix=/usr/local/sage/sage-*/local/
+  time make -j16    # <20 seconds
+  make install      # this *must* be a separate step!!
+  cd ..; rm -rf 4ti2*
 
 Copy over the newest SageTex:
 
