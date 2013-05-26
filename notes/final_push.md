@@ -1,66 +1,98 @@
-[x] (0:20?) (1:15) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
+### Time
+Sat May 25: 6:30 - 10:30, 4 hours
+Sun May 26: 6:30 - 11:30 (minus eating, etc.), so about 14 hours
+Mon May 27: 6:30 - 11:30 -- about 14 hours
 
-[ ] (0:45?) snap: implement tcp server functionality
-[ ] (0:45?) snap: write client, which hub will use.
-[ ] (0:45?) snap: implement "snapshots()"
-[ ] (0:45?) snap: implement "ls"
-[ ] (1:15?) snap: implement UI to actually see/brow result of ls
-[ ] (1:00?) snap: implement "restore()" in snap server.
-[ ] (0:45?) snap: implement UI to restore file/directory
-[ ] (1:00?) next release:
-      - add these to build.py and install via apt-get
-            zsh
-            python3
-            ipython3 [1]
-            cython
-            htop
-            ccache
-            python-virtualenv
-            clang
-      - npm install moment
-      - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
-      - install database_pari-20130516 spkg
-      - upgrade to newest bup from the website; fixes corruption issues.
-      - delete all bups so far.
+#### (4:00?) deploy
+4 - [ ] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
+      x - add these to build.py and install new apt-get packages
+      x - npm install moment
+      x - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
+      x - install database_pari-20130516 spkg
+      x - upgrade to newest bup from the website; fixes corruption issues.
+        - delete /mnt/backup persistent disks; instead have /mnt/snap
+        - update salvus; remember to do ./make_coffee
+        - test it on storm, including new snapshots being *made*.
+        - deploy on cloud
+- [ ] (1:00?) sunday deploy with snaps UI
+- [ ] (1:00?) make quota work again, but make it 20GB for now.
+- [ ] (1:00?) mondaydeploy with bugfixes and project sharing
 
-[ ] (1:00?) snap: .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
+#### (7:00?) finish snapshotting implementation, including UI
 
-[ ] (0:30?) snap: on startup, we need to also make snapshots of projects that were active when we weren't watching, due to being offline
-for some reason.  This can be done later... since it is only a factor when there was a failure.
----
+3 - [ ] (0:30?) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file)
+- [ ] (2:00?) snap: implement tcp server functions -- ls, restore, projects
+- [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
+- [ ] (1:30?) snap: implement UI to actually see/browse/restore files
+- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
 
-[ ] (2:00?) Grayson -- valid html:
-       http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
+#### (3:00?) very simple project sharing UI; fix that major bug I saw in class where anybody can get access to my worksheets.
+
+[ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
+[ ] (1:30?) address the major issue I found in class where other people get access to `local_hub`!?
 
 
----
+#### (11:00?) misc
+1 - [ ] (0:30?) upgrade codemirror
+2 - [ ] (0:15?) upgrade jQuery
 
-[ ] (0:45?) mathjax special case: `$a<b$` is misparsed, whereas `$a < b$` is OK.  We should somehow fix such things in the html function, since mathjax can't.
+- [ ] (2:00?) make it so terminal never disconnects;
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+- [ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
+- [ ] (2:00?) implement caching of files attached to worksheets longterm
+- [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
+     html, do two things:
+      (a) hide by default, and
+      (b) have an option to not hide by default, if you don't want that,
+     e.g., %md(hide=False)
+     Similarly, maybe "%interact" should have %interact(auto=True) by default...
+- [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
+    %md
+    $$\{ foo \}$$
+    even though this does
+    %md
+    $\{ foo \}$
+    \[
+       \{ foo \}
+    \]
+- [ ] (0:30?) BUG: terminal path is not set correctly based on file path
+- [ ] (0:45?) BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore.
+- [ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
+- [ ] (1:00?) codemirror find is annoying -- make it better (so thing found is visible!)
+
+### (5:00?) re-enable responsive mode and implement layout stuff to work there.
+- [ ] (0:30?) find a way to test SMC via tablet/phone running from laptop (probably port forward)
+- [ ] (0:30?) turn on responsive mode and make a list of issues
+- [ ] (4:00?) issues!
+
+
+##################################
+
+
+# Later
+
+- [ ] (1:00?) show(animate) -- make it work
+- [ ] (1:00?) when user exits terminal, restart terminal automatically... when they hit a key?
+
+- [ ] (2:00?) gap broken -- gap('2+3') fails on cloud (but works on my laptop!)
+- [ ] (2:00?) Grayson -- ensure valid html: http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
+- [ ] (1:00?) update codemirror display more, e.g., after making output.
+- [ ] (0:45?) mathjax special case: `$a<b$` is misparsed, whereas `$a < b$` is OK.  We should somehow fix such things in the html function, since mathjax can't.
+- [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
+- [ ] (1:00?) show(matplotlib graphic) -- might as well work
+- [ ] (0:10?) https://mathsaas.com/ points at cloud.sagemath.org (really bsd), but should point at the .com.
+- [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
+- [ ] (0:45?) BUG: move recent files (etc.) thing to the database; it's too frustrating/confusing tieing to the computer.
+
+[ ] (1:00?) snap: potential for .bup corruption -- I got this when my chromebook crashed while doing a backup; I deleted the relevant file, re-ran bup, and it worked fine.  This suggests that killing bup on the client side can lead to a corrupt .bup directory, and break snapshotting of their work.  Since a user could cause .bup corruption in many ways, we will *have* to do: (1) try to make a backup, (2) if it fails, delete their .bup, then try again; if that fails, email admin.
+
+[ ] (0:30?) snap: on startup, we need to also make snapshots of projects that were active when we weren't watching, due to being offline for some reason.  This can be done later... since it is only a factor when there was a failure.
 
 [ ] (0:45?) sometimes file listing gets updated after we've already changed to another directory!
 
-[ ] (0:20?) I see these in ps "bup-on CxL4SM0n@10.2.2.4 save -9"; I thought I removed all "-9"'s.
-
-[ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
-%md
-$$\{ foo \}$$
-even though this does
-%md
-$\{ foo \}$
-\[
-   \{ foo \}
-\]
-
-  [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
-
-
 [ ] (0:20?) editor: when closing current open document, *select* recent automatically (not nothing)
 
-[ ] (1:30?) enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered... just temporary.
-
 [ ] (1:30?) refactor "download from web" code; add custom logic so this does the right thing, etc.: https://github.com/williamstein/2013-480/blob/master/lectures/lecture21-walk_through_dev_process-2013-05-17.sagews
-
-[ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
 
 [ ] (2:00?) idea -- bake in chunking messages over sockjs so we can send huge messages without reset and without stopping other messages; thus can edit large files.
 
@@ -70,62 +102,17 @@ $\{ foo \}$
 
 [ ] (1:00?) am I writing cassandra blobs as string constants? -- something about that in docs "Cassandra blobs as string constants"?
 
-[ ] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
-
-[ ] (1:00?) implement scratch directories, so sage dev is possible.
-
-[ ] (1:00?) make quota work, but only for home
-
-[ ] (2:00?) sometimes GAP broken in deployed vm's:  gap('2') boom!
-
 [ ] (1:00?) something didn't get properly (monkey) patched:
     sage.interacts.algebra.polar_prime_spiral()
-
-[ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
-html, do two things:
-  (a) hide by default, and
-  (b) have an option to not hide by default, if you don't want that,
-e.g., %md(hide=False)
-Similarly, maybe "%interact" should have %interact(auto=True) by default...
 
 [ ] (1:00?) feature request: user way to customize the cursor in text editor (vertical line instead of block)
 
 ---
-
-# Next up: Finish implementing project snapshot, restore, browse, stored in the datase.
-
-testing:
-
-    t={};require('backup').snapshot(cb:(err,s)->t.s=s)
-    t.s.project("7ad260c7-3a0d-4db3-a1a5-06c04cbf2757", (err, p) -> t.p=p)
-    t.p.pull_from_database(console.log)
-    tm=require('misc').walltime(); t.p.pull_from_database((err)->console.log(require('misc').walltime(tm)))
-    t.p.snapshot_compute_node(console.log)
-    t.p.snapshots(console.log)
-    t.p.ls(path:'.', hidden:true, cb:console.log)
-    t.p.push_to_database(console.log)
-
-[ ] (2:00?) implement and test restore
-
-[ ] (2:00?) figure out how to switch from the current useless backup system to using this new snapshots-to-db and implement
-
-[ ] (2:00?) design and implement gui for browsing snapshots and restoring projects.
-
----
-[ ] (2:00?) make it so terminal never disconnects; also, when user exits terminal, restart it automatically when they hit a key (?)
-
-[ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
-
-[ ] (3:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
 [ ] (1:00?) BUG: click on a 15MB tarball by accident via the file manager, and local hub breaks, and file never comes up; no way to recover.  Impossible for a normal user!
-
 
 [ ] (0:30?) path at top doesn't have to be fixed (note how it looks when scrolling)
 
 [ ] (0:30?) search output doesn't have to have fixed height + own scroll
-
-[ ] (0:10?) https://mathsaas.com/ points at cloud.sagemath.org (really bsd), but should point at the .com.
 
 [ ] (1:00?) feature: save terminal history to file.
 
@@ -144,68 +131,32 @@ testing:
 
 [ ] (1:00?) when using an interact on cloud.sagemath.com that produces graphics (lecture 17 of 308), I'm seeing the image in
  output not appearing with some probability.  I'm guessing this has to do with how files get sent from local hub to hub, and there being multiple global hubs... and them not using the database always.
-
  [ ] (1:00?) interact dropdown selector doesn't work in Firefox -- shows blank input.
-
  [ ] (1:00?) suggest sync broadcast message often doesn't work (maybe on first sync?), i.e., user has to modify buffer to see latest changes upstream
-
  [ ] (1:00?) idea: make a stats tab -- for all to see -- under "?" page with:
-
  [ ] (1:00?) idea: when displaying lots of output, scroll output area to BOTTOM (not top like it is now).
-
  [ ] (1:30?) make worksheet save persist linked objects
-
  [ ] (1:30?) new project default git creds based on project owner cred. (?);
-
  [ ] (1:30?) ability to open sws files
-
  [ ] (1:00?) button in settings to reset the smc server
-
  [ ] (1:30?) ability to delete projects.
-
  [ ] (1:30?) ability to change project to be private.
-
- [ ] (1:00?) make hub do "bup fsck -g" regularly.
-
- [ ] (1:30?) when restoring a project using a bup backup, make it robust in face of hub not actually having the backup it claims to have; this could possibly involve scrubbing db every once in a while too.  Also, just investigate possibility of storing these backups in cassandra *somehow.*
-
- [ ] consider using https://tahoe-lafs.org/trac/tahoe-lafs for storing all user projects in a distributed way; bup isn't reliable enough.
-
- [ ] worksheet fail with local_hub log:
+ [ ] worksheet fail with `local_hub` log:
          Trace
             at process.daemon.pidFile (/mnt/home/D6VXKxGo/.sagemathcloud/node_modules/local_hub.js:1986:24)
             at process.EventEmitter.emit (events.js:126:20)
             at Timer.list.ontimeout (timers.js:104:21)
          error: Uncaught exception: Error: This socket is closed.
-
- [ ] (1:30?) implement pretty_print -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
-
+ [ ] (1:30?) implement `pretty_print` -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13e454cb56930ef0
  [ ] (1:00) write script that does "ping()" from cloud1 and cloud3 (say), and sends me an email if anything doesn't respond to ping in 10 seconds (or something like that).
-
- [ ] (2:00) when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
-
  [ ] (0:30?) %hideall doesn't hide output, but should.
-
- [ ] (1:00?) add a way to self-report donation (get recorded in database)
-
- [ ] (3:00?) why does editing feel so slow: take 2?
-
  [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
-
- [ ] update numpy in our sage (then tables/pandas/etc. -- see build), since right now:
-sage: import tables.  This will be fixed automatically by sage-5.10.
-
-[ ] (1:00?) idea: multiline copy from a terminal should delete trailing whitespace... if possible.  I don't know if this is possible, and don't know how this could even be implemented in general.  However, maybe when cloud.sagemath is used as an extension or chromeapp, then it would be possible...
-
- - [ ] (1:00?) quota in my "devel" project looks suspicious (type "quota -v").; on compute2a everything is fine.  No clue what is going on here.
+ [ ] (1:00?) idea: multiline copy from a terminal should delete trailing whitespace... if possible.  I don't know if this is possible, and don't know how this could even be implemented in general.  However, maybe when cloud.sagemath is used as an extension or chromeapp, then it would be possible...
 
 - (3:00?) [ ] sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
-
-- (1:00?) [ ] highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
-- (0:30?) [ ] account creation: checking that user clicked on the terms button -- fix it.
 - (2:00?) [ ] way to browse other people's projects
+
 - (0:45?) [ ] sagews: javascript(once=True) isn't respected; needs to use a different channel... (broadcast?)
-- (0:45?) [ ] sagews: in %md cell mode, bold is nearly invisible due to some CSS error. Ugh.
 
 - (2:00?) [ ] make caching of newly created blank projects something that is stored in the database, not the hub.
 
@@ -215,57 +166,26 @@ wstein@u:~/salvus/salvus/data/logs$ du -sch *
     296M    nginx-0.log
     1.6G    stunnel-0.log
 
-
 - (1:00?) [ ] sagews bug -- html.iframe gets updated/refreshed on all executes. why?
-
-- (0:45?) [ ] sagews: caching of images permanently... ?  what to do about that?
-
 - (1:00?) [ ] sagews: timer when evaluating code, but don't use jquery countdown, since it wastes resources at all times.
-
 - (0:45?) [ ] sagews: eliminate jquery countdown (while not breaking old worksheets)
-- (0:30?) [ ] sagews: proper filename display / truncation
-
-- (1:00?) [ ] syncdoc: last edit sometimes doesn't cause other clients to sync -- broadcast doesn't happen or clients ignore request -- maybe not implemented (?)
-
+- (1:00?) [ ] syncdoc: last edit sometimes doesn't cause other clients to sync -- broadcast doesn't happen or clients ignore reques
 - (0:10?) [ ] syncdoc: remove "click_save_button:" from syncdoc.coffee, in case it is not used (I think it isn't).
-
-- (3:00?) [ ] sagews: re-implement interact (using exec message)
-
-- (1:00?) [ ] syncdoc: store sync history for each file on filesystem (next to chat)
-
 - (2:00?) [ ] syncdoc: browse through past versions -- "some sort of timeline view".
-
 - (1:00?) [ ] sagews: modify search command to indicate result in output more sensibly (right now cursor gets big next to output)
 - (1:00?) [ ] Modify the editor find command to have the option of doing a "fuzzy search" using the diff-patch-match library?!
 * (1:00?) [ ] FEATURE: make it so "create a new file" allows you to just paste a URL in the filename blank... to get a file from the web!
-* (0:15?) [ ] BUG: need block of empty whitespace at bottom of cell.
-* (0:20?) [ ] BIG BUG: worksheets -- the css position of tab completion is wrong; it doesn't move with the worksheet! (not sure I care)
-* (0:30?) [ ] BUG: terminal path is not set correctly.
 * (1:00?) [ ] BUG: don't allow editing a file if it is above a certain relatively small size...
-* (0:45?) [ ] BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore. (for now, maybe don't clear the ones also at top?)
-* (0:30?) [ ] MAJOR BUG: when a worksheet asks for a non-existent session, it should failover and ask for a new session; right now it doesn't.
-* (1:00?) [ ] BUG: terminal sessions need to reconnect when they timeout!
 * (0:45?) [ ] SYNC: infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
-* (0:45?) [ ] SYNC BUG: often we start editing a document on *first sync* (only) the cursor moves back 4 characters. WHY?  (Facebook on android does this same thing, incidentally!)
 * (0:30?) [ ] BUG: file browser destroys long filenames now.
 * (0:15?) [ ] BUG: after pasting something big in terminal paste blank, page gets scrolled up all wrong.
 * (1:30?) [ ] sagews: default worksheet percent modes.
 * (1:00?) [ ] BUG in sage execute: "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
-* (0:30?) [ ] DESIGN: After doing certain operations with checked cells, uncheck them all: hide/show ops.
-* (0:45?) [ ] BUG: when editing a doc with multiple viewers, keep having codemirror view on doc jump to top of screen (i.e., cursor at top)
-* (0:45?) [ ] BUG: move recent files (etc.) thing to the database; it's too frustrating/confusing tieing to the computer.
 * (0:30?) [ ] BUG: os x "control-o" should also accept command-o
-* (0:30?) [ ] BUG: switching between projects to redisplay an editor can result in a corrupt display; need to call "show" for visible editor on both resize and show top navbar events.
 
-
-
-[ ] (1:00?) interact: debug/test -- make one worksheet with all interacts?
 [ ] (1:00?) interact.coffee: refactor the big switch statement in interact_control to be extensible, so can easily add something to a map and get a new control.
 
 [ ] idea from Dan Grayson: Another feature of the sage math cloud would be compatibility with chrome's excellent scheme for keeping track of your user names and passwords for you. -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ea4bfe65bc36cd
-
-
-
 
  [ ] this doesn't work:   GraphDatabase().interactive_query(display_cols=['graph6','num_vertices','degree_sequence'],num_vertices=['<=',4],min_degree=2)
 ---
@@ -2065,4 +1985,12 @@ PLAN:  create something as above as a TCP *service* called "snap".
       File "/usr/lib/bup/bup/git.py", line 471, in open_idx
         raise GitError('%s: unrecognized idx file header' % filename)
     bup.git.GitError: /home/wstein/.bup/index-cache/pixel@05salvus_/pack-b2a48b3f9b35c41443e8e0d4ab6fe5e6896e8b3b.idx: unrecognized idx file header
+
+
+
+[x] (0:20?) (1:15) snap: write code to query database and figure out which projects need to get backed up in order to satisfy rule...: EASY -- for this, just find all active projects, and for each check to see if the interval is long enough since we last made a backup.
+
+
+[x] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
+
 
