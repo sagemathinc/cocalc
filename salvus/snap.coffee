@@ -35,9 +35,9 @@ bup = (opts) ->
         bup_dir : bup_dir  # defined below when initializing snap_dir
         cb      : (err, output) ->
             if err
-                winston.debug("error -- #{err}")
+                winston.info("error -- #{err}")
             else
-                winston.debug("bup output -- #{misc.to_json(output)}")
+                winston.info("bup output -- #{misc.to_json(output)}")
 
     if typeof(opts.args) == "string"
         command = "bup " + opts.args
@@ -53,13 +53,25 @@ bup = (opts) ->
         cb      : opts.cb
 
 
-##----
+##------------------------------------------
+# This section contains functions for accessing the bup archive
+# through fuse. We do this as much as possible because bup-fuse
+# and the operating system *caches* the directory tree information.
+# If we try to use bup itself, every directory listing takes
+# a huge amount of time.  Using bup-fuse instead, stores this
+# work in memory, and we only have this slowness on the *first* read.
+
+# Use the functions that start with "fuse_" below.
+
+# Unfortunately, modifying the bup archive by adding new content
+# does not change the fuse archive, hence the reference counting
+# and other complexity below.
 
 # Mount the bup archive somewhere.  This is a static view of the
 # archive at mount time and will not reflect updates and new snapshots.
 # You can mount the archive multiple times at once at *different*
 # mount points.
-mount_bup_archive = (opts) ->
+_mount_bup_archive = (opts) ->
     opts = defaults opts,
         mountpoint : undefined
         cb         : required    # (err, mountpoint)
@@ -76,15 +88,80 @@ mount_bup_archive = (opts) ->
                     opts.cb(err, opts.mountpoint)
 
 # Unmount the bup archive
-unmount_bup_archive = (opts) ->
+_unmount_bup_archive = (opts) ->
     opts = defaults opts,
         mountpoint : required
+        rmdir      : false
         cb         : undefined
 
     misc_node.execute_code
         command : "fusermount"
-        args    : ["-u", opts.mountpoint]
-        cb       : opts.cb
+        args    : ["-uz", opts.mountpoint]
+        cb       : (err) ->
+            fs.rmdir(opts.mountpoint, opts.cb)
+
+# Increase the reference count on the mountpath and return absolute path to it.
+# If there are no fuse mount paths, one is created.
+_fuse_mountpath_cache = []   # array of pairs [path, reference count], with last pair the newest.
+
+fuse_get_newest_mountpath = (cb) ->
+    n = _fuse_mountpath_cache.length
+    if n == 0
+        fuse_create_new_mountpath(cb)
+    else
+        v = _fuse_mountpath_cache[n-1]
+        v[1] += 1
+        cb(false, v[0])
+
+# Create a new mountpath, increment reference count, and return it.
+fuse_create_new_mountpath = (cb) ->
+    _mount_bup_archive
+        cb: (err, mountpoint) ->
+            if not err
+                _fuse_mountpath_cache.push([mountpoint, 1])
+            cb(err, mountpoint)
+
+    # Also, if there are more than 10 mounted paths with reference count <= 0,
+    # clean them up (leaving most recent 10).  This is so we don't end up with
+    # a huge number of unused fuse mounts running (which wastes memory).
+    n = _fuse_mountpath_cache.length
+    if n > 10
+        for i in [0...n-10]
+            v = _fuse_mountpath_cache[i]
+            if v[1] <= 0
+                _fuse_mountpath_cache.splice(i,i) # remove i-th element from array
+                _unmount_bup_archive
+                    mountpoint : v[0]
+                    rmdir      : true
+                    cb         : (err) ->
+                        if err # non-fatal
+                            winston.info("Error unmounting bup archive -- #{err}.")
+                        cb()
+
+# Decrease reference count on the mountpath
+fuse_free_mountpath = (mountpath) ->
+    for i in [0..._fuse_mountpath_cache.length]
+        v = _fuse_mountpath_cache[i]
+        if v[0] == mountpath
+            v[1] -= 1
+            return
+
+fuse_remove_all_mounts = (cb) ->
+    fs.readdir snap_dir + '/fuse/', (err, files) ->
+        if err
+            cb()  # ok, maybe doesn't exist; nothing we can do
+            return
+        f = (file, cb) ->
+            mountpoint = "#{snap_dir}/fuse/#{file}"
+            _unmount_bup_archive
+                mountpoint : mountpoint
+                rmdir      : true
+                cb         : (err) ->
+                    if err # non-fatal
+                        winston.info("Error unmounting bup archive -- #{err}.")
+                    cb()
+        async.map(files, f, cb)
+
 
 # Initialize local_snapshots, which is a map with domain the uuid's of projects
 # that are snapshotted locally and values the array of snapshot timestamps
@@ -96,10 +173,9 @@ initialize_local_snapshots = (cb) ->
     mountpoint = undefined
     async.series([
         (cb) ->
-            mount_bup_archive
-                cb:(err, _mountpoint) ->
-                    mountpoint = _mountpoint
-                    cb(err)
+            fuse_get_newest_mountpath (err, _mountpoint) ->
+                mountpoint = _mountpoint
+                cb(err)
         (cb) ->
             fs.readdir mountpoint, (err, files) ->
                 if err
@@ -121,15 +197,116 @@ initialize_local_snapshots = (cb) ->
             async.map(misc.keys(local_snapshots), f, cb)
     ], (err) ->
         if mountpoint?
-            async.series([
-                (cb) ->
-                    unmount_bup_archive(mountpoint: mountpoint, cb:cb)
-                (cb) ->
-                    fs.rmdir(mountpoint, cb)
-            ])
-        #winston.debug("local_snapshots = #{misc.to_json(local_snapshots)}")
+            fuse_free_mountpath(mountpoint)
         cb?(err)
     )
+
+
+## ------------
+
+# Provide information about available snapshots, projects, files, etc.
+snap_info = (opts) ->
+    opts = defaults opts,
+        project_id : undefined  # if not given, then return list of project_id's of all projects
+                                # that have at least one snapshot; if given, return snapshots for that project... or
+        snapshot   : undefined  # if given, project_id must be also given; then return directory listing for this snapshot
+        path       : '.'        # return list of files in this path (if snapshot is defined)
+        cb         : required   # cb(err, list)
+    if not opts.project_id?
+        opts.cb(false, info_project_list())
+    else if not opts.snapshot?
+        opts.cb(false, info_snapshot_list(opts.project_id))
+    else
+        info_directory_list(opts.project_id, opts.snapshot, opts.path, opts.cb)
+
+# Array of project_id's of all projects for which we have at least one snapshot.
+# It is safe to modify the returned object.
+info_project_list = () ->
+    return (project_id for project_id, snaps of local_snapshots when snaps.length > 0)
+
+# Array of snapshots for the given project.  Safe to modify.
+# Array is empty if we do not have any snapshots for the given project (yet).
+info_snapshot_list = (project_id) ->
+    snaps = local_snapshots[project_id]
+    if not snaps?
+        return []
+    return snaps.slice(0)   # make copy
+
+# Modify the array "files" in place by append a slash after each
+# entry in the array that is a directory.   Call "cb(err)" when done.
+append_slashes_after_directory_names = (path, files, cb) ->
+    f = (i, cb) ->
+        fs.stat "#{path}/#{files[i]}", (err, stats) ->
+            if err
+                cb(err)
+            else
+                if stats.isDirectory(stats)
+                    files[i] += '/'
+                cb()
+    async.map([0...files.length], f, cb)
+
+# Get list of all files inside a given directory; in the list, directories have a "/" appended.
+info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
+    snaps = local_snapshots[project_id]
+    if not snaps?
+        cb("no project -- #{project_id}")
+        return
+    if not snapshot in snaps
+        cb("no snapshot #{snapshot} in project #{project_id}")
+        return
+
+    # 1. Get the newest mounted fuse path (which will create a mount if there aren't any).
+    # 2. Check to see if the requested project_id/snapshot/path is available in path.
+    # 3. If so, done -- use it, then unlock it; done.
+    # 4. If not (hence it is a very new snapshot), request creation of new fuse path.
+    # 5. If project_id/snapshot/path does not exist, return []
+
+    fuse_path       = undefined
+    target_snapshot = undefined
+    target_path     = undefined
+    new_mount       = undefined
+    files           = undefined
+
+    async.series([
+       (cb) ->
+           fuse_get_newest_mountpath (err,_path) ->  # this adds a lock to the path on success
+               fuse_path = _path
+               cb(err)
+       (cb) ->
+           target_snapshot = "#{fuse_path}/#{project_id}/#{snapshot}/"
+           fs.exists target_snapshot, (exists) ->
+               new_mount = not exists
+               cb()
+       (cb) ->
+           if not new_mount
+               cb(); return
+           fuse_free_mountpath(fuse_path)
+           fuse_path = undefined
+           fuse_create_new_mountpath (err, _path) ->
+                fuse_path = _path
+                # The following path *must* exist because of the checks done above; if it doesn't we'll notice below.
+                target_snapshot = "#{fuse_path}/#{project_id}/#{snapshot}/"
+                cb(err)
+       (cb) ->
+           target_path = "#{target_snapshot}/#{path}"
+           fs.readdir target_path, (err, _files) ->
+                files = _files
+                cb(err)  # if path doesn't exist, get this err
+       (cb) ->
+           append_slashes_after_directory_names(target_path, files, cb)
+    ], (err) ->
+        fuse_free_mountpath(fuse_path)
+        cb(err, files)
+    )
+
+    
+test1 = () ->
+    snap_info
+        project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
+        snapshot   : '2013-05-26-140204' # '2013-05-23-184921'
+        path       : 'salvus/salvus'
+        cb         : (err, result) ->
+            console.log("RESULT of test = ", err, misc.to_json(result))
 
 
 # Enqueue the given project to be snapshotted as soon as possible.
@@ -143,7 +320,7 @@ snapshot_project = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : undefined
-    winston.debug("enqueuing project #{opts.project_id} for snapshot")
+    winston.info("enqueuing project #{opts.project_id} for snapshot")
 
     if opts.project_id == "6a63fd69-c1c7-4960-9299-54cb96523966"
         # special case -- my own local dev server account shouldn't backup into itself
@@ -155,7 +332,7 @@ monitor_snapshot_queue = () ->
     if snapshot_queue.length > 0
         user = undefined
         {project_id, cb} = snapshot_queue.shift()
-        winston.debug("making a snapshot of project #{project_id}")
+        winston.info("making a snapshot of project #{project_id}")
         async.series([
             # get deployed location of project (which can change at any time!)
             (cb) ->
@@ -221,7 +398,7 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
     # for each one, check if we have a backup.  If we don't,
     # queue that project for backing up.  Then drain that queue.
 
-    winston.debug("ensuring all projects have a snapshot")
+    winston.info("ensuring all projects have a snapshot")
     project_ids = undefined
     async.series([
         (cb) ->
@@ -239,18 +416,18 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
 ##------------------------------------
 
 handle_mesg = (socket, mesg) ->
-    winston.debug("handling mesg")
+    winston.info("handling mesg")
 
 handle_connection = (socket) ->
-    winston.debug("handling a new connection")
+    winston.info("handling a new connection")
     misc_node.unlock_socket socket, secret_key, (err) ->
         if err
-            winston.debug(err)
+            winston.info(err)
         else
             misc_node.enable_mesg(socket)
             handler = (type, mesg) ->
                 if type == "json"
-                    winston.debug "received mesg #{json(mesg)}"
+                    winston.info "received mesg #{json(mesg)}"
                     handle_mesg(socket, mesg)
             socket.on 'mesg', handler
 
@@ -268,15 +445,23 @@ initialize_snap_dir = (cb) ->
         snap_dir = process.cwd() + '/' + snap_dir
     bup_dir  = snap_dir + '/bup'
     uuid_file = snap_dir + '/server_uuid'
-    winston.debug("path=#{snap_dir} should exist")
-    misc_node.ensure_containing_directory_exists uuid_file, (err) ->
-        if err
-            cb(err)
-        else
-            bup(args:['init'])
-            cb()
+    winston.info("path=#{snap_dir} should exist")
+
+    async.series([
+        (cb) ->
+            misc_node.ensure_containing_directory_exists uuid_file, (err) ->
+                if err
+                    cb(err)
+                else
+                    bup(args:['init'])
+                    cb()
+        (cb) ->
+            fuse_remove_all_mounts(cb)
+    ], cb)
     # TODO: we could do some significant checks at this point, e.g.,
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
+
+
 
 
 # Generate or read uuid of this server, which is the longterm identification
@@ -314,7 +499,7 @@ generate_secret_key = (cb) ->
 # Write entry to the database periodicially (with ttl) that this
 # snap server is up and running, and provide the key.
 register_with_database = (cb) ->
-    winston.debug("registering with database server...")
+    winston.info("registering with database server...")
     host = "#{program.host}:#{listen_port}"
     database.update
         table : 'snap_servers'
@@ -356,7 +541,7 @@ age_of_most_recent_snapshot_in_seconds = (id) ->
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
     project_ids = undefined
-    winston.debug("snapshot_active_projects...")
+    winston.info("snapshot_active_projects...")
     async.series([
         (cb) ->
             database.select
@@ -367,20 +552,28 @@ snapshot_active_projects = (cb) ->
                     project_ids = (r[0] for r in results)
                     cb(err)
         (cb) ->
-            winston.debug("recently modified projects: #{misc.to_json(project_ids)}")
+            winston.info("recently modified projects: #{misc.to_json(project_ids)}")
 
-            v = (id for id in project_ids when age_of_most_recent_snapshot_in_seconds(id) >= program.snap_interval)
-            winston.debug("needing snapshot: #{misc.to_json(v)}")
+            v = []
+            for id in project_ids
+                if age_of_most_recent_snapshot_in_seconds(id) >= program.snap_interval
+                    v.push(id)
+            winston.info("projects needing snapshots: #{misc.to_json(v)}")
             snapshot_projects
                 project_ids : v
                 cb          : cb
     ], (err) ->
         if err
-            winston.debug("Error snapshoting active projects -- #{err}")
+            winston.info("Error snapshoting active projects -- #{err}")
             # TODO: We need to trigger something more drastic somehow at some point...?
 
         setTimeout(snapshot_active_projects, 10000)  # check every 10 seconds
+
+        cb?()
     )
+
+
+
 
 
 # Start the network server on a random port, connect to database,
@@ -412,23 +605,26 @@ exports.start_server = start_server = () ->
             ensure_all_projects_have_a_snapshot(cb)
         (cb) ->
             snapshot_active_projects(cb)
+        #(cb) ->
+        #    test1()
+        #    cb()
     ], (err) ->
         if err
-            winston.debug("ERROR starting snap server: '#{err}'")
+            winston.info("ERROR starting snap server: '#{err}'")
     )
 
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "data/pids/snap.pid")
     .option('--logfile [string]', 'write log to this file', String, "data/logs/snap.log")
     .option('--snap_dir [string]', 'all database files are stored here', String, "data/snap")
-    .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 120 = 2 minutes)', Number, 10)
+    .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 120 = 2 minutes)', Number, 120)
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .parse(process.argv)
 
 if program._name == 'snap.js'
-    #    winston.debug "snap daemon"
+    #    winston.info "snap daemon"
 
     conf = {pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}
 
@@ -437,7 +633,12 @@ if program._name == 'snap.js'
         if console? and console.trace?
             console.trace()
 
-    daemon(conf, start_server)
+    clean_up = () ->
+        # TODO/bug/issue -- this is not actually called :-(
+        winston.info("cleaning up on exit")
+        fuse_remove_all_mounts()
+
+    daemon(conf, start_server).on('stop', clean_up).on('exit', clean_up)
 
 
 

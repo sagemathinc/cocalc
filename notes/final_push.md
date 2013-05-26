@@ -1,11 +1,15 @@
-### Time
-Sat May 25: 6:30 - 10:30, 4 hours
-Sun May 26: 6:30 - 11:30 (minus eating, etc.), so about 14 hours
+### Time left
+Sun May 26: 8:45 - 11:30 (minus eating, etc.), so about 12 hours
 Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (4:00?) deploy
 
-4 - [ ] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
+- [ ] (1:00?) sunday -- deploy with snaps UI
+- [ ] (0:10?) delete backup persistent disks for cloud
+- [ ] (1:00?) make quota work again, but make it 20GB for now.
+- [ ] (1:00?) monday -- deploy with bugfixes and project sharing
+- [ ] (1:00?) create a python doctest file that verifies each optional python package is actually installed...
+- [x] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
       x - add these to build.py and install new apt-get packages
       x - npm install moment
       x - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
@@ -13,33 +17,36 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
       x - upgrade to newest bup from the website; fixes corruption issues.
       x - instead have /mnt/snap
       x - update salvus; remember to do ./make_coffee
-        - test it on storm, including new snapshots being *made*.
-        - deploy on cloud
-        - delete backup persistent disks.
-
-- [ ] (1:00?) sunday -- deploy with snaps UI
-- [ ] (1:00?) make quota work again, but make it 20GB for now.
-- [ ] (1:00?) monday -- deploy with bugfixes and project sharing
-- [ ] (1:00?) create a python doctest file that verifies each optional python package is actually installed...
+      x - test it on storm, including new snapshots being *made*.
+      x - deploy on cloud
 
 #### (7:00?) finish snapshotting implementation, including UI
 
+--> - [ ] (0:45?) snap: get listing of files in project snapshot
+
+- [ ] (0:45?) snap: restore file or directory to a project
+- [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
+- [ ] (1:30?) snap: implement UI to actually see/browse/restore files -- this will require a rolling queue of "bup fuse", in order to take advantage of caching of the file list (otherwise it is 10 seconds to do anything).
+- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/cod ein hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
+- [ ] (1:00?) snap: on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
+
 - [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
 
-- [ ] (2:00?) snap: implement tcp server functions -- ls, restore, projects
-- [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
-- [ ] (1:30?) snap: implement UI to actually see/browse/restore files
-- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/codein hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
+- [ ] (2:00?) (0:50+) Snap *synchronization* is possible (!), i.e., we can make it so all snap servers have the same snapshots.  This worked perfectly.
+
+    BUP_DIR=~/tmp/b bup init
+    # use ls -lh on fuse mounted bup to figure out what commit points to
+    BUP_DIR=~/tmp/b bup index x/.commit/16/bf26f960b48698c61521c8513f00a3124747be
+    BUP_DIR=~/tmp/b bup save --strip -n f0c51934-9d09-4586-b8db-fd2e6f11e57e x/.commit/16/bf26f960b48698c61521c8513f00a3124747be/
+    BUP_DIR=~/tmp/b bup ls f0c51934-9d09-4586-b8db-fd2e6f11e57e/latest/
 
 #### (3:00?) very simple project sharing UI; fix that major bug I saw in class where anybody can get access to my worksheets.
 
-[ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
-[ ] (1:30?) address the major issue I found in class where other people get access to `local_hub`!?
+- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
+- [ ] (1:30?) address the major issue I found in class where other people get access to `local_hub`!?
 
 
 #### (11:00?) misc
-- [x] (0:30?) (0:33) upgrade codemirror
-- [x] (0:15?) (0:04) upgrade jQuery
 
 - [ ] (2:00?) make it so terminal never disconnects;
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
@@ -65,11 +72,18 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 - [ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
 - [ ] (1:00?) make it possible to enable VIM keybindings in codemirror editor.
 - [ ] (1:00?) codemirror find is annoying -- make it better (so thing found is visible!)
+- [ ] (1:00?) set cloud atlas variable, so building sage from source is fast: https://mail.google.com/mail/u/0/?shva=1#search/cloud+atlas/13ed940a4d56a4fd
+- [x] (0:30?) (0:33) upgrade codemirror
+- [x] (0:15?) (0:04) upgrade jQuery
 
 ### (5:00?) re-enable responsive mode and implement layout stuff to work there.
+
 - [ ] (0:30?) find a way to test SMC via tablet/phone running from laptop (probably port forward)
 - [ ] (0:30?) turn on responsive mode and make a list of issues
 - [ ] (4:00?) issues!
+
+
+
 
 
 ##################################
