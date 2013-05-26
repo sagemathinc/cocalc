@@ -13,12 +13,10 @@ net       = require 'net'
 winston   = require 'winston'
 fs        = require 'fs'
 
-
 uuid      = require 'node-uuid'
 async     = require 'async'
 moment    = require 'moment'
 
-backup    = require 'backup'
 message   = require 'message'
 misc      = require 'misc'
 misc_node = require 'misc_node'
@@ -184,7 +182,10 @@ monitor_snapshot_queue = () ->
                     cb   : (err) ->
                         if not err
                             timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
-                            local_snapshots[project_id].push(timestamp)
+                            if not local_snapshots[project_id]?
+                                local_snapshots[project_id] = [timestamp]
+                            else
+                                local_snapshots[project_id].push(timestamp)
                         cb(err)
             # update checksums in case of bitrot
             (cb) ->
@@ -435,7 +436,7 @@ if program._name == 'snap.js'
         outFile:program.logfile
         errFile:program.logfile
 
-    daemon(conf, start_server)
+    #daemon(conf, start_server)
 
     #process.addListener "uncaughtException", (err) ->
     #    winston.error "Uncaught exception: " + err
