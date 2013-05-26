@@ -4,16 +4,19 @@ Sun May 26: 6:30 - 11:30 (minus eating, etc.), so about 14 hours
 Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (4:00?) deploy
+
 4 - [ ] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
       x - add these to build.py and install new apt-get packages
       x - npm install moment
       x - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
       x - install database_pari-20130516 spkg
       x - upgrade to newest bup from the website; fixes corruption issues.
-        - delete /mnt/backup persistent disks; instead have /mnt/snap
-        - update salvus; remember to do ./make_coffee
+      x - instead have /mnt/snap
+      x - update salvus; remember to do ./make_coffee
         - test it on storm, including new snapshots being *made*.
         - deploy on cloud
+        - delete backup persistent disks.
+
 - [ ] (1:00?) sunday -- deploy with snaps UI
 - [ ] (1:00?) make quota work again, but make it 20GB for now.
 - [ ] (1:00?) monday -- deploy with bugfixes and project sharing
@@ -22,10 +25,11 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 #### (7:00?) finish snapshotting implementation, including UI
 
 - [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
+
 - [ ] (2:00?) snap: implement tcp server functions -- ls, restore, projects
 - [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
 - [ ] (1:30?) snap: implement UI to actually see/browse/restore files
-- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically.
+- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/codein hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
 #### (3:00?) very simple project sharing UI; fix that major bug I saw in class where anybody can get access to my worksheets.
 

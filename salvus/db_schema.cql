@@ -274,16 +274,7 @@ CREATE TABLE snap_servers (
     PRIMARY KEY(id)
 );
 
-/* Data stored on snap servers about a given project:
-    - this table gets updated whenever a project is snapshotted by a given host.
-    - do not use a ttl, since we will filter first by active host.
-*/
-CREATE TABLE snap_info (
-    host       varchar,  /* hostname:port */
-    project_id uuid,
-    snapshots  varchar,  /* JSON list of timestamps of all snapshots hosted here */
-    PRIMARY KEY (host, project_id)
-);
+
 
 
 
