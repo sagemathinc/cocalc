@@ -5,7 +5,10 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 #### (4:00?) deploy
 
 - [ ] (1:00?) sunday -- deploy with snaps UI
+        - update salvus and system-wide and internal *bup*
+
 - [ ] (0:10?) delete backup persistent disks for cloud
+
 - [ ] (1:00?) make quota work again, but make it 20GB for now.
 - [ ] (1:00?) monday -- deploy with bugfixes and project sharing
 - [ ] (1:00?) create a python doctest file that verifies each optional python package is actually installed...
@@ -22,15 +25,35 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (7:00?) finish snapshotting implementation, including UI
 
---> - [ ] (0:45?) snap: get listing of files in project snapshot
+- [ ] (1:00?) snap: restore a file or path using "bup restore":
+       time bup restore 69a229be-5a5a-42be-a98b-fc6c40aa10f9/latest/. --outdir=/mnt/snap/0/
 
-- [ ] (0:45?) snap: restore file or directory to a project
+- [ ] (1:00?) snap: rewrite to not use fuse so much (?) -- that was all to workaround bup being slow.
+
 - [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
-- [ ] (1:30?) snap: implement UI to actually see/browse/restore files -- this will require a rolling queue of "bup fuse", in order to take advantage of caching of the file list (otherwise it is 10 seconds to do anything).
-- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/cod ein hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
+
+- [ ] (1:30?) snap: implement UI to actually see/browse/restore files
+
+- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
+
+- [ ] (1:30?) snap: store the list of projects (the `local_snapshots` information) instead of having to build it by using "bup fuse" (?)
+
 - [ ] (1:00?) snap: on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
 
+
+**Crazy Thoughts (?)**
+
+  - SHELF:  we shelve inactive projects after a certain amount of time of non-use (maybe 3 days).  This will probably be the vast majority of projects.  These will take very little space.   Shelving will involve saving a compressed tarball of the project in a bup archive, separate from the snap archive.
+
+  - COMPLETE RESTORE FROM SHELF: inactive projects will have to be "bup restore'd" when used, which will take "about 5-10 minutes"  if they are on the order of 5GB.
+
+  - ACTIVE: projects should be regularly rsync'd to another data center
+
+  - SNAPSHOTS: tons of states of every file in every project.
+
+
 - [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
+- [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
 
 - [ ] (2:00?) (0:50+) Snap *synchronization* is possible (!), i.e., we can make it so all snap servers have the same snapshots.  This worked perfectly.
 

@@ -113,6 +113,44 @@ fuse_get_newest_mountpath = (cb) ->
         v[1] += 1
         cb(false, v[0])
 
+# If the newest mounted fuse path contains path, then return it.
+# Otherwise mount the most up-to-date archive using fuse, and again
+# test of the path exists; returns an error if not.
+#
+#     cb(err, fuse_path) with fuse_path reference count incremented
+#
+fuse_get_mountpath_containing = (path, cb) ->
+    fuse_path = undefined
+    new_mount = undefined
+    async.series([
+       (cb) ->
+           fuse_get_newest_mountpath (err, _path) ->  # this adds a lock to the path on success
+               fuse_path = _path
+               cb(err)
+       (cb) ->
+           fs.exists "#{fuse_path}/#{path}/", (exists) ->
+               new_mount = not exists
+               cb()
+       (cb) ->
+           if not new_mount
+               cb()
+           else
+               fuse_free_mountpath(fuse_path)
+               fuse_path = undefined
+               fuse_create_new_mountpath (err, _path) ->
+                   fuse_path = _path
+                   cb(err)
+       (cb) ->
+           fs.exists "#{fuse_path}/#{path}/", (exists) ->
+               if not exists
+                   fuse_free_mountpath(fuse_path)
+                   cb("path '#{path}' does not exist in this snap repository")
+               else
+                   cb()
+    ], (err) -> cb(err, fuse_path))
+
+
+
 # Create a new mountpath, increment reference count, and return it.
 fuse_create_new_mountpath = (cb) ->
     _mount_bup_archive
@@ -140,6 +178,8 @@ fuse_create_new_mountpath = (cb) ->
 
 # Decrease reference count on the mountpath
 fuse_free_mountpath = (mountpath) ->
+    if not mountpath?
+        return
     for i in [0..._fuse_mountpath_cache.length]
         v = _fuse_mountpath_cache[i]
         if v[0] == mountpath
@@ -203,9 +243,9 @@ initialize_local_snapshots = (cb) ->
 
 
 ## ------------
-
-# Provide information about available snapshots, projects, files, etc.
-snap_info = (opts) ->
+# Provide listing of  available snapshots, projects, files, etc.,
+# (Uses some behind-the-scenes caching via bup to make things faster.)
+snap_ls = (opts) ->
     opts = defaults opts,
         project_id : undefined  # if not given, then return list of project_id's of all projects
                                 # that have at least one snapshot; if given, return snapshots for that project... or
@@ -213,20 +253,20 @@ snap_info = (opts) ->
         path       : '.'        # return list of files in this path (if snapshot is defined)
         cb         : required   # cb(err, list)
     if not opts.project_id?
-        opts.cb(false, info_project_list())
+        opts.cb(false, _info_project_list())
     else if not opts.snapshot?
-        opts.cb(false, info_snapshot_list(opts.project_id))
+        opts.cb(false, _info_snapshot_list(opts.project_id))
     else
-        info_directory_list(opts.project_id, opts.snapshot, opts.path, opts.cb)
+        _info_directory_list(opts.project_id, opts.snapshot, opts.path, opts.cb)
 
 # Array of project_id's of all projects for which we have at least one snapshot.
 # It is safe to modify the returned object.
-info_project_list = () ->
+_info_project_list = () ->
     return (project_id for project_id, snaps of local_snapshots when snaps.length > 0)
 
 # Array of snapshots for the given project.  Safe to modify.
 # Array is empty if we do not have any snapshots for the given project (yet).
-info_snapshot_list = (project_id) ->
+_info_snapshot_list = (project_id) ->
     snaps = local_snapshots[project_id]
     if not snaps?
         return []
@@ -246,7 +286,7 @@ append_slashes_after_directory_names = (path, files, cb) ->
     async.map([0...files.length], f, cb)
 
 # Get list of all files inside a given directory; in the list, directories have a "/" appended.
-info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
+_info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
     snaps = local_snapshots[project_id]
     if not snaps?
         cb("no project -- #{project_id}")
@@ -269,24 +309,14 @@ info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
 
     async.series([
        (cb) ->
-           fuse_get_newest_mountpath (err,_path) ->  # this adds a lock to the path on success
-               fuse_path = _path
-               cb(err)
-       (cb) ->
-           target_snapshot = "#{fuse_path}/#{project_id}/#{snapshot}/"
-           fs.exists target_snapshot, (exists) ->
-               new_mount = not exists
-               cb()
-       (cb) ->
-           if not new_mount
-               cb(); return
-           fuse_free_mountpath(fuse_path)
-           fuse_path = undefined
-           fuse_create_new_mountpath (err, _path) ->
-                fuse_path = _path
-                # The following path *must* exist because of the checks done above; if it doesn't we'll notice below.
-                target_snapshot = "#{fuse_path}/#{project_id}/#{snapshot}/"
-                cb(err)
+           p = "#{project_id}/#{snapshot}"
+           fuse_get_mountpath_containing p, (err,_fuse) ->
+               if err
+                   cb(err)
+               else
+                   fuse_path = _fuse
+                   target_snapshot = _fuse + '/' + p
+                   cb()
        (cb) ->
            target_path = "#{target_snapshot}/#{path}"
            fs.readdir target_path, (err, _files) ->
@@ -299,14 +329,80 @@ info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
         cb(err, files)
     )
 
-    
+
 test1 = () ->
-    snap_info
+    snap_ls
         project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
         snapshot   : '2013-05-26-140204' # '2013-05-23-184921'
         path       : 'salvus/salvus'
         cb         : (err, result) ->
             console.log("RESULT of test = ", err, misc.to_json(result))
+
+## ------------
+
+
+# Restore the given project/snapshot/path to where that project is deployed, according
+# to the database (if it is deployed somewhere).  Raises an error if the project isn't
+# deployed, or we are unable to connect to the remote server.
+
+snap_restore = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        snapshot   : undefined    # if not given, uses the most recent snapshot and writes files to root path
+                                  # if given, prepends the file or path being restored with the snapshot name
+        path       : '.'
+        timeout    : 3600
+        cb         : required     # cb(err)
+
+    snaps = local_snapshots[opts.project_id]
+
+    if not snaps? or snaps.length == 0
+        opts.cb("There are no snapshots at all of project #{opts.project_id} stored on this snap server.")
+        return
+
+    if not opts.snapshot  # take newest one
+        opts.snapshot = snaps[snaps.length - 1]
+    else
+        if opts.snapshot not in snaps
+            opts.cb("There is no snapshot '#{opts.snapshot}' of project #{opts.project_id} on this snap server.")
+            return
+
+    fuse_path = undefined
+    user = undefined
+    async.series([
+        # Get fuse-mounted local path to project_id/snapshot/path
+        (cb) ->
+            p = "#{opts.project_id}/#{opts.snapshot}"
+            fuse_get_mountpath_containing p, (err,_fuse) ->
+                if err
+                    cb(err)
+                else
+                    fuse_path = _fuse
+                    target_path = "#{_fuse}/#{p}/#{opts.path}"
+        # Get remote project location from database
+        (cb) ->
+            database.get_project_location
+                project_id : opts.project_id
+                cb         : (err, location) ->
+                    if err
+                        cb(err)
+                    else
+                        # TODO: support location.port != 22 and location.path != '.'   !!?
+                        user = "#{location.username}@#{location.host}"
+                        cb()
+        # Rsync the file/path to the destination
+        (cb) ->
+            misc_node.execute_code()
+    ], (err) ->
+       fuse_free_mountpath(fuse_path)
+       opts.cb(err)
+    )
+
+
+
+
+
+
 
 
 # Enqueue the given project to be snapshotted as soon as possible.
