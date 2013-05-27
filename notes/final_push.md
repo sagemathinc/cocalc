@@ -24,7 +24,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (7:00?) finish snapshotting implementation, including UI
 
-- [ ] (1:30?) snap: write tcp server code
+--> - [ ] (2:00?) snap: write tcp client/server code
 
 - [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
 

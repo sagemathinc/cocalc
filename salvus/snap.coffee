@@ -2,7 +2,13 @@
 #
 # snap -- a node.js program that snapshots user projects
 #
+# Server debugging:
+#
 #    coffee -o node_modules/ snap.coffee && echo "require('snap').start_server()" | coffee
+#
+# Client debugging:
+#
+#    coffee -o node_modules/ snap.coffee && echo "require('snap').test_client()" | coffee
 #
 #################################################################
 
@@ -466,8 +472,8 @@ snap_log = (opts) ->
                 for x in output.stdout.split('\n')
                     m = x.match(/\'[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\'/)
                     if m?
-                        s = parseInt(m[0].slice(1,-1))
-                        s = moment(new Date(s*1000)).format('YYYY-MM-DD-HHmmss')
+                        d = parseInt(m[0].slice(1,-1))
+                        s = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
                         if s not in timestamps
                             timestamps.push(s)
                 cb(err)
@@ -492,7 +498,7 @@ test3 = () ->
         cb         : (err, timestamps) ->
             console.log("timestamps = ", timestamps)
             console.log("log test returned after #{misc.walltime(t)} seconds -- #{err}")
-            
+
 
 
 # Enqueue the given project to be snapshotted as soon as possible.
@@ -608,6 +614,7 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
     ], cb)
 
 ##------------------------------------
+# TCP server
 
 handle_mesg = (socket, mesg) ->
     winston.info("handling mesg")
@@ -621,14 +628,154 @@ handle_connection = (socket) ->
             misc_node.enable_mesg(socket)
             handler = (type, mesg) ->
                 if type == "json"
-                    winston.info "received mesg #{json(mesg)}"
+                    winston.info "received mesg #{misc.to_json(mesg)}"
                     handle_mesg(socket, mesg)
             socket.on 'mesg', handler
 
 create_server = (cb) ->  # cb(err, randomly assigned port)
     server = net.createServer(handle_connection)
-    server.listen 0, program.host, (err) ->
-        cb(err, server.address().port)
+    if program._name == 'snap.js'
+        port = 0  # randomly assigned
+    else
+        port = 5077 # for testing
+
+    server.listen port, program.host, (err) ->
+        port = server.address().port
+        winston.debug("TCP server--      host:'#{program.host}', port:#{port}")
+        cb(err, port)
+
+##------------------------------------
+
+
+##------------------------------------
+# TCP client
+
+exports.test_client = (opts={}) ->
+    opts = defaults opts,
+        host   : 'localhost'
+        port   : 5077
+        token : 'secret'
+
+    console.log("Testing client.")
+    socket = undefined
+    async.series([
+        (cb) ->
+             console.log("Connecting to snap server.  host:#{opts.host}, port:#{opts.port}, token:#{opts.token}")
+             exports.client_socket
+                 host  : opts.host
+                 port  : opts.port
+                 token : opts.token
+                 cb    : (err, _socket) ->
+                     socket = _socket
+                     cb(err)
+        (cb) ->
+             console.log("Requesting list of all projects.")
+             exports.client_snap_ls
+                 socket : socket
+                 cb : (err, list) ->
+                     console.log("Got err=#{err}, list=#{misc.to_json(list)}")
+                     cb(err)
+    ], (err) ->
+        console.log("done; exit err=#{err}")
+    )
+
+
+exports.client_socket = (opts) ->
+    opts = defaults opts,
+        host    : required
+        port    : required
+        token  : required
+        timeout : 15
+        cb      : required    # cb(err, socket)
+    socket = misc_node.connect_to_locked_socket
+        host      : opts.host
+        port      : opts.port
+        timeout   : opts.timeout
+        token     : opts.token
+        cb   : (err) ->
+            if err
+                opts.cb(err)
+            else
+                misc_node.enable_mesg(socket)
+                opts.cb(false, socket)
+
+exports.client_snap_ls = (opts) ->
+    opts = defaults opts,
+        socket     : required
+        project_id : undefined  # if not given, then return list of project_id's of all projects
+                                # that have at least one snapshot; if given, return snapshots for that project... or
+        snapshot   : undefined  # if given, project_id must be also given; then return directory listing for this snapshot
+        path       : '.'        # return list of files in this path (if snapshot is defined)
+        timeout    : 30         # how long to wait for response
+        cb         : required   # cb(err, list)
+
+    mesg = {id:uuid.v4(), project_id: opts.project_id, snapshot:opts.snapshot, path:opts.path}
+    files = undefined
+    async.series([
+        (cb) ->
+            opts.socket.write_mesg('json', mesg, cb)
+        (cb) ->
+            opts.socket.recv_mesg
+                type    : 'json'
+                id      : mesg.id
+                timeout : opts.timeout
+                cb      : (resp) ->
+                    if resp.event == 'error'
+                        cb(resp.error)
+                    else
+                        files = resp.files
+                        cb()
+    ], (err) -> opts.cb(err, files))
+
+
+###
+# pool must be an array [['hostname', port, 'token_key...'], ...]
+exports.client = (opts) ->   # cb(err, client)
+    opts = defaults opts,
+        pool : required
+        cb   : required
+    C = new Client pool, (err) ->
+        if err
+            cb(err)
+        else
+            cb(false, C)
+
+class Client
+    constructor : (@pool, cb) ->   # cb(err)
+        @connections = []
+        f = (i, cb) ->
+            h = @hosts[i]
+            @_connect(h[0], h[1], h[2], cb)
+        async.map @pool, f, (err) ->
+            cb(err)
+
+    _connect: (hostname, port, token_key, cb) =>
+        socket = misc_node.connect_to_locked_socket
+            host         : @hosts[i][0]
+            port         : @hosts[i][1]
+            timeout      : 15
+            token        : @hosts[i][2]
+            cb   : (err) ->
+                if err
+                    cb(err)
+                else
+                    misc_node.enable_mesg(socket)
+                    @connections.push(socket)
+                    cb()
+
+    snap_ls : (opts) =>
+
+
+    snap_restore : (opts) =>
+
+    snap_log : (opts) =>
+###
+
+
+
+##------------------------------------
+
+
 
 snap_dir  = undefined
 bup_dir   = undefined
@@ -698,6 +845,12 @@ connect_to_database = (cb) ->
 # Generate the random secret key and save it in global variable
 secret_key = undefined
 generate_secret_key = (cb) ->
+    if program._name != 'snap.js'
+        # not running as daemon -- for testing
+        secret_key = 'secret'
+        cb()
+        return
+
     require('crypto').randomBytes secret_key_length, (ex, buf) ->
         secret_key = buf.toString('base64')
         cb()

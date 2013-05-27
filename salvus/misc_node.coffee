@@ -158,12 +158,13 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
             cb("Invalid secret token.")
     socket.on('data', listener)
 
-# Connect to a locked socket on localhost, unlock it, and do cb(err,
-# unlocked_socket).  We do not allow connection to any other host,
-# since this is not an *encryption* protocol; fortunately, traffic on
-# localhost can't be sniffed (except as root, of course, when it can be).
+# Connect to a locked socket on host, unlock it, and do
+#       cb(err, unlocked_socket).
+# WARNING: Use only on an encrypted VPN, since this is not
+# an *encryption* protocol.
 exports.connect_to_locked_socket = (opts) ->
-    {port, token, timeout, cb} = defaults opts,
+    {port, host, token, timeout, cb} = defaults opts,
+        host    : 'localhost'
         port    : required
         token   : required
         timeout : 5
@@ -179,7 +180,7 @@ exports.connect_to_locked_socket = (opts) ->
 
     timer = setTimeout(timed_out, timeout*1000)
 
-    socket = net.connect {port:port}, () =>
+    socket = net.connect {host:host, port:port}, () =>
         listener = (data) ->
             winston.debug("misc_node: got back response: #{data}")
             socket.removeListener('data', listener)
