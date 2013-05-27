@@ -24,22 +24,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (7:00?) finish snapshotting implementation, including UI
 
-- [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
-
-- [ ] (1:00?) snap: function to show history of file, i.e., list of timestamps where it changed
-          <https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg>
-          Do this both with and without .bup
-
-               git log --pretty="%b" --follow f0c51934-9d09-4586-b8db-fd2e6f11e57e -- ./buffering2.sagews.bup
-
-          then take output of this form
-
-               '-d', '1369677923',
-
-          Get our timestamp from that number using
-
-                "timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')"
-                
+- [ ] (1:30?) snap: write tcp server code
 
 - [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
 
@@ -47,24 +32,23 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 - [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
-- [ ] (1:30?) snap: store the list of projects (the `local_snapshots` information) instead of having to build it by using "bup fuse" (?)
-
 - [ ] (1:00?) snap: on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
 
-- [ ] (2:00?) snap: redsign/rewrite to eliminate workarounds to bup being slow... (for later!)
 
 - [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
 - [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
+- [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
+- [x] (1:00?) (1:25) snap: function to show history of file, i.e., list of timestamps where it changed
+          <https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg>
+          Do this both with and without .bup
+               git log --pretty="%b" --follow f0c51934-9d09-4586-b8db-fd2e6f11e57e -- ./buffering2.sagews.bup
+          then take output of this form
+               '-d', '1369677923',
+          Get our timestamp from that number using
+                "timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')"
 
-- [ ] (2:00?) (0:50+) Snap *synchronization* is possible (!), i.e., we can make it so all snap servers have the same snapshots.  This worked perfectly.
 
-    BUP_DIR=~/tmp/b bup init
-    # use ls -lh on fuse mounted bup to figure out what commit points to
-    BUP_DIR=~/tmp/b bup index x/.commit/16/bf26f960b48698c61521c8513f00a3124747be
-    BUP_DIR=~/tmp/b bup save --strip -n f0c51934-9d09-4586-b8db-fd2e6f11e57e x/.commit/16/bf26f960b48698c61521c8513f00a3124747be/
-    BUP_DIR=~/tmp/b bup ls f0c51934-9d09-4586-b8db-fd2e6f11e57e/latest/
-
-#### (3:00?) very simple project sharing UI; fix that major bug I saw in class where anybody can get access to my worksheets.
+#### (3:00?) simple project sharing UI; fix that major bug I saw in class where anybody can get access to my worksheets.
 
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 - [ ] (1:30?) address the major issue I found in class where other people get access to `local_hub`!?
@@ -113,7 +97,22 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 ##################################
 
 
-# Later
+## Later
+
+- [ ] (2:00?) snap: redsign/rewrite to eliminate workarounds to bup being slow... (for later!)
+
+- [ ] (1:00?) snap: function to read in contents of a single file with bound on size (will be used for preview)
+
+- [ ] idea.... Snap *synchronization* is possible (!), i.e., we can make it so all snap servers have the same snapshots.  This works... except the meta-information is completely wrong.
+
+    BUP_DIR=~/tmp/b bup init
+    # use ls -lh on fuse mounted bup to figure out what commit points to
+    BUP_DIR=~/tmp/b bup index x/.commit/16/bf26f960b48698c61521c8513f00a3124747be
+    BUP_DIR=~/tmp/b bup save --strip -n f0c51934-9d09-4586-b8db-fd2e6f11e57e x/.commit/16/bf26f960b48698c61521c8513f00a3124747be/
+    BUP_DIR=~/tmp/b bup ls f0c51934-9d09-4586-b8db-fd2e6f11e57e/latest/
+
+
+
 
 - [ ] (1:30?) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 
