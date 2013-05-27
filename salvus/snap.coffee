@@ -187,6 +187,7 @@ fuse_free_mountpath = (mountpath) ->
             return
 
 fuse_remove_all_mounts = (cb) ->
+    winston.debug("removing all fuse mounts...")
     fs.readdir snap_dir + '/fuse/', (err, files) ->
         if err
             cb()  # ok, maybe doesn't exist; nothing we can do
@@ -351,28 +352,31 @@ test1 = () ->
 snap_restore = (opts) ->
     opts = defaults opts,
         project_id : required
-        snapshot   : undefined    # if not given, uses the most recent snapshot and writes files to root path
-                                  # if given, prepends the file or path being restored with the snapshot name
+        snapshot   : required
         path       : '.'
-        timeout    : 3600
-
-        cb         : required     # cb(err)
+        compress   : false        # use compression when transferring data via rsync
+        cb         : undefined    # cb(err)
 
     snaps = local_snapshots[opts.project_id]
 
     if not snaps? or snaps.length == 0
-        opts.cb("There are no snapshots at all of project #{opts.project_id} stored on this snap server.")
+        opts.cb?("There are no snapshots at all of project #{opts.project_id} stored on this snap server.")
         return
 
-    if not opts.snapshot  # take newest one
-        opts.snapshot = snaps[snaps.length - 1]
-    else
-        if opts.snapshot not in snaps
-            opts.cb("There is no snapshot '#{opts.snapshot}' of project #{opts.project_id} on this snap server.")
-            return
+    if opts.snapshot not in snaps
+        opts.cb?("There is no snapshot '#{opts.snapshot}' of project #{opts.project_id} on this snap server.")
+        return
+
+    # canonicalize the path a little, so no /'s at end
+    while opts.path.length > 0 and opts.path[opts.path.length-1] == '/'
+        opts.path = opts.path.slice(0, opts.path.length-1)
+    if opts.path.length == 0
+        opts.path = '.'
 
     user   = undefined
-    outdir = "tmp/#{uuid.v4()}"
+    outdir = "#{tmp_dir}/#{uuid.v4()}"
+    target = "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"
+
     async.series([
         # Get remote project location from database
         (cb) ->
@@ -387,35 +391,57 @@ snap_restore = (opts) ->
                         cb()
         # Extract file or path to temporary location.
         (cb) ->
+            t = misc.walltime()
             bup
-               args    : ["restore", "--outdir=#{outdir}", "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"]
+               args    : ["restore", "--outdir=#{outdir}", target]
                timeout : 2*3600   # 4 GB takes about 3 minutes...
-               cb      : cb
+               cb      : (err) ->
+                   winston.info("restore time (#{target}) -- #{misc.walltime(t)}")
+                   cb(err)
 
-        # rsync the file/path to the destination
+        # rsync the file/path to replace the same file/path on the remote machine
         (cb) ->
             # opts.path possibilities:
-            #    "salvus/conf/" (directory), "salvus/conf/admin.py" (file in directory),
+            #    "salvus/conf" (directory), "salvus/conf/admin.py" (file in directory),
             #    ".", "conf" (a directory with no slash), "admin.py" (a file)
-            {head, tail} = misc.path_split(opts.path)
+            t = misc.walltime()
+            i = opts.path.lastIndexOf('/')
+            if i == -1
+                dest = ""
+            else
+                dest = opts.path.slice(0, i)
+
+            args = ["-axH", "#{outdir}/", "#{user}:#{dest}"]
+            if opts.compress
+                args.unshift("-z")
 
             misc_node.execute_code
                 command : "rsync"
-                args    : ["-axzH", "#{outdir}/#{opts.path}", "#{user}:#{opts.path}"]
+                args    : args
                 timeout : 2*3600
-                cb      : cb
+                cb      : (err) ->
+                    winston.info("rsync time (#{target}) -- #{misc.walltime(t)}")
+                    cb(err)
 
     ], (err) ->
-        # Remove the temporary outdir
-        misc_node.execute
+        opts.cb?(err)
+        # Remove the temporary outdir (safe to do this after calling cb, so client can resume other stuff).
+        misc_node.execute_code
             command : "rm"
             args    : ['-rf', outdir]
-            timeout : 1800
-            cb      : cb
+            timeout : 3600
     )
 
 
-
+test2 = () ->
+    t = misc.walltime()
+    console.log("doing snap_restore test")
+    snap_restore
+        project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
+        snapshot   : '2013-05-26-140204' # '2013-05-23-184921'
+        path       : 'a 2.txt'  # '.', 'salvus/notes/'
+        cb         : (err) ->
+            console.log("restore test returned after #{misc.walltime(t)} seconds -- #{err}")
 
 
 
@@ -550,12 +576,15 @@ create_server = (cb) ->  # cb(err, randomly assigned port)
 
 snap_dir  = undefined
 bup_dir   = undefined
+tmp_dir   = undefined
 uuid_file = undefined
 initialize_snap_dir = (cb) ->
     snap_dir = program.snap_dir
     if snap_dir[0] != '/'
         snap_dir = process.cwd() + '/' + snap_dir
-    bup_dir  = snap_dir + '/bup'
+
+    bup_dir   = snap_dir + '/bup'
+    tmp_dir   = snap_dir + '/tmp'
     uuid_file = snap_dir + '/server_uuid'
     winston.info("path=#{snap_dir} should exist")
 
@@ -569,6 +598,15 @@ initialize_snap_dir = (cb) ->
                     cb()
         (cb) ->
             fuse_remove_all_mounts(cb)
+        (cb) ->
+            winston.debug("deleting temporary directory...")
+            misc_node.execute_code
+                command : "rm"
+                args    : ['-rf', tmp_dir]
+                timeout : 3600
+                cb      : cb
+        (cb) ->
+            fs.mkdir(tmp_dir, cb)
     ], cb)
     # TODO: we could do some significant checks at this point, e.g.,
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
@@ -717,9 +755,9 @@ exports.start_server = start_server = () ->
             ensure_all_projects_have_a_snapshot(cb)
         (cb) ->
             snapshot_active_projects(cb)
-        #(cb) ->
-        #    test1()
-        #    cb()
+        (cb) ->
+            test2()
+            cb()
     ], (err) ->
         if err
             winston.info("ERROR starting snap server: '#{err}'")

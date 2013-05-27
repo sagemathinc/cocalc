@@ -4,14 +4,13 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (4:00?) deploy
 
-- [ ] (1:00?) sunday -- deploy with snaps UI
-        - update salvus and system-wide and internal *bup*
+- [ ] (3:00?) monday -- deploy with snaps UI
+        x - update salvus and system-wide and internal *bup*
+          - (1:00?) install sage-5.10.beta5
+          - (1:00?) make quota work again, but make it 20GB for now.
+          - (1:00?) test minimal project sharing
 
-- [ ] (0:10?) delete backup persistent disks for cloud
-
-- [ ] (1:00?) make quota work again, but make it 20GB for now.
-- [ ] (1:00?) monday -- deploy with bugfixes and project sharing
-- [ ] (1:00?) create a python doctest file that verifies each optional python package is actually installed...
+- [x] (0:10?) (0:04) delete backup persistent disks for cloud
 - [x] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
       x - add these to build.py and install new apt-get packages
       x - npm install moment
@@ -25,10 +24,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (7:00?) finish snapshotting implementation, including UI
 
-- [ ] (1:00?) snap: restore a file or path using "bup restore":
-       time bup restore 69a229be-5a5a-42be-a98b-fc6c40aa10f9/latest/. --outdir=/mnt/snap/0/
-
-- [ ] (1:00?) snap: rewrite to not use fuse so much (?) -- that was all to workaround bup being slow.
+- [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
 
 - [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
 
@@ -40,17 +36,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 - [ ] (1:00?) snap: on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
 
-
-**Crazy Thoughts (?)**
-
-  - SHELF:  we shelve inactive projects after a certain amount of time of non-use (maybe 3 days).  This will probably be the vast majority of projects.  These will take very little space.   Shelving will involve saving a compressed tarball of the project in a bup archive, separate from the snap archive.
-
-  - COMPLETE RESTORE FROM SHELF: inactive projects will have to be "bup restore'd" when used, which will take "about 5-10 minutes"  if they are on the order of 5GB.
-
-  - ACTIVE: projects should be regularly rsync'd to another data center
-
-  - SNAPSHOTS: tons of states of every file in every project.
-
+- [ ] (2:00?) snap: redsign/rewrite to eliminate workarounds to bup being slow... (for later!)
 
 - [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
 - [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
@@ -113,6 +99,8 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 
 # Later
+
+- [ ] (1:30?) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 
 - [ ] (1:00?) show(animate) -- make it work
 - [ ] (1:00?) when user exits terminal, restart terminal automatically... when they hit a key?
