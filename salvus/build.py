@@ -21,7 +21,7 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp
+   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc
 
    update-alternatives --config java  # select "oracle java 6"
 
