@@ -762,17 +762,20 @@ class ProjectPage
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "SMC: #{@project.title}"
 
-        usage = @container.find(".project-disk_usage")
-        usage.text('...')
-        salvus_client.exec
-            project_id : @project.project_id
-            command    : 'du -sch --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage .'
-            timeout    : 10
-            cb         : (err, output) =>
-                if not err
-                    usage.text(output.stdout)
-                else
-                    usage.text("unable to compute -- #{err}")
+        if not (@_computing_usage? and @_computing_usage)
+            usage = @container.find(".project-disk_usage")
+            # --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage
+            @_computing_usage = true
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : 'du -sch .'
+                timeout    : 360
+                cb         : (err, output) =>
+                    delete @_computing_usage
+                    if not err
+                        usage.text(output.stdout)
+                    else
+                        usage.text("(timed out running 'du -sch .')")
 
         return @
 
