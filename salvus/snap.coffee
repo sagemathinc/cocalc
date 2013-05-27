@@ -31,7 +31,7 @@ cassandra = require 'cassandra'
 bup = (opts) ->
     opts = defaults opts,
         args    : []
-        timeout : 2*3600   # default timeout of 2 hours (!)
+        timeout : 3600   # default timeout of 1 hour -- could backup around 30-40 GB...?
         bup_dir : bup_dir  # defined below when initializing snap_dir
         cb      : (err, output) ->
             if err
@@ -345,6 +345,9 @@ test1 = () ->
 # to the database (if it is deployed somewhere).  Raises an error if the project isn't
 # deployed, or we are unable to connect to the remote server.
 
+# !! For safety, always ensure there is a brand new snapshot of the target before !!
+# !! running restore, unless this is an initial deployment.                       !!
+
 snap_restore = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -352,6 +355,7 @@ snap_restore = (opts) ->
                                   # if given, prepends the file or path being restored with the snapshot name
         path       : '.'
         timeout    : 3600
+
         cb         : required     # cb(err)
 
     snaps = local_snapshots[opts.project_id]
@@ -367,18 +371,9 @@ snap_restore = (opts) ->
             opts.cb("There is no snapshot '#{opts.snapshot}' of project #{opts.project_id} on this snap server.")
             return
 
-    fuse_path = undefined
-    user = undefined
+    user   = undefined
+    outdir = "tmp/#{uuid.v4()}"
     async.series([
-        # Get fuse-mounted local path to project_id/snapshot/path
-        (cb) ->
-            p = "#{opts.project_id}/#{opts.snapshot}"
-            fuse_get_mountpath_containing p, (err,_fuse) ->
-                if err
-                    cb(err)
-                else
-                    fuse_path = _fuse
-                    target_path = "#{_fuse}/#{p}/#{opts.path}"
         # Get remote project location from database
         (cb) ->
             database.get_project_location
@@ -390,12 +385,33 @@ snap_restore = (opts) ->
                         # TODO: support location.port != 22 and location.path != '.'   !!?
                         user = "#{location.username}@#{location.host}"
                         cb()
-        # Rsync the file/path to the destination
+        # Extract file or path to temporary location.
         (cb) ->
-            misc_node.execute_code()
+            bup
+               args    : ["restore", "--outdir=#{outdir}", "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"]
+               timeout : 2*3600   # 4 GB takes about 3 minutes...
+               cb      : cb
+
+        # rsync the file/path to the destination
+        (cb) ->
+            # opts.path possibilities:
+            #    "salvus/conf/" (directory), "salvus/conf/admin.py" (file in directory),
+            #    ".", "conf" (a directory with no slash), "admin.py" (a file)
+            {head, tail} = misc.path_split(opts.path)
+
+            misc_node.execute_code
+                command : "rsync"
+                args    : ["-axzH", "#{outdir}/#{opts.path}", "#{user}:#{opts.path}"]
+                timeout : 2*3600
+                cb      : cb
+
     ], (err) ->
-       fuse_free_mountpath(fuse_path)
-       opts.cb(err)
+        # Remove the temporary outdir
+        misc_node.execute
+            command : "rm"
+            args    : ['-rf', outdir]
+            timeout : 1800
+            cb      : cb
     )
 
 
