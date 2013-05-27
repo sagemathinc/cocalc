@@ -24,15 +24,15 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (7:00?) finish snapshotting implementation, including UI
 
---> - [ ] (2:00?) snap: write tcp client/server code
+- [x] (2:00?) (1:48) snap: write tcp client/server code
 
-- [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
+- [ ] (1:00?) snap: define messages and write code in hub to handle messages related to client browsing snapshots
 
-- [ ] (1:30?) snap: implement UI to actually see/browse/restore files
+- [ ] (1:00?) snap: implement UI to actually see/browse/restore files.
 
-- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
+- [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
-- [ ] (1:00?) snap: on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
+- [ ] (2:00?) snap: get this to actually work on cloud; deploy, test., etc. -- on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
 
 
 - [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.

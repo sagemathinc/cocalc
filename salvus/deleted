@@ -1,3 +1,50 @@
+###
+# pool must be an array [['hostname', port, 'token_key...'], ...]
+exports.client = (opts) ->   # cb(err, client)
+    opts = defaults opts,
+        pool : required
+        cb   : required
+    C = new Client pool, (err) ->
+        if err
+            cb(err)
+        else
+            cb(false, C)
+
+class Client
+    constructor : (@pool, cb) ->   # cb(err)
+        @connections = []
+        f = (i, cb) ->
+            h = @hosts[i]
+            @_connect(h[0], h[1], h[2], cb)
+        async.map @pool, f, (err) ->
+            cb(err)
+
+    _connect: (hostname, port, token_key, cb) =>
+        socket = misc_node.connect_to_locked_socket
+            host         : @hosts[i][0]
+            port         : @hosts[i][1]
+            timeout      : 15
+            token        : @hosts[i][2]
+            cb   : (err) ->
+                if err
+                    cb(err)
+                else
+                    misc_node.enable_mesg(socket)
+                    @connections.push(socket)
+                    cb()
+
+    snap_ls : (opts) =>
+
+
+    snap_restore : (opts) =>
+
+    snap_log : (opts) =>
+###
+
+
+
+
+
 
                 ###
                 if req.method == "POST"
@@ -12,7 +59,7 @@ ocreate_unix_user_on_random_compute_server = (opts) ->
         cb : required
 
     opts.cb(false, {host:'localhost', username:'sage0', port:22})
-    
+
 """
     TO DO
     async.series([
@@ -95,7 +142,7 @@ class CodeMirrorSession extends EventEmitter
 
         @conn.on 'codemirror_diffsync_ready', (mesg) =>
             if mesg.session_uuid == @session_uuid
-                
+
                 before = @dsync_client.live
                 @sync (err) =>
                     if before != @dsync_client.live

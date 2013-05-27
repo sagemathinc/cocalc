@@ -277,7 +277,10 @@ _info_snapshot_list = (project_id) ->
     snaps = local_snapshots[project_id]
     if not snaps?
         return []
-    return snaps.slice(0)   # make copy
+    v = snaps.slice(0)   # make copy, then sort in reverse chron order
+    v.sort()
+    v.reverse()
+    return v
 
 # Modify the array "files" in place by append a slash after each
 # entry in the array that is a directory.   Call "cb(err)" when done.
@@ -468,7 +471,6 @@ snap_log = (opts) ->
             args    : ["log", '--pretty="%b"', '--follow', opts.project_id, '--', path]
             timeout : 360
             cb      : (err, output) ->
-                console.log(output.stdout)
                 for x in output.stdout.split('\n')
                     m = x.match(/\'[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\'/)
                     if m?
@@ -617,7 +619,47 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
 # TCP server
 
 handle_mesg = (socket, mesg) ->
-    winston.info("handling mesg")
+    winston.info("TCP server: handling mesg -- #{misc.to_json(mesg)}")
+    send = (resp) ->
+        resp.id = mesg.id
+        socket.write_mesg('json', resp)
+
+    switch mesg.command
+        when 'ls'
+            snap_ls
+                project_id : mesg.project_id
+                snapshot   : mesg.snapshot
+                path       : mesg.path
+                cb         : (err, files) ->
+                    if err
+                        send(message.error(error:err))
+                    else
+                        send(list:files)
+
+        when 'restore'
+            snap_restore
+                project_id : mesg.project_id
+                snapshot   : mesg.snapshot
+                path       : mesg.path
+                cb         : (err) ->
+                    if err
+                        send(message.error(error:err))
+                    else
+                        send(message.success())
+
+        when 'log'
+            snap_log
+                project_id : mesg.project_id
+                path       : mesg.path
+                cb         : (err, commits) ->
+                    if err
+                        send(message.error(error:err))
+                    else
+                        send({list:commits})
+
+        else
+            send(message.error(error:"unknown command '#{mesg.command}'"))
+
 
 handle_connection = (socket) ->
     winston.info("handling a new connection")
@@ -628,7 +670,6 @@ handle_connection = (socket) ->
             misc_node.enable_mesg(socket)
             handler = (type, mesg) ->
                 if type == "json"
-                    winston.info "received mesg #{misc.to_json(mesg)}"
                     handle_mesg(socket, mesg)
             socket.on 'mesg', handler
 
@@ -658,6 +699,9 @@ exports.test_client = (opts={}) ->
 
     console.log("Testing client.")
     socket = undefined
+    project_id = undefined
+    snapshot = undefined
+    path = undefined
     async.series([
         (cb) ->
              console.log("Connecting to snap server.  host:#{opts.host}, port:#{opts.port}, token:#{opts.token}")
@@ -670,11 +714,61 @@ exports.test_client = (opts={}) ->
                      cb(err)
         (cb) ->
              console.log("Requesting list of all projects.")
-             exports.client_snap_ls
-                 socket : socket
+             exports.client_snap
+                 command : 'ls'
+                 socket  : socket
                  cb : (err, list) ->
                      console.log("Got err=#{err}, list=#{misc.to_json(list)}")
+                     project_id = list[0]
+                     #project_id = "f0c51934-9d09-4586-b8db-fd2e6f11e57e"
                      cb(err)
+
+        (cb) ->
+            console.log("Requesting list of snapshots of a particular project.")
+            exports.client_snap
+                command : 'ls'
+                socket  : socket
+                project_id : project_id
+                cb : (err, list) ->
+                     console.log("Got err=#{err}, list=#{misc.to_json(list)}")
+                     snapshot = list[list.length-1]
+                     cb(err)
+        (cb) ->
+            console.log("Requesting list of files in first snapshot of a particular project.")
+            exports.client_snap
+                command : 'ls'
+                socket  : socket
+                project_id : project_id
+                snapshot : snapshot
+                cb : (err, list) ->
+                     console.log("Got err=#{err}, list=#{misc.to_json(list)}")
+                     path = list[0]
+                     #path = "a 2.txt"
+                     cb(err)
+        (cb) ->
+            console.log("Requesting log of a path (=#{path}) in project")
+            exports.client_snap
+                command : 'log'
+                socket  : socket
+                project_id : project_id
+                path     : path
+                cb : (err, log) ->
+                     console.log("Got err=#{err}, log=#{misc.to_json(log)}")
+                     cb(err)
+
+        (cb) ->
+            console.log("Restoring earliest version of #{path}")
+            exports.client_snap
+                command : 'restore'
+                socket  : socket
+                project_id : project_id
+                snapshot : snapshot
+                path     : path
+                cb : (err) ->
+                     console.log("Got err=#{err}")
+                     cb(err)
+
+
     ], (err) ->
         console.log("done; exit err=#{err}")
     )
@@ -699,18 +793,38 @@ exports.client_socket = (opts) ->
                 misc_node.enable_mesg(socket)
                 opts.cb(false, socket)
 
-exports.client_snap_ls = (opts) ->
+exports.client_snap = (opts) ->
     opts = defaults opts,
         socket     : required
-        project_id : undefined  # if not given, then return list of project_id's of all projects
-                                # that have at least one snapshot; if given, return snapshots for that project... or
-        snapshot   : undefined  # if given, project_id must be also given; then return directory listing for this snapshot
-        path       : '.'        # return list of files in this path (if snapshot is defined)
-        timeout    : 30         # how long to wait for response
-        cb         : required   # cb(err, list)
+        command    : required   # "ls", "restore", "log"
+        project_id : undefined
+        snapshot   : undefined
+        path       : '.'
+        timeout    : 10
+        cb         : required   # cb(err, list of results when meaningful)
 
-    mesg = {id:uuid.v4(), project_id: opts.project_id, snapshot:opts.snapshot, path:opts.path}
-    files = undefined
+    if opts.command == 'ls'
+        # no checks
+    else if opts.command == 'restore'
+        if not opts.project_id?
+            opts.cb("project_id must be defined to use the restore command")
+            return
+        else if not opts.snapshot?
+            opts.cb("snapshot must be defined when using the restore command")
+            return
+    else if opts.command == 'log'
+        if not opts.project_id?
+            opts.cb("project_id must be defined to use the log command")
+            return
+        else if opts.snapshot?
+            opts.cb("snapshot must *not* be defined when using the log command")
+            return
+    else
+        opts.cb("unknown command '#{opts.command}'")
+        return
+
+    mesg = {id:uuid.v4(), command:opts.command, project_id: opts.project_id, snapshot:opts.snapshot, path:opts.path}
+    list = undefined
     async.series([
         (cb) ->
             opts.socket.write_mesg('json', mesg, cb)
@@ -723,53 +837,9 @@ exports.client_snap_ls = (opts) ->
                     if resp.event == 'error'
                         cb(resp.error)
                     else
-                        files = resp.files
+                        list = resp.list
                         cb()
-    ], (err) -> opts.cb(err, files))
-
-
-###
-# pool must be an array [['hostname', port, 'token_key...'], ...]
-exports.client = (opts) ->   # cb(err, client)
-    opts = defaults opts,
-        pool : required
-        cb   : required
-    C = new Client pool, (err) ->
-        if err
-            cb(err)
-        else
-            cb(false, C)
-
-class Client
-    constructor : (@pool, cb) ->   # cb(err)
-        @connections = []
-        f = (i, cb) ->
-            h = @hosts[i]
-            @_connect(h[0], h[1], h[2], cb)
-        async.map @pool, f, (err) ->
-            cb(err)
-
-    _connect: (hostname, port, token_key, cb) =>
-        socket = misc_node.connect_to_locked_socket
-            host         : @hosts[i][0]
-            port         : @hosts[i][1]
-            timeout      : 15
-            token        : @hosts[i][2]
-            cb   : (err) ->
-                if err
-                    cb(err)
-                else
-                    misc_node.enable_mesg(socket)
-                    @connections.push(socket)
-                    cb()
-
-    snap_ls : (opts) =>
-
-
-    snap_restore : (opts) =>
-
-    snap_log : (opts) =>
-###
+    ], (err) -> opts.cb(err, list))
 
 
 
@@ -982,15 +1052,16 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .parse(process.argv)
 
+process.addListener "uncaughtException", (err) ->
+    winston.error "Uncaught exception: " + err
+    if console? and console.trace?
+        console.trace()
+
 if program._name == 'snap.js'
     #    winston.info "snap daemon"
 
     conf = {pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}
 
-    process.addListener "uncaughtException", (err) ->
-        winston.error "Uncaught exception: " + err
-        if console? and console.trace?
-            console.trace()
 
     clean_up = () ->
         # TODO/bug/issue -- this is not actually called :-(

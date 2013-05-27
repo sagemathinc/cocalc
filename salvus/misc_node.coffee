@@ -90,8 +90,15 @@ exports.enable_mesg = enable_mesg = (socket) ->
             if typeof s == "string"
                 s = Buffer(s)
             buf.writeInt32BE(s.length, 0)
-            socket.write(buf)
-            socket.write(s, cb)
+            if not socket.writable
+                cb?("socket not writable")
+            else
+                socket.write(buf)
+
+            if not socket.writable
+                cb?("socket not writable")
+            else
+                socket.write(s, cb)
         switch type
             when 'json'
                 send('j' + JSON.stringify(data))
