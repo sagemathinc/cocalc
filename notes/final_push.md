@@ -26,6 +26,21 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 - [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
 
+- [ ] (1:00?) snap: function to show history of file, i.e., list of timestamps where it changed
+          <https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg>
+          Do this both with and without .bup
+
+               git log --pretty="%b" --follow f0c51934-9d09-4586-b8db-fd2e6f11e57e -- ./buffering2.sagews.bup
+
+          then take output of this form
+
+               '-d', '1369677923',
+
+          Get our timestamp from that number using
+
+                "timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')"
+                
+
 - [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
 
 - [ ] (1:30?) snap: implement UI to actually see/browse/restore files

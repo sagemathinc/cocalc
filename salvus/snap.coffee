@@ -439,12 +439,60 @@ test2 = () ->
     snap_restore
         project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
         snapshot   : '2013-05-26-140204' # '2013-05-23-184921'
-        path       : 'a 2.txt'  # '.', 'salvus/notes/'
+        path       : 'a 2.txt'           # '.', 'salvus/notes/'
         cb         : (err) ->
             console.log("restore test returned after #{misc.walltime(t)} seconds -- #{err}")
 
+## -------
+# Return a log of timestamps (commit names) that changed the file (or directory) at the
+# given path, according to 'git log'.  For a discussion of using 'git log' with bup, see:
+#    https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg
+## -------
+snap_log = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : '.'
+        cb         : required    # cb(err, array of time stamps)
 
+    timestamps = []
+    git_log = (path, cb) ->
+        misc_node.execute_code
+            command : "git"
+            path    : bup_dir
+            args    : ["log", '--pretty="%b"', '--follow', opts.project_id, '--', path]
+            timeout : 360
+            cb      : (err, output) ->
+                console.log(output.stdout)
+                for x in output.stdout.split('\n')
+                    m = x.match(/\'[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]\'/)
+                    if m?
+                        s = parseInt(m[0].slice(1,-1))
+                        s = moment(new Date(s*1000)).format('YYYY-MM-DD-HHmmss')
+                        if s not in timestamps
+                            timestamps.push(s)
+                cb(err)
 
+    async.parallel([
+        (cb) ->
+            git_log(opts.path, cb)
+        (cb) ->
+            git_log(opts.path + ".bup", cb)
+    ], (err) ->
+        timestamps.sort()
+        timestamps.reverse()
+        opts.cb(err, timestamps)
+    )
+
+test3 = () ->
+    t = misc.walltime()
+    console.log("doing snap_log test")
+    snap_log
+        project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
+        path       : 'output-buffering.sagews'  #'a 2.txt'  # '.', 'salvus/notes/'
+        cb         : (err, timestamps) ->
+            console.log("timestamps = ", timestamps)
+            console.log("log test returned after #{misc.walltime(t)} seconds -- #{err}")
+            
 
 
 # Enqueue the given project to be snapshotted as soon as possible.
@@ -485,15 +533,20 @@ monitor_snapshot_queue = () ->
                             cb()
             # create index
             (cb) ->
+                t = misc.walltime()
                 bup
                     args : ['on', user, 'index', '.']
-                    cb   : cb
+                    cb   : (err) ->
+                        winston.info("time to index #{project_id}: #{misc.walltime(t)} s")
+                        cb(err)
             # save
             (cb) ->
+                t = misc.walltime()
                 d = Math.ceil(misc.walltime())
                 bup
                     args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', project_id, '.']
                     cb   : (err) ->
+                        winston.info("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
                         if not err
                             timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
                             if not local_snapshots[project_id]?
@@ -503,9 +556,12 @@ monitor_snapshot_queue = () ->
                         cb(err)
             # update checksums in case of bitrot
             (cb) ->
+                t = misc.walltime()
                 bup
                     args : ['fsck', '--quick', '-g']
-                    cb   : cb
+                    cb   : (err) ->
+                        winston.info("time to update checksums: #{misc.walltime(t)} s")
+                        cb(err)
 
         ], (err) ->
             cb?(err)
@@ -755,9 +811,9 @@ exports.start_server = start_server = () ->
             ensure_all_projects_have_a_snapshot(cb)
         (cb) ->
             snapshot_active_projects(cb)
-        (cb) ->
-            test2()
-            cb()
+        #(cb) ->
+        #    test3()
+        #    cb()
     ], (err) ->
         if err
             winston.info("ERROR starting snap server: '#{err}'")
@@ -767,7 +823,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "data/pids/snap.pid")
     .option('--logfile [string]', 'write log to this file', String, "data/logs/snap.log")
     .option('--snap_dir [string]', 'all database files are stored here', String, "data/snap")
-    .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 120 = 2 minutes)', Number, 120)
+    .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 120 = 2 minutes)', Number, 10)
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
