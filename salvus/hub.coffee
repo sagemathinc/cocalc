@@ -37,6 +37,8 @@ cass    = require("cassandra")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
+snap = require("snap")
+
 misc_node = require 'misc_node'
 
 to_json = misc.to_json
@@ -1169,6 +1171,88 @@ class Client extends EventEmitter
         @get_codemirror_session mesg, (err, session) =>
             if not err
                 session.client_call(@, mesg)
+
+
+    ################################################
+    # Project snapshots -- interface to the snap servers
+    ################################################
+    mesg_snap: (mesg) =>
+        if mesg.command not in ['ls', 'restore', 'log']
+            @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
+            return
+        user_has_write_access_to_project
+            project_id : mesg.project_id
+            account_id : @account_id
+            cb         : (err, result) =>
+                if err or not result
+                    @error_to_client(id:mesg.id, error:"access to project #{mesg.project_id} denied")
+                else
+                    snap_command
+                        command    : mesg.command
+                        project_id : mesg.project_id
+                        snapshot   : mesg.snapshot
+                        path       : mesg.path
+                        timeout    : mesg.timeout
+                        cb         : (err, list) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:err)
+                            else
+                                mesg.list = list
+                                @push_to_client(mesg)
+
+##############################
+# Connection to a snap server
+##############################
+_snap_socket = undefined
+
+_connect_to_snap_server = (cb) ->
+    server = undefined
+    async.series([
+        (cb) ->
+            database.random_snap_server
+                cb : (err, _server) ->
+                    server = _server
+                    cb(err)
+        (cb) ->
+            snap.client_socket
+                host  : server.host
+                port  : server.port
+                token : server.token
+                cb    : (err, socket) ->
+                    if not err
+                        _snap_socket = socket
+                    cb(err)
+    ], cb)
+
+snap_command = (opts) ->
+    opts = defaults opts,
+        command    : required   # "ls", "restore", "log"
+        project_id : undefined
+        snapshot   : undefined
+        path       : '.'
+        timeout    : 60
+        cb         : required   # cb(err, list of results when meaningful)
+
+    user_cb = opts.cb
+    list = undefined
+    async.series([
+        (cb) ->
+            if _snap_socket? and _snap_socket.writable  # socket might work...
+                cb()
+            else
+                _connect_to_snap_server(cb)
+        (cb) ->
+            opts.socket = _snap_socket
+            opts.cb = (err, _list) ->
+                list = _list
+                cb(err)
+            snap.client_snap(opts)
+    ], (err) ->
+        if err
+            _snap_socket = undefined  # try with different socket next time
+        user_cb(err, list)
+    )
+
 
 ##############################
 # Create the SockJS Server

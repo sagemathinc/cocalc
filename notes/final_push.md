@@ -24,9 +24,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 #### (7:00?) finish snapshotting implementation, including UI
 
-- [x] (2:00?) (1:48) snap: write tcp client/server code
-
-- [ ] (1:00?) snap: define messages and write code in hub to handle messages related to client browsing snapshots
+- [x] (1:00?) (1:05) snap: define messages and write code in hub to handle messages related to client browsing snapshots
 
 - [ ] (1:00?) snap: implement UI to actually see/browse/restore files.
 
@@ -34,7 +32,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 - [ ] (2:00?) snap: get this to actually work on cloud; deploy, test., etc. -- on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
 
-
+- [x] (2:00?) (1:48) snap: write tcp client/server code
 - [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
 - [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
 - [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
