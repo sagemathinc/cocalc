@@ -1180,8 +1180,8 @@ class ProjectPage
                     if result
                         alert_message
                             type    : "info"
-                            timeout : 5
-                            message : "Making a new snapshot, then restoring '#{snapshot}/#{path}'..."
+                            timeout : 20
+                            message : "Making a new snapshot, then restoring '#{snapshot}/#{path}'. This can take a long time, depending on the size of #{path}.  A notification will appear when the restore is complete."
                         salvus_client.call
                             message:
                                 message.snap
