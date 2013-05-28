@@ -1179,7 +1179,7 @@ class exports.Connection extends EventEmitter
             tries = 0
             cb = opts.cb
             # TODO: Try multiple times since server just gives an error on backend failure.
-            f = (err, result) ->
+            f = (err, result) =>
                 if err and tries < 2
                     tries += 1
                     @project_snap_listing(opts)
