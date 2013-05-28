@@ -30,7 +30,7 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 - [x] (0:30?) (0:12) snap: UI -- icon to bring up list of all snapshots
 
-- [ ] (1:00?) snap: UI -- replace file actions/buttons with one button to restore the file -- brings up confirmation dialog, then issues the command.
+--> - [ ] (1:00?) snap: UI -- replace file actions/buttons with one button to restore the file -- brings up confirmation dialog, then issues the command.
 
 - [ ] (0:30?) snap: what if the target path is in path that doesn't exist?  maybe need another option to rsync or something?
 

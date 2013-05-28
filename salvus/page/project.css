@@ -26,7 +26,7 @@
     margin-left:2em;
 }
 
-.project-file-link {
+.project-file-link-style {
     border: 0px solid white;
     background-color:#ffffff;
     margin-top:0px;
@@ -60,7 +60,7 @@
 
 }
 
-.project-directory-link {
+.project-directory-link-style {
     border: 0px solid white;
     background-color:#ffffff;
     margin-top:0px;

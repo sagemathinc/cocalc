@@ -19,6 +19,8 @@ MAX_TITLE_LENGTH = 15
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
 template_project_directory     = templates.find(".project-directory-link")
+template_project_file_snapshot      = templates.find(".project-file-link-snapshot")
+template_project_directory_snapshot = templates.find(".project-directory-link-snapshot")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
 template_new_file_link         = templates.find(".project-new-file-link")
@@ -1063,11 +1065,17 @@ class ProjectPage
                 # Show the files
                 for obj in listing['files']
                     if obj.isdir? and obj.isdir
-                        t = template_project_directory.clone()
+                        if obj.snapshot?
+                            t = template_project_directory_snapshot.clone()
+                        else
+                            t = template_project_directory.clone()
+                            t.droppable(drop:file_dropped_on_directory, scope:'files')
                         t.find(".project-directory-name").text(obj.name)
-                        t.droppable(drop:file_dropped_on_directory, scope:'files')
                     else
-                        t = template_project_file.clone()
+                        if obj.snapshot?
+                            t =  template_project_file_snapshot.clone()
+                        else
+                            t = template_project_file.clone()
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
                             name = obj.name.slice(0,obj.name.length - ext.length - 1)

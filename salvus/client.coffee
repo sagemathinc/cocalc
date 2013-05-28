@@ -1146,7 +1146,7 @@ class exports.Connection extends EventEmitter
                 else
                     if not snapshot?
                         # list of branches
-                        files = ( {name:name, isdir:true} for name in resp.list )
+                        files = ( {name:name, isdir:true, snapshot:''} for name in resp.list )
                     else
                         files = []
                         for name in resp.list
