@@ -26,7 +26,13 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 
 - [x] (1:00?) (1:05) snap: define messages and write code in hub to handle messages related to client browsing snapshots
 
-- [ ] (1:00?) snap: implement UI to actually see/browse/restore files.
+- [x] (1:00?) (1:00) snap: implement UI to actually browse files.
+
+- [x] (0:30?) (0:12) snap: UI -- icon to bring up list of all snapshots
+
+- [ ] (1:00?) snap: UI -- replace file actions/buttons with one button to restore the file -- brings up confirmation dialog, then issues the command.
+
+- [ ] (0:30?) snap: what if the target path is in path that doesn't exist?  maybe need another option to rsync or something?
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 

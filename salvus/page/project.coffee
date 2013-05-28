@@ -164,6 +164,7 @@ class ProjectPage
         @init_refresh_files()
         @init_hidden_files_icon()
         @init_trash_link()
+        @init_snapshot_link()
         @init_project_download()
 
         # Set the project id
@@ -1363,6 +1364,16 @@ class ProjectPage
                 cb     : (err) =>
                     link.find(".spinner").hide()
             return false
+
+    init_snapshot_link: () =>
+        @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
+            @visit_snapshot()
+            return false
+
+    # browse to the snapshot viewer.
+    visit_snapshot: () =>
+        @current_path = ['.snapshot']
+        @update_file_list_tab()
 
     init_trash_link: () =>
         @container.find("a[href=#trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
