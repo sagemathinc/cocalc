@@ -988,7 +988,7 @@ class ProjectPage
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
-                    console.log("error")
+                    console.log("error", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
