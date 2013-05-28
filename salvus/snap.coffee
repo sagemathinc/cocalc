@@ -104,7 +104,10 @@ _unmount_bup_archive = (opts) ->
         command : "fusermount"
         args    : ["-uz", opts.mountpoint]
         cb       : (err) ->
-            fs.rmdir(opts.mountpoint, opts.cb)
+            if err
+                opts.cb(err)
+            else
+                fs.rmdir(opts.mountpoint, opts.cb)
 
 # Increase the reference count on the mountpath and return absolute path to it.
 # If there are no fuse mount paths, one is created.
@@ -165,22 +168,23 @@ fuse_create_new_mountpath = (cb) ->
                 _fuse_mountpath_cache.push([mountpoint, 1])
             cb(err, mountpoint)
 
-    # Also, if there are more than 10 mounted paths with reference count <= 0,
-    # clean them up (leaving most recent 10).  This is so we don't end up with
+    max_mounts = 10
+    # Also, if there are more than max_mounts mounted paths with reference count <= 0,
+    # clean them up (leaving most recent max_mounts).  This is so we don't end up with
     # a huge number of unused fuse mounts running (which wastes memory).
     n = _fuse_mountpath_cache.length
-    if n > 10
-        for i in [0...n-10]
-            v = _fuse_mountpath_cache[i]
+    if n > max_mounts
+        for i in [0...n-max_mounts]
+            j = n-max_mounts-1-i   # reverse order since deleting from list as we go, and don't want to mess up index.
+            v = _fuse_mountpath_cache[j]
             if v[1] <= 0
-                _fuse_mountpath_cache.splice(i,i) # remove i-th element from array
+                _fuse_mountpath_cache.splice(j,j) # remove j-th element from array
                 _unmount_bup_archive
                     mountpoint : v[0]
                     rmdir      : true
                     cb         : (err) ->
                         if err # non-fatal
                             winston.info("Error unmounting bup archive -- #{err}.")
-                        cb()
 
 # Decrease reference count on the mountpath
 fuse_free_mountpath = (mountpath) ->
@@ -355,16 +359,26 @@ test1 = () ->
 # to the database (if it is deployed somewhere).  Raises an error if the project isn't
 # deployed, or we are unable to connect to the remote server.
 
-# !! For safety, always ensure there is a brand new snapshot of the target before !!
-# !! running restore, unless this is an initial deployment.                       !!
-
 snap_restore = (opts) ->
     opts = defaults opts,
         project_id : required
         snapshot   : required
         path       : '.'
         compress   : false        # use compression when transferring data via rsync
+        snapshot_first : true     # ensure there is a new snapshot before restoring.
         cb         : undefined    # cb(err)
+
+    if opts.snapshot_first
+        snapshot_project
+            project_id : opts.project_id
+            cb         : (err) ->
+                if err
+                    opts.cb(err)
+                else
+                    opts.snapshot_first = false
+                    snap_restore(opts)
+        return
+
 
     snaps = local_snapshots[opts.project_id]
 

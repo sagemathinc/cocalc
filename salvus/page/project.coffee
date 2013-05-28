@@ -7,6 +7,7 @@
 {IS_MOBILE} = require("feature")
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
+message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
@@ -971,6 +972,7 @@ class ProjectPage
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
+        #console.log("current_path = ", @current_path)
         # Update the display of the path above the listing or file preview
         @update_current_path()
 
@@ -1102,7 +1104,7 @@ class ProjectPage
                     #end if
 
                     # Define file actions using a closure
-                    @_init_listing_actions(t, path, obj.name, obj.isdir? and obj.isdir)
+                    @_init_listing_actions(t, path, obj.name, obj.isdir? and obj.isdir, obj.snapshot?)
 
                     # Drag handle for moving files via drag and drop.
                     handle = t.find(".project-file-drag-handle")
@@ -1136,7 +1138,7 @@ class ProjectPage
                     return
                 @focus_file_search()
 
-    _init_listing_actions: (t, path, name, isdir) =>
+    _init_listing_actions: (t, path, name, isdir, is_snapshot) =>
         if path != ""
             fullname = path + '/' + name
         else
@@ -1145,6 +1147,63 @@ class ProjectPage
         t.data('name', fullname)  # save for other uses outside this function
 
         b = t.find(".project-file-buttons")
+
+        open = () =>
+            if isdir
+                @current_path.push(name)
+                @update_file_list_tab()
+            else
+                @open_file(fullname)
+            return false
+
+        if not is_snapshot or isdir
+            # Opening a file
+            file_link = t.find("a[href=#open-file]")
+            file_link.click open
+
+            # Clicking on link -- open the file
+            t.click open
+
+        if is_snapshot
+
+            t.find("a[href=#restore]").click () =>
+                n = fullname.slice(".snapshot/".length)
+                i = n.indexOf('/')
+                if i != -1
+                    snapshot = n.slice(0,i)
+                    path = n.slice(i+1)
+                else
+                    snapshot = n
+                    path = '.'
+                m = "Are you sure you want to <b><i>overwrite</b></i> '#{path}' with the version from #{snapshot}?  (A new snapshot will be made first.)"
+                bootbox.confirm m, (result) =>
+                    if result
+                        alert_message
+                            type    : "info"
+                            timeout : 5
+                            message : "Making a new snapshot, then restoring '#{snapshot}/#{path}'..."
+                        salvus_client.call
+                            message:
+                                message.snap
+                                    command    : 'restore'
+                                    project_id : @project.project_id
+                                    snapshot   : snapshot
+                                    path       : path
+                                    timeout    : 1800
+                            timeout :
+                                1800
+                            cb : (err, resp) =>
+                                if err or resp.event == 'error'
+                                    alert_message(type:"error", message:"Error restoring '#{path}'")
+                                else
+                                    x = path.split('/')
+                                    @current_path = x.slice(0, x.length-1)
+                                    @update_file_list_tab()
+                                    alert_message(type:"success", message:"Successfully restored '#{path}'")
+
+                return false
+
+            return
 
         # Show project file buttons on hover only
         if not IS_MOBILE
@@ -1169,21 +1228,6 @@ class ProjectPage
                 cb   : () =>
                     del.find(".spinner").hide()
             return false
-
-        open = () =>
-            if isdir
-                @current_path.push(name)
-                @update_file_list_tab()
-            else
-                @open_file(fullname)
-            return false
-
-        # Opening a file
-        file_link = t.find("a[href=#open-file]")
-        file_link.click open
-
-        # Clicking on link -- open the file
-        t.click open
 
         # Renaming a file
         rename_link = t.find('a[href=#rename-file]')
@@ -1389,7 +1433,7 @@ class ProjectPage
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>You can't undo this.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id

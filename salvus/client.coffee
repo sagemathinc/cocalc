@@ -1175,6 +1175,17 @@ class exports.Connection extends EventEmitter
             opts.path = opts.path.slice(9)
             if opts.path.length > 0 and opts.path[0] == '/'
                 opts.path = opts.path.slice(1)  # delete leading slash
+
+            tries = 0
+            cb = opts.cb
+            # TODO: Try multiple times since server just gives an error on backend failure.
+            f = (err, result) ->
+                if err and tries < 2
+                    tries += 1
+                    @project_snap_listing(opts)
+                else
+                    cb(err, result)
+            opts.cb = f
             @project_snap_listing(opts)
             return
 
