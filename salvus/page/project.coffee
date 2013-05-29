@@ -1164,6 +1164,7 @@ class ProjectPage
             # Clicking on link -- open the file
             t.click open
 
+
         if is_snapshot
 
             t.find("a[href=#restore]").click () =>
@@ -1175,13 +1176,13 @@ class ProjectPage
                 else
                     snapshot = n
                     path = '.'
-                m = "Are you sure you want to <b><i>overwrite</b></i> '#{path}' with the version from #{snapshot}?  (A new snapshot will be made first.)"
+                m = "Are you sure you want to <b>overwrite</b> '#{path}' with the version from #{snapshot}, moving overwritten files to the trash?"
                 bootbox.confirm m, (result) =>
                     if result
                         alert_message
                             type    : "info"
-                            timeout : 20
-                            message : "Making a new snapshot, then restoring '#{snapshot}/#{path}'. This can take a long time, depending on the size of #{path}.  A notification will appear when the restore is complete."
+                            timeout : 3
+                            message : "Restoring '#{snapshot}/#{path}'... (this can take a few minutes)"
                         salvus_client.call
                             message:
                                 message.snap
@@ -1189,6 +1190,9 @@ class ProjectPage
                                     project_id : @project.project_id
                                     snapshot   : snapshot
                                     path       : path
+                                    snapshot_first : false
+                                    compress   : false
+                                    backup     : '.trash'
                                     timeout    : 1800
                             timeout :
                                 1800
@@ -1199,7 +1203,7 @@ class ProjectPage
                                     x = path.split('/')
                                     @current_path = x.slice(0, x.length-1)
                                     @update_file_list_tab()
-                                    alert_message(type:"success", message:"Successfully restored '#{path}'")
+                                    alert_message(type:"success", message:"Done restoring '#{path}'.")
 
                 return false
 

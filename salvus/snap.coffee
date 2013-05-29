@@ -292,7 +292,7 @@ append_slashes_after_directory_names = (path, files, cb) ->
     f = (i, cb) ->
         fs.stat "#{path}/#{files[i]}", (err, stats) ->
             if err
-                # ignore -- can get errors from symbolic links, funny files, etc. 
+                # ignore -- can get errors from symbolic links, funny files, etc.
                 cb()
             else
                 if stats.isDirectory(stats)
@@ -362,12 +362,13 @@ test1 = () ->
 
 snap_restore = (opts) ->
     opts = defaults opts,
-        project_id : required
-        snapshot   : required
-        path       : '.'
-        compress   : false        # use compression when transferring data via rsync
-        snapshot_first : true     # ensure there is a new snapshot before restoring.
-        cb         : undefined    # cb(err)
+        project_id      : required
+        snapshot        : required
+        path            : '.'
+        compress        : false        # use compression when transferring data via rsync
+        snapshot_first  : false        # ensure there is a new snapshot before restoring.
+        backup          : '.trash'     # if defined, move any file that is about to be overwritten to here
+        cb              : undefined    # cb(err)
 
     if opts.snapshot_first
         snapshot_project
@@ -436,16 +437,30 @@ snap_restore = (opts) ->
                 dest = opts.path.slice(0, i)
 
             args = ["-axH", "#{outdir}/", "#{user}:#{dest}"]
+
             if opts.compress
                 args.unshift("-z")
+
+            if opts.backup?
+                args.unshift('--backup')
+                args.unshift("--backup-dir='#{opts.backup}'")
+
+            winston.info("rsync #{args.join(' ')}")
 
             misc_node.execute_code
                 command : "rsync"
                 args    : args
                 timeout : 2*3600
                 cb      : (err) ->
-                    winston.info("rsync time (#{target}) -- #{misc.walltime(t)}")
+                    winston.info("rsync time (#{target}) -- #{misc.walltime(t)} -- #{err}")
                     cb(err)
+
+        (cb) ->
+            if not opts.snapshot_first
+                # cause a snapshot to happen after the restore if we didn't cause one before. 
+                snapshot_project
+                    project_id : opts.project_id
+            cb()
 
     ], (err) ->
         opts.cb?(err)
