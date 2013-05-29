@@ -5,3 +5,5 @@ P="$SAGEMATHCLOUD"
 export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$PATH
 export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 
+# For people building Sage from source.
+export SAGE_ATLAS_LIB=/usr/lib/
