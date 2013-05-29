@@ -292,7 +292,8 @@ append_slashes_after_directory_names = (path, files, cb) ->
     f = (i, cb) ->
         fs.stat "#{path}/#{files[i]}", (err, stats) ->
             if err
-                cb(err)
+                # ignore -- can get errors from symbolic links, funny files, etc. 
+                cb()
             else
                 if stats.isDirectory(stats)
                     files[i] += '/'

@@ -1,36 +1,13 @@
-### Time left
-Sun May 26: 8:45 - 11:30 (minus eating, etc.), so about 12 hours
-Mon May 27: 6:30 - 11:30 -- about 14 hours
+cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git && ./make_coffee
 
-#### (4:00?) deploy
+- [ ] (1:00?) deploy:
+    - apt-get install sloccount
+    - fix symlink issues
+    - fix SAGE_ATLAS_LIB setting problem -- good test is '~/.sagemathcloud$ ssh salvus@localhost "export"'
 
-- [ ] (3:00?) monday -- deploy with snaps UI
-        x - update salvus and system-wide and internal *bup*
-          - (1:00?) install sage-5.10.beta5
-          - (1:00?) make quota work again, but make it 20GB for now.
-          - (1:00?) test minimal project sharing
+- [x] (0:30?) (0:15) snap: BUG -- if path contains a broken symlink, then directory listing doesn't work in snap server.  
 
-- [x] (0:10?) (0:04) delete backup persistent disks for cloud
-- [x] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
-      x - add these to build.py and install new apt-get packages
-      x - npm install moment
-      x - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
-      x - install database_pari-20130516 spkg
-      x - upgrade to newest bup from the website; fixes corruption issues.
-      x - instead have /mnt/snap
-      x - update salvus; remember to do ./make_coffee
-      x - test it on storm, including new snapshots being *made*.
-      x - deploy on cloud
-
-#### (7:00?) finish snapshotting implementation, including UI
-
-- [x] (1:00?) (1:05) snap: define messages and write code in hub to handle messages related to client browsing snapshots
-
-- [x] (1:00?) (1:00) snap: implement UI to actually browse files.
-
-- [x] (0:30?) (0:12) snap: UI -- icon to bring up list of all snapshots
-
---> - [ ] (1:00?) snap: UI -- replace file actions/buttons with one button to restore the file -- brings up confirmation dialog, then issues the command.
+    E.g., in "Teaching Spring" project -- path: "/mnt/snap/snap0/fuse/bafa00b5-5a0f-4e0f-b2be-74bb417e03b3//69a229be-5a5a-42be-a98b-fc6c40aa10f9/2013-05-28-073904/./sage"
 
 - [ ] (0:30?) snap: what if the target path is in path that doesn't exist?  maybe need another option to rsync or something?
 
@@ -2042,4 +2019,35 @@ PLAN:  create something as above as a TCP *service* called "snap".
 
 [x] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
 
+
+
+#### (4:00?) deploy
+
+- [x] (3:00?) monday -- deploy with snaps UI
+        x - update salvus and system-wide and internal *bup*
+          - (1:00?) install sage-5.10.beta5
+          - (1:00?) make quota work again, but make it 20GB for now.
+          - (1:00?) test minimal project sharing
+
+- [x] (0:10?) (0:04) delete backup persistent disks for cloud
+- [x] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
+      x - add these to build.py and install new apt-get packages
+      x - npm install moment
+      x - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
+      x - install database_pari-20130516 spkg
+      x - upgrade to newest bup from the website; fixes corruption issues.
+      x - instead have /mnt/snap
+      x - update salvus; remember to do ./make_coffee
+      x - test it on storm, including new snapshots being *made*.
+      x - deploy on cloud
+
+#### (7:00?) finish snapshotting implementation, including UI
+
+- [x] (1:00?) (1:05) snap: define messages and write code in hub to handle messages related to client browsing snapshots
+
+- [x] (1:00?) (1:00) snap: implement UI to actually browse files.
+
+- [x] (0:30?) (0:12) snap: UI -- icon to bring up list of all snapshots
+
+- [x] (1:00?) snap: UI -- replace file actions/buttons with one button to restore the file -- brings up confirmation dialog, then issues the command.
 
