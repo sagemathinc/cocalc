@@ -401,6 +401,8 @@ snap_restore = (opts) ->
     user   = undefined
     outdir = "#{tmp_dir}/#{uuid.v4()}"
     target = "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"
+    dest   = undefined
+    escaped_dest = undefined
 
     async.series([
         # Get remote project location from database
@@ -424,9 +426,12 @@ snap_restore = (opts) ->
                    winston.info("restore time (#{target}) -- #{misc.walltime(t)}")
                    cb(err)
 
-        # rsync the file/path to replace the same file/path on the remote machine
         (cb) ->
-            # opts.path possibilities:
+            # Determine destination path and ensure it exists.  Note that rsync seems like
+            # it should do this automatically according to "man rsync", but it doesn't:
+            #        http://stackoverflow.com/questions/13993236/why-rsync-uses-mkdir-without-p-option
+            #
+            # The opts.path possibilities:
             #    "salvus/conf" (directory), "salvus/conf/admin.py" (file in directory),
             #    ".", "conf" (a directory with no slash), "admin.py" (a file)
             t = misc.walltime()
@@ -436,7 +441,33 @@ snap_restore = (opts) ->
             else
                 dest = opts.path.slice(0, i)
 
-            args = ["-axH", "#{outdir}/", "#{user}:#{dest}"]
+            if dest == ""
+                escaped_dest = dest
+                cb()
+                return
+
+            escaped_dest = dest.replace(/'/g, "'\\''")
+            args = [user, "mkdir -p '#{escaped_dest}'"]
+            winston.debug("ssh #{args.join(' ')}")
+            misc_node.execute_code
+                command : "ssh"
+                # Note -- coffeescript escapes single quotes automatically.  See also
+                # http://stackoverflow.com/questions/3668928/c-function-to-escape-string-for-shell-command-argument
+                args    : args
+                timeout : 15
+                cb      : (err, output) ->
+                    winston.info("mkdir time (#{target}) -- #{misc.walltime(t)} -- #{err}")
+                    if err
+                        winston.debug(misc.to_json(output))
+                        cb("Error ensuring directory '#{dest}' exists when restoring a snapshot.")
+                    else
+                        cb()
+
+        # rsync the file/path to replace the same file/path on the remote machine
+        (cb) ->
+            t = misc.walltime()
+
+            args = ["-axH", "#{outdir}/", "#{user}:'#{escaped_dest}'"]
 
             if opts.compress
                 args.unshift("-z")
@@ -457,7 +488,7 @@ snap_restore = (opts) ->
 
         (cb) ->
             if not opts.snapshot_first
-                # cause a snapshot to happen after the restore if we didn't cause one before. 
+                # cause a snapshot to happen after the restore if we didn't cause one before.
                 snapshot_project
                     project_id : opts.project_id
             cb()

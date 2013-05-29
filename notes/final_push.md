@@ -8,7 +8,7 @@ cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git 
 
 - [x] (0:30?) (0:15) snap: BUG -- if path contains a broken symlink, then directory listing doesn't work in snap server.
 
---> - [ ] (0:30?) snap: must first verify that the target path exists (mkdir -p or some option to rsync) before doing the rsync.
+- [x] (0:30?) (1:01) snap: must first verify that the target path exists (mkdir -p or some option to rsync) before doing the rsync.
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 

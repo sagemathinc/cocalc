@@ -1190,9 +1190,6 @@ class ProjectPage
                                     project_id : @project.project_id
                                     snapshot   : snapshot
                                     path       : path
-                                    snapshot_first : false
-                                    compress   : false
-                                    backup     : '.trash'
                                     timeout    : 1800
                             timeout :
                                 1800
