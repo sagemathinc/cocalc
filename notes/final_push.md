@@ -1,5 +1,7 @@
 - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
+- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
+
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 - [ ] (2:00?) snap: UI for previewing a file and seeing the history of changetimes for it
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
@@ -29,9 +31,10 @@
 - [ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
 - [ ] (1:00?) make it possible to enable VIM keybindings in codemirror editor.
 - [ ] (1:00?) codemirror find is annoying -- make it better (so thing found is visible!)
-- [ ] (1:00?) set cloud atlas variable, so building sage from source is fast: https://mail.google.com/mail/u/0/?shva=1#search/cloud+atlas/13ed940a4d56a4fd
-- [x] (0:30?) (0:33) upgrade codemirror
-- [x] (0:15?) (0:04) upgrade jQuery
+- [ ] (1:00?) markdown -- there is no way to just insert a $.  Make \$ just $ without math....? somehow.
+
+- [ ] (1:00?) search should not include hidden files by default....
+
 
 ### (5:00?) re-enable responsive mode and implement layout stuff to work there.
 
@@ -61,7 +64,7 @@
     BUP_DIR=~/tmp/b bup ls f0c51934-9d09-4586-b8db-fd2e6f11e57e/latest/
 
 
-
+- [ ] (1:30?) svg.js ? http://www.svgjs.com/
 
 - [ ] (1:30?) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 
@@ -2046,4 +2049,9 @@ cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git 
                '-d', '1369677923',
           Get our timestamp from that number using
                 "timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')"
+
+
+- [x] (1:00?) set cloud atlas variable, so building sage from source is fast: https://mail.google.com/mail/u/0/?shva=1#search/cloud+atlas/13ed940a4d56a4f
+- [x] (0:30?) (0:33) upgrade codemirror
+- [x] (0:15?) (0:04) upgrade jQuery
 
