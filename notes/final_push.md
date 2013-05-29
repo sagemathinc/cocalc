@@ -1,42 +1,9 @@
-cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git && ./make_coffee
-
-- [ ] (1:00?) re-deploy:
-    - apt-get install sloccount
-    - undo my addition to /etc/profile of SAGE_ATLAS_LIB
-
-- [x] (0:05) fix SAGE_ATLAS_LIB setting problem -- good test is '~/.sagemathcloud$ ssh salvus@localhost "export"'
-
-- [x] (0:30?) (0:15) snap: BUG -- if path contains a broken symlink, then directory listing doesn't work in snap server.
-
-- [x] (0:30?) (1:01) snap: must first verify that the target path exists (mkdir -p or some option to rsync) before doing the rsync.
-
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
-
-- [ ] (2:00?) snap: get this to actually work on cloud; deploy, test., etc. -- on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
-
-- [x] (2:00?) (1:48) snap: write tcp client/server code
-- [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
-- [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
-- [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
-- [x] (1:00?) (1:25) snap: function to show history of file, i.e., list of timestamps where it changed
-          <https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg>
-          Do this both with and without .bup
-               git log --pretty="%b" --follow f0c51934-9d09-4586-b8db-fd2e6f11e57e -- ./buffering2.sagews.bup
-          then take output of this form
-               '-d', '1369677923',
-          Get our timestamp from that number using
-                "timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')"
-
-
-#### (3:00?) simple project sharing UI; fix that major bug I saw in class where anybody can get access to my worksheets.
-
+- [ ] (2:00?) snap: UI for previewing a file and seeing the history of changetimes for it
+- [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
-- [ ] (1:30?) address the major issue I found in class where other people get access to `local_hub`!?
-
-
-#### (11:00?) misc
-
-- [ ] (2:00?) make it so terminal never disconnects;
+- [ ] (1:30?) share: address the major issue I found in class where other people get access to `local_hub`!?
+- [ ] (2:00?) make it so terminals never disconnects;
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
 - [ ] (2:00?) implement caching of files attached to worksheets longterm
@@ -2049,4 +2016,32 @@ PLAN:  create something as above as a TCP *service* called "snap".
 - [x] (0:30?) (0:12) snap: UI -- icon to bring up list of all snapshots
 
 - [x] (1:00?) snap: UI -- replace file actions/buttons with one button to restore the file -- brings up confirmation dialog, then issues the command.
+
+
+
+- [x] (1:00?) (0:26) re-deploy:
+    x - apt-get install sloccount
+    x - undo my addition to /etc/profile of SAGE_ATLAS_LIB
+
+cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git && ./make_coffee
+- [x] (0:05) fix SAGE_ATLAS_LIB setting problem -- good test is '~/.sagemathcloud$ ssh salvus@localhost "export"'
+
+- [x] (0:30?) (0:15) snap: BUG -- if path contains a broken symlink, then directory listing doesn't work in snap server.
+
+- [x] (0:30?) (1:01) snap: must first verify that the target path exists (mkdir -p or some option to rsync) before doing the rsync.
+
+- [x] (2:00?) snap: get this to actually work on cloud; deploy, test., etc. -- on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
+
+- [x] (2:00?) (1:48) snap: write tcp client/server code
+- [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
+- [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
+- [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
+- [x] (1:00?) (1:25) snap: function to show history of file, i.e., list of timestamps where it changed
+          <https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg>
+          Do this both with and without .bup
+               git log --pretty="%b" --follow f0c51934-9d09-4586-b8db-fd2e6f11e57e -- ./buffering2.sagews.bup
+          then take output of this form
+               '-d', '1369677923',
+          Get our timestamp from that number using
+                "timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')"
 
