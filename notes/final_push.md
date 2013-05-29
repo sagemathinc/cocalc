@@ -1,15 +1,14 @@
 cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git && ./make_coffee
 
-- [ ] (1:00?) deploy:
+- [ ] (1:00?) re-deploy:
     - apt-get install sloccount
-    - fix symlink issues
-    - fix SAGE_ATLAS_LIB setting problem -- good test is '~/.sagemathcloud$ ssh salvus@localhost "export"'
+    - undo my addition to /etc/profile of SAGE_ATLAS_LIB
 
-- [x] (0:30?) (0:15) snap: BUG -- if path contains a broken symlink, then directory listing doesn't work in snap server.  
+- [x] (0:05) fix SAGE_ATLAS_LIB setting problem -- good test is '~/.sagemathcloud$ ssh salvus@localhost "export"'
 
-    E.g., in "Teaching Spring" project -- path: "/mnt/snap/snap0/fuse/bafa00b5-5a0f-4e0f-b2be-74bb417e03b3//69a229be-5a5a-42be-a98b-fc6c40aa10f9/2013-05-28-073904/./sage"
+- [x] (0:30?) (0:15) snap: BUG -- if path contains a broken symlink, then directory listing doesn't work in snap server.
 
-- [ ] (0:30?) snap: what if the target path is in path that doesn't exist?  maybe need another option to rsync or something?
+--> - [ ] (0:30?) snap: must first verify that the target path exists (mkdir -p or some option to rsync) before doing the rsync.
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
