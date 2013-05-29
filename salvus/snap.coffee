@@ -1087,12 +1087,12 @@ exports.start_server = start_server = () ->
         (cb) ->
             connect_to_database(cb)
         (cb) ->
-            register_with_database(cb)
-        (cb) ->
             monitor_snapshot_queue()
             cb()
         (cb) ->
             ensure_all_projects_have_a_snapshot(cb)
+        (cb) ->
+            register_with_database(cb)
         (cb) ->
             snapshot_active_projects(cb)
         #(cb) ->
