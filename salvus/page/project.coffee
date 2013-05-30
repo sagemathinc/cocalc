@@ -634,17 +634,16 @@ class ProjectPage
         that = @
         for item in @container.find(".project-pages").children()
             t = $(item)
-            target = t.find("a").attr('href')
+            target = t.find("a").data('target')
             if not target?
                 continue
-            t.find('a').tooltip(delay:{ show: 500, hide: 100 })
-            name = target.slice(1)
+            t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
+            name = target
             tab = {label:t, name:name, target:@container.find(".#{name}")}
             @tabs.push(tab)
 
-            # Make all links on this page go to this target.
-            @container.find("a[href=#{target}]").data('name',name).click () ->
-                that.display_tab($(@).data("name"))
+            t.find("a").click () ->
+                that.display_tab($(@).data("target"))
                 return false
 
             if name == "project-file-listing"

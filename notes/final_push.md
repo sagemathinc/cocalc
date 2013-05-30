@@ -1,4 +1,6 @@
-- [x] (1:00?) (0:10+) (1:30) fix terminal resize; bottom line is often cut off.
+- [x] (1:00?) (0:10+) (1:30) UI: fix terminal resize; bottom line is often cut off.
+
+- [x] (0:30) (0:32) UI: make it so the buttons at the top of a project aren't href links, so tooltex doesn't appear
 
 - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
