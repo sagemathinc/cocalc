@@ -8,13 +8,32 @@
 
 - [x] (0:30?) (0:43) snap: make it so size change is stored as part of the snapshot entry in db, after every snapshot; this will make it at least possible at some point to defend against malacious or stupid attacks.
 
-- [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
+- [ ] (0:45?) snap: in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
 
-- [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
+- [ ] (1:00?) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot server.
+
+- [ ] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
 
 - [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
 
+- [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
+
 - [ ] (1:00?) snap: get rid of all use of fuse (though maybe leave in code, just in case it is useful later).  fuse is a memory hog, etc. (!)  DOES not scale.
+
+# snap thoughts:
+
+- Could include a max size column in `snap_servers` table
+
+- Could include info about location (dc:rack) in `snap_servers` table
+
+- Could have command where hub asks snapshot server to make a snapshot instead of snapshot servers doing it themselves
+
+- Hubs would then ensure an even distribution of data, sharding, etc.
+
+
+
+---
+
 
 - [ ] (0:30?) THU cloud update:
        - terminal improvements (etc.)
