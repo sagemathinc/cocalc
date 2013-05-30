@@ -101,7 +101,7 @@ Editor for files in a project
 .salvus-editor-pdf-preview-image {
     margin:1em;
     background-color:#fff;
-    border:1px solid aaa;
+    border:1px solid #aaa;
     /* width:95%; */
     box-shadow: 5px 5px 5px 5px #888;
 }

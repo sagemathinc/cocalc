@@ -1,3 +1,5 @@
+- [x] (1:00?) (0:10+) (1:30) fix terminal resize; bottom line is often cut off.
+
 - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
@@ -7,7 +9,6 @@
 - [ ] (1:30?) share: address the major issue I found in class where other people get access to `local_hub`!?
 - [ ] (2:00?) make it so terminals never disconnects;
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- [ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
 - [ ] (2:00?) implement caching of files attached to worksheets longterm
 - [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
      html, do two things:
