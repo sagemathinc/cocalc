@@ -281,6 +281,7 @@ CREATE TABLE snap_commits (
     project_id uuid,       /* id of the project */
     timestamp  varchar,    /* date of commit, in the bup string format */
     size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
+    dummy      boolean,    /* used if we want to enter a commit but don't know the size and don't want to change the size */
     PRIMARY KEY(server_id, project_id, timestamp)
 );
 

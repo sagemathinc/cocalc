@@ -1,6 +1,6 @@
 - [x] (0:45?) (0:50) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either. (also fix --  BUG -- when getting snapshot in a directory in a directory, e.g., .snapshot/date/salvus/salvus.)
 
-- [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
+- [x] (0:30?) (0:38) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
 
 - [ ] (1:00?) snap: preview file when clicked on
 

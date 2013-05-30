@@ -257,7 +257,7 @@ _info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
             else
                 v = output.stdout.trim().split('\n')
                 if snapshot == ''
-                    v = (x.split(0,x.length-1) for x in v when x != 'latest@')
+                    v = (x.slice(0,x.length-1) for x in v when x != 'latest@')
                 cb(false, v)
 
 # List of all projects with at least one backup
@@ -270,8 +270,6 @@ _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
                 cb(err)
             else
                 v = output.stdout.split('/\n')
-                console.log(output.stdout)
-                console.log(misc.to_json(v))
                 cb(false, v)
 
 
@@ -596,6 +594,40 @@ snapshot_projects = (opts) ->
     async.map(opts.project_ids, ((p,cb) -> snapshot_project(project_id:p, cb:cb)), ((err, results) -> opts.cb?(err)))
 
 ##--
+
+# Resend meta-information about all commits to the database.
+# This excludes the size of the commit, since that is not stored on disk.
+# The main motivation is that we ran snapshots for a few days before
+# having a database.  However, this could also be useful if a new snap
+# server is brought online using an rsync copy of an existing bup repo.
+resend_all_commits = (cb) ->
+    winston.info("resending all commits to database")
+    projects = undefined
+    async.series([
+        (cb) ->
+            _info_all_projects_with_a_backup (err, _projects) ->
+                projects = _projects
+                cb(err)
+        (cb) ->
+            f = (project_id, cb) ->
+                _info_directory_list project_id, '', '.', (err, commits) ->
+                    console.log(misc.to_json(commits))
+                    g = (timestamp, cb) ->
+                        winston.debug("commit #{project_id} #{timestamp}")
+                        database.update
+                            table : 'snap_commits'
+                            set   : {dummy:true}
+                            where :
+                                server_id  : snap_server_uuid
+                                project_id : project_id
+                                timestamp  : timestamp
+                            cb    : cb
+                    async.mapLimit(commits, 3, g, cb)
+            async.mapLimit(projects, 5, f, cb)
+    ], cb)
+
+
+
 
 # Ensure that every project has at least one local snapshot.
 # TODO: scalability plan -- we will divide projects into snapshot
@@ -963,6 +995,8 @@ register_with_database = (cb) ->
             setTimeout(register_with_database, 1000*registration_interval_seconds)
             cb?()
 
+# For each commit in each project, re-enter a record in the database.
+
 # Convert a bup timestamp to a Javascript Date object
 #   '2013-05-21-124848' --> Tue May 21 2013 12:48:48 GMT-0700 (PDT)
 to_int = (s) ->  # s is a 2-digit string that might be 0 padded.
@@ -1055,6 +1089,11 @@ exports.start_server = start_server = () ->
         (cb) ->
             register_with_database(cb)
         (cb) ->
+            if program.resend_all_commits
+                resend_all_commits(cb)
+            else
+                cb()
+        (cb) ->
             snapshot_active_projects(cb)
         #(cb) ->
         #    test3()
@@ -1071,8 +1110,11 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--snap_interval [seconds]', 'each project is snapshoted at most this frequently (default: 120 = 2 minutes)', Number, 120)
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
+    .option('--resend_all_commits', 'on startup, scan through all commits in the local repo and save to db (default: false)', Boolean, false)
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .parse(process.argv)
+
+# program.resend_all_commits = true
 
 process.addListener "uncaughtException", (err) ->
     winston.error "Uncaught exception: " + err
