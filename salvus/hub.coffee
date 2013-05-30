@@ -26,6 +26,8 @@ url     = require 'url'
 fs      = require 'fs'
 {EventEmitter} = require 'events'
 
+_       = require 'underscore'
+
 mime    = require('mime')
 
 # salvus libraries
@@ -1200,9 +1202,77 @@ class Client extends EventEmitter
                                 mesg.list = list
                                 @push_to_client(mesg)
 
-##############################
-# Connection to a snap server
-##############################
+##-------------------------------
+#
+# Interaction with snap servers
+#
+##-------------------------------
+
+snap_command = (opts) ->
+    opts = defaults opts,
+        command    : required   # "ls", "restore", "log"
+        project_id : required
+        snapshot   : undefined
+        path       : '.'
+        timeout    : 60
+        cb         : required   # cb(err, list of results when meaningful)
+
+    if opts.command == "ls"
+        delete opts.command
+        snap_command_ls(opts)
+    else
+        snap_command0(opts)
+
+
+snap_command_ls = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        snapshot   : undefined
+        path       : '.'
+        timeout    : 60
+        cb         : required   # cb(err, list of results when meaningful)
+    if not opts.snapshot?
+        # list of all currently available snapshots for the given project
+        server_ids = undefined
+        commits = undefined
+        async.series([
+            # query database for id's of the active snap_servers
+            (cb) ->
+                database.snap_servers
+                    columns : ['id']
+                    cb      : (err, results) ->
+                        if err
+                            cb(err)
+                        else
+                            server_ids = (r.id for r in results)
+                            cb()
+            # query database for snapshots of this project on any of the active snap servers
+            (cb) ->
+                database.snap_commits
+                    project_id : opts.project_id
+                    server_ids : server_ids
+                    columns    : ['timestamp']
+                    cb         : (err, results) ->
+                        if err
+                            cb(err)
+                        else
+                            commits = (r.timestamp for r in results)
+                            commits.sort()
+                            commits = _.uniq(commits, true)
+                            commits.reverse()
+                            cb()
+        ], (err) -> opts.cb(err, commits))
+
+    else
+
+        opts.command = 'ls'
+        snap_command0(opts)
+
+
+
+
+## old code
+
 _snap_socket = undefined
 
 _connect_to_snap_server = (cb) ->
@@ -1217,14 +1287,15 @@ _connect_to_snap_server = (cb) ->
             snap.client_socket
                 host  : server.host
                 port  : server.port
-                token : server.token
+                token : server.key
                 cb    : (err, socket) ->
                     if not err
                         _snap_socket = socket
                     cb(err)
     ], cb)
 
-snap_command = (opts) ->
+
+snap_command0 = (opts) ->
     opts = defaults opts,
         command    : required   # "ls", "restore", "log"
         project_id : undefined

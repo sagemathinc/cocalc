@@ -1030,7 +1030,6 @@ generate_secret_key = (cb) ->
 size_of_bup_archive = undefined
 register_with_database = (cb) ->
     winston.info("registering with database server...")
-    host = "#{program.host}:#{listen_port}"
     if not size_of_bup_archive?
         misc_node.disk_usage pack_dir, (err, usage) ->
             if err
@@ -1044,7 +1043,7 @@ register_with_database = (cb) ->
     database.update
         table : 'snap_servers'
         where : {id : snap_server_uuid}
-        set   : {key:secret_key, host:host, size:size_of_bup_archive}
+        set   : {key:secret_key, host:program.host, port:listen_port, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
             setTimeout(register_with_database, 1000*registration_interval_seconds)

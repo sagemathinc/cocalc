@@ -269,9 +269,10 @@ CREATE INDEX ON project_snapshots(host);
    rather small ttl that is periodically updated. */
 CREATE TABLE snap_servers (
     id         uuid,
-    host       varchar,     /* hostname:port */
-    key        varchar,
-    size       int,         /* total size in kilobytes of the objects/pack directory of the archive*/
+    host       varchar,     /* hostname */
+    port       int,         /* integer port */
+    key        varchar,     /* random string needed to unlock tcp connection */
+    size       int,         /* total size in kilobytes of the objects/pack directory of the archive */
     PRIMARY KEY(id)
 );
 
@@ -281,6 +282,15 @@ CREATE TABLE snap_commits (
     timestamp  varchar,    /* date of commit, in the bup string format */
     size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
     PRIMARY KEY(server_id, project_id, timestamp)
+);
+
+CREATE TABLE snap_ls_cache (
+    server_id  uuid,       /* matches the id of snap_servers table above */
+    project_id uuid,       /* id of the project */
+    timestamp  varchar,    /* date of commit, in the bup string format */
+    path       varchar,    /* path into the commit */
+    listing    varchar,    /* JSON */
+    PRIMARY KEY(server_id, project_id, timestamp, path)
 );
 
 

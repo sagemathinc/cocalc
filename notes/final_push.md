@@ -1,16 +1,6 @@
-- [x] (1:00?) (0:10+) (1:30) UI: fix terminal resize; bottom line is often cut off.
-
-- [x] (0:30) (0:32) UI: make it so the buttons at the top of a project aren't href links, so tooltex doesn't appear
-
-- [x] (0:20?) (1:00) Fix `worksheet.worksheet.execute_code` thing, plus document in `javascript?
-
-- [x] (0:30?) snap: make it so fact that each snapshot is made is stored in the database
-
-- [x] (0:30?) (0:43) snap: make it so size change is stored as part of the snapshot entry in db, after every snapshot; this will make it at least possible at some point to defend against malacious or stupid attacks.
-
 - [ ] (0:45?) snap: in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
 
-- [ ] (1:00?) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot server.
+--> - [x] (1:00?) (1:28) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot servers; this makes it trivial/fast to aggregate dozens of snap servers.
 
 - [ ] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
 
@@ -18,7 +8,11 @@
 
 - [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
 
-- [ ] (1:00?) snap: get rid of all use of fuse (though maybe leave in code, just in case it is useful later).  fuse is a memory hog, etc. (!)  DOES not scale.
+- [ ] (1:00?) snap: get rid of use of fuse (though maybe leave in code, just in case it is useful later).  fuse is a memory hog, etc. (!)  DOES not scale.
+
+- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
+
+- [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
 
 # snap thoughts:
 
@@ -34,15 +28,12 @@
 
 ---
 
-
-- [ ] (0:30?) THU cloud update:
-       - terminal improvements (etc.)
-       - install haskell and racket and add to build.py
-       - updated snap
-
-- [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
-
-- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
+- [ ] (1:00?) (0:15+) THU cloud update:
+       x - terminal improvements (etc.)
+       x - install haskell (just ghc for now) and racket and add to build.py
+       x - updated snap
+       x - sage-5.10.rc1: http://boxen.math.washington.edu/home/release/sage-5.10.rc0/sage-5.10.rc0/
+       - UPDATE database schema!!
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
@@ -2098,4 +2089,15 @@ cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git 
 - [x] (1:00?) set cloud atlas variable, so building sage from source is fast: https://mail.google.com/mail/u/0/?shva=1#search/cloud+atlas/13ed940a4d56a4f
 - [x] (0:30?) (0:33) upgrade codemirror
 - [x] (0:15?) (0:04) upgrade jQuery
+
+
+- [x] (1:00?) (0:10+) (1:30) UI: fix terminal resize; bottom line is often cut off.
+
+- [x] (0:30) (0:32) UI: make it so the buttons at the top of a project aren't href links, so tooltex doesn't appear
+
+- [x] (0:20?) (1:00) Fix `worksheet.worksheet.execute_code` thing, plus document in `javascript?
+
+- [x] (0:30?) snap: make it so fact that each snapshot is made is stored in the database
+
+- [x] (0:30?) (0:43) snap: make it so size change is stored as part of the snapshot entry in db, after every snapshot; this will make it at least possible at some point to defend against malacious or stupid attacks.
 

@@ -517,26 +517,48 @@ class exports.Salvus extends exports.Cassandra
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
 
     #####################################
-    # Return a random snap servers
+    # Snap servers
     #####################################
-    random_snap_server: (opts={}) ->
+    snap_servers: (opts) =>
         opts = defaults opts,
+            columns   : ['id', 'host', 'port', 'key', 'size']
             cb        : required
 
         @select
-            table : 'snap_servers'
-            columns : ['host', 'key']
-            objectify: false
-            cb : (err, results) ->
+            table     : 'snap_servers'
+            columns   : opts.columns
+            objectify : true
+            cb        : opts.cb
+
+    snap_commits: (opts) =>
+        opts = defaults opts,
+            server_ids : required
+            project_id : required
+            columns    : ['server_id', 'project_id', 'timestamp', 'size']
+            cb         : required
+
+        @select
+            table   : 'snap_commits'
+            where   : {server_id:{'in':opts.server_ids}, project_id:opts.project_id}
+            columns : opts.columns
+            objectify : true
+            cb      : opts.cb
+
+
+
+    random_snap_server: (opts) =>
+        opts = defaults opts,
+            cb        : required
+        @snap_servers
+            cb : (err, results) =>
                 if err
                     opts.cb(err)
                 else
                     if results.length == 0
                         opts.cb("No snapshot servers are available -- try again later.")
-                        return
-                    v = misc.random_choice(results)
-                    s = v[0].split(':')
-                    opts.cb(false, {host: s[0], port: parseInt(s[1]), token:v[1]})
+                    else
+                        opts.cb(false, misc.random_choice(results))
+
 
 
     #####################################
