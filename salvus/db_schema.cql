@@ -271,6 +271,7 @@ CREATE TABLE snap_servers (
     id         uuid,
     host       varchar,     /* hostname:port */
     key        varchar,
+    size       int,         /* total size in kilobytes of the objects/pack directory of the archive*/
     PRIMARY KEY(id)
 );
 
@@ -278,7 +279,7 @@ CREATE TABLE snap_commits (
     server_id  uuid,       /* matches the id of snap_servers table above */
     project_id uuid,       /* id of the project */
     timestamp  varchar,    /* date of commit, in the bup string format */
-    size       int,        /* how much making this snapshot increased the total size of the bup archive */
+    size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
     PRIMARY KEY(server_id, project_id, timestamp)
 );
 

@@ -589,7 +589,8 @@ monitor_snapshot_queue = () ->
         {project_id, cb} = snapshot_queue.shift()
         winston.info("making a snapshot of project #{project_id}")
         timestamp = undefined
-        size = undefined
+        size_before = undefined
+        size_after = undefined
         async.series([
             # get deployed location of project (which can change at any time!)
             (cb) ->
@@ -613,7 +614,9 @@ monitor_snapshot_queue = () ->
 
             # compute disk usage before save
             (cb) ->
-                cb()
+                misc_node.disk_usage pack_dir, (err, usage) ->
+                    size_before = usage
+                    cb(err)
 
             # save
             (cb) ->
@@ -644,15 +647,19 @@ monitor_snapshot_queue = () ->
             # (The main reason for doing this is to protect against projects that have random data
             # files in them -- we can refuse to snapshot after a certain total amount of usage.)
             (cb) ->
-                size = 0
-                cb()
+                misc_node.disk_usage pack_dir, (err, usage) ->
+                    size_after = usage
+                    # Also, save total size of bup archive to global variable, so it can
+                    # be reported on next update the snap_servers table.
+                    size_of_bup_archive = size_after
+                    cb(err)
 
             # record that we successfully made a snapshot to the database
             (cb) ->
                 t = misc.walltime()
                 database.update
                     table : 'snap_commits'
-                    set   : {size:size}
+                    set   : {size: size_after - size_before}
                     where :
                         server_id  : snap_server_uuid
                         project_id : project_id
@@ -660,6 +667,7 @@ monitor_snapshot_queue = () ->
                     cb    : (err) ->
                         winston.info("time to record commit to database: #{misc.walltime(t)}")
                         cb()
+
 
         ], (err) ->
             cb?(err)
@@ -939,6 +947,7 @@ exports.client_snap = (opts) ->
 
 snap_dir  = undefined
 bup_dir   = undefined
+pack_dir  = undefined
 tmp_dir   = undefined
 uuid_file = undefined
 initialize_snap_dir = (cb) ->
@@ -947,6 +956,7 @@ initialize_snap_dir = (cb) ->
         snap_dir = process.cwd() + '/' + snap_dir
 
     bup_dir   = snap_dir + '/bup'
+    pack_dir  = bup_dir  + '/objects/pack'
     tmp_dir   = snap_dir + '/tmp'
     uuid_file = snap_dir + '/server_uuid'
     winston.info("path=#{snap_dir} should exist")
@@ -1017,13 +1027,24 @@ generate_secret_key = (cb) ->
 
 # Write entry to the database periodicially (with ttl) that this
 # snap server is up and running, and provide the key.
+size_of_bup_archive = undefined
 register_with_database = (cb) ->
     winston.info("registering with database server...")
     host = "#{program.host}:#{listen_port}"
+    if not size_of_bup_archive?
+        misc_node.disk_usage pack_dir, (err, usage) ->
+            if err
+                # try next time
+                size_of_bup_archive = 0
+            else
+                size_of_bup_archive = usage
+                register_with_database(cb)
+        return
+
     database.update
         table : 'snap_servers'
         where : {id : snap_server_uuid}
-        set   : {key:secret_key, host:host}
+        set   : {key:secret_key, host:host, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
             setTimeout(register_with_database, 1000*registration_interval_seconds)

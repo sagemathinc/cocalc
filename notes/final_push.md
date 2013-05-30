@@ -6,7 +6,7 @@
 
 - [x] (0:30?) snap: make it so fact that each snapshot is made is stored in the database
 
-- [ ] (0:30?) snap: make it so size increase is stored as part of the snapshot entry in db.
+- [x] (0:30?) (0:43) snap: make it so size change is stored as part of the snapshot entry in db, after every snapshot; this will make it at least possible at some point to defend against malacious or stupid attacks.
 
 - [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
 

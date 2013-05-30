@@ -400,6 +400,19 @@ exports.execute_code = (opts) ->
     )
 
 
+####
+## Applications of execute_code
+
+exports.disk_usage = (path, cb) ->  # cb(err, usage in K (1024 bytes) of path)
+    exports.execute_code
+        command : "du"
+        args    : ['-s', path]
+        cb      : (err, output) ->
+            if err
+                cb(err)
+            else
+                cb(false, parseInt(output.stdout.split(' ')[0]))
+
 
 ###################################
 # project_id --> username mapping
