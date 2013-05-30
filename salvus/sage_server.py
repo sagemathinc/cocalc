@@ -525,6 +525,8 @@ class Salvus(object):
         point in the output stream) every time the worksheet is
         rendered.
 
+        See the docs for the top-level javascript function for more details.
+
         INPUT:
 
         - code -- a string
@@ -553,6 +555,8 @@ class Salvus(object):
     def coffeescript(self, *args, **kwds):
         """
         This is the same as salvus.javascript, but with coffeescript=True.
+
+        See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
         return self.javascript(*args, **kwds)
@@ -627,6 +631,8 @@ class Salvus(object):
         Tell the browser to execute javascript.  Basically the same as
         salvus.javascript with once=True (the default), except this
         isn't tied to a particular cell.
+
+        See the docs for the top-level javascript function for more details.
         """
         self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, data=data))
         return self
@@ -634,6 +640,8 @@ class Salvus(object):
     def execute_coffeescript(self, *args, **kwds):
         """
         This is the same as salvus.execute_javascript, but with coffeescript=True.
+
+        See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
         return self.execute_javascript(*args, **kwds)
@@ -709,6 +717,7 @@ class Salvus(object):
         if ext == ".py":
             return self._py(filename, **opts)
         raise NotImplementedError("require file of type %s not implemented"%ext)
+
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams

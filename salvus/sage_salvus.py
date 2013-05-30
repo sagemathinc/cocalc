@@ -1145,6 +1145,59 @@ def javascript(s):
     """
     return salvus.javascript(s)
 
+javascript_exec_doc = r"""
+
+To send code from Javascript back to the Python process to
+be executed use the worksheet.execute_code function::
+
+    %javascript  worksheet.execute_code(string_to_execute)
+
+You may also use a more general call format of the form::
+
+    %javascript
+    worksheet.execute_code({code:string_to_execute, data:jsonable_object,
+                            preparse:true or false, cb:function});
+
+The data object is available when the string_to_execute is being
+evaluated as salvus.data.  For example, if you execute this code
+in a cell::
+
+    javascript('''
+        worksheet.execute_code({code:"a = salvus.data['b']/2; print a", data:{b:5},
+                       preparse:false, cb:function(mesg) { console.log(mesg)} });
+    ''')
+
+then the Python variable a is set to 2, and the Javascript console log will display::
+
+    Object {done: false, event: "output", id: "..."}
+    Object {stdout: "2\n", done: true, event: "output", id: "..."}
+
+You can also send an interrupt signal to the Python process from
+Javascript by calling worksheet.interrupt(), and kill the process
+with worksheet.kill().  For example, here the a=4 never
+happens (but a=2 does)::
+
+    %javascript
+    worksheet.execute_code({code:'a=2; sleep(100); a=4;',
+                            cb:function(mesg) { worksheet.interrupt(); console.log(mesg)}})
+
+or using CoffeeScript (a Javascript preparser)::
+
+    %coffeescript
+    worksheet.execute_code
+        code : 'a=2; sleep(100); a=4;'
+        cb   : (mesg) ->
+            worksheet.interrupt()
+            console.log(mesg)
+
+The Javascript code is evaluated with numerous standard Javascript libraries available,
+including jQuery, Twitter Bootstrap, jQueryUI, etc.
+
+"""
+
+for s in [coffeescript, javascript]:
+    s.__doc__ += javascript_exec_doc
+
 def latex0(s=None, **kwds):
     """
     Create and display an arbitrary LaTeX document as a png image in the Salvus Notebook.

@@ -699,7 +699,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
             cm.redo()
 
-    interrupt: () =>
+    interrupt: () =>    
         @close_on_action()
         @send_signal(signal:2)
 
@@ -1356,6 +1356,17 @@ class Cell
 class Worksheet
 
     constructor : (@worksheet) ->
+
+    execute_code: (opts) =>
+        if typeof opts == "string"
+            opts = {code:opts}
+        @worksheet.execute_code(opts)
+
+    interrupt: () =>
+        @worksheet.interrupt()
+
+    kill: () =>
+        @worksheet.kill()
 
     set_interact_var : (opts) =>
         elt = @worksheet.element.find("#" + opts.id)
