@@ -526,6 +526,9 @@ class exports.Salvus extends exports.Cassandra
             cb         : required
 
         if opts.server_ids?
+            if opts.server_ids.length == 0
+                opts.cb(false, [])
+                return
             where = {id:{'in':opts.server_ids}}
         else
             where = undefined
@@ -546,7 +549,7 @@ class exports.Salvus extends exports.Cassandra
             cb         : required   # (err, list of objects)
 
         server_ids = undefined
-        servers = undefined
+        servers    = undefined
         async.series([
             (cb) =>
                 @select
@@ -574,6 +577,10 @@ class exports.Salvus extends exports.Cassandra
             project_id : required
             columns    : ['server_id', 'project_id', 'timestamp', 'size']
             cb         : required
+
+        if opts.server_ids.length == 0
+            opts.cb(false, [])
+            return
 
         @select
             table   : 'snap_commits'

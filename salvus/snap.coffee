@@ -302,6 +302,18 @@ append_slashes_after_directory_names = (path, files, cb) ->
 
 # Get list of all files inside a given directory; in the list, directories have a "/" appended.
 _info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
+    bup
+        args    : ['ls', "#{project_id}/#{snapshot}/#{path}"]
+        timeout : 60
+        cb      : (err, output) ->
+            if err
+                cb(err)
+            else
+                cb(false, output.stdout.split('\n'))
+
+# Get list of all files inside a given directory; in the list, directories have a "/" appended.
+# FUSE version, of historical interest.
+_info_directory_list_using_fuse = (project_id, snapshot, path, cb) ->  # cb(err, file list)
     snaps = local_snapshots[project_id]
     if not snaps?
         cb("no project -- #{project_id}")

@@ -4,15 +4,21 @@
 
 - [x] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
 
+- [x] (0:30?) (0:30) snap: get rid of use of fuse for directory listings
+
 - [ ] (0:45?) snap: for restore -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
 
-- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
+- [ ] (0:45?) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either.
 
 - [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
 
-- [ ] (1:00?) snap: get rid of use of fuse (though maybe leave in code, just in case it is useful later).  fuse is a memory hog, etc. (!)  DOES not scale.
-
 - [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
+
+- [ ] (0:30?) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.
+
+- [ ] (1:00?) snap: preview file when clicked on
+
+- [ ] (1:00?) snap: ability to download files
 
 - [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
 
