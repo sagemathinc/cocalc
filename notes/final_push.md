@@ -2,8 +2,9 @@
 
 - [x] (0:30) (0:32) UI: make it so the buttons at the top of a project aren't href links, so tooltex doesn't appear
 
-- [x] (0:20?) (1:00) Fix `worksheet.worksheet.execute_code` thing, plus document in `javascript?`
+- [x] (0:20?) (1:00) Fix `worksheet.worksheet.execute_code` thing, plus document in `javascript?
 
+<<<<<<< HEAD
 --> - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
 - [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
@@ -15,6 +16,10 @@
        - install haskell and racket and add to build.py
        - updated snap
 
+- [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
+
+- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
+>>>>>>> parent of 97019c9... snap: wired a "local" option into snap server, which currently doesn't do anything, but which will be needed for result aggregation.
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 

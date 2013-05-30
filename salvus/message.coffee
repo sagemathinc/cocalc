@@ -713,7 +713,6 @@ message
     event          : 'snap'
     id             : undefined
     command        : required    # 'ls', 'restore', 'log'
-    local          : false       # only use one snap server (this only makes sense: hub --> snap_server <--> snap_servers)
     project_id     : required
     # if snapshot not given, then command must be "ls", and server returns a list of available snapshots in reverse order
     snapshot       : undefined
