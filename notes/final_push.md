@@ -4,11 +4,11 @@
 
 - [x] (0:20?) (1:00) Fix `worksheet.worksheet.execute_code` thing, plus document in `javascript?`
 
+--> - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
+
 - [ ] (0:30?) WED cloud update:
        - terminal improvements (etc.)
        - install haskell and racket and add to build.py
-
-- [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
 - [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
 

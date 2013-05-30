@@ -6,7 +6,7 @@
 #
 #    coffee -o node_modules/ snap.coffee && echo "require('snap').start_server()" | coffee
 #
-# Client debugging:
+# Client test... (prob broken; mainly used in early development)
 #
 #    coffee -o node_modules/ snap.coffee && echo "require('snap').test_client()" | coffee
 #
@@ -262,22 +262,24 @@ snap_ls = (opts) ->
                                 # that have at least one snapshot; if given, return snapshots for that project... or
         snapshot   : undefined  # if given, project_id must be also given; then return directory listing for this snapshot
         path       : '.'        # return list of files in this path (if snapshot is defined)
+        local      : true       # If true, only return information stored on this server; if false, return aggregate
+                                # info on all servers in network.
         cb         : required   # cb(err, list)
     if not opts.project_id?
-        opts.cb(false, _info_project_list())
+        opts.cb(false, _info_project_list(opts.local))
     else if not opts.snapshot?
-        opts.cb(false, _info_snapshot_list(opts.project_id))
+        opts.cb(false, _info_snapshot_list(opts.project_id, opts.local))
     else
-        _info_directory_list(opts.project_id, opts.snapshot, opts.path, opts.cb)
+        _info_directory_list(opts.project_id, opts.snapshot, opts.path, opts.local, opts.cb)
 
 # Array of project_id's of all projects for which we have at least one snapshot.
 # It is safe to modify the returned object.
-_info_project_list = () ->
+_info_project_list = (local) ->
     return (project_id for project_id, snaps of local_snapshots when snaps.length > 0)
 
 # Array of snapshots for the given project.  Safe to modify.
 # Array is empty if we do not have any snapshots for the given project (yet).
-_info_snapshot_list = (project_id) ->
+_info_snapshot_list = (project_id, local) ->
     snaps = local_snapshots[project_id]
     if not snaps?
         return []
@@ -301,7 +303,7 @@ append_slashes_after_directory_names = (path, files, cb) ->
     async.map([0...files.length], f, cb)
 
 # Get list of all files inside a given directory; in the list, directories have a "/" appended.
-_info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
+_info_directory_list = (project_id, snapshot, path, local, cb) ->  # cb(err, file list)
     snaps = local_snapshots[project_id]
     if not snaps?
         cb("no project -- #{project_id}")
@@ -368,6 +370,8 @@ snap_restore = (opts) ->
         compress        : false        # use compression when transferring data via rsync
         snapshot_first  : false        # ensure there is a new snapshot before restoring.
         backup          : '.trash'     # if defined, move any file that is about to be overwritten to here
+        local           : true         # If true, only attempt to restore using data on this server; if false, determine which
+                                       # server(s) have the snapshot, and try to restore using each (in turn) until one works.
         cb              : undefined    # cb(err)
 
     if opts.snapshot_first
@@ -522,6 +526,7 @@ snap_log = (opts) ->
     opts = defaults opts,
         project_id : required
         path       : '.'
+        local      : true        # if true, only get local log info; of false, aggregate.
         cb         : required    # cb(err, array of time stamps)
 
     timestamps = []
@@ -691,6 +696,7 @@ handle_mesg = (socket, mesg) ->
                 project_id : mesg.project_id
                 snapshot   : mesg.snapshot
                 path       : mesg.path
+                local      : mesg.local
                 cb         : (err, files) ->
                     if err
                         send(message.error(error:err))
@@ -702,6 +708,7 @@ handle_mesg = (socket, mesg) ->
                 project_id : mesg.project_id
                 snapshot   : mesg.snapshot
                 path       : mesg.path
+                local      : mesg.local
                 cb         : (err) ->
                     if err
                         send(message.error(error:err))
@@ -712,6 +719,7 @@ handle_mesg = (socket, mesg) ->
             snap_log
                 project_id : mesg.project_id
                 path       : mesg.path
+                local      : mesg.local
                 cb         : (err, commits) ->
                     if err
                         send(message.error(error:err))
