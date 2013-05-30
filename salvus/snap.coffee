@@ -588,6 +588,8 @@ monitor_snapshot_queue = () ->
         user = undefined
         {project_id, cb} = snapshot_queue.shift()
         winston.info("making a snapshot of project #{project_id}")
+        timestamp = undefined
+        size = undefined
         async.series([
             # get deployed location of project (which can change at any time!)
             (cb) ->
@@ -608,6 +610,11 @@ monitor_snapshot_queue = () ->
                     cb   : (err) ->
                         winston.info("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
+
+            # compute disk usage before save
+            (cb) ->
+                cb()
+
             # save
             (cb) ->
                 t = misc.walltime()
@@ -623,6 +630,7 @@ monitor_snapshot_queue = () ->
                             else
                                 local_snapshots[project_id].push(timestamp)
                         cb(err)
+
             # update checksums in case of bitrot
             (cb) ->
                 t = misc.walltime()
@@ -631,6 +639,27 @@ monitor_snapshot_queue = () ->
                     cb   : (err) ->
                         winston.info("time to update checksums: #{misc.walltime(t)} s")
                         cb(err)
+
+            # Compute disk usage after snapshot -- how much disk space was used by making this snapshot
+            # (The main reason for doing this is to protect against projects that have random data
+            # files in them -- we can refuse to snapshot after a certain total amount of usage.)
+            (cb) ->
+                size = 0
+                cb()
+
+            # record that we successfully made a snapshot to the database
+            (cb) ->
+                t = misc.walltime()
+                database.update
+                    table : 'snap_commits'
+                    set   : {size:size}
+                    where :
+                        server_id  : snap_server_uuid
+                        project_id : project_id
+                        timestamp  : timestamp
+                    cb    : (err) ->
+                        winston.info("time to record commit to database: #{misc.walltime(t)}")
+                        cb()
 
         ], (err) ->
             cb?(err)

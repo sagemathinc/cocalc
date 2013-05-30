@@ -274,13 +274,18 @@ CREATE TABLE snap_servers (
     PRIMARY KEY(id)
 );
 
-
-
+CREATE TABLE snap_commits (
+    server_id  uuid,       /* matches the id of snap_servers table above */
+    project_id uuid,       /* id of the project */
+    timestamp  varchar,    /* date of commit, in the bup string format */
+    size       int,        /* how much making this snapshot increased the total size of the bup archive */
+    PRIMARY KEY(server_id, project_id, timestamp)
+);
 
 
 ////////////////////////////////////////////
-// NOTE: This not actively planned to be used.
-// bup-based snapshosts stored in the database.
+// NOTE: This no longer used, since it didn't
+// turn out to be a good idea.
 ////////////////////////////////////////////
 
 /* Table of pack files attached to a project. This gives the entire snapshot history

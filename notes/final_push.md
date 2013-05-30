@@ -4,8 +4,13 @@
 
 - [x] (0:20?) (1:00) Fix `worksheet.worksheet.execute_code` thing, plus document in `javascript?
 
-<<<<<<< HEAD
---> - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
+- [x] (0:30?) snap: make it so fact that each snapshot is made is stored in the database
+
+- [ ] (0:30?) snap: make it so size increase is stored as part of the snapshot entry in db.
+
+- [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
+
+- [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
 - [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
 
@@ -19,13 +24,14 @@
 - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
 - [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
->>>>>>> parent of 97019c9... snap: wired a "local" option into snap server, which currently doesn't do anything, but which will be needed for result aggregation.
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
 - [ ] (2:00?) snap: UI for previewing a file and seeing the history of changetimes for it
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
+- [ ] (0:30?) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
+- [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
 - [ ] (1:30?) share: address the major issue I found in class where other people get access to `local_hub`!?
 - [ ] (2:00?) make it so terminals never disconnects;
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
