@@ -1115,13 +1115,13 @@ class exports.Connection extends EventEmitter
             cb         : required
 
         if opts.path.length > 10
-            if opts.path.indexOf('/') == -1
+            i = opts.path.indexOf('/')
+            if i == -1
                 snapshot = opts.path
                 path = '.'
             else
-                {head, tail} = misc.path_split(opts.path)
-                snapshot = head
-                path = tail
+                snapshot = opts.path.slice(0, i)
+                path = opts.path.slice(i+1)
         else
             snapshot = undefined
             path = "."

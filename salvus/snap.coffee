@@ -214,77 +214,23 @@ fuse_remove_all_mounts = (cb) ->
         async.map(files, f, cb)
 
 
-# Initialize local_snapshots, which is a map with domain the uuid's of projects
-# that are snapshotted locally and values the array of snapshot timestamps
-# for that project. This array is defined at startup, and all code in this
-# file is expected to properly update this map upon making additional snapshots,
-# so we never have to consult the filesystem to know what snapshots we own.
-local_snapshots = undefined
-initialize_local_snapshots = (cb) ->
-    mountpoint = undefined
-    async.series([
-        (cb) ->
-            fuse_get_newest_mountpath (err, _mountpoint) ->
-                mountpoint = _mountpoint
-                cb(err)
-        (cb) ->
-            fs.readdir mountpoint, (err, files) ->
-                if err
-                    cb(err)
-                else
-                    local_snapshots = {}
-                    for f in files
-                        if f[0] != '.'
-                            local_snapshots[f] = []
-                    cb()
-        (cb) ->
-            f = (project_id, cb) ->
-                fs.readdir mountpoint + '/' + project_id, (err, files) ->
-                    n = files.indexOf('latest')
-                    if n != -1
-                        files.splice(n, 1)
-                    local_snapshots[project_id] = files
-                    cb()
-            async.map(misc.keys(local_snapshots), f, cb)
-    ], (err) ->
-        if mountpoint?
-            fuse_free_mountpath(mountpoint)
-        cb?(err)
-    )
-
 
 ## ------------
-# Provide listing of  available snapshots, projects, files, etc.,
-# (Uses some behind-the-scenes caching via bup to make things faster.)
+# Provide listing of  available snapshots/files in a project.
+# Caching in the database is done by the client (hub, in this case).
 snap_ls = (opts) ->
     opts = defaults opts,
-        project_id : undefined  # if not given, then return list of project_id's of all projects
-                                # that have at least one snapshot; if given, return snapshots for that project... or
-        snapshot   : undefined  # if given, project_id must be also given; then return directory listing for this snapshot
+        project_id : required
+        snapshot   : undefined  # if given, return directory listing for this snapshot
         path       : '.'        # return list of files in this path (if snapshot is defined)
         cb         : required   # cb(err, list)
-    if not opts.project_id?
-        opts.cb(false, _info_project_list())
-    else if not opts.snapshot?
+    if not opts.snapshot?
         opts.cb(false, _info_snapshot_list(opts.project_id))
     else
+        if not opts.snapshot?
+            opts.snapshot = ''  # list all snapshots
         _info_directory_list(opts.project_id, opts.snapshot, opts.path, opts.cb)
 
-# Array of project_id's of all projects for which we have at least one snapshot.
-# It is safe to modify the returned object.
-_info_project_list = () ->
-    return (project_id for project_id, snaps of local_snapshots when snaps.length > 0)
-
-# Array of snapshots for the given project.  Safe to modify.
-# Array is empty if we do not have any snapshots for the given project (yet).
-_info_snapshot_list = (project_id) ->
-    snaps = local_snapshots[project_id]
-    if not snaps?
-        return []
-    v = snaps.slice(0)   # make copy, then sort in reverse chron order
-    v.sort()
-    v.reverse()
-    return v
 
 # Modify the array "files" in place by append a slash after each
 # entry in the array that is a directory.   Call "cb(err)" when done.
@@ -303,69 +249,31 @@ append_slashes_after_directory_names = (path, files, cb) ->
 # Get list of all files inside a given directory; in the list, directories have a "/" appended.
 _info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
     bup
-        args    : ['ls', "#{project_id}/#{snapshot}/#{path}"]
+        args    : ['ls', '-a', "#{project_id}/#{snapshot}/#{path}"]
         timeout : 60
         cb      : (err, output) ->
             if err
                 cb(err)
             else
-                cb(false, output.stdout.split('\n'))
+                v = output.stdout.trim().split('\n')
+                if snapshot == ''
+                    v = (x.split(0,x.length-1) for x in v when x != 'latest@')
+                cb(false, v)
 
-# Get list of all files inside a given directory; in the list, directories have a "/" appended.
-# FUSE version, of historical interest.
-_info_directory_list_using_fuse = (project_id, snapshot, path, cb) ->  # cb(err, file list)
-    snaps = local_snapshots[project_id]
-    if not snaps?
-        cb("no project -- #{project_id}")
-        return
-    if not snapshot in snaps
-        cb("no snapshot #{snapshot} in project #{project_id}")
-        return
+# List of all projects with at least one backup
+_info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
+    bup
+        args    : ['ls']
+        timeout : 1800
+        cb      : (err, output) ->
+            if err
+                cb(err)
+            else
+                v = output.stdout.split('/\n')
+                console.log(output.stdout)
+                console.log(misc.to_json(v))
+                cb(false, v)
 
-    # 1. Get the newest mounted fuse path (which will create a mount if there aren't any).
-    # 2. Check to see if the requested project_id/snapshot/path is available in path.
-    # 3. If so, done -- use it, then unlock it; done.
-    # 4. If not (hence it is a very new snapshot), request creation of new fuse path.
-    # 5. If project_id/snapshot/path does not exist, return []
-
-    fuse_path       = undefined
-    target_snapshot = undefined
-    target_path     = undefined
-    new_mount       = undefined
-    files           = undefined
-
-    async.series([
-       (cb) ->
-           p = "#{project_id}/#{snapshot}"
-           fuse_get_mountpath_containing p, (err,_fuse) ->
-               if err
-                   cb(err)
-               else
-                   fuse_path = _fuse
-                   target_snapshot = _fuse + '/' + p
-                   cb()
-       (cb) ->
-           target_path = "#{target_snapshot}/#{path}"
-           fs.readdir target_path, (err, _files) ->
-                files = _files
-                cb(err)  # if path doesn't exist, get this err
-       (cb) ->
-           append_slashes_after_directory_names(target_path, files, cb)
-    ], (err) ->
-        fuse_free_mountpath(fuse_path)
-        cb(err, files)
-    )
-
-
-test1 = () ->
-    snap_ls
-        project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
-        snapshot   : '2013-05-26-140204' # '2013-05-23-184921'
-        path       : 'salvus/salvus'
-        cb         : (err, result) ->
-            console.log("RESULT of test = ", err, misc.to_json(result))
-
-## ------------
 
 
 # Restore the given project/snapshot/path to where that project is deployed, according
@@ -393,16 +301,6 @@ snap_restore = (opts) ->
                     snap_restore(opts)
         return
 
-
-    snaps = local_snapshots[opts.project_id]
-
-    if not snaps? or snaps.length == 0
-        opts.cb?("There are no snapshots at all of project #{opts.project_id} stored on this snap server.")
-        return
-
-    if opts.snapshot not in snaps
-        opts.cb?("There is no snapshot '#{opts.snapshot}' of project #{opts.project_id} on this snap server.")
-        return
 
     # canonicalize the path a little, so no /'s at end
     while opts.path.length > 0 and opts.path[opts.path.length-1] == '/'
@@ -639,14 +537,11 @@ monitor_snapshot_queue = () ->
                     cb   : (err) ->
                         winston.info("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
                         if not err
+                            # used below when creating database entry
                             timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
-                            if not local_snapshots[project_id]?
-                                local_snapshots[project_id] = [timestamp]
-                            else
-                                local_snapshots[project_id].push(timestamp)
                         cb(err)
 
-            # update checksums in case of bitrot
+            # update checksums, which make recover in case of file damage possible
             (cb) ->
                 t = misc.walltime()
                 bup
@@ -666,9 +561,10 @@ monitor_snapshot_queue = () ->
                     size_of_bup_archive = size_after
                     cb(err)
 
-            # record that we successfully made a snapshot to the database
+            # record that we successfully made a snapshot to the database, and our local cache
             (cb) ->
                 t = misc.walltime()
+                _last_snapshot_cache[project_id] = t
                 database.update
                     table : 'snap_commits'
                     set   : {size: size_after - size_before}
@@ -709,9 +605,10 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
     # not deleted), then
     # for each one, check if we have a backup.  If we don't,
     # queue that project for backing up.  Then drain that queue.
-
     winston.info("ensuring all projects have a snapshot")
+
     project_ids = undefined
+    all_projects = {}
     async.series([
         (cb) ->
              database.get_all_project_ids
@@ -720,8 +617,13 @@ ensure_all_projects_have_a_snapshot = (cb) ->   # cb(err)
                     project_ids = result
                     cb(err)
         (cb) ->
+            _info_all_projects_with_a_backup (err, _all) ->
+                for x in _all
+                    all_projects[x] = true
+                cb(err)
+        (cb) ->
             snapshot_projects
-                project_ids : (id for id in project_ids when not local_snapshots[id]?)
+                project_ids : (id for id in project_ids when not all_projects[id]?)
                 cb          : cb
     ], cb)
 
@@ -1078,16 +980,16 @@ bup_to_Date = (s) ->
     seconds = to_int(v[3].slice(4,6))
     return new Date(year, month, day, hours, minutes, seconds, 0)
 
-# Return the age (in seconds) of the most recent snapshot, computed using our in memory
-# cache of data about our local bup repo.  Returns a "very large number"
-# in case that we have no backups of the given project yet.
+# Return the age (in seconds) of the most recent snapshot made of the given
+# project during this session.  Returns a "very large number"
+# in case that we have no backups of the given project yet
+# during this session.
+_last_snapshot_cache = {}
 age_of_most_recent_snapshot_in_seconds = (id) ->
-    snaps = local_snapshots[id]
-    if not snaps? or snaps.length == 0
+    last = _last_snapshot_cache[id]
+    if not last?
         return 99999999999999
-    last_time = bup_to_Date(snaps[snaps.length-1])
-    now = new Date()
-    return Math.floor((now - last_time) / 1000.0)
+    return misc.walltime() - last
 
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
@@ -1139,8 +1041,6 @@ exports.start_server = start_server = () ->
                 cb(err)
         (cb) ->
             initialize_snap_dir(cb)
-        (cb) ->
-            initialize_local_snapshots(cb)
         (cb) ->
             initialize_server_uuid(cb)
         (cb) ->

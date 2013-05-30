@@ -1,18 +1,4 @@
-- [x] (1:00?) (1:28) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot servers; this makes it trivial/fast to aggregate dozens of snap servers.
-
-- [x] (1:00?) snap: rewrite snap ls in hub to query database, and try (in turn until success) for servers with the requested snapshot (so nothing random)
-
-- [x] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
-
-- [x] (0:30?) (0:30) snap: get rid of use of fuse for directory listings
-
-- [x] (0:45?) (0:15) snap: for restore -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
-
-- [x] (0:15?) (0:06) snap: for log -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
-
-- [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
-
- - [ ] (0:45?) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either.
+- [x] (0:45?) (0:50) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either. (also fix --  BUG -- when getting snapshot in a directory in a directory, e.g., .snapshot/date/salvus/salvus.)
 
 - [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
 
@@ -2111,3 +2097,16 @@ cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git 
 
 - [x] (0:30?) (0:43) snap: make it so size change is stored as part of the snapshot entry in db, after every snapshot; this will make it at least possible at some point to defend against malacious or stupid attacks.
 
+- [x] (1:00?) (1:28) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot servers; this makes it trivial/fast to aggregate dozens of snap servers.
+
+- [x] (1:00?) snap: rewrite snap ls in hub to query database, and try (in turn until success) for servers with the requested snapshot (so nothing random)
+
+- [x] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
+
+- [x] (0:30?) (0:30) snap: get rid of use of fuse for directory listings
+
+- [x] (0:45?) (0:15) snap: for restore -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
+
+- [x] (0:15?) (0:06) snap: for log -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
+
+- [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
