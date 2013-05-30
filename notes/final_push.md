@@ -6,11 +6,15 @@
 
 --> - [ ] (2:00?) snap: merge list of available snapshots and use all servers that are working... from client using database.  Just make table of server_uuid,project_id, snapshot triples, and when getting list of snapshots, do it 100% via a database query.  Snapshots for a down/off server just get ignored.   For now, first server startup can re-enter all entries in database, though not needed in general.
 
-- [ ] (0:30?) WED cloud update:
+- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
+
+- [ ] (1:00?) snap: get rid of all use of fuse (though maybe leave in code, just in case it is useful later).  fuse is a memory hog, etc. (!)  DOES not scale.
+
+- [ ] (0:30?) THU cloud update:
        - terminal improvements (etc.)
        - install haskell and racket and add to build.py
+       - updated snap
 
-- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
