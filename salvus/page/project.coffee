@@ -1199,7 +1199,7 @@ class ProjectPage
                                     x = path.split('/')
                                     @current_path = x.slice(0, x.length-1)
                                     @update_file_list_tab()
-                                    alert_message(type:"success", message:"Done restoring '#{path}'.")
+                                    alert_message(type:"success", message:"Restored '#{path}'.")
 
                 return false
 

@@ -6,21 +6,23 @@
 
 - [x] (0:30?) (0:30) snap: get rid of use of fuse for directory listings
 
-- [ ] (0:45?) snap: for restore -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
+- [x] (0:45?) (0:15) snap: for restore -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
 
-- [ ] (0:45?) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either.
+- [x] (0:15?) (0:06) snap: for log -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
+
+- [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
+
+ - [ ] (0:45?) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either.
 
 - [ ] (0:30?) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
 
-- [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
-
-- [ ] (0:30?) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.
-
 - [ ] (1:00?) snap: preview file when clicked on
 
-- [ ] (1:00?) snap: ability to download files
+- [ ] (1:00?) snap: ability to download files directly from snapshots
 
-- [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
+- [ ] (0:30?) snap: delete all unushed/no longer used code
+
+- [ ] (0:30?) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.
 
 # snap thoughts:
 

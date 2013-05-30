@@ -1217,11 +1217,54 @@ snap_command = (opts) ->
         timeout    : 60
         cb         : required   # cb(err, list of results when meaningful)
 
-    if opts.command == "ls"
-        delete opts.command
-        snap_command_ls(opts)
-    else
-        snap_command0(opts)
+    switch opts.command
+        when 'ls'
+            delete opts.command
+            snap_command_ls(opts)
+        when 'restore', 'log'
+            snap_command_restore_or_log(opts)
+        else
+            opts.cb("invalid snap command #{opts.command}")
+
+
+snap_command_restore_or_log = (opts) ->
+    opts = defaults opts,
+        command    : required
+        project_id : required
+        snapshot   : required
+        path       : '.'
+        timeout    : 60
+        cb         : required   # cb(err)
+
+    servers = undefined
+    socket = undefined
+    async.series([
+        (cb) ->
+            # find a snap server with this particular snapshot
+            database.snap_servers_with_commit
+                project_id : opts.project_id
+                timestamp  : opts.snapshot
+                cb         : (err, _servers) ->
+                    servers = _servers
+                    cb(err)
+       (cb) ->
+            if servers.length == 0
+                cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
+                return
+            server = misc.random_choice(servers)
+            connect_to_snap_server server, (err, _socket) ->
+                socket = _socket
+                cb(err)
+        (cb) ->
+            snap.client_snap
+                command    : opts.command
+                socket     : socket
+                project_id : opts.project_id
+                snapshot   : opts.snapshot
+                path       : opts.path
+                timeout    : opts.timeout
+                cb         : cb
+    ], opts.cb)
 
 
 snap_command_ls = (opts) ->
@@ -1263,7 +1306,7 @@ snap_command_ls = (opts) ->
                     cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
                     return
                 # get the listing from a server
-                server = servers[0]
+                server = misc.random_choice(servers)
                 connect_to_snap_server server, (err, _socket) ->
                     socket = _socket
                     cb(err)
@@ -1346,60 +1389,6 @@ connect_to_snap_server = (server, cb) ->
                     _snap_server_socket_cache[key] = socket
                 cb(err, socket)
 
-
-
-## old code
-
-_snap_socket = undefined
-
-_connect_to_snap_server = (cb) ->
-    server = undefined
-    async.series([
-        (cb) ->
-            database.random_snap_server
-                cb : (err, _server) ->
-                    server = _server
-                    cb(err)
-        (cb) ->
-            snap.client_socket
-                host  : server.host
-                port  : server.port
-                token : server.key
-                cb    : (err, socket) ->
-                    if not err
-                        _snap_socket = socket
-                    cb(err)
-    ], cb)
-
-
-snap_command0 = (opts) ->
-    opts = defaults opts,
-        command    : required   # "ls", "restore", "log"
-        project_id : undefined
-        snapshot   : undefined
-        path       : '.'
-        timeout    : 60
-        cb         : required   # cb(err, list of results when meaningful)
-
-    user_cb = opts.cb
-    list = undefined
-    async.series([
-        (cb) ->
-            if _snap_socket? and _snap_socket.writable  # socket might work...
-                cb()
-            else
-                _connect_to_snap_server(cb)
-        (cb) ->
-            opts.socket = _snap_socket
-            opts.cb = (err, _list) ->
-                list = _list
-                cb(err)
-            snap.client_snap(opts)
-    ], (err) ->
-        if err
-            _snap_socket = undefined  # try with different socket next time
-        user_cb(err, list)
-    )
 
 
 ##############################
