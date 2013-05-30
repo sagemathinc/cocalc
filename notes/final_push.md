@@ -1,8 +1,10 @@
-- [ ] (0:45?) snap: in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
+- [x] (1:00?) (1:28) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot servers; this makes it trivial/fast to aggregate dozens of snap servers.
 
---> - [x] (1:00?) (1:28) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot servers; this makes it trivial/fast to aggregate dozens of snap servers.
+- [x] (1:00?) snap: rewrite snap ls in hub to query database, and try (in turn until success) for servers with the requested snapshot (so nothing random)
 
-- [ ] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
+- [x] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
+
+- [ ] (0:45?) snap: for restore -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
 
 - [ ] (1:00?) snap: database can centrally cache directory listings for snapshots, with a ttl... though result depends on available snap servers, so be careful!
 

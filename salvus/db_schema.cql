@@ -266,7 +266,7 @@ CREATE INDEX ON project_snapshots(host);
 ////////////////////////////////////////////
 
 /* The snap servers -- entries in this table should always be inserted with a
-   rather small ttl that is periodically updated. */
+   very small ttl (e.g., 15 seconds) that is periodically updated. */
 CREATE TABLE snap_servers (
     id         uuid,
     host       varchar,     /* hostname */
@@ -284,13 +284,13 @@ CREATE TABLE snap_commits (
     PRIMARY KEY(server_id, project_id, timestamp)
 );
 
+/* snap_ls_cache entries should always be inserted with a ttl (e.g., a few days) */
 CREATE TABLE snap_ls_cache (
-    server_id  uuid,       /* matches the id of snap_servers table above */
     project_id uuid,       /* id of the project */
     timestamp  varchar,    /* date of commit, in the bup string format */
     path       varchar,    /* path into the commit */
     listing    varchar,    /* JSON */
-    PRIMARY KEY(server_id, project_id, timestamp, path)
+    PRIMARY KEY(project_id, timestamp, path)
 );
 
 

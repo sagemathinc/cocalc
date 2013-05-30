@@ -1231,8 +1231,75 @@ snap_command_ls = (opts) ->
         path       : '.'
         timeout    : 60
         cb         : required   # cb(err, list of results when meaningful)
-    if not opts.snapshot?
-        # list of all currently available snapshots for the given project
+    if opts.snapshot?
+        # Get directory listing inside a given snapshot
+        listing = undefined
+        servers = undefined
+        socket  = undefined
+        async.series([
+            # First check for cached listing in the database
+            (cb) ->
+                database.snap_ls_cache
+                    project_id : opts.project_id
+                    timestamp  : opts.snapshot
+                    path       : opts.path
+                    cb         : (err, _listing) ->
+                        listing = _listing
+                        cb(err)
+            (cb) ->
+                if listing?  # already got it from cache, so done
+                    cb(); return
+                # find snap servers with this particular snapshot
+                database.snap_servers_with_commit
+                    project_id : opts.project_id
+                    timestamp  : opts.snapshot
+                    cb         : (err, _servers) ->
+                        servers = _servers
+                        cb(err)
+           (cb) ->
+                if listing?
+                    cb(); return
+                if servers.length == 0
+                    cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
+                    return
+                # get the listing from a server
+                server = servers[0]
+                connect_to_snap_server server, (err, _socket) ->
+                    socket = _socket
+                    cb(err)
+            (cb) ->
+                if listing?
+                    cb(); return
+                snap.client_snap
+                    command : 'ls'
+                    socket  : socket
+                    project_id : opts.project_id
+                    snapshot   : opts.snapshot
+                    path       : opts.path
+                    timeout    : opts.timeout
+                    cb         : (err, _listing) ->
+                        listing = _listing
+                        cb(err)
+            (cb) ->
+                if listing? and socket?  # socket defined means we computed the listing
+                    # store listing in database cache
+                    database.snap_ls_cache
+                        project_id : opts.project_id
+                        timestamp  : opts.snapshot
+                        path       : opts.path
+                        listing    : listing
+                        cb         : cb
+                else
+                    cb()
+
+        ], (err) ->
+            opts.cb(err, listing)
+        )
+
+    else
+
+        # Get list of all currently available snapshots for the given project:
+        # This *only* involves two database queries -- no connections to snap servers.
         server_ids = undefined
         commits = undefined
         async.series([
@@ -1263,11 +1330,21 @@ snap_command_ls = (opts) ->
                             cb()
         ], (err) -> opts.cb(err, commits))
 
+_snap_server_socket_cache = {}
+connect_to_snap_server = (server, cb) ->
+    key    = misc.to_json(server)
+    socket = _snap_server_socket_cache[key]
+    if socket? and socket.writable
+        cb(false, socket)
     else
-
-        opts.command = 'ls'
-        snap_command0(opts)
-
+        snap.client_socket
+            host  : server.host
+            port  : server.port
+            token : server.key
+            cb    : (err, socket) ->
+                if not err
+                    _snap_server_socket_cache[key] = socket
+                cb(err, socket)
 
 
 
