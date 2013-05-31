@@ -1,10 +1,10 @@
-- [ ] (0:45?) (0:42) snap UI: show directory listing first by day, then time
-
-- [ ] (1:00?) snap: preview file when clicked on
+- [x] (0:45?) (0:42) snap UI: show directory listing first by day, then time
 
 - [ ] (1:00?) snap: ability to download files directly from snapshots
 
-- [ ] (0:30?) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.
+- [ ] (1:00?) snap: preview file when clicked on
+
+- [x] (0:30?) (0:19) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.; also fix some bugs introduced earlier in getting rid of # href's.
 
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 
@@ -15,7 +15,6 @@
 - [ ] (2:00?) implement caching of files attached to worksheets longterm
 
 - [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
-
 
 
 ---

@@ -637,6 +637,12 @@ class ProjectPage
             target = t.find("a").data('target')
             if not target?
                 continue
+
+            # activate any a[href=...] links elsewhere on the page
+            @container.find("a[href=##{target}]").data('target',target).click () ->
+                that.display_tab($(@).data('target'))
+                return false
+
             t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
             name = target
             tab = {label:t, name:name, target:@container.find(".#{name}")}
@@ -1132,7 +1138,7 @@ class ProjectPage
                 @update_file_search()
 
                 # No files
-                if directory_is_empty and path != ".trash"
+                if directory_is_empty and path != ".trash" and path.slice(0,9) != ".snapshot"
                     @container.find(".project-file-listing-no-files").show()
                 else
                     @container.find(".project-file-listing-no-files").hide()
