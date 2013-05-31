@@ -519,7 +519,7 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : command
-            timeout    : 3
+            timeout    : 15
             max_output : 100000
             bash       : true
             path       : @current_pathname()
