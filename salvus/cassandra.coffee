@@ -448,7 +448,7 @@ class exports.Cassandra extends EventEmitter
 
     cql: (query, vals, cb) ->
         #winston.debug("About to query db #{query}...")
-        # TODO: sometimes allow filtering is needed -- TODO -- fix this.
+        # TODO: sometimes allow filtering is needed -- TODO -- fix this to be a clearly specified option.
         if query.slice(0,6).toLowerCase() == 'select'
             query += '   ALLOW FILTERING'
         @conn.cql query, vals, (error, results) =>
@@ -515,6 +515,132 @@ class exports.Salvus extends exports.Cassandra
                     cb(error)
                 else
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
+
+    #####################################
+    # Snap servers
+    #####################################
+    snap_servers: (opts) =>
+        opts = defaults opts,
+            server_ids : undefined
+            columns    : ['id', 'host', 'port', 'key', 'size']
+            cb         : required
+
+        if opts.server_ids?
+            if opts.server_ids.length == 0
+                opts.cb(false, [])
+                return
+            where = {id:{'in':opts.server_ids}}
+        else
+            where = undefined
+
+        @select
+            table     : 'snap_servers'
+            columns   : opts.columns
+            where     : where
+            objectify : true
+            cb        : opts.cb
+
+    # Return array of all *active* snap servers with the given commit.
+    # The servers are the same format as output by snap_servers above.
+    snap_servers_with_commit: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timestamp  : required
+            cb         : required   # (err, list of objects)
+
+        server_ids = undefined
+        servers    = undefined
+        async.series([
+            (cb) =>
+                @select
+                    table      : 'snap_commits'   # this query uses ALLOW FILTERING.
+                    where      : {project_id : opts.project_id, timestamp : opts.timestamp}
+                    columns    : ['server_id']
+                    objectify  : false
+                    cb         : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            server_ids = (r[0] for r in results)
+                            cb()
+            (cb) =>
+                @snap_servers
+                    server_ids : server_ids
+                    cb         : (err, _servers) =>
+                        servers = _servers
+                        cb(err)
+        ], (err) => opts.cb(err, servers))
+
+    snap_commits: (opts) =>
+        opts = defaults opts,
+            server_ids : required
+            project_id : required
+            columns    : ['server_id', 'project_id', 'timestamp', 'size']
+            cb         : required
+
+        if opts.server_ids.length == 0
+            opts.cb(false, [])
+            return
+
+        @select
+            table   : 'snap_commits'
+            where   : {server_id:{'in':opts.server_ids}, project_id:opts.project_id}
+            columns : opts.columns
+            objectify : true
+            cb      : opts.cb
+
+    snap_ls_cache: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timestamp  : required
+            path       : required
+            listing    : undefined   # if given, store listing in the cache
+            ttl        : 3600*24*7   # 1 week
+            cb         : required    # cb(err, listing or undefined)
+
+        where = {project_id:opts.project_id, timestamp:opts.timestamp, path:opts.path}
+        if opts.listing?
+            # store in cache
+            @update
+                table : 'snap_ls_cache'
+                set   : {listing:opts.listing}
+                json  : ['listing']
+                where : where
+                ttl   : opts.ttl
+                cb    : opts.cb
+        else
+            # get listing out of cache, if there.
+            @select
+                table   : 'snap_ls_cache'
+                columns : ['listing']
+                where   : where
+                json    : ['listing']
+                objectify : false
+                cb      : (err, results) =>
+                    if err
+                        opts.cb(err)
+                    else if results.length == 0
+                        opts.cb(false, undefined)  # no error, but nothing in caching
+                    else
+                        opts.cb(false, results[0][0])
+
+
+
+
+    random_snap_server: (opts) =>
+        opts = defaults opts,
+            cb        : required
+        @snap_servers
+            cb : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb("No snapshot servers are available -- try again later.")
+                    else
+                        opts.cb(false, misc.random_choice(results))
+
+
 
     #####################################
     # Managing compute servers

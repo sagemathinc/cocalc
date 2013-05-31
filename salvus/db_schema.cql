@@ -266,21 +266,38 @@ CREATE INDEX ON project_snapshots(host);
 ////////////////////////////////////////////
 
 /* The snap servers -- entries in this table should always be inserted with a
-   rather small ttl that is periodically updated. */
+   very small ttl (e.g., 15 seconds) that is periodically updated. */
 CREATE TABLE snap_servers (
     id         uuid,
-    host       varchar,     /* hostname:port */
-    key        varchar,
+    host       varchar,     /* hostname */
+    port       int,         /* integer port */
+    key        varchar,     /* random string needed to unlock tcp connection */
+    size       int,         /* total size in kilobytes of the objects/pack directory of the archive */
     PRIMARY KEY(id)
 );
 
+CREATE TABLE snap_commits (
+    server_id  uuid,       /* matches the id of snap_servers table above */
+    project_id uuid,       /* id of the project */
+    timestamp  varchar,    /* date of commit, in the bup string format */
+    size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
+    dummy      boolean,    /* used if we want to enter a commit but don't know the size and don't want to change the size */
+    PRIMARY KEY(server_id, project_id, timestamp)
+);
 
-
+/* snap_ls_cache entries should always be inserted with a ttl (e.g., a few days) */
+CREATE TABLE snap_ls_cache (
+    project_id uuid,       /* id of the project */
+    timestamp  varchar,    /* date of commit, in the bup string format */
+    path       varchar,    /* path into the commit */
+    listing    varchar,    /* JSON */
+    PRIMARY KEY(project_id, timestamp, path)
+);
 
 
 ////////////////////////////////////////////
-// NOTE: This not actively planned to be used.
-// bup-based snapshosts stored in the database.
+// NOTE: This no longer used, since it didn't
+// turn out to be a good idea.
 ////////////////////////////////////////////
 
 /* Table of pack files attached to a project. This gives the entire snapshot history

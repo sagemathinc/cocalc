@@ -21,16 +21,32 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp
+   1. ATLAS:
 
-   update-alternatives --config java  # select "oracle java 6"
+         apt-get install libatlas3gf-base
+         cd /usr/lib/
+         ln -s libatlas.so.3gf libatlas.so
+         ln -s libcblas.so.3gf libcblas.so
+         ln -s libf77blas.so.3gf libf77blas.so
+
+   This line is in the .sagemathcloud env, so building sage is fast for users.
+
+         export SAGE_ATLAS_LIB="/usr/lib/"
 
 
-For users, do all the following:
 
-# EASY PACKAGES:
+   2. Install critical packages:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang
+         sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc
+
+   update-alternatives --config java  # select "oracle java 6"    # NOT 7!
+
+
+   3. Additional packages (mainly for users, not building).
+
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket ghc
+
+   # TODO -- more disk space, then include more haskell packages...
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
@@ -54,7 +70,11 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
   sudo apt-get install libntl-5.4.2 libpari-gmp3
   sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
 
-# Install Sage
+# Build Sage (as usual)
+
+export SAGE_ATLAS_LIB=/usr/lib/
+export MAKE="make -j20"
+make
 
 # Non-sage Python packages into Sage
 
@@ -62,13 +82,24 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 easy_install pip
 
-# pip install each of these in a row
+# pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
+# Execute this inside of sage:
 
-[os.system("pip install %s"%s) for s in 'markdown2 markdown2Mathjax virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap h5py netcdf4'.split()]
+[os.system("pip install %s"%s) for s in 'markdown2 markdown2Mathjax virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4'.split()]
+
+# basemap -- won't install through pip/easy_install, so we do this:
+
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz
+    tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install
 
 # Also, edit the banner:
 
-  sage-*/local/bin/sage-banner
+  local/bin/sage-banner
+
+        +--------------------------------------------------------------------+
+        | Sage Version 5.10.beta5, Release Date: 2013-05-26                  |
+        | Type "help()" for help.                                            |
+        +--------------------------------------------------------------------+
 
 # OPTIONAL SAGE PACKAGES
 
@@ -78,18 +109,32 @@ easy_install pip
 
    rm spkg/optional/*
 
+# Make a patch due to a bug in one of the spkg's (at least until "./sage -br" works):
+
+        diff --git a/sage/numerical/backends/coin_backend.pyx b/sage/numerical/backends/coin_backend.pyx
+        --- a/sage/numerical/backends/coin_backend.pyx
+        +++ b/sage/numerical/backends/coin_backend.pyx
+        @@ -1087,7 +1087,7 @@
+                     else:
+                         return ""
+                 else:
+        -            self.prob_name = name
+        +            self.prob_name = str(name)
+
+
+
 # 4ti2 into sage: until the optional spkg gets fixed:
 
-  cd /tmp/
-  wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
-  ./configure --prefix=/usr/local/sage/sage-*/local/
+  ./sage -sh
+  cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
+  ./configure --prefix=/usr/local/sage/current/local/
   time make -j16    # <20 seconds
   make install      # this *must* be a separate step!!
   cd ..; rm -rf 4ti2*
 
-Copy over the newest SageTex:
+# Copy over the newest SageTex, so it actually works:
 
-   sudo cp /usr/local/sage/sage-*/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+   sudo cp /usr/local/sage/current/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
 
 
 """
@@ -117,7 +162,7 @@ NODE_MODULES = [
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
-    'moment'
+    'moment', 'underscore'
     ]
 
 PYTHON_PACKAGES = [

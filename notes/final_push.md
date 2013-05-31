@@ -1,80 +1,47 @@
-### Time left
-Sun May 26: 8:45 - 11:30 (minus eating, etc.), so about 12 hours
-Mon May 27: 6:30 - 11:30 -- about 14 hours
+- [x] (0:21) `local_hub` -- make it so the PATH has $HOME/bin near the front always before starting sage server.  Then to run whatever version of sage you want with worksheets, all you have to do is put a link in $HOME/bin and restart the local hub (e.g., by typing `stop_smc` in Terminal.)
 
-#### (4:00?) deploy
+- [x] (0:45?) ui: button to restart local hub -- cleaner than typing `stop_smc` and will provide status
 
-- [ ] (1:00?) sunday -- deploy with snaps UI
-        - update salvus and system-wide and internal *bup*
+- [x] (0:45?) ui: button to restart local hub sage server with message (relayed via hub) to local hub that does the restart (handled by local hub)
 
-- [ ] (0:10?) delete backup persistent disks for cloud
+- [x] (0:45) usability: import more things in sage server before forking; in particular, draw a plot and compute an integral;  this massively speeds up drawing the first plot in a worksheet.
 
-- [ ] (1:00?) make quota work again, but make it 20GB for now.
-- [ ] (1:00?) monday -- deploy with bugfixes and project sharing
-- [ ] (1:00?) create a python doctest file that verifies each optional python package is actually installed...
-- [x] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
-      x - add these to build.py and install new apt-get packages
-      x - npm install moment
-      x - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
-      x - install database_pari-20130516 spkg
-      x - upgrade to newest bup from the website; fixes corruption issues.
-      x - instead have /mnt/snap
-      x - update salvus; remember to do ./make_coffee
-      x - test it on storm, including new snapshots being *made*.
-      x - deploy on cloud
+--> - [ ] (1:00?) (0:15+) THU cloud update:
+       x - terminal improvements (etc.)
+       x - install haskell (just ghc for now) and racket and add to build.py
+       x - updated snap
+       x - sage-5.10.rc1: http://boxen.math.washington.edu/home/release/sage-5.10.rc0/sage-5.10.rc0/
+       - UPDATE database schema!!
+            - various tables for snapshots
+            - project sage_path
+       - use the resend_all_commits in services for first startup, so that we don't loose all commits
+       - schema, services, restart
 
-#### (7:00?) finish snapshotting implementation, including UI
-
-- [ ] (1:00?) snap: restore a file or path using "bup restore":
-       time bup restore 69a229be-5a5a-42be-a98b-fc6c40aa10f9/latest/. --outdir=/mnt/snap/0/
-
-- [ ] (1:00?) snap: rewrite to not use fuse so much (?) -- that was all to workaround bup being slow.
-
-- [ ] (1:00?) snap: write tcp client code (hub will use; other clients will use) -- `snap_client.coffee`
-
-- [ ] (1:30?) snap: implement UI to actually see/browse/restore files
-
-- [ ] (2:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
-
-- [ ] (1:30?) snap: store the list of projects (the `local_snapshots` information) instead of having to build it by using "bup fuse" (?)
-
-- [ ] (1:00?) snap: on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
-
-
-**Crazy Thoughts (?)**
-
-  - SHELF:  we shelve inactive projects after a certain amount of time of non-use (maybe 3 days).  This will probably be the vast majority of projects.  These will take very little space.   Shelving will involve saving a compressed tarball of the project in a bup archive, separate from the snap archive.
-
-  - COMPLETE RESTORE FROM SHELF: inactive projects will have to be "bup restore'd" when used, which will take "about 5-10 minutes"  if they are on the order of 5GB.
-
-  - ACTIVE: projects should be regularly rsync'd to another data center
-
-  - SNAPSHOTS: tons of states of every file in every project.
-
-
-- [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
-- [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
-
-- [ ] (2:00?) (0:50+) Snap *synchronization* is possible (!), i.e., we can make it so all snap servers have the same snapshots.  This worked perfectly.
-
-    BUP_DIR=~/tmp/b bup init
-    # use ls -lh on fuse mounted bup to figure out what commit points to
-    BUP_DIR=~/tmp/b bup index x/.commit/16/bf26f960b48698c61521c8513f00a3124747be
-    BUP_DIR=~/tmp/b bup save --strip -n f0c51934-9d09-4586-b8db-fd2e6f11e57e x/.commit/16/bf26f960b48698c61521c8513f00a3124747be/
-    BUP_DIR=~/tmp/b bup ls f0c51934-9d09-4586-b8db-fd2e6f11e57e/latest/
-
-#### (3:00?) very simple project sharing UI; fix that major bug I saw in class where anybody can get access to my worksheets.
+---
 
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
-- [ ] (1:30?) address the major issue I found in class where other people get access to `local_hub`!?
 
 
-#### (11:00?) misc
+- [ ] (1:00?) weird bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
+- [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
-- [ ] (2:00?) make it so terminal never disconnects;
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- [ ] (1:00?) (0:10+) fix terminal resize; bottom line is often cut off.
+- [ ] (1:00?) snap: ability to download files directly from snapshots
+- [ ] (1:00?) snap: preview file when clicked on
+- [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
+
+- [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
+
 - [ ] (2:00?) implement caching of files attached to worksheets longterm
+
+
+- [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
+
+- [ ] (1:30?) share: address the major issue I found in class where other people get access to `local_hub`!?
+
+- [ ] (2:00?) make it so terminals never disconnects;
+
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
 - [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
      html, do two things:
       (a) hide by default, and
@@ -95,9 +62,10 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 - [ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
 - [ ] (1:00?) make it possible to enable VIM keybindings in codemirror editor.
 - [ ] (1:00?) codemirror find is annoying -- make it better (so thing found is visible!)
-- [ ] (1:00?) set cloud atlas variable, so building sage from source is fast: https://mail.google.com/mail/u/0/?shva=1#search/cloud+atlas/13ed940a4d56a4fd
-- [x] (0:30?) (0:33) upgrade codemirror
-- [x] (0:15?) (0:04) upgrade jQuery
+- [ ] (1:00?) markdown -- there is no way to just insert a $.  Make \$ just $ without math....? somehow.
+
+- [ ] (1:00?) search should not include hidden files by default....
+
 
 ### (5:00?) re-enable responsive mode and implement layout stuff to work there.
 
@@ -112,7 +80,24 @@ Mon May 27: 6:30 - 11:30 -- about 14 hours
 ##################################
 
 
-# Later
+## Later
+
+- [ ] (2:00?) snap: redsign/rewrite to eliminate workarounds to bup being slow... (for later!)
+
+- [ ] (1:00?) snap: function to read in contents of a single file with bound on size (will be used for preview)
+
+- [ ] idea.... Snap *synchronization* is possible (!), i.e., we can make it so all snap servers have the same snapshots.  This works... except the meta-information is completely wrong.
+
+    BUP_DIR=~/tmp/b bup init
+    # use ls -lh on fuse mounted bup to figure out what commit points to
+    BUP_DIR=~/tmp/b bup index x/.commit/16/bf26f960b48698c61521c8513f00a3124747be
+    BUP_DIR=~/tmp/b bup save --strip -n f0c51934-9d09-4586-b8db-fd2e6f11e57e x/.commit/16/bf26f960b48698c61521c8513f00a3124747be/
+    BUP_DIR=~/tmp/b bup ls f0c51934-9d09-4586-b8db-fd2e6f11e57e/latest/
+
+
+- [ ] (1:30?) svg.js ? http://www.svgjs.com/
+
+- [ ] (1:30?) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 
 - [ ] (1:00?) show(animate) -- make it work
 - [ ] (1:00?) when user exits terminal, restart terminal automatically... when they hit a key?
@@ -2036,4 +2021,112 @@ PLAN:  create something as above as a TCP *service* called "snap".
 
 [x] (1:00?) install the pari optional packages into the cloud vm, and figure out how to automate this: http://pari.math.u-bordeaux.fr/packages.html
 
+
+
+#### (4:00?) deploy
+
+- [x] (3:00?) monday -- deploy with snaps UI
+        x - update salvus and system-wide and internal *bup*
+          - (1:00?) install sage-5.10.beta5
+          - (1:00?) make quota work again, but make it 20GB for now.
+          - (1:00?) test minimal project sharing
+
+- [x] (0:10?) (0:04) delete backup persistent disks for cloud
+- [x] (1:00?) sat deploy with new sage and packages, and new snapshots running, so at least I'll have all project bups by sunday morning to play with.
+      x - add these to build.py and install new apt-get packages
+      x - npm install moment
+      x - new version of sage: http://sage.math.washington.edu/home/release/sage-5.10.beta4/
+      x - install database_pari-20130516 spkg
+      x - upgrade to newest bup from the website; fixes corruption issues.
+      x - instead have /mnt/snap
+      x - update salvus; remember to do ./make_coffee
+      x - test it on storm, including new snapshots being *made*.
+      x - deploy on cloud
+
+#### (7:00?) finish snapshotting implementation, including UI
+
+- [x] (1:00?) (1:05) snap: define messages and write code in hub to handle messages related to client browsing snapshots
+
+- [x] (1:00?) (1:00) snap: implement UI to actually browse files.
+
+- [x] (0:30?) (0:12) snap: UI -- icon to bring up list of all snapshots
+
+- [x] (1:00?) snap: UI -- replace file actions/buttons with one button to restore the file -- brings up confirmation dialog, then issues the command.
+
+
+
+- [x] (1:00?) (0:26) re-deploy:
+    x - apt-get install sloccount
+    x - undo my addition to /etc/profile of SAGE_ATLAS_LIB
+
+cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git && ./make_coffee
+- [x] (0:05) fix SAGE_ATLAS_LIB setting problem -- good test is '~/.sagemathcloud$ ssh salvus@localhost "export"'
+
+- [x] (0:30?) (0:15) snap: BUG -- if path contains a broken symlink, then directory listing doesn't work in snap server.
+
+- [x] (0:30?) (1:01) snap: must first verify that the target path exists (mkdir -p or some option to rsync) before doing the rsync.
+
+- [x] (2:00?) snap: get this to actually work on cloud; deploy, test., etc. -- on cloud it seems that maybe the snap servers hang during startup, due to project issues, etc., but log doesn't tell us anything, since it isn't showing debug messages; definitely not everything got backed up, e.g., "0d2416e5-ee0a-41ce-a882-7a0547a02654" on web2.;  another issue could be corrupt $HOME/.bup.  According to database about 10 projects don't get backed up.
+
+- [x] (2:00?) (1:48) snap: write tcp client/server code
+- [x] (0:30?) (1:06) snap: make it so the new deployed snapshots are in a new 1TB /mnt/snap/ (editing conf file); fixed several bugs, especially with running snap as a daemon.
+- [x] (0:45?) (3:49) snap: get listing of files in project snapshot -- this took way longer than expected!
+- [x] (1:00?) (3:00) snap: restore a file or path using "bup restore":
+- [x] (1:00?) (1:25) snap: function to show history of file, i.e., list of timestamps where it changed
+          <https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg>
+          Do this both with and without .bup
+               git log --pretty="%b" --follow f0c51934-9d09-4586-b8db-fd2e6f11e57e -- ./buffering2.sagews.bup
+          then take output of this form
+               '-d', '1369677923',
+          Get our timestamp from that number using
+                "timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')"
+
+
+- [x] (1:00?) set cloud atlas variable, so building sage from source is fast: https://mail.google.com/mail/u/0/?shva=1#search/cloud+atlas/13ed940a4d56a4f
+- [x] (0:30?) (0:33) upgrade codemirror
+- [x] (0:15?) (0:04) upgrade jQuery
+
+
+- [x] (1:00?) (0:10+) (1:30) UI: fix terminal resize; bottom line is often cut off.
+
+- [x] (0:30) (0:32) UI: make it so the buttons at the top of a project aren't href links, so tooltex doesn't appear
+
+- [x] (0:20?) (1:00) Fix `worksheet.worksheet.execute_code` thing, plus document in `javascript?
+
+- [x] (0:30?) snap: make it so fact that each snapshot is made is stored in the database
+
+- [x] (0:30?) (0:43) snap: make it so size change is stored as part of the snapshot entry in db, after every snapshot; this will make it at least possible at some point to defend against malacious or stupid attacks.
+
+- [x] (1:00?) (1:28) snap: in hub, return list of commits via a database query using information about working snap_servers, instead of consulting the snapshot servers; this makes it trivial/fast to aggregate dozens of snap servers.
+
+- [x] (1:00?) snap: rewrite snap ls in hub to query database, and try (in turn until success) for servers with the requested snapshot (so nothing random)
+
+- [x] (0:45?) snap: in hub, cache directory listings for project snapshots, since they are invariant,  use a ttl so don't waste space.
+
+- [x] (0:30?) (0:30) snap: get rid of use of fuse for directory listings
+
+- [x] (0:45?) (0:15) snap: for restore -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
+
+- [x] (0:15?) (0:06) snap: for log -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
+
+- [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
+
+
+# snap thoughts:
+- Could include a max size column in `snap_servers` table
+- Could include info about location (dc:rack) in `snap_servers` table
+- Could have command where hub asks snapshot server to make a snapshot instead of snapshot servers doing it themselves
+- Hubs would then ensure an even distribution of data, sharding, etc.
+- [x] (0:45?) (0:50) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either. (also fix --  BUG -- when getting snapshot in a directory in a directory, e.g., .snapshot/date/salvus/salvus.)
+- [x] (0:30?) (0:38) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
+- [x] (0:30?) snap: delete unused/no longer used code
+
+
+- [x] (0:45?) (0:42) snap UI: show directory listing first by day, then time
+
+- [x] (0:30?) (0:19) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.; also fix some bugs introduced earlier in getting rid of # href's.
+
+- [x] (0:15?) (0:10) snap ui: clicking on filename at least do *something*.
+
+- [x] (0:30?) (0:05) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
 

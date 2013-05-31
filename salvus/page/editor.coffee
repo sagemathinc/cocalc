@@ -377,7 +377,7 @@ class exports.Editor
             @tabs[filename] = @create_tab(filename:filename)
 
     file_options: (filename, content) =>   # content may be undefined
-        ext = filename_extension(filename)
+        ext = filename_extension(filename)?.toLowerCase()
         if not ext? and content?   # no recognized extension, but have contents
             ext = guess_file_extension_type(content)
         x = file_associations[ext]
@@ -1530,6 +1530,8 @@ class Terminal extends FileEditor
         if @console?
             e = $(@console.terminal.element)
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
+            # We leave a gap at the bottom of the screen, because often the
+            # cursor is at the bottom, but tooltips, etc., would cover that.
             e.height($(window).height() - top - 6)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus()

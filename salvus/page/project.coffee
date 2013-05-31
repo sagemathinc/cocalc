@@ -7,6 +7,7 @@
 {IS_MOBILE} = require("feature")
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
+message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
@@ -19,6 +20,8 @@ MAX_TITLE_LENGTH = 15
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
 template_project_directory     = templates.find(".project-directory-link")
+template_project_file_snapshot      = templates.find(".project-file-link-snapshot")
+template_project_directory_snapshot = templates.find(".project-directory-link-snapshot")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
 template_new_file_link         = templates.find(".project-new-file-link")
@@ -164,7 +167,10 @@ class ProjectPage
         @init_refresh_files()
         @init_hidden_files_icon()
         @init_trash_link()
+        @init_snapshot_link()
         @init_project_download()
+        @init_project_restart()
+        @init_worksheet_server_restart()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
@@ -515,7 +521,7 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : command
-            timeout    : 3
+            timeout    : 15
             max_output : 100000
             bash       : true
             path       : @current_pathname()
@@ -630,17 +636,22 @@ class ProjectPage
         that = @
         for item in @container.find(".project-pages").children()
             t = $(item)
-            target = t.find("a").attr('href')
+            target = t.find("a").data('target')
             if not target?
                 continue
-            t.find('a').tooltip(delay:{ show: 500, hide: 100 })
-            name = target.slice(1)
+
+            # activate any a[href=...] links elsewhere on the page
+            @container.find("a[href=##{target}]").data('target',target).click () ->
+                that.display_tab($(@).data('target'))
+                return false
+
+            t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
+            name = target
             tab = {label:t, name:name, target:@container.find(".#{name}")}
             @tabs.push(tab)
 
-            # Make all links on this page go to this target.
-            @container.find("a[href=#{target}]").data('name',name).click () ->
-                that.display_tab($(@).data("name"))
+            t.find("a").click () ->
+                that.display_tab($(@).data("target"))
                 return false
 
             if name == "project-file-listing"
@@ -762,17 +773,20 @@ class ProjectPage
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "SMC: #{@project.title}"
 
-        usage = @container.find(".project-disk_usage")
-        usage.text('...')
-        salvus_client.exec
-            project_id : @project.project_id
-            command    : 'du -sch --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage .'
-            timeout    : 10
-            cb         : (err, output) =>
-                if not err
-                    usage.text(output.stdout)
-                else
-                    usage.text("unable to compute -- #{err}")
+        if not (@_computing_usage? and @_computing_usage)
+            usage = @container.find(".project-disk_usage")
+            # --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage
+            @_computing_usage = true
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : 'du -sch .'
+                timeout    : 360
+                cb         : (err, output) =>
+                    delete @_computing_usage
+                    if not err
+                        usage.text(output.stdout)
+                    else
+                        usage.text("(timed out running 'du -sch .')")
 
         return @
 
@@ -965,6 +979,7 @@ class ProjectPage
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
+        #console.log("current_path = ", @current_path)
         # Update the display of the path above the listing or file preview
         @update_current_path()
 
@@ -985,7 +1000,7 @@ class ProjectPage
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
-                    console.log("error")
+                    console.log("error", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
@@ -1059,11 +1074,21 @@ class ProjectPage
                 # Show the files
                 for obj in listing['files']
                     if obj.isdir? and obj.isdir
-                        t = template_project_directory.clone()
+                        if obj.snapshot?
+                            t = template_project_directory_snapshot.clone()
+                            if obj.snapshot == ''
+                                t.find(".btn").hide()
+                        else
+                            t = template_project_directory.clone()
+                            t.droppable(drop:file_dropped_on_directory, scope:'files')
                         t.find(".project-directory-name").text(obj.name)
-                        t.droppable(drop:file_dropped_on_directory, scope:'files')
                     else
-                        t = template_project_file.clone()
+                        if obj.snapshot?
+                            t =  template_project_file_snapshot.clone()
+                            if obj.snapshot == ''
+                                t.find(".btn").hide()
+                        else
+                            t = template_project_file.clone()
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
                             name = obj.name.slice(0,obj.name.length - ext.length - 1)
@@ -1090,7 +1115,7 @@ class ProjectPage
                     #end if
 
                     # Define file actions using a closure
-                    @_init_listing_actions(t, path, obj.name, obj.isdir? and obj.isdir)
+                    @_init_listing_actions(t, path, obj.name, obj.isdir? and obj.isdir, obj.snapshot?)
 
                     # Drag handle for moving files via drag and drop.
                     handle = t.find(".project-file-drag-handle")
@@ -1115,7 +1140,7 @@ class ProjectPage
                 @update_file_search()
 
                 # No files
-                if directory_is_empty and path != ".trash"
+                if directory_is_empty and path != ".trash" and path.slice(0,9) != ".snapshot"
                     @container.find(".project-file-listing-no-files").show()
                 else
                     @container.find(".project-file-listing-no-files").hide()
@@ -1124,7 +1149,7 @@ class ProjectPage
                     return
                 @focus_file_search()
 
-    _init_listing_actions: (t, path, name, isdir) =>
+    _init_listing_actions: (t, path, name, isdir, is_snapshot) =>
         if path != ""
             fullname = path + '/' + name
         else
@@ -1133,6 +1158,71 @@ class ProjectPage
         t.data('name', fullname)  # save for other uses outside this function
 
         b = t.find(".project-file-buttons")
+
+        open = () =>
+            if isdir
+                @current_path.push(name)
+                @update_file_list_tab()
+            else
+                @open_file(fullname)
+            return false
+
+        if not is_snapshot or isdir
+            # Opening a file
+            file_link = t.find("a[href=#open-file]")
+            file_link.click open
+
+            # Clicking on link -- open the file
+            t.click open
+
+
+        if is_snapshot
+
+            restore = () =>
+                n = fullname.slice(".snapshot/xxxx-xx-xx/".length)
+                i = n.indexOf('/')
+                if i != -1
+                    snapshot = n.slice(0,i)
+                    path = n.slice(i+1)
+                else
+                    snapshot = n
+                    path = '.'
+                m = "Are you sure you want to <b>overwrite</b> '#{path}' with the version from #{snapshot}?  Any modified overwritten files will be moved to the trash before being overwritten."
+                bootbox.confirm m, (result) =>
+                    if result
+                        alert_message
+                            type    : "info"
+                            timeout : 3
+                            message : "Restoring '#{snapshot}/#{path}'... (this can take a few minutes)"
+                        salvus_client.call
+                            message:
+                                message.snap
+                                    command    : 'restore'
+                                    project_id : @project.project_id
+                                    snapshot   : snapshot
+                                    path       : path
+                                    timeout    : 1800
+                            timeout :
+                                1800
+                            cb : (err, resp) =>
+                                if err or resp.event == 'error'
+                                    alert_message(type:"error", message:"Error restoring '#{path}'")
+                                else
+                                    x = path.split('/')
+                                    @current_path = x.slice(0, x.length-1)
+                                    @update_file_list_tab()
+                                    alert_message(type:"success", message:"Restored '#{path}' from #{snapshot}.")
+
+                return false
+
+            t.find("a[href=#restore]").click(restore)
+
+            # This is temporary -- open-file should show a preview and changelog, but that will
+            # take some time to implement.
+            if not isdir
+                t.find("a[href=#open-file]").click(restore)
+
+            return
 
         # Show project file buttons on hover only
         if not IS_MOBILE
@@ -1157,21 +1247,6 @@ class ProjectPage
                 cb   : () =>
                     del.find(".spinner").hide()
             return false
-
-        open = () =>
-            if isdir
-                @current_path.push(name)
-                @update_file_list_tab()
-            else
-                @open_file(fullname)
-            return false
-
-        # Opening a file
-        file_link = t.find("a[href=#open-file]")
-        file_link.click open
-
-        # Clicking on link -- open the file
-        t.click open
 
         # Renaming a file
         rename_link = t.find('a[href=#rename-file]')
@@ -1361,13 +1436,81 @@ class ProjectPage
                     link.find(".spinner").hide()
             return false
 
+    init_worksheet_server_restart: () =>
+        # Restart worksheet server
+        link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
+        link.click () =>
+            link.find(".spinner").show()
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : "sage_server stop; sage_server start"
+                timeout    : 10
+                cb         : (err, output) =>
+                    link.find(".spinner").hide()
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Error trying to restart worksheet server.  Try restarting the project instead."
+                    else
+                        alert_message
+                            type    : "info"
+                            message : "Worksheet server restarted.  Newly (re-)started worksheets will fork off from the newly started Sage session."
+                            timeout : 4
+            return false
+
+
+    init_project_restart: () =>
+        # Restart local project server
+        link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
+        link.click () =>
+            link.find(".spinner").show()
+            alert_message
+                type    : "info"
+                message :"Restarting project server.  This should take around 15 seconds..."
+                timeout : 10
+
+            project_id = @project.project_id
+            salvus_client.exec
+                project_id : project_id
+                command    : 'stop_smc'
+                timeout    : 3
+                cb         : () =>
+                    # We do something else now, which will trigger the hub to notice the
+                    # server is down and restart it.
+                    f = () ->
+                        salvus_client.exec
+                            project_id : project_id
+                            command    : 'ls'  # doesn't matter
+                            timeout    : 3
+                            cb         : (err, output) =>
+                                if err
+                                    f()
+                                else
+                                    link.find(".spinner").hide()
+                                    alert_message
+                                        type    : "success"
+                                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                                        timeout : 2
+                    f()
+            return false
+
+    init_snapshot_link: () =>
+        @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
+            @visit_snapshot()
+            return false
+
+    # browse to the snapshot viewer.
+    visit_snapshot: () =>
+        @current_path = ['.snapshot']
+        @update_file_list_tab()
+
     init_trash_link: () =>
         @container.find("a[href=#trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_trash()
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>You can't undo this.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id

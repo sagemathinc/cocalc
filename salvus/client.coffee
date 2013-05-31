@@ -1,6 +1,7 @@
 {EventEmitter} = require('events')
 
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
+_     = require('underscore')
 
 diffsync = require('diffsync')
 
@@ -1104,16 +1105,100 @@ class exports.Connection extends EventEmitter
     #################################################
     # File Management
     #################################################
+    project_snap_listing: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : '.'
+            start      : 0
+            limit      : 200
+            timeout    : 60
+            hidden     : false
+            cb         : required
+
+        day = undefined
+        if opts.path.length == 10 # specifies a day
+            snapshot = undefined
+            day = opts.path
+        else if opts.path.length > 10
+            opts.path = opts.path.slice(11)
+            i = opts.path.indexOf('/')
+            if i == -1
+                snapshot = opts.path
+                path = '.'
+            else
+                snapshot = opts.path.slice(0,i)
+                path = opts.path.slice(i+1)
+        else
+            snapshot = undefined
+            path = "."
+
+        @call
+            message:
+                message.snap
+                    command    : 'ls'
+                    project_id : opts.project_id
+                    snapshot   : snapshot
+                    path       : path
+                    timeout    : opts.timeout
+
+            timeout :
+                opts.timeout
+
+            cb : (err, resp) ->
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    if not snapshot?
+                        if day?
+                            files = ( {name:name, isdir:true, snapshot:''} for name in resp.list when name.slice(0,10) == day )
+
+                        else
+                            # list of all days with branches
+                            v = _.uniq( ( name.slice(0,10) for name in resp.list ) )
+                            files = ( {name:name, isdir:true, snapshot:''} for name in v )
+                    else
+                        files = []
+                        for name in resp.list
+                            if not opts.hidden and name[0] == '.'
+                                continue
+                            if name[name.length-1] == '/'
+                                files.push({name:name.slice(0,name.length-1), isdir:true, snapshot:snapshot})
+                            else
+                                files.push({name:name, snapshot:snapshot})
+                    opts.cb(false, {files:files})
+
+
     project_directory_listing: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : '.'
             time       : false
             start      : 0
-            limit      : 100
+            limit      : 200
             timeout    : 60
             hidden     : false
             cb         : required
+
+        if opts.path.slice(0,9) == ".snapshot"
+            delete opts.time  # no way to sort by time
+            opts.path = opts.path.slice(9)
+            if opts.path.length > 0 and opts.path[0] == '/'
+                opts.path = opts.path.slice(1)  # delete leading slash
+
+            tries = 0
+            cb = opts.cb
+            # TODO: Try multiple times since server just gives an error on backend failure.
+            f = (err, result) =>
+                if err and tries < 2
+                    tries += 1
+                    @project_snap_listing(opts)
+                else
+                    cb(err, result)
+            opts.cb = f
+            @project_snap_listing(opts)
+            return
 
         args = []
         if opts.time
@@ -1139,7 +1224,10 @@ class exports.Connection extends EventEmitter
                 else if output.exit_code
                     opts.cb(output.stderr)
                 else
-                    opts.cb(err, misc.from_json(output.stdout))
+                    v = misc.from_json(output.stdout)
+                    if opts.path == '.' and opts.hidden
+                        v.files.unshift({name:'.snapshot', isdir:true})
+                    opts.cb(err, v)
 
 
 #################################################

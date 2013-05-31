@@ -2,6 +2,8 @@ export SAGEMATHCLOUD="$HOME/.sagemathcloud"
 P="$SAGEMATHCLOUD"
 
 # If for some reason you ever change this, also possibly change the Python code in "build".
-export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$PATH
+export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$HOME/bin:$PATH
 export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 
+# For people building Sage from source.
+export SAGE_ATLAS_LIB=/usr/lib/

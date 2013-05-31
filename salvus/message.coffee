@@ -561,7 +561,7 @@ message
 
 
 
-############################################
+#############################################
 # Scratch worksheet
 #############################################
 message
@@ -703,6 +703,23 @@ message
     bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs in separate messages.
 
 
+
+#############################################
+#
+# Client/user browsing snapshots of a project, restoring, etc.
+#
+#############################################
+message
+    event          : 'snap'
+    id             : undefined
+    command        : required    # 'ls', 'restore', 'log'
+    project_id     : required
+    # if snapshot not given, then command must be "ls", and server returns a list of available snapshots in reverse order
+    snapshot       : undefined
+    path           : '.'         # when 'ls', returns listing of files in this path (if snapshot given), with slash
+                                 # at end of filename to denote a directory.
+    timeout        : 600         # how long to wait for response from the snap server before sending an error
+    list           : undefined   # response message is of same type, but has this filled in for 'ls' and 'log' commands.
 
 
 ######################################################################
