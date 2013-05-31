@@ -2,9 +2,9 @@
 
 - [x] (0:30?) (0:19) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.; also fix some bugs introduced earlier in getting rid of # href's.
 
-- [ ] (0:15?) snap ui: clicking on filename at least do *something*.
+- [x] (0:15?) (0:10) snap ui: clicking on filename at least do *something*.
 
---> - [ ] (0:30?) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
+- [x] (0:30?) (0:05) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
 
 - [ ] (2:00?) sage: ability to run `sage_server` with a chosen copy of sage
 
