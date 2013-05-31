@@ -333,7 +333,7 @@ class SageSessions
                 else
                     @_new_session(client_socket, mesg, port)
 
-    _new_session: (client_socket, mesg, port) =>
+    _new_session: (client_socket, mesg, port, retries) =>
         winston.debug("Creating new sage session")
         # Connect to port, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
@@ -341,9 +341,19 @@ class SageSessions
             token : secret_token
             cb    : (err, sage_socket) =>
                 if err
-                    forget_port('sage')
-                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
                     winston.debug("_new_session: sage session denied connection: #{err}")
+                    forget_port('sage')
+                    if not retries? or retries <= 3
+                        if not retries?
+                            retries = 1
+                        else
+                            retries += 1
+                        try_again = () =>
+                            @_new_session(client_socket, mesg, port, retries)
+                        setTimeout(try_again, (retries-1)*1000)
+                    else
+                        # give up.
+                        client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
                     return
                 else
                     winston.debug("Successfully unlocked a sage session connection.")

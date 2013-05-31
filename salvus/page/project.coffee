@@ -169,6 +169,8 @@ class ProjectPage
         @init_trash_link()
         @init_snapshot_link()
         @init_project_download()
+        @init_project_restart()
+        @init_worksheet_server_restart()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
@@ -1432,6 +1434,64 @@ class ProjectPage
                 prefix : 'project'
                 cb     : (err) =>
                     link.find(".spinner").hide()
+            return false
+
+    init_worksheet_server_restart: () =>
+        # Restart worksheet server
+        link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
+        link.click () =>
+            link.find(".spinner").show()
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : "sage_server stop; sage_server start"
+                timeout    : 10
+                cb         : (err, output) =>
+                    link.find(".spinner").hide()
+                    if err
+                        alert_message
+                            type    : "error"
+                            message : "Error trying to restart worksheet server.  Try restarting the project instead."
+                    else
+                        alert_message
+                            type    : "info"
+                            message : "Worksheet server restarted.  Newly (re-)started worksheets will fork off from the newly started Sage session."
+                            timeout : 4
+            return false
+
+
+    init_project_restart: () =>
+        # Restart local project server
+        link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
+        link.click () =>
+            link.find(".spinner").show()
+            alert_message
+                type    : "info"
+                message :"Restarting project server.  This should take around 15 seconds..."
+                timeout : 10
+
+            project_id = @project.project_id
+            salvus_client.exec
+                project_id : project_id
+                command    : 'stop_smc'
+                timeout    : 3
+                cb         : () =>
+                    # We do something else now, which will trigger the hub to notice the
+                    # server is down and restart it.
+                    f = () ->
+                        salvus_client.exec
+                            project_id : project_id
+                            command    : 'ls'  # doesn't matter
+                            timeout    : 3
+                            cb         : (err, output) =>
+                                if err
+                                    f()
+                                else
+                                    link.find(".spinner").hide()
+                                    alert_message
+                                        type    : "success"
+                                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                                        timeout : 2
+                    f()
             return false
 
     init_snapshot_link: () =>

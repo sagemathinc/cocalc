@@ -12,17 +12,17 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ###########
 # Backend server code:
 ###########
-coffee -o node_modules -c *.coffee
+time coffee -o node_modules -c *.coffee
 
 ###########
 # Code shared between backend servers and web browser clients
 ###########
 # do this in the background
-browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
-      uglifyjs2 static/salvus.js -o static/salvus.min.js && \
-      coffee -b -o page/temp page/*.coffee && \
-      gen_page && \
-      uglifyjs2 static/index.js -o static/index.min.js 
+time browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
+      time uglifyjs2 static/salvus.js -o static/salvus.min.js && \
+      time coffee -b -o page/temp page/*.coffee && \
+      time gen_page && \
+      time uglifyjs2 static/index.js -o static/index.min.js 
 
 ls -lh static/salvus.js
 

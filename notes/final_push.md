@@ -1,11 +1,10 @@
-project -- ability to run `sage_server` with a chosen copy of sage
+- [x] (0:21) `local_hub` -- make it so the PATH has $HOME/bin near the front always before starting sage server.  Then to run whatever version of sage you want with worksheets, all you have to do is put a link in $HOME/bin and restart the local hub (e.g., by typing `stop_smc` in Terminal.)
 
-- [ ] (0:21) `local_hub` -- make it so the PATH has $HOME/bin near the front always before starting sage server.  Then to run whatever version of sage you want with worksheets, all you have to do is put a link in $HOME/bin and restart the local hub (e.g., by typing `stop_smc` in Terminal.)
+- [x] (0:45?) ui: button to restart local hub -- cleaner than typing `stop_smc` and will provide status
 
---> - [ ] (1:00?) add `--sage_path` option to `start_smc` and `restart_smc`
-- [ ] (0:45?) ui: add `sage_path` field to projects schema and add to UI the ability to set it (so messages, etc.)
-- [ ] (0:45?) hub: when hub starts local hub, make it pass in the `sage_path` from the database
-- [ ] (0:45?) ui: button to restart entire local hub (must be owner to do this)
+- [x] (0:45?) ui: button to restart local hub sage server with message (relayed via hub) to local hub that does the restart (handled by local hub)
+
+- [x] (0:45) usability: import more things in sage server before forking; in particular, draw a plot and compute an integral;  this massively speeds up drawing the first plot in a worksheet.
 
 - [ ] (1:00?) (0:15+) THU cloud update:
        x - terminal improvements (etc.)
@@ -17,13 +16,13 @@ project -- ability to run `sage_server` with a chosen copy of sage
             - project sage_path
        - use the resend_all_commits in services for first startup, so that we don't loose all commits
 
-- [ ] (0:45?) ui: button to restart local hub sage server with message (relayed via hub) to local hub that does the restart (handled by local hub)
-
 
 ---
 
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 
+
+- [ ] (1:00?) weird bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
 - [ ] (1:00?) snap: ability to download files directly from snapshots

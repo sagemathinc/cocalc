@@ -944,7 +944,7 @@ def serve(port, host):
     # easily get put in a broken state after fork that impacts future forks... ?
     #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
 
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy;" in namespace
+    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
 
     for k,v in sage_salvus.interact_functions.iteritems():
