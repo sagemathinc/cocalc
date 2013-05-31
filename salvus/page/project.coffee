@@ -1179,7 +1179,7 @@ class ProjectPage
         if is_snapshot
 
             restore = () =>
-                n = fullname.slice(".snapshot/".length)
+                n = fullname.slice(".snapshot/xxxx-xx-xx/".length)
                 i = n.indexOf('/')
                 if i != -1
                     snapshot = n.slice(0,i)

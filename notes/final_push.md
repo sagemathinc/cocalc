@@ -15,7 +15,7 @@
             - various tables for snapshots
             - project sage_path
        - use the resend_all_commits in services for first startup, so that we don't loose all commits
-
+       - schema, services, restart
 
 ---
 
