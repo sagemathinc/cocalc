@@ -505,7 +505,7 @@ class Hub(Process):
 ####################
 class Snap(Process):
     def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
-                 snap_dir=None, logfile=None, pidfile=None):
+                 snap_dir=None, logfile=None, pidfile=None, resend_all_commits=False):
         if pidfile is None:
             pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
         if logfile is None:
@@ -520,6 +520,7 @@ class Snap(Process):
                                       'start',
                                       '--host', host,
                                       '--database_nodes', monitor_database,
+                                      '--resend_all_commits', resend_all_commits,
                                       '--keyspace', keyspace,
                                       '--snap_dir', snap_dir,
                                       '--pidfile', pidfile,

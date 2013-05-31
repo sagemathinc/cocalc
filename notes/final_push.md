@@ -6,7 +6,7 @@
 
 - [x] (0:45) usability: import more things in sage server before forking; in particular, draw a plot and compute an integral;  this massively speeds up drawing the first plot in a worksheet.
 
-- [ ] (1:00?) (0:15+) THU cloud update:
+--> - [ ] (1:00?) (0:15+) THU cloud update:
        x - terminal improvements (etc.)
        x - install haskell (just ghc for now) and racket and add to build.py
        x - updated snap
