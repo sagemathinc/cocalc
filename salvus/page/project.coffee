@@ -1176,7 +1176,7 @@ class ProjectPage
 
         if is_snapshot
 
-            t.find("a[href=#restore]").click () =>
+            restore = () =>
                 n = fullname.slice(".snapshot/".length)
                 i = n.indexOf('/')
                 if i != -1
@@ -1185,7 +1185,7 @@ class ProjectPage
                 else
                     snapshot = n
                     path = '.'
-                m = "Are you sure you want to <b>overwrite</b> '#{path}' with the version from #{snapshot}, moving overwritten files to the trash?"
+                m = "Are you sure you want to <b>overwrite</b> '#{path}' with the version from #{snapshot}?  Any modified overwritten files will be moved to the trash before being overwritten."
                 bootbox.confirm m, (result) =>
                     if result
                         alert_message
@@ -1212,6 +1212,13 @@ class ProjectPage
                                     alert_message(type:"success", message:"Restored '#{path}' from #{snapshot}.")
 
                 return false
+
+            t.find("a[href=#restore]").click(restore)
+
+            # This is temporary -- open-file should show a preview and changelog, but that will
+            # take some time to implement.
+            if not isdir
+                t.find("a[href=#open-file]").click(restore)
 
             return
 

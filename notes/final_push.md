@@ -1,21 +1,16 @@
 - [x] (0:45?) (0:42) snap UI: show directory listing first by day, then time
 
-- [ ] (1:00?) snap: ability to download files directly from snapshots
-
-- [ ] (1:00?) snap: preview file when clicked on
-
 - [x] (0:30?) (0:19) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.; also fix some bugs introduced earlier in getting rid of # href's.
 
-- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
+- [ ] (0:15?) snap ui: clicking on filename at least do *something*.
+
+--> - [ ] (0:30?) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
 
 - [ ] (2:00?) sage: ability to run `sage_server` with a chosen copy of sage
 
-- [ ] (0:30?) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
+- [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
-- [ ] (2:00?) implement caching of files attached to worksheets longterm
-
-- [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
-
+- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 
 ---
 
@@ -27,9 +22,17 @@
        - UPDATE database schema!!
        - use the resend_all_commits in services for first startup, so that we don't loose all commits
 
-- [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
+
+
+- [ ] (1:00?) snap: ability to download files directly from snapshots
+- [ ] (1:00?) snap: preview file when clicked on
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
+
+- [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
+
+- [ ] (2:00?) implement caching of files attached to worksheets longterm
+
 
 - [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
 
