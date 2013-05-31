@@ -1,24 +1,20 @@
-- [x] (0:45?) (0:50) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either. (also fix --  BUG -- when getting snapshot in a directory in a directory, e.g., .snapshot/date/salvus/salvus.)
-
-- [x] (0:30?) (0:38) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
+- [ ] (0:45?) (0:42) snap UI: show directory listing first by day, then time
 
 - [ ] (1:00?) snap: preview file when clicked on
 
 - [ ] (1:00?) snap: ability to download files directly from snapshots
 
-- [ ] (0:30?) snap: delete all unushed/no longer used code
-
 - [ ] (0:30?) snap: change the message "Create or Import a File, Worksheet, Terminal or Directory..." when there are no snapshots of a project.
 
-# snap thoughts:
+- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 
-- Could include a max size column in `snap_servers` table
+- [ ] (2:00?) sage: ability to run `sage_server` with a chosen copy of sage
 
-- Could include info about location (dc:rack) in `snap_servers` table
+- [ ] (0:30?) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
 
-- Could have command where hub asks snapshot server to make a snapshot instead of snapshot servers doing it themselves
+- [ ] (2:00?) implement caching of files attached to worksheets longterm
 
-- Hubs would then ensure an even distribution of data, sharding, etc.
+- [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
 
 
 
@@ -30,18 +26,20 @@
        x - updated snap
        x - sage-5.10.rc1: http://boxen.math.washington.edu/home/release/sage-5.10.rc0/sage-5.10.rc0/
        - UPDATE database schema!!
+       - use the resend_all_commits in services for first startup, so that we don't loose all commits
 
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
-- [ ] (2:00?) snap: UI for previewing a file and seeing the history of changetimes for it
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
-- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
-- [ ] (0:30?) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
+
 - [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
+
 - [ ] (1:30?) share: address the major issue I found in class where other people get access to `local_hub`!?
+
 - [ ] (2:00?) make it so terminals never disconnects;
+
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- [ ] (2:00?) implement caching of files attached to worksheets longterm
+
 - [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
      html, do two things:
       (a) hide by default, and
@@ -2110,3 +2108,13 @@ cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git 
 - [x] (0:15?) (0:06) snap: for log -- in hub, when user requests a snapshot, use database to figure out which server has it, then use that server (or servers)
 
 - [x] (0:15?) (0:02+) local_hub output bursts: can one build sage with output going to terminal, or will it burst too quickly?   test started in "Sage GIT"... IT TURNS OUT, it "just works".
+
+
+# snap thoughts:
+- Could include a max size column in `snap_servers` table
+- Could include info about location (dc:rack) in `snap_servers` table
+- Could have command where hub asks snapshot server to make a snapshot instead of snapshot servers doing it themselves
+- Hubs would then ensure an even distribution of data, sharding, etc.
+- [x] (0:45?) (0:50) snap: get rid of the local_snapshots cache object -- I think we just don't need it.  Thus don't need fuse on startup either. (also fix --  BUG -- when getting snapshot in a directory in a directory, e.g., .snapshot/date/salvus/salvus.)
+- [x] (0:30?) (0:38) snap: command line option so that snap server will enter *all* of its commits into the database under its current server_id.
+- [x] (0:30?) snap: delete unused/no longer used code

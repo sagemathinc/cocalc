@@ -1068,6 +1068,8 @@ class ProjectPage
                     if obj.isdir? and obj.isdir
                         if obj.snapshot?
                             t = template_project_directory_snapshot.clone()
+                            if obj.snapshot == ''
+                                t.find(".btn").hide()
                         else
                             t = template_project_directory.clone()
                             t.droppable(drop:file_dropped_on_directory, scope:'files')
@@ -1075,6 +1077,8 @@ class ProjectPage
                     else
                         if obj.snapshot?
                             t =  template_project_file_snapshot.clone()
+                            if obj.snapshot == ''
+                                t.find(".btn").hide()
                         else
                             t = template_project_file.clone()
                         if obj.name.indexOf('.') != -1
@@ -1199,7 +1203,7 @@ class ProjectPage
                                     x = path.split('/')
                                     @current_path = x.slice(0, x.length-1)
                                     @update_file_list_tab()
-                                    alert_message(type:"success", message:"Restored '#{path}'.")
+                                    alert_message(type:"success", message:"Restored '#{path}' from #{snapshot}.")
 
                 return false
 
