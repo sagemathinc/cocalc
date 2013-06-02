@@ -520,7 +520,7 @@ class Snap(Process):
                                       'start',
                                       '--host', host,
                                       '--database_nodes', monitor_database,
-                                      '--resend_all_commits', resend_all_commits,
+                                      #'--resend_all_commits', resend_all_commits,
                                       '--keyspace', keyspace,
                                       '--snap_dir', snap_dir,
                                       '--pidfile', pidfile,
