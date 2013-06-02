@@ -1,26 +1,39 @@
-- [x] (0:21) `local_hub` -- make it so the PATH has $HOME/bin near the front always before starting sage server.  Then to run whatever version of sage you want with worksheets, all you have to do is put a link in $HOME/bin and restart the local hub (e.g., by typing `stop_smc` in Terminal.)
+- [ ] (1:00?) update coffeescript to newest version
 
-- [x] (0:45?) ui: button to restart local hub -- cleaner than typing `stop_smc` and will provide status
+- [ ] (1:00?) snap: optimization -- can index projects in parallel
 
-- [x] (0:45?) ui: button to restart local hub sage server with message (relayed via hub) to local hub that does the restart (handled by local hub)
+- [ ] (1:00?) deploy:
+       - update bup install with speed fix (did it manually)
 
-- [x] (0:45) usability: import more things in sage server before forking; in particular, draw a plot and compute an integral;  this massively speeds up drawing the first plot in a worksheet.
+- [ ] (0:30?) ui: create new account/login screen still says "Salvus"
 
---> - [ ] (1:00?) (0:15+) THU cloud update:
-       x - terminal improvements (etc.)
-       x - install haskell (just ghc for now) and racket and add to build.py
-       x - updated snap
-       x - sage-5.10.rc1: http://boxen.math.washington.edu/home/release/sage-5.10.rc0/sage-5.10.rc0/
-       - UPDATE database schema!!
-            - various tables for snapshots
-            - project sage_path
-       - use the resend_all_commits in services for first startup, so that we don't loose all commits
-       - schema, services, restart
+- [ ] This bup ls fails, but all the ones around it are fine:
 
----
+    salvus@web4:/mnt/snap/snap0/bup$ BUP_DIR=/mnt/snap/snap0/bup bup ls -a fc9f1a7f-46ad-429e-a9ad-be31ce2a27f0/2013-06-01-090149
+    KeyError: "blob '29bd97b4f604f137b0e3dd721f5763fc330b79a1:' is missing"
+
+SOLN: For now, I could make snapshot, then check if it is valid.  If not, don't report it to DB at all.  This must be a BUP bug though...
+
+Another:
+
+   salvus@web1:/mnt/snap/snap0/bup$ BUP_DIR=. bup ls 3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/2013-06-01-181254
+
+Why is there a colon in the string above -- that colon suggests a parsing error, since a commit can't end in colon.
+
+- [ ] (1:00?) ui: if ping time hasn't been updated in a certain amount of time, replace by "..." (?)
+
+- [ ] (0:15?) snap/ui: search should be disabled when browsing snapshots
+
+- [ ] (1:00?) snap: having one snap fail shouldn't break snap starting up!
+
+- [ ] (1:00?) UI: renaming a long filename doesn't work.
 
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 
+- [ ] (1:00?) interact bug -- this doesn't output matrix first time:
+    @interact
+    def f(a = input_grid(2,2,[[1,2],[3,4]])):
+        print a
 
 - [ ] (1:00?) weird bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
@@ -82,18 +95,13 @@
 
 ## Later
 
+- [ ] snap: search through past snapshots: by filename
+
+- [ ] snap: search through past snapshots: by file content (no clue how to do that!)
+
 - [ ] (2:00?) snap: redsign/rewrite to eliminate workarounds to bup being slow... (for later!)
 
 - [ ] (1:00?) snap: function to read in contents of a single file with bound on size (will be used for preview)
-
-- [ ] idea.... Snap *synchronization* is possible (!), i.e., we can make it so all snap servers have the same snapshots.  This works... except the meta-information is completely wrong.
-
-    BUP_DIR=~/tmp/b bup init
-    # use ls -lh on fuse mounted bup to figure out what commit points to
-    BUP_DIR=~/tmp/b bup index x/.commit/16/bf26f960b48698c61521c8513f00a3124747be
-    BUP_DIR=~/tmp/b bup save --strip -n f0c51934-9d09-4586-b8db-fd2e6f11e57e x/.commit/16/bf26f960b48698c61521c8513f00a3124747be/
-    BUP_DIR=~/tmp/b bup ls f0c51934-9d09-4586-b8db-fd2e6f11e57e/latest/
-
 
 - [ ] (1:30?) svg.js ? http://www.svgjs.com/
 
@@ -2130,3 +2138,38 @@ cd salvus/salvus; . salvus-env; git pull git@github.com:williamstein/salvus.git 
 
 - [x] (0:30?) (0:05) UI/client: make file-type identification case insensitive, e.g., foo.JPG = BOOM/pain
 
+- [x] (0:21) `local_hub` -- make it so the PATH has $HOME/bin near the front always before starting sage server.  Then to run whatever version of sage you want with worksheets, all you have to do is put a link in $HOME/bin and restart the local hub (e.g., by typing `stop_smc` in Terminal.)
+
+- [x] (0:45?) ui: button to restart local hub -- cleaner than typing `stop_smc` and will provide status
+
+- [x] (0:45?) ui: button to restart local hub sage server with message (relayed via hub) to local hub that does the restart (handled by local hub)
+
+- [x] (0:45) usability: import more things in sage server before forking; in particular, draw a plot and compute an integral;  this massively speeds up drawing the first plot in a worksheet.
+
+- [x] (1:00?) (0:15+) THU cloud update:
+       x - terminal improvements (etc.)
+       x - install haskell (just ghc for now) and racket and add to build.py
+       x - updated snap
+       x - sage-5.10.rc1: http://boxen.math.washington.edu/home/release/sage-5.10.rc0/sage-5.10.rc0/
+       - UPDATE database schema!!
+            - various tables for snapshots
+            - project sage_path
+       - use the resend_all_commits in services for first startup, so that we don't loose all commits
+       - schema, services, restart
+
+
+- [x] (1:00?) optimize bup ls further!  This is getting slow:
+
+    salvus@web4:/mnt/snap/snap0/bup$ time BUP_DIR=. bup ls fc9f1a7f-46ad-429e-a9ad-be31ce2a27f0/latest
+    2013-06-01-PacificNorthwestNT/
+    real    0m10.866s
+    (then again using disk cache)
+    real    0m5.867s
+
+I pushed a new change to git.py, and now:
+
+    salvus@web4:/mnt/snap/snap0/bup$ time BUP_DIR=. bup ls fc9f1a7f-46ad-429e-a9ad-be31ce2a27f0/latest
+    2013-06-01-PacificNorthwestNT/
+    real    0m1.392s  {to 2.x seconds, depending on the trial}
+
+- [x] (1:00?) snap: I *HAD* to hack admin.py due to mistake in False versus false (and it sending everything to database again... then not going to next step).
