@@ -576,7 +576,10 @@ monitor_snapshot_queue = () ->
 
 
         ], (err) ->
-            cb?(err)
+            #cb?(err)
+            # Don't report an error for now, in order to ensure all other snapshots are made and system goes.
+            # We will see errors in the log, etc.
+            cb?()
             setTimeout(monitor_snapshot_queue, 50)
         )
     else
