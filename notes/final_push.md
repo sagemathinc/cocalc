@@ -1,11 +1,12 @@
-- [ ] (1:00?) update coffeescript to newest version
+- [x] (1:00?) (0:06) update coffeescript to newest version
 
 - [ ] (1:00?) snap: optimization -- can index projects in parallel
 
 - [ ] (1:00?) deploy:
        - update bup install with speed fix (did it manually)
+       - do "npm install -u coffee-script"
 
-- [ ] (0:30?) ui: create new account/login screen still says "Salvus"
+- [x] (0:30?) (0:21) ui: create new account/login screen still says "Salvus"
 
 - [ ] This bup ls fails, but all the ones around it are fine:
 
