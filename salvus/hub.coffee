@@ -839,6 +839,36 @@ class Client extends EventEmitter
                     cb(false, project)
         )
 
+    # Mark a project as "deleted" in the database.  This is non-destructive by design --
+    # as is almost everything in SMC.  Projects cannot be permanently deleted.
+    mesg_delete_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to delete a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return # error handled in get_project
+            project.delete_project
+                cb : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+    mesg_undelete_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to undelete a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return # error handled in get_project
+            project.undelete_project
+                cb : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
     mesg_create_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
@@ -909,7 +939,7 @@ class Client extends EventEmitter
         assert mesg.event == 'project_session_info'
         @get_project mesg, 'read', (err, project) =>
             if err
-                @error_to_client(id:mesg.id, error:err)
+                return
             else
                 project.call
                     mesg : mesg
@@ -2317,6 +2347,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_exec_on_local_hub "restart_smc", 30, (err, out) =>
             cb(err)
 
+    killall: (cb) =>
+        winston.debug("kill all processes running on this local hub (including the hub)")
+        @_exec_on_local_hub "killall -u #{@username}", 30, (err, out) =>
+            cb(err)
+
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status.local_hub and @_status.sage_server and @_status.console_server
             cb()
@@ -2533,6 +2568,23 @@ class Project
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
+
+    # Set project as deleted (which sets a flag in the database)
+    delete_project: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        database.delete_project
+            project_id : @project_id
+            cb         : opts.cb
+        @local_hub.killall()  # might as well do this to conserve resources
+
+
+    undelete_project: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        database.undelete_project
+            project_id : @project_id
+            cb         : opts.cb
 
     # Get current session information about this project.
     session_info: (cb) =>

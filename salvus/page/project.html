@@ -224,11 +224,6 @@
                                 <!-- Location:
                                 <span class="project-location"></span> -->
 
-                                <!-- Download the whole project -->
-                                <a href="#download-project" class="btn  btn-success">
-                                    <i class="icon-cloud-download"> </i> Download Project
-                                    <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
-                                </a>
 
                             </div>
 
@@ -243,27 +238,49 @@
                             <div class="project-project_description" contenteditable="true">
                             </div>
 
-                            <br>
                             <hr>
                             <!-- Disk usage of the project -->
                             <div>
                                 <h4>Disk usage</h4>
-                                <pre class="project-disk_usage">computing...
-</pre>
+                                <pre class="project-disk_usage">computing...</pre>
+                                <!-- Download the whole project -->
+                                <a href="#download-project" class="btn  btn-success">
+                                    <i class="icon-cloud-download"> </i> Download Project
+                                    <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
+                                </a>
                             </div>
 
                             <hr>
                             <div>
+                                <h4>Restart</h4>
+
                                 <!-- Restart the Sage worksheet server  -->
                                 <a href="#restart-worksheet-server" class="btn btn-warning"
                                     data-toggle="tooltip" data-placement="top" title="Restart your Sage Worksheet server.   You'll need to do this if you modify your own custom $HOME/bin/sage.  Newly (re-)started worksheets will use the updated version of Sage.">
                                     <i class="icon-refresh"> </i> Restart Worksheet Server
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
                                 </a>
+
                                 <!-- Restart the local hub  -->
-                                <a href="#restart-project" class="btn btn-danger"
+                                <a href="#restart-project" class="btn btn-warning"
                                     data-toggle="tooltip" data-placement="right" title="Restart this project server (this will kill all worksheet and console sessions).">
                                     <i class="icon-refresh"> </i> Restart Project Server
+                                    <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
+                                </a>
+
+                            </div>
+                            <hr>
+                            <div>
+                                <h4>Danger zone!</h4>
+                                <!-- Delete the project -->
+                                <a href="#delete-project" class="btn btn-danger"
+                                    data-toggle="tooltip" data-placement="right" title="Delete this project.">
+                                    <i class="icon-trash"> </i> Delete Project
+                                    <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
+                                </a>
+                                <a href="#undelete-project" class="btn btn-danger hide"
+                                    data-toggle="tooltip" data-placement="right" title="Undelete this project.">
+                                    <i class="icon-trash"> </i> Undelete Project
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
                                 </a>
                             </div>

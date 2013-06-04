@@ -168,9 +168,14 @@ class ProjectPage
         @init_hidden_files_icon()
         @init_trash_link()
         @init_snapshot_link()
+
         @init_project_download()
+
         @init_project_restart()
         @init_worksheet_server_restart()
+
+        @init_delete_project()
+        @init_undelete_project()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
@@ -277,6 +282,10 @@ class ProjectPage
     _update_file_listing_size: () =>
         elt = @container.find(".project-file-listing-container")
         elt.height($(window).height() - elt.offset().top)
+
+
+    close: () =>
+        top_navbar.remove_page(@project.project_id)
 
     ########################################
     # Launch open sessions
@@ -1435,6 +1444,59 @@ class ProjectPage
                 cb     : (err) =>
                     link.find(".spinner").hide()
             return false
+
+    init_delete_project: () =>
+        link = @container.find("a[href=#delete-project]")
+        if @project.deleted
+            link.hide()
+        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.delete_project
+                        project_id : @project.project_id
+                        timeout    : 30
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to delete project \"#{@project.title}\".   Please try again later. #{err}"
+                            else
+                                @close()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully deleted project \"#{@project.title}\".  (If this was a mistake, you can undelete the project from the Projects tab.)"
+                                    timeout : 5
+            return false
+
+    init_undelete_project: () =>
+        link = @container.find("a[href=#undelete-project]")
+        if @project.deleted
+            link.show()
+        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.undelete_project
+                        project_id : @project.project_id
+                        timeout    : 10
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to undelete project.  Please try again later. #{err}"
+                            else
+                                link.hide()
+                                @container.find("a[href=#delete-project]").show()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully undeleted project \"#{@project.title}\"."
+            return false
+
 
     init_worksheet_server_restart: () =>
         # Restart worksheet server
