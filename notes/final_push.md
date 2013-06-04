@@ -1,11 +1,5 @@
-- [x] (0:30?) (0:39) make it easier to "sign out" -- clear button with label.
-
-- [x] (2:45?) undelete/delete project; box in projects page to show list of deleted projects and undelete; improve listing of projects
-
-- [x] (0:30?) (0:05) confirm to navigate away from page
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
 - [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
 - [ ] (0:15?) snap/ui: search should be disabled when browsing snapshots
 - [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
@@ -24,30 +18,16 @@
        \{ foo \}
     \]
 - [ ] (0:30?) BUG: terminal path is not set correctly based on file path
-
 - [ ] (0:30?) make it so settings autosave; get rid of confusing "save"/cancel buttons, since they only do certain things...
-
-- [ ] (1:00?) deploy:
-       - update bup install with speed fix (did it manually)
-       - do "npm install -u coffee-script"
-       - make sure to pip install that package harald suggested
-
-
 - [ ] (1:00?) snap: optimization idea -- can index projects in parallel
-
 - [ ] (1:00?) ui: if ping time hasn't been updated in a certain amount of time, replace by "..." (?)
-
 - [ ] (1:00?) UI: renaming a long filename doesn't work.
-
 - [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
-
 - [ ] (1:00?) interact bug -- this doesn't output matrix first time:
     @interact
     def f(a = input_grid(2,2,[[1,2],[3,4]])):
         print a
-
 - [ ] (1:00?) weird bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
-
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
 - [ ] (1:00?) snap: ability to download files directly from snapshots
@@ -2182,4 +2162,16 @@ SOLN: For now, I could make snapshot, then check if it is valid.  If not, don't 
 Another:
    salvus@web1:/mnt/snap/snap0/bup$ BUP_DIR=. bup ls 3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/2013-06-01-181254
 Why is there a colon in the string above -- that colon suggests a parsing error, since a commit can't end in colon.
+
+
+- [x] (0:30?) (0:39) make it easier to "sign out" -- clear button with label.
+
+- [x] (2:45?) undelete/delete project; box in projects page to show list of deleted projects and undelete; improve listing of projects
+
+- [x] (0:30?) (0:05) confirm to navigate away from page
+
+- [x] (1:00?) (0:45) deploy:
+       x - update bup install with speed fix (did it manually)
+       x - do "npm install -u coffee-script" to upgrade coffeescript
+       x - make sure to pip install that package harald suggested
 
