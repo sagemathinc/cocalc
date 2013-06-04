@@ -1,13 +1,17 @@
-- [ ] (2:00?) make it so terminals never disconnects/hangs
+- [x] (1:00?) (1:00) ui features: make it so %md and %html hide by default and have a hide=False option.
+
+
+- [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
+       - open a worksheet or file to edit
+       - restart local hub, but do NOT restart global hub
+       - re-open the same file
+       - look at the log in hub, and see an "infinite loop" of reconnect attempts.
+       THIS is very serious.
+
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+- [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
 - [ ] (0:15?) snap/ui: search should be disabled when browsing snapshots
-- [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
-     html, do two things:
-      (a) hide by default, and
-      (b) have an option to not hide by default, if you don't want that,
-     e.g., %md(hide=False)
-     Similarly, maybe "%interact" should have %interact(auto=True) by default...
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
     %md
     $$\{ foo \}$$
