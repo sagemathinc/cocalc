@@ -1,61 +1,10 @@
-- [x] (1:00?) (0:06) update coffeescript to newest version
+- [x] (0:30?) (0:39) make it easier to "sign out" -- clear button with label.
 
-- [ ] (1:00?) snap: optimization -- can index projects in parallel
-
-- [ ] (1:00?) deploy:
-       - update bup install with speed fix (did it manually)
-       - do "npm install -u coffee-script"
-
-- [x] (0:30?) (0:21) ui: create new account/login screen still says "Salvus"
-
-- [ ] This bup ls fails, but all the ones around it are fine:
-
-    salvus@web4:/mnt/snap/snap0/bup$ BUP_DIR=/mnt/snap/snap0/bup bup ls -a fc9f1a7f-46ad-429e-a9ad-be31ce2a27f0/2013-06-01-090149
-    KeyError: "blob '29bd97b4f604f137b0e3dd721f5763fc330b79a1:' is missing"
-
-SOLN: For now, I could make snapshot, then check if it is valid.  If not, don't report it to DB at all.  This must be a BUP bug though...
-
-Another:
-
-   salvus@web1:/mnt/snap/snap0/bup$ BUP_DIR=. bup ls 3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/2013-06-01-181254
-
-Why is there a colon in the string above -- that colon suggests a parsing error, since a commit can't end in colon.
-
-- [ ] (1:00?) ui: if ping time hasn't been updated in a certain amount of time, replace by "..." (?)
-
-- [ ] (0:15?) snap/ui: search should be disabled when browsing snapshots
-
-- [ ] (1:00?) snap: having one snap fail shouldn't break snap starting up!
-
-- [ ] (1:00?) UI: renaming a long filename doesn't work.
-
-- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
-
-- [ ] (1:00?) interact bug -- this doesn't output matrix first time:
-    @interact
-    def f(a = input_grid(2,2,[[1,2],[3,4]])):
-        print a
-
-- [ ] (1:00?) weird bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
-- [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
-
-- [ ] (1:00?) snap: ability to download files directly from snapshots
-- [ ] (1:00?) snap: preview file when clicked on
-- [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
-
-- [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
-
-- [ ] (2:00?) implement caching of files attached to worksheets longterm
-
-
-- [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
-
-- [ ] (1:30?) share: address the major issue I found in class where other people get access to `local_hub`!?
-
-- [ ] (2:00?) make it so terminals never disconnects;
-
+- [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
+- [ ] (1:00?) delete project; box in projects page to show list of deleted projects and undelete.
+- [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
+- [ ] (0:15?) snap/ui: search should be disabled when browsing snapshots
 - [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,
      html, do two things:
       (a) hide by default, and
@@ -72,6 +21,46 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
        \{ foo \}
     \]
 - [ ] (0:30?) BUG: terminal path is not set correctly based on file path
+
+- [ ] (0:30?) make it so settings autosave; get rid of confusing "save"/cancel buttons, since they only do certain things...
+
+- [ ] (1:00?) deploy:
+       - update bup install with speed fix (did it manually)
+       - do "npm install -u coffee-script"
+       - make sure to pip install that package harald suggested
+
+
+- [ ] (1:00?) snap: optimization idea -- can index projects in parallel
+
+- [ ] (1:00?) ui: if ping time hasn't been updated in a certain amount of time, replace by "..." (?)
+
+- [ ] (1:00?) UI: renaming a long filename doesn't work.
+
+- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
+
+- [ ] (1:00?) interact bug -- this doesn't output matrix first time:
+    @interact
+    def f(a = input_grid(2,2,[[1,2],[3,4]])):
+        print a
+
+- [ ] (1:00?) weird bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
+
+- [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
+
+- [ ] (1:00?) snap: ability to download files directly from snapshots
+
+- [ ] (1:00?) snap: preview file when clicked on
+
+- [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
+
+- [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
+
+- [ ] (2:00?) implement caching of files attached to worksheets longterm
+
+- [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
+
+- [ ] (1:30?) share: address the major issue I found in class where other people get access to `local_hub`!?
+
 - [ ] (0:45?) BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore.
 - [ ] (0:30?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
 - [ ] (1:00?) make it possible to enable VIM keybindings in codemirror editor.
@@ -95,6 +84,10 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
 
 
 ## Later
+
+- [ ] build: automated tests to confirm that salvus environment doesn't suck: https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
+
+- [ ] ui: investigate supporting 2d plotting using bokeh(?): https://github.com/ContinuumIO/Bokeh
 
 - [ ] snap: search through past snapshots: by filename
 
@@ -2174,3 +2167,16 @@ I pushed a new change to git.py, and now:
     real    0m1.392s  {to 2.x seconds, depending on the trial}
 
 - [x] (1:00?) snap: I *HAD* to hack admin.py due to mistake in False versus false (and it sending everything to database again... then not going to next step).
+
+- [x] (1:00?) (0:06) update coffeescript to newest version
+
+- [x] (0:30?) (0:21) ui: create new account/login screen still says "Salvus"
+
+- [x] This bup ls fails, but all the ones around it are fine:
+    salvus@web4:/mnt/snap/snap0/bup$ BUP_DIR=/mnt/snap/snap0/bup bup ls -a fc9f1a7f-46ad-429e-a9ad-be31ce2a27f0/2013-06-01-090149
+    KeyError: "blob '29bd97b4f604f137b0e3dd721f5763fc330b79a1:' is missing"
+SOLN: For now, I could make snapshot, then check if it is valid.  If not, don't report it to DB at all.  This must be a BUP bug though...
+Another:
+   salvus@web1:/mnt/snap/snap0/bup$ BUP_DIR=. bup ls 3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/2013-06-01-181254
+Why is there a colon in the string above -- that colon suggests a parsing error, since a commit can't end in colon.
+
