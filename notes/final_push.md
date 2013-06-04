@@ -1,8 +1,11 @@
 - [x] (0:30?) (0:39) make it easier to "sign out" -- clear button with label.
 
+- [x] (2:45?) undelete/delete project; box in projects page to show list of deleted projects and undelete; improve listing of projects
+
+- [ ] (0:30?) confirm to navigate away from page
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- [ ] (1:00?) delete project; box in projects page to show list of deleted projects and undelete.
+
 - [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
 - [ ] (0:15?) snap/ui: search should be disabled when browsing snapshots
 - [ ] (1:00?) ui features: make it so all these markup commands, e.g., latex, md,

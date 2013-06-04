@@ -786,6 +786,30 @@ class exports.Connection extends EventEmitter
                     project_id  : opts.project_id
             cb : opts.cb
 
+    delete_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timeout    : 10
+            cb         : undefined
+        @call
+            message :
+                message.delete_project
+                    project_id  : opts.project_id
+            timeout : opts.timeout
+            cb : opts.cb
+
+    undelete_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timeout    : 10
+            cb         : undefined
+        @call
+            message :
+                message.undelete_project
+                    project_id  : opts.project_id
+            timeout : opts.timeout
+            cb : opts.cb
+
     write_text_file_to_project: (opts) ->
         opts = defaults opts,
             project_id : required

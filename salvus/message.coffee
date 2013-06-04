@@ -931,6 +931,18 @@ message
     description: required
     public     : required
 
+# client --> hub
+message
+    event      : 'delete_project'
+    id         : undefined
+    project_id : required
+
+# client --> hub
+message
+    event      : 'undelete_project'
+    id         : undefined
+    project_id : required
+
 # hub --> client
 message
     event      : 'project_created'
