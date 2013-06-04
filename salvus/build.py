@@ -85,7 +85,9 @@ easy_install pip
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-[os.system("pip install %s"%s) for s in 'markdown2 markdown2Mathjax virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4'.split()]
+[os.system("pip install %s"%s) for s in 'markdown2 markdown2Mathjax virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy'.split()]
+
+(Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
