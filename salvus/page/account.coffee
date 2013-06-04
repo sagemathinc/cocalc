@@ -12,15 +12,11 @@ to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
 
-set_account_tab_label = (signed_in, first_name, last_name) ->
+set_account_tab_label = (signed_in, email_address) ->
     if signed_in
         top_navbar.pages['account'].icon = 'icon-cog'
-        top_navbar.set_button_label("account", "<a href='#sign_out'><i class='icon-signout' style='font-size:20px'> </i></a>")
-        #top_navbar.set_button_label("account", "<a href='#sign_out'><i class='icon-signout'> </i> <span style='font-size:10px'>Sign out</span></a>")
-        $("a[href='#sign_out']").click((event) ->
-            sign_out()
-            return false
-        )
+        top_navbar.set_button_label("account", email_address)
+
     else
         # nothing
         top_navbar.set_button_label("account", "Sign in", "", false)
@@ -295,8 +291,8 @@ signed_in = (mesg) ->
             account_settings.set_view()
             # change the view in the account page to the settings/sign out view
             show_page("account-settings")
-            # change the navbar title from "Sign in" to "first_name last_name"
-            set_account_tab_label(true, mesg.first_name, mesg.last_name)
+            # change the navbar title from "Sign in" to their email address
+            set_account_tab_label(true, mesg.email_address)
             top_navbar.show_page_button("projects")
 
             #####
@@ -341,6 +337,11 @@ sign_out = () ->
                 # left in the DOM, which could lead to a vulnerability
                 # or blead into the next login somehow.
                 window.location.reload(false)
+
+    return false
+
+
+$("#account").find("a[href=#sign-out]").click(sign_out)
 
 ################################################
 # Account settings
@@ -529,6 +530,7 @@ $("#account-change_email_address_button").click (event) ->
                 # success
                 $("#account-settings-email_address").html(new_email_address)
                 account_settings.settings.email_address = new_email_address
+                set_account_tab_label(true, new_email_address)
                 close_change_email_address()
     return false
 

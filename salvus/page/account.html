@@ -101,6 +101,9 @@ I agree to <a href="#link-terms" data-toggle="modal">Salvus Terms</a>
 
     <div class="row span11 indent1 hide" id="account-settings">
 
+        <a href="#sign-out" class="btn btn-success pull-right"><i class="icon-signout"> </i> Sign out</a>
+
+
         <div class="alert alert-error" id="account-settings-error">
             <button type="button" class="close" data-dismiss="alert">×</button>
             <i class="icon-info-sign"></i>
@@ -166,7 +169,7 @@ I agree to <a href="#link-terms" data-toggle="modal">Salvus Terms</a>
                             </div>
                             <div class="row">
                                 <div class="row span2" rel="tooltip" title="Your files will be automatically saved every autosave seconds.  All past versions of files are retained, so you can always undo a save. Set autosave to 0 to disable.">
-                                    <b>Autosave</b> interval (in seconds)
+                                    <b>Autosave</b> interval (in seconds, 0 to disable)
                                 </div>
                                 <div class="row span1">
                                     <input id="account-settings-autosave" type="text" class="span1">
@@ -246,8 +249,8 @@ I agree to <a href="#link-terms" data-toggle="modal">Salvus Terms</a>
                     </div>
 
                     <div class="row span4">
-                        <button class="btn btn-primary btn-large" type="submit" id="account-settings-change-settings-button">Save</button>
-                        <button class="pull-right btn btn-large" id="account-settings-cancel-changes-button">Cancel</button>
+                        <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button"><i class="icon-save"> </i> Save</button>
+                        <button class="pull-right btn" id="account-settings-cancel-changes-button">Cancel</button>
                     </div>
                 </div>
             </form>
