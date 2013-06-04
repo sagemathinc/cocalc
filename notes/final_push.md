@@ -2,7 +2,7 @@
 
 - [x] (2:45?) undelete/delete project; box in projects page to show list of deleted projects and undelete; improve listing of projects
 
-- [ ] (0:30?) confirm to navigate away from page
+- [x] (0:30?) (0:05) confirm to navigate away from page
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
