@@ -1,4 +1,6 @@
-- [x] (1:00?) (1:00) ui features: make it so %md and %html hide by default and have a hide=False option.
+- [x] (1:00?) (0:52) ui features: make it so %md and %html hide by default and have a hide=False option.
+
+- [x] (0:15?) (0:27) snap/ui: search should be disabled when browsing snapshots
 
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
@@ -11,7 +13,6 @@
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
-- [ ] (0:15?) snap/ui: search should be disabled when browsing snapshots
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
     %md
     $$\{ foo \}$$

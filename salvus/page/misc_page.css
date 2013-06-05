@@ -49,3 +49,15 @@
     color            : white;
     background-color :  orange;
 }
+
+/* See https://github.com/twitter/bootstrap/issues/2764 */
+
+.nav-tabs>.disabled>a, .nav-pills>.disabled>a {
+    color: #999;
+    cursor: default;
+    border: none; /** add this for tabs/pills **/
+}
+
+.nav-tabs>.disabled>a:hover, .nav-pills>.disabled>a:hover {
+    background-color: transparent;
+}

@@ -650,8 +650,11 @@ class ProjectPage
                 continue
 
             # activate any a[href=...] links elsewhere on the page
-            @container.find("a[href=##{target}]").data('target',target).click () ->
-                that.display_tab($(@).data('target'))
+            @container.find("a[href=##{target}]").data('item',t).data('target',target).click () ->
+                link = $(@)
+                if link.data('item').hasClass('disabled')
+                    return false
+                that.display_tab(link.data('target'))
                 return false
 
             t.find('a').tooltip(delay:{ show: 1000, hide: 200 })
@@ -659,8 +662,11 @@ class ProjectPage
             tab = {label:t, name:name, target:@container.find(".#{name}")}
             @tabs.push(tab)
 
-            t.find("a").click () ->
-                that.display_tab($(@).data("target"))
+            t.find("a").data('item',t).click () ->
+                link = $(@)
+                if link.data('item').hasClass('disabled')
+                    return false                
+                that.display_tab(link.data("target"))
                 return false
 
             if name == "project-file-listing"
@@ -985,12 +991,27 @@ class ProjectPage
         @new_file_tab_input.val(now).focus()
         @get_from_web_input.val('')
 
+    update_snapshot_ui_elements: () =>
+        if @current_path.length > 0 and @current_path[0] == '.snapshot'
+            snapshot = true
+        else
+            snapshot = false
+
+        search = @container.find(".project-search-menu-item")
+        if snapshot
+            search.addClass('disabled')
+        else
+            search.removeClass('disabled')
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
         #console.log("current_path = ", @current_path)
+
         # Update the display of the path above the listing or file preview
         @update_current_path()
+
+        # Update UI options that change as a result of browsing snapshots.
+        @update_snapshot_ui_elements()
 
         @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
         @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
