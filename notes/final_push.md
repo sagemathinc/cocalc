@@ -1,7 +1,6 @@
-- [x] (1:00?) (0:52) ui features: make it so %md and %html hide by default and have a hide=False option.
-
-- [x] (0:15?) (0:27) snap/ui: search should be disabled when browsing snapshots
-
+- [ ] (0:10?) add link to http://www.sagemath.org/help.html
+- [ ] (0:30?) BUG: terminal path is not set correctly based on file path
+- [ ] (2:00?) make it so terminals never disconnects/hangs
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
        - open a worksheet or file to edit
@@ -11,7 +10,6 @@
        THIS is very serious.
 
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
     %md
@@ -22,7 +20,6 @@
     \[
        \{ foo \}
     \]
-- [ ] (0:30?) BUG: terminal path is not set correctly based on file path
 - [ ] (0:30?) make it so settings autosave; get rid of confusing "save"/cancel buttons, since they only do certain things...
 - [ ] (1:00?) snap: optimization idea -- can index projects in parallel
 - [ ] (1:00?) ui: if ping time hasn't been updated in a certain amount of time, replace by "..." (?)
@@ -72,6 +69,8 @@
 
 
 ## Later
+
+- [ ] html5 audio: http://www.html5rocks.com/en/tutorials/webaudio/intro/
 
 - [ ] build: automated tests to confirm that salvus environment doesn't suck: https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
 
@@ -2179,4 +2178,7 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
        x - update bup install with speed fix (did it manually)
        x - do "npm install -u coffee-script" to upgrade coffeescript
        x - make sure to pip install that package harald suggested
+
+- [x] (1:00?) (0:52) ui features: make it so %md and %html hide by default and have a hide=False option.
+- [x] (0:15?) (0:27) snap/ui: search should be disabled when browsing snapshots
 
