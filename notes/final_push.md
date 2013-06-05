@@ -1,6 +1,11 @@
-- [ ] (0:10?) add link to http://www.sagemath.org/help.html
+## June 5:
+
+--> - [ ] (0:10?) add link to http://www.sagemath.org/help.html
 - [ ] (0:30?) BUG: terminal path is not set correctly based on file path
 - [ ] (2:00?) make it so terminals never disconnects/hangs
+- [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
+- [ ] (0:30?) another release
+---
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
        - open a worksheet or file to edit
@@ -8,9 +13,7 @@
        - re-open the same file
        - look at the log in hub, and see an "infinite loop" of reconnect attempts.
        THIS is very serious.
-
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
     %md
     $$\{ foo \}$$
@@ -33,13 +36,9 @@
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
 - [ ] (1:00?) snap: ability to download files directly from snapshots
-
 - [ ] (1:00?) snap: preview file when clicked on
-
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
-
 - [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
-
 - [ ] (2:00?) implement caching of files attached to worksheets longterm
 
 - [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
