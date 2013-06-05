@@ -1,10 +1,13 @@
 ## June 5:
 
---> - [ ] (0:10?) add link to http://www.sagemath.org/help.html
-- [ ] (0:30?) BUG: terminal path is not set correctly based on file path
+- [x] (0:10?) (0:12) add link to http://www.sagemath.org/help.html
+
+- [x] (0:30?) (0:31) BUG: terminal path is not set correctly based on file path
+
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
 - [ ] (0:30?) another release
+
 ---
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:

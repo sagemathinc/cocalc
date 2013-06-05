@@ -351,10 +351,17 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             project_id   : required
             timeout      : 10
+            params  : undefined   # extra params relevant to the session (in case we need to restart it)
             cb           : required
         @call
-            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type, project_id:opts.project_id)
+            message : message.connect_to_session
+                session_uuid : opts.session_uuid
+                type         : opts.type
+                project_id   : opts.project_id
+                params       : opts.params
+
             timeout : opts.timeout
+            
             cb      : (error, reply) =>
                 if error
                     opts.cb(error); return

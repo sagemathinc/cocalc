@@ -1500,13 +1500,14 @@ class Terminal extends FileEditor
                         content    : session.session_uuid
                         cb         : cb
 
+        path = misc.path_split(@filename).head
+        mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path}
         if @opts.session_uuid?
             #console.log("Connecting to an existing session.")
             mesg.session_uuid = @opts.session_uuid
             salvus_client.connect_to_session(mesg)
         else
-            #console.log("Opening a new session.")
-            mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols}
+            #console.log("Opening a new session at #{path}")
             salvus_client.new_session(mesg)
 
         # TODO
