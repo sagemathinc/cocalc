@@ -4,11 +4,33 @@
 
 - [x] (0:30?) (0:31) BUG: terminal path is not set correctly based on file path
 
---> - [ ] (0:20?) UI Bug: open file tabs disappear off to the left.
+- [x] (0:20?) make tabs at the top shrink instead of disappear.
+
+- [x] (1:00?) (0:40) snap2 and snap3 are BROKEN: I modified git.py (systemwide) /usr/lib/bup/bup/git.py  to work
+            even if an object is missing.  I think this is reasonable for
+            now, due to the highly distributed and redundant nature of my backups.
+
+- [ ] (0:30?) tighten up the icons in the upper left a bit
+
+--> - [ ] (1:00?) the above idea was STUPID, since quickly of course my backups stopped working!  I need to revert these changes (in the bup repo).      - come up with a plan for what to do if size-pack ever appear!
+   x (0:05) - delete last two commits
+   x (0:35) - rewrite snap.coffee to stop making new snapshots if fsck fails; I need a repo in that state to study.
+   - start new snap servers, snapshotting all projects on startup:
+        x - install clean current bup on 10.1.2.3, 10.1.3.3
+        cd salvus/salvus; . salvus-env; git clone https://github.com/williamstein/bup; cd bup; ./configure; make; make install PREFIX=data/local/
+        x - install new snap.coffee on 10.1.2.3, 10.1.3.3 and ./make_coffee: scp teaAuZ9M@10.1.2.4:snap.coffee . ; ./make_coffee
+        x - mv /mnt/snap/snap0 /mnt/snap/snap0.corrupt
+        - start all snap
+        - watch
+
+   - check later if any fsck fails happened
 
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (0:30?) %load a.sage ---> goes BOOM (see support).
-- [ ] (0:30?) do another release
+
+- [ ] (0:30?) do another release:
+      - snap2/snap3 -- recreate from scratch
+      - update bup
 
 ---
 
