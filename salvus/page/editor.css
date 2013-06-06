@@ -20,19 +20,22 @@ Editor for files in a project
     width: 2%;
 }
 
-
 .salvus-editor-close-button-x:hover {
-    color: #fff;
-    background-color:orange;
-    font-size: 14px;
+    color: #f00;
 }
 
+
 .salvus-editor-tab-filename {
-    overflow: hidden;
+    overflow-x: hidden;
     display: block;
     white-space: nowrap;
     font-size: 10pt;
     padding-right: 1em;
+    padding-bottom: 1px;
+}
+
+.salvus-editor-filename-pill {
+    width:32%;
 }
 
 .salvus-editor-codemirror {
