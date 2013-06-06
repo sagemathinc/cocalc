@@ -156,7 +156,8 @@ DATA   = os.path.abspath('data')
 SRC    = os.path.abspath('src')
 PATCHES= os.path.join(SRC, 'patches')
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
-TARGET = os.path.abspath(os.path.join(DATA, 'local'))
+PREFIX = os.path.abspath(os.path.join(DATA, 'local'))
+os.environ['PREFIX'] = PREFIX
 
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
@@ -180,8 +181,8 @@ PYTHON_PACKAGES = [
 if not os.path.exists(BUILD):
     os.makedirs(BUILD)
 
-os.environ['PATH'] = os.path.join(TARGET, 'bin') + ':' + os.environ['PATH']
-os.environ['LD_LIBRARY_PATH'] = os.path.join(TARGET, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
+os.environ['PATH'] = os.path.join(PREFIX, 'bin') + ':' + os.environ['PATH']
+os.environ['LD_LIBRARY_PATH'] = os.path.join(PREFIX, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
 
 # number of cpus
 try:
@@ -218,7 +219,7 @@ def build_tinc():
     log.info('building tinc'); start = time.time()
     try:
         path = extract_package('tinc')
-        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -229,7 +230,7 @@ def build_python():
     log.info('building python'); start = time.time()
     try:
         path = extract_package('Python')
-        cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(TARGET,TARGET), path)
+        cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -240,7 +241,7 @@ def build_node():
     log.info('building node'); start = time.time()
     try:
         path = extract_package('node')
-        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
         cmd('git clone git://github.com/isaacs/npm.git && cd npm && make install', path)
@@ -252,10 +253,10 @@ def build_nginx():
     log.info('building nginx'); start = time.time()
     try:
         path = extract_package('nginx')
-        cmd('./configure --without-http_rewrite_module --prefix="%s"'%TARGET, path)
+        cmd('./configure --without-http_rewrite_module --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
-        cmd('mv sbin/nginx bin/', TARGET)
+        cmd('mv sbin/nginx bin/', PREFIX)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
@@ -268,7 +269,7 @@ def build_haproxy():
         # patch log.c so it can write the log to a file instead of syslog
         cmd('patch -p0 < %s/haproxy.patch'%PATCHES, path)  # diff -Naur src/log.c  ~/log.c > ../patches/haproxy.patch
         cmd('make -j %s TARGET=%s'%(NCPU, 'linux2628' if OS=="Linux" else 'generic'), path)
-        cmd('cp haproxy "%s"/bin/'%TARGET, path)
+        cmd('cp haproxy "%s"/bin/'%PREFIX, path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
@@ -277,7 +278,7 @@ def build_stunnel():
     log.info('building stunnel'); start = time.time()
     try:
         path = extract_package('stunnel')
-        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install < /dev/null', path)  # make build non-interactive -- I don't care about filling in a form for a demo example
     finally:
@@ -293,14 +294,14 @@ def build_cassandra():
             download('http://downloads.datastax.com/community/dsc-cassandra-%s-bin.tar.gz'%CASSANDRA_VERSION)
             cmd('mv dsc-cassandra-%s-bin.tar.gz dsc-cassandra-%s.tar.gz'%(CASSANDRA_VERSION, CASSANDRA_VERSION), SRC)
         path = extract_package('dsc-cassandra')
-        target2 = os.path.join(TARGET, 'cassandra')
+        target2 = os.path.join(PREFIX, 'cassandra')
         print target2
         if os.path.exists(target2):
             shutil.rmtree(target2)
         os.makedirs(target2)
         print "copying over"
         cmd('cp -rv * "%s"'%target2, path)
-        cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(TARGET, 'bin')), path)
+        cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(PREFIX, 'bin')), path)
         print "making symlink so can use fast JNA java native thing"
         cmd("ln -sf /usr/share/java/jna.jar %s/local/cassandra/lib/"%DATA, path)
 
@@ -325,7 +326,7 @@ def build_bup():
     log.info('building bup'); start = time.time()
     try:
         path = extract_package('bup')
-        cmd('make install PREFIX="%s"'%TARGET, path)
+        cmd('./build', path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start

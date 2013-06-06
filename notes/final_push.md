@@ -1,7 +1,8 @@
 ## June 5:
 
 - [x] (0:30?) (0:17) tighten up the icons in the upper left a bit
---> - [ ] (0:30?) %load a.sage ---> goes BOOM (see support).
+- [x] (0:30?) (0:38) %load a.sage ---> goes BOOM (see support).
+- [x] (0:30?) (0:07) change bup to build using the network instead of a package in repo (depend on github)
 
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
@@ -16,7 +17,17 @@
     \]
 
 - [ ] (0:30?) do another release:
+      - update salvus library
+      - `./make_coffee`
       - update bup (!)
+      - sage-5.10.rc1 (started normal build on next vm):
+
+             export MAKE="make -j20"; export SAGE_ATLAS_LIB="/usr/lib"; make ptestlong
+
+      - pip's
+      - optional packages
+
+
 
 ---
 
