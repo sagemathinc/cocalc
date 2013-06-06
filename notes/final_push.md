@@ -4,7 +4,10 @@
 - [x] (0:30?) (0:38) %load a.sage ---> goes BOOM (see support).
 - [x] (0:30?) (0:07) change bup to build using the network instead of a package in repo (depend on github)
 
-- [ ] (2:00?) make it so terminals never disconnects/hangs
+- [x] (0:10?) (0:04) project creation; get rid of the "for william" thing.
+
+--> - [ ] (2:00?) make it so terminals never disconnect or hang
+
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
     %md
