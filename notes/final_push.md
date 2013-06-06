@@ -20,10 +20,9 @@
         cd salvus/salvus; . salvus-env; git clone https://github.com/williamstein/bup; cd bup; ./configure; make; make install PREFIX=data/local/
         x - install new snap.coffee on 10.1.2.3, 10.1.3.3 and ./make_coffee: scp teaAuZ9M@10.1.2.4:snap.coffee . ; ./make_coffee
         x - mv /mnt/snap/snap0 /mnt/snap/snap0.corrupt
-        - start all snap
+        x - start all snap
         - watch
-
-   - check later if any fsck fails happened
+        - get newest snap.coffee file
 
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (0:30?) %load a.sage ---> goes BOOM (see support).

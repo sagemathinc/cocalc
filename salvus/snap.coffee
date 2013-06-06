@@ -556,10 +556,11 @@ monitor_snapshot_queue = () ->
                     timeout : 3600  # allow as long as it takes (which should be a few seconds)
                     cb      : (err) ->
                         winston.info("time to update checksums: #{misc.walltime(t)} s")
-                        # This means that the repository got
-                        # corrupted somehow.  This requires manual intervention.
-                        repository_is_corrupt = true
-                        fs.writeFileSync(snap_corrupt_file, 'Filesystem failed fsck and is corrupt.  Please investigate manually, then delete this file.\n')
+                        if err
+                            # This means that the repository got
+                            # corrupted somehow.  This requires manual intervention.
+                            repository_is_corrupt = true
+                            fs.writeFileSync(snap_corrupt_file, 'Filesystem failed fsck and is corrupt.  Please investigate manually, then delete this file.\n')
                         cb(err)
 
             # Compute disk usage after snapshot -- how much disk space was used by making this snapshot
