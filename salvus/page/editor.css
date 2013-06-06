@@ -28,7 +28,6 @@ Editor for files in a project
 }
 
 .salvus-editor-tab-filename {
-    width: 90%;
     overflow: hidden;
     display: block;
     white-space: nowrap;

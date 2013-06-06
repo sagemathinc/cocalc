@@ -563,7 +563,9 @@ class exports.Editor
             return
         start = x[0].offset().left
         end   = x[0].parent().offset().left + x[0].parent().width()
-        width = (end - start)/x.length
+        width = (end - start - 10)/x.length
+        if width < 0
+            width = 0
         for a in x
             if not a.data('orig_width')?
                 a.data('orig_width', a.width())
