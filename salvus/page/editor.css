@@ -15,12 +15,25 @@ Editor for files in a project
 
 .salvus-editor-close-button-x {
     font-size: 14px;
+    margin-top: 9px;
+    margin-right: 10px;
+    width: 2%;
 }
+
 
 .salvus-editor-close-button-x:hover {
     color: #fff;
     background-color:orange;
     font-size: 14px;
+}
+
+.salvus-editor-tab-filename {
+    width: 90%;
+    overflow: hidden;
+    display: block;
+    white-space: nowrap;
+    font-size: 10pt;
+    padding-right: 1em;
 }
 
 .salvus-editor-codemirror {
@@ -267,3 +280,4 @@ li {
 code {
     font-size: inherit;
 }
+

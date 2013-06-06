@@ -549,7 +549,6 @@ class exports.Editor
         @resize_open_file_tabs()
 
     resize_open_file_tabs: () =>
-        return   # disabled for now -- too buggy.
         # Make a list of the tabs after the search menu.
         x = []
         file_tabs = false
@@ -569,7 +568,7 @@ class exports.Editor
             if not a.data('orig_width')?
                 a.data('orig_width', a.width())
             if width < a.data('orig_width')
-                a.animate(width:width, duration:100)
+                a.width(width)
             else
                 a.width(a.data('orig_width'))
 

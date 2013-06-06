@@ -4,9 +4,11 @@
 
 - [x] (0:30?) (0:31) BUG: terminal path is not set correctly based on file path
 
+--> - [ ] (0:20?) UI Bug: open file tabs disappear off to the left.
+
 - [ ] (2:00?) make it so terminals never disconnects/hangs
-- [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
-- [ ] (0:30?) another release
+- [ ] (0:30?) %load a.sage ---> goes BOOM (see support).
+- [ ] (0:30?) do another release
 
 ---
 
