@@ -29,7 +29,7 @@ Editor for files in a project
     overflow-x: hidden;
     display: block;
     white-space: nowrap;
-    font-size: 10pt;
+    /* font-size: 10pt; */
     padding-right: 1em;
     padding-bottom: 1px;
 }

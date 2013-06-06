@@ -81,6 +81,10 @@
     font-size:18pt;
 }
 
+.project-pages-button {
+     margin-right:-.9em;   
+}
+
 .project-search-form-input {
     width:50%;
 }
