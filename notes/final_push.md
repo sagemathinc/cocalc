@@ -1,9 +1,9 @@
 ## June 5:
 
 - [x] (0:30?) (0:17) tighten up the icons in the upper left a bit
-- [ ] (2:00?) make it so terminals never disconnects/hangs
+--> - [ ] (0:30?) %load a.sage ---> goes BOOM (see support).
 
-- [ ] (0:30?) %load a.sage ---> goes BOOM (see support).
+- [ ] (2:00?) make it so terminals never disconnects/hangs
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
     %md
