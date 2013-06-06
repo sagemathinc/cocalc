@@ -6,7 +6,15 @@
 
 - [x] (0:10?) (0:04) project creation; get rid of the "for william" thing.
 
---> - [ ] (2:00?) make it so terminals never disconnect or hang
+--> - [ ] (1:30?) share: add another user as collaborator on a project
+
+- [ ] (1:00?) share: make it necessary to accept share offer.
+
+- [ ] (1:00?) share: make it possible to quite part of sharing
+
+
+
+- [ ] (2:00?) make it so terminals never disconnect or hang
 
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
@@ -44,7 +52,6 @@
 - [ ] (1:00?) snap: optimization idea -- can index projects in parallel
 - [ ] (1:00?) ui: if ping time hasn't been updated in a certain amount of time, replace by "..." (?)
 - [ ] (1:00?) UI: renaming a long filename doesn't work.
-- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 - [ ] (1:00?) interact bug -- this doesn't output matrix first time:
     @interact
     def f(a = input_grid(2,2,[[1,2],[3,4]])):

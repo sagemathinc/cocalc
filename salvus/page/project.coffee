@@ -665,7 +665,7 @@ class ProjectPage
             t.find("a").data('item',t).click () ->
                 link = $(@)
                 if link.data('item').hasClass('disabled')
-                    return false                
+                    return false
                 that.display_tab(link.data("target"))
                 return false
 
@@ -794,12 +794,13 @@ class ProjectPage
             @_computing_usage = true
             salvus_client.exec
                 project_id : @project.project_id
-                command    : 'du -sch .'
+                command    : 'du'
+                args       : ['-sch', '.']
                 timeout    : 360
                 cb         : (err, output) =>
                     delete @_computing_usage
                     if not err
-                        usage.text(output.stdout)
+                        usage.text(output.stdout.split('\t')[0])
                     else
                         usage.text("(timed out running 'du -sch .')")
 

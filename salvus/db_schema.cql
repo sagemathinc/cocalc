@@ -252,15 +252,6 @@ CREATE TABLE recently_modified_projects (
     location   varchar
 );
 
-CREATE TABLE project_snapshots (
-    project_id uuid,
-    time       timestamp,
-    host       varchar,
-    PRIMARY KEY(project_id, time)
-);
-
-CREATE INDEX ON project_snapshots(host);
-
 ////////////////////////////////////////////
 // Snap -- the project snapshot server
 ////////////////////////////////////////////

@@ -6,6 +6,14 @@
     top: 40px;
 }
 
+.project-disk_usage {
+    background-color:white;
+}
+
+.project-settings-well {
+    background-color:white;
+}    
+
 .project-file-listing-container {
     /* overflow-y: auto;
     overflow-x: hidden; */
@@ -82,7 +90,7 @@
 }
 
 .project-pages-button {
-     margin-right:-.9em;   
+     margin-right:-.9em;
 }
 
 .project-search-form-input {
