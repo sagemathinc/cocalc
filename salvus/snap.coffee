@@ -1017,8 +1017,10 @@ register_with_database = (cb) ->
     if not size_of_bup_archive?
         misc_node.disk_usage pack_dir, (err, usage) ->
             if err
+                winston.info("error computing usage -- #{err}")
                 # try next time
                 size_of_bup_archive = 0
+                setTimeout((() -> register_with_database(cb)), 1000*registration_interval_seconds)
             else
                 size_of_bup_archive = usage
                 register_with_database(cb)
