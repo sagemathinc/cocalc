@@ -1204,7 +1204,6 @@ class Client extends EventEmitter
             if not err
                 session.client_call(@, mesg)
 
-
     ## -- user search
     mesg_user_search: (mesg) =>
         database.user_search

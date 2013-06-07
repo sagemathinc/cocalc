@@ -1141,9 +1141,12 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query : required
             limit : 20
-            cb    : required            
+            timeout : 10
+            cb    : required
+            
         @call
-            message : message.user_search(query:query, limit:limit)
+            message : message.user_search(query:opts.query, limit:opts.limit)
+            timeout : opts.timeout
             cb      : opts.cb
 
 

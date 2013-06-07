@@ -6,7 +6,9 @@
 
 - [x] (0:10?) (0:04) project creation; get rid of the "for william" thing.
 
---> - [ ] (1:30?) share: add another user as collaborator on a project
+- [x] implement `user_search`, which will be needed for adding collaborators.
+
+- [ ] (1:30?) share: add another user as collaborator on a project
 
 - [ ] (1:00?) share: make it necessary to accept share offer.
 

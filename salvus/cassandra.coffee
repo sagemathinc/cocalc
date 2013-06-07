@@ -534,7 +534,7 @@ class exports.Salvus extends exports.Cassandra
                 if err
                     opts.cb(err)
                     return
-                query = query.toLowerCase().split(/\s+/g)
+                query = opts.query.toLowerCase().split(/\s+/g)
                 match = (name) ->
                     name = name.toLowerCase()
                     for q in query

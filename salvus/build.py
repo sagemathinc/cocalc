@@ -91,8 +91,7 @@ easy_install pip
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
-    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz
-    tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz; tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install
 
 # Also, edit the banner:
 
