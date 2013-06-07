@@ -232,16 +232,26 @@
                         </div>
                         <div class="row-fluid">
                             <div class="span8 well project-settings-well">
-                                <h4 class="pull-left">Collaborators</h4>
-                                <div class="pull-right">
-                                    <input class="span8 project-add-collaborator-input" type="search" placeholder="Name...">
-                                    <a href="#add-collaborator" class="btn btn-success"
-                                        data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
-                                        <i class="icon-plus"> </i> Add...
-                                    </a>
+                                <div class="row-fluid">
+                                    <div class="span4">
+                                        <h4 class="pull-left">Collaborators</h4>
+                                    </div>
+                                    <div class="span8">
+                                        <!-- <a href="#add-collaborator" class="btn btn-success"
+                                            data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
+                                            <i class="icon-plus"> </i> Add...
+                                        </a>
+                                        -->
+
+                                        <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
+                                        <input class="project-add-collaborator-input" type="text" placeholder="Add collaborator...">
+                                        <select class="project-add-collaborator-select hide"> </select>
+                                    </div>
                                 </div>
-                                <span class="project-collaborators lighten">
-                                </span>
+                                <div class="row">
+                                    <span class="project-collaborators lighten">
+                                    </span>
+                                </div>
                             </div>
                             <div class="span4 well project-settings-well">
                                 <!-- Disk usage of the project -->
@@ -487,3 +497,4 @@
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten"></span>
     </div>
 </span>
+

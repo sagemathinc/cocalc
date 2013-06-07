@@ -15,7 +15,7 @@
 }
 
 .project-add-collaborator-input {
-    margin-top:9px;   /* So search box lines up with button vertically */
+    width: 95%;
 }
 
 .project-file-listing-container {

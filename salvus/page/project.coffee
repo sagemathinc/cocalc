@@ -177,6 +177,8 @@ class ProjectPage
         @init_delete_project()
         @init_undelete_project()
 
+        @init_add_collaborators()
+
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
 
@@ -1519,6 +1521,32 @@ class ProjectPage
                                     message : "Successfully undeleted project \"#{@project.title}\"."
             return false
 
+    init_add_collaborators: () =>
+        input  = @container.find(".project-add-collaborator-input")
+        select = @container.find(".project-add-collaborator-select")
+
+        update_collab_list = () =>
+            x = input.val()
+            if x == ""
+                select.html("").hide()
+                return
+            salvus_client.user_search
+                query : input.val()
+                limit : 50
+                cb    : (err, result) =>
+                    console.log(result)
+                    select.html("")
+                    for r in result
+                        name = r.first_name + ' ' + r.last_name
+                        select.append($("<option>").attr(value:r.account_id, label:name))
+                    select.show()
+
+        timer = undefined
+        input.keyup (event) ->
+            if timer?
+                clearTimeout(timer)
+            timer = setTimeout(update_collab_list, 100)
+            return false
 
     init_worksheet_server_restart: () =>
         # Restart worksheet server
