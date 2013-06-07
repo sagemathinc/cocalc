@@ -128,8 +128,7 @@ easy_install pip
 
   ./sage -sh
   cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
-  ./configure --prefix=/usr/local/sage/current/local/
-  time make -j16    # <20 seconds
+  ./configure --prefix=/usr/local/sage/current/local/; time make -j16 
   make install      # this *must* be a separate step!!
   cd ..; rm -rf 4ti2*
 

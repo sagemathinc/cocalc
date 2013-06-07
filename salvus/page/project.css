@@ -23,6 +23,10 @@
     overflow-x: hidden; */
 }
 
+.project-collaborators {
+    margin-left: 1.5em;
+}
+
 .project-file-listing-current_path {
     margin-top:4px;
 }

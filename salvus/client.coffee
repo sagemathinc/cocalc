@@ -1153,6 +1153,27 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(false, resp.results)
 
+    project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required   # cb(err, list_of_users) -- see message.coffee for format of entries
+        @call
+            message : message.get_project_users(project_id:opts.project_id)
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, resp.users)
+
+    project_invite_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : (err) =>
+        @call
+            message : message.invite_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            cb      : opts.cb
+
 
     #################################################
     # File Management

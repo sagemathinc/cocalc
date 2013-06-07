@@ -1522,8 +1522,23 @@ class ProjectPage
             return false
 
     init_add_collaborators: () =>
-        input  = @container.find(".project-add-collaborator-input")
-        select = @container.find(".project-add-collaborator-select")
+        input   = @container.find(".project-add-collaborator-input")
+        select  = @container.find(".project-add-collaborator-select")
+        collabs = @container.find(".project-collaborators")
+
+        update_collaborators = () =>
+            salvus_client.project_users
+                project_id : @project.project_id
+                cb : (err, users) =>
+                    if not err
+                        s = ""
+                        for x in users
+                            if s != ""
+                                s += ", "
+                            s += x.first_name + ' ' + x.last_name
+                        collabs.text(s)
+
+        update_collaborators()
 
         update_collab_list = () =>
             x = input.val()
@@ -1534,12 +1549,31 @@ class ProjectPage
                 query : input.val()
                 limit : 50
                 cb    : (err, result) =>
-                    console.log(result)
                     select.html("")
                     for r in result
                         name = r.first_name + ' ' + r.last_name
                         select.append($("<option>").attr(value:r.account_id, label:name))
                     select.show()
+
+        invite_selected = () =>
+            x = select.find(":selected")
+            name = x.attr('label')
+            salvus_client.project_invite_collaborator
+                project_id : @project.project_id
+                account_id : x.attr("value")
+                cb         : (err, result) =>
+                    if err
+                        alert_message(type:"error", message:"Error adding collaborator -- #{err}")
+                    else
+                        alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
+                        update_collaborators()
+
+        select.change (evt) =>
+            invite_selected()
+
+        @container.find("a[href=#add-collaborator]").click () =>
+            invite_selected()
+            return false
 
         timer = undefined
         input.keyup (event) ->

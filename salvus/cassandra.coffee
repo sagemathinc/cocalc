@@ -549,6 +549,44 @@ class exports.Salvus extends exports.Cassandra
                             break
                 opts.cb(false, r)
 
+    project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required   # (err, list of users)
+        @select
+            table     : 'project_users'
+            columns   : ['account_id', 'mode', 'state']
+            where     : {project_id : opts.project_id}
+            objectify : true
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                    return
+                @account_ids_to_usernames
+                    account_ids : (x.account_id for x in results)
+                    cb          : (err, users) =>
+                        if err
+                            opts.cb(err)
+                            return
+                        for x in results
+                            x.first_name = users[x.account_id].first_name
+                            x.last_name = users[x.account_id].last_name
+                        opts.cb(false, results)
+
+    account_ids_to_usernames: (opts) =>
+        opts = defaults opts,
+            account_ids : required
+            cb          : required # (err, mapping {account_id:{first_name:?, last_name:?}})
+        @select
+            table     : 'accounts'
+            columns   : ['account_id', 'first_name', 'last_name']
+            where     : {account_id:{'in':opts.account_ids}}
+            objectify : true
+            cb        : (err, results) =>
+                v = {}
+                for r in results
+                    v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
+                opts.cb(err, v)
 
     #####################################
     # Snap servers

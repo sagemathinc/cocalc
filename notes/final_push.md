@@ -8,15 +8,11 @@
 
 - [x] implement `user_search`, which will be needed for adding collaborators.
 
-- [ ] (1:30?) share: add another user as collaborator on a project
+- [x] (1:30?) share: add another user as collaborator on a project
     - start typing name, and it will autocomplete showing names of other users, just like to: field in gmail
       (For now, this will be all other users of cloud.sagemath, but eventually restrict/order in some sensible way.)
 
-- [ ] (1:00?) share: make it necessary to accept share offer.
-
-- [ ] (1:00?) share: make it possible to quite part of sharing
-
-
+- [ ] (1:00?) share: make it possible to quite part of sharing -- deleting the project could do that.
 
 
 - [ ] (2:00?) make it so terminals never disconnect or hang
