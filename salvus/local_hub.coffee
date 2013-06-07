@@ -37,38 +37,7 @@ diffsync       = require 'diffsync'
 
 json = (out) -> misc.trunc(misc.to_json(out),512)
 
-
-# Any non-absolute path is assumed to be relative to the user's home directory.
-# This function converts such a path to an absolute path.
-abspath = (path) ->
-    if path.length == 0
-        return process.env.HOME
-    if path[0] == '/'
-        return path  # already an absolute path
-    return process.env.HOME + '/' + path
-
-# Other path related functions...
-
-# Make sure that that the directory containing the file indicated by
-# the path exists and has the right permissions.
-ensure_containing_directory_exists = (path, cb) ->   # cb(err)
-    path = abspath(path)
-    dir = misc.path_split(path).head  # containing path
-
-    fs.exists dir, (exists) ->
-        if exists
-            cb()
-        else
-            async.series([
-                (cb) ->
-                    if dir != ''
-                        # recursively make sure the entire chain of directories exists.
-                        ensure_containing_directory_exists(dir, cb)
-                    else
-                        cb()
-                (cb) ->
-                    fs.mkdir(dir, 0o700, cb)
-            ], cb)
+{ensure_containing_directory_exists, abspath} = misc_node
 
 #####################################################################
 # Generate the "secret_token" file as
@@ -364,7 +333,7 @@ class SageSessions
                 else
                     @_new_session(client_socket, mesg, port)
 
-    _new_session: (client_socket, mesg, port) =>
+    _new_session: (client_socket, mesg, port, retries) =>
         winston.debug("Creating new sage session")
         # Connect to port, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
@@ -372,9 +341,19 @@ class SageSessions
             token : secret_token
             cb    : (err, sage_socket) =>
                 if err
-                    forget_port('sage')
-                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
                     winston.debug("_new_session: sage session denied connection: #{err}")
+                    forget_port('sage')
+                    if not retries? or retries <= 3
+                        if not retries?
+                            retries = 1
+                        else
+                            retries += 1
+                        try_again = () =>
+                            @_new_session(client_socket, mesg, port, retries)
+                        setTimeout(try_again, (retries-1)*1000)
+                    else
+                        # give up.
+                        client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
                     return
                 else
                     winston.debug("Successfully unlocked a sage session connection.")

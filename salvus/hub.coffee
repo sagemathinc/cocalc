@@ -26,6 +26,8 @@ url     = require 'url'
 fs      = require 'fs'
 {EventEmitter} = require 'events'
 
+_       = require 'underscore'
+
 mime    = require('mime')
 
 # salvus libraries
@@ -36,6 +38,8 @@ message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
+
+snap = require("snap")
 
 misc_node = require 'misc_node'
 
@@ -835,6 +839,36 @@ class Client extends EventEmitter
                     cb(false, project)
         )
 
+    # Mark a project as "deleted" in the database.  This is non-destructive by design --
+    # as is almost everything in SMC.  Projects cannot be permanently deleted.
+    mesg_delete_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to delete a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return # error handled in get_project
+            project.delete_project
+                cb : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+    mesg_undelete_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to undelete a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return # error handled in get_project
+            project.undelete_project
+                cb : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
     mesg_create_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
@@ -905,7 +939,7 @@ class Client extends EventEmitter
         assert mesg.event == 'project_session_info'
         @get_project mesg, 'read', (err, project) =>
             if err
-                @error_to_client(id:mesg.id, error:err)
+                return
             else
                 project.call
                     mesg : mesg
@@ -1169,6 +1203,263 @@ class Client extends EventEmitter
         @get_codemirror_session mesg, (err, session) =>
             if not err
                 session.client_call(@, mesg)
+
+    ## -- user search
+    mesg_user_search: (mesg) =>
+        database.user_search
+            query : mesg.query
+            limit : mesg.limit
+            cb    : (err, results) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.user_search_results(id:mesg.id, results:results))
+
+    mesg_get_project_users: (mesg) =>
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            database.project_users
+                project_id : mesg.project_id
+                cb         : (err, users) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_users(id:mesg.id, users:users))
+
+    mesg_invite_collaborator: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            database.update
+                table : 'project_users'
+                set   : {mode:'collaborator'}
+                where : {project_id:mesg.project_id, account_id:mesg.account_id}
+                cb    : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+                        
+
+    ################################################
+    # Project snapshots -- interface to the snap servers
+    ################################################
+    mesg_snap: (mesg) =>
+        if mesg.command not in ['ls', 'restore', 'log']
+            @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
+            return
+        user_has_write_access_to_project
+            project_id : mesg.project_id
+            account_id : @account_id
+            cb         : (err, result) =>
+                if err or not result
+                    @error_to_client(id:mesg.id, error:"access to project #{mesg.project_id} denied")
+                else
+                    snap_command
+                        command    : mesg.command
+                        project_id : mesg.project_id
+                        snapshot   : mesg.snapshot
+                        path       : mesg.path
+                        timeout    : mesg.timeout
+                        cb         : (err, list) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:err)
+                            else
+                                mesg.list = list
+                                @push_to_client(mesg)
+
+
+
+##-------------------------------
+#
+# Interaction with snap servers
+#
+##-------------------------------
+
+snap_command = (opts) ->
+    opts = defaults opts,
+        command    : required   # "ls", "restore", "log"
+        project_id : required
+        snapshot   : undefined
+        path       : '.'
+        timeout    : 60
+        cb         : required   # cb(err, list of results when meaningful)
+
+    switch opts.command
+        when 'ls'
+            delete opts.command
+            snap_command_ls(opts)
+        when 'restore', 'log'
+            snap_command_restore_or_log(opts)
+        else
+            opts.cb("invalid snap command #{opts.command}")
+
+
+snap_command_restore_or_log = (opts) ->
+    opts = defaults opts,
+        command    : required
+        project_id : required
+        snapshot   : required
+        path       : '.'
+        timeout    : 60
+        cb         : required   # cb(err)
+
+    servers = undefined
+    socket = undefined
+    async.series([
+        (cb) ->
+            # find a snap server with this particular snapshot
+            database.snap_servers_with_commit
+                project_id : opts.project_id
+                timestamp  : opts.snapshot
+                cb         : (err, _servers) ->
+                    servers = _servers
+                    cb(err)
+       (cb) ->
+            if servers.length == 0
+                cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
+                return
+            server = misc.random_choice(servers)
+            connect_to_snap_server server, (err, _socket) ->
+                socket = _socket
+                cb(err)
+        (cb) ->
+            snap.client_snap
+                command    : opts.command
+                socket     : socket
+                project_id : opts.project_id
+                snapshot   : opts.snapshot
+                path       : opts.path
+                timeout    : opts.timeout
+                cb         : cb
+    ], opts.cb)
+
+
+snap_command_ls = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        snapshot   : undefined
+        path       : '.'
+        timeout    : 60
+        cb         : required   # cb(err, list of results when meaningful)
+    if opts.snapshot?
+        # Get directory listing inside a given snapshot
+        listing = undefined
+        servers = undefined
+        socket  = undefined
+        async.series([
+            # First check for cached listing in the database
+            (cb) ->
+                database.snap_ls_cache
+                    project_id : opts.project_id
+                    timestamp  : opts.snapshot
+                    path       : opts.path
+                    cb         : (err, _listing) ->
+                        listing = _listing
+                        cb(err)
+            (cb) ->
+                if listing?  # already got it from cache, so done
+                    cb(); return
+                # find snap servers with this particular snapshot
+                database.snap_servers_with_commit
+                    project_id : opts.project_id
+                    timestamp  : opts.snapshot
+                    cb         : (err, _servers) ->
+                        servers = _servers
+                        cb(err)
+           (cb) ->
+                if listing?
+                    cb(); return
+                if servers.length == 0
+                    cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
+                    return
+                # get the listing from a server
+                server = misc.random_choice(servers)
+                connect_to_snap_server server, (err, _socket) ->
+                    socket = _socket
+                    cb(err)
+            (cb) ->
+                if listing?
+                    cb(); return
+                snap.client_snap
+                    command : 'ls'
+                    socket  : socket
+                    project_id : opts.project_id
+                    snapshot   : opts.snapshot
+                    path       : opts.path
+                    timeout    : opts.timeout
+                    cb         : (err, _listing) ->
+                        listing = _listing
+                        cb(err)
+            (cb) ->
+                if listing? and socket?  # socket defined means we computed the listing
+                    # store listing in database cache
+                    database.snap_ls_cache
+                        project_id : opts.project_id
+                        timestamp  : opts.snapshot
+                        path       : opts.path
+                        listing    : listing
+                        cb         : cb
+                else
+                    cb()
+
+        ], (err) ->
+            opts.cb(err, listing)
+        )
+
+    else
+
+        # Get list of all currently available snapshots for the given project:
+        # This *only* involves two database queries -- no connections to snap servers.
+        server_ids = undefined
+        commits = undefined
+        async.series([
+            # query database for id's of the active snap_servers
+            (cb) ->
+                database.snap_servers
+                    columns : ['id']
+                    cb      : (err, results) ->
+                        if err
+                            cb(err)
+                        else
+                            server_ids = (r.id for r in results)
+                            cb()
+            # query database for snapshots of this project on any of the active snap servers
+            (cb) ->
+                database.snap_commits
+                    project_id : opts.project_id
+                    server_ids : server_ids
+                    columns    : ['timestamp']
+                    cb         : (err, results) ->
+                        if err
+                            cb(err)
+                        else
+                            commits = (r.timestamp for r in results)
+                            commits.sort()
+                            commits = _.uniq(commits, true)
+                            commits.reverse()
+                            cb()
+        ], (err) -> opts.cb(err, commits))
+
+_snap_server_socket_cache = {}
+connect_to_snap_server = (server, cb) ->
+    key    = misc.to_json(server)
+    socket = _snap_server_socket_cache[key]
+    if socket? and socket.writable
+        cb(false, socket)
+    else
+        snap.client_socket
+            host  : server.host
+            port  : server.port
+            token : server.key
+            cb    : (err, socket) ->
+                if not err
+                    _snap_server_socket_cache[key] = socket
+                cb(err, socket)
+
+
 
 ##############################
 # Create the SockJS Server
@@ -2096,6 +2387,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_exec_on_local_hub "restart_smc", 30, (err, out) =>
             cb(err)
 
+    killall: (cb) =>
+        winston.debug("kill all processes running on this local hub (including the hub)")
+        @_exec_on_local_hub "killall -u #{@username}", 30, (err, out) =>
+            cb(err)
+
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status.local_hub and @_status.sage_server and @_status.console_server
             cb()
@@ -2257,6 +2553,8 @@ class Project
                                 else
                                     # Copy project's files from the most recent snapshot to the
                                     # new unix user account.
+                                    # TODO
+                                    ###
                                     backup_server.restore_project
                                         project_id : @project_id
                                         location   : location
@@ -2269,6 +2567,7 @@ class Project
                                                     location   : location
                                                 @location = location
                                                 cb()
+                                    ###
             (cb) =>
                 winston.debug("Location of project #{misc.to_json(@location)}")
                 new_local_hub
@@ -2309,6 +2608,23 @@ class Project
         @_fixpath(opts.mesg)
         opts.mesg.project_id = @project_id
         @local_hub.call(opts)
+
+    # Set project as deleted (which sets a flag in the database)
+    delete_project: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        database.delete_project
+            project_id : @project_id
+            cb         : opts.cb
+        @local_hub.killall()  # might as well do this to conserve resources
+
+
+    undelete_project: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        database.undelete_project
+            project_id : @project_id
+            cb         : opts.cb
 
     # Get current session information about this project.
     session_info: (cb) =>
@@ -3770,20 +4086,12 @@ clean_up_on_shutdown = () ->
 #############################################
 # Start everything running
 #############################################
-backup_server = undefined
 exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     database = new cass.Salvus(hosts:hosts, keyspace:program.keyspace)
-    require('backup').backup
-        keyspace : program.keyspace
-        hosts    : hosts
-        cb       : (err, r) ->
-            backup_server = r
-            backup_server.start_project_snapshotter()
-
     init_sockjs_server()
     init_stateless_exec()
     http_server.listen(program.port, program.host)

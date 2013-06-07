@@ -60,27 +60,43 @@ $(".projects-find-input").keyup (event) ->
 #$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
 
 select_filter_button = (which) ->
-    for w in ['all', 'public', 'private']
+    for w in ['all', 'public', 'private', 'deleted']
         a = $("#projects-#{w}-button")
         if w == which
             a.removeClass("btn-info").addClass("btn-inverse")
         else
             a.removeClass("btn-inverse").addClass("btn-info")
 
-only_public = null
+only_public = false
+only_private = false
+only_deleted = false
+
 $("#projects-all-button").click (event) ->
-    only_public = null
+    only_public = false
+    only_private = false
+    only_deleted = false
     select_filter_button('all')
     update_project_view()
 
 $("#projects-public-button").click (event) ->
     only_public = true
+    only_private = false
+    only_deleted = false
     select_filter_button('public')
     update_project_view()
 
 $("#projects-private-button").click (event) ->
     only_public = false
+    only_private = true
+    only_deleted = false
     select_filter_button('private')
+    update_project_view()
+
+$("#projects-deleted-button").click (event) ->
+    only_deleted = true
+    only_private = false
+    only_public = false
+    select_filter_button('deleted')
     update_project_view()
 
 
@@ -134,11 +150,40 @@ update_project_view = (show_all=false) ->
     # $("#projects-count").html(project_list.length)
     find_text = $(".projects-find-input").val().toLowerCase()
     n = 0
+
+    desc = ""
+    if only_deleted
+        desc = "Deleted projects"
+    else if only_public
+        desc = "Public projects"
+    else if only_private
+        desc = "Private projects"
+    if find_text != ""
+        if desc == ""
+            desc = "Projects"
+        desc += " whose title or description contains '#{find_text}'."
+
+    $(".projects-describe-listing").text(desc)
+
     for project in project_list
         if find_text != "" and project.search.indexOf(find_text) == -1
             continue
-        if only_public != null and project.public != only_public
-            continue
+
+        if only_public
+            if not project.public
+                continue
+
+        if only_private
+            if project.public
+                continue
+
+        if only_deleted
+            if not project.deleted
+                continue
+        else
+            if project.deleted
+                continue
+
         n += 1
         if not show_all and n > DEFAULT_MAX_PROJECTS
             break

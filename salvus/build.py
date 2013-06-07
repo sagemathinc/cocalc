@@ -21,16 +21,32 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp
+   1. ATLAS:
 
-   update-alternatives --config java  # select "oracle java 6"
+         apt-get install libatlas3gf-base
+         cd /usr/lib/
+         ln -s libatlas.so.3gf libatlas.so
+         ln -s libcblas.so.3gf libcblas.so
+         ln -s libf77blas.so.3gf libf77blas.so
+
+   This line is in the .sagemathcloud env, so building sage is fast for users.
+
+         export SAGE_ATLAS_LIB="/usr/lib/"
 
 
-For users, do all the following:
 
-# EASY PACKAGES:
+   2. Install critical packages:
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py
+         sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc
+
+   update-alternatives --config java  # select "oracle java 6"    # NOT 7!
+
+
+   3. Additional packages (mainly for users, not building).
+
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket ghc
+
+   # TODO -- more disk space, then include more haskell packages...
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
@@ -54,16 +70,11 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
   sudo apt-get install libntl-5.4.2 libpari-gmp3
   sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
 
-# 4ti2: until the optional spkg gets fixed:
+# Build Sage (as usual)
 
-  cd /tmp/
-  wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
-  ./configure --prefix=/usr/local/sage/sage-*/local/
-  time make -j16    # <20 seconds
-  make install      # this *must* be a separate step!!
-  cd ..; rm -rf 4ti2*
-
-# Install Sage
+export SAGE_ATLAS_LIB=/usr/lib/
+export MAKE="make -j20"
+make
 
 # Non-sage Python packages into Sage
 
@@ -71,24 +82,59 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 easy_install pip
 
-pip install markdown2 markdown2Mathjax virtualenv  pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray basemap h5py netcdf4
+# pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
+# Execute this inside of sage:
+
+[os.system("pip install %s"%s) for s in 'markdown2 markdown2Mathjax virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy'.split()]
+
+(Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
+
+# basemap -- won't install through pip/easy_install, so we do this:
+
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz; tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install
 
 # Also, edit the banner:
 
-  sage-*/local/bin/sage-banner
+  local/bin/sage-banner
+
+        +--------------------------------------------------------------------+
+        | Sage Version 5.10.beta5, Release Date: 2013-05-26                  |
+        | Type "help()" for help.                                            |
+        +--------------------------------------------------------------------+
 
 # OPTIONAL SAGE PACKAGES
 
-./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
+./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
 
 # Then delete wasted space
 
    rm spkg/optional/*
 
+# Make a patch due to a bug in one of the spkg's (at least until "./sage -br" works):
 
-Copy over the newest SageTex:
+        diff --git a/sage/numerical/backends/coin_backend.pyx b/sage/numerical/backends/coin_backend.pyx
+        --- a/sage/numerical/backends/coin_backend.pyx
+        +++ b/sage/numerical/backends/coin_backend.pyx
+        @@ -1087,7 +1087,7 @@
+                     else:
+                         return ""
+                 else:
+        -            self.prob_name = name
+        +            self.prob_name = str(name)
 
-   sudo cp /usr/local/sage/sage-*/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+
+
+# 4ti2 into sage: until the optional spkg gets fixed:
+
+  ./sage -sh
+  cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
+  ./configure --prefix=/usr/local/sage/current/local/; time make -j16 
+  make install      # this *must* be a separate step!!
+  cd ..; rm -rf 4ti2*
+
+# Copy over the newest SageTex, so it actually works:
+
+   sudo cp /usr/local/sage/current/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
 
 
 """
@@ -108,14 +154,16 @@ DATA   = os.path.abspath('data')
 SRC    = os.path.abspath('src')
 PATCHES= os.path.join(SRC, 'patches')
 BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
-TARGET = os.path.abspath(os.path.join(DATA, 'local'))
+PREFIX = os.path.abspath(os.path.join(DATA, 'local'))
+os.environ['PREFIX'] = PREFIX
 
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
-    'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest'
+    'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
+    'moment', 'underscore'
     ]
 
 PYTHON_PACKAGES = [
@@ -131,8 +179,8 @@ PYTHON_PACKAGES = [
 if not os.path.exists(BUILD):
     os.makedirs(BUILD)
 
-os.environ['PATH'] = os.path.join(TARGET, 'bin') + ':' + os.environ['PATH']
-os.environ['LD_LIBRARY_PATH'] = os.path.join(TARGET, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
+os.environ['PATH'] = os.path.join(PREFIX, 'bin') + ':' + os.environ['PATH']
+os.environ['LD_LIBRARY_PATH'] = os.path.join(PREFIX, 'lib') + ':' + os.environ.get('LD_LIBRARY_PATH','')
 
 # number of cpus
 try:
@@ -169,7 +217,7 @@ def build_tinc():
     log.info('building tinc'); start = time.time()
     try:
         path = extract_package('tinc')
-        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -180,7 +228,7 @@ def build_python():
     log.info('building python'); start = time.time()
     try:
         path = extract_package('Python')
-        cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(TARGET,TARGET), path)
+        cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -191,7 +239,7 @@ def build_node():
     log.info('building node'); start = time.time()
     try:
         path = extract_package('node')
-        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
         cmd('git clone git://github.com/isaacs/npm.git && cd npm && make install', path)
@@ -203,10 +251,10 @@ def build_nginx():
     log.info('building nginx'); start = time.time()
     try:
         path = extract_package('nginx')
-        cmd('./configure --without-http_rewrite_module --prefix="%s"'%TARGET, path)
+        cmd('./configure --without-http_rewrite_module --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
-        cmd('mv sbin/nginx bin/', TARGET)
+        cmd('mv sbin/nginx bin/', PREFIX)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
@@ -219,7 +267,7 @@ def build_haproxy():
         # patch log.c so it can write the log to a file instead of syslog
         cmd('patch -p0 < %s/haproxy.patch'%PATCHES, path)  # diff -Naur src/log.c  ~/log.c > ../patches/haproxy.patch
         cmd('make -j %s TARGET=%s'%(NCPU, 'linux2628' if OS=="Linux" else 'generic'), path)
-        cmd('cp haproxy "%s"/bin/'%TARGET, path)
+        cmd('cp haproxy "%s"/bin/'%PREFIX, path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
@@ -228,7 +276,7 @@ def build_stunnel():
     log.info('building stunnel'); start = time.time()
     try:
         path = extract_package('stunnel')
-        cmd('./configure --prefix="%s"'%TARGET, path)
+        cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install < /dev/null', path)  # make build non-interactive -- I don't care about filling in a form for a demo example
     finally:
@@ -244,14 +292,14 @@ def build_cassandra():
             download('http://downloads.datastax.com/community/dsc-cassandra-%s-bin.tar.gz'%CASSANDRA_VERSION)
             cmd('mv dsc-cassandra-%s-bin.tar.gz dsc-cassandra-%s.tar.gz'%(CASSANDRA_VERSION, CASSANDRA_VERSION), SRC)
         path = extract_package('dsc-cassandra')
-        target2 = os.path.join(TARGET, 'cassandra')
+        target2 = os.path.join(PREFIX, 'cassandra')
         print target2
         if os.path.exists(target2):
             shutil.rmtree(target2)
         os.makedirs(target2)
         print "copying over"
         cmd('cp -rv * "%s"'%target2, path)
-        cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(TARGET, 'bin')), path)
+        cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(PREFIX, 'bin')), path)
         print "making symlink so can use fast JNA java native thing"
         cmd("ln -sf /usr/share/java/jna.jar %s/local/cassandra/lib/"%DATA, path)
 
@@ -276,7 +324,7 @@ def build_bup():
     log.info('building bup'); start = time.time()
     try:
         path = extract_package('bup')
-        cmd('make install PREFIX="%s"'%TARGET, path)
+        cmd('./build', path)
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start

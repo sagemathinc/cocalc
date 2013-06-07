@@ -15,12 +15,27 @@ Editor for files in a project
 
 .salvus-editor-close-button-x {
     font-size: 14px;
+    margin-top: 9px;
+    margin-right: 10px;
+    width: 2%;
 }
 
 .salvus-editor-close-button-x:hover {
-    color: #fff;
-    background-color:orange;
-    font-size: 14px;
+    color: #f00;
+}
+
+
+.salvus-editor-tab-filename {
+    overflow-x: hidden;
+    display: block;
+    white-space: nowrap;
+    /* font-size: 10pt; */
+    padding-right: 1em;
+    padding-bottom: 1px;
+}
+
+.salvus-editor-filename-pill {
+    width:32%;
 }
 
 .salvus-editor-codemirror {
@@ -101,7 +116,7 @@ Editor for files in a project
 .salvus-editor-pdf-preview-image {
     margin:1em;
     background-color:#fff;
-    border:1px solid aaa;
+    border:1px solid #aaa;
     /* width:95%; */
     box-shadow: 5px 5px 5px 5px #888;
 }
@@ -267,3 +282,4 @@ li {
 code {
     font-size: inherit;
 }
+

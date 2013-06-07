@@ -6,15 +6,15 @@
   overflow: hidden;
   box-shadow: 8px 8px 4px #bbb;
   border: 3px solid #99f;
-  border-radius: 5
+  border-radius: 5px;
 }
 
 .salvus-completions select {
   background: lightyellow;
   outline: none;
   border: none;
-  padding: 3;
-  margin: 3;
+  padding: 3px;
+  margin: 3px;
   font-family: monospace;
 }
 
@@ -48,4 +48,16 @@
 .salvus-codemirror-introspect-close:hover {
     color            : white;
     background-color :  orange;
+}
+
+/* See https://github.com/twitter/bootstrap/issues/2764 */
+
+.nav-tabs>.disabled>a, .nav-pills>.disabled>a {
+    color: #999;
+    cursor: default;
+    border: none; /** add this for tabs/pills **/
+}
+
+.nav-tabs>.disabled>a:hover, .nav-pills>.disabled>a:hover {
+    background-color: transparent;
 }

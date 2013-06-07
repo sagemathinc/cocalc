@@ -510,9 +510,15 @@ class Console extends EventEmitter
         c.remove()
         elt = $(@terminal.element)
 
-        # The above trick is not reliable for getting the height of each row.  For that we use
-        # the terminal itself.
-        row_height = elt.children(":first").height()
+        # The above trick is not reliable for getting the height of each row.
+        # For that we use the terminal itself.
+        # The row height is in fact *NOT* constant -- it can vary by 1 (say) depending
+        # on what is in the row.  So we compute the maximum line height, which is safe.
+        heights = ($(x).height() for x in elt.children())
+        # Eliminate weird outliers that sometimes appear (e.g., for last row); yes, this is
+        # pretty crazy...
+        heights = (x for x in heights when x <= heights[0] + 2)
+        row_height = Math.max( heights ... )
 
         if character_width == 0 or row_height == 0
             # The editor must not yet be visible -- do nothing

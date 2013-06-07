@@ -291,7 +291,7 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
   }
 
   function maybeoperatorComma(type, value) {
-    if (type == ",") return cont(expression);
+    if (type == ",") return pass();
     return maybeoperatorNoComma(type, value, maybeoperatorComma);
   }
   function maybeoperatorNoComma(type, value, me) {
@@ -453,6 +453,9 @@ CodeMirror.defineMode("javascript", function(config, parserConfig) {
     },
 
     electricChars: ":{}",
+    blockCommentStart: jsonMode ? null : "/*",
+    blockCommentEnd: jsonMode ? null : "*/",
+    lineComment: jsonMode ? null : "//",
 
     jsonMode: jsonMode
   };
@@ -463,5 +466,6 @@ CodeMirror.defineMIME("text/ecmascript", "javascript");
 CodeMirror.defineMIME("application/javascript", "javascript");
 CodeMirror.defineMIME("application/ecmascript", "javascript");
 CodeMirror.defineMIME("application/json", {name: "javascript", json: true});
+CodeMirror.defineMIME("application/x-json", {name: "javascript", json: true});
 CodeMirror.defineMIME("text/typescript", { name: "javascript", typescript: true });
 CodeMirror.defineMIME("application/typescript", { name: "javascript", typescript: true });

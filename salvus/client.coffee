@@ -1,6 +1,7 @@
 {EventEmitter} = require('events')
 
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
+_     = require('underscore')
 
 diffsync = require('diffsync')
 
@@ -350,10 +351,17 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             project_id   : required
             timeout      : 10
+            params  : undefined   # extra params relevant to the session (in case we need to restart it)
             cb           : required
         @call
-            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type, project_id:opts.project_id)
+            message : message.connect_to_session
+                session_uuid : opts.session_uuid
+                type         : opts.type
+                project_id   : opts.project_id
+                params       : opts.params
+
             timeout : opts.timeout
+
             cb      : (error, reply) =>
                 if error
                     opts.cb(error); return
@@ -785,6 +793,30 @@ class exports.Connection extends EventEmitter
                     project_id  : opts.project_id
             cb : opts.cb
 
+    delete_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timeout    : 10
+            cb         : undefined
+        @call
+            message :
+                message.delete_project
+                    project_id  : opts.project_id
+            timeout : opts.timeout
+            cb : opts.cb
+
+    undelete_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timeout    : 10
+            cb         : undefined
+        @call
+            message :
+                message.undelete_project
+                    project_id  : opts.project_id
+            timeout : opts.timeout
+            cb : opts.cb
+
     write_text_file_to_project: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -947,6 +979,7 @@ class exports.Connection extends EventEmitter
 
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
+
         @call
             message : message.project_exec
                 project_id : opts.project_id
@@ -1102,18 +1135,143 @@ class exports.Connection extends EventEmitter
         )
 
     #################################################
+    # Search
+    #################################################
+    user_search: (opts) =>
+        opts = defaults opts,
+            query   : required
+            limit   : 20
+            timeout : 10
+            cb      : required
+
+        @call
+            message : message.user_search(query:opts.query, limit:opts.limit)
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, resp.results)
+
+    project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required   # cb(err, list_of_users) -- see message.coffee for format of entries
+        @call
+            message : message.get_project_users(project_id:opts.project_id)
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, resp.users)
+
+    project_invite_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : (err) =>
+        @call
+            message : message.invite_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            cb      : opts.cb
+
+
+    #################################################
     # File Management
     #################################################
+    project_snap_listing: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : '.'
+            start      : 0
+            limit      : 200
+            timeout    : 60
+            hidden     : false
+            cb         : required
+
+        day = undefined
+        if opts.path.length == 10 # specifies a day
+            snapshot = undefined
+            day = opts.path
+        else if opts.path.length > 10
+            opts.path = opts.path.slice(11)
+            i = opts.path.indexOf('/')
+            if i == -1
+                snapshot = opts.path
+                path = '.'
+            else
+                snapshot = opts.path.slice(0,i)
+                path = opts.path.slice(i+1)
+        else
+            snapshot = undefined
+            path = "."
+
+        @call
+            message:
+                message.snap
+                    command    : 'ls'
+                    project_id : opts.project_id
+                    snapshot   : snapshot
+                    path       : path
+                    timeout    : opts.timeout
+
+            timeout :
+                opts.timeout
+
+            cb : (err, resp) ->
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    if not snapshot?
+                        if day?
+                            files = ( {name:name, isdir:true, snapshot:''} for name in resp.list when name.slice(0,10) == day )
+
+                        else
+                            # list of all days with branches
+                            v = _.uniq( ( name.slice(0,10) for name in resp.list ) )
+                            files = ( {name:name, isdir:true, snapshot:''} for name in v )
+                    else
+                        files = []
+                        for name in resp.list
+                            if not opts.hidden and name[0] == '.'
+                                continue
+                            if name[name.length-1] == '/'
+                                files.push({name:name.slice(0,name.length-1), isdir:true, snapshot:snapshot})
+                            else
+                                files.push({name:name, snapshot:snapshot})
+                    opts.cb(false, {files:files})
+
+
     project_directory_listing: (opts) =>
         opts = defaults opts,
             project_id : required
             path       : '.'
             time       : false
             start      : 0
-            limit      : 100
+            limit      : 200
             timeout    : 60
             hidden     : false
             cb         : required
+
+        if opts.path.slice(0,9) == ".snapshot"
+            delete opts.time  # no way to sort by time
+            opts.path = opts.path.slice(9)
+            if opts.path.length > 0 and opts.path[0] == '/'
+                opts.path = opts.path.slice(1)  # delete leading slash
+
+            tries = 0
+            cb = opts.cb
+            # TODO: Try multiple times since server just gives an error on backend failure.
+            f = (err, result) =>
+                if err and tries < 2
+                    tries += 1
+                    @project_snap_listing(opts)
+                else
+                    cb(err, result)
+            opts.cb = f
+            @project_snap_listing(opts)
+            return
 
         args = []
         if opts.time
@@ -1139,7 +1297,10 @@ class exports.Connection extends EventEmitter
                 else if output.exit_code
                     opts.cb(output.stderr)
                 else
-                    opts.cb(err, misc.from_json(output.stdout))
+                    v = misc.from_json(output.stdout)
+                    if opts.path == '.' and opts.hidden
+                        v.files.unshift({name:'.snapshot', isdir:true})
+                    opts.cb(err, v)
 
 
 #################################################

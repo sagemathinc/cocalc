@@ -30,6 +30,8 @@ net = require('net')
 # data is just a JSON-able object.  When type='blob', data={uuid:..., blob:...};
 # since every blob is tagged with a uuid.
 
+fs = require('fs')
+
 misc = require 'misc'
 
 {walltime, defaults, required, to_json} = misc
@@ -88,8 +90,15 @@ exports.enable_mesg = enable_mesg = (socket) ->
             if typeof s == "string"
                 s = Buffer(s)
             buf.writeInt32BE(s.length, 0)
-            socket.write(buf)
-            socket.write(s, cb)
+            if not socket.writable
+                cb?("socket not writable")
+            else
+                socket.write(buf)
+
+            if not socket.writable
+                cb?("socket not writable")
+            else
+                socket.write(s, cb)
         switch type
             when 'json'
                 send('j' + JSON.stringify(data))
@@ -156,12 +165,13 @@ exports.unlock_socket = (socket, token, cb) ->     # cb(err)
             cb("Invalid secret token.")
     socket.on('data', listener)
 
-# Connect to a locked socket on localhost, unlock it, and do cb(err,
-# unlocked_socket).  We do not allow connection to any other host,
-# since this is not an *encryption* protocol; fortunately, traffic on
-# localhost can't be sniffed (except as root, of course, when it can be).
+# Connect to a locked socket on host, unlock it, and do
+#       cb(err, unlocked_socket).
+# WARNING: Use only on an encrypted VPN, since this is not
+# an *encryption* protocol.
 exports.connect_to_locked_socket = (opts) ->
-    {port, token, timeout, cb} = defaults opts,
+    {port, host, token, timeout, cb} = defaults opts,
+        host    : 'localhost'
         port    : required
         token   : required
         timeout : 5
@@ -177,7 +187,7 @@ exports.connect_to_locked_socket = (opts) ->
 
     timer = setTimeout(timed_out, timeout*1000)
 
-    socket = net.connect {port:port}, () =>
+    socket = net.connect {host:host, port:port}, () =>
         listener = (data) ->
             winston.debug("misc_node: got back response: #{data}")
             socket.removeListener('data', listener)
@@ -390,6 +400,19 @@ exports.execute_code = (opts) ->
     )
 
 
+####
+## Applications of execute_code
+
+exports.disk_usage = (path, cb) ->  # cb(err, usage in K (1024 bytes) of path)
+    exports.execute_code
+        command : "du"
+        args    : ['-s', path]
+        cb      : (err, output) ->
+            if err
+                cb(err)
+            else
+                cb(false, parseInt(output.stdout.split(' ')[0]))
+
 
 ###################################
 # project_id --> username mapping
@@ -516,3 +539,41 @@ exports.forward_remote_port_to_localhost = (opts) ->
             delete address_to_local_port[remote_address]
             clearInterval(kill_no_output_timer)
             clearInterval(kill_no_activity_timer)
+
+
+
+
+
+# Any non-absolute path is assumed to be relative to the user's home directory.
+# This function converts such a path to an absolute path.
+exports.abspath = abspath = (path) ->
+    if path.length == 0
+        return process.env.HOME
+    if path[0] == '/'
+        return path  # already an absolute path
+    return process.env.HOME + '/' + path
+
+# Other path related functions...
+
+# Make sure that that the directory containing the file indicated by
+# the path exists and has restrictive permissions.
+ensure_containing_directory_exists = (path, cb) ->   # cb(err)
+    path = abspath(path)
+    dir = misc.path_split(path).head  # containing path
+
+    fs.exists dir, (exists) ->
+        if exists
+            cb?()
+        else
+            async.series([
+                (cb) ->
+                    if dir != ''
+                        # recursively make sure the entire chain of directories exists.
+                        ensure_containing_directory_exists(dir, cb)
+                    else
+                        cb()
+                (cb) ->
+                    fs.mkdir(dir, 0o700, cb)
+            ], (err) -> cb?(err))
+
+exports.ensure_containing_directory_exists = ensure_containing_directory_exists

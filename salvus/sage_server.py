@@ -525,6 +525,8 @@ class Salvus(object):
         point in the output stream) every time the worksheet is
         rendered.
 
+        See the docs for the top-level javascript function for more details.
+
         INPUT:
 
         - code -- a string
@@ -553,6 +555,8 @@ class Salvus(object):
     def coffeescript(self, *args, **kwds):
         """
         This is the same as salvus.javascript, but with coffeescript=True.
+
+        See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
         return self.javascript(*args, **kwds)
@@ -627,6 +631,8 @@ class Salvus(object):
         Tell the browser to execute javascript.  Basically the same as
         salvus.javascript with once=True (the default), except this
         isn't tied to a particular cell.
+
+        See the docs for the top-level javascript function for more details.
         """
         self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, data=data))
         return self
@@ -634,6 +640,8 @@ class Salvus(object):
     def execute_coffeescript(self, *args, **kwds):
         """
         This is the same as salvus.execute_javascript, but with coffeescript=True.
+
+        See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
         return self.execute_javascript(*args, **kwds)
@@ -709,6 +717,7 @@ class Salvus(object):
         if ext == ".py":
             return self._py(filename, **opts)
         raise NotImplementedError("require file of type %s not implemented"%ext)
+
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
@@ -935,7 +944,7 @@ def serve(port, host):
     # easily get put in a broken state after fork that impacts future forks... ?
     #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
 
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy;" in namespace
+    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
     print 'imported sage library in %s seconds'%(time.time() - tm)
 
     for k,v in sage_salvus.interact_functions.iteritems():
@@ -946,7 +955,7 @@ def serve(port, host):
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
                  'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                  'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
-                 'reset', 'restore', 'md']:
+                 'reset', 'restore', 'md', 'load']:
         namespace[name] = getattr(sage_salvus, name)
 
     sage_salvus.default_namespace = dict(namespace)

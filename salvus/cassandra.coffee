@@ -299,10 +299,9 @@ class exports.Cassandra extends EventEmitter
             winston.error(err.name, err.message)
             @emit('error', err)
         )
-        if opts.cb?
-            @conn.connect(opts.cb)
-        else
-            @conn.connect((err) -> )
+
+        @conn.connect (err) =>
+            opts.cb?(err, @)
 
     _where: (where_key, vals, json=[]) ->
         where = "";
@@ -449,7 +448,7 @@ class exports.Cassandra extends EventEmitter
 
     cql: (query, vals, cb) ->
         #winston.debug("About to query db #{query}...")
-        # TODO: sometimes allow filtering is needed -- TODO -- fix this.
+        # TODO: sometimes allow filtering is needed -- TODO -- fix this to be a clearly specified option.
         if query.slice(0,6).toLowerCase() == 'select'
             query += '   ALLOW FILTERING'
         @conn.cql query, vals, (error, results) =>
@@ -516,6 +515,204 @@ class exports.Salvus extends exports.Cassandra
                     cb(error)
                 else
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
+
+    ##-- search
+
+    user_search: (opts) =>
+        opts = defaults opts,
+            query : required
+            limit : undefined
+            cb    : required
+
+        # TODO: this obviously won't scale to a large number of users; we need a full-text search index
+        # system for that, which will have to get written somehow...
+        @select
+            table     : 'accounts'
+            columns   : ['first_name', 'last_name', 'account_id']
+            objectify : true
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                    return
+                query = opts.query.toLowerCase().split(/\s+/g)
+                match = (name) ->
+                    name = name.toLowerCase()
+                    for q in query
+                        if name.indexOf(q) == -1
+                            return false
+                    return true
+                r = []
+                for x in results
+                    if match(x.first_name + x.last_name)
+                        r.push(x)
+                        if opts.limit? and r.length >= opts.limit
+                            break
+                opts.cb(false, r)
+
+    project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required   # (err, list of users)
+        @select
+            table     : 'project_users'
+            columns   : ['account_id', 'mode', 'state']
+            where     : {project_id : opts.project_id}
+            objectify : true
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                    return
+                @account_ids_to_usernames
+                    account_ids : (x.account_id for x in results)
+                    cb          : (err, users) =>
+                        if err
+                            opts.cb(err)
+                            return
+                        for x in results
+                            x.first_name = users[x.account_id].first_name
+                            x.last_name = users[x.account_id].last_name
+                        opts.cb(false, results)
+
+    account_ids_to_usernames: (opts) =>
+        opts = defaults opts,
+            account_ids : required
+            cb          : required # (err, mapping {account_id:{first_name:?, last_name:?}})
+        @select
+            table     : 'accounts'
+            columns   : ['account_id', 'first_name', 'last_name']
+            where     : {account_id:{'in':opts.account_ids}}
+            objectify : true
+            cb        : (err, results) =>
+                v = {}
+                for r in results
+                    v[r.account_id] = {first_name:r.first_name, last_name:r.last_name}
+                opts.cb(err, v)
+
+    #####################################
+    # Snap servers
+    #####################################
+    snap_servers: (opts) =>
+        opts = defaults opts,
+            server_ids : undefined
+            columns    : ['id', 'host', 'port', 'key', 'size']
+            cb         : required
+
+        if opts.server_ids?
+            if opts.server_ids.length == 0
+                opts.cb(false, [])
+                return
+            where = {id:{'in':opts.server_ids}}
+        else
+            where = undefined
+
+        @select
+            table     : 'snap_servers'
+            columns   : opts.columns
+            where     : where
+            objectify : true
+            cb        : opts.cb
+
+    # Return array of all *active* snap servers with the given commit.
+    # The servers are the same format as output by snap_servers above.
+    snap_servers_with_commit: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timestamp  : required
+            cb         : required   # (err, list of objects)
+
+        server_ids = undefined
+        servers    = undefined
+        async.series([
+            (cb) =>
+                @select
+                    table      : 'snap_commits'   # this query uses ALLOW FILTERING.
+                    where      : {project_id : opts.project_id, timestamp : opts.timestamp}
+                    columns    : ['server_id']
+                    objectify  : false
+                    cb         : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            server_ids = (r[0] for r in results)
+                            cb()
+            (cb) =>
+                @snap_servers
+                    server_ids : server_ids
+                    cb         : (err, _servers) =>
+                        servers = _servers
+                        cb(err)
+        ], (err) => opts.cb(err, servers))
+
+    snap_commits: (opts) =>
+        opts = defaults opts,
+            server_ids : required
+            project_id : required
+            columns    : ['server_id', 'project_id', 'timestamp', 'size']
+            cb         : required
+
+        if opts.server_ids.length == 0
+            opts.cb(false, [])
+            return
+
+        @select
+            table   : 'snap_commits'
+            where   : {server_id:{'in':opts.server_ids}, project_id:opts.project_id}
+            columns : opts.columns
+            objectify : true
+            cb      : opts.cb
+
+    snap_ls_cache: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timestamp  : required
+            path       : required
+            listing    : undefined   # if given, store listing in the cache
+            ttl        : 3600*24*7   # 1 week
+            cb         : required    # cb(err, listing or undefined)
+
+        where = {project_id:opts.project_id, timestamp:opts.timestamp, path:opts.path}
+        if opts.listing?
+            # store in cache
+            @update
+                table : 'snap_ls_cache'
+                set   : {listing:opts.listing}
+                json  : ['listing']
+                where : where
+                ttl   : opts.ttl
+                cb    : opts.cb
+        else
+            # get listing out of cache, if there.
+            @select
+                table   : 'snap_ls_cache'
+                columns : ['listing']
+                where   : where
+                json    : ['listing']
+                objectify : false
+                cb      : (err, results) =>
+                    if err
+                        opts.cb(err)
+                    else if results.length == 0
+                        opts.cb(false, undefined)  # no error, but nothing in caching
+                    else
+                        opts.cb(false, results[0][0])
+
+
+
+
+    random_snap_server: (opts) =>
+        opts = defaults opts,
+            cb        : required
+        @snap_servers
+            cb : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb("No snapshot servers are available -- try again later.")
+                    else
+                        opts.cb(false, misc.random_choice(results))
+
+
 
     #####################################
     # Managing compute servers
@@ -968,9 +1165,10 @@ class exports.Salvus extends exports.Cassandra
                     json  : ['location']
                     set   : {location:opts.location}
                     where : {project_id : opts.project_id}
-                    # This ttl is closely related to the timing
-                    # in start_project_snapshotter (of backup.coffee).
-                    ttl   : 15*60   # 15 minutes -- just a guess; this may need tuning as Salvus grows!
+                    # This ttl should be substantially bigger than the snapshot_interval
+                    # in snap.coffee, but not too long to make the query and search of
+                    # everything in this table slow.
+                    ttl   : 5*60   # 5 minutes -- just a guess; this may need tuning as Salvus grows!
                     cb    : opts.cb
 
     create_project: (opts) ->
@@ -1024,19 +1222,38 @@ class exports.Salvus extends exports.Cassandra
                             cb()
         ])
 
+    undelete_project: (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            cb          : undefined
+        @update
+            table : 'projects'
+            set   : {deleted:false}
+            where : {project_id : opts.project_id}
+            cb    : opts.cb
+
+
     delete_project: (opts) ->
         opts = defaults opts,
             project_id  : required
             cb          : undefined
-        async.series([
-            (cb) =>
-                @delete(table:'projects', where:{project_id : opts.project_id}, cb:cb)
-            (cb) =>
-                @delete(table:'project_users', where:{project_id : opts.project_id}, cb:cb)
-        ], (err) ->
-            if opts.cb?
-                opts.cb(err)
-        )
+        @update
+            table : 'projects'
+            set   : {deleted:true}
+            where : {project_id : opts.project_id}
+            cb    : opts.cb
+
+        # This was an implementation of destructive deletion.  But this has no place in SMC, given
+        # that we have numerous snapshots of all data of every project anyways!
+        #async.series([
+        #    (cb) =>
+        #        @delete(table:'projects', where:{project_id : opts.project_id}, cb:cb)
+        #    (cb) =>
+        #        @delete(table:'project_users', where:{project_id : opts.project_id}, cb:cb)
+        #], (err) ->
+        #    if opts.cb?
+        #        opts.cb(err)
+        #)
 
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
@@ -1094,7 +1311,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table     : 'projects'
             json      : ['location', 'quota']
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size']
+            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->
@@ -1163,6 +1380,24 @@ class exports.Salvus extends exports.Cassandra
             columns    : ['filename']
             where      : { project_id:opts.project_id }
             cb         : opts.cb
+
+    # Get array of uuid's all *all* projects in the database
+    get_all_project_ids: (opts) =>   # cb(err, [project_id's])
+        opts = defaults opts,
+            cb      : required
+            deleted : false     # by default, only return non-deleted projects
+        @select
+            table   : 'projects'
+            columns : ['project_id', 'deleted']
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if not opts.deleted  # can't do this with a query given current data model.
+                        ans = (r[0] for r in results when not r[1])
+                    else
+                        ans = (r[0] for r in results)
+                    opts.cb(false, ans)
 
     save_project_bundle: (opts) ->
         opts = defaults opts,

@@ -32,6 +32,8 @@ var opera_version = opera && navigator.userAgent.match(/Version\/(\d+\.\d+)/);
 if (opera_version) opera_version = Number(opera_version);
 var opera_lt10 = opera && (!opera_version || opera_version < 10);
 
+namespace = "core_";
+
 test("core_fromTextArea", function() {
   var te = document.getElementById("code");
   te.value = "CONTENT";
@@ -1013,7 +1015,8 @@ testCM("verticalMovementCommandsWrapping", function(cm) {
 
 testCM("rtlMovement", function(cm) {
   forEach(["خحج", "خحabcخحج", "abخحخحجcd", "abخde", "abخح2342خ1حج", "خ1ح2خح3حxج",
-           "خحcd", "1خحcd", "abcdeح1ج", "خمرحبها مها!", "foobarر"], function(line) {
+           "خحcd", "1خحcd", "abcdeح1ج", "خمرحبها مها!", "foobarر",
+           "<img src=\"/בדיקה3.jpg\">"], function(line) {
     var inv = line.charAt(0) == "خ";
     cm.setValue(line + "\n"); cm.execCommand(inv ? "goLineEnd" : "goLineStart");
     var cursor = byClassName(cm.getWrapperElement(), "CodeMirror-cursor")[0];

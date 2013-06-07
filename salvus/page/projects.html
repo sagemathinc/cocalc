@@ -5,19 +5,20 @@
             A project is a complete self-contained collection of files and folders.
             Sharing and collaboration occurs at the project level.
         </h4>
-        <br><br>
+        <br>
 
-        <button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:15em; margin-left: 7em;">Create a New Project</button>
+        <button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:15em; margin-left: 1em;">Create New Project</button>
         <div class="pull-right" style="margin-right:2em">
             <span class="btn-group">
                 <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
-                <button class="btn btn-info btn-small" id="projects-public-button">Public</button>
-                <button class="btn btn-info btn-small" id="projects-private-button">Private</button>
+                <button class="btn btn-info btn-small" id="projects-public-button"><i class="icon-eye-open"></i> Public</button>
+                <button class="btn btn-info btn-small" id="projects-private-button"><i class="icon-eye-close"></i> Private</button>
+                <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="icon-trash"></i> Deleted</button>
             </span>
             &nbsp;&nbsp;
             <input class="span3 projects-find-input search-query" type="text" placeholder="Find a project...">
             &nbsp;&nbsp;
-             <br><br><br>
+             <br><br>
 
         </div>
 
@@ -26,6 +27,14 @@
                 <span class="projects-create-new-spinner hide"></span>
             </div>
             <br>
+        </div>
+
+        <div class="row span10">
+            <div class="span1">
+            </div>
+            <div class="span9 lighten projects-describe-listing" style="font-weight:bold; font-size:12pt;">
+            </div>
+            <br><br>
         </div>
 
 
@@ -88,7 +97,7 @@
             </div>
 
             <div class="row span5">
-                <span class="big-only lighten">You can easily change the title and description at any time later.</span>
+                <span class="big-only lighten">You can change the title and description at any time later.</span>
             </div>
 
             <!-- public? -->
@@ -107,13 +116,14 @@
             </div>
 
             <!-- location -->
-<div class="row span5">
-<hr class="big-only">
-<h4>Advanced (only for William Stein!): use your own Linux account</h4>
-<span class="big-only lighten">Enter "username@host[:path] [-p port]".</span>
-<input class="span5 offset1" type="text" placeholder="username@host[:path] [-p port]" id="projects-create_project-location">
-</div>
-
+            <!--
+            <div class="row span5">
+                <hr class="big-only">
+                <h4>Advanced (only for William Stein!): use your own Linux account</h4>
+                <span class="big-only lighten">Enter "username@host[:path] [-p port]".</span>
+                <input class="span5 offset1" type="text" placeholder="username@host[:path] [-p port]" id="projects-create_project-location">
+            </div>
+            -->
 
         </div>
         <!-- do it -->

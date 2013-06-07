@@ -561,7 +561,7 @@ message
 
 
 
-############################################
+#############################################
 # Scratch worksheet
 #############################################
 message
@@ -703,6 +703,23 @@ message
     bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs in separate messages.
 
 
+
+#############################################
+#
+# Client/user browsing snapshots of a project, restoring, etc.
+#
+#############################################
+message
+    event          : 'snap'
+    id             : undefined
+    command        : required    # 'ls', 'restore', 'log'
+    project_id     : required
+    # if snapshot not given, then command must be "ls", and server returns a list of available snapshots in reverse order
+    snapshot       : undefined
+    path           : '.'         # when 'ls', returns listing of files in this path (if snapshot given), with slash
+                                 # at end of filename to denote a directory.
+    timeout        : 600         # how long to wait for response from the snap server before sending an error
+    list           : undefined   # response message is of same type, but has this filled in for 'ls' and 'log' commands.
 
 
 ######################################################################
@@ -914,6 +931,18 @@ message
     description: required
     public     : required
 
+# client --> hub
+message
+    event      : 'delete_project'
+    id         : undefined
+    project_id : required
+
+# client --> hub
+message
+    event      : 'undelete_project'
+    id         : undefined
+    project_id : required
+
 # hub --> client
 message
     event      : 'project_created'
@@ -952,4 +981,45 @@ message
 # hub --> client(s)
 message
     event      : 'project_list_updated'
+
+
+
+## search ---------------------------
+
+# client --> hub
+message
+    event : 'user_search'
+    id    : undefined
+    query : required    # searches for match in first_name or last_name.
+    limit : 20          # maximum number of results requested
+
+# hub --> client
+message
+    event   : 'user_search_results'
+    id      : undefined
+    results : required  # list of {first_name:, last_name:, account_id:} objects.
+
+
+# client --> hub
+message
+    event      : 'get_project_users'
+    project_id : required
+    id         : undefined
+
+# hub --> client
+message
+    event : 'project_users'
+    id    : undefined
+    users : required   # list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
+
+message
+    event      : 'invite_collaborator'
+    id         : undefined
+    project_id : required
+    account_id : required
+
+
+
+
+
 
