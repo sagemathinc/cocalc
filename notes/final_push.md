@@ -1,3 +1,11 @@
+
+- [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement. 
+
+- [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
+
+
+- [ ] (2:00?) octave interface (like GAP) also doesn't work in .sagews !
+
 - [ ] (0:10?) add link to http://www.sagemath.org/help.html
 - [ ] (0:30?) BUG: terminal path is not set correctly based on file path
 - [ ] (2:00?) make it so terminals never disconnects/hangs
