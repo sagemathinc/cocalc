@@ -12,6 +12,18 @@
     - start typing name, and it will autocomplete showing names of other users, just like to: field in gmail
       (For now, this will be all other users of cloud.sagemath, but eventually restrict/order in some sensible way.)
 
+- [x] (0:30?) do another release:
+      x- update salvus library
+      x- `./make_coffee`
+      x- alter table project_users add state  varchar;
+      x - update bup (!)
+      x- sage-5.10.rc1 (started normal build on next vm):
+             export MAKE="make -j20"; export SAGE_ATLAS_LIB="/usr/lib"; make ptestlong
+      x- pip's
+      x- optional packages
+
+
+
 - [ ] (1:00?) share: make it possible to quite part of sharing -- deleting the project could do that.
 
 
@@ -27,18 +39,6 @@
     \[
        \{ foo \}
     \]
-
-- [ ] (0:30?) do another release:
-      - update salvus library
-      - `./make_coffee`
-      - alter table project_users add state  varchar;
-      - update bup (!)
-      - sage-5.10.rc1 (started normal build on next vm):
-
-             export MAKE="make -j20"; export SAGE_ATLAS_LIB="/usr/lib"; make ptestlong
-
-      - pip's
-      - optional packages
 
 
 ---
