@@ -516,6 +516,40 @@ class exports.Salvus extends exports.Cassandra
                 else
                     cb(false, ({time:r[0], event:r[1], value:from_json(r[2])} for r in results))
 
+    ##-- search
+
+    user_search: (opts) =>
+        opts = defaults opts,
+            query : required
+            limit : undefined
+            cb    : required
+
+        # TODO: this obviously won't scale to a large number of users; we need a full-text search index
+        # system for that, which will have to get written somehow...
+        @select
+            table     : 'accounts'
+            columns   : ['first_name', 'last_name', 'account_id']
+            objectify : true
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                    return
+                query = query.toLowerCase().split(/\s+/g)
+                match = (name) ->
+                    name = name.toLowerCase()
+                    for q in query
+                        if name.indexOf(q) == -1
+                            return false
+                    return true
+                r = []
+                for x in results
+                    if match(x.first_name + x.last_name)
+                        r.push(x)
+                        if opts.limit? and r.length >= opts.limit
+                            break
+                opts.cb(false, r)
+
+
     #####################################
     # Snap servers
     #####################################

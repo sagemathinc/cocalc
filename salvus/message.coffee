@@ -982,3 +982,23 @@ message
 message
     event      : 'project_list_updated'
 
+
+
+## search ---------------------------
+
+message
+    event : 'user_search'
+    id    : undefined
+    query : required    # searches for match in first_name or last_name.
+    limit : 20          # maximum number of results requested
+
+message
+    event   : 'user_search_results'
+    id      : undefined
+    results : required  # list of {first_name:, last_name:, account_id:} objects.
+
+
+
+
+
+

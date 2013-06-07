@@ -361,7 +361,7 @@ class exports.Connection extends EventEmitter
                 params       : opts.params
 
             timeout : opts.timeout
-            
+
             cb      : (error, reply) =>
                 if error
                     opts.cb(error); return
@@ -979,6 +979,7 @@ class exports.Connection extends EventEmitter
 
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
+
         @call
             message : message.project_exec
                 project_id : opts.project_id
@@ -1132,6 +1133,19 @@ class exports.Connection extends EventEmitter
             else
                 opts.cb() # good
         )
+
+    #################################################
+    # Search
+    #################################################
+    user_search: (opts) =>
+        opts = defaults opts,
+            query : required
+            limit : 20
+            cb    : required            
+        @call
+            message : message.user_search(query:query, limit:limit)
+            cb      : opts.cb
+
 
     #################################################
     # File Management

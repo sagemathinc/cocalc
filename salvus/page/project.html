@@ -232,19 +232,21 @@
                         </div>
                         <div class="row-fluid">
                             <div class="span8 well project-settings-well">
-                                <h4>Collaborators</h4>
+                                <h4 class="pull-left">Collaborators</h4>
+                                <div class="pull-right">
+                                    <input class="span8 project-add-collaborator-input" type="search" placeholder="Name...">
+                                    <a href="#add-collaborator" class="btn btn-success"
+                                        data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
+                                        <i class="icon-plus"> </i> Add...
+                                    </a>
+                                </div>
                                 <span class="project-collaborators lighten">
                                 </span>
-                                <hr>
-                                <a href="#add-collaborator" class="btn btn-success"
-                                    data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
-                                    <i class="icon-smile"> </i> Add New
-                                </a>
                             </div>
                             <div class="span4 well project-settings-well">
                                 <!-- Disk usage of the project -->
                                 <h4>Disk usage</h4>
-                                <pre class="project-disk_usage">computing...</pre>
+                                <span class="project-disk_usage">computing...</span>
                                 <!-- Download the whole project -->
                                 <!--<a href="#download-project" class="btn  btn-success">
                                     <i class="icon-cloud-download"> </i> Download Project

@@ -14,6 +14,7 @@
 
 
 
+
 - [ ] (2:00?) make it so terminals never disconnect or hang
 
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
@@ -30,6 +31,7 @@
 - [ ] (0:30?) do another release:
       - update salvus library
       - `./make_coffee`
+      - alter table project_users add state  varchar;
       - update bup (!)
       - sage-5.10.rc1 (started normal build on next vm):
 
@@ -39,8 +41,9 @@
       - optional packages
 
 
-
 ---
+
+- [ ] (1:00?) client.exec is timing out after about 10 seconds no matter what.  This messes up "disk usage", among other things...  I wonder why?
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
        - open a worksheet or file to edit

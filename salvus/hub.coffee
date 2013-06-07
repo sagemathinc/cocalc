@@ -1205,6 +1205,18 @@ class Client extends EventEmitter
                 session.client_call(@, mesg)
 
 
+    ## -- user search
+    mesg_user_search: (mesg) =>
+        database.user_search
+            query : mesg.query
+            limit : mesg.limit
+            cb    : (err, results) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.user_search_results(id:mesg.id, results:results))
+
+
     ################################################
     # Project snapshots -- interface to the snap servers
     ################################################
