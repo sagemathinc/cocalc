@@ -6,9 +6,25 @@
     top: 40px;
 }
 
+.project-disk_usage {
+    background-color:white;
+}
+
+.project-settings-well {
+    background-color:white;
+}
+
+.project-add-collaborator-input {
+    width: 95%;
+}
+
 .project-file-listing-container {
     /* overflow-y: auto;
     overflow-x: hidden; */
+}
+
+.project-collaborators {
+    margin-left: 1.5em;
 }
 
 .project-file-listing-current_path {
@@ -79,6 +95,10 @@
 
 .project-project_title {
     font-size:18pt;
+}
+
+.project-pages-button {
+     margin-right:-.9em;
 }
 
 .project-search-form-input {

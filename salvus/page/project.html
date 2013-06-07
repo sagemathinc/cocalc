@@ -1,5 +1,3 @@
-
-
 <!-- Modal dialogs for manipulating paths -->
 
 <div id="project-delete-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
@@ -65,19 +63,19 @@
                 <!-- Browse through files in the project -->
 
                 <!-- we use data-target instead of href=# to avoid the highly annoying link text that appears on hover at the bottom of the screen! -->
-                <li class="super-menu">
+                <li class="super-menu project-pages-button">
                     <a data-target="project-file-listing"  data-toggle="tooltip" data-placement="right" title="Browse files"><i class="project-control-icon icon-folder-open-alt"></i> Files</a></li>
 
                 <!-- File editor with links to recent files -->
-                <li class="super-menu"><a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files"><i class="project-control-icon icon-time"> </i> Recent</a></li>
+                <li class="super-menu project-pages-button"><a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files"><i class="project-control-icon icon-time"> </i> Recent</a></li>
 
                 <!-- Create a new file (or, etc.)-->
-                <li class="super-menu"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> New</a></li>
+                <li class="super-menu project-pages-button"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> New</a></li>
 
-                <li class="super-menu "><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> </a></li>
+                <li class="super-menu project-pages-button "><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> </a></li>
 
                 <!-- Search -->
-                <li class="super-menu project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i></a></li>
+                <li class="super-menu project-pages-button project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i></a></li>
 
 
             </ul>
@@ -214,63 +212,76 @@
                 <div class="row">
 
                     <div class="well" style="margin-left:3em;">
-                        <div>
-                            <div class="pull-right"   style="margin-right:2em">
+                        <div class="row-fluid">
+                            <div class="span8 well project-settings-well">
+                                <!-- Title of the project (editable) -->
+                                <h4>
+                                    <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
+                                    <span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                    <span class="project-project_title" contenteditable="true"></span>
+                                </h4>
+                                <!-- Description of the project (editable) -->
+                                <div class="project-project_description" contenteditable="true">
+                                </div>
+                            </div>
+                            <div class="span4 well project-settings-well">
                                 <!-- The project id -->
                                 Project id:
                                 <span class="project-id"></span>
-                                <span class="project-size-label">Size:</span>
-                                <span class="project-size"></span>
-                                <!-- Location:
-                                <span class="project-location"></span> -->
-
-
                             </div>
+                        </div>
+                        <div class="row-fluid">
+                            <div class="span8 well project-settings-well">
+                                <div class="row-fluid">
+                                    <div class="span4">
+                                        <h4 class="pull-left">Collaborators</h4>
+                                    </div>
+                                    <div class="span8">
 
-                            <!-- Title of the project (editable) -->
-                            <h4>
-                                <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
-                                <span class="project-private hide"><i class="icon-lock"></i>&nbsp;&nbsp;&nbsp;&nbsp;</span>
-                                <span class="project-project_title" contenteditable="true"></span>
-                            </h4>
 
-                            <!-- Description of the project (editable) -->
-                            <div class="project-project_description" contenteditable="true">
+                                        <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
+                                        <input class="project-add-collaborator-input" type="text" placeholder="Add collaborator...">
+                                        <select class="project-add-collaborator-select hide"> </select>
+
+                                        <a href="#add-collaborator" class="pull-right btn btn-success" data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
+                                            <i class="icon-plus"> </i>Add
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <span class="project-collaborators lighten">
+                                    </span>
+                                </div>
                             </div>
-
-                            <hr>
-                            <!-- Disk usage of the project -->
-                            <div>
+                            <div class="span4 well project-settings-well">
+                                <!-- Disk usage of the project -->
                                 <h4>Disk usage</h4>
-                                <pre class="project-disk_usage">computing...</pre>
+                                <span class="project-disk_usage">computing...</span>
                                 <!-- Download the whole project -->
-                                <a href="#download-project" class="btn  btn-success">
+                                <!--<a href="#download-project" class="btn  btn-success">
                                     <i class="icon-cloud-download"> </i> Download Project
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
-                                </a>
+                                </a>-->
                             </div>
-
-                            <hr>
-                            <div>
-                                <h4>Restart</h4>
-
+                        </div>
+                        <div class="row-fluid">
+                            <div class="span8 well project-settings-well">
+                                <h4>Restart...</h4>
                                 <!-- Restart the Sage worksheet server  -->
                                 <a href="#restart-worksheet-server" class="btn btn-warning"
                                     data-toggle="tooltip" data-placement="top" title="Restart your Sage Worksheet server.   You'll need to do this if you modify your own custom $HOME/bin/sage.  Newly (re-)started worksheets will use the updated version of Sage.">
-                                    <i class="icon-refresh"> </i> Restart Worksheet Server
+                                    <i class="icon-refresh"> </i> Worksheet Server
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
                                 </a>
 
                                 <!-- Restart the local hub  -->
                                 <a href="#restart-project" class="btn btn-warning"
                                     data-toggle="tooltip" data-placement="right" title="Restart this project server (this will kill all worksheet and console sessions).">
-                                    <i class="icon-refresh"> </i> Restart Project Server
+                                    <i class="icon-refresh"> </i> Project Server
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
                                 </a>
-
                             </div>
-                            <hr>
-                            <div>
+                            <div class="span4 well project-settings-well">
                                 <h4>Danger zone!</h4>
                                 <!-- Delete the project -->
                                 <a href="#delete-project" class="btn btn-danger"
@@ -486,3 +497,4 @@
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="lighten"></span>
     </div>
 </span>
+

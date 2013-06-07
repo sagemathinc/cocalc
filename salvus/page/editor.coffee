@@ -500,10 +500,9 @@ class exports.Editor
         link.data('name', filename)
 
         link_filename = link.find(".salvus-editor-tab-filename")
-        i = filename.lastIndexOf('/')
-        display_name = trunc(filename.slice(i+1),24)
+        display_name = path_split(filename).tail
         link_filename.text(display_name)
-        link.tooltip(title:filename, animation:false, delay: { show: 1000, hide: 100 })
+        link.attr(title:filename).tooltip(delay: { show: 500, hide: 100 })
 
         open_file = (name) =>
             @project_page.set_current_path(misc.path_split(name).head)
@@ -549,7 +548,6 @@ class exports.Editor
         @resize_open_file_tabs()
 
     resize_open_file_tabs: () =>
-        return   # disabled for now -- too buggy.
         # Make a list of the tabs after the search menu.
         x = []
         file_tabs = false
@@ -564,14 +562,15 @@ class exports.Editor
             return
         start = x[0].offset().left
         end   = x[0].parent().offset().left + x[0].parent().width()
-        width = (end - start)/x.length
+
+        n = x.length
+        if n <= 2
+            n = 3
+        width = (end - start - 10)/n
+        if width < 0
+            width = 0
         for a in x
-            if not a.data('orig_width')?
-                a.data('orig_width', a.width())
-            if width < a.data('orig_width')
-                a.animate(width:width, duration:100)
-            else
-                a.width(a.data('orig_width'))
+            a.width(width)
 
     make_open_file_pill_active: (link) =>
         @project_page.container.find(".project-pages").children().removeClass('active')
@@ -1500,13 +1499,14 @@ class Terminal extends FileEditor
                         content    : session.session_uuid
                         cb         : cb
 
+        path = misc.path_split(@filename).head
+        mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path}
         if @opts.session_uuid?
             #console.log("Connecting to an existing session.")
             mesg.session_uuid = @opts.session_uuid
             salvus_client.connect_to_session(mesg)
         else
-            #console.log("Opening a new session.")
-            mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols}
+            #console.log("Opening a new session at #{path}")
             salvus_client.new_session(mesg)
 
         # TODO

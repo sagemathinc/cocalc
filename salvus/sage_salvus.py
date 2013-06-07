@@ -48,7 +48,9 @@ def jsonable(x):
             return str(x)
 
 class InteractCell(object):
-    def __init__(self, f, layout=None, width=None, style=None, update_args=None, auto_update=True, flicker=False, output=True):
+    def __init__(self, f, layout=None, width=None, style=None,
+                 update_args=None, auto_update=True,
+                 flicker=False, output=True):
         """
         Given a function f, create an object that describes an interact
         for working with f interactively.
@@ -1116,13 +1118,46 @@ _html = sage.misc.html.HTML()
 
 class HTML:
     """
-    Cell mode that renders everything after %html as HTML.
+    Cell mode that renders everything after %html as HTML then hides
+    the input (unless you pass in hide=False).
+
+    EXAMPLES::
+
+        ---
+        %html
+        <h1>A Title</h1>
+        <h2>Subtitle</h2>
+
+        ---
+        %html(hide=False)
+        <h1>A Title</h1>
+        <h2>Subtitle</h2>
+
+        ---
+        %html("<h1>A title</h1>", hide=False)
+
+        ---
+        %html(hide=False) <h1>Title</h1>
+
     """
-    def __call__(self, s, *args, **kwds):
-        salvus.html(s, *args, **kwds)
+    def __init__(self, hide=True):
+        self._hide = hide
+
+    def __call__(self, *args, **kwds):
+        if len(kwds) > 0 and len(args) == 0:
+            return HTML(**kwds)
+        if len(args) > 0:
+            self._render(args[0], **kwds)
+
+    def _render(self, s, hide=None):
+        if hide is None:
+            hide = self._hide
+        if hide:
+            salvus.hide('input')
+        salvus.html(s)
 
     def table(self):
-        pass
+        raise NotImplementedError, "html.table not implemented in SageMathCloud yet"
 
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
@@ -2307,9 +2342,31 @@ def md2html(s):
 
     return markedDownText
 
-def md(s):
+class Markdown(object):
     r"""
-    Cell mode that renders everything after %md as markdown.
+    Cell mode that renders everything after %md as markdown and hides the input by default.
+
+    EXAMPLES::
+
+        ---
+        %md
+        # A Title
+
+        ## A subheading
+
+        ---
+        %md(hide=False)
+        # A title
+
+        - a list
+
+        ---
+        md("# A title", hide=False)
+
+
+        ---
+        %md(hide=False) `some code`
+
 
     This uses the Python markdown2 library with the following
     extras enabled:
@@ -2322,7 +2379,68 @@ def md(s):
     typeset if it is wrapped in $'s and $$'s, \(, \), \[, \],
     \begin{equation}, \end{equation}, \begin{align}, \end{align}.,
     """
-    html(md2html(s))
+    def __init__(self, hide=True):
+        self._hide = hide
+
+    def __call__(self, *args, **kwds):
+        if len(kwds) > 0 and len(args) == 0:
+            return Markdown(**kwds)
+        if len(args) > 0:
+            self._render(args[0], **kwds)
+
+    def _render(self, s, hide=None):
+        if hide is None:
+            hide = self._hide
+        html(md2html(s),hide=hide)
+
+md = Markdown()
 
 
 
+# Monkey-patched the load command
+def load(*args, **kwds):
+    """
+    Load Sage object from the file with name filename, which will have
+    an .sobj extension added if it doesn't have one.  Or, if the input
+    is a filename ending in .py, .pyx, or .sage, load that file into
+    the current running session.  Loaded files are not loaded into
+    their own namespace, i.e., this is much more like Python's
+    "execfile" than Python's "import".
+
+    You may also load an sobj or execute a code file available on the web
+    by specifying the full URL to the file.  (Set ``verbose = False`` to
+    supress the download progress indicator.)
+
+    INPUT:
+
+        - args -- any number of input args that filenames with extension .sobj, .sage, .py, .pyx
+
+        - ``verbose`` -- (default: True) load file over the network.
+
+    In SageMathCloud you may also use load as a decorator, with filename separated
+    by whitespace or commas::
+
+        %load foo.sage  bar.py  a.pyx, b.pyx
+
+    """
+    if len(args) == 1 and isinstance(args[0], (unicode,str)):
+        args = tuple(args[0].replace(',',' ').split())
+
+    if len(args) == 0 and len(kwds) == 1:
+        # This supports
+        #   %load(verbose=False)  a.sage
+        # which doesn't really matter right now, since there is a bug in Sage's own
+        # load command, where it isn't verbose for network code, but is for objects.
+        def f(*args):
+            return load(*args, **kwds)
+        return f
+
+    t = '__tmp__'; i=0
+    while t+str(i) in salvus.namespace:
+        i += 1
+    t += str(i)
+    try:
+        exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':args, '__kwds':kwds}
+        return salvus.namespace[t]
+    finally:
+        del salvus.namespace[t]
