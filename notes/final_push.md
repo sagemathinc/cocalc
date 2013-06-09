@@ -28,6 +28,8 @@
 # Other
 - [ ] (2:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 
+- [ ] (0:45?) confirmation before closing a project
+
 - [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 
 - [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
@@ -39,30 +41,6 @@
 - [ ] (0:30?) BUG: terminal path is not set correctly based on file path
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 
-- [x] (0:30?) (0:17) tighten up the icons in the upper left a bit
-- [x] (0:30?) (0:38) %load a.sage ---> goes BOOM (see support).
-- [x] (0:30?) (0:07) change bup to build using the network instead of a package in repo (depend on github)
-
-- [x] (0:10?) (0:04) project creation; get rid of the "for william" thing.
-
-- [x] implement `user_search`, which will be needed for adding collaborators.
-
-- [x] (1:30?) share: add another user as collaborator on a project
-    - start typing name, and it will autocomplete showing names of other users, just like to: field in gmail
-      (For now, this will be all other users of cloud.sagemath, but eventually restrict/order in some sensible way.)
-
-- [x] (0:30?) do another release:
-      x- update salvus library
-      x- `./make_coffee`
-      x- alter table project_users add state  varchar;
-      x - update bup (!)
-      x- sage-5.10.rc1 (started normal build on next vm):
-             export MAKE="make -j20"; export SAGE_ATLAS_LIB="/usr/lib"; make ptestlong
-      x- pip's
-      x- optional packages
-
-
-- [x] (1:00?) cassandra: use less memory on localhost (how to -- see admin.md)
 
 - [ ] (1:00?) share: make it possible to quite part of sharing -- deleting the project could do that.
 
@@ -2272,3 +2250,29 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
         x - start all snap
         - watch
         - get newest snap.coffee file
+
+
+- [x] (0:30?) (0:17) tighten up the icons in the upper left a bit
+- [x] (0:30?) (0:38) %load a.sage ---> goes BOOM (see support).
+- [x] (0:30?) (0:07) change bup to build using the network instead of a package in repo (depend on github)
+
+- [x] (0:10?) (0:04) project creation; get rid of the "for william" thing.
+
+- [x] implement `user_search`, which will be needed for adding collaborators.
+
+- [x] (1:30?) share: add another user as collaborator on a project
+    - start typing name, and it will autocomplete showing names of other users, just like to: field in gmail
+      (For now, this will be all other users of cloud.sagemath, but eventually restrict/order in some sensible way.)
+
+- [x] (0:30?) do another release:
+      x- update salvus library
+      x- `./make_coffee`
+      x- alter table project_users add state  varchar;
+      x - update bup (!)
+      x- sage-5.10.rc1 (started normal build on next vm):
+             export MAKE="make -j20"; export SAGE_ATLAS_LIB="/usr/lib"; make ptestlong
+      x- pip's
+      x- optional packages
+
+
+- [x] (1:00?) cassandra: use less memory on localhost (how to -- see admin.md)
