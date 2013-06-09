@@ -49,7 +49,8 @@
 
                         Navigate to <a href="https://cloud.sagemath.com" target="_new">https://cloud.sagemath.com</a>.
                         If you're already signed in, first sign out
-                        by clicking on your email address by the gear in the upper right, and clicking "Sign out".
+                        by clicking on your email address by the  <i class="icon-cog"> </i> icon
+                        in the upper right, and clicking "Sign out".
                         Click on "create an account", then enter the first name, last name, email address, and password for
                         the new account you would like to create, and read and agree to the terms of usage.
                         You may <a href="#help-change-my-username">change your email address, password, etc.</a>
@@ -68,14 +69,59 @@
                     <li> You may create as many accounts as you want for free.</li>
                     <li> The only requirement on your password is that it not be "Very weak" according
                         to the password strength checker.</li>
-                    <li> Only the hash of your password is stored by the server.  We use 1000 iterations of the sha-512 hash function, with a salt length of 32.
+                    <li> Only the hash of your password is stored by the server.  We use 1000 iterations
+                        of the sha-512 hash function, with a salt length of 32.
+                    </li>
+                    <li> When initially setting your password, you only have to enter it once (rather than
+                         twice), since if you mess up, you can easily reset your password via your linked
+                         email account.
                     </li>
                 </ul>
 
             </div>
 
+            <a name="help-change-my-username"></a><br><br>
             <div class="salvus-help-answer">
-                <a name="help-change-my-username"></a><h3>How do I change my name, email address, or password?</h3>
+                <div class="row-fluid">
+                    <div class="span8">
+                        <h3>How do I change my name, email address, or password?</h3>
+                        <p>
+                            Log into <a href="https://cloud.sagemath.com" target="_new">https://cloud.sagemath.com</a>,
+                            then click in the upper right corner on your email address by
+                            the <i class="icon-cog"> </i> icon.
+                            Change your first or last name in the settings tab that appears, then click save.
+                        </p>
+                        <p>
+                            To change your password, click the "Change password" link, enter your old password,
+                            then enter a new password.
+                        </p>
+
+                        <p>
+                            To change the email account that is linked to your cloud.sagemath account, click
+                            on the "change" link next to your email address, type in the password (to your cloud.sagemath
+                            account), then enter a new email address.
+
+                        </p>
+
+                    </div>
+                    <div class="span4">
+                        <iframe class="pull-right" width="252" height="188" src="http://www.youtube.com/embed/QJBo5f7aeTU" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                </div>
+                <h4>Technical Notes</h4>
+                <ul class="lighten">
+                    <li>Changing your first or last name at any time is pretty harmless, since it
+                        only changes the name other people see when collaborating with
+                        you on projects.
+                    </li>
+                    <li>The primary purpose of providing an email address to cloud.sagemath is that you
+                        can reset your password when you forget it.
+                    </li>
+                    <li> When changing your password, you only have to enter your new password once (rather than
+                         twice), since if you mess up, you can easily reset your password via your linked
+                         email account.
+                    </li>
+                </ul>
 
             </div>
 
