@@ -1204,6 +1204,44 @@ class Client extends EventEmitter
             if not err
                 session.client_call(@, mesg)
 
+    ## -- user search
+    mesg_user_search: (mesg) =>
+        database.user_search
+            query : mesg.query
+            limit : mesg.limit
+            cb    : (err, results) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.user_search_results(id:mesg.id, results:results))
+
+    mesg_get_project_users: (mesg) =>
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            database.project_users
+                project_id : mesg.project_id
+                cb         : (err, users) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_users(id:mesg.id, users:users))
+
+    mesg_invite_collaborator: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            database.update
+                table : 'project_users'
+                set   : {mode:'collaborator'}
+                where : {project_id:mesg.project_id, account_id:mesg.account_id}
+                cb    : (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
+                        
 
     ################################################
     # Project snapshots -- interface to the snap servers
@@ -1231,6 +1269,8 @@ class Client extends EventEmitter
                             else
                                 mesg.list = list
                                 @push_to_client(mesg)
+
+
 
 ##-------------------------------
 #

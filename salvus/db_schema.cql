@@ -235,6 +235,7 @@ CREATE TABLE project_users (
      project_id       uuid,
      account_id       uuid,
      mode             varchar,        // 'owner' (all powerful), 'collaborator' (read/write), 'viewer' (read only)
+     state            varchar,        // 'invited', 'accepted'
      PRIMARY KEY (project_id, account_id)
 );
 
@@ -251,15 +252,6 @@ CREATE TABLE recently_modified_projects (
     project_id uuid  PRIMARY KEY,
     location   varchar
 );
-
-CREATE TABLE project_snapshots (
-    project_id uuid,
-    time       timestamp,
-    host       varchar,
-    PRIMARY KEY(project_id, time)
-);
-
-CREATE INDEX ON project_snapshots(host);
 
 ////////////////////////////////////////////
 // Snap -- the project snapshot server

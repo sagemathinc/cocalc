@@ -2394,3 +2394,53 @@ class Markdown(object):
         html(md2html(s),hide=hide)
 
 md = Markdown()
+
+
+
+# Monkey-patched the load command
+def load(*args, **kwds):
+    """
+    Load Sage object from the file with name filename, which will have
+    an .sobj extension added if it doesn't have one.  Or, if the input
+    is a filename ending in .py, .pyx, or .sage, load that file into
+    the current running session.  Loaded files are not loaded into
+    their own namespace, i.e., this is much more like Python's
+    "execfile" than Python's "import".
+
+    You may also load an sobj or execute a code file available on the web
+    by specifying the full URL to the file.  (Set ``verbose = False`` to
+    supress the download progress indicator.)
+
+    INPUT:
+
+        - args -- any number of input args that filenames with extension .sobj, .sage, .py, .pyx
+
+        - ``verbose`` -- (default: True) load file over the network.
+
+    In SageMathCloud you may also use load as a decorator, with filename separated
+    by whitespace or commas::
+
+        %load foo.sage  bar.py  a.pyx, b.pyx
+
+    """
+    if len(args) == 1 and isinstance(args[0], (unicode,str)):
+        args = tuple(args[0].replace(',',' ').split())
+
+    if len(args) == 0 and len(kwds) == 1:
+        # This supports
+        #   %load(verbose=False)  a.sage
+        # which doesn't really matter right now, since there is a bug in Sage's own
+        # load command, where it isn't verbose for network code, but is for objects.
+        def f(*args):
+            return load(*args, **kwds)
+        return f
+
+    t = '__tmp__'; i=0
+    while t+str(i) in salvus.namespace:
+        i += 1
+    t += str(i)
+    try:
+        exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':args, '__kwds':kwds}
+        return salvus.namespace[t]
+    finally:
+        del salvus.namespace[t]

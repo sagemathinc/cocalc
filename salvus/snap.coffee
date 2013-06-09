@@ -491,10 +491,19 @@ snapshot_project = (opts) ->
         return
     snapshot_queue.push(opts)
 
+repository_is_corrupt = false
 monitor_snapshot_queue = () ->
     if snapshot_queue.length > 0
+
+        if repository_is_corrupt
+            while snapshot_queue.length > 0
+                {project_id, cb} = snapshot_queue.shift()
+                cb?("the repository is corrupt")
+            return
+
         user = undefined
         {project_id, cb} = snapshot_queue.shift()
+
         winston.info("making a snapshot of project #{project_id}")
         timestamp = undefined
         size_before = undefined
@@ -543,9 +552,15 @@ monitor_snapshot_queue = () ->
             (cb) ->
                 t = misc.walltime()
                 bup
-                    args : ['fsck', '--quick', '-g']
-                    cb   : (err) ->
+                    args    : ['fsck', '--quick', '-g']
+                    timeout : 3600  # allow as long as it takes (which should be a few seconds)
+                    cb      : (err) ->
                         winston.info("time to update checksums: #{misc.walltime(t)} s")
+                        if err
+                            # This means that the repository got
+                            # corrupted somehow.  This requires manual intervention.
+                            repository_is_corrupt = true
+                            fs.writeFileSync(snap_corrupt_file, 'Filesystem failed fsck and is corrupt.  Please investigate manually, then delete this file.\n')
                         cb(err)
 
             # Compute disk usage after snapshot -- how much disk space was used by making this snapshot
@@ -574,17 +589,13 @@ monitor_snapshot_queue = () ->
                         winston.info("time to record commit to database: #{misc.walltime(t)}")
                         cb()
 
-
         ], (err) ->
-            #cb?(err)
-            # Don't report an error for now, in order to ensure all other snapshots are made and system goes.
-            # We will see errors in the log, etc.
-            cb?()
             setTimeout(monitor_snapshot_queue, 50)
+            cb?(err)
         )
     else
-        # check again in a second
-        setTimeout(monitor_snapshot_queue, 1000)
+        # check again soon
+        setTimeout(monitor_snapshot_queue, 500)
 
 # snapshot all projects in the given input array, and call opts.cb on completion.
 snapshot_projects = (opts) ->
@@ -594,7 +605,26 @@ snapshot_projects = (opts) ->
     if opts.project_ids.length == 0  # easy case
         opts.cb?()
         return
-    async.map(opts.project_ids, ((p,cb) -> snapshot_project(project_id:p, cb:cb)), ((err, results) -> opts.cb?(err)))
+
+    error = undefined
+
+    f = (p, cb) ->
+        snapshot_project
+            project_id : p
+            cb         : (err) ->
+                if err
+                    m = [p, err]
+                    if error?
+                        error.push(m)
+                    else
+                        error = [m]
+
+                # We don't do cb(err) here because we want to *try* to snapshot
+                # all of the projects.  Some could fail due to network issues,
+                # target .bup corruption, things being restarted, user killing
+                # bup process in their account manually, etc.
+                cb()
+    async.map(opts.project_ids, f, ((err, results) -> opts.cb?(error)))
 
 ##--
 
@@ -895,6 +925,7 @@ exports.client_snap = (opts) ->
 
 
 snap_dir  = undefined
+snap_corrupt_file = undefined
 bup_dir   = undefined
 pack_dir  = undefined
 tmp_dir   = undefined
@@ -905,6 +936,11 @@ initialize_snap_dir = (cb) ->
         snap_dir = process.cwd() + '/' + snap_dir
 
     bup_dir   = snap_dir + '/bup'
+
+    snap_corrupt_file = snap_dir + '/CORRUPT.txt'
+    if fs.existsSync(snap_corrupt_file)
+        repository_is_corrupt = true
+
     pack_dir  = bup_dir  + '/objects/pack'
     tmp_dir   = snap_dir + '/tmp'
     uuid_file = snap_dir + '/server_uuid'
@@ -982,8 +1018,10 @@ register_with_database = (cb) ->
     if not size_of_bup_archive?
         misc_node.disk_usage pack_dir, (err, usage) ->
             if err
+                winston.info("error computing usage -- #{err}")
                 # try next time
                 size_of_bup_archive = 0
+                setTimeout((() -> register_with_database(cb)), 1000*registration_interval_seconds)
             else
                 size_of_bup_archive = usage
                 register_with_database(cb)
@@ -1085,11 +1123,6 @@ exports.start_server = start_server = () ->
         (cb) ->
             connect_to_database(cb)
         (cb) ->
-            monitor_snapshot_queue()
-            cb()
-        (cb) ->
-            ensure_all_projects_have_a_snapshot(cb)
-        (cb) ->
             register_with_database(cb)
         (cb) ->
             if program.resend_all_commits
@@ -1097,7 +1130,12 @@ exports.start_server = start_server = () ->
             else
                 cb()
         (cb) ->
+            monitor_snapshot_queue()
+            cb()
+        (cb) ->
             snapshot_active_projects(cb)
+        (cb) ->
+            ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
         #    test3()
         #    cb()

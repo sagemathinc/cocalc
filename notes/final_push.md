@@ -39,15 +39,36 @@
 - [ ] (0:30?) BUG: terminal path is not set correctly based on file path
 - [ ] (2:00?) make it so terminals never disconnects/hangs
 
-- [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
-       - open a worksheet or file to edit
-       - restart local hub, but do NOT restart global hub
-       - re-open the same file
-       - look at the log in hub, and see an "infinite loop" of reconnect attempts.
-       THIS is very serious.
+- [x] (0:30?) (0:17) tighten up the icons in the upper left a bit
+- [x] (0:30?) (0:38) %load a.sage ---> goes BOOM (see support).
+- [x] (0:30?) (0:07) change bup to build using the network instead of a package in repo (depend on github)
+
+- [x] (0:10?) (0:04) project creation; get rid of the "for william" thing.
+
+- [x] implement `user_search`, which will be needed for adding collaborators.
+
+- [x] (1:30?) share: add another user as collaborator on a project
+    - start typing name, and it will autocomplete showing names of other users, just like to: field in gmail
+      (For now, this will be all other users of cloud.sagemath, but eventually restrict/order in some sensible way.)
+
+- [x] (0:30?) do another release:
+      x- update salvus library
+      x- `./make_coffee`
+      x- alter table project_users add state  varchar;
+      x - update bup (!)
+      x- sage-5.10.rc1 (started normal build on next vm):
+             export MAKE="make -j20"; export SAGE_ATLAS_LIB="/usr/lib"; make ptestlong
+      x- pip's
+      x- optional packages
+
+
+
+- [ ] (1:00?) share: make it possible to quite part of sharing -- deleting the project could do that.
+
+
+- [ ] (2:00?) make it so terminals never disconnect or hang
 
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-- [ ] (0:30?) %load a.sage ---> goes BOOOM (see support).
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g., This doesn't work
     %md
     $$\{ foo \}$$
@@ -57,11 +78,22 @@
     \[
        \{ foo \}
     \]
+
+
+---
+
+- [ ] (1:00?) client.exec is timing out after about 10 seconds no matter what.  This messes up "disk usage", among other things...  I wonder why?
+
+- [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
+       - open a worksheet or file to edit
+       - restart local hub, but do NOT restart global hub
+       - re-open the same file
+       - look at the log in hub, and see an "infinite loop" of reconnect attempts.
+       THIS is very serious.
 - [ ] (0:30?) make it so settings autosave; get rid of confusing "save"/cancel buttons, since they only do certain things...
 - [ ] (1:00?) snap: optimization idea -- can index projects in parallel
 - [ ] (1:00?) ui: if ping time hasn't been updated in a certain amount of time, replace by "..." (?)
 - [ ] (1:00?) UI: renaming a long filename doesn't work.
-- [ ] (1:30?) share: enable a simple minimal version of project sharing for now -- a box in project settings where email address of other user can be entered.
 - [ ] (1:00?) interact bug -- this doesn't output matrix first time:
     @interact
     def f(a = input_grid(2,2,[[1,2],[3,4]])):
@@ -70,13 +102,9 @@
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 
 - [ ] (1:00?) snap: ability to download files directly from snapshots
-
 - [ ] (1:00?) snap: preview file when clicked on
-
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat
-
 - [ ] (2:00?) snap: UI for previewing a file, including the history of change times for that file
-
 - [ ] (2:00?) implement caching of files attached to worksheets longterm
 
 - [ ] (0:30?) UI/client: refuse to open huge files... (recommend vim/emacs... or implement something that streams?)
@@ -2219,3 +2247,27 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
 - [x] (1:00?) (0:52) ui features: make it so %md and %html hide by default and have a hide=False option.
 - [x] (0:15?) (0:27) snap/ui: search should be disabled when browsing snapshots
 
+
+
+- [x] (0:10?) (0:12) add link to http://www.sagemath.org/help.html
+
+- [x] (0:30?) (0:31) BUG: terminal path is not set correctly based on file path
+
+- [x] (0:20?) make tabs at the top shrink instead of disappear.
+
+- [x] (1:00?) (0:40) snap2 and snap3 are BROKEN: I modified git.py (systemwide) /usr/lib/bup/bup/git.py  to work
+            even if an object is missing.  I think this is reasonable for
+            now, due to the highly distributed and redundant nature of my backups.
+
+
+- [x] (1:00?) the above idea was STUPID, since quickly of course my backups stopped working!  I need to revert these changes (in the bup repo).      - come up with a plan for what to do if size-pack ever appear!
+   x (0:05) - delete last two commits
+   x (0:35) - rewrite snap.coffee to stop making new snapshots if fsck fails; I need a repo in that state to study.
+   - start new snap servers, snapshotting all projects on startup:
+        x - install clean current bup on 10.1.2.3, 10.1.3.3
+        cd salvus/salvus; . salvus-env; git clone https://github.com/williamstein/bup; cd bup; ./configure; make; make install PREFIX=data/local/
+        x - install new snap.coffee on 10.1.2.3, 10.1.3.3 and ./make_coffee: scp teaAuZ9M@10.1.2.4:snap.coffee . ; ./make_coffee
+        x - mv /mnt/snap/snap0 /mnt/snap/snap0.corrupt
+        x - start all snap
+        - watch
+        - get newest snap.coffee file

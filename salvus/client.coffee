@@ -351,10 +351,17 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             project_id   : required
             timeout      : 10
+            params  : undefined   # extra params relevant to the session (in case we need to restart it)
             cb           : required
         @call
-            message : message.connect_to_session(session_uuid: opts.session_uuid, type:opts.type, project_id:opts.project_id)
+            message : message.connect_to_session
+                session_uuid : opts.session_uuid
+                type         : opts.type
+                project_id   : opts.project_id
+                params       : opts.params
+
             timeout : opts.timeout
+
             cb      : (error, reply) =>
                 if error
                     opts.cb(error); return
@@ -972,6 +979,7 @@ class exports.Connection extends EventEmitter
 
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
+
         @call
             message : message.project_exec
                 project_id : opts.project_id
@@ -1125,6 +1133,47 @@ class exports.Connection extends EventEmitter
             else
                 opts.cb() # good
         )
+
+    #################################################
+    # Search
+    #################################################
+    user_search: (opts) =>
+        opts = defaults opts,
+            query   : required
+            limit   : 20
+            timeout : 10
+            cb      : required
+
+        @call
+            message : message.user_search(query:opts.query, limit:opts.limit)
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, resp.results)
+
+    project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required   # cb(err, list_of_users) -- see message.coffee for format of entries
+        @call
+            message : message.get_project_users(project_id:opts.project_id)
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, resp.users)
+
+    project_invite_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : (err) =>
+        @call
+            message : message.invite_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            cb      : opts.cb
+
 
     #################################################
     # File Management

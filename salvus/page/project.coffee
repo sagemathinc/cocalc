@@ -177,6 +177,8 @@ class ProjectPage
         @init_delete_project()
         @init_undelete_project()
 
+        @init_add_collaborators()
+
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
 
@@ -665,7 +667,7 @@ class ProjectPage
             t.find("a").data('item',t).click () ->
                 link = $(@)
                 if link.data('item').hasClass('disabled')
-                    return false                
+                    return false
                 that.display_tab(link.data("target"))
                 return false
 
@@ -794,12 +796,13 @@ class ProjectPage
             @_computing_usage = true
             salvus_client.exec
                 project_id : @project.project_id
-                command    : 'du -sch .'
+                command    : 'du'
+                args       : ['-sch', '.']
                 timeout    : 360
                 cb         : (err, output) =>
                     delete @_computing_usage
                     if not err
-                        usage.text(output.stdout)
+                        usage.text(output.stdout.split('\t')[0])
                     else
                         usage.text("(timed out running 'du -sch .')")
 
@@ -1518,6 +1521,66 @@ class ProjectPage
                                     message : "Successfully undeleted project \"#{@project.title}\"."
             return false
 
+    init_add_collaborators: () =>
+        input   = @container.find(".project-add-collaborator-input")
+        select  = @container.find(".project-add-collaborator-select")
+        collabs = @container.find(".project-collaborators")
+
+        update_collaborators = () =>
+            salvus_client.project_users
+                project_id : @project.project_id
+                cb : (err, users) =>
+                    if not err
+                        s = ""
+                        for x in users
+                            if s != ""
+                                s += ", "
+                            s += x.first_name + ' ' + x.last_name
+                        collabs.text(s)
+
+        update_collaborators()
+
+        update_collab_list = () =>
+            x = input.val()
+            if x == ""
+                select.html("").hide()
+                return
+            salvus_client.user_search
+                query : input.val()
+                limit : 50
+                cb    : (err, result) =>
+                    select.html("")
+                    for r in result
+                        name = r.first_name + ' ' + r.last_name
+                        select.append($("<option>").attr(value:r.account_id, label:name))
+                    select.show()
+
+        invite_selected = () =>
+            x = select.find(":selected")
+            name = x.attr('label')
+            salvus_client.project_invite_collaborator
+                project_id : @project.project_id
+                account_id : x.attr("value")
+                cb         : (err, result) =>
+                    if err
+                        alert_message(type:"error", message:"Error adding collaborator -- #{err}")
+                    else
+                        alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
+                        update_collaborators()
+
+        select.change (evt) =>
+            invite_selected()
+
+        @container.find("a[href=#add-collaborator]").click () =>
+            invite_selected()
+            return false
+
+        timer = undefined
+        input.keyup (event) ->
+            if timer?
+                clearTimeout(timer)
+            timer = setTimeout(update_collab_list, 100)
+            return false
 
     init_worksheet_server_restart: () =>
         # Restart worksheet server

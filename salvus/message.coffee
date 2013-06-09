@@ -982,3 +982,44 @@ message
 message
     event      : 'project_list_updated'
 
+
+
+## search ---------------------------
+
+# client --> hub
+message
+    event : 'user_search'
+    id    : undefined
+    query : required    # searches for match in first_name or last_name.
+    limit : 20          # maximum number of results requested
+
+# hub --> client
+message
+    event   : 'user_search_results'
+    id      : undefined
+    results : required  # list of {first_name:, last_name:, account_id:} objects.
+
+
+# client --> hub
+message
+    event      : 'get_project_users'
+    project_id : required
+    id         : undefined
+
+# hub --> client
+message
+    event : 'project_users'
+    id    : undefined
+    users : required   # list of {account_id:?, first_name:?, last_name:?, mode:?, state:?}
+
+message
+    event      : 'invite_collaborator'
+    id         : undefined
+    project_id : required
+    account_id : required
+
+
+
+
+
+
