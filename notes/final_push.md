@@ -23,6 +23,7 @@
       x- optional packages
 
 
+- [x] (1:00?) cassandra: use less memory on localhost (how to -- see admin.md)
 
 - [ ] (1:00?) share: make it possible to quite part of sharing -- deleting the project could do that.
 
