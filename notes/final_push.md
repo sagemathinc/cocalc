@@ -1,5 +1,34 @@
+# Documentation
 
-- [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement. 
+## Topics: how do I...
+
+  - Create an account?
+  - Change my username, email address, and password?
+  - Edit a LaTeX document?
+  - Use Python, Sage, Octave, Macaulay2, etc., on the command line?
+  - Create and run a C++ program?
+  - Draw 2d graphics and save them to a file on my computer?
+  - Compute a symbolic integral?
+  - Compute the rank of a matrix?
+  - Collaborate on a project with somebody else?
+  - Recover a file or directory that I deleted?
+  - Do Sage development and make worksheets that use my own custom copy of Sage?
+  - Upload files into a project?
+  - Download files from a project?
+  - Copy a repository from github into a cloud.sagemath project?
+  - Leave something running in a worksheet or terminal, and come back to it later?
+  - Move or rename a file or directory?
+  - See how much disk space my project is using?
+  - Change the color scheme of my terminal?
+  - Change the title and description of a project?
+  - Support this project financially?
+  - Report bugs or suggest features?
+  - Create interactive wdigets that run code?
+
+# Other
+- [ ] (2:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+
+- [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 
 - [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
 
