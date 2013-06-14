@@ -1,6 +1,6 @@
 # Documentation
 
-## Topics: how do I...
+- [ ] (8:00?) create a help system, answering this stuff:
 
   - Create an account?
   - Change my username, email address, and password?
@@ -25,9 +25,7 @@
   - Report bugs or suggest features?
   - Create interactive wdigets that run code?
 
-# Other
-
-- [ ] (0:30?) update: fontawesome 3.2
+- [x] (0:30?) (0:05) update: fontawesome 3.2
 
 - [ ] (0:45?) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG.
 
