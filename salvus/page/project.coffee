@@ -1372,7 +1372,7 @@ class ProjectPage
                         alert_message(type:"error", message:err)
                     else if result.event == 'error'
                         alert_message(type:"error", message:result.error)
-                opts.cb?(err or output.event == 'error')
+                opts.cb?(err or result.event == 'error')
 
     ensure_file_exists: (opts) =>
         opts = defaults opts,
@@ -1421,7 +1421,7 @@ class ProjectPage
                         alert_message(type:"error", message:err)
                     else if result.event == 'error'
                         alert_message(type:"error", message:result.error)
-                opts.cb?(err or output.event == 'error')
+                opts.cb?(err or result.event == 'error')
 
     visit_trash: () =>
         @ensure_directory_exists

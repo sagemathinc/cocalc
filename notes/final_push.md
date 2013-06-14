@@ -1,3 +1,19 @@
+- [ ] (1:30?) ability to open sws files
+- [ ] (1:00?) BUG -- fix that massive sys.stdout.flush() bug.
+- [ ] (2:00?) export sagews to sws
+
+
+- [ ] (1:00?) next release
+  - note the silly hack running on web1 to keep disk cache for snap fresh
+#!/usr/bin/env python
+import os
+while True:
+    for i in range(1,5):
+        c = 'ssh 10.1.%s.3 "time BUP_DIR=/mnt/snap/snap0/bup bup ls 69a229be-5a5a-42be-a98b-fc6c40aa10f9"'%i
+        print c
+        os.system(c)
+
+
 - [ ] (1:00?) (0:13+) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
 - [ ] (1:00?) pdf view -- should have link to download pdf.
 - [ ] (8:00?) create a help system, answering questions in help.html
@@ -105,7 +121,6 @@
 - [ ] (1:00?) idea: when displaying lots of output, scroll output area to BOTTOM (not top like it is now).
 - [ ] (1:30?) make worksheet save persist linked objects
 - [ ] (1:30?) new project default git creds based on project owner cred. (?);
-- [ ] (1:30?) ability to open sws files
 - [ ] (1:00?) button in settings to reset the smc server
 - [ ] (1:30?) ability to delete projects.
 - [ ] (1:30?) ability to change project to be private.
