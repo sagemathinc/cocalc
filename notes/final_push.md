@@ -26,7 +26,28 @@
   - Create interactive wdigets that run code?
 
 # Other
+
+- [ ] (0:30?) update: fontawesome 3.2
+
+- [ ] (0:45?) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG.
+
+- [ ] (1:00?) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
+
+- [ ] (1:00?) pdf view -- should have link to download pdf.
+
+- [ ] (3:00?) snap -- massive optimization idea: could store directory tree of each snapshot *with metadata and previews (first 1K) of modified files* as a JSON object in the database; this would make browsing snapshots and previews instant, but of course recovery would take the full amount of time...
+
+- [ ] (0:30?) bug -- online LaTeX doesn't work when document has a space in the filename.
+
+- [ ] (1:00?) get psage to build: psage doesn't build with sage-5.10, because of updates to Cython: "sqrt5_fast.pyx:1057:20: undeclared name not builtin: Py_GE"
+
+- [ ] (0:15?) add psage to build.py todo list!
+
+- [ ] (1:00?) start installing a bunch of optional R packages into sage.
+
 - [ ] (2:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+
+- [ ] (2:00?) idea -- change compute nodes so they have a UUID that is indexed and regularly updated in DB, for project accounts... much like with snap servers.
 
 - [ ] (0:45?) confirmation before closing a project
 
