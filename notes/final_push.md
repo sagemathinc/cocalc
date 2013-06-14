@@ -1,46 +1,17 @@
 
-- [x] (2:00?) (1:46) validation:  ensure valid html and don't include html/css/coffeescript we're not using (see -- http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F)  Thanks to Dan Grayson for suggesting I do this.
-
-- [x] (0:10?) (0:02) stabilize docs so not blatantly useless.
-
-- [ ] (8:00?) create a help system, answering this stuff:
-
-  - Create an account?
-  - Change my username, email address, and password?
-  - Edit a LaTeX document?
-  - Use Python, Sage, Octave, Macaulay2, etc., on the command line?
-  - Create and run a C++ program?
-  - Draw 2d graphics and save them to a file on my computer?
-  - Compute a symbolic integral?
-  - Compute the rank of a matrix?
-  - Collaborate on a project with somebody else?
-  - Recover a file or directory that I deleted?
-  - Do Sage development and make worksheets that use my own custom copy of Sage?
-  - Upload files into a project?
-  - Download files from a project?
-  - Copy a repository from github into a cloud.sagemath project?
-  - Leave something running in a worksheet or terminal, and come back to it later?
-  - Move or rename a file or directory?
-  - See how much disk space my project is using?
-  - Change the color scheme of my terminal?
-  - Change the title and description of a project?
-  - Support this project financially?
-  - Report bugs or suggest features?
-  - Create interactive wdigets that run code?
-
-- [x] (0:30?) (0:05) update: fontawesome 3.2
-
-- [ ] (1:00?) (0:45+) enable word-wrap toggle; need to fix css when toggling...
+- [x] (0:30?) (0:18) bug -- online LaTeX doesn't work when document has a space in the filename.
 
 - [ ] (0:45?) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG; removing yourself results in removing yourself forever, which is stupid.
+
+- [ ] (8:00?) create a help system, answering questions in help.html
+
+- [ ] (1:00?) (0:45+) enable word-wrap toggle;
 
 - [ ] (1:00?) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
 
 - [ ] (1:00?) pdf view -- should have link to download pdf.
 
 - [ ] (3:00?) snap -- massive optimization idea: could store directory tree of each snapshot *with metadata and previews (first 1K) of modified files* as a JSON object in the database; this would make browsing snapshots and previews instant, but of course recovery would take the full amount of time...
-
-- [ ] (0:30?) bug -- online LaTeX doesn't work when document has a space in the filename.
 
 - [ ] (1:00?) get psage to build: psage doesn't build with sage-5.10, because of updates to Cython: "sqrt5_fast.pyx:1057:20: undeclared name not builtin: Py_GE"
 
@@ -2298,3 +2269,10 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
 
 
 - [x] (1:00?) cassandra: use less memory on localhost (how to -- see admin.md)
+
+
+- [x] (2:00?) (1:46) validation:  ensure valid html and don't include html/css/coffeescript we're not using (see -- http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F)  Thanks to Dan Grayson for suggesting I do this.
+
+- [x] (0:10?) (0:02) stabilize docs so not blatantly useless.
+- [x] (0:30?) (0:05) update: fontawesome 3.2
+

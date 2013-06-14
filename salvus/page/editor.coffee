@@ -1419,25 +1419,32 @@ class LatexEditor extends FileEditor
         @_current_page = name
 
     run_latex: (cb) =>
-        @save (err) =>
-            # TODO -- what about error?
-            salvus_client.exec
-                project_id : @editor.project_id
-                path       : @_path
-                command    : 'pdflatex'
-                args       : ['-interaction=nonstopmode', '\\input', @_target]
-                timeout    : 5
-                err_on_exit : false
-                cb         : (err, output) =>
-                    if err
-                        alert_message(type:"error", message:err)
-                    else
-                        @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
-                        # Scroll to the bottom of the textarea
-                        f = @log.find('textarea')
-                        f.scrollTop(f[0].scrollHeight)
-
-                    cb?()
+        async.series([
+            (cb) =>
+                @save(cb)
+            (cb) =>
+                # NOTE: a lot of filenames aren't really allowed with latex, which sucks. See
+                #    http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames                
+                salvus_client.exec
+                    project_id : @editor.project_id
+                    path       : @_path
+                    command    : 'pdflatex'
+                    args       : ['-interaction=nonstopmode', @_target]
+                    timeout    : 10
+                    err_on_exit : false
+                    cb         : (err, output) =>
+                        if err
+                            alert_message(type:"error", message:err)
+                            cb(err)
+                        else
+                            @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
+                            # Scroll to the bottom of the textarea
+                            f = @log.find('textarea')
+                            f.scrollTop(f[0].scrollHeight)
+                            cb()
+        ], (err) =>
+            cb?(err)
+        )
 
     download_pdf: () =>
         # TODO: THIS replicates code in project.coffee
