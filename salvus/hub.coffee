@@ -1228,6 +1228,9 @@ class Client extends EventEmitter
                         @push_to_client(message.project_users(id:mesg.id, users:users))
 
     mesg_invite_collaborator: (mesg) =>
+        if mesg.account_id == @account_id
+            @error_to_client(id:mesg.id, error:"You cannot add yourself as a collaborator on a project.")
+            return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -1241,7 +1244,6 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
-                        
 
     ################################################
     # Project snapshots -- interface to the snap servers

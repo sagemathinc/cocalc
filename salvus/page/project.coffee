@@ -1532,9 +1532,10 @@ class ProjectPage
                     if not err
                         s = ""
                         for x in users
-                            if s != ""
-                                s += ", "
-                            s += x.first_name + ' ' + x.last_name
+                            if x.account_id != salvus_client.account_id
+                                if s != ""
+                                    s += ", "
+                                s += x.first_name + ' ' + x.last_name
                         collabs.text(s)
 
         update_collaborators()
@@ -1550,8 +1551,9 @@ class ProjectPage
                 cb    : (err, result) =>
                     select.html("")
                     for r in result
-                        name = r.first_name + ' ' + r.last_name
-                        select.append($("<option>").attr(value:r.account_id, label:name))
+                        if r.account_id != salvus_client.account_id  # only show other users
+                            name = r.first_name + ' ' + r.last_name
+                            select.append($("<option>").attr(value:r.account_id, label:name))
                     select.show()
 
         invite_selected = () =>

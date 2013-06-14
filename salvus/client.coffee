@@ -1137,6 +1137,7 @@ class exports.Connection extends EventEmitter
     #################################################
     # Search
     #################################################
+
     user_search: (opts) =>
         opts = defaults opts,
             query   : required
