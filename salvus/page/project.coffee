@@ -1553,24 +1553,32 @@ class ProjectPage
                         already_collab = {}
                         for x in users
                             already_collab[x.account_id] = true
-                            if x.account_id != salvus_client.account_id
-                                c = template_project_collab.clone()
-                                c.find(".project-collab-first-name").text(x.first_name)
-                                c.find(".project-collab-last-name").text(x.last_name)
-                                if x.mode == 'owner'
-                                    c.find(".project-close-button").hide()
-                                    c.css('background-color', '#51a351')
-                                    c.tooltip(title:"Owner", delay: { show: 500, hide: 100 })
+                            c = template_project_collab.clone()
+                            c.find(".project-collab-first-name").text(x.first_name)
+                            c.find(".project-collab-last-name").text(x.last_name)
+                            if x.mode == 'owner'
+                                c.find(".project-close-button").hide()
+                                c.css('background-color', '#51a351')
+                                c.tooltip(title:"Owner", delay: { show: 500, hide: 100 })
+                            else
+                                c.find(".project-close-button").data('collab', x).click () ->
+                                    remove_collaborator($(@).data('collab'))
+                                    return false
+
+                                if x.account_id == salvus_client.account_id
+                                    extra_tip = " (delete to remove your own access to this project)"
+                                    c.css("background-color","#bd362f")
                                 else
-                                    c.find(".project-close-button").data('collab', x).click () ->
-                                        remove_collaborator($(@).data('collab'))
-                                        return false
-                                    if x.mode == 'collaborator'
-                                        c.tooltip(title:"Collaborator", delay: { show: 500, hide: 100 })
-                                    else if x.mode == 'viewer'
+                                    extra_tip = ""
+
+
+                                if x.mode == 'collaborator'
+                                    c.tooltip(title:"Collaborator"+extra_tip, delay: { show: 500, hide: 100 })
+                                else if x.mode == 'viewer'
+                                    if extra_tip == ""
                                         c.css('background-color', '#f89406')
-                                        c.tooltip(title:"Viewer", delay: { show: 500, hide: 100 })
-                                collabs.append(c)
+                                    c.tooltip(title:"Viewer"+extra_tip, delay: { show: 500, hide: 100 })
+                            collabs.append(c)
 
         update_collaborators()
 
