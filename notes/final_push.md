@@ -27,7 +27,9 @@
 
 - [x] (0:30?) (0:05) update: fontawesome 3.2
 
-- [ ] (0:45?) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG.
+- [ ] (1:00?) enable word-wrap toggle; need to fix css when toggling...
+
+- [ ] (0:45?) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG; removing yourself results in removing yourself forever, which is stupid.
 
 - [ ] (1:00?) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
 
