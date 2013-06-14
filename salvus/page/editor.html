@@ -34,13 +34,15 @@ Editor for files in a project
     </div>
 
     <!-- Template for the tab at the top of the editor with filename and an x -->
-    <li class="super-menu salvus-editor-filename-pill">
-        <div class="pull-right" style="width:5%">&nbsp;</div>
-        <div class="salvus-editor-close-button-x pull-right lighten"><i class="icon-remove"></i></div>
-        <a>
-            <span class="salvus-editor-tab-filename"></span>
-        </a>
-    </li>
+    <ul> <!-- ul so is valid html -->
+        <li class="super-menu salvus-editor-filename-pill">
+            <div class="pull-right" style="width:5%">&nbsp;</div>
+            <div class="salvus-editor-close-button-x pull-right lighten"><i class="icon-remove"></i></div>
+            <a>
+                <span class="salvus-editor-tab-filename"></span>
+            </a>
+        </li>
+    </ul>
 
     <!-- Template for the codemirror text editor -->
     <div class="salvus-editor-codemirror well">
@@ -129,14 +131,14 @@ Editor for files in a project
 
     <!-- Template for chat entries -->
 
-    <span class="salvus-chat-entry">    <!-- div inside a span: am I breaking the law? -->
+    <div class="salvus-chat-entry">
         <div class="salvus-chat-header">
             <span class="salvus-chat-header-name"></span>
             (<span class="salvus-chat-header-date"></span>):
         </div>
         <span class="salvus-chat-entry-content">
         </span>
-    </span>
+    </div>
 
     <!-- Template for the codemirror text editor other user cursors -->
     <div class="salvus-editor-codemirror-cursor"><span class="salvus-editor-codemirror-cursor-label"></span><div class="salvus-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
@@ -149,7 +151,7 @@ Editor for files in a project
         </div>
     </div>
 
-    <img alt="PDF preview" class='salvus-editor-pdf-preview-image img-rounded'>
+    <img alt="PDF preview" class='salvus-editor-pdf-preview-image img-rounded' src="placeholder">
 
     <!-- Template for the LaTeX editor -->
     <div class="salvus-editor-latex">
@@ -165,7 +167,7 @@ Editor for files in a project
         <div class="salvus-editor-latex-preview hide">
         </div>
         <div class="salvus-editor-latex-log hide">
-            <textarea rows=20 cols=100 readonly=true style="width:100%; background-color:#fff;"></textarea>
+            <textarea rows=20 cols=100 readonly style="width:100%; background-color:#fff;"></textarea>
         </div>
     </div>
 

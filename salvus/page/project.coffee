@@ -24,7 +24,6 @@ template_project_file_snapshot      = templates.find(".project-file-link-snapsho
 template_project_directory_snapshot = templates.find(".project-directory-link-snapshot")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
-template_new_file_link         = templates.find(".project-new-file-link")
 template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
