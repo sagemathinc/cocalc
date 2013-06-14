@@ -1398,7 +1398,7 @@ class ProjectPage
                                 alert_message(type:"error", message:err)
                             else if result.event == 'error'
                                 alert_message(type:"error", message:result.error)
-                        opts.cb?(err or output.event == 'error')
+                        opts.cb?(err or result.event == 'error')
         ], (err) -> opts.cb?(err))
 
     get_from_web: (opts) =>

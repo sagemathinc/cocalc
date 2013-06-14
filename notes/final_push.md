@@ -1,15 +1,17 @@
 
 - [x] (0:30?) (0:18) bug -- online LaTeX doesn't work when document has a space in the filename.
 
+- [x] (0:30?) (0:10) fix fallout from fixing html errors: image src error on startup, can't create new documents
+
+- [ ] (1:00?) (0:13+) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
+
+- [ ] (1:00?) pdf view -- should have link to download pdf.
+
 - [ ] (0:45?) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG; removing yourself results in removing yourself forever, which is stupid.
 
 - [ ] (8:00?) create a help system, answering questions in help.html
 
 - [ ] (1:00?) (0:45+) enable word-wrap toggle;
-
-- [ ] (1:00?) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
-
-- [ ] (1:00?) pdf view -- should have link to download pdf.
 
 - [ ] (3:00?) snap -- massive optimization idea: could store directory tree of each snapshot *with metadata and previews (first 1K) of modified files* as a JSON object in the database; this would make browsing snapshots and previews instant, but of course recovery would take the full amount of time...
 

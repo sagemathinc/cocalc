@@ -19,7 +19,6 @@ time coffee -o node_modules -c *.coffee
 ###########
 # Code shared between backend servers and web browser clients
 ###########
-# do this in the background
 time browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
       time uglifyjs2 static/salvus.js -o static/salvus.min.js && \
       time coffee -b -o page/temp page/*.coffee && \
