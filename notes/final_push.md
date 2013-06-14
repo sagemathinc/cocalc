@@ -1,4 +1,7 @@
-# Documentation
+
+- [ ] (2:00?) Grayson -- ensure valid html: http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
+
+- [x] (0:10?) (0:02) stabilize docs so not blatantly useless.
 
 - [ ] (8:00?) create a help system, answering this stuff:
 
@@ -27,7 +30,7 @@
 
 - [x] (0:30?) (0:05) update: fontawesome 3.2
 
-- [ ] (1:00?) enable word-wrap toggle; need to fix css when toggling...
+- [ ] (1:00?) (0:45+) enable word-wrap toggle; need to fix css when toggling...
 
 - [ ] (0:45?) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG; removing yourself results in removing yourself forever, which is stupid.
 
@@ -54,7 +57,6 @@
 - [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 
 - [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
-
 
 - [ ] (2:00?) octave interface (like GAP) also doesn't work in .sagews !
 
@@ -157,7 +159,6 @@
 - [ ] (1:00?) when user exits terminal, restart terminal automatically... when they hit a key?
 
 - [ ] (2:00?) gap broken -- gap('2+3') fails on cloud (but works on my laptop!)
-- [ ] (2:00?) Grayson -- ensure valid html: http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
 - [ ] (1:00?) update codemirror display more, e.g., after making output.  see https://groups.google.com/forum/#!topic/codemirror/aYpevIzBUYk
 - [ ] (0:45?) mathjax special case: `$a<b$` is misparsed, whereas `$a < b$` is OK.  We should somehow fix such things in the html function, since mathjax can't.
 - [ ] (0:45?) fix my class notes to work with correct math markup... ($$ bug makes this something to *not* do until above fixed)
