@@ -1,59 +1,61 @@
 <!--
-    Collection of consoles on a project
-  -->
+Collection of consoles on a project
+-->
 
 <div id="salvus-consoles-templates" class="hide">
 
-  <!-- Template for the entire editor, both tabs and the actual content -->
-  <div class="salvus-consoles">
+    <!-- Template for the entire editor, both tabs and the actual content -->
+    <div class="salvus-consoles">
 
-    <div class="row salvus-consoles-button-bar">
-      <div>
-	<!-- The file actions toolbar -->
+        <div class="row salvus-consoles-button-bar">
+            <div>
+                <!-- The file actions toolbar -->
 
-<!--
-	<div class="pull-right">
-	  <a href="#save" class="btn btn-primary">Save</a>
-	</div>
+                <!--
+<div class="pull-right">
+<a href="#save" class="btn btn-primary">Save</a>
+</div>
 -->
 
-	<!-- buttons to create new consoles -->
-	<div class="pull-left" style="margin-right:1em; margin-left:2em;">
-	  <a class="btn btn-primary" href="#new-worksheet"><i class="icon-plus"> </i><i class="icon-file-alt"></i></a>
-	  <a class="btn btn-success" href="#new-xterm"><i class="icon-plus"> </i><i class="icon-credit-card"></i></a>
-	  <!-- <a class="btn btn-success" href="#new-command-line"><i class="icon-plus"> </i> cmdline</a> -->
-	</div>
+                <!-- buttons to create new consoles -->
+                <div class="pull-left" style="margin-right:1em; margin-left:2em;">
+                    <a class="btn btn-primary" href="#new-worksheet"><i class="icon-plus"> </i><i class="icon-file-alt"></i></a>
+                    <a class="btn btn-success" href="#new-xterm"><i class="icon-plus"> </i><i class="icon-credit-card"></i></a>
+                    <!-- <a class="btn btn-success" href="#new-command-line"><i class="icon-plus"> </i> cmdline</a> -->
+                </div>
 
-	<!-- The console tabs -->
-	<ul class="nav nav-tabs">
-	</ul>
+                <!-- The console tabs -->
+                <ul class="nav nav-tabs">
+                </ul>
 
-      </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- The editor content gets displayed here -->
+            <div class="salvus-consoles-content">
+            </div>
+        </div>
     </div>
 
-    <div class="row">
-      <!-- The editor content gets displayed here -->
-      <div class="salvus-consoles-content">
-      </div>
+    <!-- Template for the tab at the top of the editor with filename and an x -->
+    <ul>
+        <li class="super-menu salvus-console-filename-tab">
+            <a>
+                <i class="icon-file-card"></i>
+                <span class="salvus-consoles-tab-title"></span>
+                <span class="salvus-consoles-close-button-x">×</span>
+            </a>
+        </li>
+    </ul>
+
+    <!-- Template for command line console -->
+    <div class="salvus-consoles-command-line">
+        <textarea class="salvus-consoles-command-line-output">
+        </textarea>
+        <div class="salvus-consoles-command-line-spinner hide"></div>
+        <form>
+            <input class="salvus-consoles-command-line-input" type="text" placeholder="bash $ ">
+        </form>
     </div>
-  </div>
-
-  <!-- Template for the tab at the top of the editor with filename and an x -->
-  <li class="super-menu salvus-console-filename-tab">
-    <a>
-      <i class="icon-file-card"></i>
-      <span class="salvus-consoles-tab-title"></span>
-      <span class="salvus-consoles-close-button-x">×</span>
-    </a>
-  </li>
-
-  <!-- Template for command line console -->
-  <div class="salvus-consoles-command-line">
-    <textarea class="salvus-consoles-command-line-output">
-    </textarea>
-    <div class="salvus-consoles-command-line-spinner hide"></div>
-    <form>
-      <input class="salvus-consoles-command-line-input" type="text" placeholder="bash $ ">
-    </form>
-  </div>
 </div>
