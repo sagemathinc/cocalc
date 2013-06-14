@@ -1,5 +1,5 @@
 
-- [ ] (2:00?) Grayson -- ensure valid html: http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F
+- [ ] (2:00?) (0:32+) validation:  ensure valid html and don't include html/css/coffeescript we're not using (see -- http://validator.w3.org/check?uri=https%3A%2F%2Fcloud.sagemath.com%2F)
 
 - [x] (0:10?) (0:02) stabilize docs so not blatantly useless.
 
