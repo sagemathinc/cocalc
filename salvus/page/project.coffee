@@ -27,6 +27,7 @@ template_segment_sep           = templates.find(".project-segment-sep")
 template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
+template_project_collab        = templates.find(".project-collab")
 
 ##################################################
 # Initialize the modal project management dialogs
@@ -1524,19 +1525,52 @@ class ProjectPage
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
+        add_button = @container.find("a[href=#add-collaborator]")
 
+        remove_collaborator = (c) =>
+            # c = {first_name:? , last_name:?, account_id:?}
+            m = "Are you sure that you want to remove #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
+            bootbox.confirm m, (result) =>
+                if not result
+                    return
+                salvus_client.project_remove_collaborator
+                    project_id : @project.project_id
+                    account_id : c.account_id
+                    cb         : (err, result) =>
+                        if err
+                            alert_message(type:"error", message:"Error removing collaborator #{c.first_name} #{c.last_name} -- #{err}")
+                        else
+                            alert_message(type:"success", message:"Successfully removed #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'.")
+                            update_collaborators()
+
+        already_collab = {}
         update_collaborators = () =>
             salvus_client.project_users
                 project_id : @project.project_id
                 cb : (err, users) =>
                     if not err
-                        s = ""
+                        collabs.empty()
+                        already_collab = {}
                         for x in users
+                            already_collab[x.account_id] = true
                             if x.account_id != salvus_client.account_id
-                                if s != ""
-                                    s += ", "
-                                s += x.first_name + ' ' + x.last_name
-                        collabs.text(s)
+                                c = template_project_collab.clone()
+                                c.find(".project-collab-first-name").text(x.first_name)
+                                c.find(".project-collab-last-name").text(x.last_name)
+                                if x.mode == 'owner'
+                                    c.find(".project-close-button").hide()
+                                    c.css('background-color', '#51a351')
+                                    c.tooltip(title:"Owner", delay: { show: 500, hide: 100 })
+                                else
+                                    c.find(".project-close-button").data('collab', x).click () ->
+                                        remove_collaborator($(@).data('collab'))
+                                        return false
+                                    if x.mode == 'collaborator'
+                                        c.tooltip(title:"Collaborator", delay: { show: 500, hide: 100 })
+                                    else if x.mode == 'viewer'
+                                        c.css('background-color', '#f89406')
+                                        c.tooltip(title:"Viewer", delay: { show: 500, hide: 100 })
+                                collabs.append(c)
 
         update_collaborators()
 
@@ -1544,6 +1578,7 @@ class ProjectPage
             x = input.val()
             if x == ""
                 select.html("").hide()
+                add_button.addClass('disabled')
                 return
             salvus_client.user_search
                 query : input.val()
@@ -1551,10 +1586,11 @@ class ProjectPage
                 cb    : (err, result) =>
                     select.html("")
                     for r in result
-                        if r.account_id != salvus_client.account_id  # only show other users
+                        if not already_collab[r.account_id]? # only show users not already added
                             name = r.first_name + ' ' + r.last_name
                             select.append($("<option>").attr(value:r.account_id, label:name))
                     select.show()
+                    add_button.removeClass('disabled')
 
         invite_selected = () =>
             x = select.find(":selected")
@@ -1569,10 +1605,10 @@ class ProjectPage
                         alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
                         update_collaborators()
 
-        select.change (evt) =>
-            invite_selected()
+        add_button.click () =>
+            if add_button.hasClass('disabled')
+                return false
 
-        @container.find("a[href=#add-collaborator]").click () =>
             invite_selected()
             return false
 

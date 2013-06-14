@@ -333,3 +333,20 @@ font-size: 11px;
     border-radius: 5px;
 }
 
+.project-collab {
+    margin-right: 1em;
+    border-radius: 6px;
+    background-color: #08c;
+    padding: 6px;
+    color: #fff;
+}
+
+.project-collab-last-name {
+    margin-right: 1ex;
+}
+
+.project-close-button:hover {
+    color: #f00;
+}
+
+

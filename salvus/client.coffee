@@ -1173,8 +1173,29 @@ class exports.Connection extends EventEmitter
             cb         : (err) =>
         @call
             message : message.invite_collaborator(project_id:opts.project_id, account_id:opts.account_id)
-            cb      : opts.cb
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else if result.event == 'error'
+                    opts.cb(result.error)
+                else
+                    opts.cb(false, result)
 
+    project_remove_collaborator: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : (err) =>
+
+        @call
+            message : message.remove_collaborator(project_id:opts.project_id, account_id:opts.account_id)
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else if result.event == 'error'
+                    opts.cb(result.error)
+                else
+                    opts.cb(false, result)
 
     #################################################
     # File Management
