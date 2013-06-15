@@ -1,4 +1,4 @@
-- [ ] (1:30?) ability to open sws files
+- [ ] (4:00?) (1:07+) ability to open sws files
 - [ ] (1:00?) BUG -- fix that massive sys.stdout.flush() bug.
 - [ ] (2:00?) export sagews to sws
 

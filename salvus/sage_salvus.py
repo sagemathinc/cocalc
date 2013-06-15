@@ -2449,7 +2449,6 @@ def load(*args, **kwds):
 
 
 # Conversion
-
 def sws_body_to_sagews(body):
     from uuid import uuid4
     def uuid():
@@ -2486,6 +2485,7 @@ def sws_body_to_sagews(body):
             else:
                 output = body[k2+4:k3]
                 i = k3+1
+
         html   = unicode(html.strip())
         input  = unicode(input.strip())
         output = unicode(output.strip())
@@ -2496,17 +2496,20 @@ def sws_body_to_sagews(body):
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
                     json.dumps({'html':html}) + MARKERS['output']) + u'\n'
 
-        out += u'\n' + MARKERS['cell'] + uuid() + MARKERS['cell'] + u'\n'
+        if out != "":
+            out += u'\n'
+        out += MARKERS['cell'] + uuid() + MARKERS['cell'] + u'\n'
         out += input
         if len(output) > 0:
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                    json.dumps({'stdout':output}) + MARKERS['output']) + u'\n'
+                    json.dumps({'stdout':output}) + MARKERS['output'])
+
     return out
 
 def sws_to_sagews(filename):
     """
     Convert a Sage Notebook sws file to a cloud.sagemath sagews file.
-    
+
     WARNING: Unfinished!
 
     NOTE: This is still very preliminary -- it only maintains the input
