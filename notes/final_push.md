@@ -1,6 +1,121 @@
 
 - [x] (1:00?) (0:10) serious bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
 
+========================================
+
+- [x] firefox -- found missing "event" object, which causes javascript errors when browsing project listing.
+
+--> - [ ] (0:30?) turn on responsive mode and make a list of issues
+
+- [ ] (0:10?) responsive: sign in on *PHONE*
+     - get rid of tag line and cloud
+	 - shrink header
+
+- [ ] (0:15?) responsive: create account
+
+     - terms of usage; no way to scroll to bottom; maybe get rid
+       of header bar entirely (?)
+
+- [ ] (0:20?) responsive: create account  -- PHONE
+     - The error messages that appear to the left are not visible
+       at all in 320x480; try another layout or modal.
+     - "Create an account (or sign in)" -- shrink it to stay on one line.
+
+- [ ] (0:10?) responsive: get rid of fullscreen icon in upper right; makes no sense
+
+- [ ] (0:15?) responsive: help
+     - "Join the mailing list..." missing period at end.
+     - loose the cloud image when phone
+     - move help link to very top
+     - then new help link (to lower on page) just below.
+
+- [ ] (0:30?) responsive projects screen PHONE:
+     - don't show "a project is a complete self-contained..."
+     - [all/public/.etc] starts off to the left of well
+     - Find a project... to left of well
+     - too much space between "find a project..." and project list
+
+- [ ] (0:15?) responsive projects screen TABLET:
+     - top button row looks weird in most sizes
+
+- [ ] (1:00?) responsive project screen PHONE:
+     - if we conditionally disable this CSS rule
+             .salvus-project {
+                 top: 40px;
+             }
+       then the project menu bar correctly moves when
+       expanding the menu.
+
+- [ ] (1:00?) responsive editor screen PHONE:
+     - always use fullscreen mode for file editing, by default.
+     - big exit button at top right (?) that goes
+       back to file listing, but otherwise leave
+       it having "taken over" screen.
+     - big "execute" button (?)
+     - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
+
+- [ ] responsive project screen PHONE -- files
+     - big "Files" label is not necessary and wastes space
+     - Choose file... search is too big
+     - home icon awkwardly located
+     - Terminal command... is too big
+     - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
+
+- [ ] responsive project screen PHONE -- recent
+     - get rid of title at top
+     - <div class="salvus-editor"...> has a margin-left, that is useless; this is
+       right below "the actual recent file UI"
+     - just have one row of filenames rather than three, or be responsive to make it one...
+       in any case, the width of the filenames isn't long enough on mobile.
+     - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
+
+- [ ] responsive project screen PHONE -- new
+     - get rid of a margin-left:3em;
+     - get rid of h1 title at top
+     - don't auto-focus on name (since we don't want a keyboard by default)
+     - "Drop file to upload (or click)" --> "Tap to select files to upload"
+       (since drag and drop makes no sense on mobile.)
+
+
+- [ ] responsive project screen PHONE -- wrench
+     - get rid of h1
+     - collaborators "+Add" button should be on the left.
+     - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
+
+- [ ] responsive project screen PHONE -- search
+     - make keyboard hide on doing a search (?) -- if possible....
+
+- [ ] responsive project screen PHONE -- terminal
+     - doesn't even show up right now... I should try reverting to the desktop version, plus
+       using onscreen keyboard or a buffer area...
+
+
+
+----
+
+
+- [ ] fulltext search in projects:
+     - should exclude uuid cell marker lines
+     - should exclude all binary files
+
+- [ ] converting the large cassandra12.pdf to png's to display in browser silently fails; probably a timeout (?)
+
+- [ ] (1:30?) firefox (linux) -- both copy and paste with terminal are completely broken
+
+- [ ] (1:00?) firefox recent files list -- pills wrong size
+
+- [ ] (1:00?) firefox terminal -- resizes all wrong; bottom lines chopped... sometimes.  But sometimes fine.
+
+- [ ] (2:00?) (won't fix for now) opera; cursor goes haywire if you zoom in codemirror.
+
+
+========================================
+
+
+- [ ] (0:30?) find a way to test SMC via tablet/phone running from chromeOS
+See http://www.overdigital.com/2013/06/02/how-to-use-your-chromebook-pixel-as-a-webserver/
+
+   sudo /sbin/iptables -A INPUT -p tcp --dport 443 -j ACCEPT
 
 - [ ] (4:00?) (1:07+) ability to open sws files
 - [ ] (2:00?) export sagews to sws
@@ -15,7 +130,6 @@ while True:
         c = 'ssh 10.1.%s.3 "time BUP_DIR=/mnt/snap/snap0/bup bup ls 69a229be-5a5a-42be-a98b-fc6c40aa10f9"'%i
         print c
         os.system(c)
-
 
 - [ ] (1:00?) (0:13+) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
 - [ ] (1:00?) pdf view -- should have link to download pdf.
@@ -73,9 +187,6 @@ while True:
 - [ ] (1:00?) codemirror find is annoying -- make it better (so thing found is visible!)
 - [ ] (1:00?) markdown -- there is no way to just insert a $.  Make \$ just $ without math....? somehow.
 - [ ] (1:00?) search should not include hidden files by default....
-- [ ] (0:30?) find a way to test SMC via tablet/phone running from laptop (probably port forward)
-- [ ] (0:30?) turn on responsive mode and make a list of issues
-- [ ] (4:00?) issues!
 - [ ] html5 audio: http://www.html5rocks.com/en/tutorials/webaudio/intro/
 - [ ] build: automated tests to confirm that salvus environment doesn't suck: https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
 - [ ] ui: investigate supporting 2d plotting using bokeh(?): https://github.com/ContinuumIO/Bokeh
