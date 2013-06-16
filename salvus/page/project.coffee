@@ -352,7 +352,7 @@ class ProjectPage
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 @display_tab("project-editor")
                 return false
-            @update_file_search()
+            @update_file_search(event)
 
     clear_file_search: () =>
         @_file_search_box.val('')
@@ -361,7 +361,7 @@ class ProjectPage
         if not IS_MOBILE
             @_file_search_box.focus()
 
-    update_file_search: () =>
+    update_file_search: (event) =>
         search_box = @_file_search_box
         include = 'project-listing-search-include'
         exclude = 'project-listing-search-exclude'
@@ -393,7 +393,7 @@ class ProjectPage
             fullpath = entry.data('name')
             filename = misc.path_split(fullpath).tail
             if match(filename, entry.hasClass('project-directory-link'))
-                if first and event.keyCode == 13 # enter -- select first match (if any)
+                if first and event?.keyCode == 13 # enter -- select first match (if any)
                     entry.click()
                     first = false
                 if v != ""
@@ -401,7 +401,7 @@ class ProjectPage
             else
                 if v != ""
                     entry.addClass(exclude); entry.removeClass(include)
-        if first and event.keyCode == 13
+        if first and event?.keyCode == 13
             # No matches at all, and user pressed enter -- maybe they want to create a file?
             @display_tab("project-new-file")
             @new_file_tab_input.val(search_box.val())
