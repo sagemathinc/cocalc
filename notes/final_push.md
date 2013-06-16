@@ -1,5 +1,8 @@
+
+- [x] (1:00?) (0:10) serious bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
+
+
 - [ ] (4:00?) (1:07+) ability to open sws files
-- [ ] (1:00?) BUG -- fix that massive sys.stdout.flush() bug.
 - [ ] (2:00?) export sagews to sws
 
 
@@ -56,7 +59,6 @@ while True:
     @interact
     def f(a = input_grid(2,2,[[1,2],[3,4]])):
         print a
-- [ ] (1:00?) weird bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
 - [ ] (1:00?) snap: when a compute server fails to work for n seconds, re-deploy project elsewhere, automatically: see the comment/code in hub that says  "Copy project's files from the most recent snapshot" in hub, which is relevant.
 - [ ] (1:00?) snap: ability to download files directly from snapshots
 - [ ] (1:00?) snap: preview file when clicked on

@@ -410,6 +410,8 @@ class Salvus(object):
             sys.stdout.reset(); sys.stderr.reset()
             try:
                 exec compile(block, '', 'single') in namespace, locals
+                sys.stdout.flush()
+                sys.stderr.flush()
             except:
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
