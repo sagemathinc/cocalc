@@ -1019,6 +1019,11 @@ message
     account_id : required
 
 
+message
+    event      : 'remove_collaborator'
+    id         : undefined
+    project_id : required
+    account_id : required
 
 
 

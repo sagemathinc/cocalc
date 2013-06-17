@@ -24,3 +24,4 @@ time browserify --exports=require,connect node_modules/client_browser.js -o stat
 ls -lh static/salvus.js
 
 cp node_modules/message.js  static/salvus/ 
+

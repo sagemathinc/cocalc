@@ -17,23 +17,11 @@ top_navbar.coffee
 alerts.coffee
 
 
-feedback.coffee
-
 3d.coffee
-cell.coffee
-
-worksheet.coffee
 console.coffee
 
-# account.coffee must come after cell.coffee
 account.coffee
-
-
-#worksheet1.coffee
-#worksheet2.coffee
-
 syncdoc.coffee
-
 editor.coffee
 
 interact.coffee

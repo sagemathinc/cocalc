@@ -1228,20 +1228,55 @@ class Client extends EventEmitter
                         @push_to_client(message.project_users(id:mesg.id, users:users))
 
     mesg_invite_collaborator: (mesg) =>
+        if mesg.account_id == @account_id
+            @error_to_client(id:mesg.id, error:"You cannot add yourself as a collaborator on a project.")
+            return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            database.update
-                table : 'project_users'
-                set   : {mode:'collaborator'}
-                where : {project_id:mesg.project_id, account_id:mesg.account_id}
-                cb    : (err) =>
+
+            database.select
+                table   : 'project_users'
+                columns : ['mode']
+                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
+                cb      : (err, result) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
-                    else
+                    else if result.length > 0 and result[0][0] == 'owner'
+                        # target is already has better privileges
                         @push_to_client(message.success(id:mesg.id))
+                    else
+                        database.update
+                            table : 'project_users'
+                            set   : {mode:'collaborator'}
+                            where : {project_id:mesg.project_id, account_id:mesg.account_id}
+                            cb    : (err) =>
+                                if err
+                                    @error_to_client(id:mesg.id, error:err)
+                                else
+                                    @push_to_client(message.success(id:mesg.id))
 
-                        
+    mesg_remove_collaborator: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            database.select
+                table   : 'project_users'
+                columns : ['mode']
+                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
+                cb      : (err, result) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else if result.length > 0 and result[0][0] == 'owner'
+                        @error_to_client(id:mesg.id, error:"Cannot remove owner of project.")
+                    else database.delete
+                        table : 'project_users'
+                        where : {project_id:mesg.project_id, account_id:mesg.account_id}
+                        cb    : (err) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:err)
+                            else
+                                @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # Project snapshots -- interface to the snap servers

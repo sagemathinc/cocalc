@@ -228,6 +228,10 @@ local_storage = exports.local_storage = (project_id, filename, key, value) ->
 
 templates = $("#salvus-editor-templates")
 
+# This image tag below is technically invalid, since src isn't set; but that is done before we
+# put it in the DOM.
+template_pdf_preview_image = $('<img alt="PDF preview" class="salvus-editor-pdf-preview-image img-rounded">')
+
 class exports.Editor
     constructor: (opts) ->
         opts = defaults opts,
@@ -1165,7 +1169,6 @@ remove_tmp_dir = (project_id, path, tmp_dir, cb) ->
             cb?(err)
 
 class PDF_Preview extends FileEditor
-    # Compute single page
     constructor: (@editor, @filename, contents, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
@@ -1187,6 +1190,8 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @update()
+        console.log("focusing on output")
+        @output.focus()
 
     focus: () =>
         @element.maxheight()
@@ -1270,12 +1275,12 @@ class PDF_Preview extends FileEditor
                                         if n < children.length
                                             $(children[n]).attr('src', url)
                                         else
-                                            img = templates.find(".salvus-editor-pdf-preview-image").clone()
+                                            img = template_pdf_preview_image.clone()
                                             img.attr('src', url)
                                             # This gives a sort of "2-up" effect.  But this makes things unreadable
                                             # on some screens :-(.
                                             #img.css('width':@output.width()/2-100)
-                                            @output.append(img)
+                                            @output.dappend(img)
                                     # Delete any remaining pages from before (if doc got shorter)
                                     for n in [len(pages)...children.length]
                                         $(children[n]).remove()
@@ -1419,25 +1424,32 @@ class LatexEditor extends FileEditor
         @_current_page = name
 
     run_latex: (cb) =>
-        @save (err) =>
-            # TODO -- what about error?
-            salvus_client.exec
-                project_id : @editor.project_id
-                path       : @_path
-                command    : 'pdflatex'
-                args       : ['-interaction=nonstopmode', '\\input', @_target]
-                timeout    : 5
-                err_on_exit : false
-                cb         : (err, output) =>
-                    if err
-                        alert_message(type:"error", message:err)
-                    else
-                        @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
-                        # Scroll to the bottom of the textarea
-                        f = @log.find('textarea')
-                        f.scrollTop(f[0].scrollHeight)
-
-                    cb?()
+        async.series([
+            (cb) =>
+                @save(cb)
+            (cb) =>
+                # NOTE: a lot of filenames aren't really allowed with latex, which sucks. See
+                #    http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames
+                salvus_client.exec
+                    project_id : @editor.project_id
+                    path       : @_path
+                    command    : 'pdflatex'
+                    args       : ['-interaction=nonstopmode', @_target]
+                    timeout    : 10
+                    err_on_exit : false
+                    cb         : (err, output) =>
+                        if err
+                            alert_message(type:"error", message:err)
+                            cb(err)
+                        else
+                            @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
+                            # Scroll to the bottom of the textarea
+                            f = @log.find('textarea')
+                            f.scrollTop(f[0].scrollHeight)
+                            cb()
+        ], (err) =>
+            cb?(err)
+        )
 
     download_pdf: () =>
         # TODO: THIS replicates code in project.coffee
