@@ -1,11 +1,6 @@
+- [ ] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
 
-- [x] (1:00?) (0:10) serious bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
-
-========================================
-
-- [x] firefox -- found missing "event" object, which causes javascript errors when browsing project listing.
-
---> - [ ] (0:30?) turn on responsive mode and make a list of issues
+- [ ] (0:30?) turn on responsive mode and make a list of issues
 
 - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
@@ -93,6 +88,18 @@
 
 ----
 
+- [ ] firefox bug (for perkinson): download of file doesn't work at all in firefox!
+
+- [ ] the file actions thing doesn't work in chrome on perkinson -- this was because chrome was old
+
+- [ ] help: FAQ -- some vim plugin is incompatible with codemirror; https://addons.mozilla.org/en-us/firefox/addon/pentadactyl/; control-z to disable.
+
+- [ ] karl dieter feature request: download a .sagews file to external html... should make it just include some javascript at top and fully work... with login or terms of usage; could in some cases export to "external html using sage cell" instead.
+
+- [ ] %prun profiler is now broken; just shows nonsense.
+
+- [ ] cd in terminal thing in cloud.sagemath not working.
+
 
 - [ ] fulltext search in projects:
      - should exclude uuid cell marker lines
@@ -107,7 +114,6 @@
 - [ ] (1:00?) firefox terminal -- resizes all wrong; bottom lines chopped... sometimes.  But sometimes fine.
 
 - [ ] (2:00?) (won't fix for now) opera; cursor goes haywire if you zoom in codemirror.
-
 
 ========================================
 
@@ -248,7 +254,10 @@ while True:
 - [ ] (0:30?) %hideall doesn't hide output, but should.
 - [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 - [ ] (1:00?) idea: multiline copy from a terminal should delete trailing whitespace... if possible.  I don't know if this is possible, and don't know how this could even be implemented in general.  However, maybe when cloud.sagemath is used as an extension or chromeapp, then it would be possible...
-- [ ] (3:00?) sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com/
+
+- [ ] (3:00?) sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com;  codemirror intro -- https://mail.google.com/mail/u/0/?shva=1#starred/13f5b853999289dc
+
+
 - [ ] (2:00?) way to browse other people's projects
 - [ ] (0:45?) sagews: javascript(once=True) isn't respected; needs to use a different channel... (broadcast?)
 - [ ] (2:00?)  make caching of newly created blank projects something that is stored in the database, not the hub.
@@ -2316,3 +2325,15 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
 - [x] (0:45?) (0:17) bug -- if you accidentally add yourself as collab on a project, you go from owner to collaborator.  BUG; removing yourself results in removing yourself forever, which is stupid.
 
 - [x] (1:00?) (1:40) collab -- make it possible to remove collaborators.
+
+
+
+
+- [x] (1:00?) (0:10) serious bug: "%time plot(sin)" doesn't print out timing ... (?); this is the sys.stdout.flush() issue!?
+
+- [x] firefox -- found missing "event" object, which causes javascript errors when browsing project listing.
+
+- [x] (0:30?) typeset mode (howto) -- add typeset_mode(bool) with something based on this code
+def f(x):
+    salvus.tex(x)
+sys.displayhook = f
