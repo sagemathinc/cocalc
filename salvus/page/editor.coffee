@@ -1488,16 +1488,19 @@ class Terminal extends FileEditor
                         cols    : @opts.cols
                         rows    : @opts.rows
                         resizable: false
+                        #reconnect    : @connect_to_server  # -- doesn't work yet!
                     @console = elt.data("console")
                     @element = @console.element
                     @connect_to_server()
 
     connect_to_server: (cb) =>
+        #console.log("connect_to_server")
         mesg =
             timeout    : 30  # just for making the connection; not the timeout of the session itself!
             type       : 'console'
             project_id : @editor.project_id
             cb : (err, session) =>
+                #console.log(err, session)
                 if err
                     alert_message(type:'error', message:err)
                     cb?(err)

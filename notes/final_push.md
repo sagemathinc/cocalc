@@ -1,4 +1,7 @@
 
+
+- [ ] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
+
 - [x] (0:30?) turn on responsive mode
 
 - [ ] (0:10?) responsive: sign in on *PHONE*
@@ -89,7 +92,7 @@
 
 - [ ] terminal -- when copying/pasting, long lines become multiple lines, which is one of my pet peeves!
 
-- [ ] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c. 
+- [ ] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
 
 - [ ] firefox bug (for perkinson): download of file doesn't work at all in firefox!
 
