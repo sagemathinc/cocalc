@@ -1,6 +1,5 @@
 
-- [ ] (0:30?) turn on responsive mode and make a list of issues
-
+- [x] (0:30?) turn on responsive mode
 
 - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
@@ -87,6 +86,10 @@
 
 
 ----
+
+- [ ] terminal -- when copying/pasting, long lines become multiple lines, which is one of my pet peeves!
+
+- [ ] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c. 
 
 - [ ] firefox bug (for perkinson): download of file doesn't work at all in firefox!
 
