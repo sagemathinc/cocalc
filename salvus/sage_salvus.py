@@ -2533,3 +2533,30 @@ def sws_to_sagews(filename):
         i += 1
     open(outfile,'w').write(out.encode('utf8'))
     return outfile
+
+
+_system_sys_displayhook = sys.displayhook
+
+def typeset_mode(on=True):
+    """
+    Turn typeset mode on or off.  When on, each output is typeset using LaTeX.
+
+    EXAMPLES::
+
+         typeset_mode()  # turns typesetting on
+
+         typeset_mode(False)  # turn typesetting off
+
+    """
+    if on:
+        def f(obj):
+            if obj is None:
+                return
+            salvus.tex(obj)
+        sys.displayhook = f
+    else:
+        sys.displayhook = _system_sys_displayhook
+
+
+
+
