@@ -1,6 +1,6 @@
+- [ ] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
 
 - [ ] (0:30?) turn on responsive mode and make a list of issues
-
 
 - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
