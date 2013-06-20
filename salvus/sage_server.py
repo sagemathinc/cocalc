@@ -720,6 +720,9 @@ class Salvus(object):
             return self._py(filename, **opts)
         raise NotImplementedError("require file of type %s not implemented"%ext)
 
+    def typeset_mode(self, on=True):
+        sage_salvus.typeset_mode(on)
+
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
