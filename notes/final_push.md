@@ -1,11 +1,6 @@
-
-- [x] (0:30?) (0:19) upgrade to codemirror-3.14 and fix css issue with codemirror-3.14
-
-- [x] (0:30?) (0:11) worksheets -- get rid of max height = screen height; not needed with newest codemirror.
-
---> - [ ] (0:20?) disable control-c part of terminal burst stuff. 
-
 - [ ] (1:00?)  bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.
+
+- [ ] (3:00?) worksheet scalability idea -- only render the outputs when they are about to appear!  how to hook into codemirror. Andrej cares.
 
 - [ ] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
 
@@ -13,7 +8,7 @@
 
 - [ ] (2:00?) ui: make it possible for user to easily select a sage version for a project (from those available).
 
-- [x] (0:30?) turn on responsive mode and make a list of issues
+- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don t share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
 
 - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
@@ -2354,3 +2349,14 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
 def f(x):
     salvus.tex(x)
 sys.displayhook = f
+
+
+
+- [x] (0:30?) (0:19) upgrade to codemirror-3.14 and fix css issue with codemirror-3.14
+
+- [x] (0:30?) (0:11) worksheets -- get rid of max height = screen height; not needed with newest codemirror.
+
+- [x] (0:20?) disable control-c part of terminal burst stuff.
+
+- [x] (0:30?) turn on responsive mode and make a list of issues
+

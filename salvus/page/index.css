@@ -96,6 +96,7 @@ body { padding-top:41px; }
 .CodeMirror div.CodeMirror-cursor {
   background-color:#666 !important;
   width:1ex !important;
+  /* border-left: 2px solid black;        */
 }
 
 .CodeMirror {
