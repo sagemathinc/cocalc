@@ -99,6 +99,10 @@
 
 ----
 
+- [ ] terminal -- when copying/pasting, long lines become multiple lines, which is one of my pet peeves!
+
+- [ ] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
+
 - [ ] firefox bug (for perkinson): download of file doesn't work at all in firefox!
 
 - [ ] the file actions thing doesn't work in chrome on perkinson -- this was because chrome was old
