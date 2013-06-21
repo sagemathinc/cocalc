@@ -877,14 +877,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 log("BUG: error rendering output: '#{s}' -- #{e}")
 
             else if x.indexOf(MARKERS.output) != -1
-                console.log("correcting merge/paste issue with output marker line (line=#{line})")
+                #console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
                 cm.replaceRange('\n', {line:line, ch:ch})
                 @process_sage_updates(line)
                 return
 
             else if x.indexOf(MARKERS.cell) != -1
-                console.log("correcting merge/paste issue with cell marker (line=#{line})")
+                #console.log("correcting merge/paste issue with cell marker (line=#{line})")
                 ch = x.indexOf(MARKERS.cell)
                 cm.replaceRange('\n', {line:line, ch:ch})
                 @process_sage_updates(line)
@@ -898,7 +898,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     # hide_input: hide input part of cell that has start marker at the given line.
     hide_input: (line) =>
-        console.log("hide_input 0")
         end = line+1
         cm = @codemirror
         while end < cm.lineCount()
