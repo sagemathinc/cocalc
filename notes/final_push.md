@@ -1,6 +1,17 @@
+
+- [x] (0:30?) (0:19) upgrade to codemirror-3.14 and fix css issue with codemirror-3.14
+
+- [ ] (0:30?) worksheets -- can we get rid of max height = screen height; not needed with newest codemirror!?
+
+- [ ] (1:00?)  bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.
+
 - [ ] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
 
-- [ ] (0:30?) turn on responsive mode and make a list of issues
+- [ ] (2:00?) increase disk space in the base vm, then make it so we archive previous versions of sage
+
+- [ ] (2:00?) ui: make it possible for user to easily select a sage version for a project (from those available).
+
+- [x] (0:30?) turn on responsive mode and make a list of issues
 
 - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
