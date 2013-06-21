@@ -1,7 +1,7 @@
 
 - [x] (0:30?) (0:19) upgrade to codemirror-3.14 and fix css issue with codemirror-3.14
 
-- [ ] (0:30?) worksheets -- can we get rid of max height = screen height; not needed with newest codemirror!?
+- [x] (0:30?) (0:11) worksheets -- get rid of max height = screen height; not needed with newest codemirror.
 
 - [ ] (1:00?)  bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.
 
