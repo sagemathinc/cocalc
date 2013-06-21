@@ -9,5 +9,9 @@ time s._hosts.nodetool('snapshot repair', wait=False)
 Edit the file
 
     /home/wstein/salvus/salvus/data/local/cassandra/conf/cassandra-env.sh
-    
 
+
+# Java -- cassandra wants v6
+update-alternatives --config java
+
+2            /usr/lib/jvm/java-6-oracle/jre/bin/java          1063      manual mode 

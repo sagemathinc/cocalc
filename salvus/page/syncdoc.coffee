@@ -639,7 +639,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 elt = @elt_at_mark(mark)
                 if elt?
                     if elt.hasClass('sagews-output')
-                        elt.css('max-height', (height*.9) + 'px')
+                        # Setting the max height was mainly to deal with Codemirror< 3.14 bugs.
+                        #elt.css('max-height', (height*.9) + 'px')
                         elt.css('width', (w-25) + 'px')
                     else if elt.hasClass('sagews-input')
                         elt.css('width', w + 'px')
@@ -699,7 +700,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
             cm.redo()
 
-    interrupt: () =>    
+    interrupt: () =>
         @close_on_action()
         @send_signal(signal:2)
 
@@ -1076,10 +1077,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         cm = @codemirror
 
-        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
+        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor was *critical*
+        # before Codemirror 3.14, due to a bug. 
         output = output_template.clone().css
             width        : (@cm_lines().width()-25) + 'px'
-            'max-height' : (.9*@cm_wrapper().height()) + 'px'
+            #'max-height' : (.9*@cm_wrapper().height()) + 'px'
 
 
         if cm.lineCount() < line + 2
