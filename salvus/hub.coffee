@@ -2244,6 +2244,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         n = console_socket.history.length
                         if n > 150000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
                             console_socket.history = console_socket.history.slice(100000)
+
+                        # Never push more than 5000 characters at once to client, since display is slow, etc.
+                        if data.length > 5000
+                            data = "[...]"+data.slice(data.length-5000)
+
                         opts.client.push_data_to_client(channel, data)
 
 

@@ -3,6 +3,8 @@
 
 - [x] (0:30?) (0:11) worksheets -- get rid of max height = screen height; not needed with newest codemirror.
 
+--> - [ ] (0:20?) disable control-c part of terminal burst stuff. 
+
 - [ ] (1:00?)  bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.
 
 - [ ] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
