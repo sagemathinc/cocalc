@@ -1280,7 +1280,7 @@ class PDF_Preview extends FileEditor
                                             # This gives a sort of "2-up" effect.  But this makes things unreadable
                                             # on some screens :-(.
                                             #img.css('width':@output.width()/2-100)
-                                            @output.dappend(img)
+                                            @output.append(img)
                                     # Delete any remaining pages from before (if doc got shorter)
                                     for n in [len(pages)...children.length]
                                         $(children[n]).remove()
@@ -1442,6 +1442,11 @@ class LatexEditor extends FileEditor
                             alert_message(type:"error", message:err)
                             cb(err)
                         else
+                            if output.stdout.indexOf("I can't find file") != -1
+                                @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
+                            else
+                                @log.find("div").empty()
+
                             @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
                             # Scroll to the bottom of the textarea
                             f = @log.find('textarea')
