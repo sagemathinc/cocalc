@@ -649,4 +649,16 @@ $("a[href='#account-settings-upgrade']").click (event) ->
     return false
 
 
+################################################
+# Version number check
+################################################
+client_version = require('salvus_version').version  # client version
+
+version_check = () ->
+    salvus_client.server_version
+        cb : (err, server_version) ->
+            if not err and server_version > client_version
+                $(".salvus_client_version_warning").show()
+
+setInterval(version_check, 3*60*1000)  # check once every three minutes; may increase time later as usage grows (?)
 

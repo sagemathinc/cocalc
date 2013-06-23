@@ -11,6 +11,10 @@ set -e
 echo "Rebuilding all CoffeeScript modules..."
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+
+# Create version file, based on the current time
+echo "exports.version=`date +"%s"`" > node_modules/salvus_version.js
+
 ###########
 # Backend server code:
 ###########
@@ -23,8 +27,8 @@ time browserify --exports=require,connect node_modules/client_browser.js -o stat
       time uglifyjs2 static/salvus.js -o static/salvus.min.js && \
       time coffee -b -o page/temp page/*.coffee && \
       time gen_page && \
-      time uglifyjs2 static/index.js -o static/index.min.js 
+      time uglifyjs2 static/index.js -o static/index.min.js
 
 ls -lh static/salvus.js
 
-cp node_modules/message.js  static/salvus/ 
+cp node_modules/message.js  static/salvus/

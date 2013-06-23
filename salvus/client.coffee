@@ -3,6 +3,8 @@
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
 _     = require('underscore')
 
+salvus_version = require('salvus_version')
+
 diffsync = require('diffsync')
 
 message = require("message")
@@ -502,6 +504,17 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             path       : opts.path
             cb         : opts.cb
+
+    #################################################
+    # Version
+    #################################################
+    server_version: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_version()
+            cb      : (err, mesg) =>
+                opts.cb(err, mesg.version)
 
     #################################################
     # Account Management

@@ -1,7 +1,7 @@
 
-- [ ] (1:00?) (0:24) bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.; wontfix, but at least put in a useful error message
+ - [ ] (0:20?) when delete a tab, need to resize them all
 
-- [ ] (0:10?) responsive: sign in on *PHONE*
+ - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
 	 - shrink header
 
@@ -2388,3 +2388,13 @@ If it fails, it will then:
 
 
 - [x] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
+
+
+- [x] (1:00?) (0:33) bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.; wontfix, but at least put in a useful error message
+
+
+- [x] (1:30?) (2:00) notification of new client version
+x  - add line to `make_coffee` to output a version file, based on the current time
+x  - also make it so `make_coffee` includes that version stamp in static javascript somehow.
+x  - if out of date, display a warning message indicator and suggest browser refresh/cache clear/etc.
+x  - run this check periodically, since users can have a browser open after I update!

@@ -39,6 +39,9 @@ cass    = require("cassandra")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
+salvus_version = require('salvus_version')
+
+
 snap = require("snap")
 
 misc_node = require 'misc_node'
@@ -1308,6 +1311,15 @@ class Client extends EventEmitter
                             else
                                 mesg.list = list
                                 @push_to_client(mesg)
+
+    ################################################
+    # The version of the running server.
+    ################################################
+    mesg_get_version: (mesg) =>
+        mesg.version = salvus_version.version
+        @push_to_client(mesg)
+
+
 
 
 
