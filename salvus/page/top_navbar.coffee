@@ -192,7 +192,7 @@ $.fn.extend
 
 $("#salvus-help").top_navbar
     id      : "salvus-help"
-    label   : ""
+    label   : "Help"
     icon : 'icon-question-sign'
     close   : false
 

@@ -91,7 +91,7 @@ easy_install pip
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
-    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz; tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz; tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install; cd ..; rm -rf basemap-1.0.6*
 
 # Also, edit the banner:
 
@@ -106,29 +106,20 @@ easy_install pip
 
 ./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
 
+# EXPERIMENTAL PACKAGES
+
+./sage -i chomp
+
 # Then delete wasted space
 
    rm spkg/optional/*
 
-# Make a patch due to a bug in one of the spkg's (at least until "./sage -br" works):
-
-        diff --git a/sage/numerical/backends/coin_backend.pyx b/sage/numerical/backends/coin_backend.pyx
-        --- a/sage/numerical/backends/coin_backend.pyx
-        +++ b/sage/numerical/backends/coin_backend.pyx
-        @@ -1087,7 +1087,7 @@
-                     else:
-                         return ""
-                 else:
-        -            self.prob_name = name
-        +            self.prob_name = str(name)
-
-
 
 # 4ti2 into sage: until the optional spkg gets fixed:
 
+
   ./sage -sh
-  cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5
-  ./configure --prefix=/usr/local/sage/current/local/; time make -j16 
+  cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
   make install      # this *must* be a separate step!!
   cd ..; rm -rf 4ti2*
 

@@ -1,4 +1,4 @@
-<span id="salvus-console-templates" class="hide">
+<div id="salvus-console-templates" class="hide">
     <div class="salvus-console well">
 
         <!-- The bar across the top -->
@@ -39,10 +39,13 @@
         </div>
 
         <!-- The actual terminal -->
+        <!-- I tried  autocomplete="false" in the textarea, but this is not valid HTML, and I think didn't work anyways.
+              Jason Grout suggests: autocapitalize="off" autocorrect="off" autocomplete="off"
+        -->
         <div>
-            <textarea class="salvus-console-for-mobile hide" autocomplete="false"></textarea>
+            <textarea class="salvus-console-for-mobile hide"></textarea>
             <div class="salvus-console-terminal hide"></div>
         </div>
     </div>
-</span>
+</div>
 

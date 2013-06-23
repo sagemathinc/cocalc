@@ -226,10 +226,12 @@ Editor for files in a project
 
 .sagews-output {
     padding: 6px;
-    margin: 2px;
+    padding-right: 0px;
+    background-color: #f9f9f9;
+    margin: 0px;  /* WARNING: Must be 0 for codemirror 3.14 ! */
     border:1px solid #ddd;
     border-radius:5px;
-    box-shadow: 2px 2px 1px #ddd;
+    /* box-shadow: 2px 2px 1px #ddd; */   /* no longer trendy */
     overflow-y:auto;
     white-space:normal;
 }

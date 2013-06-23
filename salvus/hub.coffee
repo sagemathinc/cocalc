@@ -51,7 +51,6 @@ from_json = misc.from_json
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
-winston = require('winston')            # logging -- https://github.com/flatiron/winston
 sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 uuid    = require('node-uuid')
 
@@ -60,6 +59,11 @@ Cookies = require('cookies')            # https://github.com/jed/cookies
 
 diffsync = require('diffsync')
 
+winston = require('winston')            # logging -- https://github.com/flatiron/winston
+
+# Set the log level
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
 
 # defaults
 # TEMPORARY until we flesh out the account types
@@ -1228,20 +1232,55 @@ class Client extends EventEmitter
                         @push_to_client(message.project_users(id:mesg.id, users:users))
 
     mesg_invite_collaborator: (mesg) =>
+        if mesg.account_id == @account_id
+            @error_to_client(id:mesg.id, error:"You cannot add yourself as a collaborator on a project.")
+            return
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            database.update
-                table : 'project_users'
-                set   : {mode:'collaborator'}
-                where : {project_id:mesg.project_id, account_id:mesg.account_id}
-                cb    : (err) =>
+
+            database.select
+                table   : 'project_users'
+                columns : ['mode']
+                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
+                cb      : (err, result) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
-                    else
+                    else if result.length > 0 and result[0][0] == 'owner'
+                        # target is already has better privileges
                         @push_to_client(message.success(id:mesg.id))
+                    else
+                        database.update
+                            table : 'project_users'
+                            set   : {mode:'collaborator'}
+                            where : {project_id:mesg.project_id, account_id:mesg.account_id}
+                            cb    : (err) =>
+                                if err
+                                    @error_to_client(id:mesg.id, error:err)
+                                else
+                                    @push_to_client(message.success(id:mesg.id))
 
-                        
+    mesg_remove_collaborator: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            database.select
+                table   : 'project_users'
+                columns : ['mode']
+                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
+                cb      : (err, result) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else if result.length > 0 and result[0][0] == 'owner'
+                        @error_to_client(id:mesg.id, error:"Cannot remove owner of project.")
+                    else database.delete
+                        table : 'project_users'
+                        where : {project_id:mesg.project_id, account_id:mesg.account_id}
+                        cb    : (err) =>
+                            if err
+                                @error_to_client(id:mesg.id, error:err)
+                            else
+                                @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # Project snapshots -- interface to the snap servers
@@ -2209,6 +2248,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         n = console_socket.history.length
                         if n > 150000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
                             console_socket.history = console_socket.history.slice(100000)
+
+                        # Never push more than 5000 characters at once to client, since display is slow, etc.
+                        if data.length > 5000
+                            data = "[...]"+data.slice(data.length-5000)
+
                         opts.client.push_data_to_client(channel, data)
 
 

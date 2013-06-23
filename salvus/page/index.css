@@ -1,8 +1,7 @@
 
+help.css
 3d.css
-cell.css
 misc_page.css
-worksheet.css
 console.css
 
 account.css
@@ -61,9 +60,7 @@ top_navbar.css
 body { padding-top:41px; }
 
 /* workaround responsive bootstrap menu issue */
-/*
 @media (max-width: 979px) { body { padding-top: 0px; } }
-*/
 
 /* so on iOS scroll-into-view modals work */
 @media (max-width: 480px)
@@ -99,6 +96,11 @@ body { padding-top:41px; }
 .CodeMirror div.CodeMirror-cursor {
   background-color:#666 !important;
   width:1ex !important;
+  /* border-left: 2px solid black;        */
+}
+
+.CodeMirror {
+  line-height: normal;
 }
 
 .CodeMirror-wrap {

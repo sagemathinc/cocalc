@@ -1359,6 +1359,7 @@ class Services(object):
             self.start(service, parallel=True, wait=False)
         #log.info(" ** Starting compute")
         #self.start('compute', parallel=False, wait=False)
+        self.monitor_hubs()
 
     def stop_system(self):
         if 'cassandra' in self._services:
@@ -1377,3 +1378,33 @@ class Services(object):
                 else:
                     break
         print "All vm's successfully terminated"
+
+    def monitor_hubs(self):
+        """
+        This is temporary code to monitor the hub, which sometimes goes into an infinite loop when doc sync goes
+        to hell.  We have to just let this go and gather logging data, in order to debug it.   However, we
+        also want users to not loose access, hence the auto-restart.
+        """
+
+        self._hosts.password()
+        # Get IP addresses of hubs
+        hosts = self._hosts['hub']   
+        import sys, urllib2
+        def is_working(ip):
+             try:
+                 return urllib2.urlopen('http://%s:%s'%(ip,HUB_PORT), timeout=5).read()  == 'hub server'
+             except:
+                 return False
+        i = 0
+        while True:
+            if i % 80 == 0:
+                print "Monitoring hubs: ", hosts
+            i += 1
+            print ":-)", 
+            sys.stdout.flush()
+            for ip in hosts:
+                if not is_working(ip):
+                     print ":-( Restarting %s"%ip
+                     self.restart('hub',host=ip)
+            time.sleep(5)     
+                 

@@ -410,6 +410,8 @@ class Salvus(object):
             sys.stdout.reset(); sys.stderr.reset()
             try:
                 exec compile(block, '', 'single') in namespace, locals
+                sys.stdout.flush()
+                sys.stderr.flush()
             except:
                 sys.stdout.flush()
                 sys.stderr.write('Error in lines %s-%s\n'%(start+1, stop+1))
@@ -718,6 +720,9 @@ class Salvus(object):
             return self._py(filename, **opts)
         raise NotImplementedError("require file of type %s not implemented"%ext)
 
+    def typeset_mode(self, on=True):
+        sage_salvus.typeset_mode(on)
+
 
 def execute(conn, id, code, data, preparse):
     # initialize the salvus output streams
@@ -955,7 +960,7 @@ def serve(port, host):
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
                  'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                  'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
-                 'reset', 'restore', 'md', 'load']:
+                 'reset', 'restore', 'md', 'load', 'typeset_mode']:
         namespace[name] = getattr(sage_salvus, name)
 
     sage_salvus.default_namespace = dict(namespace)

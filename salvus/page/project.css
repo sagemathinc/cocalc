@@ -25,6 +25,7 @@
 
 .project-collaborators {
     margin-left: 1.5em;
+    line-height: 2.2em;
 }
 
 .project-file-listing-current_path {
@@ -332,4 +333,21 @@ font-size: 11px;
     box-shadow: 4px 4px 2px #bbb;
     border-radius: 5px;
 }
+
+.project-collab {
+    margin-right: 1em;
+    border-radius: 6px;
+    background-color: #08c;
+    padding: 6px;
+    color: #fff;
+}
+
+.project-collab-last-name {
+    margin-right: 1ex;
+}
+
+.project-close-button:hover {
+    color: #f00;
+}
+
 

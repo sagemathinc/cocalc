@@ -639,7 +639,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 elt = @elt_at_mark(mark)
                 if elt?
                     if elt.hasClass('sagews-output')
-                        elt.css('max-height', (height*.9) + 'px')
+                        # Setting the max height was mainly to deal with Codemirror< 3.14 bugs.
+                        #elt.css('max-height', (height*.9) + 'px')
                         elt.css('width', (w-25) + 'px')
                     else if elt.hasClass('sagews-input')
                         elt.css('width', w + 'px')
@@ -699,7 +700,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
             cm.redo()
 
-    interrupt: () =>    
+    interrupt: () =>
         @close_on_action()
         @send_signal(signal:2)
 
@@ -876,14 +877,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 log("BUG: error rendering output: '#{s}' -- #{e}")
 
             else if x.indexOf(MARKERS.output) != -1
-                console.log("correcting merge/paste issue with output marker line (line=#{line})")
+                #console.log("correcting merge/paste issue with output marker line (line=#{line})")
                 ch = x.indexOf(MARKERS.output)
                 cm.replaceRange('\n', {line:line, ch:ch})
                 @process_sage_updates(line)
                 return
 
             else if x.indexOf(MARKERS.cell) != -1
-                console.log("correcting merge/paste issue with cell marker (line=#{line})")
+                #console.log("correcting merge/paste issue with cell marker (line=#{line})")
                 ch = x.indexOf(MARKERS.cell)
                 cm.replaceRange('\n', {line:line, ch:ch})
                 @process_sage_updates(line)
@@ -907,13 +908,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         line += 1
 
-        hide = $("<span>")
+        #hide = $("<div>")
         opts =
             shared         : false
             inclusiveLeft  : true
             inclusiveRight : true
             atomic         : true
-            replacedWith   : hide[0]
+            #replacedWith   : hide[0]
+            collapsed      : true   # yeah, collapsed now works right in CodeMirror 3.14
         marker = cm.markText({line:line, ch:0}, {line:end-1, ch:cm.getLine(end-1).length}, opts)
         marker.type = 'hide_input'
         @editor.show()
@@ -1076,10 +1078,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         cm = @codemirror
 
-        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor is *critical*.
+        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor was *critical*
+        # before Codemirror 3.14, due to a bug.
         output = output_template.clone().css
             width        : (@cm_lines().width()-25) + 'px'
-            'max-height' : (.9*@cm_wrapper().height()) + 'px'
+            #'max-height' : (.9*@cm_wrapper().height()) + 'px'
 
 
         if cm.lineCount() < line + 2

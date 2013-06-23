@@ -24,10 +24,10 @@ template_project_file_snapshot      = templates.find(".project-file-link-snapsho
 template_project_directory_snapshot = templates.find(".project-directory-link-snapshot")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
-template_new_file_link         = templates.find(".project-new-file-link")
 template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
+template_project_collab        = templates.find(".project-collab")
 
 ##################################################
 # Initialize the modal project management dialogs
@@ -352,7 +352,7 @@ class ProjectPage
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 @display_tab("project-editor")
                 return false
-            @update_file_search()
+            @update_file_search(event)
 
     clear_file_search: () =>
         @_file_search_box.val('')
@@ -361,7 +361,7 @@ class ProjectPage
         if not IS_MOBILE
             @_file_search_box.focus()
 
-    update_file_search: () =>
+    update_file_search: (event) =>
         search_box = @_file_search_box
         include = 'project-listing-search-include'
         exclude = 'project-listing-search-exclude'
@@ -393,7 +393,7 @@ class ProjectPage
             fullpath = entry.data('name')
             filename = misc.path_split(fullpath).tail
             if match(filename, entry.hasClass('project-directory-link'))
-                if first and event.keyCode == 13 # enter -- select first match (if any)
+                if first and event?.keyCode == 13 # enter -- select first match (if any)
                     entry.click()
                     first = false
                 if v != ""
@@ -401,7 +401,7 @@ class ProjectPage
             else
                 if v != ""
                     entry.addClass(exclude); entry.removeClass(include)
-        if first and event.keyCode == 13
+        if first and event?.keyCode == 13
             # No matches at all, and user pressed enter -- maybe they want to create a file?
             @display_tab("project-new-file")
             @new_file_tab_input.val(search_box.val())
@@ -1372,7 +1372,7 @@ class ProjectPage
                         alert_message(type:"error", message:err)
                     else if result.event == 'error'
                         alert_message(type:"error", message:result.error)
-                opts.cb?(err or output.event == 'error')
+                opts.cb?(err or result.event == 'error')
 
     ensure_file_exists: (opts) =>
         opts = defaults opts,
@@ -1399,7 +1399,7 @@ class ProjectPage
                                 alert_message(type:"error", message:err)
                             else if result.event == 'error'
                                 alert_message(type:"error", message:result.error)
-                        opts.cb?(err or output.event == 'error')
+                        opts.cb?(err or result.event == 'error')
         ], (err) -> opts.cb?(err))
 
     get_from_web: (opts) =>
@@ -1421,7 +1421,7 @@ class ProjectPage
                         alert_message(type:"error", message:err)
                     else if result.event == 'error'
                         alert_message(type:"error", message:result.error)
-                opts.cb?(err or output.event == 'error')
+                opts.cb?(err or result.event == 'error')
 
     visit_trash: () =>
         @ensure_directory_exists
@@ -1525,18 +1525,60 @@ class ProjectPage
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
+        add_button = @container.find("a[href=#add-collaborator]")
 
+        remove_collaborator = (c) =>
+            # c = {first_name:? , last_name:?, account_id:?}
+            m = "Are you sure that you want to remove #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
+            bootbox.confirm m, (result) =>
+                if not result
+                    return
+                salvus_client.project_remove_collaborator
+                    project_id : @project.project_id
+                    account_id : c.account_id
+                    cb         : (err, result) =>
+                        if err
+                            alert_message(type:"error", message:"Error removing collaborator #{c.first_name} #{c.last_name} -- #{err}")
+                        else
+                            alert_message(type:"success", message:"Successfully removed #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'.")
+                            update_collaborators()
+
+        already_collab = {}
         update_collaborators = () =>
             salvus_client.project_users
                 project_id : @project.project_id
                 cb : (err, users) =>
                     if not err
-                        s = ""
+                        collabs.empty()
+                        already_collab = {}
                         for x in users
-                            if s != ""
-                                s += ", "
-                            s += x.first_name + ' ' + x.last_name
-                        collabs.text(s)
+                            already_collab[x.account_id] = true
+                            c = template_project_collab.clone()
+                            c.find(".project-collab-first-name").text(x.first_name)
+                            c.find(".project-collab-last-name").text(x.last_name)
+                            if x.mode == 'owner'
+                                c.find(".project-close-button").hide()
+                                c.css('background-color', '#51a351')
+                                c.tooltip(title:"Owner", delay: { show: 500, hide: 100 })
+                            else
+                                c.find(".project-close-button").data('collab', x).click () ->
+                                    remove_collaborator($(@).data('collab'))
+                                    return false
+
+                                if x.account_id == salvus_client.account_id
+                                    extra_tip = " (delete to remove your own access to this project)"
+                                    c.css("background-color","#bd362f")
+                                else
+                                    extra_tip = ""
+
+
+                                if x.mode == 'collaborator'
+                                    c.tooltip(title:"Collaborator"+extra_tip, delay: { show: 500, hide: 100 })
+                                else if x.mode == 'viewer'
+                                    if extra_tip == ""
+                                        c.css('background-color', '#f89406')
+                                    c.tooltip(title:"Viewer"+extra_tip, delay: { show: 500, hide: 100 })
+                            collabs.append(c)
 
         update_collaborators()
 
@@ -1544,6 +1586,7 @@ class ProjectPage
             x = input.val()
             if x == ""
                 select.html("").hide()
+                add_button.addClass('disabled')
                 return
             salvus_client.user_search
                 query : input.val()
@@ -1551,9 +1594,11 @@ class ProjectPage
                 cb    : (err, result) =>
                     select.html("")
                     for r in result
-                        name = r.first_name + ' ' + r.last_name
-                        select.append($("<option>").attr(value:r.account_id, label:name))
+                        if not already_collab[r.account_id]? # only show users not already added
+                            name = r.first_name + ' ' + r.last_name
+                            select.append($("<option>").attr(value:r.account_id, label:name))
                     select.show()
+                    add_button.removeClass('disabled')
 
         invite_selected = () =>
             x = select.find(":selected")
@@ -1568,10 +1613,10 @@ class ProjectPage
                         alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
                         update_collaborators()
 
-        select.change (evt) =>
-            invite_selected()
+        add_button.click () =>
+            if add_button.hasClass('disabled')
+                return false
 
-        @container.find("a[href=#add-collaborator]").click () =>
             invite_selected()
             return false
 
