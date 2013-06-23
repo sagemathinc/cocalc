@@ -336,3 +336,19 @@ CREATE TABLE sessions (
 CREATE INDEX on sessions(project_id);
 CREATE INDEX on sessions(hub);
 CREATE INDEX on sessions(server);
+
+
+
+
+
+
+////////////////////////////////////////////
+// Admin -- log of events
+////////////////////////////////////////////
+
+CREATE TABLE admin_log (
+    service varchar,
+    time timestamp,
+    message varchar,
+    PRIMARY KEY(service, time)
+);
