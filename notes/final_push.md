@@ -1,8 +1,25 @@
+# Sat June 21 -- goals
+
+- [ ] (1:00?) write a monitor that verifies that all hubs are up and responding to requests.
+
+- [ ] (1:00?) if a hub goes down, automatically restart it
+
+- [ ] (1:00?) enable logging so I can see why hub keeps hitting an infinite loop (prob related to doc sync) -- watch out regarding disk space though
+
+- [ ] (3:00?) fix doc sync with multiple hubs
+
+- [ ] (1:00?) reconfigure cloud with (way?) more hubs
+
+
+
+
+---
+
 - [ ] (1:00?)  bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.
 
 - [ ] (3:00?) worksheet scalability idea -- only render the outputs when they are about to appear!  how to hook into codemirror. Andrej cares.
 
-- [ ] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
+- [x] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
 
 - [ ] (2:00?) increase disk space in the base vm, then make it so we archive previous versions of sage
 
