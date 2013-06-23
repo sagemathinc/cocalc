@@ -1385,11 +1385,10 @@ class Services(object):
         to hell.  We have to just let this go and gather logging data, in order to debug it.   However, we
         also want users to not loose access, hence the auto-restart.
         """
-
         self._hosts.password()
         # Get IP addresses of hubs
         hosts = self._hosts['hub']   
-        import sys, urllib2
+        import  cassandra, sys, urllib2
         def is_working(ip):
              try:
                  return urllib2.urlopen('http://%s:%s'%(ip,HUB_PORT), timeout=5).read()  == 'hub server'
@@ -1406,5 +1405,11 @@ class Services(object):
                 if not is_working(ip):
                      print ":-( Restarting %s"%ip
                      self.restart('hub',host=ip)
+                     try:
+                         message = {'action':'restart', 'reason':'stopped responding to monitor'}
+                         cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time", 
+                              {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
+                     except Exception, msg:
+                         print "Unable to record log message in database, %s"%msg
             time.sleep(5)     
-                 
+
