@@ -34,7 +34,8 @@ last_node = -1
 
 def set_nodes(nodes):
     """input is a list of the cassandra nodes in the cluster"""
-    global NODES, last_node
+    global NODES, last_node, pool
+    pool = {}
     NODES = nodes
     last_node = random.randrange(len(NODES)) if len(NODES) else -1
 
