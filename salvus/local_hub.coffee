@@ -190,12 +190,13 @@ class ConsoleSessions
                     session.amount_of_data = 0
                     setInterval(( () -> session.amount_of_data = 0), 15)
                     console_socket.on 'data', (data) ->
-                        if session.amount_of_data > 50000
-                            # we are getting a *massive* burst of output
-                            # (1) send control-c -- maybe it will help
-                            console_socket.write(String.fromCharCode(3))
+                        if session.amount_of_data >  2*60*1500
+                            # we are getting a large burst of output at once
+                            # DISABLED -- (1) send control-c -- maybe it will help
+                            # console_socket.write(String.fromCharCode(3))
+                            
                             # (2) and ignore more data
-                            client_socket.write('[Ctrl-C]')
+                            client_socket.write('[...]')
                             return
 
                         session.history += data
