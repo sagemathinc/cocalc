@@ -1,31 +1,5 @@
-# Sat June 21 -- goals
 
-- [ ] (1:00?) write a monitor that verifies that all hubs are up and responding to requests.
-
-- [ ] (1:00?) if a hub goes down, automatically restart it
-
-- [ ] (1:00?) enable logging so I can see why hub keeps hitting an infinite loop (prob related to doc sync) -- watch out regarding disk space though
-
-- [ ] (3:00?) fix doc sync with multiple hubs
-
-- [ ] (1:00?) reconfigure cloud with (way?) more hubs
-
-
-
-
----
-
-- [ ] (1:00?)  bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.
-
-- [ ] (3:00?) worksheet scalability idea -- only render the outputs when they are about to appear!  how to hook into codemirror. Andrej cares.
-
-- [x] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
-
-- [ ] (2:00?) increase disk space in the base vm, then make it so we archive previous versions of sage
-
-- [ ] (2:00?) ui: make it possible for user to easily select a sage version for a project (from those available).
-
-- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don t share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
+- [ ] (1:00?) (0:24) bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.; wontfix, but at least put in a useful error message
 
 - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
@@ -113,6 +87,20 @@
 
 ----
 
+- [ ] (1:00?) make it so there is a way to see which hub user is connected to (say in settings or hover text over connection)
+
+- [ ] (3:00?) fix doc sync with multiple hubs
+
+- [ ] (1:00?) reconfigure cloud with (way?) more hubs
+
+- [ ] (3:00?) worksheet scalability idea -- only render the outputs when they are about to appear!  how to hook into codemirror. Andrej cares.
+
+- [ ] (2:00?) increase disk space in the base vm, then make it so we archive previous versions of sage
+
+- [ ] (2:00?) ui: make it possible for user to easily select a sage version for a project (from those available).
+
+- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don t share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
+
 - [ ] terminal -- when copying/pasting, long lines become multiple lines, which is one of my pet peeves!
 
 - [ ] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
@@ -127,14 +115,13 @@
 
 - [ ] %prun profiler is now broken; just shows nonsense.
 
-- [ ] cd in terminal thing in cloud.sagemath not working.
+- [ ] cd in terminal thing in cloud.sagemath not working.  (huh?)
 
-
-- [ ] fulltext search in projects:
+- [ ] (1:00?) fulltext search in projects:
      - should exclude uuid cell marker lines
      - should exclude all binary files
 
-- [ ] converting the large cassandra12.pdf to png's to display in browser silently fails; probably a timeout (?)
+- [ ] (1:30?) converting the large cassandra12.pdf to png's to display in browser silently fails; probably a timeout (?)
 
 - [ ] (1:30?) firefox (linux) -- both copy and paste with terminal are completely broken
 
@@ -2377,3 +2364,27 @@ sys.displayhook = f
 
 - [x] (0:30?) turn on responsive mode and make a list of issues
 
+
+
+- [x] (2:00?) (1:03) write a monitor that verifies that all hubs are up and responding to requests; if a hub goes down, automatically restart it:
+
+Add code to admin.py that does this periodically
+
+In [11]: urllib2.urlopen('http://10.1.1.3:5000', timeout=5).read()
+Out[11]: 'hub server'
+
+If it fails, it will then:
+  (1) restart hub,
+  (2) make entry in the database,
+  (3) send emails
+
+- [x] (0:20?) (0:37) record in DB table when hub service is started by monitor, if possible
+
+- [x] (0:30?) (0:04) nodetool repair on each node... (started on 10.1.1.2; will do others when this is done)
+      s._hosts.nodetool('repair', wait=True, timeout=7200)   # this took about 25 minutes to run...
+
+
+- [x] (1:00?) (0:28) enable logging so I can see why hub keeps hitting an infinite loop (prob related to doc sync) -- watch out regarding disk space though
+
+
+- [x] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
