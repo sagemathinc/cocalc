@@ -51,7 +51,6 @@ from_json = misc.from_json
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
-winston = require('winston')            # logging -- https://github.com/flatiron/winston
 sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 uuid    = require('node-uuid')
 
@@ -60,6 +59,11 @@ Cookies = require('cookies')            # https://github.com/jed/cookies
 
 diffsync = require('diffsync')
 
+winston = require('winston')            # logging -- https://github.com/flatiron/winston
+
+# Set the log level
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
 
 # defaults
 # TEMPORARY until we flesh out the account types
