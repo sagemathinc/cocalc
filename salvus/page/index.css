@@ -61,8 +61,14 @@ body { padding-top:41px; }
 
 @media (max-width: 979px) {
     body { padding-top: 0px !important; }    /* workaround responsive bootstrap menu issue */
+
     .big-only {
         display:none;
+    }
+
+    .salvus-project {
+        position: relative !important;
+        top: 0px !important;
     }
 }
 

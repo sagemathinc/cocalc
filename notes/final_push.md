@@ -23,10 +23,7 @@
    x - Find a project... to left of well
    x  - too much space between "find a project..." and project list
 
-- [ ] (0:15?) responsive projects screen TABLET:
-     - top button row looks weird in most sizes
-
-- [ ] (1:00?) responsive project screen PHONE:
+--> - [ ] (1:00?) responsive: project screen 
      - if we conditionally disable this CSS rule
              .salvus-project {
                  top: 40px;
