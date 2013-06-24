@@ -1,7 +1,5 @@
 
- - [ ] (0:20?) when delete a tab, need to resize them all
-
- - [ ] (0:10?) responsive: sign in on *PHONE*
+ -> - [ ] (0:10?) responsive: sign in on *PHONE*
      - get rid of tag line and cloud
 	 - shrink header
 
@@ -86,6 +84,8 @@
 
 
 ----
+
+- [ ] (0:20?) when delete a tab, need to resize all tabs
 
 - [ ] (1:00?) make it so there is a way to see which hub user is connected to (say in settings or hover text over connection)
 
