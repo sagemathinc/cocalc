@@ -1,32 +1,25 @@
 <div class="container hide" id="projects">
     <div class="span11 well" style="margin-top:1em;">
-
-        <h4 class="lighten">
-            A project is a complete self-contained collection of files and folders.
-            Sharing and collaboration occurs at the project level.
-        </h4>
-        <br>
-
-        <button class="btn btn-primary btn-large" type="submit" id="new_project-button" style="width:15em; margin-left: 1em;">Create New Project</button>
-        <div class="pull-right" style="margin-right:2em">
-            <span class="btn-group">
-                <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
-                <button class="btn btn-info btn-small" id="projects-public-button"><i class="icon-eye-open"></i> Public</button>
-                <button class="btn btn-info btn-small" id="projects-private-button"><i class="icon-eye-close"></i> Private</button>
-                <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="icon-trash"></i> Deleted</button>
-            </span>
-            &nbsp;&nbsp;
-            <input class="span3 projects-find-input search-query" type="text" placeholder="Find a project...">
-            &nbsp;&nbsp;
-             <br><br>
-
+        <div class="row">
+            <div class="span2" style="padding-bottom:1em">
+                <button class="btn btn-primary btn-large" type="submit" id="new_project-button">New Project</button>
+            </div>
+            <div class="span4" style="padding-top:1ex;padding-bottom:1ex">
+                <span class="btn-group">
+                    <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
+                    <button class="btn btn-info btn-small" id="projects-public-button"><i class="icon-eye-open"></i> Public</button>
+                    <button class="btn btn-info btn-small" id="projects-private-button"><i class="icon-eye-close"></i> Private</button>
+                    <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="icon-trash"></i> Deleted</button>
+                </span>
+            </div>
+            <div class="span3" style="padding:1em">
+                <input class="projects-find-input search-query" type="text" placeholder="Find a project...">
+            </div>
         </div>
-
         <div class="row span10">
             <div class="span1 ">
                 <span class="projects-create-new-spinner hide"></span>
             </div>
-            <br>
         </div>
 
         <div class="row span10">
@@ -34,7 +27,6 @@
             </div>
             <div class="span9 lighten projects-describe-listing" style="font-weight:bold; font-size:12pt;">
             </div>
-            <br><br>
         </div>
 
 
@@ -81,6 +73,10 @@
         <div class="modal-header big-only">
             <button type="button" class="close" data-dismiss="modal">×</button>
             <h2>Create a New Project</h2>
+            <div class="lighten">
+                A project is a complete self-contained collection of files and folders.
+                Sharing and collaboration occurs at the project level.
+            </div>
         </div>
         <div class="modal-body">
 

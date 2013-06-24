@@ -17,11 +17,11 @@
     x - move help link to very top
     x - then new help link (to lower on page) just below.
 
-- [ ] (0:30?) responsive projects screen PHONE:
-     - don't show "a project is a complete self-contained..."
-     - [all/public/.etc] starts off to the left of well
-     - Find a project... to left of well
-     - too much space between "find a project..." and project list
+- [x] (0:30?) (0:28) responsive: projects screen fixes
+   x  - don't show "a project is a complete self-contained..."
+   x - [all/public/.etc] starts off to the left of well
+   x - Find a project... to left of well
+   x  - too much space between "find a project..." and project list
 
 - [ ] (0:15?) responsive projects screen TABLET:
      - top button row looks weird in most sizes
