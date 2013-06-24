@@ -1190,7 +1190,6 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @update()
-        console.log("focusing on output")
         @output.focus()
 
     focus: () =>
