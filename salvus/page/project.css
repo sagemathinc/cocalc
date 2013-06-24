@@ -29,7 +29,8 @@
 }
 
 .project-file-listing-current_path {
-    margin-top:4px;
+    margin-top:12px;
+    margin-bottom:12px;
 }
 
 .project-file-top-current-path-display {
@@ -200,6 +201,8 @@
 
 .project-command-line {
     margin-left:0em;
+    padding-left: 1em;
+    padding-right: 1em;
 }
 
 .project-command-line-input {
@@ -208,23 +211,34 @@
     width:100%;
 }
 
+.project-command-line-output {
+    width:100%;
+    z-index: 1;
+    border: 1px solid #ddd;
+    box-shadow: 4px 4px 2px #eee;
+    border-radius: 5px;
+    margin-left:0px;
+}
+
 .project-command-line-stdout {
-    margin-left:0em;
+    margin:0;
+    padding:2px;
     background-color:#fff;
     color:#333;
-    font-size:10pt;
-    max-height:12em;
+    font-size:12px;
+    max-height:20em;
     max-width:100%;
-    overflow:auto;
+    overflow-y:auto;
 }
 .project-command-line-stderr {
-    margin-left:0em;
+    margin:0;
+    padding:2px;
     background-color:#fcc;
     color:#922;
-    font-size:10pt;
-    max-height:12em;
+    font-size:12px;
+    max-height:20em;
     max-width:100%;
-    overflow:auto;
+    overflow-y:auto;
 }
 
 .project-id {
@@ -281,7 +295,7 @@
 }
 
 .salvus-project-search-for-file-input {
-    width:100%;
+    width:95%;
 }
 
 .project-listing-search-include {

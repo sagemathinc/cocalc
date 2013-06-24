@@ -1,42 +1,18 @@
 
-- [x] (0:10?) (0:39) responsive: sign in on *PHONE*;  create account
-     - get rid of tag line and cloud
-	 - shrink header
-     - terms of usage; no way to scroll to bottom; maybe get rid of header bar entirely (?)
+- [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
-- [x] (0:20?) (0:34) responsive: create account; make error messages less useless.
-     - The error messages that appear to the left are not visible
-       at all in 320x480; try another layout or modal.
-     - "Create an account (or sign in)" -- shrink it to stay on one line.
+- [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
 
-- [x] (0:10?) responsive: get rid of fullscreen icon in upper right; makes no sense
+- [ ] (0:20?) make it so "connecting..." message also displays a message in same way as "upgrade" box.
 
-- [x] (0:15?) (0:13) responsive: help
-    x - "Join the mailing list..." missing period at end.
-    x - loose the cloud image when phone
-    x - move help link to very top
-    x - then new help link (to lower on page) just below.
+- [ ] (0:30?) show number of users/projects on help screen.
 
-- [x] (0:30?) (0:28) responsive: projects screen fixes
-   x  - don't show "a project is a complete self-contained..."
-   x - [all/public/.etc] starts off to the left of well
-   x - Find a project... to left of well
-   x  - too much space between "find a project..." and project list
-
-- [x] (1:00?) responsive: project screen
-     - if we conditionally disable this CSS rule
-             .salvus-project {
-                 top: 40px;
-             }
-       then the project menu bar correctly moves when
-       expanding the menu.
-
-- [ ] responsive project screen PHONE -- files
+- [x] (0:45?) responsive project screen -- files
      x - big "Files" label is not necessary and wastes space
-     - Choose file... search is too big
-     - home icon awkwardly located
-     - Terminal command... is too big
-     - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
+     x - Choose file... search is too big
+     x - home icon awkwardly located
+     x - Terminal command... is too big
+     x - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
 
 - [ ] (1:00?) responsive editor screen PHONE:
      - always use fullscreen mode for file editing, by default.
@@ -45,7 +21,6 @@
        it having "taken over" screen.
      - big "execute" button (?)
      - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
-
 
 - [ ] responsive project screen PHONE -- recent
      - get rid of title at top
@@ -2392,3 +2367,37 @@ x  - add line to `make_coffee` to output a version file, based on the current ti
 x  - also make it so `make_coffee` includes that version stamp in static javascript somehow.
 x  - if out of date, display a warning message indicator and suggest browser refresh/cache clear/etc.
 x  - run this check periodically, since users can have a browser open after I update!
+
+
+
+- [x] (0:10?) (0:39) responsive: sign in on *PHONE*;  create account
+     - get rid of tag line and cloud
+	 - shrink header
+     - terms of usage; no way to scroll to bottom; maybe get rid of header bar entirely (?)
+
+- [x] (0:20?) (0:34) responsive: create account; make error messages less useless.
+     - The error messages that appear to the left are not visible
+       at all in 320x480; try another layout or modal.
+     - "Create an account (or sign in)" -- shrink it to stay on one line.
+
+- [x] (0:10?) responsive: get rid of fullscreen icon in upper right; makes no sense
+
+- [x] (0:15?) (0:13) responsive: help
+    x - "Join the mailing list..." missing period at end.
+    x - loose the cloud image when phone
+    x - move help link to very top
+    x - then new help link (to lower on page) just below.
+
+- [x] (0:30?) (0:28) responsive: projects screen fixes
+   x  - don't show "a project is a complete self-contained..."
+   x - [all/public/.etc] starts off to the left of well
+   x - Find a project... to left of well
+   x  - too much space between "find a project..." and project list
+
+- [x] (1:00?) responsive: project screen
+     - if we conditionally disable this CSS rule
+             .salvus-project {
+                 top: 40px;
+             }
+       then the project menu bar correctly moves when
+       expanding the menu.
