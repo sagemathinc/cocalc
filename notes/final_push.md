@@ -9,13 +9,13 @@
        at all in 320x480; try another layout or modal.
      - "Create an account (or sign in)" -- shrink it to stay on one line.
 
-- [ ] (0:10?) responsive: get rid of fullscreen icon in upper right; makes no sense
+- [x] (0:10?) responsive: get rid of fullscreen icon in upper right; makes no sense
 
-- [ ] (0:15?) responsive: help
-     - "Join the mailing list..." missing period at end.
-     - loose the cloud image when phone
-     - move help link to very top
-     - then new help link (to lower on page) just below.
+- [x] (0:15?) (0:13) responsive: help
+    x - "Join the mailing list..." missing period at end.
+    x - loose the cloud image when phone
+    x - move help link to very top
+    x - then new help link (to lower on page) just below.
 
 - [ ] (0:30?) responsive projects screen PHONE:
      - don't show "a project is a complete self-contained..."
