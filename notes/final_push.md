@@ -23,13 +23,20 @@
    x - Find a project... to left of well
    x  - too much space between "find a project..." and project list
 
---> - [ ] (1:00?) responsive: project screen 
+- [x] (1:00?) responsive: project screen
      - if we conditionally disable this CSS rule
              .salvus-project {
                  top: 40px;
              }
        then the project menu bar correctly moves when
        expanding the menu.
+
+- [ ] responsive project screen PHONE -- files
+     x - big "Files" label is not necessary and wastes space
+     - Choose file... search is too big
+     - home icon awkwardly located
+     - Terminal command... is too big
+     - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
 
 - [ ] (1:00?) responsive editor screen PHONE:
      - always use fullscreen mode for file editing, by default.
@@ -39,12 +46,6 @@
      - big "execute" button (?)
      - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
 
-- [ ] responsive project screen PHONE -- files
-     - big "Files" label is not necessary and wastes space
-     - Choose file... search is too big
-     - home icon awkwardly located
-     - Terminal command... is too big
-     - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
 
 - [ ] responsive project screen PHONE -- recent
      - get rid of title at top

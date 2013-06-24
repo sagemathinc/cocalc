@@ -44,15 +44,13 @@
 }
 
 .project-file-link-style {
-    border: 0px solid white;
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
-    padding-top:5px;
-    padding-left:15px;
-    padding-right:15px;
+    padding-top:0px;
     padding-bottom:0px;
-    height:1.8em;
+    min-height:26px;
+    border-bottom: 1px solid #eee;
 }
 
 .project-file-link:hover {
@@ -78,15 +76,13 @@
 }
 
 .project-directory-link-style {
-    border: 0px solid white;
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
-    padding-top:5px;
-    padding-left:15px;
-    padding-right:15px;
+    padding-top:0px;
     padding-bottom:0px;
-    height:1.8em;
+    min-height:26px;
+    border-bottom: 1px solid #eee;
 }
 
 .project-directory-link:hover {
@@ -192,14 +188,7 @@
 }
 
 .project-file-top-current-path-container {
-/*    max-width     : 30%;
-    overflow      : hidden;
-    overflow-wrap : break-word;
-*/
-position: fixed;
-top: 36px;
-left: 0px;
-font-size: 11px;
+    font-size: 11px;
 }
 
 .project-move-path-dialog-filename {

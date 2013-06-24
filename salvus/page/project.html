@@ -55,7 +55,9 @@
 
         <div class="row">
             <!-- Displays the current path -->
-            <div class="project-file-top-current-path-container"><a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a></div>
+            <div class="project-file-top-current-path-container">
+                <a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a>
+            </div>
 
             <!-- Tabs: place where you click on them -->
             <ul class="nav nav-pills  project-pages">
@@ -84,7 +86,7 @@
 
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing" style="margin-left:3em;">
-                <h1>Files </h1>
+                <h1 class="big-only">Files </h1>
                 <div class="row">
 
                     <div class="span2">
@@ -152,7 +154,7 @@
 
             <!-- Open files in this project. -->
             <div class="project-editor hide">
-                <h1  style="margin-left:1em;">
+                <h1  class="big-only" style="margin-left:1em;">
                     Recent Files (<span class="project-editor-file-count">0</span>)
                 </h1>
 
@@ -162,8 +164,9 @@
 
             <!-- Create a new file -->
             <div class="project-new-file hide">
-                <h1  style="margin-left:1em;">Add files to <span class="project-new-file-if-root">root directory of project</span>
-                    <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a></h1>
+                <h1 style="margin-left:1em;">Add files to <span class="project-new-file-if-root">root directory of project</span>
+                    <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a>
+                </h1>
                 <div class="well"  style="margin-left:3em;">
                     <div class="row">
                         <div class="span3">
@@ -208,7 +211,7 @@
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                <h1  style="margin-left:1em;">Project Settings and Controls</h1>
+                <h1 class="big-only" style="margin-left:1em;">Project Settings and Controls</h1>
                 <div class="row">
 
                     <div class="well" style="margin-left:3em;">
@@ -304,7 +307,7 @@
 
             <!-- Search -->
             <div class="project-search hide">
-                <h1  style="margin-left:1em;">Search in Files</h1>
+                <h1  class="big-only" style="margin-left:1em;">Search in Files</h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well"  style="margin-left:3em;">
@@ -346,7 +349,7 @@
         </div>
     </div>
 
-    <div class="row span11 well well-small project-commit-single">
+    <div class="row span12 project-commit-single">
         <div class="span7">
             <div class="row">
                 <div class="project-commit-single-message"></div>
@@ -361,7 +364,7 @@
         </div>
     </div>
 
-    <div class="row span11 well well-small project-branch-single">
+    <div class="row span12 project-branch-single">
         <div class="row">
             <div class="span6 project-branch-single-name"></div>
             <div class="pull-right">
@@ -375,7 +378,7 @@
         </div>
     </div>
 
-    <div class="row span10 well well-small project-file-link-style project-file-link-snapshot">
+    <div class="row span12 project-file-link-style project-file-link-snapshot">
         <div class="span" style="width:120px">
             <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore file from snapshot"><i class="icon-external-link-sign"> </i> </a>
         </div>
@@ -387,7 +390,7 @@
         </div>
     </div>
 
-    <div class="row span10 well well-small project-directory-link-style project-directory-link-snapshot">
+    <div class="row span12 project-directory-link-style project-directory-link-snapshot">
         <div class="span" style="width:120px">
             <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore directory from snapshot"><i class="icon-external-link-sign"> </i> </a>
         </div>
@@ -399,7 +402,7 @@
         </div>
     </div>
 
-    <div class="row span10 well well-small project-file-link-style project-file-link">
+    <div class="row span12 project-file-link-style project-file-link">
         <div class="span lighten" style="width: 10px;">
             <i class="icon-move hide project-file-drag-handle   project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
         </div>
@@ -415,7 +418,7 @@
             <!-- <i class="icon-check-empty lighten"> </i> -->   <!-- TODO: enable this when we have functions for groups of files -->
         </div>
         <div class="span" style="width: 20px;">
-            <i class="icon-file project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+            <i class="icon-file project-file-icon"> </i>
         </div>
 
         <div class="span" style="width:15em;">
@@ -426,16 +429,16 @@
             <span class="project-file-last-mod-date">
             </span>
         </div>
-        <div class="span smallish" style="width:25px;">
+        <div class="span smallish" style="width:30px;">
             <span class="project-file-size">
             </span>
         </div>
-        <div class="span3 lighten smallish">
+        <div class="big-only span4 lighten smallish">
             <span class="project-file-last-commit-date-container"><span class="project-file-last-commit-date"></span></span>
             (<a class="project-file-last-commit-message lighten"></a>)
         </div>
     </div>
-    <div class="row span10 well well-small project-directory-link project-file-link-style">
+    <div class="row span12 project-directory-link project-file-link-style">
         <div class="span lighten" style="width: 10px;">
 
             <i class="icon-move hide project-file-drag-handle  project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>
@@ -457,7 +460,7 @@
 -->
         </div>
         <div class="span" style="width: 20px;">
-            <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+            <i class="icon-folder-close"> </i>
         </div>
         <div class="span" style="width:15em;">
             <a  href="#open-file" class="project-directory-name"></a>
