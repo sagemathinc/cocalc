@@ -1,6 +1,7 @@
 .popover-create-account {
-    width: 400px;
+    width: 200px;
     background-color: #ff0077;
+    opacity:0.5;
 }
 
 .account-error-text {

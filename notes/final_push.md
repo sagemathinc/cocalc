@@ -1,14 +1,10 @@
 
- -> - [ ] (0:10?) responsive: sign in on *PHONE*
+- [x] (0:10?) (0:39) responsive: sign in on *PHONE*;  create account
      - get rid of tag line and cloud
 	 - shrink header
+     - terms of usage; no way to scroll to bottom; maybe get rid of header bar entirely (?)
 
-- [ ] (0:15?) responsive: create account
-
-     - terms of usage; no way to scroll to bottom; maybe get rid
-       of header bar entirely (?)
-
-- [ ] (0:20?) responsive: create account  -- PHONE
+- [x] (0:20?) (0:34) responsive: create account; make error messages less useless.
      - The error messages that appear to the left are not visible
        at all in 320x480; try another layout or modal.
      - "Create an account (or sign in)" -- shrink it to stay on one line.
