@@ -1,3 +1,2 @@
 . salvus-env
-coffee -w -b -o page/temp page/*.coffee &
-watch2  page/*.html page/*.coffee page/*.css ./make_page
+watch2  page/*.html page/*.css ./make_page

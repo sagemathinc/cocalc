@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+time coffee -b -o page/temp page/*.coffee
+./make_page

@@ -1,0 +1,2 @@
+. salvus-env
+watch2  page/*.coffee ./make_page2

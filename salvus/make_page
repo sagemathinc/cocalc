@@ -17,7 +17,7 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # do this in the background
 time browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
       time uglifyjs2 static/salvus.js -o static/salvus.min.js && \
-      time coffee -b -o page/temp page/*.coffee && \
+      #time coffee -b -o page/temp page/*.coffee && \
       time gen_page && \
       time uglifyjs2 static/index.js -o static/index.min.js 
 
