@@ -860,11 +860,12 @@ class ProjectPage
         dz_container = @container.find(".project-dropzone")
         dz_container.empty()
         dz = $('<div class="dropzone"></div>')
+        if IS_MOBILE
+            dz.append($('<span class="message" style="font-weight:bold;font-size:14pt">Tap to select files to upload</span>'))
         dz_container.append(dz)
         dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
-            dictDefaultMessage : "Drop a file here, or click to select a file from your computer..."
             maxFilesize: 10 # in megabytes
 
     init_new_file_tab: () =>
@@ -991,7 +992,9 @@ class ProjectPage
         # Clear the filename and focus on it
         now = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
         #now = now.slice(0, now.length-2)  # get rid of seconds.
-        @new_file_tab_input.val(now).focus()
+        @new_file_tab_input.val(now)
+        if not IS_MOBILE
+            @new_file_tab_input.focus()
         @get_from_web_input.val('')
 
     update_snapshot_ui_elements: () =>

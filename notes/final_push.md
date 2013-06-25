@@ -1,6 +1,6 @@
 
 
-- [ ] (0:45?) (0:28) responsive: recent files in project
+- [x] (0:45?) (0:28) responsive: recent files in project
      x - get rid of title at top
      ?? - <div class="salvus-editor"...> has a margin-left, that is useless; this is
        right below "the actual recent file UI"
@@ -8,11 +8,11 @@
        in any case, the width of the filenames isn't long enough on mobile.
      x - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
 
-- [ ] (0:45?) responsive project screen PHONE -- new
-     - get rid of a margin-left:3em;
-     - get rid of h1 title at top
-     - don't auto-focus on name (since we don't want a keyboard by default)
-     - "Drop file to upload (or click)" --> "Tap to select files to upload"
+- [x] (0:45?) (0:40) responsive: project--> new
+     (sort of) - get rid of a margin-left:3em;
+     (no, because need to know path) - get rid of h1 title at top
+     x - don't auto-focus on name (since we don't want a keyboard by default)
+     x - "Drop file to upload (or click)" --> "Tap to select files to upload"
        (since drag and drop makes no sense on mobile.)
 
 
