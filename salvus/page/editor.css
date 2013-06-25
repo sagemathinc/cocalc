@@ -60,7 +60,6 @@ Editor for files in a project
 
 .salvus-editor-codemirror-button-row {
     margin-top: 1px;
-    height:30px;
 }
 
 .salvus-editor-codemirror-filename {
@@ -69,7 +68,6 @@ Editor for files in a project
     font-size: 10pt;
     font-weight: bold;
     color:#555;
-    margin-top:1ex;-top:1ex;
 }
 
 .salvus-editor-codemirror-cursor {

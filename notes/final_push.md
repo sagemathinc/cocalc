@@ -1,12 +1,20 @@
 
 
---> - [ ] (1:30?) responsive -- file editor
-     - always use fullscreen mode for file editing, by default.
-     - big exit button at top right (?) that goes
+ - [ ] (1:30?) responsive -- file editor
+     x - always use fullscreen mode for file editing, by default.
+     x - big close button at top right (?) that goes
        back to file listing, but otherwise leave
        it having "taken over" screen.
-     - big "execute" button (?)
+     x - big "go" button for worksheets
+       - more useful "go to line" in mobile/responsive editor.
+
+- [ ] (0:30?) responsive -- terminal
+     - at least make it viewable (!)
+
+- [ ] (0:45?) responsive -- file editor chat
      - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
+
+- [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
 
 - [ ] (1:30?) responsive project screen PHONE -- terminal
      - doesn't even show up right now... I should try reverting to the desktop version, plus

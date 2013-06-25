@@ -54,6 +54,13 @@
     border-bottom: 1px solid #eee;
 }
 
+@media (max-width: 979px) {
+    .project-file-link-style {
+        min-height:40px;
+    }
+}
+
+
 .project-file-link:hover {
     background-color:#efe;
 }
@@ -88,6 +95,12 @@
 
 .project-directory-link:hover {
     background-color:#efe;
+}
+
+@media (max-width: 979px) {
+    .project-directory-link-style {
+        min-height:40px;
+    }
 }
 
 

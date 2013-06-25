@@ -584,7 +584,6 @@ class exports.Editor
 
     # Close this tab.
     close: (filename) =>
-        console.log("closing
         tab = @tabs[filename]
         if not tab? # nothing to do -- tab isn't opened anymore
             return
@@ -851,6 +850,10 @@ class CodeMirrorEditor extends FileEditor
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
+        @init_save_button()
+        @init_close_button()
+        @init_edit_buttons()
+
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
@@ -906,6 +909,7 @@ class CodeMirrorEditor extends FileEditor
                     "Tab"          : (editor)   => @press_tab_key(editor)
                     "Esc"          : (editor)   => @interrupt_key()
 
+
         @codemirror = make_editor(elt[0])
 
         elt1 = @element.find(".salvus-editor-codemirror-input-box-1").find("textarea")
@@ -922,12 +926,11 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
 
-        @init_save_button()
-        @init_close_button()
-        @init_change_event()
-        @init_edit_buttons()
 
         @_split_view = false
+
+        @init_change_event()
+
 
     action_key: (opts) =>   # options are ignored by default; worksheets use them....
         @click_save_button()
@@ -948,14 +951,17 @@ class CodeMirrorEditor extends FileEditor
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
-            @element.find("a[href=##{name}]").data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
+            e = @element.find("a[href=##{name}]")
+            e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
 
     click_edit_button: (name) =>
-        if not @codemirror?
-            return
         cm = @codemirror_with_last_focus
+        if not cm?
+            cm = @codemirror
+        if not cm?
+            return
         switch name
             when 'search'
                 CodeMirror.commands.find(cm)
@@ -1012,14 +1018,20 @@ class CodeMirrorEditor extends FileEditor
         focus = () =>
             @focus()
             cm.focus()
-        bootbox.prompt "Goto line...", (result) =>
+        bootbox.prompt "Goto line... (1-#{cm.lineCount()} or n%)", (result) =>
             if result != null
-                cm.setCursor({line:parseInt(result)-1, ch:0})
+                result = result.trim()
+                if result.length >= 1 and result[result.length-1] == '%'
+                    line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
+                else
+                    line = parseInt(result)-1
+                cm.setCursor({line:line, ch:0})
             setTimeout(focus, 100)
 
     init_close_button: () =>
         @element.find("a[href=#close]").click () =>
-            @editor.close(@filename)
+            @editor.project_page.display_tab("project-file-listing")
+            return false
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
