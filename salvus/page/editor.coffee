@@ -313,6 +313,7 @@ class exports.Editor
             v = []
             for filename, tab of @tabs
                 @close(filename)
+                @remove_from_recent(filename)
                 v.push(filename)
             undo = @element.find("a[href=#undo-close-all-tabs]")
             undo.stop().show().animate(opacity:100).fadeOut(duration:60000).click () =>
@@ -414,6 +415,7 @@ class exports.Editor
             if ignore_clicks
                 return false
             @close(filename)
+            @remove_from_recent(filename)
 
         containing_path = misc.path_split(filename).head
         ignore_clicks = false
@@ -582,6 +584,7 @@ class exports.Editor
 
     # Close this tab.
     close: (filename) =>
+        console.log("closing
         tab = @tabs[filename]
         if not tab? # nothing to do -- tab isn't opened anymore
             return
@@ -591,11 +594,14 @@ class exports.Editor
             tab.editor().disconnect_from_session()
             tab.editor().remove()
 
-        # Do not show this file in "recent" next time.
-        local_storage_delete(@project_id, filename, "auto_open")
         tab.link.remove()
         delete @tabs[filename]
         @update_counter()
+
+    remove_from_recent: (filename) =>
+        # Do not show this file in "recent" next time.
+        local_storage_delete(@project_id, filename, "auto_open")
+
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -917,6 +923,7 @@ class CodeMirrorEditor extends FileEditor
             @codemirror_with_last_focus = @codemirror1
 
         @init_save_button()
+        @init_close_button()
         @init_change_event()
         @init_edit_buttons()
 
@@ -1009,6 +1016,10 @@ class CodeMirrorEditor extends FileEditor
             if result != null
                 cm.setCursor({line:parseInt(result)-1, ch:0})
             setTimeout(focus, 100)
+
+    init_close_button: () =>
+        @element.find("a[href=#close]").click () =>
+            @editor.close(@filename)
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)

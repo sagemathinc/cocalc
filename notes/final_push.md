@@ -1,29 +1,6 @@
 
 
-- [x] (0:45?) (0:28) responsive: recent files in project
-     x - get rid of title at top
-     ?? - <div class="salvus-editor"...> has a margin-left, that is useless; this is
-       right below "the actual recent file UI"
-     x - just have one row of filenames rather than three, or be responsive to make it one...
-       in any case, the width of the filenames isn't long enough on mobile.
-     x - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
-
-- [x] (0:45?) (0:40) responsive: project--> new
-     (sort of) - get rid of a margin-left:3em;
-     (no, because need to know path) - get rid of h1 title at top
-     x - don't auto-focus on name (since we don't want a keyboard by default)
-     x - "Drop file to upload (or click)" --> "Tap to select files to upload"
-       (since drag and drop makes no sense on mobile.)
-
-- [x] (0:45?) responsive: project settings
-    x - get rid of h1
-    x - collaborators "+Add" button should be on the left.
-    x - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
-
-- [ ] (0:30?) responsive project screen PHONE -- search
-     - make keyboard hide on doing a search (?) -- if possible....
-
-- [ ] (1:30?) responsive editor screen PHONE:
+--> - [ ] (1:30?) responsive -- file editor
      - always use fullscreen mode for file editing, by default.
      - big exit button at top right (?) that goes
        back to file listing, but otherwise leave
@@ -35,6 +12,10 @@
      - doesn't even show up right now... I should try reverting to the desktop version, plus
        using onscreen keyboard or a buffer area...
 
+- [ ] (0:30?) responsive: project search
+     - make keyboard hide on doing a search (?) -- if possible....
+
+- [ ] (0:30?) instead of "incorrect password", be more vague: https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
 
 ---
 
@@ -2404,3 +2385,23 @@ x  - run this check periodically, since users can have a browser open after I up
      x - home icon awkwardly located
      x - Terminal command... is too big
      x - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
+
+- [x] (0:45?) (0:28) responsive: recent files in project
+     x - get rid of title at top
+     ?? - <div class="salvus-editor"...> has a margin-left, that is useless; this is
+       right below "the actual recent file UI"
+     x - just have one row of filenames rather than three, or be responsive to make it one...
+       in any case, the width of the filenames isn't long enough on mobile.
+     x - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
+
+- [x] (0:45?) (0:40) responsive: project--> new
+     (sort of) - get rid of a margin-left:3em;
+     (no, because need to know path) - get rid of h1 title at top
+     x - don't auto-focus on name (since we don't want a keyboard by default)
+     x - "Drop file to upload (or click)" --> "Tap to select files to upload"
+       (since drag and drop makes no sense on mobile.)
+
+- [x] (0:45?) responsive: project settings
+    x - get rid of h1
+    x - collaborators "+Add" button should be on the left.
+    x - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
