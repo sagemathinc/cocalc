@@ -1,36 +1,14 @@
 
-- [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
-- [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
-
-- [ ] (0:20?) make it so "connecting..." message also displays a message in same way as "upgrade" box.
-
-- [x] (1:00?) show number of users/projects on help screen.
-
-- [x] (0:45?) responsive project screen -- files
-     x - big "Files" label is not necessary and wastes space
-     x - Choose file... search is too big
-     x - home icon awkwardly located
-     x - Terminal command... is too big
-     x - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
-
-- [ ] (1:00?) responsive editor screen PHONE:
-     - always use fullscreen mode for file editing, by default.
-     - big exit button at top right (?) that goes
-       back to file listing, but otherwise leave
-       it having "taken over" screen.
-     - big "execute" button (?)
-     - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
-
-- [ ] responsive project screen PHONE -- recent
-     - get rid of title at top
-     - <div class="salvus-editor"...> has a margin-left, that is useless; this is
+- [ ] (0:45?) (0:28) responsive: recent files in project
+     x - get rid of title at top
+     ?? - <div class="salvus-editor"...> has a margin-left, that is useless; this is
        right below "the actual recent file UI"
-     - just have one row of filenames rather than three, or be responsive to make it one...
+     x - just have one row of filenames rather than three, or be responsive to make it one...
        in any case, the width of the filenames isn't long enough on mobile.
-     - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
+     x - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
 
-- [ ] responsive project screen PHONE -- new
+- [ ] (0:45?) responsive project screen PHONE -- new
      - get rid of a margin-left:3em;
      - get rid of h1 title at top
      - don't auto-focus on name (since we don't want a keyboard by default)
@@ -38,17 +16,34 @@
        (since drag and drop makes no sense on mobile.)
 
 
-- [ ] responsive project screen PHONE -- wrench
+- [ ] (0:45?) responsive project screen PHONE -- wrench
      - get rid of h1
      - collaborators "+Add" button should be on the left.
      - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
 
-- [ ] responsive project screen PHONE -- search
+- [ ] (0:30?) responsive project screen PHONE -- search
      - make keyboard hide on doing a search (?) -- if possible....
 
-- [ ] responsive project screen PHONE -- terminal
+- [ ] (1:30?) responsive editor screen PHONE:
+     - always use fullscreen mode for file editing, by default.
+     - big exit button at top right (?) that goes
+       back to file listing, but otherwise leave
+       it having "taken over" screen.
+     - big "execute" button (?)
+     - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
+
+- [ ] (1:30?) responsive project screen PHONE -- terminal
      - doesn't even show up right now... I should try reverting to the desktop version, plus
        using onscreen keyboard or a buffer area...
+
+
+---
+
+- [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
+
+- [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
+
+- [ ] (0:20?) make it so "connecting..." message also displays a message in same way as "upgrade" box.
 
 
 
@@ -2401,3 +2396,12 @@ x  - run this check periodically, since users can have a browser open after I up
              }
        then the project menu bar correctly moves when
        expanding the menu.
+
+- [x] (1:00?) show number of users/projects on help screen.
+
+- [x] (0:45?) responsive project screen -- files
+     x - big "Files" label is not necessary and wastes space
+     x - Choose file... search is too big
+     x - home icon awkwardly located
+     x - Terminal command... is too big
+     x - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid

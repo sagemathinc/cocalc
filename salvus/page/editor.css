@@ -38,6 +38,20 @@ Editor for files in a project
     width:32%;
 }
 
+@media (max-width: 979px)
+{
+    .salvus-editor-filename-pill {
+        width:50%;
+    }
+}
+
+@media (max-width: 480px)
+{
+    .salvus-editor-filename-pill {
+        width:100%;
+    }
+}
+
 .salvus-editor-codemirror {
     position:fixed;
     width:100%;

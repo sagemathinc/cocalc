@@ -96,7 +96,7 @@
 }
 
 .project-pages-button {
-     margin-right:-.9em;
+     /* margin-right:-.9em; */  /* this scrunched the upper left project page buttons -- which looks unprofessional */
 }
 
 .project-search-form-input {
