@@ -1319,7 +1319,28 @@ class Client extends EventEmitter
         mesg.version = salvus_version.version
         @push_to_client(mesg)
 
+    ################################################
+    # Stats about cloud.sagemath
+    ################################################
+    mesg_get_stats: (mesg) =>
+        server_stats (err, stats) =>
+            mesg.stats = stats
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(mesg)
 
+_server_stats_cache = undefined
+server_stats = (cb) ->
+    if _server_stats_cache?
+        cb(false, _server_stats_cache)
+        return
+    
+    database.get_stats
+        cb : (err, stats) ->
+            _server_stats_cache = stats
+            cb(err, stats)
+            setTimeout( (() -> _server_stats_cache = undefined), 10*60*1000 )
 
 
 

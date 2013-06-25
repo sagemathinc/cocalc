@@ -5,7 +5,7 @@
 
 - [ ] (0:20?) make it so "connecting..." message also displays a message in same way as "upgrade" box.
 
-- [ ] (0:30?) show number of users/projects on help screen.
+- [x] (1:00?) show number of users/projects on help screen.
 
 - [x] (0:45?) responsive project screen -- files
      x - big "Files" label is not necessary and wastes space

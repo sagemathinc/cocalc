@@ -1415,6 +1415,27 @@ class exports.Salvus extends exports.Cassandra
                 filename   : opts.filename
             cb         : opts.cb
 
+    get_stats: (opts) ->
+        opts = defaults opts,
+            cb : required
+        stats = {}
+        async.series([
+            (cb) =>
+                @count
+                    table : 'accounts'
+                    cb    : (err, val) =>
+                        stats.accounts = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'projects'
+                    cb    : (err, val) =>
+                        stats.projects = val
+                        cb(err)
+        ], (err) =>
+            opts.cb(err, stats)
+        )
+
 
 quote_if_not_uuid = (s) ->
     if misc.is_valid_uuid_string(s)

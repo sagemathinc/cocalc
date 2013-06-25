@@ -517,6 +517,23 @@ class exports.Connection extends EventEmitter
                 opts.cb(err, mesg.version)
 
     #################################################
+    # Stats
+    #################################################
+    server_stats: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_stats()
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else if mesg.event == 'error'
+                    opts.cb(mesg.error)
+                else
+                    opts.cb(err, mesg.stats)
+
+
+    #################################################
     # Account Management
     #################################################
     create_account: (opts) =>
