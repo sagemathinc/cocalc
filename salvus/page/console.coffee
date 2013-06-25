@@ -71,6 +71,7 @@ class Console extends EventEmitter
             rows        : 16
             cols        : 80
             resizable   : false
+            close       : undefined  # if defined, called when close button clicked.
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
             font        :   # only for 'ttyjs' renderer
@@ -79,7 +80,7 @@ class Console extends EventEmitter
                 line_height : 115                            # CSS line-height percentage
 
             highlight_mode : 'none'
-            renderer       : 'auto'   # options -- 'auto' (best for device); 'codemirror' (mobile support), 'ttyjs' (xterm-color!)
+            renderer       : 'ttyjs'   # options -- 'auto' (best for device); 'codemirror' (mobile support--useless), 'ttyjs' (xterm-color!)
             draggable      : false    # not very good/useful yet.
 
             color_scheme   : undefined
@@ -399,8 +400,13 @@ class Console extends EventEmitter
         @element.find("a[href=#increase-font]").click () =>
             @_increase_font_size()
             return false
+
         @element.find("a[href=#decrease-font]").click () =>
             @_decrease_font_size()
+            return false
+
+        @element.find("a[href=#close]").click () =>
+            @opts.close?()
             return false
 
         @element.find("a[href=#refresh]").click () =>
@@ -414,6 +420,7 @@ class Console extends EventEmitter
             bootbox.alert("Press Control+Shift+V (or Command+V) to paste.  To copy, highlight text then press Control+C (or Command+C); when no text is highlighted, Control+C sends the usual interrupt.")
             return false
 
+        ###
         @element.find(".salvus-console-up").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.from - 1, ch:0})
@@ -438,6 +445,7 @@ class Console extends EventEmitter
             @element.find(".salvus-console-esc").show().click (e) =>
                 @focus()
                 @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
+        ###
 
     _init_paste_bin: () =>
         pb = @element.find(".salvus-console-textarea")

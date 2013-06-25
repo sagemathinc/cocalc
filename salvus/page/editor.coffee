@@ -1515,6 +1515,7 @@ class Terminal extends FileEditor
                         cols    : @opts.cols
                         rows    : @opts.rows
                         resizable: false
+                        close   : () => @editor.project_page.display_tab("project-file-listing")
                         #reconnect    : @connect_to_server  # -- doesn't work yet!
                     @console = elt.data("console")
                     @element = @console.element

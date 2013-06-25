@@ -32,4 +32,3 @@ update-alternatives --config java
         print x, os.popen(s).read().strip()
 
 
-        

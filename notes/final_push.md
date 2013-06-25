@@ -1,15 +1,5 @@
-
-
- - [ ] (1:30?) responsive -- file editor
-     x - always use fullscreen mode for file editing, by default.
-     x - big close button at top right (?) that goes
-       back to file listing, but otherwise leave
-       it having "taken over" screen.
-     x - big "go" button for worksheets
-       - more useful "go to line" in mobile/responsive editor.
-
-- [ ] (0:30?) responsive -- terminal
-     - at least make it viewable (!)
+--> - [ ] (1:00?) responsive -- terminal
+     - at least make it viewable and closeable (!)
 
 - [ ] (0:45?) responsive -- file editor chat
      - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
@@ -2413,3 +2403,13 @@ x  - run this check periodically, since users can have a browser open after I up
     x - get rid of h1
     x - collaborators "+Add" button should be on the left.
     x - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
+
+
+
+ - [X] (1:30?) (2:55) responsive -- file editor
+     x - always use fullscreen mode for file editing, by default.
+     x - big close button at top right (?) that goes
+       back to file listing, but otherwise leave
+       it having "taken over" screen.
+     x - big "go" button for worksheets
+     x - more useful "go to line" in mobile/responsive editor.
