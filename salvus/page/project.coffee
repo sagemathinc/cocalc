@@ -1559,10 +1559,11 @@ class ProjectPage
                             c = template_project_collab.clone()
                             c.find(".project-collab-first-name").text(x.first_name)
                             c.find(".project-collab-last-name").text(x.last_name)
+                            c.find(".project-collab-mode").text(x.mode)
                             if x.mode == 'owner'
                                 c.find(".project-close-button").hide()
                                 c.css('background-color', '#51a351')
-                                c.tooltip(title:"Owner", delay: { show: 500, hide: 100 })
+                                c.tooltip(title:"Project owner (cannot be revoked)", delay: { show: 500, hide: 100 })
                             else
                                 c.find(".project-close-button").data('collab', x).click () ->
                                     remove_collaborator($(@).data('collab'))

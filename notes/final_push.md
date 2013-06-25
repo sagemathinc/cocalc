@@ -15,11 +15,10 @@
      x - "Drop file to upload (or click)" --> "Tap to select files to upload"
        (since drag and drop makes no sense on mobile.)
 
-
-- [ ] (0:45?) responsive project screen PHONE -- wrench
-     - get rid of h1
-     - collaborators "+Add" button should be on the left.
-     - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
+- [x] (0:45?) responsive: project settings
+    x - get rid of h1
+    x - collaborators "+Add" button should be on the left.
+    x - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
 
 - [ ] (0:30?) responsive project screen PHONE -- search
      - make keyboard hide on doing a search (?) -- if possible....

@@ -219,7 +219,7 @@
 
                     <div class="well" style="margin-left:3em;">
                         <div class="row-fluid">
-                            <div class="span8 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <!-- Title of the project (editable) -->
                                 <h4>
                                     <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -230,14 +230,14 @@
                                 <div class="project-project_description" contenteditable="true">
                                 </div>
                             </div>
-                            <div class="span4 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <!-- The project id -->
                                 Project id:
                                 <span class="project-id"></span>
                             </div>
                         </div>
                         <div class="row-fluid">
-                            <div class="span8 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <div class="row-fluid">
                                     <div class="span4">
                                         <h4 class="pull-left">Collaborators</h4>
@@ -249,7 +249,7 @@
                                         <input class="project-add-collaborator-input" type="text" placeholder="Add collaborator...">
                                         <select class="project-add-collaborator-select hide"> </select>
 
-                                        <a href="#add-collaborator" class="disabled pull-right btn btn-primary" data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
+                                        <a href="#add-collaborator" style="margin-bottom: 1ex;" class="disabled pull-right btn btn-primary" data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
                                             <i class="icon-plus"> </i>Add
                                         </a>
                                     </div>
@@ -259,10 +259,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="span4 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <!-- Disk usage of the project -->
-                                <h4>Disk usage</h4>
-                                <span class="project-disk_usage">computing...</span>
+                                <h4>Usage</h4>
+                                Disk: <span class="project-disk_usage">computing...</span>
                                 <!-- Download the whole project -->
                                 <!--<a href="#download-project" class="btn  btn-success">
 <i class="icon-cloud-download"> </i> Download Project
@@ -271,7 +271,7 @@
                             </div>
                         </div>
                         <div class="row-fluid">
-                            <div class="span8 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <h4>Restart...</h4>
                                 <!-- Restart the Sage worksheet server  -->
                                 <a href="#restart-worksheet-server" class="btn btn-warning"
@@ -287,7 +287,7 @@
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
                                 </a>
                             </div>
-                            <div class="span4 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <h4>Danger zone!</h4>
                                 <!-- Delete the project -->
                                 <a href="#delete-project" class="btn btn-danger"
@@ -485,10 +485,13 @@
         <span></span>
     </div>
 
-    <span class="project-collab">
-        <span class="project-collab-first-name"></span>
-        <span class="project-collab-last-name"></span>
-        <i class="project-close-button lighten icon-remove"> </i>
-    </span>
+    <div class="project-collab">
+        <div style="white-space: nowrap;">
+            <span class="project-collab-first-name"></span>
+            <span class="project-collab-last-name"></span>
+            (<span class="project-collab-mode"></span>)
+            <i class="project-close-button lighten icon-remove pull-right" style="font-size:24px"> </i>
+        </div>
+    </div>
 
 </div>
