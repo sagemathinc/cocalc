@@ -1100,6 +1100,8 @@ class CodeMirrorEditor extends FileEditor
         cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
         @element.css(top:top)
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)        
+
         @element.height(elem_height).show()
         @element.show()
 
@@ -1698,7 +1700,7 @@ class Worksheet extends FileEditor
         win = $(window)
         @element.width(win.width())
         top = @editor.editor_top_position()
-        @element.css('top':top)
+        @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
             @element.find(".salvus-worksheet-filename").hide()

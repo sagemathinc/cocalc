@@ -9,9 +9,9 @@ I tried it -- it could work, but is best avoided due to internationalization (at
     <link href="/jquery/plugins/Keyboard/css/keyboard.css" rel="stylesheet">
     <script src="/jquery/plugins/Keyboard/js/jquery.keyboard.js"></script>
 
-- [ ] (1:00?) (2:03) responsive/mobile -- try implementing a "stating input box" for mobile terminal -- something barely usable is more usable than nothing.
+- [x] (1:00?) (2:03) responsive/mobile -- try implementing a "stating input box" for mobile terminal -- something barely usable is more usable than nothing.
 
-- [ ] (0:45?) responsive -- file editor chat
+- [x] (0:45?) (0:19) responsive -- file editor chat; fix to not be totally useless; really needs to be rewritten
      - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
 
 - [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
