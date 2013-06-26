@@ -1,7 +1,7 @@
-- [x] (1:00?) new release -- very carefully test all the css/html changes... then release.
 
-- [x] (0:30?) rate limit the `codemirror_get_session` stuff from users, since it can bring down server.
-- [x] (1:00?) rate limit all incoming client messages to avoid DOS (intentional or not)
+--> - [ ] (0:10?) version upgrade message -- suggest user explicitly refresh browser page, in case message re-appears.
+
+- [ ] (0:30?) does version upgrade message work on mobile (?)
 
 - [ ] (2:00?) in hub (around "mesg_codemirror_get_session") we shouldn't be much more careful adding client to sync'd session -- have the client send back confirmation.
 
@@ -10,8 +10,7 @@
 
 - [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
 
-
----
+- [ ] (0:30?) when filling in settings for collaborators, show a spinner while waiting for info to download.
 
 
 - [ ] (0:30?) instead of "incorrect password", be more vague: https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
@@ -2219,7 +2218,7 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
 
 
 
-- [x] (0:10?) (0:12) add link to http://www.sagemath.org/help.html
+- [x] (0:10?) (0:12)1 add link to http://www.sagemath.org/help.html
 
 - [x] (0:30?) (0:31) BUG: terminal path is not set correctly based on file path
 
@@ -2437,4 +2436,8 @@ I tried it -- it could work, but is best avoided due to internationalization (at
 - [x] (0:30?) (0:25)  responsive -- file actions: accidental delete with ease!
 
 
+- [x] (1:00?) new release -- very carefully test all the css/html changes... then release.
+
+- [x] (0:30?) rate limit the `codemirror_get_session` stuff from users, since it can bring down server.
+- [x] (1:00?) rate limit all incoming client messages to avoid DOS (intentional or not)
 
