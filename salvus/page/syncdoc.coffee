@@ -675,6 +675,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.find("a[href=#interrupt]").click () =>
             @interrupt()
             return false
+        buttons.find("a[href=#tab]").click () =>
+            @editor.press_tab_key(@editor.codemirror_with_last_focus)        
+            return false
         buttons.find("a[href=#kill]").click () =>
             @kill()
             return false

@@ -14,18 +14,20 @@ I tried it -- it could work, but is best avoided due to internationalization (at
 - [x] (0:45?) (0:19) responsive -- file editor chat; fix to not be totally useless; really needs to be rewritten
      - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
 
-- [ ] (0:30?) responsive -- worksheet tab button (for mobile)
-
-- [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
-
-- [ ] (0:30?) responsive -- file actions: accidental delete with ease!
-
 - [x] (0:30?) (0:28) responsive: improve project search
      - make keyboard hide on doing a search (?) -- if possible....
 
-- [ ] (0:30?) instead of "incorrect password", be more vague: https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
+- [x] (0:30?) (0:11) responsive -- worksheet tab button (for mobile)
+
+- [ ] (0:30?) responsive -- file actions: accidental delete with ease!
+
+
+- [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
 
 ---
+
+
+- [ ] (0:30?) instead of "incorrect password", be more vague: https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
 
 - [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
