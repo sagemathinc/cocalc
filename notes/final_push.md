@@ -1,4 +1,11 @@
-- [ ] (1:00?) new release -- very carefully test all the css/html changes... then release.
+- [x] (1:00?) new release -- very carefully test all the css/html changes... then release.
+
+- [x] (0:30?) rate limit the `codemirror_get_session` stuff from users, since it can bring down server.
+- [x] (1:00?) rate limit all incoming client messages to avoid DOS (intentional or not)
+
+- [ ] (2:00?) in hub (around "mesg_codemirror_get_session") we shouldn't be much more careful adding client to sync'd session -- have the client send back confirmation.
+
+- [ ] (1:30?) my "monitor" thing in admin does not work -- instead it should do the full roundtrip ping and check that time is small enough... if possible.
 
 
 - [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
@@ -68,7 +75,7 @@
 ========================================
 
 
-- [ ] (0:30?) find a way to test SMC via tablet/phone running from chromeOS
+- [X] (0:30?) find a way to test SMC via tablet/phone running from chromeOS
 See http://www.overdigital.com/2013/06/02/how-to-use-your-chromebook-pixel-as-a-webserver/
 
    sudo /sbin/iptables -A INPUT -p tcp --dport 443 -j ACCEPT
@@ -77,7 +84,7 @@ See http://www.overdigital.com/2013/06/02/how-to-use-your-chromebook-pixel-as-a-
 - [ ] (2:00?) export sagews to sws
 
 
-- [ ] (1:00?) next release
+- [X] (1:00?) next release
   - note the silly hack running on web1 to keep disk cache for snap fresh
 #!/usr/bin/env python
 import os

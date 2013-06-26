@@ -454,19 +454,48 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
-        if data.length >= 100000000 # 10 MB
-            @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
+        if data.length >= 50000000 # 5 MB
+            @push_to_client(message.error(error:"Messages are limited to 5MB.", id:mesg.id))
 
         if data.length == 0
             winston.error("EMPTY DATA MESSAGE -- ignoring!")
             return
 
+        if not @_handle_data_queue?
+            @_handle_data_queue = []
+
         channel = data[0]
         h = @_data_handlers[channel]
-        if h?
-            h(data.slice(1))
-        else
+        if not h?
             winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            return
+
+        # The rest of the function is basically the same as "h(data.slice(1))", except that
+        # it ensure that we handle at most 1 message per client every 50ms (or whatever
+        # the param is below).   This is another anti-DOS measure, which of course also
+        # helps with scaling up to many users.
+
+        @_handle_data_queue.push([h, data.slice(1)])
+
+        if @_handle_data_queue_empty_function?
+            winston.debug("empty function is defined")
+            return
+
+        # define a function to empty the queue
+        @_handle_data_queue_empty_function = () =>
+            if @_handle_data_queue.length == 0
+                # done doing all tasks
+                delete @_handle_data_queue_empty_function
+                return
+
+            # get task
+            task = @_handle_data_queue.shift()
+            # do task
+            task[0](task[1])
+            # do next one in >=50ms
+            setTimeout( @_handle_data_queue_empty_function, 50 )
+
+        @_handle_data_queue_empty_function()
 
     register_data_handler: (h) ->
         # generate a random channel character that isn't already taken
@@ -1335,7 +1364,7 @@ server_stats = (cb) ->
     if _server_stats_cache?
         cb(false, _server_stats_cache)
         return
-    
+
     database.get_stats
         cb : (err, stats) ->
             _server_stats_cache = stats
