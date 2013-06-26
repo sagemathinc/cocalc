@@ -13,6 +13,7 @@
 - [ ] (0:30?) when filling in settings for collaborators, show a spinner while waiting for info to download.
 
 
+
 - [ ] (0:30?) instead of "incorrect password", be more vague: https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
 
 - [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
