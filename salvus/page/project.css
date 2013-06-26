@@ -79,6 +79,11 @@
     overflow-wrap: break-word;
 }
 
+.project-file-drag-handle {
+    font-size: 10px;
+    color: #aaa;
+}
+
 .project-directory-name {
 
 }

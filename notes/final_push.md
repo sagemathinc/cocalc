@@ -19,10 +19,17 @@ I tried it -- it could work, but is best avoided due to internationalization (at
 
 - [x] (0:30?) (0:11) responsive -- worksheet tab button (for mobile)
 
-- [ ] (0:30?) responsive -- file actions: accidental delete with ease!
+- [x] (0:30?) (0:25)  responsive -- file actions: accidental delete with ease!
+
+
+
+
+
+
 
 
 - [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
+
 
 ---
 
