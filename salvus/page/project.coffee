@@ -412,6 +412,7 @@ class ProjectPage
         input_boxes.keypress (evt) ->
             t = $(@)
             if evt.which== 13
+                input_boxes.blur()
                 # Do the search.
                 try
                     that.search(t.val())

@@ -329,6 +329,7 @@
 .project-search-output-further-results {
     font-size:14px;
     font-weight: bold;
+    margin-left:4em;
 }
 
 .project-new-file-path {
