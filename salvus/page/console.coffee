@@ -151,6 +151,7 @@ class Console extends EventEmitter
 
         # Initialize buttons
         @_init_buttons()
+        @_init_input_line()
 
         # Initialize the "set default font size" button that appears.
         @_init_font_make_default()
@@ -420,6 +421,69 @@ class Console extends EventEmitter
             bootbox.alert("Press Control+Shift+V (or Command+V) to paste.  To copy, highlight text then press Control+C (or Command+C); when no text is highlighted, Control+C sends the usual interrupt.")
             return false
 
+    _init_input_line: () =>
+
+        if not IS_MOBILE
+            @element.find(".salvus-console-mobile-input").hide()
+            return
+
+        input_line = @element.find('.salvus-console-input-line')
+
+        submit_line = () =>
+            @session?.write_data(input_line.val())
+            input_line.val('')
+
+        input_line.on 'keyup', (e) =>
+            if e.which == 13
+                e.preventDefault()
+                submit_line()
+                @session?.write_data("\n")
+                return false
+            else if e.which == 67 and e.ctrlKey
+                submit_line()
+                @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
+
+        @element.find(".salvus-console-submit-line").click () =>
+            #@focus()
+            submit_line()
+            @session?.write_data("\n")
+            return false
+
+        @element.find(".salvus-console-submit-tab").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:9, shiftKey:false)
+
+        @element.find(".salvus-console-submit-esc").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-up").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:38, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-down").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:40, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-left").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:37, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-right").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:39, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-ctrl-c").show().click (e) =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
+
         ###
         @element.find(".salvus-console-up").click () ->
             vp = editor.getViewport()
@@ -592,7 +656,8 @@ class Console extends EventEmitter
         @resize()
 
         if IS_MOBILE
-            $(document).on('keydown', @mobile_keydown)
+            #$(document).on('keydown', @mobile_keydown)
+            @element.find(".salvus-console-input-line").focus()
         else
             @terminal.focus()
             @_focus_hidden_textarea()

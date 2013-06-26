@@ -10,7 +10,8 @@ message = require('message')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
-{IS_MOBILE} = require("feature")
+feature = require("feature")
+IS_MOBILE = feature.IS_MOBILE
 
 misc = require('misc')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
@@ -1574,8 +1575,11 @@ class Terminal extends FileEditor
             e = $(@console.terminal.element)
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
             # We leave a gap at the bottom of the screen, because often the
-            # cursor is at the bottom, but tooltips, etc., would cover that.
-            e.height($(window).height() - top - 6)
+            # cursor is at the bottom, but tooltips, etc., would cover that
+            ht = $(window).height() - top - 6
+            if feature.isMobile.iOS()
+                ht = Math.floor(ht/2)
+            e.height(ht)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus()
 

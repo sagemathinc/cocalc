@@ -1,5 +1,15 @@
---> - [ ] (1:00?) responsive -- terminal
-     - at least make it viewable and closeable (!)
+- [x] (1:00?) (0:35) responsive -- terminal -- make it viewable and closeable
+
+- [x] (1:00?) responsive -- terminal: investigate onscreen keyboard for mobile (?)
+https://github.com/Mottie/Keyboard
+
+I tried it -- it could work, but is best avoided due to internationalization (at least), I think.
+
+    <!-- https://github.com/Mottie/Keyboard -- keyboard widget css & script -->
+    <link href="/jquery/plugins/Keyboard/css/keyboard.css" rel="stylesheet">
+    <script src="/jquery/plugins/Keyboard/js/jquery.keyboard.js"></script>
+
+- [ ] (1:00?) (2:03) responsive/mobile -- try implementing a "stating input box" for mobile terminal -- something barely usable is more usable than nothing.
 
 - [ ] (0:45?) responsive -- file editor chat
      - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
