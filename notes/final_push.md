@@ -7,7 +7,19 @@
 
 - [x] (0:10?) (0:05) SMC --> Sagemath in title
 
-- [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
+--> - [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
+
+---
+
+services = ['hub', 'nginx', 'snap']
+for service in services:
+    self.stop(service)
+    
+
+s.stop('hub'); s.stop('nginx'); s.stop( [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
+s.start('hub')
+
+- [ ] (2:00?) try implementing new bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
 
 - [ ] (1:30?) make list of open files, order, font sizes, etc., tied to local storage on a machine
 

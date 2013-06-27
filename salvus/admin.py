@@ -1388,7 +1388,7 @@ class Services(object):
 
         self._hosts.password()
         # Get IP addresses of hubs
-        hosts = self._hosts['hub']   
+        hosts = self._hosts['hub']
         import sys, urllib2
         def is_working(ip):
              try:
@@ -1400,11 +1400,30 @@ class Services(object):
             if i % 80 == 0:
                 print "Monitoring hubs: ", hosts
             i += 1
-            print ":-)", 
+            print ":-)",
             sys.stdout.flush()
             for ip in hosts:
                 if not is_working(ip):
                      print ":-( Restarting %s"%ip
                      self.restart('hub',host=ip)
-            time.sleep(5)     
-                 
+            time.sleep(5)
+
+    def restart_web(self):
+        """
+        Restart everything related to the web nodes including VM's.
+        This is everything sitting between the clients and the compute nodes.
+        Call this when doing upgrades that don't modify
+        the Sage install or python client code on the compute machines.  This is minimally
+        disruptive to users, at least compared to a full restart of compute machines!
+        """
+        services = 'hub nginx snap'
+        for service in services.split():
+            self.stop(service, wait=True, parallel=True)
+        web_hosts = [x for x in self._hosts._canonical_hostnames.values() if 'web' in x]
+        for hostname in web_hosts:
+            self.restart('vm',hostname=hostname, parallel=True, wait=False)
+        self.wait_until_up(' '.join(web_hosts))
+        for service in services.split():
+            self.start(service, parallel=True, wait=True)
+
+
