@@ -1,54 +1,25 @@
 
-- [x] (0:10?) (0:13) version upgrade message -- suggest user explicitly refresh browser page, in case message re-appears.
+- [x] (0:30?) (0:06) instead of "incorrect password", be more vague (thanks to P Purkayastha): https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
 
-- [x] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
+- [ ] (0:30?) snap: database-level lock when snapshotting a project
 
+- [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
 
---> - [ ] (2:00?) make it so terminal never disconnects/hangs:
+- [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
-   - x find way to simulate -- Do this in javascript console to simulate the problem easily:
-         require('salvus_client').salvus_client._fix_connection()
-or
+- [ ] (0:30?) add x button to "Upgrade" -- maybe they don't want to; and write "Upgrade by Refreshing your browser".
 
-        s = require('salvus_client').salvus_client; s._last_pong=0; s._ping_check()
-
-   - define message that tells client to reset a channel
-   - change code in hub.coffee to send message whenever this would appear:
-         "error: unable to handle data on an unknown channel:"
-   - define listener in client.coffee for such messages
-   - make client re-create channel on message
-   - test
-
-
-   - wait, instead let's try just making the CLIENT re-allocate terminal channels on reconnect.
-
-
-
-
-- [ ] (0:30?) does version upgrade message work on mobile (?)
-
-- [ ] (2:00?) in hub (around "mesg_codemirror_get_session") we shouldn't be much more careful adding client to sync'd session -- have the client send back confirmation.
+- [ ] (2:00?) in hub (around `mesg_codemirror_get_session`) should we be much more careful adding client to sync'd session -- have the client send back confirmation.
 
 - [ ] (1:30?) my "monitor" thing in admin does not work -- instead it should do the full roundtrip ping and check that time is small enough... if possible.
-
 
 - [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
 
 - [ ] (0:30?) when filling in settings for collaborators, show a spinner while waiting for info to download.
 
-
-
-- [ ] (0:30?) instead of "incorrect password", be more vague: https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
-
-- [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
-
 - [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
 
 - [ ] (0:20?) make it so "connecting..." message also displays a message in same way as "upgrade" box.
-
-
-
-----
 
 - [ ] (0:20?) when delete a tab, need to resize all tabs
 
@@ -2462,3 +2433,25 @@ I tried it -- it could work, but is best avoided due to internationalization (at
 - [x] (0:30?) rate limit the `codemirror_get_session` stuff from users, since it can bring down server.
 - [x] (1:00?) rate limit all incoming client messages to avoid DOS (intentional or not)
 
+
+- [x] (0:10?) (0:13) version upgrade message -- suggest user explicitly refresh browser page, in case message re-appears.
+
+- [x] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
+-  [x] (2:00?) (1:25) make it so terminal never disconnects/hangs:
+
+   - x find way to simulate -- Do this in javascript console to simulate the problem easily:
+         require('salvus_client').salvus_client._fix_connection()
+or
+
+        s = require('salvus_client').salvus_client; s._last_pong=0; s._ping_check()
+
+   - define message that tells client to reset a channel
+   - change code in hub.coffee to send message whenever this would appear:
+         "error: unable to handle data on an unknown channel:"
+   - define listener in client.coffee for such messages
+   - make client re-create channel on message
+   - test
+
+   - wait, instead let's try just making the CLIENT re-allocate terminal channels on reconnect.
+
+- [x] (0:30?) does version upgrade message work on mobile (?)

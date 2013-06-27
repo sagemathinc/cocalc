@@ -3022,6 +3022,8 @@ sign_in = (client, mesg) =>
 
         # get account and check credentials
         (cb) ->
+            # Do not give away info about whether the e-mail address is valid:
+            error_mesg = "Invalid e-mail or password."
             database.get_account
                 email_address : mesg.email_address
                 cb            : (error, account) ->
@@ -3030,7 +3032,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error(error)
+                        sign_in_error(error_mesg)
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
@@ -3038,7 +3040,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
-                        sign_in_error("Invalid password for #{mesg.email_address}.")
+                        sign_in_error(error_mesg)
                         cb(true); return
                     else
 
