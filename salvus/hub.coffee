@@ -18,6 +18,17 @@ SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
+# Anti DOS parameters:
+
+# If a client sends a burst of messages, we space handling them out by this many milliseconds:.
+MESG_QUEUE_INTERVAL_MS  = 50
+
+# If a client sends a burst of messages, we discard all but the most recent this many of them:
+MESG_QUEUE_MAX_COUNT    = 25
+
+# Any messages larger than this is not allowed (it could take a long time to handle, etc.).
+MESG_QUEUE_MAX_SIZE_MB  = 5
+
 # node.js -- builtin libraries
 net     = require 'net'
 assert  = require('assert')
@@ -454,8 +465,8 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
-        if data.length >= 50000000 # 5 MB
-            @push_to_client(message.error(error:"Messages are limited to 5MB.", id:mesg.id))
+        if data.length >= MESG_QUEUE_MAX_SIZE_MB * 10000000
+            @error_to_client(id:mesg.id, error:"Messages are limited to #{MESG_QUEUE_MAX_SIZE_MB}MB.")
 
         if data.length == 0
             winston.error("EMPTY DATA MESSAGE -- ignoring!")
@@ -471,10 +482,10 @@ class Client extends EventEmitter
             return
 
         # The rest of the function is basically the same as "h(data.slice(1))", except that
-        # it ensure that we handle at most 1 message per client every 50ms (or whatever
-        # the param is below).   This is another anti-DOS measure, which of course also
-        # helps with scaling up to many users.
-
+        # it ensure that if there is a burst of messages, then (1) we handle at most 1 message
+        # per client every MESG_QUEUE_INTERVAL_MS, and we drop messages if there are too many.
+        # This is an anti-DOS measure.
+        
         @_handle_data_queue.push([h, data.slice(1)])
 
         if @_handle_data_queue_empty_function?
@@ -488,12 +499,16 @@ class Client extends EventEmitter
                 delete @_handle_data_queue_empty_function
                 return
 
+            # drop oldest message to keep
+            while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
+                @_handle_data_queue.shift()
+
             # get task
             task = @_handle_data_queue.shift()
             # do task
             task[0](task[1])
-            # do next one in >=50ms
-            setTimeout( @_handle_data_queue_empty_function, 50 )
+            # do next one in >= MESG_QUEUE_INTERVAL_MS
+            setTimeout( @_handle_data_queue_empty_function, MESG_QUEUE_INTERVAL_MS )
 
         @_handle_data_queue_empty_function()
 
