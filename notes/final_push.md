@@ -1,5 +1,29 @@
 
---> - [ ] (0:10?) version upgrade message -- suggest user explicitly refresh browser page, in case message re-appears.
+- [x] (0:10?) (0:13) version upgrade message -- suggest user explicitly refresh browser page, in case message re-appears.
+
+- [x] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
+
+
+--> - [ ] (2:00?) make it so terminal never disconnects/hangs:
+
+   - x find way to simulate -- Do this in javascript console to simulate the problem easily:
+         require('salvus_client').salvus_client._fix_connection()
+or
+
+        s = require('salvus_client').salvus_client; s._last_pong=0; s._ping_check()
+
+   - define message that tells client to reset a channel
+   - change code in hub.coffee to send message whenever this would appear:
+         "error: unable to handle data on an unknown channel:"
+   - define listener in client.coffee for such messages
+   - make client re-create channel on message
+   - test
+
+
+   - wait, instead let's try just making the CLIENT re-allocate terminal channels on reconnect.
+
+
+
 
 - [ ] (0:30?) does version upgrade message work on mobile (?)
 
@@ -43,8 +67,6 @@
 - [ ] (0:30?) make it clear to users that their name is publicly visible even if they don t share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
 
 - [ ] terminal -- when copying/pasting, long lines become multiple lines, which is one of my pet peeves!
-
-- [ ] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
 
 - [ ] firefox bug (for perkinson): download of file doesn't work at all in firefox!
 
@@ -108,9 +130,7 @@ while True:
 - [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 - [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
 - [ ] (2:00?) octave interface (like GAP) also doesn't work in .sagews !
-- [ ] (2:00?) make it so terminals never disconnects/hangs
-- [ ] (1:00?) share: make it possible to quite part of sharing -- deleting the project could do that.
-- [ ] (2:00?) make it so terminals never disconnect or hang
+
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
     %md
