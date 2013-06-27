@@ -1,3 +1,8 @@
+# Restart only web part:
+
+s.stop('hub'); s.stop('nginx'); [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
+s.start('hub')
+
 # How to snapshot all nodes:
 time s._hosts.nodetool('snapshot salvus', wait=True)
 

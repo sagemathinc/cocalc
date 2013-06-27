@@ -3,9 +3,18 @@
 
 - [x] (0:30?) (0:12) add x button to "Upgrade" -- maybe they don't want to; and write "Upgrade by Refreshing your browser".
 
-- [ ] (0:30?) snap: database-level lock when snapshotting a project
+- [x] (0:30?) (0:26) hub: when mesg queue exceeds certain size, discard oldest messages!!
+
+--> - [ ] (0:10?) SMC --> Sagemath
+
+- [ ] (1:00?) snap: database-level lock when snapshotting a project... or SOMETHING -- is there a way to deal with locking issue?  maybe use a counter table, write, then read?
 
 - [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
+
+- [ ] (1:30?) make list of open files, order, font sizes, etc., tied to local storage on a machine
+
+- [ ] (1:30?) make a page of screenshots.
+
 
 - [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 

@@ -129,7 +129,7 @@ class ProjectPage
                 delete project_pages[@project.project_id]
             onshow: () =>
                 if @project?
-                    document.title = "SMC: #{@project.title}"
+                    document.title = "Project - #{@project.title}"
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
