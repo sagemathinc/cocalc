@@ -1,13 +1,14 @@
 
 - [x] (0:30?) (0:06) instead of "incorrect password", be more vague (thanks to P Purkayastha): https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
 
+- [x] (0:30?) (0:12) add x button to "Upgrade" -- maybe they don't want to; and write "Upgrade by Refreshing your browser".
+
 - [ ] (0:30?) snap: database-level lock when snapshotting a project
 
 - [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
 
 - [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
-- [ ] (0:30?) add x button to "Upgrade" -- maybe they don't want to; and write "Upgrade by Refreshing your browser".
 
 - [ ] (2:00?) in hub (around `mesg_codemirror_get_session`) should we be much more careful adding client to sync'd session -- have the client send back confirmation.
 

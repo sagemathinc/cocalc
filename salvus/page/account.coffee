@@ -661,5 +661,8 @@ version_check = () ->
             if not err and server_version > client_version
                 $(".salvus_client_version_warning").show()
 
+$(".salvus_client_version_warning").draggable().find(".icon-remove").click () ->
+    $(".salvus_client_version_warning").hide()
+
 setInterval(version_check, 3*60*1000)  # check once every three minutes; may increase time later as usage grows (?)
 
