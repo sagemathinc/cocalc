@@ -1134,8 +1134,8 @@ exports.start_server = start_server = () ->
             cb()
         (cb) ->
             snapshot_active_projects(cb)
-        (cb) ->
-            ensure_all_projects_have_a_snapshot(cb)
+        #(cb) ->
+        #    ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
         #    test3()
         #    cb()
