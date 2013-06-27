@@ -45,7 +45,7 @@ class Session extends EventEmitter
             conn         : required     # a Connection instance
             project_id   : required
             session_uuid : required
-            params       : required
+            params       : undefined
             data_channel : undefined    # optional extra channel that is used for raw data
 
         @start_time   = misc.walltime()
@@ -455,7 +455,7 @@ class exports.Connection extends EventEmitter
             project_id   : required
             session_uuid : required
             data_channel : undefined
-            params       : required
+            params       : undefined
             cb           : required
 
         session_opts =

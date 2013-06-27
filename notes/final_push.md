@@ -7,14 +7,13 @@
 
 - [x] (0:10?) (0:05) SMC --> Sagemath in title
 
---> - [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
-
+- [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
 ---
 
 services = ['hub', 'nginx', 'snap']
 for service in services:
     self.stop(service)
-    
+
 
 s.stop('hub'); s.stop('nginx'); s.stop( [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
 s.start('hub')
