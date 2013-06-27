@@ -33,6 +33,10 @@ cassandra = require 'cassandra'
 
 {defaults, required} = misc
 
+# Set the log level to debug
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
+
 # Run a bup command
 bup = (opts) ->
     opts = defaults opts,

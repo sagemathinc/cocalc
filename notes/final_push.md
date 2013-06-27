@@ -5,9 +5,7 @@
 
 - [x] (0:30?) (0:26) hub: when mesg queue exceeds certain size, discard oldest messages!!
 
---> - [ ] (0:10?) SMC --> Sagemath
-
-- [ ] (1:00?) snap: database-level lock when snapshotting a project... or SOMETHING -- is there a way to deal with locking issue?  maybe use a counter table, write, then read?
+- [x] (0:10?) (0:05) SMC --> Sagemath in title
 
 - [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
 
