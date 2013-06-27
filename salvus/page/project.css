@@ -29,7 +29,8 @@
 }
 
 .project-file-listing-current_path {
-    margin-top:4px;
+    margin-top:12px;
+    margin-bottom:12px;
 }
 
 .project-file-top-current-path-display {
@@ -44,16 +45,21 @@
 }
 
 .project-file-link-style {
-    border: 0px solid white;
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
-    padding-top:5px;
-    padding-left:15px;
-    padding-right:15px;
+    padding-top:0px;
     padding-bottom:0px;
-    height:1.8em;
+    min-height:26px;
+    border-bottom: 1px solid #eee;
 }
+
+@media (max-width: 979px) {
+    .project-file-link-style {
+        min-height:40px;
+    }
+}
+
 
 .project-file-link:hover {
     background-color:#efe;
@@ -73,24 +79,33 @@
     overflow-wrap: break-word;
 }
 
+.project-file-drag-handle {
+    font-size: 10px;
+    color: #aaa;
+}
+
 .project-directory-name {
 
 }
 
 .project-directory-link-style {
-    border: 0px solid white;
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
-    padding-top:5px;
-    padding-left:15px;
-    padding-right:15px;
+    padding-top:0px;
     padding-bottom:0px;
-    height:1.8em;
+    min-height:26px;
+    border-bottom: 1px solid #eee;
 }
 
 .project-directory-link:hover {
     background-color:#efe;
+}
+
+@media (max-width: 979px) {
+    .project-directory-link-style {
+        min-height:40px;
+    }
 }
 
 
@@ -99,7 +114,7 @@
 }
 
 .project-pages-button {
-     margin-right:-.9em;
+     /* margin-right:-.9em; */  /* this scrunched the upper left project page buttons -- which looks unprofessional */
 }
 
 .project-search-form-input {
@@ -192,14 +207,7 @@
 }
 
 .project-file-top-current-path-container {
-/*    max-width     : 30%;
-    overflow      : hidden;
-    overflow-wrap : break-word;
-*/
-position: fixed;
-top: 36px;
-left: 0px;
-font-size: 11px;
+    font-size: 11px;
 }
 
 .project-move-path-dialog-filename {
@@ -211,6 +219,8 @@ font-size: 11px;
 
 .project-command-line {
     margin-left:0em;
+    padding-left: 1em;
+    padding-right: 1em;
 }
 
 .project-command-line-input {
@@ -219,23 +229,34 @@ font-size: 11px;
     width:100%;
 }
 
+.project-command-line-output {
+    width:100%;
+    z-index: 1;
+    border: 1px solid #ddd;
+    box-shadow: 4px 4px 2px #eee;
+    border-radius: 5px;
+    margin-left:0px;
+}
+
 .project-command-line-stdout {
-    margin-left:0em;
+    margin:0;
+    padding:2px;
     background-color:#fff;
     color:#333;
-    font-size:10pt;
-    max-height:12em;
+    font-size:12px;
+    max-height:20em;
     max-width:100%;
-    overflow:auto;
+    overflow-y:auto;
 }
 .project-command-line-stderr {
-    margin-left:0em;
+    margin:0;
+    padding:2px;
     background-color:#fcc;
     color:#922;
-    font-size:10pt;
-    max-height:12em;
+    font-size:12px;
+    max-height:20em;
     max-width:100%;
-    overflow:auto;
+    overflow-y:auto;
 }
 
 .project-id {
@@ -292,7 +313,7 @@ font-size: 11px;
 }
 
 .salvus-project-search-for-file-input {
-    width:100%;
+    width:95%;
 }
 
 .project-listing-search-include {
@@ -313,6 +334,7 @@ font-size: 11px;
 .project-search-output-further-results {
     font-size:14px;
     font-weight: bold;
+    margin-left:4em;
 }
 
 .project-new-file-path {
@@ -339,6 +361,7 @@ font-size: 11px;
     border-radius: 6px;
     background-color: #08c;
     padding: 6px;
+    margin: 1ex;
     color: #fff;
 }
 

@@ -1399,7 +1399,7 @@ class Services(object):
             if i % 80 == 0:
                 print "Monitoring hubs: ", hosts
             i += 1
-            print ":-)", 
+            print ":-)",
             sys.stdout.flush()
             for ip in hosts:
                 if not is_working(ip):
@@ -1412,4 +1412,24 @@ class Services(object):
                      except Exception, msg:
                          print "Unable to record log message in database, %s"%msg
             time.sleep(5)     
+
+    def restart_web(self):
+        """
+        Restart everything related to the web nodes including VM's.
+        This is everything sitting between the clients and the compute nodes.
+        Call this when doing upgrades that don't modify
+        the Sage install or python client code on the compute machines.  This is minimally
+        disruptive to users, at least compared to a full restart of compute machines!
+        """
+        services = 'hub nginx snap'
+        for service in services.split():
+            self.stop(service, wait=True, parallel=True)
+        web_hosts = [x for x in self._hosts._canonical_hostnames.values() if 'web' in x]
+        for hostname in web_hosts:
+            self.restart('vm',hostname=hostname, parallel=True, wait=False)
+        self.wait_until_up(' '.join(web_hosts))
+        for service in services.split():
+            self.start(service, parallel=True, wait=True)
+
+>>>>>>> 19b5bdcd6396ec505274aad12f04b0831ec4ed87
 

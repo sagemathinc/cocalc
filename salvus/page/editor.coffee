@@ -10,7 +10,8 @@ message = require('message')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
-{IS_MOBILE} = require("feature")
+feature = require("feature")
+IS_MOBILE = feature.IS_MOBILE
 
 misc = require('misc')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
@@ -313,6 +314,7 @@ class exports.Editor
             v = []
             for filename, tab of @tabs
                 @close(filename)
+                @remove_from_recent(filename)
                 v.push(filename)
             undo = @element.find("a[href=#undo-close-all-tabs]")
             undo.stop().show().animate(opacity:100).fadeOut(duration:60000).click () =>
@@ -414,6 +416,7 @@ class exports.Editor
             if ignore_clicks
                 return false
             @close(filename)
+            @remove_from_recent(filename)
 
         containing_path = misc.path_split(filename).head
         ignore_clicks = false
@@ -591,11 +594,14 @@ class exports.Editor
             tab.editor().disconnect_from_session()
             tab.editor().remove()
 
-        # Do not show this file in "recent" next time.
-        local_storage_delete(@project_id, filename, "auto_open")
         tab.link.remove()
         delete @tabs[filename]
         @update_counter()
+
+    remove_from_recent: (filename) =>
+        # Do not show this file in "recent" next time.
+        local_storage_delete(@project_id, filename, "auto_open")
+
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -845,6 +851,10 @@ class CodeMirrorEditor extends FileEditor
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
+        @init_save_button()
+        @init_close_button()
+        @init_edit_buttons()
+
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
@@ -900,6 +910,7 @@ class CodeMirrorEditor extends FileEditor
                     "Tab"          : (editor)   => @press_tab_key(editor)
                     "Esc"          : (editor)   => @interrupt_key()
 
+
         @codemirror = make_editor(elt[0])
 
         elt1 = @element.find(".salvus-editor-codemirror-input-box-1").find("textarea")
@@ -916,11 +927,11 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
 
-        @init_save_button()
-        @init_change_event()
-        @init_edit_buttons()
 
         @_split_view = false
+
+        @init_change_event()
+
 
     action_key: (opts) =>   # options are ignored by default; worksheets use them....
         @click_save_button()
@@ -941,14 +952,17 @@ class CodeMirrorEditor extends FileEditor
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
-            @element.find("a[href=##{name}]").data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
+            e = @element.find("a[href=##{name}]")
+            e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
 
     click_edit_button: (name) =>
-        if not @codemirror?
-            return
         cm = @codemirror_with_last_focus
+        if not cm?
+            cm = @codemirror
+        if not cm?
+            return
         switch name
             when 'search'
                 CodeMirror.commands.find(cm)
@@ -1005,10 +1019,20 @@ class CodeMirrorEditor extends FileEditor
         focus = () =>
             @focus()
             cm.focus()
-        bootbox.prompt "Goto line...", (result) =>
+        bootbox.prompt "Goto line... (1-#{cm.lineCount()} or n%)", (result) =>
             if result != null
-                cm.setCursor({line:parseInt(result)-1, ch:0})
+                result = result.trim()
+                if result.length >= 1 and result[result.length-1] == '%'
+                    line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
+                else
+                    line = parseInt(result)-1
+                cm.setCursor({line:line, ch:0})
             setTimeout(focus, 100)
+
+    init_close_button: () =>
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
@@ -1076,6 +1100,8 @@ class CodeMirrorEditor extends FileEditor
         cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
         @element.css(top:top)
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)        
+
         @element.height(elem_height).show()
         @element.show()
 
@@ -1190,7 +1216,6 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @update()
-        console.log("focusing on output")
         @output.focus()
 
     focus: () =>
@@ -1280,7 +1305,7 @@ class PDF_Preview extends FileEditor
                                             # This gives a sort of "2-up" effect.  But this makes things unreadable
                                             # on some screens :-(.
                                             #img.css('width':@output.width()/2-100)
-                                            @output.dappend(img)
+                                            @output.append(img)
                                     # Delete any remaining pages from before (if doc got shorter)
                                     for n in [len(pages)...children.length]
                                         $(children[n]).remove()
@@ -1442,6 +1467,11 @@ class LatexEditor extends FileEditor
                             alert_message(type:"error", message:err)
                             cb(err)
                         else
+                            if output.stdout.indexOf("I can't find file") != -1
+                                @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
+                            else
+                                @log.find("div").empty()
+
                             @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
                             # Scroll to the bottom of the textarea
                             f = @log.find('textarea')
@@ -1488,6 +1518,7 @@ class Terminal extends FileEditor
                         cols    : @opts.cols
                         rows    : @opts.rows
                         resizable: false
+                        close   : () => @editor.project_page.display_tab("project-file-listing")
                         #reconnect    : @connect_to_server  # -- doesn't work yet!
                     @console = elt.data("console")
                     @element = @console.element
@@ -1546,8 +1577,11 @@ class Terminal extends FileEditor
             e = $(@console.terminal.element)
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
             # We leave a gap at the bottom of the screen, because often the
-            # cursor is at the bottom, but tooltips, etc., would cover that.
-            e.height($(window).height() - top - 6)
+            # cursor is at the bottom, but tooltips, etc., would cover that
+            ht = $(window).height() - top - 6
+            if feature.isMobile.iOS()
+                ht = Math.floor(ht/2)
+            e.height(ht)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus()
 
@@ -1666,7 +1700,7 @@ class Worksheet extends FileEditor
         win = $(window)
         @element.width(win.width())
         top = @editor.editor_top_position()
-        @element.css('top':top)
+        @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
             @element.find(".salvus-worksheet-filename").hide()

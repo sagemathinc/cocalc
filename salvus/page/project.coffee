@@ -129,7 +129,7 @@ class ProjectPage
                 delete project_pages[@project.project_id]
             onshow: () =>
                 if @project?
-                    document.title = "SMC: #{@project.title}"
+                    document.title = "Project - #{@project.title}"
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -412,6 +412,7 @@ class ProjectPage
         input_boxes.keypress (evt) ->
             t = $(@)
             if evt.which== 13
+                input_boxes.blur()
                 # Do the search.
                 try
                     that.search(t.val())
@@ -860,11 +861,12 @@ class ProjectPage
         dz_container = @container.find(".project-dropzone")
         dz_container.empty()
         dz = $('<div class="dropzone"></div>')
+        if IS_MOBILE
+            dz.append($('<span class="message" style="font-weight:bold;font-size:14pt">Tap to select files to upload</span>'))
         dz_container.append(dz)
         dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
-            dictDefaultMessage : "Drop a file here, or click to select a file from your computer..."
             maxFilesize: 10 # in megabytes
 
     init_new_file_tab: () =>
@@ -991,7 +993,9 @@ class ProjectPage
         # Clear the filename and focus on it
         now = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
         #now = now.slice(0, now.length-2)  # get rid of seconds.
-        @new_file_tab_input.val(now).focus()
+        @new_file_tab_input.val(now)
+        if not IS_MOBILE
+            @new_file_tab_input.focus()
         @get_from_web_input.val('')
 
     update_snapshot_ui_elements: () =>
@@ -1556,10 +1560,11 @@ class ProjectPage
                             c = template_project_collab.clone()
                             c.find(".project-collab-first-name").text(x.first_name)
                             c.find(".project-collab-last-name").text(x.last_name)
+                            c.find(".project-collab-mode").text(x.mode)
                             if x.mode == 'owner'
                                 c.find(".project-close-button").hide()
                                 c.css('background-color', '#51a351')
-                                c.tooltip(title:"Owner", delay: { show: 500, hide: 100 })
+                                c.tooltip(title:"Project owner (cannot be revoked)", delay: { show: 500, hide: 100 })
                             else
                                 c.find(".project-close-button").data('collab', x).click () ->
                                     remove_collaborator($(@).data('collab'))

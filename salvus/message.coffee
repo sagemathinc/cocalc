@@ -1027,4 +1027,36 @@ message
 
 
 
+############################################
+# Get the current server version number.
+#
+# This can be used by clients or even the local_hub to
+# force or recommend a refresh/restart.
+#
+#############################################
+# client <---> hub
+message
+    event     : 'get_version'
+    id        : undefined
+    version   : undefined    # gets filled in by the hub
+
+
+############################################
+#
+# Get various stats about cloud.sagemath.
+# The output stats object is at least has this
+#
+#   { accounts: number, projects: number }
+#
+# and may have other stats.  These are cached in RAM on the
+# server for some amount of time, so might not be the
+# absolutely latest numbers.
+#
+#############################################
+# client <---> hub
+message
+    event     : 'get_stats'
+    id        : undefined
+    stats     : undefined    # gets filled in by the hub
+
 

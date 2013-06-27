@@ -1,25 +1,55 @@
-# Sat June 21 -- goals
 
-- [ ] (1:00?) write a monitor that verifies that all hubs are up and responding to requests.
+- [x] (0:30?) (0:06) instead of "incorrect password", be more vague (thanks to P Purkayastha): https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
 
-- [ ] (1:00?) if a hub goes down, automatically restart it
+- [x] (0:30?) (0:12) add x button to "Upgrade" -- maybe they don't want to; and write "Upgrade by Refreshing your browser".
 
-- [ ] (1:00?) enable logging so I can see why hub keeps hitting an infinite loop (prob related to doc sync) -- watch out regarding disk space though
+- [x] (0:30?) (0:26) hub: when mesg queue exceeds certain size, discard oldest messages!!
+
+- [x] (0:10?) (0:05) SMC --> Sagemath in title
+
+--> - [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
+
+---
+
+services = ['hub', 'nginx', 'snap']
+for service in services:
+    self.stop(service)
+    
+
+s.stop('hub'); s.stop('nginx'); s.stop( [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
+s.start('hub')
+
+- [ ] (2:00?) try implementing new bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
+
+- [ ] (1:30?) make list of open files, order, font sizes, etc., tied to local storage on a machine
+
+- [ ] (1:30?) make a page of screenshots.
+
+
+- [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
+
+
+- [ ] (2:00?) in hub (around `mesg_codemirror_get_session`) should we be much more careful adding client to sync'd session -- have the client send back confirmation.
+
+- [ ] (1:30?) my "monitor" thing in admin does not work -- instead it should do the full roundtrip ping and check that time is small enough... if possible.
+
+- [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
+
+- [ ] (0:30?) when filling in settings for collaborators, show a spinner while waiting for info to download.
+
+- [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
+
+- [ ] (0:20?) make it so "connecting..." message also displays a message in same way as "upgrade" box.
+
+- [ ] (0:20?) when delete a tab, need to resize all tabs
+
+- [ ] (1:00?) make it so there is a way to see which hub user is connected to (say in settings or hover text over connection)
 
 - [ ] (3:00?) fix doc sync with multiple hubs
 
 - [ ] (1:00?) reconfigure cloud with (way?) more hubs
 
-
-
-
----
-
-- [ ] (1:00?)  bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.
-
 - [ ] (3:00?) worksheet scalability idea -- only render the outputs when they are about to appear!  how to hook into codemirror. Andrej cares.
-
-- [x] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
 
 - [ ] (2:00?) increase disk space in the base vm, then make it so we archive previous versions of sage
 
@@ -27,95 +57,7 @@
 
 - [ ] (0:30?) make it clear to users that their name is publicly visible even if they don t share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
 
-- [ ] (0:10?) responsive: sign in on *PHONE*
-     - get rid of tag line and cloud
-	 - shrink header
-
-- [ ] (0:15?) responsive: create account
-
-     - terms of usage; no way to scroll to bottom; maybe get rid
-       of header bar entirely (?)
-
-- [ ] (0:20?) responsive: create account  -- PHONE
-     - The error messages that appear to the left are not visible
-       at all in 320x480; try another layout or modal.
-     - "Create an account (or sign in)" -- shrink it to stay on one line.
-
-- [ ] (0:10?) responsive: get rid of fullscreen icon in upper right; makes no sense
-
-- [ ] (0:15?) responsive: help
-     - "Join the mailing list..." missing period at end.
-     - loose the cloud image when phone
-     - move help link to very top
-     - then new help link (to lower on page) just below.
-
-- [ ] (0:30?) responsive projects screen PHONE:
-     - don't show "a project is a complete self-contained..."
-     - [all/public/.etc] starts off to the left of well
-     - Find a project... to left of well
-     - too much space between "find a project..." and project list
-
-- [ ] (0:15?) responsive projects screen TABLET:
-     - top button row looks weird in most sizes
-
-- [ ] (1:00?) responsive project screen PHONE:
-     - if we conditionally disable this CSS rule
-             .salvus-project {
-                 top: 40px;
-             }
-       then the project menu bar correctly moves when
-       expanding the menu.
-
-- [ ] (1:00?) responsive editor screen PHONE:
-     - always use fullscreen mode for file editing, by default.
-     - big exit button at top right (?) that goes
-       back to file listing, but otherwise leave
-       it having "taken over" screen.
-     - big "execute" button (?)
-     - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
-
-- [ ] responsive project screen PHONE -- files
-     - big "Files" label is not necessary and wastes space
-     - Choose file... search is too big
-     - home icon awkwardly located
-     - Terminal command... is too big
-     - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
-
-- [ ] responsive project screen PHONE -- recent
-     - get rid of title at top
-     - <div class="salvus-editor"...> has a margin-left, that is useless; this is
-       right below "the actual recent file UI"
-     - just have one row of filenames rather than three, or be responsive to make it one...
-       in any case, the width of the filenames isn't long enough on mobile.
-     - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
-
-- [ ] responsive project screen PHONE -- new
-     - get rid of a margin-left:3em;
-     - get rid of h1 title at top
-     - don't auto-focus on name (since we don't want a keyboard by default)
-     - "Drop file to upload (or click)" --> "Tap to select files to upload"
-       (since drag and drop makes no sense on mobile.)
-
-
-- [ ] responsive project screen PHONE -- wrench
-     - get rid of h1
-     - collaborators "+Add" button should be on the left.
-     - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
-
-- [ ] responsive project screen PHONE -- search
-     - make keyboard hide on doing a search (?) -- if possible....
-
-- [ ] responsive project screen PHONE -- terminal
-     - doesn't even show up right now... I should try reverting to the desktop version, plus
-       using onscreen keyboard or a buffer area...
-
-
-
-----
-
 - [ ] terminal -- when copying/pasting, long lines become multiple lines, which is one of my pet peeves!
-
-- [ ] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
 
 - [ ] firefox bug (for perkinson): download of file doesn't work at all in firefox!
 
@@ -127,14 +69,13 @@
 
 - [ ] %prun profiler is now broken; just shows nonsense.
 
-- [ ] cd in terminal thing in cloud.sagemath not working.
+- [ ] cd in terminal thing in cloud.sagemath not working.  (huh?)
 
-
-- [ ] fulltext search in projects:
+- [ ] (1:00?) fulltext search in projects:
      - should exclude uuid cell marker lines
      - should exclude all binary files
 
-- [ ] converting the large cassandra12.pdf to png's to display in browser silently fails; probably a timeout (?)
+- [ ] (1:30?) converting the large cassandra12.pdf to png's to display in browser silently fails; probably a timeout (?)
 
 - [ ] (1:30?) firefox (linux) -- both copy and paste with terminal are completely broken
 
@@ -147,7 +88,7 @@
 ========================================
 
 
-- [ ] (0:30?) find a way to test SMC via tablet/phone running from chromeOS
+- [X] (0:30?) find a way to test SMC via tablet/phone running from chromeOS
 See http://www.overdigital.com/2013/06/02/how-to-use-your-chromebook-pixel-as-a-webserver/
 
    sudo /sbin/iptables -A INPUT -p tcp --dport 443 -j ACCEPT
@@ -156,7 +97,7 @@ See http://www.overdigital.com/2013/06/02/how-to-use-your-chromebook-pixel-as-a-
 - [ ] (2:00?) export sagews to sws
 
 
-- [ ] (1:00?) next release
+- [X] (1:00?) next release
   - note the silly hack running on web1 to keep disk cache for snap fresh
 #!/usr/bin/env python
 import os
@@ -180,9 +121,7 @@ while True:
 - [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 - [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
 - [ ] (2:00?) octave interface (like GAP) also doesn't work in .sagews !
-- [ ] (2:00?) make it so terminals never disconnects/hangs
-- [ ] (1:00?) share: make it possible to quite part of sharing -- deleting the project could do that.
-- [ ] (2:00?) make it so terminals never disconnect or hang
+
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
     %md
@@ -2291,7 +2230,7 @@ Why is there a colon in the string above -- that colon suggests a parsing error,
 
 
 
-- [x] (0:10?) (0:12) add link to http://www.sagemath.org/help.html
+- [x] (0:10?) (0:12)1 add link to http://www.sagemath.org/help.html
 
 - [x] (0:30?) (0:31) BUG: terminal path is not set correctly based on file path
 
@@ -2377,3 +2316,162 @@ sys.displayhook = f
 
 - [x] (0:30?) turn on responsive mode and make a list of issues
 
+
+
+- [x] (2:00?) (1:03) write a monitor that verifies that all hubs are up and responding to requests; if a hub goes down, automatically restart it:
+
+Add code to admin.py that does this periodically
+
+In [11]: urllib2.urlopen('http://10.1.1.3:5000', timeout=5).read()
+Out[11]: 'hub server'
+
+If it fails, it will then:
+  (1) restart hub,
+  (2) make entry in the database,
+  (3) send emails
+
+- [x] (0:20?) (0:37) record in DB table when hub service is started by monitor, if possible
+
+- [x] (0:30?) (0:04) nodetool repair on each node... (started on 10.1.1.2; will do others when this is done)
+      s._hosts.nodetool('repair', wait=True, timeout=7200)   # this took about 25 minutes to run...
+
+
+- [x] (1:00?) (0:28) enable logging so I can see why hub keeps hitting an infinite loop (prob related to doc sync) -- watch out regarding disk space though
+
+
+- [x] (2:00?) codemirror -- upgrade to 3.14; started testing in local, but it failed due cursor issues around output widgets. probably requires CSS changes to output div...
+
+
+- [x] (1:00?) (0:33) bug -- online LaTeX doesn't work when document has a space in the filename. -- still broken.; wontfix, but at least put in a useful error message
+
+
+- [x] (1:30?) (2:00) notification of new client version
+x  - add line to `make_coffee` to output a version file, based on the current time
+x  - also make it so `make_coffee` includes that version stamp in static javascript somehow.
+x  - if out of date, display a warning message indicator and suggest browser refresh/cache clear/etc.
+x  - run this check periodically, since users can have a browser open after I update!
+
+
+
+- [x] (0:10?) (0:39) responsive: sign in on *PHONE*;  create account
+     - get rid of tag line and cloud
+	 - shrink header
+     - terms of usage; no way to scroll to bottom; maybe get rid of header bar entirely (?)
+
+- [x] (0:20?) (0:34) responsive: create account; make error messages less useless.
+     - The error messages that appear to the left are not visible
+       at all in 320x480; try another layout or modal.
+     - "Create an account (or sign in)" -- shrink it to stay on one line.
+
+- [x] (0:10?) responsive: get rid of fullscreen icon in upper right; makes no sense
+
+- [x] (0:15?) (0:13) responsive: help
+    x - "Join the mailing list..." missing period at end.
+    x - loose the cloud image when phone
+    x - move help link to very top
+    x - then new help link (to lower on page) just below.
+
+- [x] (0:30?) (0:28) responsive: projects screen fixes
+   x  - don't show "a project is a complete self-contained..."
+   x - [all/public/.etc] starts off to the left of well
+   x - Find a project... to left of well
+   x  - too much space between "find a project..." and project list
+
+- [x] (1:00?) responsive: project screen
+     - if we conditionally disable this CSS rule
+             .salvus-project {
+                 top: 40px;
+             }
+       then the project menu bar correctly moves when
+       expanding the menu.
+
+- [x] (1:00?) show number of users/projects on help screen.
+
+- [x] (0:45?) responsive project screen -- files
+     x - big "Files" label is not necessary and wastes space
+     x - Choose file... search is too big
+     x - home icon awkwardly located
+     x - Terminal command... is too big
+     x - **top** all the project-file-link width:xxx px stuff must be redone to use responsive grid
+
+- [x] (0:45?) (0:28) responsive: recent files in project
+     x - get rid of title at top
+     ?? - <div class="salvus-editor"...> has a margin-left, that is useless; this is
+       right below "the actual recent file UI"
+     x - just have one row of filenames rather than three, or be responsive to make it one...
+       in any case, the width of the filenames isn't long enough on mobile.
+     x - the "save all" and "clear" buttons touch the "choose file..." box above. (and I NEVER use "save all")
+
+- [x] (0:45?) (0:40) responsive: project--> new
+     (sort of) - get rid of a margin-left:3em;
+     (no, because need to know path) - get rid of h1 title at top
+     x - don't auto-focus on name (since we don't want a keyboard by default)
+     x - "Drop file to upload (or click)" --> "Tap to select files to upload"
+       (since drag and drop makes no sense on mobile.)
+
+- [x] (0:45?) responsive: project settings
+    x - get rid of h1
+    x - collaborators "+Add" button should be on the left.
+    x - Adding and removing collabs works, but list looks ugly due to CSS flow.  Maybe button-ify?
+
+
+
+ - [X] (1:30?) (2:55) responsive -- file editor
+     x - always use fullscreen mode for file editing, by default.
+     x - big close button at top right (?) that goes
+       back to file listing, but otherwise leave
+       it having "taken over" screen.
+     x - big "go" button for worksheets
+     x - more useful "go to line" in mobile/responsive editor.
+
+- [x] (1:00?) (0:35) responsive -- terminal -- make it viewable and closeable
+
+- [x] (1:00?) responsive -- terminal: investigate onscreen keyboard for mobile (?)
+https://github.com/Mottie/Keyboard
+
+I tried it -- it could work, but is best avoided due to internationalization (at least), I think.
+
+    <!-- https://github.com/Mottie/Keyboard -- keyboard widget css & script -->
+    <link href="/jquery/plugins/Keyboard/css/keyboard.css" rel="stylesheet">
+    <script src="/jquery/plugins/Keyboard/js/jquery.keyboard.js"></script>
+
+- [x] (1:00?) (2:03) responsive/mobile -- try implementing a "stating input box" for mobile terminal -- something barely usable is more usable than nothing.
+
+- [x] (0:45?) (0:19) responsive -- file editor chat; fix to not be totally useless; really needs to be rewritten
+     - chat doesn't appear (or only partly does) -- needs to be a separate screen (?)
+
+- [x] (0:30?) (0:28) responsive: improve project search
+     - make keyboard hide on doing a search (?) -- if possible....
+
+- [x] (0:30?) (0:11) responsive -- worksheet tab button (for mobile)
+
+- [x] (0:30?) (0:25)  responsive -- file actions: accidental delete with ease!
+
+
+- [x] (1:00?) new release -- very carefully test all the css/html changes... then release.
+
+- [x] (0:30?) rate limit the `codemirror_get_session` stuff from users, since it can bring down server.
+- [x] (1:00?) rate limit all incoming client messages to avoid DOS (intentional or not)
+
+
+- [x] (0:10?) (0:13) version upgrade message -- suggest user explicitly refresh browser page, in case message re-appears.
+
+- [x] terminal -- burst control-c is stupid; instead, just delete output (?), but don't send control-c.
+-  [x] (2:00?) (1:25) make it so terminal never disconnects/hangs:
+
+   - x find way to simulate -- Do this in javascript console to simulate the problem easily:
+         require('salvus_client').salvus_client._fix_connection()
+or
+
+        s = require('salvus_client').salvus_client; s._last_pong=0; s._ping_check()
+
+   - define message that tells client to reset a channel
+   - change code in hub.coffee to send message whenever this would appear:
+         "error: unable to handle data on an unknown channel:"
+   - define listener in client.coffee for such messages
+   - make client re-create channel on message
+   - test
+
+   - wait, instead let's try just making the CLIENT re-allocate terminal channels on reconnect.
+
+- [x] (0:30?) does version upgrade message work on mobile (?)

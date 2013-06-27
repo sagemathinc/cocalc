@@ -33,6 +33,10 @@ cassandra = require 'cassandra'
 
 {defaults, required} = misc
 
+# Set the log level to debug
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
+
 # Run a bup command
 bup = (opts) ->
     opts = defaults opts,
@@ -1134,8 +1138,8 @@ exports.start_server = start_server = () ->
             cb()
         (cb) ->
             snapshot_active_projects(cb)
-        (cb) ->
-            ensure_all_projects_have_a_snapshot(cb)
+        #(cb) ->
+        #    ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
         #    test3()
         #    cb()

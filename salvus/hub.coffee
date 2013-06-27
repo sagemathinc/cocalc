@@ -18,6 +18,17 @@ SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
+# Anti DOS parameters:
+
+# If a client sends a burst of messages, we space handling them out by this many milliseconds:.
+MESG_QUEUE_INTERVAL_MS  = 50
+
+# If a client sends a burst of messages, we discard all but the most recent this many of them:
+MESG_QUEUE_MAX_COUNT    = 25
+
+# Any messages larger than this is not allowed (it could take a long time to handle, etc.).
+MESG_QUEUE_MAX_SIZE_MB  = 5
+
 # node.js -- builtin libraries
 net     = require 'net'
 assert  = require('assert')
@@ -39,6 +50,9 @@ cass    = require("cassandra")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 
+salvus_version = require('salvus_version')
+
+
 snap = require("snap")
 
 misc_node = require 'misc_node'
@@ -51,7 +65,6 @@ from_json = misc.from_json
 async   = require("async")
 program = require('commander')          # command line arguments -- https://github.com/visionmedia/commander.js/
 daemon  = require("start-stop-daemon")  # daemonize -- https://github.com/jiem/start-stop-daemon
-winston = require('winston')            # logging -- https://github.com/flatiron/winston
 sockjs  = require("sockjs")             # websockets (+legacy support) -- https://github.com/sockjs/sockjs-node
 uuid    = require('node-uuid')
 
@@ -60,6 +73,11 @@ Cookies = require('cookies')            # https://github.com/jed/cookies
 
 diffsync = require('diffsync')
 
+winston = require('winston')            # logging -- https://github.com/flatiron/winston
+
+# Set the log level
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
 
 # defaults
 # TEMPORARY until we flesh out the account types
@@ -447,19 +465,52 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
-        if data.length >= 100000000 # 10 MB
-            @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
+        if data.length >= MESG_QUEUE_MAX_SIZE_MB * 10000000
+            @error_to_client(id:mesg.id, error:"Messages are limited to #{MESG_QUEUE_MAX_SIZE_MB}MB.")
 
         if data.length == 0
             winston.error("EMPTY DATA MESSAGE -- ignoring!")
             return
 
+        if not @_handle_data_queue?
+            @_handle_data_queue = []
+
         channel = data[0]
         h = @_data_handlers[channel]
-        if h?
-            h(data.slice(1))
-        else
+        if not h?
             winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            return
+
+        # The rest of the function is basically the same as "h(data.slice(1))", except that
+        # it ensure that if there is a burst of messages, then (1) we handle at most 1 message
+        # per client every MESG_QUEUE_INTERVAL_MS, and we drop messages if there are too many.
+        # This is an anti-DOS measure.
+        
+        @_handle_data_queue.push([h, data.slice(1)])
+
+        if @_handle_data_queue_empty_function?
+            winston.debug("empty function is defined")
+            return
+
+        # define a function to empty the queue
+        @_handle_data_queue_empty_function = () =>
+            if @_handle_data_queue.length == 0
+                # done doing all tasks
+                delete @_handle_data_queue_empty_function
+                return
+
+            # drop oldest message to keep
+            while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
+                @_handle_data_queue.shift()
+
+            # get task
+            task = @_handle_data_queue.shift()
+            # do task
+            task[0](task[1])
+            # do next one in >= MESG_QUEUE_INTERVAL_MS
+            setTimeout( @_handle_data_queue_empty_function, MESG_QUEUE_INTERVAL_MS )
+
+        @_handle_data_queue_empty_function()
 
     register_data_handler: (h) ->
         # generate a random channel character that isn't already taken
@@ -1304,6 +1355,36 @@ class Client extends EventEmitter
                             else
                                 mesg.list = list
                                 @push_to_client(mesg)
+
+    ################################################
+    # The version of the running server.
+    ################################################
+    mesg_get_version: (mesg) =>
+        mesg.version = salvus_version.version
+        @push_to_client(mesg)
+
+    ################################################
+    # Stats about cloud.sagemath
+    ################################################
+    mesg_get_stats: (mesg) =>
+        server_stats (err, stats) =>
+            mesg.stats = stats
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(mesg)
+
+_server_stats_cache = undefined
+server_stats = (cb) ->
+    if _server_stats_cache?
+        cb(false, _server_stats_cache)
+        return
+
+    database.get_stats
+        cb : (err, stats) ->
+            _server_stats_cache = stats
+            cb(err, stats)
+            setTimeout( (() -> _server_stats_cache = undefined), 10*60*1000 )
 
 
 
@@ -2956,6 +3037,8 @@ sign_in = (client, mesg) =>
 
         # get account and check credentials
         (cb) ->
+            # Do not give away info about whether the e-mail address is valid:
+            error_mesg = "Invalid e-mail or password."
             database.get_account
                 email_address : mesg.email_address
                 cb            : (error, account) ->
@@ -2964,7 +3047,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error(error)
+                        sign_in_error(error_mesg)
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
@@ -2972,7 +3055,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
-                        sign_in_error("Invalid password for #{mesg.email_address}.")
+                        sign_in_error(error_mesg)
                         cb(true); return
                     else
 

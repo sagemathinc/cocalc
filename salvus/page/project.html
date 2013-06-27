@@ -55,7 +55,9 @@
 
         <div class="row">
             <!-- Displays the current path -->
-            <div class="project-file-top-current-path-container"><a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a></div>
+            <div class="not-small project-file-top-current-path-container">
+                <a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a>
+            </div>
 
             <!-- Tabs: place where you click on them -->
             <ul class="nav nav-pills  project-pages">
@@ -72,10 +74,10 @@
                 <!-- Create a new file (or, etc.)-->
                 <li class="super-menu project-pages-button"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> New</a></li>
 
-                <li class="super-menu project-pages-button "><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> </a></li>
+                <li class="super-menu project-pages-button "><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> <span class="not-big">Settings</span></a></li>
 
                 <!-- Search -->
-                <li class="super-menu project-pages-button project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i></a></li>
+                <li class="super-menu project-pages-button project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon icon-search"> </i> <span class="not-big">Search</span></a></li>
 
 
             </ul>
@@ -84,11 +86,11 @@
 
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing" style="margin-left:3em;">
-                <h1>Files </h1>
+                <h1 class="big-only">Files </h1>
                 <div class="row">
 
                     <div class="span2">
-                        <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file..." data-toggle="tooltip" data-placement="top" title="Search filenames the current directory">
+                        <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose file..." data-toggle="tooltip" data-placement="top" title="Show only files matching this search">
 
                     </div>
 
@@ -97,31 +99,32 @@
                         <div class="project-file-listing-current_path"></div>
                     </div>
 
+
                     <!-- Trash can link -->
-                    <div class="project-trash-can pull-right" style="padding-top:4px; font-size:16pt">
+                    <div class="project-trash-can pull-right" style="padding-top:4px; font-size:14pt">
                         <a href="#trash" data-toggle="tooltip" data-placement="bottom" title="Show the trash can."><i class="icon-trash"> </i></a>
                         <a href="#empty-trash" class="hide btn btn-danger"  data-toggle="tooltip" data-placement="left" title="Empty the trash."><i class="icon-trash"></i>&nbsp;</a>
                     </div>
 
                     <!-- Snapshots link -->
-                    <div class="project-snapshot pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex;">
+                    <div class="project-snapshot pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
                         <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files."><i class="icon-camera-retro"> </i></a>
                     </div>
 
                     <!-- Hide/show hidden files -->
-                    <div class="project-hidden-files pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex;">
+                    <div class="project-hidden-files pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
                         <a href="#hide-hidden" class='hide'  data-toggle="tooltip" data-placement="bottom" title="Toggle whether or not to show hidden files."><i class="icon-eye-open"> </i></a>
                         <a href="#show-hidden"  data-toggle="tooltip" data-placement="top" title="Toggle whether or not to show hidden files."><i class="icon-eye-close"> </i> </a>
                     </div>
 
                     <!-- Sort by time or alphabetical -->
-                    <div class="project-sort-files pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex;">
+                    <div class="project-sort-files pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
                         <a href="#sort-by-time" class='hide' data-toggle="tooltip" data-placement="bottom" title="Toggle whether files are sorted by time or filename."><i class="icon-text-height"> </i></a>
                         <a href="#dont-sort-by-time"  data-toggle="tooltip" data-placement="top" title="Toggle whether files are sorted by time or filename."><i class="icon-reorder"> </i> </a>
                     </div>
 
                     <!-- Refresh listing of files -->
-                    <div class="pull-right" style="padding-top:4px; font-size:16pt; margin-right:1ex; padding-left: 1em;">
+                    <div class="pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex; padding-left: 1em;">
                         <a href="#refresh-listing"  data-toggle="tooltip" data-placement="top" title="Refresh listing of files."><i class="icon-refresh"> </i></a>
                     </div>
 
@@ -130,7 +133,7 @@
                         <input class="project-command-line-input" type="text" placeholder="Terminal command..." data-toggle="tooltip" data-placement="top" title="Run command line in the current directory.">
                         <div class="project-command-line-output">
                             <div class="project-command-line-spinner hide"></div>
-                            <pre class="project-command-line-stdout hide"></pre>
+                            <pre class="project-command-line-stdout  hide"></pre>
                             <pre class="project-command-line-stderr hide"></pre>
                         </div>
                     </div>
@@ -152,7 +155,7 @@
 
             <!-- Open files in this project. -->
             <div class="project-editor hide">
-                <h1  style="margin-left:1em;">
+                <h1  class="big-only" style="margin-left:1em;">
                     Recent Files (<span class="project-editor-file-count">0</span>)
                 </h1>
 
@@ -162,58 +165,61 @@
 
             <!-- Create a new file -->
             <div class="project-new-file hide">
-                <h1  style="margin-left:1em;">Add files to <span class="project-new-file-if-root">root directory of project</span>
-                    <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a></h1>
-                <div class="well"  style="margin-left:3em;">
-                    <div class="row">
-                        <div class="span3">
-                            <h3><i class="icon-lightbulb"> </i>  New </h3>
-                        </div>
-                        <div class="span8" style="padding-top: 4px;">
+                <h1 style="margin-left:1em;">Add files to <span class="project-new-file-if-root">home directory of project</span>
+                    <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a>
+                </h1>
+                <div class="row">
+                    <div style="margin-left:3em;">
+                        <div class="row">
+                            <div class="span3">
+                                <h4><i class="icon-lightbulb"> </i>  New </h4>
+                            </div>
+                            <div class="span8" style="padding-top: 4px;">
 
-                            <span style="width:100%">
-                                <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
-                                <a class="btn btn-info" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                                <a class="btn btn-success" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                                <a class="btn btn-warning" href="#new-folder"><i class="icon-folder-close"></i> Directory</a>
-                                <!--<a class="btn btn-small" href="#old-worksheet"><i class="icon-file-alt"> </i> (Old Worksheet)</a>-->
-                            </span>
-                            <br><br>
-                            Name: <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
+                                <span style="width:100%">
+                                    <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
+                                    <a class="btn btn-warning" href="#new-folder"><i class="icon-folder-close"></i> Folder</a>
+                                    <a class="btn btn-info" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
+                                    <a class="btn btn-success" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                                    <!--<a class="btn btn-small" href="#old-worksheet"><i class="icon-file-alt"> </i> (Old Worksheet)</a>-->
+                                </span>
+                                <br><br>
+                                Filename: <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
+                            </div>
                         </div>
-                    </div>
-                    <hr>
-                    <div class="row" >
-                        <div class="span3">
-                            <h3><i class="icon-cloud-upload"> </i> From your computer </h3>
+                        <hr>
+                        <div class="row" >
+                            <div class="span3">
+                                <h4><i class="icon-cloud-upload"> </i> From your computer </h4>
+                            </div>
+                            <div class="span8 project-dropzone" style="overflow-y:auto; height:11em; background-color: #eeeeee;">
+                            </div>
                         </div>
-                        <div class="span8 project-dropzone" style="overflow-y:auto; height:15em; background-color: #eeeeee;">
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="span3">
-                            <h3><i class="icon-exchange"> </i> From the web</h3>
-                        </div>
-                        <div class="span5" style="padding-top: 4px;">
-                            <input class="project-import-from-web" type="text" placeholder="Paste a link to something on the web here..." style="width:100%">
-                        </div>
-                        <div class="span3">
-                            <a class="btn btn-large" href="#import-from-web"><i class="icon-external-link"> </i> Copy into my project</a>
-                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="span3">
+                                <h4><i class="icon-exchange"> </i> From the web</h4>
+                            </div>
+                            <div class="span5">
+                                <input class="project-import-from-web" type="text" placeholder="Paste a link to something on the web here..." style="width:100%">
+                            </div>
+                            <div class="span3">
+                                <a class="btn" href="#import-from-web"><i class="icon-external-link"> </i> Copy to project</a>
+                            </div>
 
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                <h1  style="margin-left:1em;">Project Settings and Controls</h1>
+                <h1 class="big-only" style="margin-left:1em;">Project Settings and Controls</h1>
                 <div class="row">
 
                     <div class="well" style="margin-left:3em;">
                         <div class="row-fluid">
-                            <div class="span8 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <!-- Title of the project (editable) -->
                                 <h4>
                                     <span class="project-public"><i class="icon-eye-open">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -224,14 +230,14 @@
                                 <div class="project-project_description" contenteditable="true">
                                 </div>
                             </div>
-                            <div class="span4 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <!-- The project id -->
                                 Project id:
                                 <span class="project-id"></span>
                             </div>
                         </div>
                         <div class="row-fluid">
-                            <div class="span8 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <div class="row-fluid">
                                     <div class="span4">
                                         <h4 class="pull-left">Collaborators</h4>
@@ -243,7 +249,7 @@
                                         <input class="project-add-collaborator-input" type="text" placeholder="Add collaborator...">
                                         <select class="project-add-collaborator-select hide"> </select>
 
-                                        <a href="#add-collaborator" class="disabled pull-right btn btn-primary" data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
+                                        <a href="#add-collaborator" style="margin-bottom: 1ex;" class="disabled pull-right btn btn-primary" data-toggle="tooltip" data-placement="right" title="Add a new collaborator to this project.">
                                             <i class="icon-plus"> </i>Add
                                         </a>
                                     </div>
@@ -253,10 +259,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="span4 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <!-- Disk usage of the project -->
-                                <h4>Disk usage</h4>
-                                <span class="project-disk_usage">computing...</span>
+                                <h4>Usage</h4>
+                                Disk: <span class="project-disk_usage">computing...</span>
                                 <!-- Download the whole project -->
                                 <!--<a href="#download-project" class="btn  btn-success">
 <i class="icon-cloud-download"> </i> Download Project
@@ -265,7 +271,7 @@
                             </div>
                         </div>
                         <div class="row-fluid">
-                            <div class="span8 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <h4>Restart...</h4>
                                 <!-- Restart the Sage worksheet server  -->
                                 <a href="#restart-worksheet-server" class="btn btn-warning"
@@ -281,7 +287,7 @@
                                     <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
                                 </a>
                             </div>
-                            <div class="span4 well project-settings-well">
+                            <div class="span6 well project-settings-well">
                                 <h4>Danger zone!</h4>
                                 <!-- Delete the project -->
                                 <a href="#delete-project" class="btn btn-danger"
@@ -304,7 +310,7 @@
 
             <!-- Search -->
             <div class="project-search hide">
-                <h1  style="margin-left:1em;">Search in Files</h1>
+                <h1  class="big-only" style="margin-left:1em;">Search in Files</h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well"  style="margin-left:3em;">
@@ -335,7 +341,7 @@
                 <div class="row">
                     <div class="project-search-output-further-results hide well">There were more results than displayed below.  Try making your search more specific.</div>
 
-                    <div class="project-search-output well hide span14"></div>
+                    <div class="project-search-output hide span14"></div>
 
 
                     <!-- command is currently not visible due to positioning -->
@@ -346,7 +352,7 @@
         </div>
     </div>
 
-    <div class="row span11 well well-small project-commit-single">
+    <div class="row span12 project-commit-single">
         <div class="span7">
             <div class="row">
                 <div class="project-commit-single-message"></div>
@@ -361,7 +367,7 @@
         </div>
     </div>
 
-    <div class="row span11 well well-small project-branch-single">
+    <div class="row span12 project-branch-single">
         <div class="row">
             <div class="span6 project-branch-single-name"></div>
             <div class="pull-right">
@@ -375,7 +381,7 @@
         </div>
     </div>
 
-    <div class="row span10 well well-small project-file-link-style project-file-link-snapshot">
+    <div class="row span12 project-file-link-style project-file-link-snapshot">
         <div class="span" style="width:120px">
             <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore file from snapshot"><i class="icon-external-link-sign"> </i> </a>
         </div>
@@ -387,7 +393,7 @@
         </div>
     </div>
 
-    <div class="row span10 well well-small project-directory-link-style project-directory-link-snapshot">
+    <div class="row span12 project-directory-link-style project-directory-link-snapshot">
         <div class="span" style="width:120px">
             <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore directory from snapshot"><i class="icon-external-link-sign"> </i> </a>
         </div>
@@ -399,11 +405,11 @@
         </div>
     </div>
 
-    <div class="row span10 well well-small project-file-link-style project-file-link">
-        <div class="span lighten" style="width: 10px;">
-            <i class="icon-move hide project-file-drag-handle   project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
+    <div class="row span12 project-file-link-style project-file-link">
+        <div class="span" style="width: 10px;">
+            <i class="icon-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
         </div>
-        <div class="span" style="width:60px">
+        <div class="span pull-right" style="width:60px">
             <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
                 <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file"><i class="icon-edit"> </i> </a>
                 <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file"><i class="icon-cloud-download"> </i> <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span></a>
@@ -415,7 +421,7 @@
             <!-- <i class="icon-check-empty lighten"> </i> -->   <!-- TODO: enable this when we have functions for groups of files -->
         </div>
         <div class="span" style="width: 20px;">
-            <i class="icon-file project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+            <i class="icon-file project-file-icon"> </i>
         </div>
 
         <div class="span" style="width:15em;">
@@ -426,22 +432,22 @@
             <span class="project-file-last-mod-date">
             </span>
         </div>
-        <div class="span smallish" style="width:25px;">
+        <div class="span smallish" style="width:30px;">
             <span class="project-file-size">
             </span>
         </div>
-        <div class="span3 lighten smallish">
+        <div class="big-only span4 lighten smallish">
             <span class="project-file-last-commit-date-container"><span class="project-file-last-commit-date"></span></span>
             (<a class="project-file-last-commit-message lighten"></a>)
         </div>
     </div>
-    <div class="row span10 well well-small project-directory-link project-file-link-style">
-        <div class="span lighten" style="width: 10px;">
+    <div class="row span12 project-directory-link project-file-link-style">
+        <div class="span " style="width: 10px;">
 
-            <i class="icon-move hide project-file-drag-handle  project-file-buttons " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>
+            <i class="icon-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>
 
         </div>
-        <div class="span" style="width:60px">
+        <div class="span pull-right" style="width:60px">
             <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
 
                 <a class="btn btn-small" href="#rename-file" data-toggle="tooltip" data-placement="bottom" title="Rename folder"><i class="icon-edit"> </i> </a>
@@ -457,7 +463,7 @@
 -->
         </div>
         <div class="span" style="width: 20px;">
-            <i class="icon-folder-close">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+            <i class="icon-folder-close"> </i>
         </div>
         <div class="span" style="width:15em;">
             <a  href="#open-file" class="project-directory-name"></a>
@@ -479,10 +485,13 @@
         <span></span>
     </div>
 
-    <span class="project-collab">
-        <span class="project-collab-first-name"></span>
-        <span class="project-collab-last-name"></span>
-        <i class="project-close-button lighten icon-remove"> </i>
-    </span>
+    <div class="project-collab">
+        <div style="white-space: nowrap;">
+            <span class="project-collab-first-name"></span>
+            <span class="project-collab-last-name"></span>
+            (<span class="project-collab-mode"></span>)
+            <i class="project-close-button lighten icon-remove pull-right" style="font-size:24px"> </i>
+        </div>
+    </div>
 
 </div>

@@ -3,6 +3,8 @@
 async = require('async')  # don't delete even if not used below, since this needs to be available to page/
 _     = require('underscore')
 
+salvus_version = require('salvus_version')
+
 diffsync = require('diffsync')
 
 message = require("message")
@@ -43,14 +45,44 @@ class Session extends EventEmitter
             conn         : required     # a Connection instance
             project_id   : required
             session_uuid : required
+            params       : required
             data_channel : undefined    # optional extra channel that is used for raw data
 
         @start_time   = misc.walltime()
         @conn         = opts.conn
+        @params       = opts.params
         @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @data_channel = opts.data_channel
         @emit("open")
+
+        if @reconnect?
+            @conn.on "connected", (() => setTimeout(@reconnect, 500))
+
+    reconnect: (cb) =>
+        # Called when the connection gets dropped, then reconnects
+        if not @conn._signed_in? or not @conn._signed_in
+            setTimeout(@reconnect, 500)
+            return  # do *NOT* do cb?() yet!
+
+        @conn.call
+            message : message.connect_to_session
+                session_uuid : @session_uuid
+                type         : @type()
+                project_id   : @project_id
+                params       : @params
+            cb      : (error, reply) =>
+                if error
+                    cb?(error); return
+                switch reply.event
+                    when 'error'
+                        cb?(reply.error)
+                    when 'session_connected'
+                        @data_channel = reply.data_channel
+                        @conn.register_data_handler(reply.data_channel, @handle_data)
+                        cb?()
+                    else
+                        cb?("bug in hub")
 
     terminate_session: (cb) =>
         @conn.call
@@ -142,6 +174,8 @@ class SageSession extends Session
 
         return uuid
 
+    type: () => "sage"
+
     introspect: (opts) ->
         opts.session_uuid = @session_uuid
         @conn.introspect(opts)
@@ -188,7 +222,8 @@ class SageSession extends Session
 ###
 
 class ConsoleSession extends Session
-    # nothing special yet
+    type: () => "console"
+
 
 
 
@@ -261,7 +296,7 @@ class exports.Connection extends EventEmitter
         # this many ms, or client will start freaking out and trying
         # to reconnect.  This limits things like max size of files we
         # can edit.
-        @_ping_check_interval = 45000  # 45 seconds.
+        @_ping_check_interval = 15000  # 15 seconds.
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->
@@ -270,6 +305,7 @@ class exports.Connection extends EventEmitter
 
     _ping_check: () ->
         if @_connected and (@_last_ping - @_last_pong > 1.1*@_ping_check_interval/1000.0)
+            @_signed_in = false
             @_fix_connection?()
 
     # Send a JSON message to the hub server.
@@ -313,6 +349,7 @@ class exports.Connection extends EventEmitter
                 @_cookies?(mesg)
             when "signed_in"
                 @account_id = mesg.account_id
+                @_signed_in = true
                 @emit("signed_in", mesg)
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
@@ -374,6 +411,7 @@ class exports.Connection extends EventEmitter
                             project_id   : opts.project_id
                             session_uuid : opts.session_uuid
                             data_channel : reply.data_channel
+                            params       : opts.params
                             cb           : opts.cb
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to connect_to_session message.")
@@ -417,6 +455,7 @@ class exports.Connection extends EventEmitter
             project_id   : required
             session_uuid : required
             data_channel : undefined
+            params       : required
             cb           : required
 
         session_opts =
@@ -424,6 +463,7 @@ class exports.Connection extends EventEmitter
             project_id   : opts.project_id
             session_uuid : opts.session_uuid
             data_channel : opts.data_channel
+            params       : opts.params
 
         switch opts.type
             when 'sage'
@@ -502,6 +542,34 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             path       : opts.path
             cb         : opts.cb
+
+    #################################################
+    # Version
+    #################################################
+    server_version: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_version()
+            cb      : (err, mesg) =>
+                opts.cb(err, mesg.version)
+
+    #################################################
+    # Stats
+    #################################################
+    server_stats: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message : message.get_stats()
+            cb      : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else if mesg.event == 'error'
+                    opts.cb(mesg.error)
+                else
+                    opts.cb(err, mesg.stats)
+
 
     #################################################
     # Account Management
