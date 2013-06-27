@@ -1430,6 +1430,3 @@ class Services(object):
         self.wait_until_up(' '.join(web_hosts))
         for service in services.split():
             self.start(service, parallel=True, wait=True)
-
->>>>>>> 19b5bdcd6396ec505274aad12f04b0831ec4ed87
-
