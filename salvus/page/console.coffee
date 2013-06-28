@@ -75,7 +75,7 @@ class Console extends EventEmitter
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
             font        :   # only for 'ttyjs' renderer
-                family : 'Courier, "Courier New", monospace' # CSS font-family
+                family : 'droid-sans-mono'   #   'Courier, "Courier New", monospace' # CSS font-family
                 size   : undefined                           # CSS font-size in points
                 line_height : 115                            # CSS line-height percentage
 

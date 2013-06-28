@@ -1,42 +1,48 @@
-- [ ] (0:45?) on reconnect and when opening a syncdoc session for the first time, sync with hub.  
+- [x] (0:10?) fix snap servers, again.
 
-- [ ] (1:00?) 3d: find the camera issue (that generates the large log)
+--> - [ ] (0:30?) respond to any emails on cloud mailing list that I missed.
+
+- [ ] (1:30?) idea: "invite a friend" link when sharing projects
+
+- [ ] (2:00?) file change auto-update (due to frequent requests)
+
+- [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).
+
+- [ ] (2:00?) Get per-project quotas working again, set at 8GB (say).
+
+- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
 
 - [ ] (1:00?) 3d: enable and test canvas rendering
 
 - [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
 
-- [ ] (2:00?) file change auto-update
-
-- [ ] (2:00?) way to star projects; show the starred ones first no matter what; have a starred selector
+- [ ] (1:30?) way to star projects; show the starred ones first no matter what; have a starred selector
 
 - [ ] (1:30?) HIGH PRIORITY BUG -- when trying to reconnect to local hub, due to error, the port doesn't get re-randomized, and sometimes I think this leads to a non-fixable situation.   I got thisa bunch with my cloud-dev project:
-
      "error Timed out trying to connect to locked socket on port 19056"
-
 In this case, restarting the hub fixed the problem, so it is clearly fully a problem at the
 level of the hub, not local hub.  High priority, since this can prevent a user from accessing their project.
-
 TEST: explicitly force restart, and verify that port changes.
 
-- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don t share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
+- [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
+
+- [ ] (3:00?) terminal fonts: make them configurable (at least 2-3 options) -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f89fa53f923c23
+
+- [ ] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
+
+- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
 
 - [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
 
-- [ ] (1:00?) cd in terminal thing in cloud.sagemath not working.  (huh?)
+- [ ] (1:00?) bug: cd in terminal thing in cloud.sagemath not working.  (huh?)
 
-- [ ] (1:00?) fulltext search in projects:
-     - should exclude uuid cell marker lines
-     - should exclude all binary files
+- [ ] (1:00?) fulltext search: should exclude uuid cell start marker lines
 
+- [ ] (1:00?) fulltext search: for output lines, double check each result and make sure search term isn't in uuid
 
 - [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
 
-- [ ] (2:00?) try implementing new bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
-
 - [ ] (1:30?) make list of open files, order, font sizes, etc., tied to local storage on a machine
-
-- [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
 - [ ] (2:00?) in hub (around `mesg_codemirror_get_session`) should we be much more careful adding client to sync'd session -- have the client send back confirmation.
 
@@ -99,8 +105,6 @@ TEST: explicitly force restart, and verify that port changes.
 - [ ] (2:00?) idea -- change compute nodes so they have a UUID that is indexed and regularly updated in DB, for project accounts... much like with snap servers.
 
 - [ ] (0:45?) confirmation before closing a project
-
-- [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 

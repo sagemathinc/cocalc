@@ -44,7 +44,8 @@
 }
 
 .salvus-console-terminal {
-    font-family: Courier, "Courier New", monospace;
+    /* font-family: Courier, "Courier New", monospace; */
+    font-family: droid-sans-mono;  /* really set in console.coffee, overriding this! */
     padding: 1ex;
     margin: 0px;
 }

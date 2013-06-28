@@ -1,3 +1,10 @@
+@font-face {
+  font-family: droid-sans-mono;
+  font-style: normal;
+  font-weight: normal;
+  src: local('Droid Sans Mono'), local('DroidSansMono'), url('fonts/droid/DroidSansMono.ttf') format('truetype');
+}
+
 
 help.css
 3d.css
@@ -12,7 +19,6 @@ interact.css
 explore.css
 consoles.css
 top_navbar.css
-
 
 .hide {
     display:none;
