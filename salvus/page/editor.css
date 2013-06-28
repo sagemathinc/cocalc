@@ -36,6 +36,7 @@ Editor for files in a project
 
 .salvus-editor-filename-pill {
     width:32%;
+    cursor: default;
 }
 
 @media (max-width: 979px)

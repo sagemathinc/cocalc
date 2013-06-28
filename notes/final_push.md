@@ -1,21 +1,56 @@
 - [x] (0:10?) fix snap servers, again.
 
---> - [ ] (0:30?) (0:10+) respond to any emails on cloud mailing list that I missed.
+- [x] (0:30?) (0:47+) respond to any emails on cloud mailing list that I missed.
 
+- [x] (0:15?) (0:02) pill tabs for open files aren't all cursor:default yet.  Oops.
 
 --> - [ ] (3:00?) (0:50+) terminal fonts: make them configurable (at least 2-3 options) -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f89fa53f923c23
    - x add droid
    - make a selector to choose droid/courier/etc.
 
---> - [ ] jquery ui sliders for mobile -- suggested by jason grout -- [sage-cloud] touch sliders
+- [x] jquery ui sliders for mobile -- suggested by jason grout -- [sage-cloud] touch sliders
+
+- [ ] (1:00?) `default_mode`:
+
+        a function you can call at some point to set a default mode (or modes). For example,
+
+           default_mode(gp)
+
+        would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
+
+        Once the above is implemented and working, which shouldn't be hard, then I could add some GUI support, possibly.   The GUI might insert something like the following at the top:
+
+        %hide
+        %auto
+        default_mode(gap)
+
+        At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
 - [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".  Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list) and   cannot change it."
+
+
+- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
+
+How about on the "create an account" page, where it says:
+
+"First name"
+"Last name"
+"Email"
+
+I change it to:
+
+"First name (everyone can see this)"
+"Last name (everyone can see this)"
+"Email (this is private)"
+
 
 - [ ] (1:30?) idea: "invite a friend" link when sharing projects
 
 - [ ] (2:00?) file change auto-update (due to frequent requests)
 
+- [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
 ---
+
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).
 
@@ -40,7 +75,6 @@ TEST: explicitly force restart, and verify that port changes.
 
 - [ ] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
 
-- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
 
 - [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
 
