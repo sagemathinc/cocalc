@@ -12,6 +12,8 @@
 
 - [ ] (0:45?) custom execute key (shift-enter/control-enter/enter)
 
+- [x] (0:20?) (0:05) bug -- change font size in terminal and click "make default"; the email in upper right changes to first name
+
 - [ ] (1:00?) `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
            default_mode(gp)
@@ -26,6 +28,8 @@
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
 - [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".  Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list) and   cannot change it."
+
+- [ ] (1:00?) when searching again, keep the last search in the input box
 
 - [ ] (0:30?) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
 

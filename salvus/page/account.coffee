@@ -466,7 +466,7 @@ class AccountSettings
                 else
                     set(element, value)
 
-        set_account_tab_label(true, @settings.first_name, @settings.last_name)
+        set_account_tab_label(true, @settings.email_address)
 
     # Store the properties that user can freely change to the backend database.
     # The other properties only get saved by direct api calls that require additional
