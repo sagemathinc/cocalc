@@ -1,3 +1,5 @@
+- [x] (1:30?) (0:41) make a page of screenshots.
+
 - [ ] (1:30?) HIGH PRIORITY BUG -- when trying to reconnect to local hub, due to error, the port doesn't get re-randomized, and sometimes I think this leads to a non-fixable situation.   I got thisa bunch with my cloud-dev project:
 
      "error Timed out trying to connect to locked socket on port 19056"
@@ -14,9 +16,6 @@ level of the hub, not local hub.  High priority, since this can prevent a user f
 - [ ] (2:00?) try implementing new bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
 
 - [ ] (1:30?) make list of open files, order, font sizes, etc., tied to local storage on a machine
-
-- [ ] (1:30?) make a page of screenshots.
-
 
 - [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
