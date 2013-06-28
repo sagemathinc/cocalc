@@ -278,6 +278,7 @@ class exports.Editor
     focus: () =>
         @element.find(".salvus-editor-search-openfiles-input").focus()
         @hide_editor_content()
+        @show_recent_file_list()
 
     hide_editor_content: () =>
         @_editor_content_visible = false
@@ -629,11 +630,20 @@ class exports.Editor
     warn_user: (filename, cb) =>
         cb(true)
 
+    hide_recent_file_list: () =>
+        $(".salvus-editor-recent-files").hide()
+        $(".project-editor-recent-files-header").hide()
+
+    show_recent_file_list: () =>
+        $(".salvus-editor-recent-files").show()
+        $(".project-editor-recent-files-header").show()
+
     # Make the give tab active.
     display_tab: (filename) =>
         if not @tabs[filename]?
             return
 
+        @hide_recent_file_list()
         @show_editor_content()
         prev_active_tab = @active_tab
         for name, tab of @tabs
@@ -1100,7 +1110,7 @@ class CodeMirrorEditor extends FileEditor
         cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
         @element.css(top:top)
-        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)        
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
 
         @element.height(elem_height).show()
         @element.show()
