@@ -1,3 +1,15 @@
+- [ ] (0:45?) on reconnect and when opening a syncdoc session for the first time, sync with hub.  
+
+- [ ] (1:00?) 3d: find the camera issue (that generates the large log)
+
+- [ ] (1:00?) 3d: enable and test canvas rendering
+
+- [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
+
+- [ ] (2:00?) file change auto-update
+
+- [ ] (2:00?) way to star projects; show the starred ones first no matter what; have a starred selector
+
 - [ ] (1:30?) HIGH PRIORITY BUG -- when trying to reconnect to local hub, due to error, the port doesn't get re-randomized, and sometimes I think this leads to a non-fixable situation.   I got thisa bunch with my cloud-dev project:
 
      "error Timed out trying to connect to locked socket on port 19056"
@@ -19,8 +31,6 @@ TEST: explicitly force restart, and verify that port changes.
 
 
 - [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
-
-- [ ] (2:00?) 3d: find the camera issue (that generates the large log), then include basic three.js-based rendering
 
 - [ ] (2:00?) try implementing new bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
 
@@ -2597,4 +2607,7 @@ while True:
 - [x] ui: investigate supporting 2d plotting using bokeh(?): https://github.com/ContinuumIO/Bokeh
 
 
+- [x] (1:00?) (0:20) document display must hide recent file list.
+ - when click on Recent, show salvus-editor-recent-files (and Recent Files header?)
+ - when click on file name, hide salvus-editor-recent-files (and Recent Files header?)
 
