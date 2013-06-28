@@ -1,5 +1,11 @@
+- [ ] (1:30?) HIGH PRIORITY BUG -- when trying to reconnect to local hub, due to error, the port doesn't get re-randomized, and sometimes I think this leads to a non-fixable situation.   I got thisa bunch with my cloud-dev project:
 
-- [ ] (0:20?) remove the "donate" link from cloud.sagemath help -- it resulted in 0 donations over 2 months, so waste of space!
+     "error Timed out trying to connect to locked socket on port 19056"
+
+In this case, restarting the hub fixed the problem, so it is clearly fully a problem at the
+level of the hub, not local hub.  High priority, since this can prevent a user from accessing their project.
+
+- [x] (0:20?) (0:03) remove the "donate" link from cloud.sagemath help -- it resulted in at most 1 donation over 2 months, so waste of space!
 
 - [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
 
