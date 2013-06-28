@@ -408,6 +408,7 @@ message
     last_name      : required      # user's last name
     email_address  : required      # address they just signed in using
     remember_me    : required      # true if sign in accomplished via remember_me cookie; otherwise, false.
+    hub            : required      # ip address (on vpn) of hub user connected to.
 
 # client --> hub
 message

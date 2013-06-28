@@ -283,7 +283,10 @@ sign_in = () ->
 
 first_login = true
 signed_in = (mesg) ->
-    # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
+    # Record which hub we're connected to.
+    $("#connection_bars").find("i").tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
+
+    # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
     account_settings.load_from_server (error) ->
         if error
@@ -324,6 +327,7 @@ salvus_client.on("signed_in", signed_in)
 sign_out = () ->
 
     # require('worksheet1').close_scratch_worksheet()
+    $("#connection_bars").find("i").tooltip('destroy')
 
     # Send a message to the server that the user explicitly
     # requested to sign out.  The server can clean up resources

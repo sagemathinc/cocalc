@@ -297,6 +297,7 @@ class Client extends EventEmitter
                         key : hash
                         cb  : (error, signed_in_mesg) =>
                             if not error and signed_in_mesg?
+                                signed_in_mesg.hub = program.host
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
@@ -416,7 +417,9 @@ class Client extends EventEmitter
             last_name     : required
             email_address : required
 
+        opts.hub = program.host
         opts.remember_me = true
+
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
@@ -485,11 +488,10 @@ class Client extends EventEmitter
         # it ensure that if there is a burst of messages, then (1) we handle at most 1 message
         # per client every MESG_QUEUE_INTERVAL_MS, and we drop messages if there are too many.
         # This is an anti-DOS measure.
-        
+
         @_handle_data_queue.push([h, data.slice(1)])
 
         if @_handle_data_queue_empty_function?
-            winston.debug("empty function is defined")
             return
 
         # define a function to empty the queue
@@ -3066,6 +3068,7 @@ sign_in = (client, mesg) =>
                             last_name     : account.last_name
                             email_address : mesg.email_address
                             remember_me   : false
+                            hub           : program.host
 
                         client.signed_in(signed_in_mesg)
                         client.push_to_client(signed_in_mesg)
@@ -3314,6 +3317,7 @@ create_account = (client, mesg) ->
                 first_name    : mesg.first_name
                 last_name     : mesg.last_name
                 email_address : mesg.email_address
+                hub           : program.host
             client.signed_in(mesg)
             client.push_to_client(mesg)
             cb()
@@ -4218,14 +4222,13 @@ exports.start_server = start_server = () ->
     init_sockjs_server()
     init_stateless_exec()
     http_server.listen(program.port, program.host)
-    winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}; keyspace #{program.keyspace}")
+    winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments
 #############################################
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
-    .option('-t, --tcp_port <n>', 'tcp port to listen on from other tornado servers (default: 5001)', parseInt, 5001)
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")

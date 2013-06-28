@@ -1,4 +1,6 @@
-- [x] (1:30?) (0:41) make a page of screenshots.
+- [x] (1:00?) (0:58) make it so there is a way to see which hub user is connected to (say in settings or hover text over connection)
+  - x sign in message should include info about hub signed into
+  - x display as a tooltip over connection (?)
 
 - [ ] (1:30?) HIGH PRIORITY BUG -- when trying to reconnect to local hub, due to error, the port doesn't get re-randomized, and sometimes I think this leads to a non-fixable situation.   I got thisa bunch with my cloud-dev project:
 
@@ -6,8 +8,6 @@
 
 In this case, restarting the hub fixed the problem, so it is clearly fully a problem at the
 level of the hub, not local hub.  High priority, since this can prevent a user from accessing their project.
-
-- [x] (0:20?) (0:03) remove the "donate" link from cloud.sagemath help -- it resulted in at most 1 donation over 2 months, so waste of space!
 
 - [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
 
@@ -19,7 +19,6 @@ level of the hub, not local hub.  High priority, since this can prevent a user f
 
 - [ ] (1:30?) idea: "invite a friend" (could even have a link when sharing projects)
 
-
 - [ ] (2:00?) in hub (around `mesg_codemirror_get_session`) should we be much more careful adding client to sync'd session -- have the client send back confirmation.
 
 - [ ] (1:30?) my "monitor" thing in admin does not work -- instead it should do the full roundtrip ping and check that time is small enough... if possible.
@@ -30,11 +29,7 @@ level of the hub, not local hub.  High priority, since this can prevent a user f
 
 - [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
 
-- [ ] (0:20?) make it so "connecting..." message also displays a message in same way as "upgrade" box.
-
 - [ ] (0:20?) when delete a tab, need to resize all tabs
-
-- [ ] (1:00?) make it so there is a way to see which hub user is connected to (say in settings or hover text over connection)
 
 - [ ] (3:00?) fix doc sync with multiple hubs
 
@@ -2486,3 +2481,8 @@ for service in services:
 
 s.stop('hub'); s.stop('nginx'); s.stop( [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
 s.start('hub')
+
+
+- [x] (1:30?) (0:41) make a page of screenshots.
+
+- [x] (0:20?) (0:03) remove the "donate" link from cloud.sagemath help -- it resulted in at most 1 donation over 2 months, so waste of space!

@@ -114,6 +114,7 @@
 }
 
 .project-pages-button {
+    cursor    : default;
      /* margin-right:-.9em; */  /* this scrunched the upper left project page buttons -- which looks unprofessional */
 }
 
