@@ -1,10 +1,21 @@
 - [x] (0:10?) fix snap servers, again.
 
---> - [ ] (0:30?) respond to any emails on cloud mailing list that I missed.
+--> - [ ] (0:30?) (0:10+) respond to any emails on cloud mailing list that I missed.
+
+
+--> - [ ] (3:00?) (0:50+) terminal fonts: make them configurable (at least 2-3 options) -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f89fa53f923c23
+   - x add droid
+   - make a selector to choose droid/courier/etc.
+
+--> - [ ] jquery ui sliders for mobile -- suggested by jason grout -- [sage-cloud] touch sliders
+
+- [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".  Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list) and   cannot change it."
 
 - [ ] (1:30?) idea: "invite a friend" link when sharing projects
 
 - [ ] (2:00?) file change auto-update (due to frequent requests)
+
+---
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).
 
@@ -26,7 +37,6 @@ TEST: explicitly force restart, and verify that port changes.
 
 - [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 
-- [ ] (3:00?) terminal fonts: make them configurable (at least 2-3 options) -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f89fa53f923c23
 
 - [ ] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
 
