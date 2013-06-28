@@ -171,8 +171,8 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="row span2" rel="tooltip" title="Your files will be automatically saved every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
-                                    <b>Editor</b> autosave in seconds (0 to disable)
+                                <div class="row span2" rel="tooltip" title="Your files will be automatically saved to disk every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
+                                    <b>Editor</b> autosave to disk in seconds (0 to disable)
                                 </div>
                                 <div class="row span1">
                                     <input id="account-settings-autosave" type="text" class="span1">
@@ -214,12 +214,29 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                                 </div>
                             </div>
                             <div class="row">
+                                <div class="row span2" rel="tooltip" title="The font for terminals.">
+                                    <b>Terminal</b> font
+                                </div>
+                                <div class="row span3">
+                                    <select class="account-settings-terminal-font span2">
+                                        <option value="droid-sans-mono">Droid Sans Mono</option>
+                                        <option value='Courier New'>Courier New</option>
+                                        <option value='monospace'>Monospace (browser default)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="row span2" rel="tooltip" title="The color scheme for terminals.">
                                     <b>Terminal</b> color scheme
                                 </div>
                                 <div class="row span3">
                                     <select class="account-settings-terminal-color_scheme span2">
                                     </select>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="row span5 lighten">
+                                    (Settings only apply to newly opened terminals.)
                                 </div>
                             </div>
 

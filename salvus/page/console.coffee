@@ -75,7 +75,7 @@ class Console extends EventEmitter
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
             font        :   # only for 'ttyjs' renderer
-                family : 'droid-sans-mono'   #   'Courier, "Courier New", monospace' # CSS font-family
+                family : undefined
                 size   : undefined                           # CSS font-size in points
                 line_height : 115                            # CSS line-height percentage
 
@@ -271,6 +271,10 @@ class Console extends EventEmitter
             @opts.color_scheme = settings.color_scheme
             if not @opts.color_scheme?
                 @opts.color_scheme = "default"
+        if not @opts.font.family?
+            @opts.font.family = settings.font
+            if not @opts.font.family?
+                @opts.font.family = "droid-sans-mono"
 
     _init_session_ping: () =>
         @session.ping(@console_is_open)
@@ -331,7 +335,7 @@ class Console extends EventEmitter
         ter = $(@terminal.element)
 
         ter.css
-            'font-family' : @opts.font.family
+            'font-family' : @opts.font.family + ", monospace"  # monospace fallback
             'font-size'   : "#{@opts.font.size}px"
             'line-height' : "#{@opts.font.line_height}%"
 

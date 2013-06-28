@@ -405,6 +405,9 @@ class AccountSettings
                     # color scheme
                     val.color_scheme = $(".account-settings-terminal-color_scheme").val()
 
+                    # color scheme
+                    val.font = $(".account-settings-terminal-font").val()
+
                 else
                     val = element.val()
             @settings[prop] = val
@@ -457,6 +460,9 @@ class AccountSettings
                         $(".account-settings-terminal-font_size-slider").slider('value', value.font_size)
                         $(".account-settings-terminal-font_size").val(value.font_size)
                         $(".account-settings-terminal-color_scheme").val(value.color_scheme)
+                        if not value.font?
+                            value.font = 'droid-sans-mono'
+                        $(".account-settings-terminal-font").val(value.font)
                 else
                     set(element, value)
 
