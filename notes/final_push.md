@@ -1,22 +1,9 @@
 
-- [x] (0:30?) (0:06) instead of "incorrect password", be more vague (thanks to P Purkayastha): https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
+- [ ] (0:20?) remove the "donate" link from cloud.sagemath help -- it resulted in 0 donations over 2 months, so waste of space!
 
-- [x] (0:30?) (0:12) add x button to "Upgrade" -- maybe they don't want to; and write "Upgrade by Refreshing your browser".
+- [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
 
-- [x] (0:30?) (0:26) hub: when mesg queue exceeds certain size, discard oldest messages!!
-
-- [x] (0:10?) (0:05) SMC --> Sagemath in title
-
-- [ ] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
----
-
-services = ['hub', 'nginx', 'snap']
-for service in services:
-    self.stop(service)
-
-
-s.stop('hub'); s.stop('nginx'); s.stop( [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
-s.start('hub')
+- [ ] (2:00?) 3d: find the camera issue (that generates the large log), then include basic three.js-based rendering
 
 - [ ] (2:00?) try implementing new bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
 
@@ -2474,3 +2461,23 @@ or
    - wait, instead let's try just making the CLIENT re-allocate terminal channels on reconnect.
 
 - [x] (0:30?) does version upgrade message work on mobile (?)
+
+
+- [x] (0:30?) (0:06) instead of "incorrect password", be more vague (thanks to P Purkayastha): https://mail.google.com/mail/u/0/?shva=1#inbox/13f7c40c2939a629
+
+- [x] (0:30?) (0:12) add x button to "Upgrade" -- maybe they don't want to; and write "Upgrade by Refreshing your browser".
+
+- [x] (0:30?) (0:26) hub: when mesg queue exceeds certain size, discard oldest messages!!
+
+- [x] (0:10?) (0:05) SMC --> Sagemath in title
+
+- [x] (0:30?) new release, but where I have a single command to restart only the web-related machine (hub + nginx + snap).
+---
+
+services = ['hub', 'nginx', 'snap']
+for service in services:
+    self.stop(service)
+
+
+s.stop('hub'); s.stop('nginx'); s.stop( [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
+s.start('hub')
