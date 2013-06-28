@@ -73,23 +73,16 @@ Maybe as easy as this:
 
 ---------------------------------------
 
+- [ ] idea -- html5 audio: http://www.html5rocks.com/en/tutorials/webaudio/intro/
 
-(1:00?) [ ] make a 64x64 hidpi favicon -- see http://nashape.com/blog/2012/09/12/big-favicons/
-(1:00?) [ ] BUG -- downloading a file that starts with "." removes the ".".
 
-(1:00?) [ ] %md -- autolink detection
+
+
 
 (1:00?) [ ] "Any decent text editor should make email-style quoting easy. For example, with BBEdit, you can make a selection and choose Increase Quote Level from the Text menu."  (from markdown definition)
 
 (1:00?) [ ] delete trailing whitespace and cursors -- instead of avoiding the line where there is a cursor, when applying a diff, put trailing whitespace back in, so that cursor moves to where it should.  This is a much better approach.
 
-(0:15?) [ ] "Latex Log" --> "Latex"; also the icons are wrong: icon-refresh should be "eye", and refresh should be next to latex.
-
-(0:45?) [ ] BUG -- latex output log -- isn't properly sized relative to container.
-
-(0:30?) [ ] expanding a section expands all subsections.  It shouldn't.
-
-(1:00?) [ ] copy bug in terminal -- it unhighlights when copying on a single line
 
 [ ] worksheet zoom mode -- need something for PRESENTATIONS -- zooming the browser is useless.
 
