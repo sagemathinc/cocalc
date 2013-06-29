@@ -442,7 +442,8 @@ class AccountSettings
                     element.attr('checked', value)
                 when 'evaluate_key'
                     element.val(value)
-                    set_evaluate_key?(value)
+                    if element.val() == null
+                        element.val("Shift-Enter")  # backwards compatibility
                 when 'default_system'
                     element.val(value)
                     $("#demo1-system").val(value)

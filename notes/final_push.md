@@ -28,7 +28,12 @@ I change it to:
 "Last name (everyone can see this)"
 "Email (this is private)"
 
---> - [ ] (0:10?) (0:16) ui: Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list)."
+- [x] (0:10?) (0:16) ui: Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list)."
+
+- [x] (0:15?) (0:08) keyboard shortcuts -- fix an issue with settings.
+
+--> - [ ] (0:45?) (0:12+) new release
+
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -49,8 +54,6 @@ I change it to:
 
 - [ ] (3:00?) keyboard shortcuts
 
-
-- [ ] (0:45?) new release
 
 - [ ] (1:30?) idea: "invite a friend" link when sharing projects
 

@@ -519,7 +519,7 @@ exports.unrestricted_account_settings =
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
     default_system     : 'sage'
-    evaluate_key       : 'shift-enter'
+    evaluate_key       : 'Shift-Enter'
     email_new_features : true
     email_maintenance  : true
     enable_tooltips    : true
