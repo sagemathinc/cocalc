@@ -28,6 +28,7 @@ I change it to:
 "Last name (everyone can see this)"
 "Email (this is private)"
 
+--> - [ ] (0:10?) (0:16) ui: Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list)."
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -42,7 +43,7 @@ I change it to:
 
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
-- [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".  Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list) and cannot change it."
+- [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".
 
 - [ ] (1:00?) when searching again, keep the last search in the input box
 

@@ -784,12 +784,22 @@ class ProjectPage
         if not @project?
             return
 
+        if @project.public
+            @container.find(".project-public").show()
+            @container.find(".project-private").hide()
+            @container.find(".project-heading-well").removeClass("private-project").addClass("public-project")
+        else
+            @container.find(".project-public").hide()
+            @container.find(".project-private").show()
+            @container.find(".project-heading-well").addClass("private-project").removeClass("public-project")
+
+
         @container.find(".project-project_title").text(@project.title)
         @container.find(".project-project_description").text(@project.description)
 
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
         top_navbar.set_button_label(@project.project_id, label)
-        document.title = "SMC: #{@project.title}"
+        document.title = "Sagemath: #{@project.title}"
 
         if not (@_computing_usage? and @_computing_usage)
             usage = @container.find(".project-disk_usage")
