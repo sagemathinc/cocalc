@@ -1,4 +1,4 @@
-
+--> - [ ] (0:20?) (0:12) enter = `action_key` thing should only do something for code evaluation; not save file for other docs
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,

@@ -873,15 +873,6 @@ class CodeMirrorEditor extends FileEditor
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
 
-        # We will replace this by a general framework...
-        evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
-        if evaluate_key == "enter"
-            evaluate_key = "Enter"
-        else
-            evaluate_key = "Shift-Enter"
-
-        console.log(evaluate_key)
-
         extraKeys =
             "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
             "Ctrl-Enter"   : (editor)   => @action_key(execute: true, advance:true, split:true)
@@ -914,7 +905,14 @@ class CodeMirrorEditor extends FileEditor
             "Tab"          : (editor)   => @press_tab_key(editor)
             "Esc"          : (editor)   => @interrupt_key()
 
-        extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
+        # We will replace this by a general framework...
+        if misc.filename_extension(filename) == "sagews"
+            evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
+            if evaluate_key == "enter"
+                evaluate_key = "Enter"
+            else
+                evaluate_key = "Shift-Enter"
+            extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
 
         make_editor = (node) =>
             return CodeMirror.fromTextArea node,
@@ -955,7 +953,8 @@ class CodeMirrorEditor extends FileEditor
         @init_change_event()
 
 
-    action_key: (opts) =>   # options are ignored by default; worksheets use them....
+    action_key: (opts) =>
+        # opts ignored by default; worksheets use them....
         @click_save_button()
 
     interrupt_key: () =>
