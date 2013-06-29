@@ -1,4 +1,6 @@
---> - [ ] (0:20?) (0:12) enter = `action_key` thing should only do something for code evaluation; not save file for other docs
+- [x] (0:20?) (0:12) enter = `action_key` thing should only do something for code evaluation; not save file for other docs
+
+--> - [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -13,8 +15,6 @@
 
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
-- [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".
-
 - [ ] (1:00?) when searching again, keep the last search in the input box
 
 - [ ] (3:00?) keyboard shortcuts
@@ -27,6 +27,8 @@
 - [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
 
 ---
+
+- [ ] (2:00?) transfer ownership: transfer this project to another user
 
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).

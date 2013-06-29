@@ -177,6 +177,9 @@ class ProjectPage
         @init_delete_project()
         @init_undelete_project()
 
+        @init_make_public()
+        @init_make_private()
+
         @init_add_collaborators()
 
         # Set the project id
@@ -788,10 +791,14 @@ class ProjectPage
             @container.find(".project-public").show()
             @container.find(".project-private").hide()
             @container.find(".project-heading-well").removeClass("private-project").addClass("public-project")
+            @container.find(".project-settings-make-public").hide()
+            @container.find(".project-settings-make-private").show()
         else
             @container.find(".project-public").hide()
             @container.find(".project-private").show()
             @container.find(".project-heading-well").addClass("private-project").removeClass("public-project")
+            @container.find(".project-settings-make-public").show()
+            @container.find(".project-settings-make-private").hide()
 
 
         @container.find(".project-project_title").text(@project.title)
@@ -1484,9 +1491,12 @@ class ProjectPage
             return false
 
     init_delete_project: () =>
-        link = @container.find("a[href=#delete-project]")
         if @project.deleted
-            link.hide()
+            @container.find(".project-settings-delete").hide()
+            return
+        else
+            @container.find(".project-settings-delete").show()
+        link = @container.find("a[href=#delete-project]")
         m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
         link.click () =>
             bootbox.confirm m, (result) =>
@@ -1510,9 +1520,15 @@ class ProjectPage
             return false
 
     init_undelete_project: () =>
+
+        if not @project.deleted
+            @container.find(".project-settings-undelete").hide()
+            return
+        else
+            @container.find(".project-settings-undelete").show()
+
         link = @container.find("a[href=#undelete-project]")
-        if @project.deleted
-            link.show()
+
         m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
             bootbox.confirm m, (result) =>
@@ -1533,6 +1549,53 @@ class ProjectPage
                                 alert_message
                                     type : "info"
                                     message : "Successfully undeleted project \"#{@project.title}\"."
+            return false
+
+
+    init_make_public: () =>
+        link = @container.find("a[href=#make-public]")
+        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Public</h4>Are you sure you want to make this project public?"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.make_public
+                        project_id : @project.project_id
+                        timeout    : 10
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to make project public.  Please try again later. #{err}"
+                            else
+                                @update_topbar()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully made project \"#{@project.title}\" public."
+            return false
+
+    init_make_private: () =>
+        link = @container.find("a[href=#make-private]")
+        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Private</h4>Are you sure you want to make this project private?"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.make_private
+                        project_id : @project.project_id
+                        timeout    : 10
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to make project private.  Please try again later. #{err}"
+                            else
+                                @update_topbar()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully made project \"#{@project.title}\" private."
             return false
 
     init_add_collaborators: () =>

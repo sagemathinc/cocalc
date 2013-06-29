@@ -288,20 +288,60 @@
                                 </a>
                             </div>
                             <div class="span6 well project-settings-well">
-                                <h4>Danger zone!</h4>
-                                <!-- Delete the project -->
-                                <a href="#delete-project" class="btn btn-danger"
-                                    data-toggle="tooltip" data-placement="right" title="Delete this project.">
-                                    <i class="icon-trash"> </i> Delete Project
-                                    <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
-                                </a>
-                                <a href="#undelete-project" class="btn btn-danger hide"
-                                    data-toggle="tooltip" data-placement="right" title="Undelete this project.">
-                                    <i class="icon-trash"> </i> Undelete Project
-                                    <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
-                                </a>
-                            </div>
+                                <h4>Danger!</h4>
+                                <div class="row-fluid project-settings-make-public hide">
+                                    <div class="span8">
+                                        Make it so anyone can see the contents of this project. You choose who can modify it.
+                                    </div>
+                                    <div class="span4">
+                                    <!-- Change public / private -->
+                                        <a href="#make-public" class="btn btn-danger  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Make it so anyone can see the contents of this project. You choose who can modify it.">
+                                            <i class="icon-eye-open"> </i> Make Public
+                                            <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="row-fluid project-settings-make-private hide" style="margin-top:1ex">
+                                    <div class="span8">
+                                        Make it so you choose who can see and modify contents of this project
+                                    </div>
+                                    <div class="span4 pull-right">
+                                        <a href="#make-private" class="btn btn-danger  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Make it so you choose who can see and modify contents of this project.">
+                                            <i class="icon-lock"> </i> Make Private
+                                            <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
 
+                                <div class="row-fluid project-settings-delete hide"  style="margin-top:1ex">
+                                <!-- Delete the project -->
+                                    <div class="span8">
+                                        Delete this project.
+                                    </div>
+                                    <div class="span4 pull-right">
+                                        <a href="#delete-project" class="btn btn-danger  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Delete this project.">
+                                            <i class="icon-trash"> </i> Delete Project
+                                            <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="row-fluid project-settings-undelete hide" style="margin-top:1ex">
+                                    <!-- Undelete the project -->
+                                    <div class="span8">
+                                        Undelete this project.
+                                    </div>
+                                    <div class="span4 pull-right">
+                                        <a href="#undelete-project" class="btn btn-danger  pull-right"
+                                            data-toggle="tooltip" data-placement="right" title="Undelete this project.">
+                                            <i class="icon-trash"> </i> Undelete Project
+                                            <span class="spinner hide"><i class="icon-spinner icon-spin"></i></span>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
