@@ -14,6 +14,20 @@
 
 - [x] customize evaluate shortcut (just a tiny bit for now).
 
+- [x] (0:30?) (0:04) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
+
+How about on the "create an account" page, where it says:
+
+"First name"
+"Last name"
+"Email"
+
+I change it to:
+
+"First name (everyone can see this)"
+"Last name (everyone can see this)"
+"Email (this is private)"
+
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -34,20 +48,6 @@
 
 - [ ] (3:00?) keyboard shortcuts
 
-
---> - [ ] (0:30?) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
-
-How about on the "create an account" page, where it says:
-
-"First name"
-"Last name"
-"Email"
-
-I change it to:
-
-"First name (everyone can see this)"
-"Last name (everyone can see this)"
-"Email (this is private)"
 
 - [ ] (0:45?) new release
 
