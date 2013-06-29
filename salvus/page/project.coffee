@@ -292,6 +292,21 @@ class ProjectPage
     close: () =>
         top_navbar.remove_page(@project.project_id)
 
+
+    # Reload the @project attribute from the database, and re-initialize
+    # ui elements, mainly in settings.
+    reload_settings: (cb) =>
+        salvus_client.project_info
+            project_id : @project.project_id
+            cb         : (err, info) =>
+                if err
+                    cb?(err)
+                    return
+                @project = info
+                @update_topbar()
+                cb?()
+
+
     ########################################
     # Launch open sessions
     ########################################
@@ -1559,9 +1574,9 @@ class ProjectPage
             bootbox.confirm m, (result) =>
                 if result
                     link.find(".spinner").show()
-                    salvus_client.make_public
+                    salvus_client.update_project_data
                         project_id : @project.project_id
-                        timeout    : 10
+                        data       : {public:true}
                         cb         : (err) =>
                             link.find(".spinner").hide()
                             if err
@@ -1569,7 +1584,7 @@ class ProjectPage
                                     type : "error"
                                     message: "Error trying to make project public.  Please try again later. #{err}"
                             else
-                                @update_topbar()
+                                @reload_settings()
                                 alert_message
                                     type : "info"
                                     message : "Successfully made project \"#{@project.title}\" public."
@@ -1582,9 +1597,9 @@ class ProjectPage
             bootbox.confirm m, (result) =>
                 if result
                     link.find(".spinner").show()
-                    salvus_client.make_private
+                    salvus_client.update_project_data
                         project_id : @project.project_id
-                        timeout    : 10
+                        data       : {public:false}
                         cb         : (err) =>
                             link.find(".spinner").hide()
                             if err
@@ -1592,7 +1607,7 @@ class ProjectPage
                                     type : "error"
                                     message: "Error trying to make project private.  Please try again later. #{err}"
                             else
-                                @update_topbar()
+                                @reload_settings()
                                 alert_message
                                     type : "info"
                                     message : "Successfully made project \"#{@project.title}\" private."

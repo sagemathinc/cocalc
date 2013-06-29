@@ -1,6 +1,6 @@
 - [x] (0:20?) (0:12) enter = `action_key` thing should only do something for code evaluation; not save file for other docs
 
---> - [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".
+- [x] (0:45?) (2:30) ui: project settings -- easy way to toggle "public versus private".
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -19,6 +19,10 @@
 
 - [ ] (3:00?) keyboard shortcuts
 
+- [ ] (1:00?) new release:
+    - add irssi
+    - switch to minified js
+
 
 - [ ] (1:30?) idea: "invite a friend" link when sharing projects
 
@@ -29,6 +33,8 @@
 ---
 
 - [ ] (2:00?) transfer ownership: transfer this project to another user
+
+- [ ] (4:00?) feature -- make it easy to join a 100% persistent logged irc chatroom for sage while on cloud (?)
 
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).

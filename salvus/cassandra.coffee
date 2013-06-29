@@ -43,6 +43,10 @@ exports.days_ago = (d) -> exports.hours_ago(24*d)
 
 #########################################################################
 
+
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
+
+
 DEFAULT_PLAN_ID = "13814000-1dd2-11b2-0000-fe8ebeead9df"
 
 
@@ -1056,11 +1060,13 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             project_id : required
             columns    : required
+            objectify  : false
             cb         : required
         @select_one
             table   : 'projects'
             where   : {project_id: opts.project_id}
             columns : opts.columns
+            objectify : opts.objectify
             json    : ['quota', 'location']
             cb      : opts.cb
 
@@ -1243,18 +1249,6 @@ class exports.Salvus extends exports.Cassandra
             where : {project_id : opts.project_id}
             cb    : opts.cb
 
-        # This was an implementation of destructive deletion.  But this has no place in SMC, given
-        # that we have numerous snapshots of all data of every project anyways!
-        #async.series([
-        #    (cb) =>
-        #        @delete(table:'projects', where:{project_id : opts.project_id}, cb:cb)
-        #    (cb) =>
-        #        @delete(table:'project_users', where:{project_id : opts.project_id}, cb:cb)
-        #], (err) ->
-        #    if opts.cb?
-        #        opts.cb(err)
-        #)
-
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
     get_projects_with_user: (opts) ->
@@ -1311,7 +1305,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table     : 'projects'
             json      : ['location', 'quota']
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
+            columns   : PROJECT_COLUMNS
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->

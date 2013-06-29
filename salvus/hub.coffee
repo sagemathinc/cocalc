@@ -988,6 +988,17 @@ class Client extends EventEmitter
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
 
+    mesg_get_project_info: (mesg) =>
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            else
+                project.get_info (err, info) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_info(id:mesg.id, info:info))
+
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
         @get_project mesg, 'read', (err, project) =>
@@ -2723,6 +2734,18 @@ class Project
                 else
                     cb(err, result[0])
 
+    # get latest info about project from database
+    get_info: (cb) =>
+        database.get_project_data
+            project_id : @project_id
+            objectify  : true
+            columns    : cass.PROJECT_COLUMNS
+            cb         : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(err, result)
+
     call: (opts) =>
         opts = defaults opts,
             mesg    : required
@@ -2806,6 +2829,8 @@ class Project
     size_of_local_copy: (cb) =>
         winston.debug("project2-size_of_local_copy-stub")
         cb(false, 0)
+
+
 
     # move_file: (src, dest, cb) =>
     #     @exec(message.project_exec(command: "mv", args: [src, dest]), cb)

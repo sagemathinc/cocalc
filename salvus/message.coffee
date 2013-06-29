@@ -950,6 +950,25 @@ message
     id         : required
     project_id : required
 
+
+
+# Get info about a single project (instead of all projects)
+# client --> hub
+message
+    event      : 'get_project_info'
+    project_id : required
+    id         : undefined
+
+# Response to get_project_info message.
+# hub --> client
+message
+    event      : 'project_info'
+    info       : required
+    id         : undefined
+
+
+
+
 # client --> hub
 message
     event      : 'get_projects'
