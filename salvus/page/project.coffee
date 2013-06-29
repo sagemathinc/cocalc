@@ -1619,6 +1619,12 @@ class ProjectPage
         collabs = @container.find(".project-collaborators")
         add_button = @container.find("a[href=#add-collaborator]")
 
+        @container.find("a[href=#invite-friend]").click () =>
+            require('social').invite_friend
+                message         : "I would like to collaborate with you via the <a href='https://cloud.sagemath.com/signup'>Sagemath Cloud</a> on #{@project.title} (#{@project.description}).  Please join using this email address, and you will be automatically added to my project."
+                collab_projects : [@project.project_id]
+            return false
+
         remove_collaborator = (c) =>
             # c = {first_name:? , last_name:?, account_id:?}
             m = "Are you sure that you want to remove #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
@@ -1679,6 +1685,7 @@ class ProjectPage
             x = input.val()
             if x == ""
                 select.html("").hide()
+                @container.find("a[href=#invite-friend]").hide()
                 add_button.addClass('disabled')
                 return
             salvus_client.user_search
@@ -1692,6 +1699,7 @@ class ProjectPage
                             select.append($("<option>").attr(value:r.account_id, label:name))
                     select.show()
                     add_button.removeClass('disabled')
+                    @container.find("a[href=#invite-friend]").show()
 
         invite_selected = () =>
             x = select.find(":selected")

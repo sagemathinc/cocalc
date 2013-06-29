@@ -4,7 +4,13 @@
 
 - [x] (0:20?) (0:09) add number of active projects to help display about usage...
 
---> - [ ] (1:30?) idea: "invite a friend" link when sharing projects
+--> - [ ] (2:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
+
+  - page: design&implement the dialog where the user composes the message to friend
+  - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
+  - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g.,
+    getting added to a project, banned, etc. -- should work with email+*@'s.
+
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
