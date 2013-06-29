@@ -1,38 +1,3 @@
-- [x] (0:10?) fix snap servers, again.
-
-- [x] (0:30?) (0:47+) respond to any emails on cloud mailing list that I missed.
-
-- [x] (0:15?) (0:02) pill tabs for open files aren't all cursor:default yet.  Oops.
-
-- [x] (3:00?) (1:40) terminal fonts: make them configurable (at least 2-3 options) -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f89fa53f923c23
-   - x add droid
-   - x make a selector to choose droid/courier/etc.
-
-- [x] jquery ui sliders for mobile -- suggested by jason grout -- [sage-cloud] touch sliders
-
-- [x] (0:20?) (0:05) bug -- change font size in terminal and click "make default"; the email in upper right changes to first name
-
-- [x] customize evaluate shortcut (just a tiny bit for now).
-
-- [x] (0:30?) (0:04) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
-
-How about on the "create an account" page, where it says:
-
-"First name"
-"Last name"
-"Email"
-
-I change it to:
-
-"First name (everyone can see this)"
-"Last name (everyone can see this)"
-"Email (this is private)"
-
-- [x] (0:10?) (0:16) ui: Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list)."
-
-- [x] (0:15?) (0:08) keyboard shortcuts -- fix an issue with settings.
-
---> - [ ] (0:45?) (0:12+) new release
 
 
 - [ ] (1:00?) implement `default_mode`:
@@ -2671,4 +2636,42 @@ while True:
 - [x] (1:00?) (0:20) document display must hide recent file list.
  - when click on Recent, show salvus-editor-recent-files (and Recent Files header?)
  - when click on file name, hide salvus-editor-recent-files (and Recent Files header?)
+
+
+ - [x] (0:10?) fix snap servers, again.
+
+- [x] (0:30?) (0:47+) respond to any emails on cloud mailing list that I missed.
+
+- [x] (0:15?) (0:02) pill tabs for open files aren't all cursor:default yet.  Oops.
+
+- [x] (3:00?) (1:40) terminal fonts: make them configurable (at least 2-3 options) -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f89fa53f923c23
+   - x add droid
+   - x make a selector to choose droid/courier/etc.
+
+- [x] jquery ui sliders for mobile -- suggested by jason grout -- [sage-cloud] touch sliders
+
+- [x] (0:20?) (0:05) bug -- change font size in terminal and click "make default"; the email in upper right changes to first name
+
+- [x] customize evaluate shortcut (just a tiny bit for now).
+
+- [x] (0:30?) (0:04) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
+
+How about on the "create an account" page, where it says:
+
+"First name"
+"Last name"
+"Email"
+
+I change it to:
+
+"First name (everyone can see this)"
+"Last name (everyone can see this)"
+"Email (this is private)"
+
+- [x] (0:10?) (0:16) ui: Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list)."
+
+- [x] (0:15?) (0:08) keyboard shortcuts -- fix an issue with settings.
+
+- [x] (0:45?) (0:28) new release
+
 
