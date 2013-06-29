@@ -1066,7 +1066,7 @@ message
 # Get various stats about cloud.sagemath.
 # The output stats object is at least has this
 #
-#   { accounts: number, projects: number }
+#   { accounts: number, projects: number, active_projects:number }
 #
 # and may have other stats.  These are cached in RAM on the
 # server for some amount of time, so might not be the

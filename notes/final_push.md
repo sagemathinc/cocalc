@@ -1,6 +1,10 @@
-- [x] (0:20?) (0:12) enter = `action_key` thing should only do something for code evaluation; not save file for other docs
+- [ ] (1:00?) new release:
+    - add irssi
+    - switch to minified js
 
-- [x] (0:45?) (2:30) ui: project settings -- easy way to toggle "public versus private".
+- [x] (0:20?) (0:09) add number of active projects to help display about usage...
+
+--> - [ ] (1:30?) idea: "invite a friend" link when sharing projects
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -19,12 +23,6 @@
 
 - [ ] (3:00?) keyboard shortcuts
 
-- [ ] (1:00?) new release:
-    - add irssi
-    - switch to minified js
-
-
-- [ ] (1:30?) idea: "invite a friend" link when sharing projects
 
 - [ ] (2:00?) file change auto-update (due to frequent requests)
 
@@ -2681,5 +2679,9 @@ I change it to:
 - [x] (0:15?) (0:08) keyboard shortcuts -- fix an issue with settings.
 
 - [x] (0:45?) (0:28) new release
+
+- [x] (0:20?) (0:12) enter = `action_key` thing should only do something for code evaluation; not save file for other docs
+- [x] (0:45?) (2:30) ui: project settings -- easy way to toggle "public versus private".
+
 
 

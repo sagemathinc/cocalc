@@ -1426,6 +1426,12 @@ class exports.Salvus extends exports.Cassandra
                     cb    : (err, val) =>
                         stats.projects = val
                         cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    cb    : (err, val) =>
+                        stats.active_projects = val
+                        cb(err)
         ], (err) =>
             opts.cb(err, stats)
         )

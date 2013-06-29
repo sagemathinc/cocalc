@@ -12,3 +12,4 @@ update_stats = () ->
             X = $(".salvus-stats").show()
             X.find(".salvus-stats-accounts").text(stats.accounts)
             X.find(".salvus-stats-projects").text(stats.projects)
+            X.find(".salvus-stats-active-projects").text(stats.active_projects)
