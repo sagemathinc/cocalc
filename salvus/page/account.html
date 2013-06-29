@@ -104,8 +104,12 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
     <div class="row span11 indent1 hide" id="account-settings">
 
-        <a href="#sign-out" class="btn btn-success pull-right"><i class="icon-signout"> </i> Sign out</a>
 
+        <div class="pull-right" style="margin-bottom: 1em;">
+            <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button"><i class="icon-save"> </i> Save</button>
+            <button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>
+            <a href="#sign-out" class="btn btn-success"><i class="icon-signout"> </i> Sign out</a>
+        </div>
 
         <div class="alert alert-error" id="account-settings-error">
             <button type="button" class="close" data-dismiss="alert">×</button>
@@ -124,6 +128,11 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                 <form>
                     <div class="row">
                         <div class="span5 well">
+                            <div class="row">
+                                <div class="row span5">
+                                    <h3>Account</h3>
+                                </div>
+                            </div>
                             <div class="row">
                                 <div class="row span2">First name</div>
                                 <div class="row span3"><input class="span3" type="text" value="" id="account-settings-first_name"></div>
@@ -148,31 +157,26 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                         </div>
 
                         <div class="span5 well">
-                            <!-- TODO: evaluate key not implemented. -->
-                            <div class="row hide">
-                                <div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Evaluate key</div>
-                                <div class="row span3">
-                                    <select id="account-settings-evaluate_key">
-                                        <option value="shift-enter">Shift-Enter</option>
-                                        <option value="enter">Enter</option>
-                                    </select>
-                                    <br><span class="lighten"></span>
-                                </div>
-                                <br><br>
-                                <div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
-                                <div class="hide row span3">
-                                    <select id="account-settings-default_system">
-                                        <option value="sage">Sage</option>
-                                        <!--		  <option value="python">Python</option>
-<option value="gp">Pari/GP</option>
-<option value="maxima">Maxima</option>
-<option value="gap">GAP</option> -->
-                                    </select>
+                            <div class="row">
+                                <div class="row span5">
+                                    <h3>Editor</h3>
                                 </div>
                             </div>
+
+                            <div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
+                            <div class="hide row span3">
+                                <select id="account-settings-default_system">
+                                    <option value="sage">Sage</option>
+                                    <option value="python">Python</option>
+                                    <option value="gp">Pari/GP</option>
+                                    <option value="maxima">Maxima</option>
+                                    <option value="gap">GAP</option>
+                                </select>
+                            </div>
+
                             <div class="row">
                                 <div class="row span2" rel="tooltip" title="Your files will be automatically saved to disk every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
-                                    <b>Editor</b> autosave to disk in seconds (0 to disable)
+                                    <b>Autosave</b> in seconds (0 to disable)
                                 </div>
                                 <div class="row span1">
                                     <input id="account-settings-autosave" type="text" class="span1">
@@ -181,6 +185,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                                     <div id="account-settings-autosave-slider"></div>
                                 </div>
                             </div>
+
                             <!--
                             <div class="row">
                                 <div class="row span2" rel="tooltip" title="">
@@ -203,8 +208,16 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
                         <div class="span5 well account-settings-terminal">
                             <div class="row">
+                                <div class="row span5">
+                                    <h3>Terminal</h3>
+                                    <span class="lighten">
+                                        (Settings only apply to newly opened worksheets.)<br><br>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="row span2" rel="tooltip" title="The default font size for terminals.">
-                                    <b>Terminal</b> font size (px)
+                                    Font size (px)
                                 </div>
                                 <div class="row span1">
                                     <input class="account-settings-terminal-font_size span1" type="text">
@@ -215,7 +228,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
                             <div class="row">
                                 <div class="row span2" rel="tooltip" title="The font for terminals.">
-                                    <b>Terminal</b> font
+                                    Font family
                                 </div>
                                 <div class="row span3">
                                     <select class="account-settings-terminal-font span2">
@@ -227,20 +240,41 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
                             <div class="row">
                                 <div class="row span2" rel="tooltip" title="The color scheme for terminals.">
-                                    <b>Terminal</b> color scheme
+                                    Color scheme
                                 </div>
                                 <div class="row span3">
                                     <select class="account-settings-terminal-color_scheme span2">
                                     </select>
                                 </div>
                             </div>
+
+                        </div>
+
+                        <div class="span10 well account-settings-keyboard">
                             <div class="row">
-                                <div class="row span5 lighten">
-                                    (Settings only apply to newly opened terminals.)
+                                <div class="row span6">
+                                    <h3>Keyboard</h3>
+                                    <span class="lighten">
+                                        (Settings only apply to newly opened worksheets.)<br><br>
+                                    </span>
                                 </div>
                             </div>
 
+
+                            <div class="row">
+                                <div class="row span6" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets)."><b>Worksheet</b> evaluate key</div>
+                                <div class="row span4">
+                                    <select id="account-settings-evaluate_key">
+                                        <option value="Shift-Enter">Shift-Enter</option>
+                                        <option value="Enter">Enter (Shift-Enter for newline)</option>
+                                    </select>
+                                    <br><span class="lighten"></span>
+                                </div>
+                            </div>
+
+
                         </div>
+
                     </div>
 
 
@@ -285,10 +319,6 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                         </div>
                     </div>
 
-                    <div class="row span4">
-                        <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button"><i class="icon-save"> </i> Save</button>
-                        <button class="pull-right btn" id="account-settings-cancel-changes-button">Cancel</button>
-                    </div>
                 </form>
             </div>
 

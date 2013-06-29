@@ -10,11 +10,12 @@
 
 - [x] jquery ui sliders for mobile -- suggested by jason grout -- [sage-cloud] touch sliders
 
-- [ ] (0:45?) custom execute key (shift-enter/control-enter/enter)
-
 - [x] (0:20?) (0:05) bug -- change font size in terminal and click "make default"; the email in upper right changes to first name
 
-- [ ] (1:00?) `default_mode`:
+- [x] customize evaluate shortcut (just a tiny bit for now).
+
+
+- [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
            default_mode(gp)
         would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
@@ -27,11 +28,14 @@
 
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
-- [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".  Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list) and   cannot change it."
+- [ ] (0:45?) ui: project settings -- easy way to toggle "public versus private".  Also, Harald says: "in a private project, the settings panel show a "public eye" (and not the lock symbol like in the project overview list) and cannot change it."
 
 - [ ] (1:00?) when searching again, keep the last search in the input box
 
-- [ ] (0:30?) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
+- [ ] (3:00?) keyboard shortcuts
+
+
+--> - [ ] (0:30?) make it clear to users that their name is publicly visible even if they don't share projects -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f6293ef1a19861
 
 How about on the "create an account" page, where it says:
 
@@ -51,8 +55,8 @@ I change it to:
 
 - [ ] (2:00?) file change auto-update (due to frequent requests)
 
-
 - [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
+
 ---
 
 
