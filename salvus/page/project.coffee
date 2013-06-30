@@ -862,7 +862,10 @@ class ProjectPage
 
         t = @container.find(".project-file-listing-current_path")
         t.empty()
-        t.append($("<a>").html(template_home_icon.clone().click(() =>
+        if @current_path.length == 0
+            return
+        
+        t.append($("<a class=project-file-listing-path-segment-link>").html(template_home_icon.clone().click(() =>
             @current_path=[]; @update_file_list_tab())))
 
         new_current_path = []
@@ -870,7 +873,7 @@ class ProjectPage
         for segment in @current_path
             new_current_path.push(segment)
             t.append(template_segment_sep.clone())
-            t.append($("<a>"
+            t.append($("<a class=project-file-listing-path-segment-link>"
             ).text(segment
             ).data("current_path",new_current_path[..]  # [..] means "make a copy"
             ).click((elt) =>

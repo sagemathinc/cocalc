@@ -114,7 +114,7 @@
 }
 
 .project-pages-button {
-    cursor    : default;
+    cursor    : pointer;
      /* margin-right:-.9em; */  /* this scrunched the upper left project page buttons -- which looks unprofessional */
 }
 
@@ -205,6 +205,10 @@
     margin-left:25px;
     font-weight: bold;
     font-size: 17px;
+}
+
+.project-file-listing-path-segment-link {
+    cursor: pointer;       
 }
 
 .project-file-top-current-path-container {

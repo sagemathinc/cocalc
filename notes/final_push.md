@@ -1,4 +1,6 @@
-- [ ] (0:20?) cursor:default --> cursor:"hand".  -- idea of Harald Schilly
+--> - [ ] (0:20?) (0:24) cursor:default --> cursor:"hand".  -- idea of Harald Schilly
+
+- [ ] (0:15?) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
 
 - [ ] (1:00?) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
 
@@ -13,8 +15,6 @@
 
 - [ ] (1:00?) project search -- add a clear button "The search box has no "clear" button, e.g. a circled X, right next to it
 > to clear it." -- suggested by Harald Schilly
-
-- [ ] (0:15?) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
 
 - [ ] (2:00?) file change auto-update (due to frequent requests)
 

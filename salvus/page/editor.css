@@ -36,7 +36,7 @@ Editor for files in a project
 
 .salvus-editor-filename-pill {
     width:32%;
-    cursor: default;
+    cursor: pointer;
 }
 
 @media (max-width: 979px)
@@ -171,6 +171,7 @@ Editor for files in a project
     position: fixed;
     z-index: 10;
     right: 0;
+    cursor : pointer;
 
 }
 
@@ -233,7 +234,7 @@ Editor for files in a project
 
 .sagews-input:hover {
     cursor: pointer;
-    cursor: hand;
+    cursor: pointer;
     background-color:#0044cc;
     background-image: linear-gradient(to bottom, #0088cc, #0044cc);
 }

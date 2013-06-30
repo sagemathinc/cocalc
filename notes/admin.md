@@ -18,9 +18,7 @@
 
     cd ~/salvus/salvus/conf/deploy_cloud
     replace x y services
-    cd ../../
-    . salvus-env
-    ipython
+    cd ../../; . salvus-env; ipython
     import admin; s = admin.Services('conf/deploy_cloud/')
     time s.restart_web()
     # start the bup ls on 10.1.1.3 for now
