@@ -1,16 +1,22 @@
-- [ ] (1:00?) new release:
-    - add irssi
-    - switch to minified js
+- [ ] (0:20?) cursor:default --> cursor:"hand".  -- idea of Harald Schilly
 
-- [x] (0:20?) (0:09) add number of active projects to help display about usage...
+- [ ] (1:00?) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
 
---> - [ ] (2:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
+- [ ] (1:00?) home icon: remove it when in the home directory and make it larger otherwise (right now it is the same size as the path) -- idea of Harald Schilly
+
+- [ ] (2:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
 
   - page: design&implement the dialog where the user composes the message to friend
   - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
   - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g.,
     getting added to a project, banned, etc. -- should work with email+*@'s.
 
+- [ ] (1:00?) project search -- add a clear button "The search box has no "clear" button, e.g. a circled X, right next to it
+> to clear it." -- suggested by Harald Schilly
+
+- [ ] (0:15?) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
+
+- [ ] (2:00?) file change auto-update (due to frequent requests)
 
 - [ ] (1:00?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -25,21 +31,19 @@
 
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
+- [ ] (1:00?) new release:
+    - add irssi
+    - switch to minified js
+
 - [ ] (1:00?) when searching again, keep the last search in the input box
 
 - [ ] (3:00?) keyboard shortcuts
 
-
-- [ ] (2:00?) file change auto-update (due to frequent requests)
-
 - [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
-
----
 
 - [ ] (2:00?) transfer ownership: transfer this project to another user
 
 - [ ] (4:00?) feature -- make it easy to join a 100% persistent logged irc chatroom for sage while on cloud (?)
-
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).
 
@@ -69,6 +73,8 @@ TEST: explicitly force restart, and verify that port changes.
 - [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
 
 - [ ] (1:00?) bug: cd in terminal thing in cloud.sagemath not working.  (huh?)
+
+- [ ] (5:00?) terminal: implement a scrollbar
 
 - [ ] (1:00?) fulltext search: should exclude uuid cell start marker lines
 
@@ -2689,5 +2695,6 @@ I change it to:
 - [x] (0:20?) (0:12) enter = `action_key` thing should only do something for code evaluation; not save file for other docs
 - [x] (0:45?) (2:30) ui: project settings -- easy way to toggle "public versus private".
 
+- [x] (0:20?) (0:09) add number of active projects to help display about usage...
 
 

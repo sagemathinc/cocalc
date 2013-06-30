@@ -1,7 +1,34 @@
+# Upgrade web-only part:
+
+    new_vm_image.py
+    ssh localhost -p 2222
+    cd salvus/salvus &&  git pull &&  ./make_coffee && sleep 3 && ./make_coffee
+    sudo apt-get update; sudo apt-get upgrade
+    # if changes, reboot
+    shutdown_this_computer
+    cd ~/vm/images/base/
+    virsh_list
+    virsh_undefine
+    ./push
+    cd ~/salvus/salvus/conf/deploy_storm
+    replace x y services
+    cd ../..; . salvus-env; ipython
+    import admin; s = admin.Services('conf/deploy_storm/')
+    time s.restart_web()
+
+    cd ~/salvus/salvus/conf/deploy_cloud
+    replace x y services
+    cd ../../
+    . salvus-env
+    ipython
+    import admin; s = admin.Services('conf/deploy_cloud/')
+    time s.restart_web()
+    # start the bup ls on 10.1.1.3 for now
+    # check that all bups working: keep_fresh
+
 # Restart only web part:
 
-s.stop('hub'); s.stop('nginx'); [s.restart('vm',hostname='web%s'%i) for i in range(1,5)]; s.start('nginx');
-s.start('hub')
+s.restart_web()
 
 # How to snapshot all nodes:
 time s._hosts.nodetool('snapshot salvus', wait=True)
