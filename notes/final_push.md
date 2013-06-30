@@ -1,6 +1,6 @@
 - [x] (0:20?) (0:24) cursor:default --> cursor:"hand".  -- idea of Harald Schilly
 
-- [x] (0:15?) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
+- [x] (0:15?) (0:08) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
 
 - [ ] (1:00?) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
 
