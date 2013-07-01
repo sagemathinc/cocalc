@@ -276,9 +276,9 @@ class exports.Editor
 
 
     focus: () =>
-        @element.find(".salvus-editor-search-openfiles-input").focus()
         @hide_editor_content()
         @show_recent_file_list()
+        @element.find(".salvus-editor-search-openfiles-input").focus()
 
     hide_editor_content: () =>
         @_editor_content_visible = false

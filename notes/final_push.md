@@ -1,12 +1,8 @@
 - [x] new version (see admin.py)
-
 - [x] (1:00?) (0:04) make solarized the default console theme...
-
-- [ ] (0:20?) clicking on Recent -- critical to focus the search box (except on mobile)
-
 - [x] (0:15?) (0:03) icon-refresh for new version message (?)
-
-- [ ] (0:30?) "Saving..." spinner seems to be not resetting on reconnect.
+- [x] (0:30?) "Saving..." spinner seems to be not resetting on reconnect.
+- [x] (0:20?) (0:09) clicking on Recent -- critical to focus the search box (except on mobile)
 
 - [ ] (0:15?) tooltip over file pill should show full path to that file.
 

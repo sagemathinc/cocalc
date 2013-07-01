@@ -706,6 +706,9 @@ class ProjectPage
                 tab.onshow = () ->
                     that.container.css('position', 'absolute')
                     that.update_topbar()
+            else if name == "project-search"
+                tab.onshow = () ->
+                    that.container.find(".project-search-form-input").focus()
 
         @display_tab("project-file-listing")
 

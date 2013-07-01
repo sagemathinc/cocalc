@@ -8,17 +8,17 @@
     shutdown_this_computer
     cd ~/vm/images/base/
     virsh_list
-    virsh_undefine
+    virsh_undefine      # name of vm
     ./push
     cd ~/salvus/salvus/conf/deploy_storm
     replace x y services
-    cd ../..; . salvus-env; ipython
+    cd ~/salvus/salvus; . salvus-env; ipython
     import admin; s = admin.Services('conf/deploy_storm/')
     time s.restart_web()
 
     cd ~/salvus/salvus/conf/deploy_cloud
     replace x y services
-    cd ../../; . salvus-env; ipython
+    cd ~/salvus/salvus; . salvus-env; ipython
     import admin; s = admin.Services('conf/deploy_cloud/')
     time s.restart_web()
     # start the bup ls on 10.1.1.3 for now
