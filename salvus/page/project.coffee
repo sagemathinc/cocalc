@@ -365,7 +365,7 @@ class ProjectPage
     ########################################
 
     init_file_search: () =>
-        @_file_search_box = @container.find(".salvus-project-search-for-file-input").tooltip(delay:{ show: 500, hide: 100 })
+        @_file_search_box = @container.find(".salvus-project-search-for-file-input")
         @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 @display_tab("project-editor")
@@ -864,7 +864,7 @@ class ProjectPage
         t.empty()
         if @current_path.length == 0
             return
-        
+
         t.append($("<a class=project-file-listing-path-segment-link>").html(template_home_icon.clone().click(() =>
             @current_path=[]; @update_file_list_tab())))
 

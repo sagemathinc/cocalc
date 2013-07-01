@@ -2,9 +2,19 @@
 
 - [x] (0:15?) (0:08) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
 
-- [ ] (1:00?) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
+- [x] (1:00?) home icon: remove it when in the home directory and make it larger otherwise (right now it is the same size as the path) -- idea of Harald Schilly
 
-- [ ] (1:00?) home icon: remove it when in the home directory and make it larger otherwise (right now it is the same size as the path) -- idea of Harald Schilly
+- [x] (1:00?) (0:06) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
+
+- [ ] (2:00?) make it so worksheet save results in making all image links permanent.
+
+- [ ] (2:00?) make it so foo?[enter] works.
+
+- [ ] (4:00?) (1:07+) ability to open sws files
+
+- [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
+
+- [ ] (3:00?) implement a simple "explore" public projects page
 
 - [ ] (2:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
 
@@ -119,8 +129,6 @@ TEST: explicitly force restart, and verify that port changes.
 - [ ] (1:00?) firefox terminal -- resizes all wrong; bottom lines chopped... sometimes.  But sometimes fine.
 
 - [ ] (2:00?) (won't fix for now) opera; cursor goes haywire if you zoom in codemirror.
-
-- [ ] (4:00?) (1:07+) ability to open sws files
 
 - [ ] (2:00?) export sagews to sws
 

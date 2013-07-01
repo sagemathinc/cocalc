@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 
+. salvus-env
+
 time coffee -b -o page/temp page/*.coffee
 ./make_page

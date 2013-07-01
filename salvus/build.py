@@ -23,7 +23,7 @@ Before building, do:
 
    1. ATLAS:
 
-         apt-get install libatlas3gf-base
+         apt-get install libatlas3gf-base liblapack-dev   
          cd /usr/lib/
          ln -s libatlas.so.3gf libatlas.so
          ln -s libcblas.so.3gf libcblas.so
