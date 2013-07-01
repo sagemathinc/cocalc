@@ -53,6 +53,7 @@
     padding-bottom:0px;
     min-height:26px;
     border-bottom: 1px solid #eee;
+    cursor: pointer;
 }
 
 @media (max-width: 979px) {
@@ -97,6 +98,7 @@
     padding-bottom:0px;
     min-height:26px;
     border-bottom: 1px solid #eee;
+    cursor: pointer;
 }
 
 .project-directory-link:hover {

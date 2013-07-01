@@ -9,7 +9,19 @@
 - [x] (0:20?) (0:05) clicking on an open file pill, then the search, makes it so it won't scroll vertically.
 - [x] (1:00?) (0:32) project search -- add a clear button "The search box has no "clear" button, e.g. a circled X, right next to it to clear it." -- suggested by Harald Schilly
 
+- [ ] (0:10?) cursor should be pointer over entire file/directory box.
+
 - [ ] (2:00?) make it so foo?[enter] works.
+
+- [ ] (0:45?) If I manually click the close-X on all open tabs in a project, I end up at a white and empty page. That's "logical", but it would be more user-friendly if it opens up the "recent" tab (or maybe "files", but i think recent is slightly better)
+
+- [ ] (0:45?) what's also annoying is this "do you really want to leave" confirmation when I close firefox. I suggest, that you only show it iff there is more than one unsaved worksheet. If all of them are saved, it's not an issue, right?-- Harald Schilly;  I should either make it an option or only enable it if some sync is failing for a file.
+
+- [ ] (1:00?) interact dropdown + firefox = bad -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f8df6166275c26
+        @interact
+        def _(a = slider(100), b = srange(-10,10,include_endpoint=True)):
+            print a + b
+in my Firefox 22 in Linux, I cannot see the text in the drop down list because it's just white on white.  ?-- Harald Schilly
 
 - [ ] (4:00?) (1:07+) ability to open sws files
 
