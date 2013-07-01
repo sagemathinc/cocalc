@@ -443,6 +443,10 @@ class ProjectPage
         @container.find(".project-search-output-case-sensitive").change () =>
             @search($(input_boxes[0]).val())
 
+        @container.find(".project-search-form-input-clear").click () =>
+            input_boxes.val('')
+            return false
+
     search: (query) =>
         if $.trim(query) == ""
             return
@@ -498,6 +502,8 @@ class ProjectPage
                 else
                     @container.find(".project-search-output-further-results").hide()
                 for line in results
+                    if line.trim() == ""
+                        continue
                     i = line.indexOf(":")
                     num_results += 1
                     if i == -1
@@ -694,19 +700,15 @@ class ProjectPage
 
             if name == "project-file-listing"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.update_file_list_tab()
             else if name == "project-editor"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.show_new_file_tab()
             else if name == "project-settings"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.update_topbar()
             else if name == "project-search"
                 tab.onshow = () ->
@@ -723,6 +725,7 @@ class ProjectPage
 
     display_tab: (name) =>
         @container.find(".project-pages").children().removeClass('active')
+        @container.css(position: 'absolute')
         for tab in @tabs
             if tab.name == name
                 @current_tab = tab
@@ -733,6 +736,7 @@ class ProjectPage
             else
                 tab.target.hide()
         @editor?.resize_open_file_tabs()
+
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
@@ -1626,7 +1630,7 @@ class ProjectPage
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
-        add_button = @container.find("a[href=#add-collaborator]")
+        add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
 
         @container.find("a[href=#invite-friend]").click () =>
             require('social').invite_friend

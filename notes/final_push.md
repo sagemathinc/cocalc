@@ -6,8 +6,8 @@
 - [x] (0:15?) (0:27) tooltip over file pill should show full path to that file.
 - [x] (0:20?) (0:10) search -- show more context
 - [x] (0:20?) when clicking on "recent" the tabs scroll around, due to the scrollbar appearing.  Need to account for this in ` resize_open_file_tabs` in editor.coffee
-
-- [ ] (0:20?) clicking on an open file pill, then the search, makes it so it won't scroll vertically.
+- [x] (0:20?) (0:05) clicking on an open file pill, then the search, makes it so it won't scroll vertically.
+- [x] (1:00?) (0:32) project search -- add a clear button "The search box has no "clear" button, e.g. a circled X, right next to it to clear it." -- suggested by Harald Schilly
 
 - [ ] (2:00?) make it so foo?[enter] works.
 
@@ -25,9 +25,6 @@
   - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
   - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g.,
     getting added to a project, banned, etc. -- should work with email+*@'s.
-
-- [ ] (1:00?) project search -- add a clear button "The search box has no "clear" button, e.g. a circled X, right next to it
-> to clear it." -- suggested by Harald Schilly
 
 - [ ] (2:00?) file change auto-update (due to frequent requests)
 

@@ -90,7 +90,7 @@
                 <div class="row">
 
                     <div class="span2">
-                        <input class="salvus-project-search-for-file-input search-query" type="text" placeholder="Choose files...">
+                        <input class="salvus-project-search-for-file-input search-query" type="search" placeholder="Choose files...">
 
                     </div>
 
@@ -247,8 +247,8 @@
 
 
                                         <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
-                                        <input class="project-add-collaborator-input" type="text" placeholder="Search for people">
-                                        <select class="project-add-collaborator-select hide"> </select>
+                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search for people">
+                                        <select multiple="multiple" class="project-add-collaborator-select hide"> </select>
 
                                         <a href="#add-collaborator" style="margin-bottom: 1ex;" class="disabled pull-right btn btn-primary" data-toggle="tooltip" data-placement="right" title="Add a selected person as collaborator on this project.">
                                             <i class="icon-plus"> </i>Add
@@ -359,7 +359,8 @@
                 <div class="row well"  style="margin-left:3em;">
                     <div class="span8">
 
-                        <input class="project-search-form-input search-query" type="text" placeholder="Search files in the current directory...">
+                        <input class="project-search-form-input search-query" type="search" placeholder="Search files in the current directory...">
+                        <i class="project-search-form-input-clear lighten icon-remove-circle" style="cursor:pointer; margin-left: -2em;"></i>
 
                         <div class="project-search-output-path-heading hide">
                             <span class="lighten"><a href="#project-file-listing">Navigate to a different folder</a> to search in it.</span>

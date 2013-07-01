@@ -16,6 +16,7 @@
 
 .project-add-collaborator-input {
     width: 95%;
+    margin-bottom: 1ex !important;
 }
 
 .project-file-listing-container {
@@ -208,7 +209,7 @@
 }
 
 .project-file-listing-path-segment-link {
-    cursor: pointer;       
+    cursor: pointer;
 }
 
 .project-file-top-current-path-container {
