@@ -6,7 +6,15 @@
 
 - [x] (1:00?) (0:06) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
 
-- [ ] (2:00?) make it so worksheet save results in making all image links permanent.
+- [x] (2:00?) (4:48) make it so worksheet save results in making all image links permanent.
+
+- [ ] (0:20?) clicking on Recent -- critical to focus the search box (except on mobile)
+
+- [ ] (0:15?) icon-refresh for new version message (?)
+
+- [ ] (0:30?) "Saving..." spinner seems to be not resetting on reconnect.
+
+- [ ] (0:15?) tooltip over file pill should show full path to that file.
 
 - [ ] (2:00?) make it so foo?[enter] works.
 
@@ -15,6 +23,8 @@
 - [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
 
 - [ ] (3:00?) implement a simple "explore" public projects page
+
+- [ ] (1:00?) possible optimization (maybe already implemented) -- if local_hub is about to send a blob that global_hub already knows (via db), then don't bother....
 
 - [ ] (2:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
 

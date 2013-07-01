@@ -61,7 +61,7 @@ exports.defaults = (obj1, obj2) ->
     return r
 
 # WARNING -- don't accidentally use this as a default:
-exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
+exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 # Current time in milliseconds since epoch
 exports.mswalltime = (t) ->

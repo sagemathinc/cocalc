@@ -1161,13 +1161,13 @@ program.usage('[start/stop/restart/status] [options]')
 
 # program.resend_all_commits = true
 
-process.addListener "uncaughtException", (err) ->
-    winston.error "Uncaught exception: " + err
-    if console? and console.trace?
-        console.trace()
-
 if program._name == 'snap.js'
     #    winston.info "snap daemon"
+
+    process.addListener "uncaughtException", (err) ->
+        winston.error "Uncaught exception: " + err
+        if console? and console.trace?
+            console.trace()
 
     conf = {pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}
 

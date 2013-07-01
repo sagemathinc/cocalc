@@ -19,15 +19,18 @@ SALVUS_HOME=process.cwd()
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
 # Anti DOS parameters:
-
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
 MESG_QUEUE_INTERVAL_MS  = 50
-
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
 MESG_QUEUE_MAX_COUNT    = 25
-
 # Any messages larger than this is not allowed (it could take a long time to handle, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 5
+
+# Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
+# many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
+# then the BLOB is saved indefinitely.
+BLOB_TTL = 60*60*24    # 1 day
+
 
 # node.js -- builtin libraries
 net     = require 'net'
@@ -84,6 +87,7 @@ winston.add(winston.transports.Console, level: 'debug')
 DEFAULTS =
     quota        : {disk:{soft:128, hard:256}, inode:{soft:4096, hard:8192}}
     idle_timeout : 3600
+
 
 # module scope variables:
 http_server        = null
@@ -1107,9 +1111,9 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
+                        # Store content in uuid:blob store and provide a temporary link to it.
                         u = uuid.v4()
-                        save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
+                        save_blob uuid:u, value:content.blob, ttl:BLOB_TTL, cb:(err) =>
                             if err
                                 @error_to_client(id:mesg.id, error:err)
                             else
@@ -1161,28 +1165,6 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(resp)
-
-    ################################################
-    # Blob Management
-    ################################################
-    mesg_save_blobs_to_project: (mesg) =>
-        user_has_write_access_to_project
-            project_id : mesg.project_id
-            account_id : @account_id
-            cb : (err, t) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else if not t
-                    @error_to_client(id:mesg.id, error:"Cannot save blobs, since user does not have write access to this project.")
-                else
-                    save_blobs_to_project
-                        project_id : mesg.project_id
-                        blob_ids   : mesg.blob_ids
-                        cb         : (err) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:err)
-                            else:
-                                @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # CodeMirror Sessions
@@ -1971,7 +1953,16 @@ class CodeMirrorSession
                     @sync() # will cause a reconnect
                 else
                     resp.id = mesg.id
-                    client.push_to_client(resp)
+                    if misc.filename_extension(@path) == "sagews"
+                        make_blobs_permanent
+                            blob_ids   : diffsync.uuids_of_linked_files(@diffsync_server.live)
+                            cb         : (err) =>
+                                if err
+                                    client.error_to_client(id:mesg.id, error:err)
+                                else
+                                    client.push_to_client(resp)
+                    else
+                         client.push_to_client(resp)
 
     read_from_disk: (client, mesg) =>
         @local_hub.call
@@ -2082,17 +2073,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         opts = defaults opts,
             message      : required
             session_uuid : required
-            cb           : undefined   # cb(err)
+            cb           : undefined   # cb?(err)
 
         socket = @_sockets[opts.session_uuid]
         if not socket?
-            opts.cb("Session #{opts.session_uuid} is no longer open.")
+            opts.cb?("Session #{opts.session_uuid} is no longer open.")
             return
         try
             socket.write_mesg('json', opts.message)
-            opts.cb()
+            opts.cb?()
         catch e
-            opts.cb("Erro sending message to session #{opts.session_uuid} -- #{e}")
+            opts.cb?("Error sending message to session #{opts.session_uuid} -- #{e}")
 
 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
@@ -2121,7 +2112,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         winston.debug("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
         # Store blob in DB.
-        save_blob(uuid:opts.uuid, value:opts.blob, ttl:600)
+        save_blob
+            uuid  : opts.uuid
+            value : opts.blob
+            ttl   : BLOB_TTL
+            cb    : (err) =>
+                 if err
+                     winston.debug("handle_blob: error! -- #{err}")
 
     # The unique standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
@@ -3866,8 +3863,9 @@ save_blob = (opts) ->
     opts = defaults opts,
         uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
         value : required   # NOTE: value *must* be a Buffer.
-        ttl   : undefined
         cb    : required
+        ttl   : undefined  # object in blobstore will have *at least* this ttl; if there is already something,  in blobstore with longer ttl, we leave it.
+
     if opts.value.length > 5000000
         if not opts.ttl?
             opts.cb("Permanent blobs must be at most 5MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
@@ -3894,7 +3892,18 @@ save_blob = (opts) ->
         return opts.uuid
     else
         # permanent blob or small blob with ttl
-        return database.uuid_blob_store(name:"blobs").set(opts)
+        db = database.uuid_blob_store(name:"blobs")
+        db.get_ttl
+            uuid : opts.uuid
+            cb   : (err, ttl) ->
+                if err
+                    opts.cb(err)
+                else
+                    if ttl? and (ttl == 0 or ttl >= opts.ttl)
+                        # nothing to do
+                        opts.cb()
+                    else
+                        db.set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
@@ -3906,51 +3915,21 @@ get_blob = (opts) ->
     else
         database.uuid_blob_store(name:"blobs").get(opts)
 
-
-# For each element of the array blob_ids, (1) add an entry to the project_blobs
-# table associated it to the given project *and* (2) remove its ttl.
-# An object can only be saved to one project.
-_save_blobs_to_project_cache = {}
-save_blobs_to_project = (opts) ->
+# For each element of the array blob_ids, remove its ttl.
+_make_blobs_permanent_cache = {}
+make_blobs_permanent = (opts) ->
     opts = defaults opts,
-        project_id : required
         blob_ids   : required
         cb         : required
-
-    # ANTI-DOS measure -- don't allow more than 1000 blobs to be moved at once
-    if opts.blob_ids.length > 1000
-        cb("At most 1000 blobs may be saved to a project at once.")
-
-    blob_store = database.uuid_blob_store(name:"blobs")
-
-    tasks = []
-    for id in opts.blob_ids
-        if _save_blobs_to_project_cache[id]?
-            continue
-        tasks.push (cb) =>
-            async.series([
-                (cb) =>
-                    # 1. Ensure there is an entry in the project_blobs table.
-                    database.update
-                        table : 'project_blobs'
-                        where : {blob_id : id}
-                        set   : {project_id : opts.project_id}
-                        cb    : cb
-                (cb) =>
-                    # 2. Remove ttl
-                    blob_store.set_ttl
-                        uuid  : id
-                        cb    : cb
-                (cb) =>
-                    # Record in a local cache that we already made
-                    # this object permanent, so we'll not hit the
-                    # database again for this id.
-                    _save_blobs_to_project_cache[id] = null
-                    cb()
-            ], cb)
-
-    # Carry out all the above tasks in parallel.
-    async.parallel(tasks, opts.cb)
+    uuids = (id for id in opts.blob_ids when not _make_blobs_permanent_cache[id]?)
+    database.uuid_blob_store(name:"blobs").set_ttls
+        uuids : uuids
+        ttl   : 0
+        cb    : (err) ->
+            if not err
+                for id in uuids
+                    _make_blobs_permanent_cache[id] = true
+            opts.cb(err)
 
 ########################################
 # Compute Sessions (of various types)
@@ -4043,9 +4022,10 @@ class SageSession
                 save_blob
                     uuid  : mesg.uuid
                     value : mesg.blob
-                    ttl   : 600  # deleted after ten minutes
+                    ttl   : BLOB_TTL  # deleted after this long
                     cb    : (err) ->
-                        # TODO: actually use this for something (?)
+                        if err
+                            winston.debug("Error saving blob for Sage Session -- #{err}")
             else
                 raise("unknown message type '#{type}'")
 

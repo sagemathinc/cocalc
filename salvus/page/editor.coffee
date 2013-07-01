@@ -476,7 +476,7 @@ class exports.Editor
         {editor_name, filename, content, extra_opts} = defaults opts,
             editor_name : required
             filename    : required
-            content     : required
+            content     : undefined
             extra_opts  : required
         #console.log('create_editor: ', opts)
         # Some of the editors below might get the content later and will call @file_options again then.

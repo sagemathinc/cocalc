@@ -95,24 +95,80 @@ class UUIDStore
             cb    : opts.cb
         return opts.uuid
 
+    # returns 0 if there is no ttl set; undefined if no object in table
+    get_ttl: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            cb   : required
+
+        @cassandra.select
+            table  : @_table
+            where  : {name:@opts.name, uuid:opts.uuid}
+            columns : ['ttl(value)']
+            objectify : false
+            cb     : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    ttl = result[0]?[0]
+                    if ttl == null
+                        ttl = 0
+                    opts.cb(err, ttl)
+
     # change the ttl of an existing entry -- requires re-insertion, which wastes network bandwidth...
-    set_ttl: (opts) =>
+    _set_ttl: (opts) =>
         opts = defaults opts,
             uuid : required
             ttl  : 0         # no ttl
             cb   : undefined
-
         @get
             uuid : opts.uuid
             cb : (err, value) =>
-                if err
-                    opts.cb(err)
-                else if value?
+                if value?
                     @set
                         uuid : opts.uuid
                         value : value      # note -- the implicit conversion between buf and string is *necessary*, sadly.
                         ttl   : opts.ttl
                         cb    : opts.cb
+                else
+                    opts.cb?(err)
+
+    # Set ttls for all given uuids at once; expensive if needs to change ttl, but cheap otherwise.
+    set_ttls: (opts) =>
+        opts = defaults opts,
+            uuids : required    # array of strings/uuids
+            ttl   : 0
+            cb    : undefined
+        if opts.uuids.length == 0
+            opts.cb?()
+            return
+        @cassandra.select
+            table   : @_table
+            columns : ['ttl(value)', 'uuid']
+            where   : {name:@opts.name, uuid:{'in':opts.uuids}}
+            objectify : true
+            cb      : (err, results) =>
+                f = (r, cb) =>
+                    if r['ttl(value)'] != opts.ttl
+                        @_set_ttl
+                            uuid : r.uuid
+                            ttl  : opts.ttl
+                            cb   : cb
+                    else
+                        cb()
+                async.map(results, f, opts.cb)
+
+    # Set ttl only for one ttl; expensive if needs to change ttl, but cheap otherwise.
+    set_ttl: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            ttl  : 0         # no ttl
+            cb   : undefined
+        @set_ttls
+            uuids : [opts.uuid]
+            ttl   : opts.ttl
+            cb    : opts.cb
+
 
     get: (opts) ->
         opts = defaults opts,
@@ -291,8 +347,6 @@ class exports.Cassandra extends EventEmitter
             timeout  : 3000
 
         @keyspace = opts.keyspace
-        console.log("keyspace = #{opts.keyspace}")
-        console.log("hosts = #{opts.hosts}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
             keyspace  :  opts.keyspace
