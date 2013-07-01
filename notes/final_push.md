@@ -5,8 +5,9 @@
 - [x] (0:20?) (0:09) clicking on Recent -- critical to focus the search box (except on mobile)
 - [x] (0:15?) (0:27) tooltip over file pill should show full path to that file.
 - [x] (0:20?) (0:10) search -- show more context
+- [x] (0:20?) when clicking on "recent" the tabs scroll around, due to the scrollbar appearing.  Need to account for this in ` resize_open_file_tabs` in editor.coffee
 
-- [ ] (0:20?) when clicking on "recent" the tabs scroll around, due to the scrollbar appearing.  Need to account for this in ` resize_open_file_tabs` in editor.coffee
+- [ ] (0:20?) clicking on an open file pill, then the search, makes it so it won't scroll vertically.
 
 - [ ] (2:00?) make it so foo?[enter] works.
 

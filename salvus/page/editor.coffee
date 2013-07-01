@@ -505,7 +505,7 @@ class exports.Editor
 
     create_opened_file_tab: (filename) =>
         link = templates.find(".salvus-editor-filename-pill").clone()
-        link.tooltip(title:filename, placement:'bottom') #, delay:{show: 400, hide: 100})
+        link.tooltip(title:filename, placement:'bottom', delay:{show: 500, hide: 100})
 
         link.data('name', filename)
 

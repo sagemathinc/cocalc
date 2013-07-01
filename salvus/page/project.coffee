@@ -732,6 +732,7 @@ class ProjectPage
                 @focus()
             else
                 tab.target.hide()
+        @editor?.resize_open_file_tabs()
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
