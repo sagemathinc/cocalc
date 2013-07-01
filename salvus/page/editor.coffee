@@ -505,12 +505,13 @@ class exports.Editor
 
     create_opened_file_tab: (filename) =>
         link = templates.find(".salvus-editor-filename-pill").clone()
+        link.tooltip(title:filename, placement:'bottom') #, delay:{show: 400, hide: 100})
+
         link.data('name', filename)
 
         link_filename = link.find(".salvus-editor-tab-filename")
         display_name = path_split(filename).tail
         link_filename.text(display_name)
-        link.attr(title:filename).tooltip(delay: { show: 500, hide: 100 })
 
         open_file = (name) =>
             @project_page.set_current_path(misc.path_split(name).head)
