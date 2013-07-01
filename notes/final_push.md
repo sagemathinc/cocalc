@@ -4,8 +4,7 @@
 - [x] (0:30?) "Saving..." spinner seems to be not resetting on reconnect.
 - [x] (0:20?) (0:09) clicking on Recent -- critical to focus the search box (except on mobile)
 - [x] (0:15?) (0:27) tooltip over file pill should show full path to that file.
-
-- [ ] (0:20?) search -- show more context
+- [x] (0:20?) (0:10) search -- show more context
 
 - [ ] (0:20?) when clicking on "recent" the tabs scroll around, due to the scrollbar appearing.  Need to account for this in ` resize_open_file_tabs` in editor.coffee
 

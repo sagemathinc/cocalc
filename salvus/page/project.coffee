@@ -506,10 +506,12 @@ class ProjectPage
                         r = search_result.clone()
                         r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
                             that.open_file($(@).data('filename'))
+                        r.find("span").addClass('lighten').text('(filename)')
                     else
                         # the rgrep part
                         filename = line.slice(0,i)
-                        context  = trunc(line.slice(i+1), 25)
+                        #context  = trunc(line.slice(i+1), 25)
+                        context = line.slice(i+1)
                         r = search_result.clone()
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
