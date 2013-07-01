@@ -1,14 +1,8 @@
-- [x] (0:20?) (0:24) cursor:default --> cursor:"hand".  -- idea of Harald Schilly
-
-- [x] (0:15?) (0:08) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
-
-- [x] (1:00?) home icon: remove it when in the home directory and make it larger otherwise (right now it is the same size as the path) -- idea of Harald Schilly
-
-- [x] (1:00?) (0:06) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
-
-- [x] (2:00?) (4:48) make it so worksheet save results in making all image links permanent.
+- [x] new version (see admin.py)
 
 - [ ] (0:20?) clicking on Recent -- critical to focus the search box (except on mobile)
+
+- [x] (1:00?) (0:04) make solarized the default console theme...
 
 - [ ] (0:15?) icon-refresh for new version message (?)
 
@@ -2716,3 +2710,12 @@ I change it to:
 - [x] (0:20?) (0:09) add number of active projects to help display about usage...
 
 
+- [x] (0:20?) (0:24) cursor:default --> cursor:"hand".  -- idea of Harald Schilly
+
+- [x] (0:15?) (0:08) new file/worksheet/etc. -- put filename first, then buttons -- suggested by Harald Schilly
+
+- [x] (1:00?) home icon: remove it when in the home directory and make it larger otherwise (right now it is the same size as the path) -- idea of Harald Schilly
+
+- [x] (1:00?) (0:06) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
+
+- [x] (2:00?) (4:48) make it so worksheet save results in making all image links permanent.

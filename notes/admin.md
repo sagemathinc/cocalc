@@ -62,3 +62,20 @@ update-alternatives --config java
         print x, os.popen(s).read().strip()
 
 
+
+# Manual testing before release of storm until I have something better:
+
+    https://128.95.242.135:8443/
+
+- make an account
+- create project
+- create worksheet
+- check sage version, plot, 2+2, latex, md, html, add william stein collab
+- create md file
+- create latex file
+- file search
+- open another account and edit worksheet by two people "at once"
+
+
+
+
