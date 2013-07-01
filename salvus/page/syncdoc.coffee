@@ -22,6 +22,7 @@ their 900 clients in parallel.
 ###
 
 
+
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
@@ -40,6 +41,12 @@ async = require('async')
 templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
+
+
+# Return true if there are currently unsynchronized changes, e.g., due to the network
+# connection being down, or cloud.sagemath not working, or a bug. 
+exports.unsynced_docs = () ->
+    return $(".salvus-editor-codemirror-not-synced:visible").length > 0
 
 class DiffSyncDoc
     # Define exactly one of cm or string.
