@@ -312,7 +312,8 @@ snap_restore = (opts) ->
 
     user   = undefined
     outdir = "#{tmp_dir}/#{uuid.v4()}"
-    target = "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"
+    #target = "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"
+    target = "master/#{opts.snapshot}/#{opts.path}"
     dest   = undefined
     escaped_dest = undefined
 
@@ -544,7 +545,8 @@ monitor_snapshot_queue = () ->
                 t = misc.walltime()
                 d = Math.ceil(misc.walltime())
                 bup
-                    args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', project_id, '.']
+                    #args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', project_id, '.']
+                    args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', 'master', '.']
                     cb   : (err) ->
                         winston.info("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
                         if not err
@@ -1138,8 +1140,8 @@ exports.start_server = start_server = () ->
             cb()
         (cb) ->
             snapshot_active_projects(cb)
-        #(cb) ->
-        #    ensure_all_projects_have_a_snapshot(cb)
+        (cb) ->
+            ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
         #    test3()
         #    cb()
