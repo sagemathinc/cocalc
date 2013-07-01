@@ -1,10 +1,10 @@
 - [x] new version (see admin.py)
 
-- [ ] (0:20?) clicking on Recent -- critical to focus the search box (except on mobile)
-
 - [x] (1:00?) (0:04) make solarized the default console theme...
 
-- [ ] (0:15?) icon-refresh for new version message (?)
+- [ ] (0:20?) clicking on Recent -- critical to focus the search box (except on mobile)
+
+- [x] (0:15?) (0:03) icon-refresh for new version message (?)
 
 - [ ] (0:30?) "Saving..." spinner seems to be not resetting on reconnect.
 
