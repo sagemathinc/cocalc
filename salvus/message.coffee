@@ -527,7 +527,7 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 180
-    terminal           : {font_size:14, color_scheme:'default', font:'droid-sans-mono'}
+    terminal           : {font_size:14, color_scheme:'solarized-light', font:'droid-sans-mono'}
 
 # client <--> hub
 message(
