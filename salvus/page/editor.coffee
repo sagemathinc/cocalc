@@ -504,8 +504,10 @@ class exports.Editor
         return editor
 
     create_opened_file_tab: (filename) =>
+        link_bar = @project_page.container.find(".project-pages")
+
         link = templates.find(".salvus-editor-filename-pill").clone()
-        link.tooltip(title:filename, placement:'bottom', delay:{show: 500, hide: 100})
+        link.tooltip(title:filename, placement:'bottom', delay:{show: 500, hide: 0})
 
         link.data('name', filename)
 
@@ -521,19 +523,39 @@ class exports.Editor
         link.find(".salvus-editor-close-button-x").click () =>
             if ignore_clicks
                 return false
+
+            if @active_tab? and @active_tab.filename == filename
+                @active_tab = undefined
+
+            if not @active_tab?
+                next = link.next()
+                # skip past div's inserted by tooltips
+                while next.is("div")
+                    next = next.next()
+                name = next.data('name')  # need li selector because tooltip inserts itself after in DOM
+                if name?
+                    open_file(name)
+
             link.tooltip('destroy')
             link.hide()
             link.remove()
-            name = link.prev().data('name')
-            if name?
-                open_file(name)
+
+            if not @active_tab?
+                # open last file if there is one
+                next_link = link_bar.find("li").last()
+                name = next_link.data('name')
+                if name?
+                    open_file(name)
+                else
+                    # just show the recent files
+                    @project_page.display_tab('project-editor')
+
             tab = @tabs[filename]
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
                 tab.close_editor()
-            if @active_tab? and @active_tab.filename == filename
-                @active_tab = undefined
+
             @resize_open_file_tabs()
             return false
 
@@ -553,7 +575,7 @@ class exports.Editor
 
         @tabs[filename].open_file_pill = link
 
-        @project_page.container.find(".project-pages").append(link)
+        link_bar.append(link)
         @resize_open_file_tabs()
 
     resize_open_file_tabs: () =>
