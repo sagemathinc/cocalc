@@ -1496,7 +1496,7 @@ class ProjectPage
         elt = @container.find(".project-sort-files")
         @_sort_by_time = local_storage(@project.project_id, '', 'sort_by_time')
         if not @_sort_by_time
-            @_sort_by_time = false
+            @_sort_by_time = true
         if @_sort_by_time
             elt.find("a").toggle()
         elt.find("a").tooltip(delay:{ show: 500, hide: 100 }).click () =>

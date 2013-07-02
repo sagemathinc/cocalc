@@ -2,13 +2,15 @@
 
 - [x] (0:15?) start new snaps going on 2-4.
 
---> - [ ] (1:00?) interact dropdown + firefox = bad -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f8df6166275c26
+- [x] (1:00?) (0:41) interact dropdown + firefox = bad -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f8df6166275c26
         @interact
         def _(a = slider(100), b = srange(-10,10,include_endpoint=True)):
             print a + b
 in my Firefox 22 in Linux, I cannot see the text in the drop down list because it's just white on white.  ?-- Harald Schilly
 
-- [ ] (0:15?) make it so default sort order for files is "by time"
+- [ ] (0:15?) (0:12) make it so default sort order for files is "by time"; plus fix the by name icon 
+
+- [ ] (0:15?) responsive icon change suggested by Rob Beezer.
 
 - [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
 
