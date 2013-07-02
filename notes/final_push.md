@@ -12,7 +12,7 @@ in my Firefox 22 in Linux, I cannot see the text in the drop down list because i
 
 - [x] (0:15?) (0:04) terminal responsive icon change suggested by Rob Beezer.
 
-- [ ] (0:15?) don't resize open file nav pills on mobile
+- [x] (0:15?) (0:16) don't resize open file nav pills on mobile; also fix another icon
 
 - [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
 

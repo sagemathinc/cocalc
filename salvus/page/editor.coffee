@@ -591,15 +591,22 @@ class exports.Editor
                 x.push(t)
         if x.length == 0
             return
-        start = x[0].offset().left
-        end   = x[0].parent().offset().left + x[0].parent().width()
 
-        n = x.length
-        if n <= 2
-            n = 3
-        width = (end - start - 10)/n
-        if width < 0
-            width = 0
+        # Determine the width
+        if $(window).width() <= 979
+            # responsive mode
+            width = 204
+        else
+            start = x[0].offset().left
+            end   = x[0].parent().offset().left + x[0].parent().width()
+
+            n = x.length
+            if n <= 2
+                n = 3
+            width = (end - start - 10)/n
+            if width < 0
+                width = 0
+
         for a in x
             a.width(width)
 
