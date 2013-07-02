@@ -253,7 +253,8 @@ append_slashes_after_directory_names = (path, files, cb) ->
 # Get list of all files inside a given directory; in the list, directories have a "/" appended.
 _info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
     bup
-        args    : ['ls', '-a', "#{project_id}/#{snapshot}/#{path}"]
+        args    : ['ls', '-a', "master/#{snapshot}/#{path}"]
+        #args    : ['ls', '-a', "#{project_id}/#{snapshot}/#{path}"]
         timeout : 60
         cb      : (err, output) ->
             if err
@@ -514,6 +515,9 @@ monitor_snapshot_queue = () ->
         size_before = undefined
         size_after = undefined
         async.series([
+            # wait 2 seconds, to ensure uniqueness of time stamp
+            (cb) -> 
+                setTimeout(cb, 2000)
             # get deployed location of project (which can change at any time!)
             (cb) ->
                 database.get_project_location
