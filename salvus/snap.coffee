@@ -267,15 +267,30 @@ _info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
 
 # List of all projects with at least one backup
 _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
-    bup
-        args    : ['ls']
-        timeout : 1800
-        cb      : (err, output) ->
+    database.select
+        table     : 'snap_commits'
+        where     : {server_id : snap_server_uuid}
+        columns   : ['project_id']
+        objectify : false
+        cb        : (err, results) =>
             if err
                 cb(err)
             else
-                v = output.stdout.split('/\n')
-                cb(false, v)
+                obj = {}
+                for r in results
+                    obj[r[0]] = true
+                cb(false, misc.keys(obj))
+
+## OLD VERSION -- doesn't make sense with only one branch
+#    bup
+#        args    : ['ls']
+#        timeout : 1800
+#        cb      : (err, output) ->
+#            if err
+#                cb(err)
+#            else
+#                v = output.stdout.split('/\n')
+#                cb(false, v)
 
 
 
@@ -516,7 +531,7 @@ monitor_snapshot_queue = () ->
         size_after = undefined
         async.series([
             # wait 2 seconds, to ensure uniqueness of time stamp
-            (cb) -> 
+            (cb) ->
                 setTimeout(cb, 2000)
             # get deployed location of project (which can change at any time!)
             (cb) ->

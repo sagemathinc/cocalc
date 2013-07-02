@@ -1,20 +1,7 @@
-- [x] new version (see admin.py)
-- [x] (1:00?) (0:04) make solarized the default console theme...
-- [x] (0:15?) (0:03) icon-refresh for new version message (?)
-- [x] (0:30?) "Saving..." spinner seems to be not resetting on reconnect.
-- [x] (0:20?) (0:09) clicking on Recent -- critical to focus the search box (except on mobile)
-- [x] (0:15?) (0:27) tooltip over file pill should show full path to that file.
-- [x] (0:20?) (0:10) search -- show more context
-- [x] (0:20?) when clicking on "recent" the tabs scroll around, due to the scrollbar appearing.  Need to account for this in ` resize_open_file_tabs` in editor.coffee
-- [x] (0:20?) (0:05) clicking on an open file pill, then the search, makes it so it won't scroll vertically.
-- [x] (1:00?) (0:32) project search -- add a clear button "The search box has no "clear" button, e.g. a circled X, right next to it to clear it." -- suggested by Harald Schilly
-- [x] (0:10?) (0:04) cursor should be pointer over entire file/directory box.
-- [x] (0:45?) (0:30) what's also annoying is this "do you really want to leave" confirmation when I close firefox. I suggest, that you only show it iff there is more than one unsaved worksheet. If all of them are saved, it's not an issue, right?-- Harald Schilly;Eenable it if some sync is failing for a file.
-- [x] (0:45?) (1:00) If I manually click the close-X on all open tabs in a project, I end up at a white and empty page. That's "logical", but it would be more user-friendly if it opens up the "recent" tab (or maybe "files", but i think recent is slightly better); also addressed some other issues involving closing tabs and which one gets auto-selected next.
 
-- [ ] (1:00?) make it so foo?[enter] works.
+--> - [ ] (1:00?) make it so foo?[enter] works.
 
-- [ ] (0:30?) another release
+- [ ] (1:00?) new snap -- the code to ensure all projects have snapshots makes no sense without doing a db query; rewrite it to use db to query for all snaps for that server.
 
 - [ ] (1:00?) interact dropdown + firefox = bad -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f8df6166275c26
         @interact
@@ -2726,3 +2713,20 @@ I change it to:
 - [x] (1:00?) (0:06) files page: the tooltip for "choose file..." shows up always, but shouldn't; I prefer having the autofocus (except on mobile, where it is very annoying), so I'll get rid of the tooltips and make the autofocus happen on both Recent and Files (except on mobile). --  idea of Harald Schilly
 
 - [x] (2:00?) (4:48) make it so worksheet save results in making all image links permanent.
+
+
+
+- [x] new version (see admin.py)
+- [x] (1:00?) (0:04) make solarized the default console theme...
+- [x] (0:15?) (0:03) icon-refresh for new version message (?)
+- [x] (0:30?) "Saving..." spinner seems to be not resetting on reconnect.
+- [x] (0:20?) (0:09) clicking on Recent -- critical to focus the search box (except on mobile)
+- [x] (0:15?) (0:27) tooltip over file pill should show full path to that file.
+- [x] (0:20?) (0:10) search -- show more context
+- [x] (0:20?) when clicking on "recent" the tabs scroll around, due to the scrollbar appearing.  Need to account for this in ` resize_open_file_tabs` in editor.coffee
+- [x] (0:20?) (0:05) clicking on an open file pill, then the search, makes it so it won't scroll vertically.
+- [x] (1:00?) (0:32) project search -- add a clear button "The search box has no "clear" button, e.g. a circled X, right next to it to clear it." -- suggested by Harald Schilly
+- [x] (0:10?) (0:04) cursor should be pointer over entire file/directory box.
+- [x] (0:45?) (0:30) what's also annoying is this "do you really want to leave" confirmation when I close firefox. I suggest, that you only show it iff there is more than one unsaved worksheet. If all of them are saved, it's not an issue, right?-- Harald Schilly;Eenable it if some sync is failing for a file.
+- [x] (0:45?) (1:00) If I manually click the close-X on all open tabs in a project, I end up at a white and empty page. That's "logical", but it would be more user-friendly if it opens up the "recent" tab (or maybe "files", but i think recent is slightly better); also addressed some other issues involving closing tabs and which one gets auto-selected next.
+- [x] (0:30?) (0:20) another release

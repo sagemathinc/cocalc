@@ -4,7 +4,7 @@
 # code works in Firefox, Chrome, Safari and maybe IE, but does not seem to
 # work in Opera.  So Opera users could loose work...
 #
-# Also, this does not work on i OS.
+# Also, this does not work on iOS.
 #
 ###
 

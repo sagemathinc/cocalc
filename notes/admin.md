@@ -2,7 +2,9 @@
 
     new_vm_image.py
     ssh localhost -p 2222
-    cd salvus/salvus &&  git pull &&  ./make_coffee && sleep 3 && ./make_coffee
+    cd salvus/salvus &&  git pull
+    # switch to minified js in page/head.html
+    ./make_coffee && sleep 3 && ./make_coffee
     sudo apt-get update; sudo apt-get upgrade
     # if changes, reboot
     shutdown_this_computer
