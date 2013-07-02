@@ -14,6 +14,8 @@ in my Firefox 22 in Linux, I cannot see the text in the drop down list because i
 
 - [x] (0:15?) (0:16) don't resize open file nav pills on mobile; also fix another icon
 
+- [x] (0:15?) improve the top-bar responsive dropdown icon (requested by Beezer)
+
 - [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
 
 - [ ] (1:00?) make it so foo?[enter]  and foo??[enter] both work.
