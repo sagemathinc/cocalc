@@ -1709,7 +1709,7 @@ class ProjectPage
                     for r in result
                         if not already_collab[r.account_id]? # only show users not already added
                             name = r.first_name + ' ' + r.last_name
-                            select.append($("<option>").attr(value:r.account_id, label:name))
+                            select.append($("<option>").attr(value:r.account_id, label:name).text(name))
                     select.show()
                     add_button.removeClass('disabled')
                     @container.find("a[href=#invite-friend]").show()

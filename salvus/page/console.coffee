@@ -640,7 +640,12 @@ class Console extends EventEmitter
         if IS_MOBILE
             $(document).off('keydown', @mobile_keydown)
 
-        @terminal.blur()
+        try
+            @terminal.blur()
+        catch e
+            # TODO: probably should investigate term.js issues further(?)
+            # ignore -- sometimes in some states the terminal code can raise an exception when explicitly blur-ing.
+            # This would totally break the client, which is bad, so we catch is.
         $(@terminal.element).removeClass('salvus-console-focus').addClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?

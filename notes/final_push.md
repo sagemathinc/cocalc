@@ -1,19 +1,31 @@
+- [x] (1:00?) (0:16) new snap -- the code to ensure all projects have snapshots makes no sense without doing a db query; rewrite it to use db to query for all snaps for that server.
 
---> - [ ] (1:00?) make it so foo?[enter] works.
+- [x] (0:15?) start new snaps going on 2-4.
 
-- [ ] (1:00?) new snap -- the code to ensure all projects have snapshots makes no sense without doing a db query; rewrite it to use db to query for all snaps for that server.
-
-- [ ] (1:00?) interact dropdown + firefox = bad -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f8df6166275c26
+--> - [ ] (1:00?) interact dropdown + firefox = bad -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13f8df6166275c26
         @interact
         def _(a = slider(100), b = srange(-10,10,include_endpoint=True)):
             print a + b
 in my Firefox 22 in Linux, I cannot see the text in the drop down list because it's just white on white.  ?-- Harald Schilly
 
-- [ ] (4:00?) (1:07+) ability to open sws files
+- [ ] (0:15?) make it so default sort order for files is "by time"
 
+- [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
+
+- [ ] (1:00?) make it so foo?[enter]  and foo??[enter] both work.
+
+- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
+- [ ] (1:00?) 3d: enable and test canvas rendering
+- [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
+
+- [ ] (4:00?) (1:07+) ability to open sws files
 - [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
+- [ ] (3:00?) read-only viewers of projects (like collab, but read only)
+
 
 - [ ] (3:00?) implement a simple "explore" public projects page
+- [ ] (3:00?) latex: left/right split view.
+- [ ] (5:00?) wiki view -- I was just browsing again through the the wiki system gollum used for the github wiki. This is basically what I am looking for - an extra folder myproject / wiki containing the wiki in human readable and editable files and folders, with default cloud view being rendered through gollum (using various rendering systems like rst or markdown). Github seems to not support mathjax anymore, but a switch to turn on mathjax on pages (or, if this is too much, mathjax being turned on by default) would be necessary in order to make math collaboration possible. Also, links to files and embedded pics from myproject / otherfolder would be good to have. Finally, making the wiki publicly visible (even if the project is still private) would be nice as well.  See https://mail.google.com/mail/u/0/?shva=1#inbox/13f9e7a22fbe59ec
 
 - [ ] (1:00?) possible optimization (maybe already implemented) -- if local_hub is about to send a blob that global_hub already knows (via db), then don't bother....
 
@@ -55,13 +67,8 @@ in my Firefox 22 in Linux, I cannot see the text in the drop down list because i
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).
 
-- [ ] (2:00?) Get per-project quotas working again, set at 8GB (say).
+- [ ] (3:00?) LXC per-project (which will imply quotas)
 
-- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
-
-- [ ] (1:00?) 3d: enable and test canvas rendering
-
-- [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
 
 - [ ] (1:30?) way to star projects; show the starred ones first no matter what; have a starred selector
 
@@ -333,10 +340,6 @@ TEST: explicitly force restart, and verify that port changes.
 - [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests...
 
 - [ ] (3:00?) sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com;  codemirror intro -- https://mail.google.com/mail/u/0/?shva=1#starred/13f5b853999289dc
-
-- [ ] (3:00?) read-only viewers of projects (like collab, but read only)
-
-- [ ] (4:00?) way to browse public projects
 
 - [ ] (0:45?) sagews: javascript(once=True) isn't respected; needs to use a different channel... (broadcast?)
 
