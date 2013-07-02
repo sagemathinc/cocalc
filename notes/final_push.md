@@ -8,9 +8,11 @@
             print a + b
 in my Firefox 22 in Linux, I cannot see the text in the drop down list because it's just white on white.  ?-- Harald Schilly
 
-- [ ] (0:15?) (0:12) make it so default sort order for files is "by time"; plus fix the by name icon 
+- [x] (0:15?) (0:12) make it so default sort order for files is "by time"; plus fix the by name icon
 
-- [ ] (0:15?) responsive icon change suggested by Rob Beezer.
+- [x] (0:15?) (0:04) terminal responsive icon change suggested by Rob Beezer.
+
+- [ ] (0:15?) don't resize open file nav pills on mobile
 
 - [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
 
