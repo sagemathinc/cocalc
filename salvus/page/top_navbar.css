@@ -45,3 +45,10 @@
     background: blue;
     color: white;
 }
+
+.salvus-topbar-responsive-button {
+    color: #666;
+    font-size: 19px;
+    top: 2px;
+    position: relative;
+}

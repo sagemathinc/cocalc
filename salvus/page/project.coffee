@@ -1496,7 +1496,7 @@ class ProjectPage
         elt = @container.find(".project-sort-files")
         @_sort_by_time = local_storage(@project.project_id, '', 'sort_by_time')
         if not @_sort_by_time
-            @_sort_by_time = false
+            @_sort_by_time = true
         if @_sort_by_time
             elt.find("a").toggle()
         elt.find("a").tooltip(delay:{ show: 500, hide: 100 }).click () =>
@@ -1709,7 +1709,7 @@ class ProjectPage
                     for r in result
                         if not already_collab[r.account_id]? # only show users not already added
                             name = r.first_name + ' ' + r.last_name
-                            select.append($("<option>").attr(value:r.account_id, label:name))
+                            select.append($("<option>").attr(value:r.account_id, label:name).text(name))
                     select.show()
                     add_button.removeClass('disabled')
                     @container.find("a[href=#invite-friend]").show()
