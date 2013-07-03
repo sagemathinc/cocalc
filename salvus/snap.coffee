@@ -599,6 +599,17 @@ monitor_snapshot_queue = () ->
                     size_of_bup_archive = size_after
                     cb(err)
 
+            # Do a "bup ls", which causes the cache to be updated (so a user doesn't have to wait several seconds the 
+            # first time they do a view on a snapshot).  Also, if this fails for some reason, we do *NOT* want to 
+            # ever record this as a successful snapshot in the database.
+            (cb) ->
+                t = misc.walltime()
+                bup
+                    args : ['ls', "master/#{timestamp}"]
+                    cb   : (err) ->
+                        winston.info("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s") 
+                        cb(err)
+
             # record that we successfully made a snapshot to the database, and our local cache
             (cb) ->
                 t = misc.walltime()
