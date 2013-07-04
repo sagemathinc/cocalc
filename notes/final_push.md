@@ -1,22 +1,18 @@
+- [ ] (0:30?) when browsing snapshots and mousing over a link, it doesn't change color.
 
-- [x] (0:45?) (0:09) add link in help.html to chrome web app (from Harald Schilly) https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
-
-- [x] (0:45?) (0:30) create a static /stats route (suggested by Keith Clawson) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
+- [ ] (1:30?) expand the size of the base vm, so I can start keeping all past builds of sage.
 
 - [ ] (1:00?) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
 
 - [ ] (1:00?) mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+
+- [ ] (1:00?) admin -- make it so the services file can have variables so I don't have to change the same base in a million places.
 
 - [ ] (3:00?) file operation notifications -- Using delete in the browser merely moves the file to the trash (but not overwriting other files).  (And similarly, using file rename in the browser, merely renames the file on the filesystem and does nothing else yet.)  There are several other actions for particular file types that *should* be taken, but aren't yet.   When you open a file, the local hub daemon creates an object in memory that represents that file/terminal/whatever -- it needs to be notified when the file is moved or deleted, but I simply haven't implemented this yet.
 
 - [ ] (1:00?) %load on a file with a syntax error gives a useless error message
 
 - [ ] (1:30?) terminal reconnect -- works fine on browser reconnect, but fails on dropped connection, since I didn't implement that yet.
-
-- [ ] (1:00?) next release:
-      - in sage -sh : pip install lxml
-      - systemwide  : apt-get install libxml2-dev libxslt-dev
-      - upgrade bup in machine (both in salvus and systemwide)
 
 - [ ] good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 
@@ -2863,3 +2859,12 @@ debug: client --> hub: {"event":"codemirror_get_session","path":"salvus/notes/fi
 66","id":"2361dc19-cc0e-46c3-9f64-46a8918c5c7e"}
 debug: opts = {"project_id":"6a63fd69-c1c7-4960-9299-54cb96523966","account_id":"992e6b83-17fa-4d43-bcc5-aa78160973e4"}
 
+
+- [x] (0:45?) (0:09) add link in help.html to chrome web app (from Harald Schilly) https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
+
+- [x] (0:45?) (1:10) create a static /stats route (suggested by Keith Clawson) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
+
+- [x] (1:00?)  (0:40) next release:
+      x - in sage -sh : pip install lxml
+      x - systemwide  : apt-get install libxml2-dev libxslt-dev
+      x - upgrade bup in machine (both in salvus and systemwide)
