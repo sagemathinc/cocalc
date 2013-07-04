@@ -352,3 +352,18 @@ CREATE TABLE admin_log (
     message varchar,
     PRIMARY KEY(service, time)
 );
+
+
+
+////////////////////
+// Server stats
+///////////////////
+ 
+CREATE TABLE stats (
+    time timestamp PRIMARY KEY,
+    timestamp varchar,
+    accounts int,
+    projects int,
+    active_projects int
+);
+

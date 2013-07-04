@@ -26,6 +26,8 @@ helenus = require("helenus")            # https://github.com/simplereach/helenus
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
+moment  = require('moment')
+
 
 # the time right now, in iso format ready to insert into the database:
 now = exports.now = () -> to_iso(new Date())
@@ -1466,7 +1468,7 @@ class exports.Salvus extends exports.Cassandra
     get_stats: (opts) ->
         opts = defaults opts,
             cb : required
-        stats = {}
+        stats = {timestamp:moment(new Date()).format('YYYY-MM-DD-HHmmss') }
         async.series([
             (cb) =>
                 @count
@@ -1486,6 +1488,12 @@ class exports.Salvus extends exports.Cassandra
                     cb    : (err, val) =>
                         stats.active_projects = val
                         cb(err)
+            (cb) =>
+                @update
+                    table : 'stats'
+                    set   : stats
+                    where : {time:now()}
+                    cb    : cb
         ], (err) =>
             opts.cb(err, stats)
         )

@@ -135,6 +135,13 @@ init_http_server = () ->
                 res.end('')
             when "alive"
                 res.end('')
+            when "stats"
+                server_stats (err, stats) ->
+                    if err
+                        res.writeHead(500, {'Content-Type':'text/plain'})
+                        res.end("internal error: #{err}")
+                    else
+                        res.end(misc.to_json(stats))
             when "blobs"
                 #winston.debug("serving a blob: #{misc.to_json(query)}")
                 if not query.uuid?
@@ -1382,15 +1389,18 @@ _server_stats_cache = undefined
 server_stats = (cb) ->
     if _server_stats_cache?
         cb(false, _server_stats_cache)
-        return
+    else
+        cb("server stats not yet computed")
 
+update_server_stats = () ->
     database.get_stats
         cb : (err, stats) ->
-            _server_stats_cache = stats
-            cb(err, stats)
-            setTimeout( (() -> _server_stats_cache = undefined), 10*60*1000 )
+            if not err
+                _server_stats_cache = stats
 
-
+# Update stats every minute
+setInterval(update_server_stats, 60*1000)
+setTimeout(update_server_stats, 5000)  # and a few seconds after startup (no harm if this fails)
 
 ##-------------------------------
 #
