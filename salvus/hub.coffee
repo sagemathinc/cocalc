@@ -1398,9 +1398,6 @@ update_server_stats = () ->
             if not err
                 _server_stats_cache = stats
 
-# Update stats every minute
-setInterval(update_server_stats, 60*1000)
-setTimeout(update_server_stats, 5000)  # and a few seconds after startup (no harm if this fails)
 
 ##-------------------------------
 #
@@ -4248,11 +4245,22 @@ exports.start_server = start_server = () ->
     init_http_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-    database = new cass.Salvus(hosts:hosts, keyspace:program.keyspace)
-    init_sockjs_server()
-    init_stateless_exec()
-    http_server.listen(program.port, program.host)
-    winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+
+    # Once we connect to the database, start serving.
+
+    new cass.Salvus
+        hosts    : hosts
+        keyspace : program.keyspace
+        cb       : (err, _db) ->
+            database = _db
+
+            # start updating stats every minute
+            update_server_stats(); setInterval(update_server_stats, 60*1000)
+
+            init_sockjs_server()
+            init_stateless_exec()
+            http_server.listen(program.port, program.host)
+            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments
