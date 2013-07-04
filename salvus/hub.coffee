@@ -1917,7 +1917,7 @@ class CodeMirrorSession
 
     sync: (cb) =>
         if @_upstream_sync_lock? and @_upstream_sync_lock
-            winston.debug("codemirror session: not sync'ing due to lock")
+            winston.debug("codemirror session: not sync'ing due to lock (already syncing with upstream local hub)")
             cb?()
             return
 
