@@ -2275,7 +2275,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # This @_socket.destroy() below is VERY important, since just deleting the socket might not send this,
                 # and the local_hub -- if the connection were still good -- would have two connections
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
-                @_socket.destroy()
+                @_socket?.destroy()
                 delete @_status; delete @_socket
 
             else if socket?
