@@ -24,10 +24,12 @@
 
     <div class="row hide" id="account-sign_in">
         <div class="span6">
-            <h1>The SageMath Cloud</h1>
-            <h3>Computational mathematics in the cloud using <a target="_blank" href="http://www.sagemath.org">Sage</a></h3>
+            <h2><i class="icon-cloud"> </i> The Sagemath Cloud&trade;</h2>
+            <h3 class="big-only">Computational mathematics in the cloud using <a target="_blank" href="http://www.sagemath.org">Sage</a></h3>
 	    <br>
-            <img alt="Cloud picture" class="span4 img-rounded" src="/art/cloud.png" style="width:128px">
+
+            <span class="big-only span3"><table style="width:194px;"><tr><td align="center" style="height:194px;background:url(https://picasaweb.google.com/s/c/transparent_album_background.gif) no-repeat left"><a target="_blank" href="https://picasaweb.google.com/115360165819500279592/ScreenshotsOfHttpsCloudSagemathComJune2013?authuser=0&feat=embedwebsite"><img src="https://lh5.googleusercontent.com/-fWOPCGR-tuo/Uc0MuQgvSlE/AAAAAAABDDc/pjtbDHf9bEc/s160-c/ScreenshotsOfHttpsCloudSagemathComJune2013.jpg" width="160" height="160" style="margin:1px 0 0 4px;"></a></td></tr><tr><td style="text-align:center;font-family:arial,sans-serif;font-size:11px"><a target="_blank" href="https://picasaweb.google.com/115360165819500279592/ScreenshotsOfHttpsCloudSagemathComJune2013?authuser=0&feat=embedwebsite" style="color:#4D4D4D;font-weight:bold;text-decoration:none;">Screenshots</a></td></tr></table></span>
+            <!--<img alt="Cloud picture" class="span4 img-rounded big-only" src="/art/cloud.png" style="width:128px">-->
 
         </div>
         <!--
@@ -46,10 +48,10 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 -->
         <div class="span4 well">
             <form id="sign_in-form">
-                <h4>Sign in (or <a href="#account-create_account">create an account</a>) for worksheets, projects, and more</h4><br>
-                <input class="span4" type="email" placeholder="Email" id="sign_in-email"><br>
-                <input class="span4" type="password" placeholder="Password"  id="sign_in-password"><br>
-                <br>
+                <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4><br  class="big-only">
+                <input class="span4" type="email" placeholder="Email" id="sign_in-email"><br class="big-only">
+                <input class="span4" type="password" placeholder="Password"  id="sign_in-password"><br  class="big-only">
+                <br  class="big-only">
                 <div class="row">
                     <div class="span2">
                         <label class="checkbox" rel="tooltip" title="Let cloud.sagemath remember that you signed in, so that you might not have to sign in next time you use cloud.sagemath.">
@@ -74,24 +76,24 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
     <div class="row hide" id="account-create_account">
         <div class="span6">
 
-            <h1>   Welcome to the SageMath Cloud&trade;!</h1>
-	    <br>
-            <img alt="Cloud picture" class="span4 img-rounded" src="/art/cloud.png" style="width:110px">
+            <h2>Welcome to Sagemath Cloud&trade;!</h2>
+            <br class="big-only">
+            <img alt="Cloud picture" class="span4 img-rounded big-only" src="/art/cloud.png" style="width:110px">
 
         </div>
         <div class="span4 well">
             <h4>Create an account (or <a href="#account-sign_in">sign in</a>)</h4>
             <br>
 
-            <input class="span4" type="text" placeholder="First name" id="create_account-first_name"><br>
-            <input class="span4" type="text" placeholder="Last name" id="create_account-last_name"><br>
-            <input class="span4" type="email" placeholder="Email" id="create_account-email_address"><br>
+            <input class="span4" type="text" placeholder="First name (everyone can see this)" id="create_account-first_name"><br class="big-only">
+            <input class="span4" type="text" placeholder="Last name (everyone can see this)" id="create_account-last_name"><br class="big-only">
+            <input class="span4" type="email" placeholder="Email (this is private)" id="create_account-email_address"><br class="big-only">
             <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password">
             <label class="checkbox">
                 <input type="checkbox" id="create_account-agreed_to_terms">
-                I agree to the <a href="#link-terms" data-toggle="modal">SageMath Cloud Terms</a>
+                I agree to the <a href="#link-terms" data-toggle="modal">Sagemath Cloud Terms</a>
             </label>
-            <br>
+            <br  class="big-only">
             <button class="btn btn-success btn-large" type="submit" id="create_account-button">Create account for free</button>
 
 
@@ -102,8 +104,12 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
     <div class="row span11 indent1 hide" id="account-settings">
 
-        <a href="#sign-out" class="btn btn-success pull-right"><i class="icon-signout"> </i> Sign out</a>
 
+        <div class="pull-right" style="margin-bottom: 1em;">
+            <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button"><i class="icon-save"> </i> Save</button>
+            <button class="btn" id="account-settings-cancel-changes-button" style="margin-right:3em;">Cancel</button>
+            <a href="#sign-out" class="btn btn-success"><i class="icon-signout"> </i> Sign out</a>
+        </div>
 
         <div class="alert alert-error" id="account-settings-error">
             <button type="button" class="close" data-dismiss="alert">×</button>
@@ -122,6 +128,11 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                 <form>
                     <div class="row">
                         <div class="span5 well">
+                            <div class="row">
+                                <div class="row span5">
+                                    <h3>Account</h3>
+                                </div>
+                            </div>
                             <div class="row">
                                 <div class="row span2">First name</div>
                                 <div class="row span3"><input class="span3" type="text" value="" id="account-settings-first_name"></div>
@@ -146,31 +157,26 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                         </div>
 
                         <div class="span5 well">
-                            <!-- TODO: evaluate key not implemented. -->
-                            <div class="row hide">
-                                <div class="row span2" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets).">Evaluate key</div>
-                                <div class="row span3">
-                                    <select id="account-settings-evaluate_key">
-                                        <option value="shift-enter">Shift-Enter</option>
-                                        <option value="enter">Enter</option>
-                                    </select>
-                                    <br><span class="lighten"></span>
-                                </div>
-                                <br><br>
-                                <div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
-                                <div class="hide row span3">
-                                    <select id="account-settings-default_system">
-                                        <option value="sage">Sage</option>
-                                        <!--		  <option value="python">Python</option>
-<option value="gp">Pari/GP</option>
-<option value="maxima">Maxima</option>
-<option value="gap">GAP</option> -->
-                                    </select>
+                            <div class="row">
+                                <div class="row span5">
+                                    <h3>Editor</h3>
                                 </div>
                             </div>
+
+                            <div class="hide row span2" rel="tooltip" title="Set the default mathematics software system that you use (no existing worksheets will be changed).">Default compute system</div>
+                            <div class="hide row span3">
+                                <select id="account-settings-default_system">
+                                    <option value="sage">Sage</option>
+                                    <option value="python">Python</option>
+                                    <option value="gp">Pari/GP</option>
+                                    <option value="maxima">Maxima</option>
+                                    <option value="gap">GAP</option>
+                                </select>
+                            </div>
+
                             <div class="row">
-                                <div class="row span2" rel="tooltip" title="Your files will be automatically saved every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
-                                    <b>Editor</b> autosave in seconds (0 to disable)
+                                <div class="row span2" rel="tooltip" title="Your files will be automatically saved to disk every autosave seconds.  Past versions of files are retained, so you can undo a save. Set autosave to 0 to disable.">
+                                    <b>Autosave</b> in seconds (0 to disable)
                                 </div>
                                 <div class="row span1">
                                     <input id="account-settings-autosave" type="text" class="span1">
@@ -179,6 +185,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                                     <div id="account-settings-autosave-slider"></div>
                                 </div>
                             </div>
+
                             <!--
                             <div class="row">
                                 <div class="row span2" rel="tooltip" title="">
@@ -201,8 +208,16 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
                         <div class="span5 well account-settings-terminal">
                             <div class="row">
+                                <div class="row span5">
+                                    <h3>Terminal</h3>
+                                    <span class="lighten">
+                                        (Settings only apply to newly opened worksheets.)<br><br>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="row span2" rel="tooltip" title="The default font size for terminals.">
-                                    <b>Terminal</b> font size (px)
+                                    Font size (px)
                                 </div>
                                 <div class="row span1">
                                     <input class="account-settings-terminal-font_size span1" type="text">
@@ -212,8 +227,20 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                                 </div>
                             </div>
                             <div class="row">
+                                <div class="row span2" rel="tooltip" title="The font for terminals.">
+                                    Font family
+                                </div>
+                                <div class="row span3">
+                                    <select class="account-settings-terminal-font span2">
+                                        <option value="droid-sans-mono">Droid Sans Mono</option>
+                                        <option value='Courier New'>Courier New</option>
+                                        <option value='monospace'>Monospace (browser default)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row">
                                 <div class="row span2" rel="tooltip" title="The color scheme for terminals.">
-                                    <b>Terminal</b> color scheme
+                                    Color scheme
                                 </div>
                                 <div class="row span3">
                                     <select class="account-settings-terminal-color_scheme span2">
@@ -222,6 +249,32 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
 
                         </div>
+
+                        <div class="span10 well account-settings-keyboard">
+                            <div class="row">
+                                <div class="row span6">
+                                    <h3>Keyboard</h3>
+                                    <span class="lighten">
+                                        (Settings only apply to newly opened worksheets.)<br><br>
+                                    </span>
+                                </div>
+                            </div>
+
+
+                            <div class="row">
+                                <div class="row span6" rel="tooltip" title="Set which key combination causes code to be evaluated (only applies to newly opened worksheets)."><b>Worksheet</b> evaluate key</div>
+                                <div class="row span4">
+                                    <select id="account-settings-evaluate_key">
+                                        <option value="Shift-Enter">Shift-Enter</option>
+                                        <option value="Enter">Enter (Shift-Enter for newline)</option>
+                                    </select>
+                                    <br><span class="lighten"></span>
+                                </div>
+                            </div>
+
+
+                        </div>
+
                     </div>
 
 
@@ -266,10 +319,6 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                         </div>
                     </div>
 
-                    <div class="row span4">
-                        <button class="btn btn-primary" type="submit" id="account-settings-change-settings-button"><i class="icon-save"> </i> Save</button>
-                        <button class="pull-right btn" id="account-settings-cancel-changes-button">Cancel</button>
-                    </div>
                 </form>
             </div>
 
@@ -402,4 +451,5 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
         </div>
     </form>
 </div>
+
 

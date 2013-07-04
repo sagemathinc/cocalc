@@ -1,3 +1,10 @@
+@font-face {
+  font-family: droid-sans-mono;
+  font-style: normal;
+  font-weight: normal;
+  src: local('Droid Sans Mono'), local('DroidSansMono'), url('fonts/droid/DroidSansMono.ttf') format('truetype');
+}
+
 
 help.css
 3d.css
@@ -12,7 +19,6 @@ interact.css
 explore.css
 consoles.css
 top_navbar.css
-
 
 .hide {
     display:none;
@@ -56,11 +62,29 @@ top_navbar.css
 }
 
 
-
 body { padding-top:41px; }
 
-/* workaround responsive bootstrap menu issue */
-@media (max-width: 979px) { body { padding-top: 0px; } }
+.not-big {
+    display: none;
+}
+
+@media (max-width: 979px) {
+    body { padding-top: 0px !important; }    /* workaround responsive bootstrap menu issue */
+
+    .big-only {
+        display:none;
+    }
+
+    .not-big {
+        display:inline;
+    }
+
+    .salvus-project {
+        position: relative !important;
+        top: 0px !important;
+    }
+
+}
 
 /* so on iOS scroll-into-view modals work */
 @media (max-width: 480px)
@@ -74,9 +98,11 @@ body { padding-top:41px; }
    devices, e.g., smart phones, and use big-only for content that is
    only shown on tablets and desktops */
 
-
 @media (max-width: 480px) {
   .big-only {
+    display:none;
+  }
+  .not-small {
     display:none;
   }
 }

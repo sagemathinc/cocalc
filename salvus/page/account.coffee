@@ -185,7 +185,7 @@ create_account_fields = ['first_name', 'last_name', 'email_address', 'password',
 
 destroy_create_account_tooltips = () ->
     for field in create_account_fields
-        $("#create_account-#{field}").popover "destroy"
+        $("#create_account-#{field}").popover("destroy")
 
 top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 
@@ -210,10 +210,11 @@ $("#create_account-button").click((event) ->
                 for key, val of mesg.reason
                     $("#create_account-#{key}").popover(
                         title     : val
+                        animation : false
                         trigger   : "manual"
-                        placement : "left"
+                        placement : if $(window).width() <= 800 then "top" else "left"
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
-                    ).popover("show")
+                    ).popover("show").focus( () -> $(@).popover("destroy"))
             when "signed_in"
                 alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
                 signed_in(mesg)
@@ -282,7 +283,10 @@ sign_in = () ->
 
 first_login = true
 signed_in = (mesg) ->
-    # record account_id in a variable global to this file, and pre-load and configure the "account settings" page
+    # Record which hub we're connected to.
+    $("#connection_bars").find("i").tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
+
+    # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
     account_settings.load_from_server (error) ->
         if error
@@ -323,6 +327,7 @@ salvus_client.on("signed_in", signed_in)
 sign_out = () ->
 
     # require('worksheet1').close_scratch_worksheet()
+    $("#connection_bars").find("i").tooltip('destroy')
 
     # Send a message to the server that the user explicitly
     # requested to sign out.  The server can clean up resources
@@ -400,6 +405,9 @@ class AccountSettings
                     # color scheme
                     val.color_scheme = $(".account-settings-terminal-color_scheme").val()
 
+                    # color scheme
+                    val.font = $(".account-settings-terminal-font").val()
+
                 else
                     val = element.val()
             @settings[prop] = val
@@ -434,7 +442,8 @@ class AccountSettings
                     element.attr('checked', value)
                 when 'evaluate_key'
                     element.val(value)
-                    set_evaluate_key?(value)
+                    if element.val() == null
+                        element.val("Shift-Enter")  # backwards compatibility
                 when 'default_system'
                     element.val(value)
                     $("#demo1-system").val(value)
@@ -452,10 +461,13 @@ class AccountSettings
                         $(".account-settings-terminal-font_size-slider").slider('value', value.font_size)
                         $(".account-settings-terminal-font_size").val(value.font_size)
                         $(".account-settings-terminal-color_scheme").val(value.color_scheme)
+                        if not value.font?
+                            value.font = 'droid-sans-mono'
+                        $(".account-settings-terminal-font").val(value.font)
                 else
                     set(element, value)
 
-        set_account_tab_label(true, @settings.first_name, @settings.last_name)
+        set_account_tab_label(true, @settings.email_address)
 
     # Store the properties that user can freely change to the backend database.
     # The other properties only get saved by direct api calls that require additional
@@ -649,4 +661,19 @@ $("a[href='#account-settings-upgrade']").click (event) ->
     return false
 
 
+################################################
+# Version number check
+################################################
+client_version = require('salvus_version').version  # client version
+
+version_check = () ->
+    salvus_client.server_version
+        cb : (err, server_version) ->
+            if not err and server_version > client_version
+                $(".salvus_client_version_warning").show()
+
+$(".salvus_client_version_warning").draggable().find(".icon-remove").click () ->
+    $(".salvus_client_version_warning").hide()
+
+setInterval(version_check, 3*60*1000)  # check once every three minutes; may increase time later as usage grows (?)
 

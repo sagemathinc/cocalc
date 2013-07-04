@@ -10,7 +10,8 @@ message = require('message')
 {EventEmitter}  = require('events')
 {alert_message} = require('alerts')
 
-{IS_MOBILE} = require("feature")
+feature = require("feature")
+IS_MOBILE = feature.IS_MOBILE
 
 misc = require('misc')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
@@ -275,8 +276,9 @@ class exports.Editor
 
 
     focus: () =>
-        @element.find(".salvus-editor-search-openfiles-input").focus()
         @hide_editor_content()
+        @show_recent_file_list()
+        @element.find(".salvus-editor-search-openfiles-input").focus()
 
     hide_editor_content: () =>
         @_editor_content_visible = false
@@ -313,6 +315,7 @@ class exports.Editor
             v = []
             for filename, tab of @tabs
                 @close(filename)
+                @remove_from_recent(filename)
                 v.push(filename)
             undo = @element.find("a[href=#undo-close-all-tabs]")
             undo.stop().show().animate(opacity:100).fadeOut(duration:60000).click () =>
@@ -414,6 +417,7 @@ class exports.Editor
             if ignore_clicks
                 return false
             @close(filename)
+            @remove_from_recent(filename)
 
         containing_path = misc.path_split(filename).head
         ignore_clicks = false
@@ -472,7 +476,7 @@ class exports.Editor
         {editor_name, filename, content, extra_opts} = defaults opts,
             editor_name : required
             filename    : required
-            content     : required
+            content     : undefined
             extra_opts  : required
         #console.log('create_editor: ', opts)
         # Some of the editors below might get the content later and will call @file_options again then.
@@ -500,13 +504,16 @@ class exports.Editor
         return editor
 
     create_opened_file_tab: (filename) =>
+        link_bar = @project_page.container.find(".project-pages")
+
         link = templates.find(".salvus-editor-filename-pill").clone()
+        link.tooltip(title:filename, placement:'bottom', delay:{show: 500, hide: 0})
+
         link.data('name', filename)
 
         link_filename = link.find(".salvus-editor-tab-filename")
         display_name = path_split(filename).tail
         link_filename.text(display_name)
-        link.attr(title:filename).tooltip(delay: { show: 500, hide: 100 })
 
         open_file = (name) =>
             @project_page.set_current_path(misc.path_split(name).head)
@@ -516,19 +523,39 @@ class exports.Editor
         link.find(".salvus-editor-close-button-x").click () =>
             if ignore_clicks
                 return false
+
+            if @active_tab? and @active_tab.filename == filename
+                @active_tab = undefined
+
+            if not @active_tab?
+                next = link.next()
+                # skip past div's inserted by tooltips
+                while next.is("div")
+                    next = next.next()
+                name = next.data('name')  # need li selector because tooltip inserts itself after in DOM
+                if name?
+                    open_file(name)
+
             link.tooltip('destroy')
             link.hide()
             link.remove()
-            name = link.prev().data('name')
-            if name?
-                open_file(name)
+
+            if not @active_tab?
+                # open last file if there is one
+                next_link = link_bar.find("li").last()
+                name = next_link.data('name')
+                if name?
+                    open_file(name)
+                else
+                    # just show the recent files
+                    @project_page.display_tab('project-editor')
+
             tab = @tabs[filename]
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
                 tab.close_editor()
-            if @active_tab? and @active_tab.filename == filename
-                @active_tab = undefined
+
             @resize_open_file_tabs()
             return false
 
@@ -548,7 +575,7 @@ class exports.Editor
 
         @tabs[filename].open_file_pill = link
 
-        @project_page.container.find(".project-pages").append(link)
+        link_bar.append(link)
         @resize_open_file_tabs()
 
     resize_open_file_tabs: () =>
@@ -564,15 +591,22 @@ class exports.Editor
                 x.push(t)
         if x.length == 0
             return
-        start = x[0].offset().left
-        end   = x[0].parent().offset().left + x[0].parent().width()
 
-        n = x.length
-        if n <= 2
-            n = 3
-        width = (end - start - 10)/n
-        if width < 0
-            width = 0
+        # Determine the width
+        if $(window).width() <= 979
+            # responsive mode
+            width = 204
+        else
+            start = x[0].offset().left
+            end   = x[0].parent().offset().left + x[0].parent().width()
+
+            n = x.length
+            if n <= 2
+                n = 3
+            width = (end - start - 10)/n
+            if width < 0
+                width = 0
+
         for a in x
             a.width(width)
 
@@ -591,11 +625,14 @@ class exports.Editor
             tab.editor().disconnect_from_session()
             tab.editor().remove()
 
-        # Do not show this file in "recent" next time.
-        local_storage_delete(@project_id, filename, "auto_open")
         tab.link.remove()
         delete @tabs[filename]
         @update_counter()
+
+    remove_from_recent: (filename) =>
+        # Do not show this file in "recent" next time.
+        local_storage_delete(@project_id, filename, "auto_open")
+
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -623,11 +660,20 @@ class exports.Editor
     warn_user: (filename, cb) =>
         cb(true)
 
+    hide_recent_file_list: () =>
+        $(".salvus-editor-recent-files").hide()
+        $(".project-editor-recent-files-header").hide()
+
+    show_recent_file_list: () =>
+        $(".salvus-editor-recent-files").show()
+        $(".project-editor-recent-files-header").show()
+
     # Make the give tab active.
     display_tab: (filename) =>
         if not @tabs[filename]?
             return
 
+        @hide_recent_file_list()
         @show_editor_content()
         prev_active_tab = @active_tab
         for name, tab of @tabs
@@ -845,6 +891,10 @@ class CodeMirrorEditor extends FileEditor
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
+        @init_save_button()
+        @init_close_button()
+        @init_edit_buttons()
+
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
@@ -852,6 +902,47 @@ class CodeMirrorEditor extends FileEditor
 
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
+
+        extraKeys =
+            "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
+            "Ctrl-Enter"   : (editor)   => @action_key(execute: true, advance:true, split:true)
+            "Ctrl-;"       : (editor)   => @action_key(split:true, execute:false, advance:false)
+            "Cmd-;"        : (editor)   => @action_key(split:true, execute:false, advance:false)
+            "Ctrl-\\"      : (editor)   => @action_key(execute:false, toggle_input:true)
+            #"Cmd-x"  : (editor)   => @action_key(execute:false, toggle_input:true)
+            "Shift-Ctrl-\\" : (editor)   => @action_key(execute:false, toggle_output:true)
+            #"Shift-Cmd-y"  : (editor)   => @action_key(execute:false, toggle_output:true)
+
+            "Ctrl-S"       : (editor)   => @click_save_button()
+            "Cmd-S"        : (editor)   => @click_save_button()
+
+            "Ctrl-L"       : (editor)   => @goto_line(editor)
+            "Cmd-L"        : (editor)   => @goto_line(editor)
+
+            "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
+            "Cmd-I"        : (editor)   => @toggle_split_view(editor)
+
+            "Shift-Ctrl-." : (editor)   => @change_font_size(editor, +1)
+            "Shift-Ctrl-," : (editor)   => @change_font_size(editor, -1)
+            "Shift-Cmd-."  : (editor)   => @change_font_size(editor, +1)
+            "Shift-Cmd-,"  : (editor)   => @change_font_size(editor, -1)
+
+            "Shift-Tab"    : (editor)   => editor.unindent_selection()
+
+            "Ctrl-Space"   : "indentAuto"
+            "Ctrl-'"       : "indentAuto"
+
+            "Tab"          : (editor)   => @press_tab_key(editor)
+            "Esc"          : (editor)   => @interrupt_key()
+
+        # We will replace this by a general framework...
+        if misc.filename_extension(filename) == "sagews"
+            evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
+            if evaluate_key == "enter"
+                evaluate_key = "Enter"
+            else
+                evaluate_key = "Shift-Enter"
+            extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
 
         make_editor = (node) =>
             return CodeMirror.fromTextArea node,
@@ -867,38 +958,8 @@ class CodeMirrorEditor extends FileEditor
                 matchBrackets   : opts.match_brackets
                 #theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
-                extraKeys       :
-                    "Shift-Enter"  : (editor)   => @action_key(execute: true, advance:true, split:false)
-                    "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
-                    "Ctrl-Enter"   : (editor)   => @action_key(execute: true, advance:true, split:true)
-                    "Ctrl-;"       : (editor)   => @action_key(split:true, execute:false, advance:false)
-                    "Cmd-;"        : (editor)   => @action_key(split:true, execute:false, advance:false)
-                    "Ctrl-\\"    : (editor)   => @action_key(execute:false, toggle_input:true)
-                    #"Cmd-x"  : (editor)   => @action_key(execute:false, toggle_input:true)
-                    "Shift-Ctrl-\\" : (editor)   => @action_key(execute:false, toggle_output:true)
-                    #"Shift-Cmd-y"  : (editor)   => @action_key(execute:false, toggle_output:true)
+                extraKeys       : extraKeys
 
-                    "Ctrl-S"       : (editor)   => @click_save_button()
-                    "Cmd-S"        : (editor)   => @click_save_button()
-
-                    "Ctrl-L"       : (editor)   => @goto_line(editor)
-                    "Cmd-L"        : (editor)   => @goto_line(editor)
-
-                    "Ctrl-I"       : (editor)   => @toggle_split_view(editor)
-                    "Cmd-I"        : (editor)   => @toggle_split_view(editor)
-
-                    "Shift-Ctrl-." : (editor)   => @change_font_size(editor, +1)
-                    "Shift-Ctrl-," : (editor)   => @change_font_size(editor, -1)
-                    "Shift-Cmd-."  : (editor)   => @change_font_size(editor, +1)
-                    "Shift-Cmd-,"  : (editor)   => @change_font_size(editor, -1)
-
-                    "Shift-Tab"    : (editor)   => editor.unindent_selection()
-
-                    "Ctrl-Space"   : "indentAuto"
-                    "Ctrl-'"       : "indentAuto"
-
-                    "Tab"          : (editor)   => @press_tab_key(editor)
-                    "Esc"          : (editor)   => @interrupt_key()
 
         @codemirror = make_editor(elt[0])
 
@@ -916,13 +977,14 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.on 'focus', () =>
             @codemirror_with_last_focus = @codemirror1
 
-        @init_save_button()
-        @init_change_event()
-        @init_edit_buttons()
 
         @_split_view = false
 
-    action_key: (opts) =>   # options are ignored by default; worksheets use them....
+        @init_change_event()
+
+
+    action_key: (opts) =>
+        # opts ignored by default; worksheets use them....
         @click_save_button()
 
     interrupt_key: () =>
@@ -941,14 +1003,17 @@ class CodeMirrorEditor extends FileEditor
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
                      'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
-            @element.find("a[href=##{name}]").data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
+            e = @element.find("a[href=##{name}]")
+            e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
 
     click_edit_button: (name) =>
-        if not @codemirror?
-            return
         cm = @codemirror_with_last_focus
+        if not cm?
+            cm = @codemirror
+        if not cm?
+            return
         switch name
             when 'search'
                 CodeMirror.commands.find(cm)
@@ -1005,10 +1070,20 @@ class CodeMirrorEditor extends FileEditor
         focus = () =>
             @focus()
             cm.focus()
-        bootbox.prompt "Goto line...", (result) =>
+        bootbox.prompt "Goto line... (1-#{cm.lineCount()} or n%)", (result) =>
             if result != null
-                cm.setCursor({line:parseInt(result)-1, ch:0})
+                result = result.trim()
+                if result.length >= 1 and result[result.length-1] == '%'
+                    line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
+                else
+                    line = parseInt(result)-1
+                cm.setCursor({line:line, ch:0})
             setTimeout(focus, 100)
+
+    init_close_button: () =>
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
 
     init_save_button: () =>
         @save_button = @element.find("a[href=#save]").tooltip().click(@click_save_button)
@@ -1076,6 +1151,8 @@ class CodeMirrorEditor extends FileEditor
         cm_height = Math.floor((elem_height - button_bar_height)/font_height) * font_height
 
         @element.css(top:top)
+        @element.find(".salvus-editor-codemirror-chat-column").css(top:top+button_bar_height)
+
         @element.height(elem_height).show()
         @element.show()
 
@@ -1190,7 +1267,6 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @update()
-        console.log("focusing on output")
         @output.focus()
 
     focus: () =>
@@ -1280,7 +1356,7 @@ class PDF_Preview extends FileEditor
                                             # This gives a sort of "2-up" effect.  But this makes things unreadable
                                             # on some screens :-(.
                                             #img.css('width':@output.width()/2-100)
-                                            @output.dappend(img)
+                                            @output.append(img)
                                     # Delete any remaining pages from before (if doc got shorter)
                                     for n in [len(pages)...children.length]
                                         $(children[n]).remove()
@@ -1442,6 +1518,11 @@ class LatexEditor extends FileEditor
                             alert_message(type:"error", message:err)
                             cb(err)
                         else
+                            if output.stdout.indexOf("I can't find file") != -1
+                                @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
+                            else
+                                @log.find("div").empty()
+
                             @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
                             # Scroll to the bottom of the textarea
                             f = @log.find('textarea')
@@ -1488,6 +1569,7 @@ class Terminal extends FileEditor
                         cols    : @opts.cols
                         rows    : @opts.rows
                         resizable: false
+                        close   : () => @editor.project_page.display_tab("project-file-listing")
                         #reconnect    : @connect_to_server  # -- doesn't work yet!
                     @console = elt.data("console")
                     @element = @console.element
@@ -1546,8 +1628,11 @@ class Terminal extends FileEditor
             e = $(@console.terminal.element)
             top = @editor.editor_top_position() + @element.find(".salvus-console-topbar").height()
             # We leave a gap at the bottom of the screen, because often the
-            # cursor is at the bottom, but tooltips, etc., would cover that.
-            e.height($(window).height() - top - 6)
+            # cursor is at the bottom, but tooltips, etc., would cover that
+            ht = $(window).height() - top - 6
+            if feature.isMobile.iOS()
+                ht = Math.floor(ht/2)
+            e.height(ht)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
             @console.focus()
 
@@ -1666,7 +1751,7 @@ class Worksheet extends FileEditor
         win = $(window)
         @element.width(win.width())
         top = @editor.editor_top_position()
-        @element.css('top':top)
+        @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
             @element.find(".salvus-worksheet-filename").hide()

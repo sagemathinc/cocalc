@@ -195,6 +195,8 @@ $("#salvus-help").top_navbar
     label   : "Help"
     icon : 'icon-question-sign'
     close   : false
+    onshow: () -> document.title = "Sagemath - Help"
+
 
 ###
 $("#about").top_navbar
@@ -220,6 +222,7 @@ $("#projects").top_navbar
     label   : "Projects"
     icon : 'icon-tasks'
     close   : false
+    onshow: () -> document.title = "Sagemath - Projects"
 
 $("#account").top_navbar
     id     : "account"
@@ -227,6 +230,7 @@ $("#account").top_navbar
     pull_right : true
     close   : false
     icon : 'icon-signin'
+    onshow: () -> document.title = "Sagemath - Account"
 
 #$("#worksheet2").top_navbar
 #    id      : "worksheet2"

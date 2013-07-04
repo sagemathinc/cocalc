@@ -22,6 +22,7 @@ their 900 clients in parallel.
 ###
 
 
+
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
@@ -40,6 +41,12 @@ async = require('async')
 templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
+
+
+# Return true if there are currently unsynchronized changes, e.g., due to the network
+# connection being down, or cloud.sagemath not working, or a bug. 
+exports.unsynced_docs = () ->
+    return $(".salvus-editor-codemirror-not-synced:visible").length > 0
 
 class DiffSyncDoc
     # Define exactly one of cm or string.
@@ -251,20 +258,31 @@ class SynchronizedDocument extends EventEmitter
             cb : opts.cb
 
     connect: (cb) =>
+        # We queue up the calls, since we don't want to call the server more than once to connect.
+        if @_connect_callbacks?
+            @_connect_callbacks.push(cb)
+            return
+        @_connect_callbacks = [cb]
         @element.find(".salvus-editor-codemirror-loading").show()
         @_remove_listeners()
         salvus_client.call
-            timeout : 45     # a reasonable amount of time, since file could be *large*
+            timeout : 30     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @editor.project_id
             cb      : (err, resp) =>
+                cbs = @_connect_callbacks
+                delete @_connect_callbacks
                 @element.find(".salvus-editor-codemirror-loading").hide()
                 #console.log("new session: ", resp)
                 if err
-                    cb(err); return
+                    for cb in cbs
+                        cb(err)
+                    return
                 if resp.event == 'error'
-                    cb(resp.event); return
+                    for cb in cbs
+                        cb(resp.event)
+                    return
 
                 @session_uuid = resp.session_uuid
 
@@ -315,7 +333,8 @@ class SynchronizedDocument extends EventEmitter
                 if not resetting
                     @editor.save_button.addClass('disabled')   # start with no unsaved changes
 
-                cb()
+                for cb in cbs
+                    cb()
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
@@ -674,6 +693,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return false
         buttons.find("a[href=#interrupt]").click () =>
             @interrupt()
+            return false
+        buttons.find("a[href=#tab]").click () =>
+            @editor.press_tab_key(@editor.codemirror_with_last_focus)
             return false
         buttons.find("a[href=#kill]").click () =>
             @kill()

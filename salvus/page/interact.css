@@ -23,6 +23,7 @@
 
 .salvus-interact-control-slider {
     margin-top:4px;
+    cursor: default;
 }
 
 .salvus-interact-input-box-font {
@@ -37,7 +38,7 @@
     border-radius:5px;
     box-shadow: 2px 2px 1px #ddd;
     overflow-y:auto;
-    white-space:normal;        
+    white-space:normal;
 }
 
 

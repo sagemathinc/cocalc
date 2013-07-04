@@ -33,4 +33,8 @@ explore.coffee
 
 exit_confirmation.coffee
 
+help.coffee
+
+social.coffee
+
 last.coffee

@@ -111,10 +111,11 @@ create_project_item = (project) ->
     if project.public
         item.find(".projects-public-icon").show()
         item.find(".projects-private-icon").hide()
+        item.removeClass("private-project").addClass("public-project")
     else
         item.find(".projects-private-icon").show()
         item.find(".projects-public-icon").hide()
-        item.addClass("private-project")
+        item.addClass("private-project").removeClass("public-project")
     item.find(".projects-title").text(project.title)
     #if project.host != ""
     #    item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)

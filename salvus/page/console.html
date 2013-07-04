@@ -8,34 +8,56 @@
             &nbsp;&nbsp;
 
             <div class="pull-left">
-            <span class="btn-group">
-                <a href="#decrease-font" class='btn btn-small'  data-toggle="tooltip" data-placement="right" title="Decrease text size"><i class="icon-font" style="font-size:7pt"> </i> </a>
-                <a href="#increase-font" class='btn btn-small'  data-toggle="tooltip" data-placement="right" title="Increase text size"><i class="icon-font" style="font-size:10pt"> </i> </a>
-                <a href="#refresh" class='btn btn-small'  data-toggle="tooltip" data-placement="top" title="Refresh the terminal"><i class="icon-repeat"> </i> </a>
-               <a href="#paste" class='btn btn-small'  data-toggle="tooltip" data-placement="top" title="Press Ctrl-Shift-V to paste; press Ctrl-C or Cmd-C to copy"><i class="icon-paste"> </i> </a>
-
-            </span>
-            &nbsp;&nbsp;
-            <span>
-                <span class="salvus-console-font-indicator hide"><i class="icon-font"> </i>
-                    <span class="salvus-console-font-indicator-size"></span>pt
-                    <a class="btn btn-small btn-success" href="#font-make-default">make default</a>
+                <span class="btn-group not-big">
+                    <a href="#close" class="btn "><i class="icon-collapse-top"></i></a>
+                    <a href="#decrease-font" class='btn'><i class="icon-font" style="font-size:8pt"> </i> </a>
+                    <a href="#increase-font" class='btn'><i class="icon-font" style="font-size:13pt"> </i></a>
                 </span>
-            </span>
 
+                <span class="big-only">
+                    <span class="btn-group">
+                        <a href="#decrease-font" class='btn btn-small'  data-toggle="tooltip" data-placement="right" title="Decrease text size"><i class="icon-font" style="font-size:7pt"> </i> </a>
+                        <a href="#increase-font" class='btn btn-small'  data-toggle="tooltip" data-placement="right" title="Increase text size"><i class="icon-font" style="font-size:10pt"> </i> </a>
+                        <a href="#refresh" class='btn btn-small'  data-toggle="tooltip" data-placement="top" title="Refresh the terminal"><i class="icon-repeat"> </i> </a>
+                       <a href="#paste" class='btn btn-small'  data-toggle="tooltip" data-placement="top" title="Press Ctrl-Shift-V to paste; press Ctrl-C or Cmd-C to copy"><i class="icon-paste"> </i> </a>
 
+                    </span>
+                    &nbsp;&nbsp;
+                    <span>
+                        <span class="salvus-console-font-indicator hide"><i class="icon-font"> </i>
+                            <span class="salvus-console-font-indicator-size"></span>pt
+                            <a class="btn btn-small btn-success" href="#font-make-default">make default</a>
+                        </span>
+                    </span>
+                </span>
             </div>
 
             <div class="salvus-console-filename pull-left"></div>
             &nbsp;&nbsp;
 
+            <div class="not-big salvus-console-mobile-input">
+                <br>
+                <input class="salvus-console-input-line" type="text" style="width:98%" placeholder="Type input...">
+                <span class="btn-group" style="margin-top:-11px">
+                    <a class="btn salvus-console-submit-line">enter</a>
+                    <a class="btn salvus-console-submit-ctrl-c">ctrl-c</a>
+                    <a class="btn salvus-console-submit-tab">tab</a>
+                    <a class="btn salvus-console-submit-up"><i class="icon-arrow-up"></i></a>
+                    <a class="btn salvus-console-submit-down"><i class="icon-arrow-down"></i></a>
+                    <a class="btn salvus-console-submit-left"><i class="icon-arrow-left"></i></a>
+                    <a class="btn salvus-console-submit-right"><i class="icon-arrow-right"></i></a>
+                    <a class="btn salvus-console-submit-esc">esc</a>
+                </span>
+            </div>
 
             <textarea class="salvus-console-textarea"></textarea>
+        <!--
             <a class="btn btn-info salvus-console-esc hide">esc</a>
             <a class="btn btn-info salvus-console-tab hide">tab</a>
             <a class="btn btn-info salvus-console-control hide">control</a>
             <a class="btn salvus-console-up"><i class="icon-arrow-up"></i></a>
             <a class="btn salvus-console-down"><i class="icon-arrow-down"></i></a>
+-->
         </div>
 
         <!-- The actual terminal -->
@@ -45,6 +67,7 @@
         <div>
             <textarea class="salvus-console-for-mobile hide"></textarea>
             <div class="salvus-console-terminal hide"></div>
+
         </div>
     </div>
 </div>

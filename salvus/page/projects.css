@@ -12,6 +12,8 @@
     padding-top: 1.5em;
     padding-bottom: 1.5em;
     padding-left: 1em;
+
+    cursor:pointer;
 }
 
 .project-link:hover {
@@ -20,6 +22,10 @@
 
 .private-project {
     background-color:lightyellow;
+}
+
+.public-project {
+    background-color:white;
 }
 
 .projects-title {

@@ -26,6 +26,8 @@ helenus = require("helenus")            # https://github.com/simplereach/helenus
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
+moment  = require('moment')
+
 
 # the time right now, in iso format ready to insert into the database:
 now = exports.now = () -> to_iso(new Date())
@@ -42,6 +44,10 @@ exports.hours_ago = (h) -> exports.minutes_ago(60*h)
 exports.days_ago = (d) -> exports.hours_ago(24*d)
 
 #########################################################################
+
+
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
+
 
 DEFAULT_PLAN_ID = "13814000-1dd2-11b2-0000-fe8ebeead9df"
 
@@ -91,24 +97,80 @@ class UUIDStore
             cb    : opts.cb
         return opts.uuid
 
+    # returns 0 if there is no ttl set; undefined if no object in table
+    get_ttl: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            cb   : required
+
+        @cassandra.select
+            table  : @_table
+            where  : {name:@opts.name, uuid:opts.uuid}
+            columns : ['ttl(value)']
+            objectify : false
+            cb     : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    ttl = result[0]?[0]
+                    if ttl == null
+                        ttl = 0
+                    opts.cb(err, ttl)
+
     # change the ttl of an existing entry -- requires re-insertion, which wastes network bandwidth...
-    set_ttl: (opts) =>
+    _set_ttl: (opts) =>
         opts = defaults opts,
             uuid : required
             ttl  : 0         # no ttl
             cb   : undefined
-
         @get
             uuid : opts.uuid
             cb : (err, value) =>
-                if err
-                    opts.cb(err)
-                else if value?
+                if value?
                     @set
                         uuid : opts.uuid
                         value : value      # note -- the implicit conversion between buf and string is *necessary*, sadly.
                         ttl   : opts.ttl
                         cb    : opts.cb
+                else
+                    opts.cb?(err)
+
+    # Set ttls for all given uuids at once; expensive if needs to change ttl, but cheap otherwise.
+    set_ttls: (opts) =>
+        opts = defaults opts,
+            uuids : required    # array of strings/uuids
+            ttl   : 0
+            cb    : undefined
+        if opts.uuids.length == 0
+            opts.cb?()
+            return
+        @cassandra.select
+            table   : @_table
+            columns : ['ttl(value)', 'uuid']
+            where   : {name:@opts.name, uuid:{'in':opts.uuids}}
+            objectify : true
+            cb      : (err, results) =>
+                f = (r, cb) =>
+                    if r['ttl(value)'] != opts.ttl
+                        @_set_ttl
+                            uuid : r.uuid
+                            ttl  : opts.ttl
+                            cb   : cb
+                    else
+                        cb()
+                async.map(results, f, opts.cb)
+
+    # Set ttl only for one ttl; expensive if needs to change ttl, but cheap otherwise.
+    set_ttl: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            ttl  : 0         # no ttl
+            cb   : undefined
+        @set_ttls
+            uuids : [opts.uuid]
+            ttl   : opts.ttl
+            cb    : opts.cb
+
 
     get: (opts) ->
         opts = defaults opts,
@@ -287,8 +349,6 @@ class exports.Cassandra extends EventEmitter
             timeout  : 3000
 
         @keyspace = opts.keyspace
-        console.log("keyspace = #{opts.keyspace}")
-        console.log("hosts = #{opts.hosts}")
         @conn = new helenus.ConnectionPool(
             hosts     :  opts.hosts
             keyspace  :  opts.keyspace
@@ -1056,11 +1116,13 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             project_id : required
             columns    : required
+            objectify  : false
             cb         : required
         @select_one
             table   : 'projects'
             where   : {project_id: opts.project_id}
             columns : opts.columns
+            objectify : opts.objectify
             json    : ['quota', 'location']
             cb      : opts.cb
 
@@ -1243,18 +1305,6 @@ class exports.Salvus extends exports.Cassandra
             where : {project_id : opts.project_id}
             cb    : opts.cb
 
-        # This was an implementation of destructive deletion.  But this has no place in SMC, given
-        # that we have numerous snapshots of all data of every project anyways!
-        #async.series([
-        #    (cb) =>
-        #        @delete(table:'projects', where:{project_id : opts.project_id}, cb:cb)
-        #    (cb) =>
-        #        @delete(table:'project_users', where:{project_id : opts.project_id}, cb:cb)
-        #], (err) ->
-        #    if opts.cb?
-        #        opts.cb(err)
-        #)
-
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
     get_projects_with_user: (opts) ->
@@ -1311,7 +1361,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table     : 'projects'
             json      : ['location', 'quota']
-            columns   : ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
+            columns   : PROJECT_COLUMNS
             objectify : true
             where     : { project_id:{'in':opts.ids} }
             cb        : (error, results) ->
@@ -1414,6 +1464,39 @@ class exports.Salvus extends exports.Cassandra
                 project_id : opts.project_id
                 filename   : opts.filename
             cb         : opts.cb
+
+    get_stats: (opts) ->
+        opts = defaults opts,
+            cb : required
+        stats = {timestamp:moment(new Date()).format('YYYY-MM-DD-HHmmss') }
+        async.series([
+            (cb) =>
+                @count
+                    table : 'accounts'
+                    cb    : (err, val) =>
+                        stats.accounts = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'projects'
+                    cb    : (err, val) =>
+                        stats.projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    cb    : (err, val) =>
+                        stats.active_projects = val
+                        cb(err)
+            (cb) =>
+                @update
+                    table : 'stats'
+                    set   : stats
+                    where : {time:now()}
+                    cb    : cb
+        ], (err) =>
+            opts.cb(err, stats)
+        )
 
 
 quote_if_not_uuid = (s) ->

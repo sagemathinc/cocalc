@@ -12,17 +12,15 @@
 .salvus-console-topbar {
     padding: 0px;
     margin : 0px;
-    height : 26px;
     overflow : hidden;
 }
 
 .salvus-console-filename {
     padding       : 10px;
     font-weight   : bold;
-    overflow      : hidden;
     color:#555;
-    max-width : 30%;
     padding-top: 4px;
+    padding-bottom: 0;
 }
 
 .salvus-console-title {
@@ -32,6 +30,7 @@
     color:#555;
     max-width : 40%;
     padding-top: 4px;
+    padding-bottom: 0;
 }
 
 .salvus-console-description {
@@ -45,7 +44,8 @@
 }
 
 .salvus-console-terminal {
-    font-family: Courier, "Courier New", monospace;
+    /* font-family: Courier, "Courier New", monospace; */
+    font-family: droid-sans-mono;  /* really set in console.coffee, overriding this! */
     padding: 1ex;
     margin: 0px;
 }

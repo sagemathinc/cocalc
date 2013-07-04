@@ -408,6 +408,7 @@ message
     last_name      : required      # user's last name
     email_address  : required      # address they just signed in using
     remember_me    : required      # true if sign in accomplished via remember_me cookie; otherwise, false.
+    hub            : required      # ip address (on vpn) of hub user connected to.
 
 # client --> hub
 message
@@ -518,7 +519,7 @@ exports.unrestricted_account_settings =
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
     default_system     : 'sage'
-    evaluate_key       : 'shift-enter'
+    evaluate_key       : 'Shift-Enter'
     email_new_features : true
     email_maintenance  : true
     enable_tooltips    : true
@@ -526,7 +527,7 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 180
-    terminal           : {font_size:14, color_scheme:'default'}
+    terminal           : {font_size:14, color_scheme:'solarized-light', font:'droid-sans-mono'}
 
 # client <--> hub
 message(
@@ -881,17 +882,6 @@ message
     id           : required
 
 ############################################
-# Permament blob store
-############################################
-
-# Remove ttl from a blob and associate the blob with a project.
-message
-    event       : 'save_blobs_to_project'
-    id          : undefined   # message id, as usual
-    project_id  : required    # id of project that contains blob associated to
-    blob_ids    : required   # list of blobs to attach permanently to the project
-
-############################################
 # Branches
 ############################################
 # client --> hub
@@ -948,6 +938,25 @@ message
     event      : 'project_created'
     id         : required
     project_id : required
+
+
+
+# Get info about a single project (instead of all projects)
+# client --> hub
+message
+    event      : 'get_project_info'
+    project_id : required
+    id         : undefined
+
+# Response to get_project_info message.
+# hub --> client
+message
+    event      : 'project_info'
+    info       : required
+    id         : undefined
+
+
+
 
 # client --> hub
 message
@@ -1026,5 +1035,37 @@ message
     account_id : required
 
 
+
+############################################
+# Get the current server version number.
+#
+# This can be used by clients or even the local_hub to
+# force or recommend a refresh/restart.
+#
+#############################################
+# client <---> hub
+message
+    event     : 'get_version'
+    id        : undefined
+    version   : undefined    # gets filled in by the hub
+
+
+############################################
+#
+# Get various stats about cloud.sagemath.
+# The output stats object is at least has this
+#
+#   { accounts: number, projects: number, active_projects:number }
+#
+# and may have other stats.  These are cached in RAM on the
+# server for some amount of time, so might not be the
+# absolutely latest numbers.
+#
+#############################################
+# client <---> hub
+message
+    event     : 'get_stats'
+    id        : undefined
+    stats     : undefined    # gets filled in by the hub
 
 

@@ -54,7 +54,7 @@
 
 .nav-tabs>.disabled>a, .nav-pills>.disabled>a {
     color: #999;
-    cursor: default;
+    cursor: pointer;
     border: none; /** add this for tabs/pills **/
 }
 

@@ -1,17 +1,17 @@
 <head>
     <meta charset="utf-8">
 
-    <title>SageMathCloud</title>
+    <title>Sagemath Cloud</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="SageMathCloud">
+    <meta name="description" content="Sagemath Cloud">
     <meta name="author" content="William Stein">
 
     <link rel="stylesheet" href="/jquery/jquery-ui/css/humanity/jquery-ui.css">
 
     <link href="/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/font-awesome/css/font-awesome.min.css" rel="stylesheet">
-    <!-- <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet"> -->
+    <link href="/bootstrap/css/bootstrap-responsive.min.css" rel="stylesheet">
 
     <!-- CODEMIRROR3 -->
 
@@ -100,6 +100,8 @@
     <script type="text/javascript" src="/jquery/jquery.min.js"></script>
     <script type="text/javascript" src="/jquery/jquery-ui/js/jquery-ui.min.js"></script>
 
+    <!-- Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/ -->
+    <script type="text/javascript" src="/jquery/plugins/jquery.ui.touch-punch.min.js"></script>
 
     <!-- Countdown timer jQuery plugin -->
     <script type="text/javascript" src="/jquery/plugins/countdown/jquery.countdown.min.js"></script>
@@ -133,8 +135,8 @@
 -->
     <script type="text/x-mathjax-config">
     MathJax.Hub.Config({
-       extensions: ["tex2jax.js","fp.js"],
-       jax: ["input/TeX","output/SVG"],
+       extensions: ["tex2jax.js","fp.js","asciimath2jax.js"],
+       jax: ["input/TeX","input/AsciiMath","output/SVG"],
        tex2jax: {
           inlineMath: [ ['$','$'], ["\\(","\\)"] ],
           displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
@@ -181,11 +183,12 @@
     <link rel="stylesheet" href="/jquery/plugins/dropzone/css/dropzone.css">
 
 
-    <!-- The Salvus library and its dependencies -->
-    <!--
+    <!-- The Salvus library and its Node.js dependencies -->
+<!--
     <script type="text/javascript" src="/salvus.js"></script>
     <script type="text/javascript" src="/index.js"></script>
-    -->
+-->
+
     <script type="text/javascript" src="/salvus.min.js"></script>
     <script type="text/javascript" src="/index.min.js"></script>
 
@@ -193,13 +196,7 @@
     <script type="text/javascript" src="/d3/d3.v3.min.js"></script>
 
     <!-- Three.js for 3d graphics -->
-    <script src="threejs/three.min.js"></script>
-
-    <!-- FOR PRODUCTION! -->
-    <!--
-<script type="text/javascript" src="/salvus.min.js"></script>
-<script type="text/javascript" src="/index.min.js"></script>
--->
+    <!-- <script src="threejs/three.min.js"></script> -->
 
     <link href="index.css" rel="stylesheet">
 

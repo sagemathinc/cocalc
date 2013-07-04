@@ -16,6 +16,7 @@
     font-size : 9pt;
     line-height: 10pt;
     margin-top: 9pt;
+    cursor    : default;
 }
 
 .salvus-top_navbar {
@@ -43,4 +44,11 @@
 .salvus-fullscreen-deactivate:hover {
     background: blue;
     color: white;
+}
+
+.salvus-topbar-responsive-button {
+    color: #666;
+    font-size: 19px;
+    top: 2px;
+    position: relative;
 }

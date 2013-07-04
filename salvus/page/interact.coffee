@@ -432,7 +432,7 @@ interact_control = (desc, update) ->
                 content.append(select)
                 i = 0
                 for lbl in desc.lbls
-                    select.append($("<option>").attr("value",i).attr("label", lbl))
+                    select.append($("<option>").attr("value",i).attr("label", lbl).text(lbl))
                     i += 1
 
                 select.change (evt) ->

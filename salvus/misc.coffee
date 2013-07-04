@@ -43,7 +43,7 @@ exports.defaults = (obj1, obj2) ->
         throw "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
     r = {}
     for prop, val of obj2
-        if obj1.hasOwnProperty(prop)
+        if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 console.trace()
                 throw "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
@@ -61,7 +61,7 @@ exports.defaults = (obj1, obj2) ->
     return r
 
 # WARNING -- don't accidentally use this as a default:
-exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
+exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 # Current time in milliseconds since epoch
 exports.mswalltime = (t) ->

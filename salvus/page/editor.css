@@ -36,6 +36,21 @@ Editor for files in a project
 
 .salvus-editor-filename-pill {
     width:32%;
+    cursor: pointer;
+}
+
+@media (max-width: 979px)
+{
+    .salvus-editor-filename-pill {
+        width:50%;
+    }
+}
+
+@media (max-width: 480px)
+{
+    .salvus-editor-filename-pill {
+        width:100%;
+    }
 }
 
 .salvus-editor-codemirror {
@@ -46,7 +61,6 @@ Editor for files in a project
 
 .salvus-editor-codemirror-button-row {
     margin-top: 1px;
-    height:30px;
 }
 
 .salvus-editor-codemirror-filename {
@@ -81,7 +95,7 @@ Editor for files in a project
     font-family:serif;
 }
 
-.salvus-editor-button-bar {
+.salvus-editor-recent-files {
     margin-bottom : 0em;
 }
 
@@ -157,6 +171,7 @@ Editor for files in a project
     position: fixed;
     z-index: 10;
     right: 0;
+    cursor : pointer;
 
 }
 
@@ -219,7 +234,7 @@ Editor for files in a project
 
 .sagews-input:hover {
     cursor: pointer;
-    cursor: hand;
+    cursor: pointer;
     background-color:#0044cc;
     background-image: linear-gradient(to bottom, #0088cc, #0044cc);
 }

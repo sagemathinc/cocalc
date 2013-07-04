@@ -33,6 +33,10 @@ cassandra = require 'cassandra'
 
 {defaults, required} = misc
 
+# Set the log level to debug
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
+
 # Run a bup command
 bup = (opts) ->
     opts = defaults opts,
@@ -249,7 +253,8 @@ append_slashes_after_directory_names = (path, files, cb) ->
 # Get list of all files inside a given directory; in the list, directories have a "/" appended.
 _info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
     bup
-        args    : ['ls', '-a', "#{project_id}/#{snapshot}/#{path}"]
+        args    : ['ls', '-a', "master/#{snapshot}/#{path}"]
+        #args    : ['ls', '-a', "#{project_id}/#{snapshot}/#{path}"]
         timeout : 60
         cb      : (err, output) ->
             if err
@@ -262,15 +267,30 @@ _info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
 
 # List of all projects with at least one backup
 _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
-    bup
-        args    : ['ls']
-        timeout : 1800
-        cb      : (err, output) ->
+    database.select
+        table     : 'snap_commits'
+        where     : {server_id : snap_server_uuid}
+        columns   : ['project_id']
+        objectify : false
+        cb        : (err, results) =>
             if err
                 cb(err)
             else
-                v = output.stdout.split('/\n')
-                cb(false, v)
+                obj = {}
+                for r in results
+                    obj[r[0]] = true
+                cb(false, misc.keys(obj))
+
+## OLD VERSION -- doesn't make sense with only one branch
+#    bup
+#        args    : ['ls']
+#        timeout : 1800
+#        cb      : (err, output) ->
+#            if err
+#                cb(err)
+#            else
+#                v = output.stdout.split('/\n')
+#                cb(false, v)
 
 
 
@@ -308,7 +328,8 @@ snap_restore = (opts) ->
 
     user   = undefined
     outdir = "#{tmp_dir}/#{uuid.v4()}"
-    target = "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"
+    #target = "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"
+    target = "master/#{opts.snapshot}/#{opts.path}"
     dest   = undefined
     escaped_dest = undefined
 
@@ -509,6 +530,9 @@ monitor_snapshot_queue = () ->
         size_before = undefined
         size_after = undefined
         async.series([
+            # wait 2 seconds, to ensure uniqueness of time stamp
+            (cb) ->
+                setTimeout(cb, 2000)
             # get deployed location of project (which can change at any time!)
             (cb) ->
                 database.get_project_location
@@ -540,7 +564,8 @@ monitor_snapshot_queue = () ->
                 t = misc.walltime()
                 d = Math.ceil(misc.walltime())
                 bup
-                    args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', project_id, '.']
+                    #args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', project_id, '.']
+                    args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', 'master', '.']
                     cb   : (err) ->
                         winston.info("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
                         if not err
@@ -573,6 +598,17 @@ monitor_snapshot_queue = () ->
                     # be reported on next update the snap_servers table.
                     size_of_bup_archive = size_after
                     cb(err)
+
+            # Do a "bup ls", which causes the cache to be updated (so a user doesn't have to wait several seconds the 
+            # first time they do a view on a snapshot).  Also, if this fails for some reason, we do *NOT* want to 
+            # ever record this as a successful snapshot in the database.
+            (cb) ->
+                t = misc.walltime()
+                bup
+                    args : ['ls', "master/#{timestamp}"]
+                    cb   : (err) ->
+                        winston.info("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s") 
+                        cb(err)
 
             # record that we successfully made a snapshot to the database, and our local cache
             (cb) ->
@@ -1157,13 +1193,13 @@ program.usage('[start/stop/restart/status] [options]')
 
 # program.resend_all_commits = true
 
-process.addListener "uncaughtException", (err) ->
-    winston.error "Uncaught exception: " + err
-    if console? and console.trace?
-        console.trace()
-
 if program._name == 'snap.js'
     #    winston.info "snap daemon"
+
+    process.addListener "uncaughtException", (err) ->
+        winston.error "Uncaught exception: " + err
+        if console? and console.trace?
+            console.trace()
 
     conf = {pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}
 

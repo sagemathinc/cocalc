@@ -71,15 +71,16 @@ class Console extends EventEmitter
             rows        : 16
             cols        : 80
             resizable   : false
+            close       : undefined  # if defined, called when close button clicked.
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
             font        :   # only for 'ttyjs' renderer
-                family : 'Courier, "Courier New", monospace' # CSS font-family
+                family : undefined
                 size   : undefined                           # CSS font-size in points
                 line_height : 115                            # CSS line-height percentage
 
             highlight_mode : 'none'
-            renderer       : 'auto'   # options -- 'auto' (best for device); 'codemirror' (mobile support), 'ttyjs' (xterm-color!)
+            renderer       : 'ttyjs'   # options -- 'auto' (best for device); 'codemirror' (mobile support--useless), 'ttyjs' (xterm-color!)
             draggable      : false    # not very good/useful yet.
 
             color_scheme   : undefined
@@ -150,6 +151,7 @@ class Console extends EventEmitter
 
         # Initialize buttons
         @_init_buttons()
+        @_init_input_line()
 
         # Initialize the "set default font size" button that appears.
         @_init_font_make_default()
@@ -269,6 +271,10 @@ class Console extends EventEmitter
             @opts.color_scheme = settings.color_scheme
             if not @opts.color_scheme?
                 @opts.color_scheme = "default"
+        if not @opts.font.family?
+            @opts.font.family = settings.font
+            if not @opts.font.family?
+                @opts.font.family = "droid-sans-mono"
 
     _init_session_ping: () =>
         @session.ping(@console_is_open)
@@ -329,7 +335,7 @@ class Console extends EventEmitter
         ter = $(@terminal.element)
 
         ter.css
-            'font-family' : @opts.font.family
+            'font-family' : @opts.font.family + ", monospace"  # monospace fallback
             'font-size'   : "#{@opts.font.size}px"
             'line-height' : "#{@opts.font.line_height}%"
 
@@ -399,8 +405,13 @@ class Console extends EventEmitter
         @element.find("a[href=#increase-font]").click () =>
             @_increase_font_size()
             return false
+
         @element.find("a[href=#decrease-font]").click () =>
             @_decrease_font_size()
+            return false
+
+        @element.find("a[href=#close]").click () =>
+            @opts.close?()
             return false
 
         @element.find("a[href=#refresh]").click () =>
@@ -414,6 +425,70 @@ class Console extends EventEmitter
             bootbox.alert("Press Control+Shift+V (or Command+V) to paste.  To copy, highlight text then press Control+C (or Command+C); when no text is highlighted, Control+C sends the usual interrupt.")
             return false
 
+    _init_input_line: () =>
+
+        if not IS_MOBILE
+            @element.find(".salvus-console-mobile-input").hide()
+            return
+
+        input_line = @element.find('.salvus-console-input-line')
+
+        submit_line = () =>
+            @session?.write_data(input_line.val())
+            input_line.val('')
+
+        input_line.on 'keyup', (e) =>
+            if e.which == 13
+                e.preventDefault()
+                submit_line()
+                @session?.write_data("\n")
+                return false
+            else if e.which == 67 and e.ctrlKey
+                submit_line()
+                @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
+
+        @element.find(".salvus-console-submit-line").click () =>
+            #@focus()
+            submit_line()
+            @session?.write_data("\n")
+            return false
+
+        @element.find(".salvus-console-submit-tab").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:9, shiftKey:false)
+
+        @element.find(".salvus-console-submit-esc").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-up").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:38, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-down").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:40, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-left").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:37, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-right").click () =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:39, shiftKey:false, ctrlKey:false)
+
+        @element.find(".salvus-console-submit-ctrl-c").show().click (e) =>
+            #@focus()
+            submit_line()
+            @terminal.keyDown(keyCode:67, shiftKey:false, ctrlKey:true)
+
+        ###
         @element.find(".salvus-console-up").click () ->
             vp = editor.getViewport()
             editor.scrollIntoView({line:vp.from - 1, ch:0})
@@ -438,6 +513,7 @@ class Console extends EventEmitter
             @element.find(".salvus-console-esc").show().click (e) =>
                 @focus()
                 @terminal.keyDown(keyCode:27, shiftKey:false, ctrlKey:false)
+        ###
 
     _init_paste_bin: () =>
         pb = @element.find(".salvus-console-textarea")
@@ -564,7 +640,12 @@ class Console extends EventEmitter
         if IS_MOBILE
             $(document).off('keydown', @mobile_keydown)
 
-        @terminal.blur()
+        try
+            @terminal.blur()
+        catch e
+            # TODO: probably should investigate term.js issues further(?)
+            # ignore -- sometimes in some states the terminal code can raise an exception when explicitly blur-ing.
+            # This would totally break the client, which is bad, so we catch is.
         $(@terminal.element).removeClass('salvus-console-focus').addClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
@@ -584,7 +665,8 @@ class Console extends EventEmitter
         @resize()
 
         if IS_MOBILE
-            $(document).on('keydown', @mobile_keydown)
+            #$(document).on('keydown', @mobile_keydown)
+            @element.find(".salvus-console-input-line").focus()
         else
             @terminal.focus()
             @_focus_hidden_textarea()

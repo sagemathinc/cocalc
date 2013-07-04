@@ -544,7 +544,9 @@ exports.test7 = (n=1) ->
 
 exports.DiffSync = DiffSync
 
-# For various clients:
+#---------------------------------------------------------------------------------------------------------
+# Support for using synchronized docs to represent Sage Worksheets (i.e., live compute documents)
+#---------------------------------------------------------------------------------------------------------
 
 exports.MARKERS =
     cell   : "\uFE20"
@@ -561,4 +563,30 @@ exports.FLAGS = FLAGS =
 
 exports.ACTION_FLAGS = [FLAGS.execute, FLAGS.running, FLAGS.waiting, FLAGS.interrupt]
 
+# Return a list of the uuids of files that are displayed in the given document,
+# where doc is the string representation of a worksheet.
+# At present, this function finds all output messages of the form
+#   {"file":{"uuid":"806f4f54-96c8-47f0-9af3-74b5d48d0a70",...}}
+# but it could do more at some point in the future.
+
+exports.uuids_of_linked_files = (doc) ->
+    uuids = []
+    i = 0
+    while true
+        i = doc.indexOf(exports.MARKERS.output, i)
+        if i == -1
+            return uuids
+        j = doc.indexOf('\n', i)
+        if j == -1
+            j = doc.length
+        line = doc.slice(i, j)
+        for m in line.split(exports.MARKERS.output).slice(1)
+            # Only bother to run the possibly slow JSON.parse on file messages; since
+            # this function would block the global hub server, this is important.
+            if m.slice(0,8) == '{"file":'
+                mesg = JSON.parse(m)
+                uuid = mesg.file?.uuid
+                if uuid?
+                    uuids.push(uuid)
+        i = j
 

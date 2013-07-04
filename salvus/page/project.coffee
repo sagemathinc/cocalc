@@ -129,7 +129,7 @@ class ProjectPage
                 delete project_pages[@project.project_id]
             onshow: () =>
                 if @project?
-                    document.title = "SMC: #{@project.title}"
+                    document.title = "Project - #{@project.title}"
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -176,6 +176,9 @@ class ProjectPage
 
         @init_delete_project()
         @init_undelete_project()
+
+        @init_make_public()
+        @init_make_private()
 
         @init_add_collaborators()
 
@@ -289,6 +292,21 @@ class ProjectPage
     close: () =>
         top_navbar.remove_page(@project.project_id)
 
+
+    # Reload the @project attribute from the database, and re-initialize
+    # ui elements, mainly in settings.
+    reload_settings: (cb) =>
+        salvus_client.project_info
+            project_id : @project.project_id
+            cb         : (err, info) =>
+                if err
+                    cb?(err)
+                    return
+                @project = info
+                @update_topbar()
+                cb?()
+
+
     ########################################
     # Launch open sessions
     ########################################
@@ -347,7 +365,7 @@ class ProjectPage
     ########################################
 
     init_file_search: () =>
-        @_file_search_box = @container.find(".salvus-project-search-for-file-input").tooltip(delay:{ show: 500, hide: 100 })
+        @_file_search_box = @container.find(".salvus-project-search-for-file-input")
         @_file_search_box.keyup (event) =>
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79
                 @display_tab("project-editor")
@@ -412,6 +430,7 @@ class ProjectPage
         input_boxes.keypress (evt) ->
             t = $(@)
             if evt.which== 13
+                input_boxes.blur()
                 # Do the search.
                 try
                     that.search(t.val())
@@ -423,6 +442,10 @@ class ProjectPage
             @search($(input_boxes[0]).val())
         @container.find(".project-search-output-case-sensitive").change () =>
             @search($(input_boxes[0]).val())
+
+        @container.find(".project-search-form-input-clear").click () =>
+            input_boxes.val('')
+            return false
 
     search: (query) =>
         if $.trim(query) == ""
@@ -479,6 +502,8 @@ class ProjectPage
                 else
                     @container.find(".project-search-output-further-results").hide()
                 for line in results
+                    if line.trim() == ""
+                        continue
                     i = line.indexOf(":")
                     num_results += 1
                     if i == -1
@@ -487,10 +512,12 @@ class ProjectPage
                         r = search_result.clone()
                         r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
                             that.open_file($(@).data('filename'))
+                        r.find("span").addClass('lighten').text('(filename)')
                     else
                         # the rgrep part
                         filename = line.slice(0,i)
-                        context  = trunc(line.slice(i+1), 25)
+                        #context  = trunc(line.slice(i+1), 25)
+                        context = line.slice(i+1)
                         r = search_result.clone()
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
@@ -673,20 +700,19 @@ class ProjectPage
 
             if name == "project-file-listing"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.update_file_list_tab()
             else if name == "project-editor"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.show_new_file_tab()
             else if name == "project-settings"
                 tab.onshow = () ->
-                    that.container.css('position', 'absolute')
                     that.update_topbar()
+            else if name == "project-search"
+                tab.onshow = () ->
+                    that.container.find(".project-search-form-input").focus()
 
         @display_tab("project-file-listing")
 
@@ -699,6 +725,7 @@ class ProjectPage
 
     display_tab: (name) =>
         @container.find(".project-pages").children().removeClass('active')
+        @container.css(position: 'absolute')
         for tab in @tabs
             if tab.name == name
                 @current_tab = tab
@@ -708,6 +735,8 @@ class ProjectPage
                 @focus()
             else
                 tab.target.hide()
+        @editor?.resize_open_file_tabs()
+
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
@@ -783,12 +812,26 @@ class ProjectPage
         if not @project?
             return
 
+        if @project.public
+            @container.find(".project-public").show()
+            @container.find(".project-private").hide()
+            @container.find(".project-heading-well").removeClass("private-project").addClass("public-project")
+            @container.find(".project-settings-make-public").hide()
+            @container.find(".project-settings-make-private").show()
+        else
+            @container.find(".project-public").hide()
+            @container.find(".project-private").show()
+            @container.find(".project-heading-well").addClass("private-project").removeClass("public-project")
+            @container.find(".project-settings-make-public").show()
+            @container.find(".project-settings-make-private").hide()
+
+
         @container.find(".project-project_title").text(@project.title)
         @container.find(".project-project_description").text(@project.description)
 
         label = @project.title.slice(0,MAX_TITLE_LENGTH) + if @project.title.length > MAX_TITLE_LENGTH then "..." else ""
         top_navbar.set_button_label(@project.project_id, label)
-        document.title = "SMC: #{@project.title}"
+        document.title = "Sagemath: #{@project.title}"
 
         if not (@_computing_usage? and @_computing_usage)
             usage = @container.find(".project-disk_usage")
@@ -829,7 +872,10 @@ class ProjectPage
 
         t = @container.find(".project-file-listing-current_path")
         t.empty()
-        t.append($("<a>").html(template_home_icon.clone().click(() =>
+        if @current_path.length == 0
+            return
+
+        t.append($("<a class=project-file-listing-path-segment-link>").html(template_home_icon.clone().click(() =>
             @current_path=[]; @update_file_list_tab())))
 
         new_current_path = []
@@ -837,7 +883,7 @@ class ProjectPage
         for segment in @current_path
             new_current_path.push(segment)
             t.append(template_segment_sep.clone())
-            t.append($("<a>"
+            t.append($("<a class=project-file-listing-path-segment-link>"
             ).text(segment
             ).data("current_path",new_current_path[..]  # [..] means "make a copy"
             ).click((elt) =>
@@ -860,11 +906,12 @@ class ProjectPage
         dz_container = @container.find(".project-dropzone")
         dz_container.empty()
         dz = $('<div class="dropzone"></div>')
+        if IS_MOBILE
+            dz.append($('<span class="message" style="font-weight:bold;font-size:14pt">Tap to select files to upload</span>'))
         dz_container.append(dz)
         dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
-            dictDefaultMessage : "Drop a file here, or click to select a file from your computer..."
             maxFilesize: 10 # in megabytes
 
     init_new_file_tab: () =>
@@ -991,7 +1038,9 @@ class ProjectPage
         # Clear the filename and focus on it
         now = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
         #now = now.slice(0, now.length-2)  # get rid of seconds.
-        @new_file_tab_input.val(now).focus()
+        @new_file_tab_input.val(now)
+        if not IS_MOBILE
+            @new_file_tab_input.focus()
         @get_from_web_input.val('')
 
     update_snapshot_ui_elements: () =>
@@ -1447,7 +1496,7 @@ class ProjectPage
         elt = @container.find(".project-sort-files")
         @_sort_by_time = local_storage(@project.project_id, '', 'sort_by_time')
         if not @_sort_by_time
-            @_sort_by_time = false
+            @_sort_by_time = true
         if @_sort_by_time
             elt.find("a").toggle()
         elt.find("a").tooltip(delay:{ show: 500, hide: 100 }).click () =>
@@ -1470,9 +1519,12 @@ class ProjectPage
             return false
 
     init_delete_project: () =>
-        link = @container.find("a[href=#delete-project]")
         if @project.deleted
-            link.hide()
+            @container.find(".project-settings-delete").hide()
+            return
+        else
+            @container.find(".project-settings-delete").show()
+        link = @container.find("a[href=#delete-project]")
         m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
         link.click () =>
             bootbox.confirm m, (result) =>
@@ -1496,9 +1548,15 @@ class ProjectPage
             return false
 
     init_undelete_project: () =>
+
+        if not @project.deleted
+            @container.find(".project-settings-undelete").hide()
+            return
+        else
+            @container.find(".project-settings-undelete").show()
+
         link = @container.find("a[href=#undelete-project]")
-        if @project.deleted
-            link.show()
+
         m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
             bootbox.confirm m, (result) =>
@@ -1521,11 +1579,64 @@ class ProjectPage
                                     message : "Successfully undeleted project \"#{@project.title}\"."
             return false
 
+
+    init_make_public: () =>
+        link = @container.find("a[href=#make-public]")
+        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Public</h4>Are you sure you want to make this project public?"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.update_project_data
+                        project_id : @project.project_id
+                        data       : {public:true}
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to make project public.  Please try again later. #{err}"
+                            else
+                                @reload_settings()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully made project \"#{@project.title}\" public."
+            return false
+
+    init_make_private: () =>
+        link = @container.find("a[href=#make-private]")
+        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Private</h4>Are you sure you want to make this project private?"
+        link.click () =>
+            bootbox.confirm m, (result) =>
+                if result
+                    link.find(".spinner").show()
+                    salvus_client.update_project_data
+                        project_id : @project.project_id
+                        data       : {public:false}
+                        cb         : (err) =>
+                            link.find(".spinner").hide()
+                            if err
+                                alert_message
+                                    type : "error"
+                                    message: "Error trying to make project private.  Please try again later. #{err}"
+                            else
+                                @reload_settings()
+                                alert_message
+                                    type : "info"
+                                    message : "Successfully made project \"#{@project.title}\" private."
+            return false
+
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
-        add_button = @container.find("a[href=#add-collaborator]")
+        add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
+
+        @container.find("a[href=#invite-friend]").click () =>
+            require('social').invite_friend
+                message         : "I would like to collaborate with you via the <a href='https://cloud.sagemath.com/signup'>Sagemath Cloud</a> on #{@project.title} (#{@project.description}).  Please join using this email address, and you will be automatically added to my project."
+                collab_projects : [@project.project_id]
+            return false
 
         remove_collaborator = (c) =>
             # c = {first_name:? , last_name:?, account_id:?}
@@ -1556,10 +1667,11 @@ class ProjectPage
                             c = template_project_collab.clone()
                             c.find(".project-collab-first-name").text(x.first_name)
                             c.find(".project-collab-last-name").text(x.last_name)
+                            c.find(".project-collab-mode").text(x.mode)
                             if x.mode == 'owner'
                                 c.find(".project-close-button").hide()
                                 c.css('background-color', '#51a351')
-                                c.tooltip(title:"Owner", delay: { show: 500, hide: 100 })
+                                c.tooltip(title:"Project owner (cannot be revoked)", delay: { show: 500, hide: 100 })
                             else
                                 c.find(".project-close-button").data('collab', x).click () ->
                                     remove_collaborator($(@).data('collab'))
@@ -1586,6 +1698,7 @@ class ProjectPage
             x = input.val()
             if x == ""
                 select.html("").hide()
+                @container.find("a[href=#invite-friend]").hide()
                 add_button.addClass('disabled')
                 return
             salvus_client.user_search
@@ -1596,9 +1709,10 @@ class ProjectPage
                     for r in result
                         if not already_collab[r.account_id]? # only show users not already added
                             name = r.first_name + ' ' + r.last_name
-                            select.append($("<option>").attr(value:r.account_id, label:name))
+                            select.append($("<option>").attr(value:r.account_id, label:name).text(name))
                     select.show()
                     add_button.removeClass('disabled')
+                    @container.find("a[href=#invite-friend]").show()
 
         invite_selected = () =>
             x = select.find(":selected")

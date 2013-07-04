@@ -204,6 +204,12 @@ exports.connect_to_locked_socket = (opts) ->
         winston.debug("misc_node: connected, now sending secret token")
         socket.write(token)
 
+    # This is called in case there is an error trying to make the connection, e.g., "connection refused". 
+    socket.on "error", (err) =>
+        if timer?
+            clearTimeout(timer)
+        cb(err) 
+
 
 # Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')

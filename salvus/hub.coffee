@@ -18,6 +18,20 @@ SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
+# Anti DOS parameters:
+# If a client sends a burst of messages, we space handling them out by this many milliseconds:.
+MESG_QUEUE_INTERVAL_MS  = 50
+# If a client sends a burst of messages, we discard all but the most recent this many of them:
+MESG_QUEUE_MAX_COUNT    = 25
+# Any messages larger than this is not allowed (it could take a long time to handle, etc.).
+MESG_QUEUE_MAX_SIZE_MB  = 5
+
+# Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
+# many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
+# then the BLOB is saved indefinitely.
+BLOB_TTL = 60*60*24    # 1 day
+
+
 # node.js -- builtin libraries
 net     = require 'net'
 assert  = require('assert')
@@ -38,6 +52,9 @@ message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
+
+salvus_version = require('salvus_version')
+
 
 snap = require("snap")
 
@@ -70,6 +87,7 @@ winston.add(winston.transports.Console, level: 'debug')
 DEFAULTS =
     quota        : {disk:{soft:128, hard:256}, inode:{soft:4096, hard:8192}}
     idle_timeout : 3600
+
 
 # module scope variables:
 http_server        = null
@@ -117,6 +135,13 @@ init_http_server = () ->
                 res.end('')
             when "alive"
                 res.end('')
+            when "stats"
+                server_stats (err, stats) ->
+                    if err
+                        res.writeHead(500, {'Content-Type':'text/plain'})
+                        res.end("internal error: #{err}")
+                    else
+                        res.end(misc.to_json(stats))
             when "blobs"
                 #winston.debug("serving a blob: #{misc.to_json(query)}")
                 if not query.uuid?
@@ -283,6 +308,7 @@ class Client extends EventEmitter
                         key : hash
                         cb  : (error, signed_in_mesg) =>
                             if not error and signed_in_mesg?
+                                signed_in_mesg.hub = program.host
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
@@ -402,7 +428,9 @@ class Client extends EventEmitter
             last_name     : required
             email_address : required
 
+        opts.hub = program.host
         opts.remember_me = true
+
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
@@ -451,19 +479,51 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
-        if data.length >= 100000000 # 10 MB
-            @push_to_client(message.error(error:"Messages are limited to 10MB.", id:mesg.id))
+        if data.length >= MESG_QUEUE_MAX_SIZE_MB * 10000000
+            @error_to_client(id:mesg.id, error:"Messages are limited to #{MESG_QUEUE_MAX_SIZE_MB}MB.")
 
         if data.length == 0
             winston.error("EMPTY DATA MESSAGE -- ignoring!")
             return
 
+        if not @_handle_data_queue?
+            @_handle_data_queue = []
+
         channel = data[0]
         h = @_data_handlers[channel]
-        if h?
-            h(data.slice(1))
-        else
+        if not h?
             winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            return
+
+        # The rest of the function is basically the same as "h(data.slice(1))", except that
+        # it ensure that if there is a burst of messages, then (1) we handle at most 1 message
+        # per client every MESG_QUEUE_INTERVAL_MS, and we drop messages if there are too many.
+        # This is an anti-DOS measure.
+
+        @_handle_data_queue.push([h, data.slice(1)])
+
+        if @_handle_data_queue_empty_function?
+            return
+
+        # define a function to empty the queue
+        @_handle_data_queue_empty_function = () =>
+            if @_handle_data_queue.length == 0
+                # done doing all tasks
+                delete @_handle_data_queue_empty_function
+                return
+
+            # drop oldest message to keep
+            while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
+                @_handle_data_queue.shift()
+
+            # get task
+            task = @_handle_data_queue.shift()
+            # do task
+            task[0](task[1])
+            # do next one in >= MESG_QUEUE_INTERVAL_MS
+            setTimeout( @_handle_data_queue_empty_function, MESG_QUEUE_INTERVAL_MS )
+
+        @_handle_data_queue_empty_function()
 
     register_data_handler: (h) ->
         # generate a random channel character that isn't already taken
@@ -787,13 +847,22 @@ class Client extends EventEmitter
     # call the callback.  This function is meant to be used in a bunch
     # of the functions below for handling requests.
     get_project: (mesg, permission, cb) =>
-        # mesg -- must have project_id field; if has id fields, an error is sent to the client with that id tagged on.
+        # mesg -- must have project_id field
         # permission -- must be "read" or "write"
-        # cb -- takes one argument:  cb(project); called *only* on success;
-        #       on failure, client will receive a message.
+        # cb(err, project)
+        #   *NOTE*:  on failure, if mesg.id is defined, then client will receive an error message; the function
+        #            calling get_project does *NOT* have to send the error message back to the client!
 
+        err = undefined
         if not mesg.project_id?
-            cb("mesg must have project_id attribute -- #{to_safe_str(mesg)}")
+            err = "mesg must have project_id attribute -- #{to_safe_str(mesg)}"
+        else if not @account_id?
+            err = "user must be signed in before accessing projects"
+
+        if err?
+            if mesg.id?
+                @error_to_client(id:mesg.id, error:err)
+            cb(err)
             return
 
         project = undefined
@@ -939,6 +1008,17 @@ class Client extends EventEmitter
                     projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
                     @push_to_client(message.all_projects(id:mesg.id, projects:projects))
 
+    mesg_get_project_info: (mesg) =>
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            else
+                project.get_info (err, info) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_info(id:mesg.id, info:info))
+
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
         @get_project mesg, 'read', (err, project) =>
@@ -1047,9 +1127,9 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        # Store content in uuid:blob store and provide a temporary (valid for 10 minutes) link to it.
+                        # Store content in uuid:blob store and provide a temporary link to it.
                         u = uuid.v4()
-                        save_blob uuid:u, value:content.blob, ttl:600, cb:(err) =>
+                        save_blob uuid:u, value:content.blob, ttl:BLOB_TTL, cb:(err) =>
                             if err
                                 @error_to_client(id:mesg.id, error:err)
                             else
@@ -1101,28 +1181,6 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(resp)
-
-    ################################################
-    # Blob Management
-    ################################################
-    mesg_save_blobs_to_project: (mesg) =>
-        user_has_write_access_to_project
-            project_id : mesg.project_id
-            account_id : @account_id
-            cb : (err, t) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else if not t
-                    @error_to_client(id:mesg.id, error:"Cannot save blobs, since user does not have write access to this project.")
-                else
-                    save_blobs_to_project
-                        project_id : mesg.project_id
-                        blob_ids   : mesg.blob_ids
-                        cb         : (err) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:err)
-                            else:
-                                @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # CodeMirror Sessions
@@ -1309,7 +1367,40 @@ class Client extends EventEmitter
                                 mesg.list = list
                                 @push_to_client(mesg)
 
+    ################################################
+    # The version of the running server.
+    ################################################
+    mesg_get_version: (mesg) =>
+        mesg.version = salvus_version.version
+        @push_to_client(mesg)
 
+    ################################################
+    # Stats about cloud.sagemath
+    ################################################
+    mesg_get_stats: (mesg) =>
+        server_stats (err, stats) =>
+            mesg.stats = stats
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(mesg)
+
+_server_stats_cache = undefined
+server_stats = (cb) ->
+    if _server_stats_cache?
+        cb(false, _server_stats_cache)
+    else
+        cb("server stats not yet computed")
+
+update_server_stats = () ->
+    database.get_stats
+        cb : (err, stats) ->
+            if not err
+                _server_stats_cache = stats
+
+# Update stats every minute
+setInterval(update_server_stats, 60*1000)
+setTimeout(update_server_stats, 5000)  # and a few seconds after startup (no harm if this fails)
 
 ##-------------------------------
 #
@@ -1790,7 +1881,6 @@ class CodeMirrorSession
         # generate new edits, and send those out so that the client
         # can complete the sync cycle.
 
-
         if @_upstream_sync_lock? and @_upstream_sync_lock
             client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
             return
@@ -1798,7 +1888,14 @@ class CodeMirrorSession
         winston.debug("client_diffsync; the clients are #{misc.keys(@diffsync_clients)}")
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
-            client.push_to_client(message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub."))
+            f = () ->
+                r = message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub for editing #{@path} in some project.")
+                client.push_to_client(r)
+            # We wait a bit before sending the reconnect message, since this is often the
+            # result of resetting the local_hub connection (which takes 10-15 seconds), and
+            # the client will instantly try to reconnect again, which will fail and lead to
+            # this again, which ends up slowing everything down.
+            setTimeout(f, 1000)
             return
 
         before = @diffsync_server.live
@@ -1836,7 +1933,7 @@ class CodeMirrorSession
 
     sync: (cb) =>
         if @_upstream_sync_lock? and @_upstream_sync_lock
-            winston.debug("codemirror session: not sync'ing due to lock")
+            winston.debug("codemirror session: not sync'ing due to lock (already syncing with upstream local hub)")
             cb?()
             return
 
@@ -1881,7 +1978,16 @@ class CodeMirrorSession
                     @sync() # will cause a reconnect
                 else
                     resp.id = mesg.id
-                    client.push_to_client(resp)
+                    if misc.filename_extension(@path) == "sagews"
+                        make_blobs_permanent
+                            blob_ids   : diffsync.uuids_of_linked_files(@diffsync_server.live)
+                            cb         : (err) =>
+                                if err
+                                    client.error_to_client(id:mesg.id, error:err)
+                                else
+                                    client.push_to_client(resp)
+                    else
+                         client.push_to_client(resp)
 
     read_from_disk: (client, mesg) =>
         @local_hub.call
@@ -1992,17 +2098,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         opts = defaults opts,
             message      : required
             session_uuid : required
-            cb           : undefined   # cb(err)
+            cb           : undefined   # cb?(err)
 
         socket = @_sockets[opts.session_uuid]
         if not socket?
-            opts.cb("Session #{opts.session_uuid} is no longer open.")
+            opts.cb?("Session #{opts.session_uuid} is no longer open.")
             return
         try
             socket.write_mesg('json', opts.message)
-            opts.cb()
+            opts.cb?()
         catch e
-            opts.cb("Erro sending message to session #{opts.session_uuid} -- #{e}")
+            opts.cb?("Error sending message to session #{opts.session_uuid} -- #{e}")
 
 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
@@ -2031,7 +2137,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         winston.debug("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
         # Store blob in DB.
-        save_blob(uuid:opts.uuid, value:opts.blob, ttl:600)
+        save_blob
+            uuid  : opts.uuid
+            value : opts.blob
+            ttl   : BLOB_TTL
+            cb    : (err) =>
+                 if err
+                     winston.debug("handle_blob: error! -- #{err}")
 
     # The unique standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
@@ -2179,7 +2291,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # This @_socket.destroy() below is VERY important, since just deleting the socket might not send this,
                 # and the local_hub -- if the connection were still good -- would have two connections
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
-                @_socket.destroy()
+                @_socket?.destroy()
                 delete @_status; delete @_socket
 
             else if socket?
@@ -2644,6 +2756,18 @@ class Project
                 else
                     cb(err, result[0])
 
+    # get latest info about project from database
+    get_info: (cb) =>
+        database.get_project_data
+            project_id : @project_id
+            objectify  : true
+            columns    : cass.PROJECT_COLUMNS
+            cb         : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(err, result)
+
     call: (opts) =>
         opts = defaults opts,
             mesg    : required
@@ -2727,6 +2851,8 @@ class Project
     size_of_local_copy: (cb) =>
         winston.debug("project2-size_of_local_copy-stub")
         cb(false, 0)
+
+
 
     # move_file: (src, dest, cb) =>
     #     @exec(message.project_exec(command: "mv", args: [src, dest]), cb)
@@ -2960,6 +3086,8 @@ sign_in = (client, mesg) =>
 
         # get account and check credentials
         (cb) ->
+            # Do not give away info about whether the e-mail address is valid:
+            error_mesg = "Invalid e-mail or password."
             database.get_account
                 email_address : mesg.email_address
                 cb            : (error, account) ->
@@ -2968,7 +3096,7 @@ sign_in = (client, mesg) =>
                             ip_address    : client.ip_address
                             successful    : false
                             email_address : mesg.email_address
-                        sign_in_error(error)
+                        sign_in_error(error_mesg)
                         cb(true); return
                     if not is_password_correct(password:mesg.password, password_hash:account.password_hash)
                         record_sign_in
@@ -2976,7 +3104,7 @@ sign_in = (client, mesg) =>
                             successful    : false
                             email_address : mesg.email_address
                             account_id    : account.account_id
-                        sign_in_error("Invalid password for #{mesg.email_address}.")
+                        sign_in_error(error_mesg)
                         cb(true); return
                     else
 
@@ -2987,6 +3115,7 @@ sign_in = (client, mesg) =>
                             last_name     : account.last_name
                             email_address : mesg.email_address
                             remember_me   : false
+                            hub           : program.host
 
                         client.signed_in(signed_in_mesg)
                         client.push_to_client(signed_in_mesg)
@@ -3235,6 +3364,7 @@ create_account = (client, mesg) ->
                 first_name    : mesg.first_name
                 last_name     : mesg.last_name
                 email_address : mesg.email_address
+                hub           : program.host
             client.signed_in(mesg)
             client.push_to_client(mesg)
             cb()
@@ -3758,8 +3888,9 @@ save_blob = (opts) ->
     opts = defaults opts,
         uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
         value : required   # NOTE: value *must* be a Buffer.
-        ttl   : undefined
         cb    : required
+        ttl   : undefined  # object in blobstore will have *at least* this ttl; if there is already something,  in blobstore with longer ttl, we leave it.
+
     if opts.value.length > 5000000
         if not opts.ttl?
             opts.cb("Permanent blobs must be at most 5MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
@@ -3786,7 +3917,18 @@ save_blob = (opts) ->
         return opts.uuid
     else
         # permanent blob or small blob with ttl
-        return database.uuid_blob_store(name:"blobs").set(opts)
+        db = database.uuid_blob_store(name:"blobs")
+        db.get_ttl
+            uuid : opts.uuid
+            cb   : (err, ttl) ->
+                if err
+                    opts.cb(err)
+                else
+                    if ttl? and (ttl == 0 or ttl >= opts.ttl)
+                        # nothing to do
+                        opts.cb()
+                    else
+                        db.set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
@@ -3798,51 +3940,21 @@ get_blob = (opts) ->
     else
         database.uuid_blob_store(name:"blobs").get(opts)
 
-
-# For each element of the array blob_ids, (1) add an entry to the project_blobs
-# table associated it to the given project *and* (2) remove its ttl.
-# An object can only be saved to one project.
-_save_blobs_to_project_cache = {}
-save_blobs_to_project = (opts) ->
+# For each element of the array blob_ids, remove its ttl.
+_make_blobs_permanent_cache = {}
+make_blobs_permanent = (opts) ->
     opts = defaults opts,
-        project_id : required
         blob_ids   : required
         cb         : required
-
-    # ANTI-DOS measure -- don't allow more than 1000 blobs to be moved at once
-    if opts.blob_ids.length > 1000
-        cb("At most 1000 blobs may be saved to a project at once.")
-
-    blob_store = database.uuid_blob_store(name:"blobs")
-
-    tasks = []
-    for id in opts.blob_ids
-        if _save_blobs_to_project_cache[id]?
-            continue
-        tasks.push (cb) =>
-            async.series([
-                (cb) =>
-                    # 1. Ensure there is an entry in the project_blobs table.
-                    database.update
-                        table : 'project_blobs'
-                        where : {blob_id : id}
-                        set   : {project_id : opts.project_id}
-                        cb    : cb
-                (cb) =>
-                    # 2. Remove ttl
-                    blob_store.set_ttl
-                        uuid  : id
-                        cb    : cb
-                (cb) =>
-                    # Record in a local cache that we already made
-                    # this object permanent, so we'll not hit the
-                    # database again for this id.
-                    _save_blobs_to_project_cache[id] = null
-                    cb()
-            ], cb)
-
-    # Carry out all the above tasks in parallel.
-    async.parallel(tasks, opts.cb)
+    uuids = (id for id in opts.blob_ids when not _make_blobs_permanent_cache[id]?)
+    database.uuid_blob_store(name:"blobs").set_ttls
+        uuids : uuids
+        ttl   : 0
+        cb    : (err) ->
+            if not err
+                for id in uuids
+                    _make_blobs_permanent_cache[id] = true
+            opts.cb(err)
 
 ########################################
 # Compute Sessions (of various types)
@@ -3935,9 +4047,10 @@ class SageSession
                 save_blob
                     uuid  : mesg.uuid
                     value : mesg.blob
-                    ttl   : 600  # deleted after ten minutes
+                    ttl   : BLOB_TTL  # deleted after this long
                     cb    : (err) ->
-                        # TODO: actually use this for something (?)
+                        if err
+                            winston.debug("Error saving blob for Sage Session -- #{err}")
             else
                 raise("unknown message type '#{type}'")
 
@@ -4139,14 +4252,13 @@ exports.start_server = start_server = () ->
     init_sockjs_server()
     init_stateless_exec()
     http_server.listen(program.port, program.host)
-    winston.info("Started hub. HTTP port #{program.port}; TCP port #{program.tcp_port}; keyspace #{program.keyspace}")
+    winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments
 #############################################
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
-    .option('-t, --tcp_port <n>', 'tcp port to listen on from other tornado servers (default: 5001)', parseInt, 5001)
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")

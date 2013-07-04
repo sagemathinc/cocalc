@@ -1,3 +1,7 @@
+
+# THIS CODE IS DEPRECATED -- no longer used anywhere!
+
+
 ###########################################
 #
 # Salvus interactive worksheet editor

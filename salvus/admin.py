@@ -370,7 +370,7 @@ class Nginx(Process):
                          monitor_database = monitor_database,
                          logfile   = os.path.join(LOGS, log),
                          pidfile    = os.path.join(PIDS, pid),
-                         start_cmd  = [['make_coffee'], nginx_cmd],  # note: first do coffee-->js conversions
+                         start_cmd  = nginx_cmd,
                          stop_cmd   = nginx_cmd + ['-s', 'stop'],
                          reload_cmd = nginx_cmd + ['-s', 'reload'])
 
@@ -1385,11 +1385,10 @@ class Services(object):
         to hell.  We have to just let this go and gather logging data, in order to debug it.   However, we
         also want users to not loose access, hence the auto-restart.
         """
-
         self._hosts.password()
         # Get IP addresses of hubs
-        hosts = self._hosts['hub']   
-        import sys, urllib2
+        hosts = self._hosts['hub']
+        import  cassandra, sys, urllib2
         def is_working(ip):
              try:
                  return urllib2.urlopen('http://%s:%s'%(ip,HUB_PORT), timeout=5).read()  == 'hub server'
@@ -1400,11 +1399,34 @@ class Services(object):
             if i % 80 == 0:
                 print "Monitoring hubs: ", hosts
             i += 1
-            print ":-)", 
+            print ":-)",
             sys.stdout.flush()
             for ip in hosts:
                 if not is_working(ip):
                      print ":-( Restarting %s"%ip
                      self.restart('hub',host=ip)
-            time.sleep(5)     
-                 
+                     try:
+                         message = {'action':'restart', 'reason':'stopped responding to monitor'}
+                         cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
+                              {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
+                     except Exception, msg:
+                         print "Unable to record log message in database, %s"%msg
+            time.sleep(5)
+
+    def restart_web(self):
+        """
+        Restart everything related to the web nodes including VM's.
+        This is everything sitting between the clients and the compute nodes.
+        Call this when doing upgrades that don't modify
+        the Sage install or python client code on the compute machines.  This is minimally
+        disruptive to users, at least compared to a full restart of compute machines!
+        """
+        services = 'hub nginx snap'
+        for service in services.split():
+            self.stop(service, wait=True, parallel=True)
+        web_hosts = [x for x in self._hosts._canonical_hostnames.values() if 'web' in x]
+        for hostname in web_hosts:
+            self.restart('vm',hostname=hostname, parallel=True, wait=False)
+        self.wait_until_up(' '.join(web_hosts))
+        for service in services.split():
+            self.start(service, parallel=True, wait=True)
