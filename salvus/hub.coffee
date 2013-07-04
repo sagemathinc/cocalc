@@ -840,13 +840,22 @@ class Client extends EventEmitter
     # call the callback.  This function is meant to be used in a bunch
     # of the functions below for handling requests.
     get_project: (mesg, permission, cb) =>
-        # mesg -- must have project_id field; if has id fields, an error is sent to the client with that id tagged on.
+        # mesg -- must have project_id field
         # permission -- must be "read" or "write"
-        # cb -- takes one argument:  cb(project); called *only* on success;
-        #       on failure, client will receive a message.
+        # cb(err, project)
+        #   *NOTE*:  on failure, if mesg.id is defined, then client will receive an error message; the function
+        #            calling get_project does *NOT* have to send the error message back to the client!
 
+        err = undefined
         if not mesg.project_id?
-            cb("mesg must have project_id attribute -- #{to_safe_str(mesg)}")
+            err = "mesg must have project_id attribute -- #{to_safe_str(mesg)}"
+        else if not @account_id?
+            err = "user must be signed in before accessing projects"
+
+        if err?
+            if mesg.id?
+                @error_to_client(id:mesg.id, error:err) 
+            cb(err)
             return
 
         project = undefined
