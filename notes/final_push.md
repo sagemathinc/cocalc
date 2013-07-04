@@ -8,7 +8,7 @@ f.x=5
 
 - [x] (0:30?) (0:07) when browsing snapshots and mousing over a link, it doesn't change color.
 
-- [ ] (1:00?) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
+- [ ] (1:00?) (0:15) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
 
 - [ ] (1:00?) admin -- make it so the services file can have variables so I don't have to change the same base in a million places.
 

@@ -409,7 +409,7 @@ class Salvus(object):
                 block = parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
-                exec compile(block, '', 'single') in namespace, locals
+                exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
