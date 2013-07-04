@@ -63,7 +63,7 @@
 }
 
 
-.project-file-link:hover {
+.project-file-link-style:hover {
     background-color:#efe;
 }
 
@@ -101,7 +101,7 @@
     cursor: pointer;
 }
 
-.project-directory-link:hover {
+.project-directory-link-style:hover {
     background-color:#efe;
 }
 

@@ -1,12 +1,12 @@
 - [x] (1:00?) (0:40)  mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it) -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
 
-- [x] (1:00?) (0:10) dynamic interact control creation broken (reported by Jason Grout)
+- [x] (1:00?) (0:19) dynamic interact control creation broken (reported by Jason Grout)
 @interact
 def f(n=(0,1)):
     print n
 f.x=5
 
---> - [ ] (0:30?) when browsing snapshots and mousing over a link, it doesn't change color.
+- [x] (0:30?) (0:07) when browsing snapshots and mousing over a link, it doesn't change color.
 
 - [ ] (1:00?) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
 
