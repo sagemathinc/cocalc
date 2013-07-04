@@ -854,7 +854,7 @@ class Client extends EventEmitter
 
         if err?
             if mesg.id?
-                @error_to_client(id:mesg.id, error:err) 
+                @error_to_client(id:mesg.id, error:err)
             cb(err)
             return
 
@@ -1871,7 +1871,6 @@ class CodeMirrorSession
         # generate new edits, and send those out so that the client
         # can complete the sync cycle.
 
-
         if @_upstream_sync_lock? and @_upstream_sync_lock
             client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
             return
@@ -1879,7 +1878,14 @@ class CodeMirrorSession
         winston.debug("client_diffsync; the clients are #{misc.keys(@diffsync_clients)}")
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
-            client.push_to_client(message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub."))
+            f = () ->
+                r = message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub for editing #{@path} in some project.")
+                client.push_to_client(r)
+            # We wait a bit before sending the reconnect message, since this is often the
+            # result of resetting the local_hub connection (which takes 10-15 seconds), and
+            # the client will instantly try to reconnect again, which will fail and lead to
+            # this again, which ends up slowing everything down.
+            setTimeout(f, 1000)
             return
 
         before = @diffsync_server.live
