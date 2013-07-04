@@ -1,8 +1,8 @@
---> - [ ] (1:00?) (0:40)  mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it) -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+- [x] (1:00?) (0:40)  mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it) -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
 
-- [ ] (1:00?) interact control creation is broken:
+--> - [x] (1:00?) dynamic interact control creation broken (reported by Jason Grout)
 @interact
-def f(n=(0,1), **kwargs):
+def f(n=(0,1)):
     print n
 f.x=5
 
