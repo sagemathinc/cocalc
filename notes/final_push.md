@@ -2,7 +2,7 @@
     - add irssi
     - switch to minified js
 
-
+- [x] (0:30?) (0:08) with typeset mode on, latex object should not get typeset.
 
 - [ ] (1:30?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
