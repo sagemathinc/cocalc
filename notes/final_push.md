@@ -1,29 +1,59 @@
 
-- [ ] (1:30?) HIGH PRIORITY BUG -- when trying to reconnect to local hub, due to error, the port doesn't get re-randomized, and sometimes I think this leads to a non-fixable situation.   I got thisa bunch with my cloud-dev project:
-     "error Timed out trying to connect to locked socket on port 19056"
-In this case, restarting the hub fixed the problem, so it is clearly fully a problem at the
-level of the hub, not local hub.  High priority, since this can prevent a user from accessing their project.
-TEST: explicitly force restart, and verify that port changes.
+- [ ] (0:45?) add link in help.html to chrome web app https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
 
-debug: opening a local_hub: RePyrFcy@10.1.4.4 -p22
-debug: misc_node: connecting to a locked socket on port 17075...
-debug: BUG ****************************************************************************
-debug: Uncaught exception: Error: connect ECONNREFUSED
-debug: Error
-    at process.daemon.pidFile (/home/salvus/salvus/salvus/node_modules/hub.js:5718:21)
-    at process.EventEmitter.emit (events.js:95:17)
-    at process._fatalException (node.js:272:26)
-debug: BUG ****************************************************************************
+- [ ] (0:45?) create a static /stats route -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
+
+- [ ] (1:00?) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
+
+- [ ] (1:00?) mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+
+- [ ] (3:00?) file operation notifications -- Using delete in the browser merely moves the file to the trash (but not overwriting other files).  (And similarly, using file rename in the browser, merely renames the file on the filesystem and does nothing else yet.)  There are several other actions for particular file types that *should* be taken, but aren't yet.   When you open a file, the local hub daemon creates an object in memory that represents that file/terminal/whatever -- it needs to be notified when the file is moved or deleted, but I simply haven't implemented this yet.
+
+- [ ] (1:00?) %load on a file with a syntax error gives a useless error message
+
+- [ ] (1:30?) terminal reconnect -- works fine on browser reconnect, but fails on dropped connection, since I didn't implement that yet.
+
+- [ ] (1:00?) next release:
+      - in sage -sh : pip install lxml
+      - systemwide  : apt-get install libxml2-dev libxslt-dev
+      - upgrade bup in machine (both in salvus and systemwide)
+
+- [ ] good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+
+- [ ] make modified project table also record the user and record it forever.
+
+- [ ] snaps still broken -- blob errors on web2 and web3:
+salvus@web2:/mnt/snap/snap0$ BUP_DIR=bup bup ls master/2013-07-02-205639
+KeyError: "blob '544176469e2854f7902dee3a8059785be5981f1c:' is missing"
+
+WHY?  Ideas:
+  I've turned off the one on web3, so now it is only on web1 for a while.
+  If this does not fail, then probably the issue is multiple bups hitting
+  the same project.  Can probably fix if we can specify the remote BUP path,
+  hence keep them separate.   Alterantively, shard, and have only one
+  bup ever make a snapshot, then put it via rsync to other servers.
+
+I disabled all but web1's snap, and
 
 - [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
 
 - [ ] (1:00?) make it so foo?[enter]  and foo??[enter] both work.
+
+- [ ] (2:00?) separate targeted backup system -- minimum data needed to fully recover system:
+       - backup db tables on all cassandra nodes (for now) to a single bup archive on /mnt/snap on web1
+       - backup that de-duped bup to bsd.math
+       - backup the projects bup to bsd.math
+       - make offsite copy every so often?
 
 - [ ] (2:30?) custom environment variables in project settings, including `SAGE_PATH` (with explanation) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fa0462bcaa7768
 
 - [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
 - [ ] (1:00?) 3d: enable and test canvas rendering
 - [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
+
+- [ ] (2:00?) snap/bup caching: right now rev-list cache keeps getting bigger, with probably each cache file storing the data for all of them so far, hence wasting much space.  I can maybe somehow do better.. since at some point, this will start to waste massive space!
+
+- [x] (?) chrome app -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97af12ab4cf2b
 
 - [ ] (4:00?) (1:07+) ability to open sws files
 - [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
@@ -251,8 +281,6 @@ debug: BUG *********************************************************************
 - [ ] (1:00?) update codemirror display more, e.g., after making output.  see https://groups.google.com/forum/#!topic/codemirror/aYpevIzBUYk
 
 - [ ] (0:45?) mathjax special case: `$a<b$` is misparsed, whereas `$a < b$` is OK.  We should somehow fix such things in the html function, since mathjax can't.
-
-- [ ] (1:00?) make a 64x64 hidpi favicon -- see http://nashape.com/blog/2012/09/12/big-favicons/
 
 - [ ] (1:00?)BUG -- downloading a file that starts with "." removes the ".".
 
@@ -2761,3 +2789,77 @@ in my Firefox 22 in Linux, I cannot see the text in the drop down list because i
 `((1, 1+1/x+1/x^2),(x, x+y+z)) ` => 2x2 matrix, with fractions etc.
 To get it running, you just have to change the jax: line in the configuration to
 jax: ["input/TeX","input/AsciiMath","output/HTML-CSS"],"
+
+
+- [x] (1:30?) HIGH PRIORITY BUG -- when trying to reconnect to local hub, due to error, the port doesn't get re-randomized, and sometimes I think this leads to a non-fixable situation.   I got thi sa bunch with my cloud-dev project:
+     "error Timed out trying to connect to locked socket on port 19056"
+     "error Timed out trying to connect to locked socket on port 26847" (this is in the javascript log)
+
+In this case, restarting the hub fixed the problem, so it is clearly fully a problem at the
+level of the hub, not local hub.  High priority, since this can prevent a user from accessing their project.
+TEST: explicitly force restart, and verify that port changes.
+
+debug: opening a local_hub: RePyrFcy@10.1.4.4 -p22
+debug: misc_node: connecting to a locked socket on port 17075...
+debug: BUG ****************************************************************************
+debug: Uncaught exception: Error: connect ECONNREFUSED
+debug: Error
+    at process.daemon.pidFile (/home/salvus/salvus/salvus/node_modules/hub.js:5718:21)
+    at process.EventEmitter.emit (events.js:95:17)
+    at process._fatalException (node.js:272:26)
+debug: BUG ****************************************************************************
+
+- [x] (1:00?) make a hidpi retina favicon -- see http://nashape.com/blog/2012/09/12/big-favicons/
+
+- [x] (0:45?) (0:20) BUG -- seen on hub on web1
+debug: hub --> client (undefined): {"event":"success","id":"1b231719-4421-45e7-97e5-8170bf802ef8"}
+debug: client --> hub: {"event":"codemirror_get_session","path":"2013-07-03-202553","project_id":"cd480691-703d-4b17-bc9b-67c38e7e3551"
+,"id":"246d2197-09d0-410b-b2dc-4797b1e9635b"}
+Trace
+    at exports.defaults (/home/salvus/salvus/salvus/node_modules/misc.js:66:19)
+    at user_has_write_access_to_project (/home/salvus/salvus/salvus/node_modules/hub.js:3902:12)
+    at async.series.project (/home/salvus/salvus/salvus/node_modules/hub.js:1099:22)
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:545:21
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:221:13
+    at iterate (/home/salvus/salvus/salvus/node_modules/async/lib/async.js:128:13)
+    at async.eachSeries (/home/salvus/salvus/salvus/node_modules/async/lib/async.js:144:9)
+    at _asyncMap (/home/salvus/salvus/salvus/node_modules/async/lib/async.js:220:9)
+    at Object.mapSeries (/home/salvus/salvus/salvus/node_modules/async/lib/async.js:210:23)
+    at Object.async.series (/home/salvus/salvus/salvus/node_modules/async/lib/async.js:543:19)
+debug: BUG ****************************************************************************
+debug: Uncaught exception: misc.defaults -- TypeError: property 'account_id' must be specified: (obj1={"project_id":"cd480691-703d-4b17
+-bc9b-67c38e7e3551"}, obj2={"project_id":"__!!!!!!this is a required property!!!!!!__","account_id":"__!!!!!!this is a required propert
+y!!!!!!__","cb":"__!!!!!!this is a required p
+
+
+
+- [x] (0:45?) BUG -- seen on hub on web1
+debug: Error getting a socket -- (declaring total disaster) -- Timed out trying to connect to locked socket on port 40646
+debug: BUG ****************************************************************************
+debug: Uncaught exception: TypeError: Cannot call method 'destroy' of undefined
+
+- [x] (0:45?) (0:26) BUG -- seen on hub on web1
+debug: getting new socket to a local_hub
+debug: opening a local_hub: q5gHRlnb@10.1.1.4 -p22
+debug: misc_node: connecting to a locked socket on port 40646...
+debug: BUG ****************************************************************************
+debug: Uncaught exception: Error: connect ECONNREFUSED
+
+- [x] (0:45?) (0:08) BUG -- look into this:
+debug: codemirror session: not sync'ing due to lock
+debug: codemirror session: not sync'ing due to lock
+debug: codemirror session: not sync'ing due to lock
+debug: codemirror session: not sync'ing due to lock
+debug: codemirror session: not sync'ing due to lock
+...
+
+- [x] (2:00?) (0:16) reduce chance of infinite sync loop  bringing down server speed a lot:
+debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[],"last_version_ack":-1,"session_uuid":"5a5c2209-bf8e-4032-96bf-d658ced4a
+562","id":"0759f9a5-6d8a-44bc-b0c6-c61379b68017"}
+debug: client_diffsync; the clients are
+debug: hub --> client (992e6b83-17fa-4d43-bcc5-aa78160973e4): {"event":"reconnect","id":"0759f9a5-6d8a-44bc-b0c6-c61379b68017","reason":"Clie
+nt with id 2919c1bd-d657-4501-904e-5a98f7a1e8f4 is not registered with this hub."}
+debug: client --> hub: {"event":"codemirror_get_session","path":"salvus/notes/final_push.md","project_id":"6a63fd69-c1c7-4960-9299-54cb965239
+66","id":"2361dc19-cc0e-46c3-9f64-46a8918c5c7e"}
+debug: opts = {"project_id":"6a63fd69-c1c7-4960-9299-54cb96523966","account_id":"992e6b83-17fa-4d43-bcc5-aa78160973e4"}
+
