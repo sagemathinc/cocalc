@@ -1,5 +1,5 @@
 
-- [ ] (0:45?) add link in help.html to chrome web app https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
+- [x] (0:45?) (0:09) add link in help.html to chrome web app https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
 
 - [ ] (0:45?) create a static /stats route -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
 
