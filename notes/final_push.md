@@ -1,14 +1,26 @@
+--> - [ ] (1:00?) (0:40)  mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it) -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+
+- [ ] (1:00?) interact control creation is broken:
+@interact
+def f(n=(0,1), **kwargs):
+    print n
+f.x=5
+
 - [ ] (0:30?) when browsing snapshots and mousing over a link, it doesn't change color.
 
-- [ ] (1:30?) expand the size of the base vm, so I can start keeping all past builds of sage.
-
 - [ ] (1:00?) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
-
-- [ ] (1:00?) mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
 
 - [ ] (1:00?) admin -- make it so the services file can have variables so I don't have to change the same base in a million places.
 
 - [ ] (3:00?) file operation notifications -- Using delete in the browser merely moves the file to the trash (but not overwriting other files).  (And similarly, using file rename in the browser, merely renames the file on the filesystem and does nothing else yet.)  There are several other actions for particular file types that *should* be taken, but aren't yet.   When you open a file, the local hub daemon creates an object in memory that represents that file/terminal/whatever -- it needs to be notified when the file is moved or deleted, but I simply haven't implemented this yet.
+
+- [ ] (1:30?) (0:12+) use backup.coffee to make a regular text dump of complete db, except for the blobs.
+
+# This just gives tons of errors :-(
+
+  process.env['SALVUS_BACKUP'] = '/mnt/snap/backup/'
+  b = require('backup').backup(keyspace:'salvus', hosts:['10.1.1.2'], cb:console.log)
+  b.dump_keyspace_to_filesystem(console.log)
 
 - [ ] (1:00?) %load on a file with a syntax error gives a useless error message
 
@@ -46,6 +58,9 @@ I disabled all but web1's snap, and
 - [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
 - [ ] (1:00?) 3d: enable and test canvas rendering
 - [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
+
+- [ ] (1:30?) expand the size of the base vm, so I can start keeping all past builds of sage.
+
 
 - [ ] (2:00?) snap/bup caching: right now rev-list cache keeps getting bigger, with probably each cache file storing the data for all of them so far, hence wasting much space.  I can maybe somehow do better.. since at some point, this will start to waste massive space!
 
