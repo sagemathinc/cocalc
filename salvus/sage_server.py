@@ -340,9 +340,9 @@ namespace = Namespace({})
 
 class Salvus(object):
     Namespace = Namespace
-    _prefix = None
-    _prefix_escape = "%"
-    _postfix = None
+    _prefix       = ''
+    _postfix      = ''
+    _default_mode = 'sage'
 
     def _flush_stdio(self):
         """
@@ -401,62 +401,84 @@ class Salvus(object):
                 url += '?download'
             return url
 
-    def set_cell_prefix(self, prefix=None, escape="%"):
+    def default_mode(self, mode=None):
+        """
+        Set the default mode for cell evaluation.  This is equivalent
+        to putting %mode at the top of any cell that does not start
+        with %.   Use salvus.default_mode() to return the current mode.
+        Use salvus.default_mode("") to have no default mode.
+
+        This is implemented using salvus.cell_prefix.
+        """
+        if mode is None:
+            return Salvus._default_mode
+        Salvus._default_mode = mode
+        if mode == "sage":
+            self.cell_prefix("")
+        else:
+            self.cell_prefix("%" + mode)
+
+    def cell_prefix(self, prefix=None):
         """
         Make it so that the given prefix code is textually
         prepending to the input before evaluating any cell, unless
-        the cell starts with the given escape string.
-        To append code at the end, use set_cell_postfix.
+        the first character of the cell is a %.
+
+        To append code at the end, use cell_postfix.
 
         INPUT:
 
-        - ``prefix`` -- None (to disable) or a string
-        - ``escape`` -- string (default: %)
+        - ``prefix`` -- None (to return prefix) or a string ("" to disable)
 
         EXAMPLES:
 
         Make it so every cell is timed:
 
-            salvus.set_cell_prefix('%time')
+            salvus.cell_prefix('%time')
 
         Make it so cells are typeset using latex, and latex comments are allowed even
         as the first line.
 
-            salvus.set_cell_prefix('%latex', "`")
+            salvus.cell_prefix('%latex')
 
-            `salvus.set_cell_prefix()   # disable  -- note the `
+            %sage salvus.cell_prefix('')
 
         Evaluate each cell using GP (Pari) and display the time it took:
 
-            salvus.set_cell_prefix('%time\n%gp')
+            salvus.cell_prefix('%time\n%gp')
 
-            %salvus.set_cell_prefix()   # back to normal
+            %sage salvus.cell_prefix('')   # back to normal
         """
-        Salvus._prefix = prefix
-        Salvus._prefix_escape = escape
+        if prefix is None:
+            return Salvus._prefix
+        else:
+            Salvus._prefix = prefix
 
-    def set_cell_postfix(self, postfix=None):
+    def cell_postfix(self, postfix=None):
         """
         Make it so that the given code is textually
         appended to the input before evaluating a cell.
-        To prepend code at the beginning, use set_cell_prefix.
+        To prepend code at the beginning, use cell_prefix.
 
         INPUT:
 
-        - ``postfix`` -- None (to disable) or a string
+        - ``postfix`` -- None (to return postfix) or a string ("" to disable)
 
         EXAMPLES:
 
         Print memory usage after evaluating each cell:
 
-            salvus.set_cell_postfix('print "%s MB used"%int(get_memory_usage())')
+            salvus.cell_postfix('print "%s MB used"%int(get_memory_usage())')
 
         Return to normal
 
-            salvus.set_cell_postfix()
+            salvus.set_cell_postfix('')
 
         """
-        Salvus._postfix = postfix
+        if postfix is None:
+            return Salvus._postfix
+        else:
+            Salvus._postfix = postfix
 
     def execute(self, code, namespace=None, preparse=True, locals=None):
         if namespace is None:
@@ -804,13 +826,11 @@ def execute(conn, id, code, data, preparse):
         except:
             traceback.print_exc()
 
-        if salvus._prefix is not None:
-            if code.startswith(salvus._prefix_escape):
-                code = code[len(salvus._prefix_escape):]
-            else:
+        if salvus._prefix:
+            if not code.startswith("%"):
                 code = salvus._prefix + '\n' + code
 
-        if salvus._postfix is not None:
+        if salvus._postfix:
             code += '\n' + salvus._postfix
 
         salvus.execute(code, namespace=namespace, preparse=preparse)
@@ -1038,7 +1058,7 @@ def serve(port, host):
     for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
                  'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                  'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
-                 'reset', 'restore', 'md', 'load', 'typeset_mode']:
+                 'reset', 'restore', 'md', 'load', 'typeset_mode', 'default_mode']:
         namespace[name] = getattr(sage_salvus, name)
 
     sage_salvus.default_namespace = dict(namespace)
