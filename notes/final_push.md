@@ -20,8 +20,10 @@
 
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
---> - [ ] (2:00?) gap (and octave and magma) don't work in worksheets.  why?
+- [x] (2:00?) (0:44) gap (and octave and magma) don't work in worksheets.  why?  It's because of "signal.signal(signal.SIGCHLD, handle_session_term)"
 
+
+- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
 
 - [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 

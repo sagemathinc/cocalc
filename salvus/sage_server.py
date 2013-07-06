@@ -1019,7 +1019,9 @@ def serve(port, host):
     s.bind((host, port))
     print 'Sage server %s:%s'%(host, port)
 
-    signal.signal(signal.SIGCHLD, handle_session_term)
+    # Enabling the following signal completely breaks subprocess pexpect in many cases, which is
+    # obviously totally unacceptable.
+    #signal.signal(signal.SIGCHLD, handle_session_term)
 
     def init_library():
         tm = time.time()
@@ -1044,11 +1046,9 @@ def serve(port, host):
         # Monkey patch latex.eval, so that %latex works in worksheets
         sage.misc.latex.latex.eval = sage_salvus.latex0
 
-        # Doing an integral start embedded ECL; unfortunately, it can
-        # easily get put in a broken state after fork that impacts future forks... ?
-        #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
-
-        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
+        # Plot, integrate, etc., -- so startup time of worksheets is minimal.
+        
+        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
         print 'imported sage library in %s seconds'%(time.time() - tm)
 
         for k,v in sage_salvus.interact_functions.iteritems():
@@ -1064,6 +1064,9 @@ def serve(port, host):
 
         sage_salvus.default_namespace = dict(namespace)
 
+    # Initialize sage library.
+    init_library()
+
     t = time.time()
     s.listen(128)
     i = 0
@@ -1078,8 +1081,6 @@ def serve(port, host):
             except socket.error, msg:
                 continue
             if not os.fork(): # child
-                # Initialize sage library.
-                init_library()
                 try:
                     serve_connection(conn)
                 except Exception, msg:
