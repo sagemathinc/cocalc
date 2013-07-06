@@ -1359,7 +1359,7 @@ class Services(object):
             self.start(service, parallel=True, wait=False)
         #log.info(" ** Starting compute")
         #self.start('compute', parallel=False, wait=False)
-        self.monitor_hubs()
+        #self.monitor_hubs()
 
     def stop_system(self):
         if 'cassandra' in self._services:
