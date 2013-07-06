@@ -1,5 +1,5 @@
 .salvus-project {
-    width: 96%;
+    width: 100%;
     padding-left: 2%;
     padding-top: 0;
     margin-top: 0;
@@ -114,6 +114,10 @@
 
 .project-project_title {
     font-size:18pt;
+}
+
+.project-pages {
+    width: 98%;
 }
 
 .project-pages-button {

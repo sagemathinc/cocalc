@@ -3,9 +3,9 @@
     - switch to minified js
     - upgrade systemwide and salvus-only bup; gets the new metadata fuse support.
 
-- [ ] (0:30?) (0:28) maybe fixed a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
+- [x] (0:30?) (1:00) fix a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
 
-- [ ] (1:30?) (0:02+) implement `default_mode`:
+--> - [ ] (1:30?) (0:02+) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
            default_mode(gp)
         would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.

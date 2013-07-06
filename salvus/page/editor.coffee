@@ -587,7 +587,7 @@ class exports.Editor
             if t.hasClass("project-search-menu-item")
                 file_tabs = true
                 continue
-            else if file_tabs
+            else if file_tabs and t.hasClass("salvus-editor-filename-pill")
                 x.push(t)
         if x.length == 0
             return
@@ -603,13 +603,12 @@ class exports.Editor
             n = x.length
             if n <= 2
                 n = 3
-            width = (end - start)/n
+            width = (end - start - 10)/n
             if width < 0
                 width = 0
-            console.log({start:start, end:end, n:n, width:width})
 
         for a in x
-            a.width(width-5)
+            a.width(width)
 
     make_open_file_pill_active: (link) =>
         @project_page.container.find(".project-pages").children().removeClass('active')
