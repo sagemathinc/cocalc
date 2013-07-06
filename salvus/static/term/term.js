@@ -995,7 +995,10 @@ Terminal.prototype.refresh = function(start, end) {
       out += '</span>';
     }
 
-    this.children[y].innerHTML = out;
+    var a = this.children[y]
+    if (a != null) {
+        a.innerHTML = out;
+    }
   }
 
   if (parent) parent.appendChild(this.element);
