@@ -3,7 +3,9 @@
     - switch to minified js
     - upgrade systemwide and salvus-only bup; gets the new metadata fuse support.
 
-- [ ] (1:30?) implement `default_mode`:
+- [ ] (0:30?) (0:28) maybe fixed a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
+
+- [ ] (1:30?) (0:02+) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
            default_mode(gp)
         would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
@@ -15,6 +17,19 @@
         default_mode(gp)
 
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
+
+- [ ] (2:00?) gap (and octave) don't work in worksheets.  why?
+
+- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+
+- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
+
+- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
+
 
 - [ ] (2:30?) snap: switch to using fuse for browsing bup archives; will make things blazingly fast, *and* provides full metadata for ls listings.
 
@@ -49,19 +64,8 @@
        \{ foo \}
     \]
 
-- [ ] (3:00?) gap (and octave) don't work in worksheets.  why?
-
-- [ ] (2:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
-
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
 - [ ] (8:00?) create a help system, answering questions in help.html
-
-- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
-
-- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
-
-- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
 
 - [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
 

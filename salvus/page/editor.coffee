@@ -603,12 +603,13 @@ class exports.Editor
             n = x.length
             if n <= 2
                 n = 3
-            width = (end - start - 10)/n
+            width = (end - start)/n
             if width < 0
                 width = 0
+            console.log({start:start, end:end, n:n, width:width})
 
         for a in x
-            a.width(width)
+            a.width(width-5)
 
     make_open_file_pill_active: (link) =>
         @project_page.container.find(".project-pages").children().removeClass('active')
