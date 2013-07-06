@@ -1,8 +1,7 @@
 - [ ] (1:00?) next release:
     - add irssi
     - switch to minified js
-
-- [x] (0:30?) (0:08) with typeset mode on, latex object should not get typeset.
+    - upgrade systemwide and salvus-only bup; gets the new metadata fuse support.
 
 - [ ] (1:30?) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
@@ -13,11 +12,32 @@
 
         %hide
         %auto
-        default_mode(gap)
+        default_mode(gp)
 
         At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
 
-- [ ] (1:00?) (0:45+) enable word-wrap toggle;
+- [ ] (2:30?) snap: switch to using fuse for browsing bup archives; will make things blazingly fast, *and* provides full metadata for ls listings.
+
+- [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
+
+- [ ] (2:00?) diffsync bug:
+
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
+        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
+        2":1293,"length1":8,"length2":10}],"shadow_v...
+        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
+        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"4da6b344-1a06-4210-b55b-1fc7a2dea4c0","error":"CodeMi
+        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
+        = 1287)"}
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
+        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
+        2":1293,"length1":8,"length2":10}],"shadow_v...
+        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
+        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"5ae87399-afd5-4be0-be44-821f3cffd167","error":"CodeMi
+        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
+        = 1287)"}
+
+- [ ] (1:00?) (0:45+) enable word-wrap toggle for editing files
 
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
     %md
@@ -29,7 +49,6 @@
        \{ foo \}
     \]
 
-
 - [ ] (3:00?) gap (and octave) don't work in worksheets.  why?
 
 - [ ] (2:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
@@ -40,8 +59,7 @@
 
 - [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
 
-
-- [ ] (1:00?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
 
@@ -53,7 +71,7 @@
 
 - [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
 
-- [ ] (1:00?) 3d: include code in cloud.sagemath library and provide non-default option to show to use it
+- [ ] (1:00?) 3d: include code in cloud.sagemath library and provide non-default option to show to use it; post about that at http://trac.sagemath.org/sage_trac/ticket/12402
 
 - [ ] (3:00?) file operation notifications -- Using delete in the browser merely moves the file to the trash (but not overwriting other files).  (And similarly, using file rename in the browser, merely renames the file on the filesystem and does nothing else yet.)  There are several other actions for particular file types that *should* be taken, but aren't yet.   When you open a file, the local hub daemon creates an object in memory that represents that file/terminal/whatever -- it needs to be notified when the file is moved or deleted, but I simply haven't implemented this yet.
 
@@ -2880,3 +2898,12 @@ f.x=5
 - [x] (?) chrome app -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97af12ab4cf2b
 
 - [x] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
+
+- [x] (0:30?) (0:08) with typeset mode on, latex object should not get typeset.
+
+- [x] (1:00?) (0:50) 1snap: test out the recent patches here: https://github.com/thom311/bup/commits/feat_vfs_metadata_POSTED and here https://github.com/thom311/bup
+    - make a copy of my current bup repo of user's data to web2 for testing.
+    - ensure bup is updated
+    - make up a few benchmarks and tests and record results
+    - try same with patches applied
+    - if all is good, post.
