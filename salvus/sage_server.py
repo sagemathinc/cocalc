@@ -1021,47 +1021,48 @@ def serve(port, host):
 
     signal.signal(signal.SIGCHLD, handle_session_term)
 
-    tm = time.time()
-    print "pre-importing the sage library..."
+    def init_library():
+        tm = time.time()
+        print "pre-importing the sage library..."
 
-    # Monkey patching interact using the new and improved Salvus
-    # implementation of interact.
-    import sagenb.notebook.interact
-    sagenb.notebook.interact.interact = sage_salvus.interact
+        # Monkey patching interact using the new and improved Salvus
+        # implementation of interact.
+        import sagenb.notebook.interact
+        sagenb.notebook.interact.interact = sage_salvus.interact
 
-    # Actually import sage now.  This must happen after the interact
-    # import because of library interacts.
-    import sage.all
+        # Actually import sage now.  This must happen after the interact
+        # import because of library interacts.
+        import sage.all
 
-    # Monkey patch the html command.
-    sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
+        # Monkey patch the html command.
+        sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
 
-    # Set a useful figsize default; the matplotlib one is not notebook friendly.
-    import sage.plot.graphics
-    sage.plot.graphics.Graphics.SHOW_OPTIONS['figsize']=[8,4]
+        # Set a useful figsize default; the matplotlib one is not notebook friendly.
+        import sage.plot.graphics
+        sage.plot.graphics.Graphics.SHOW_OPTIONS['figsize']=[8,4]
 
-    # Monkey patch latex.eval, so that %latex works in worksheets
-    sage.misc.latex.latex.eval = sage_salvus.latex0
+        # Monkey patch latex.eval, so that %latex works in worksheets
+        sage.misc.latex.latex.eval = sage_salvus.latex0
 
-    # Doing an integral start embedded ECL; unfortunately, it can
-    # easily get put in a broken state after fork that impacts future forks... ?
-    #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
+        # Doing an integral start embedded ECL; unfortunately, it can
+        # easily get put in a broken state after fork that impacts future forks... ?
+        #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
 
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
-    print 'imported sage library in %s seconds'%(time.time() - tm)
+        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
+        print 'imported sage library in %s seconds'%(time.time() - tm)
 
-    for k,v in sage_salvus.interact_functions.iteritems():
-        namespace[k] = sagenb.notebook.interact.__dict__[k] = v
+        for k,v in sage_salvus.interact_functions.iteritems():
+            namespace[k] = sagenb.notebook.interact.__dict__[k] = v
 
-    namespace['_salvus_parsing'] = parsing
+        namespace['_salvus_parsing'] = parsing
 
-    for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
-                 'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                 'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
-                 'reset', 'restore', 'md', 'load', 'typeset_mode', 'default_mode']:
-        namespace[name] = getattr(sage_salvus, name)
+        for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
+                     'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
+                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
+                     'reset', 'restore', 'md', 'load', 'typeset_mode', 'default_mode']:
+            namespace[name] = getattr(sage_salvus, name)
 
-    sage_salvus.default_namespace = dict(namespace)
+        sage_salvus.default_namespace = dict(namespace)
 
     t = time.time()
     s.listen(128)
@@ -1077,6 +1078,8 @@ def serve(port, host):
             except socket.error, msg:
                 continue
             if not os.fork(): # child
+                # Initialize sage library.
+                init_library()
                 try:
                     serve_connection(conn)
                 except Exception, msg:
