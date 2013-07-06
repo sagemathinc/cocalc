@@ -5,6 +5,8 @@
 
 - [x] (0:30?) (1:00) fix a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
 
+- [x] (2:15)  implement salvus.set_cell_prefix and salvus.set_cell_postfix, which are useful building blocks on which to build other things, e.g., default modes, line numbered output, etc. 
+
 --> - [ ] (1:30?) (0:02+) implement `default_mode`:
         a function you can call at some point to set a default mode (or modes). For example,
            default_mode(gp)

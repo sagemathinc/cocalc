@@ -340,6 +340,9 @@ namespace = Namespace({})
 
 class Salvus(object):
     Namespace = Namespace
+    _prefix = None
+    _prefix_escape = "%"
+    _postfix = None
 
     def _flush_stdio(self):
         """
@@ -398,6 +401,63 @@ class Salvus(object):
                 url += '?download'
             return url
 
+    def set_cell_prefix(self, prefix=None, escape="%"):
+        """
+        Make it so that the given prefix code is textually
+        prepending to the input before evaluating any cell, unless
+        the cell starts with the given escape string.
+        To append code at the end, use set_cell_postfix.
+
+        INPUT:
+
+        - ``prefix`` -- None (to disable) or a string
+        - ``escape`` -- string (default: %)
+
+        EXAMPLES:
+
+        Make it so every cell is timed:
+
+            salvus.set_cell_prefix('%time')
+
+        Make it so cells are typeset using latex, and latex comments are allowed even
+        as the first line.
+
+            salvus.set_cell_prefix('%latex', "`")
+
+            `salvus.set_cell_prefix()   # disable  -- note the `
+
+        Evaluate each cell using GP (Pari) and display the time it took:
+
+            salvus.set_cell_prefix('%time\n%gp')
+
+            %salvus.set_cell_prefix()   # back to normal
+        """
+        Salvus._prefix = prefix
+        Salvus._prefix_escape = escape
+
+    def set_cell_postfix(self, postfix=None):
+        """
+        Make it so that the given code is textually
+        appended to the input before evaluating a cell.
+        To prepend code at the beginning, use set_cell_prefix.
+
+        INPUT:
+
+        - ``postfix`` -- None (to disable) or a string
+
+        EXAMPLES:
+
+        Print memory usage after evaluating each cell:
+
+            salvus.set_cell_postfix('print "%s MB used"%int(get_memory_usage())')
+
+        Return to normal
+
+            salvus.set_cell_postfix()
+
+        """
+        Salvus._postfix = postfix
+
     def execute(self, code, namespace=None, preparse=True, locals=None):
         if namespace is None:
             namespace = self.namespace
@@ -419,12 +479,12 @@ class Salvus(object):
                 sys.stderr.flush()
                 break
 
-    def execute_with_code_decorators(self, code_decorators, code, preparse=True):
+    def execute_with_code_decorators(self, code_decorators, code, preparse=True, namespace=None, locals=None):
         """
         salvus.execute_with_code_decorators is used when evaluating
         code blocks that are set to any non-default code_decorator.
         """
-        import inspect
+        import sage  # used below as a code decorator
         if isinstance(code_decorators, (str, unicode)):
             code_decorators = [code_decorators]
 
@@ -443,13 +503,16 @@ class Salvus(object):
                 code = code_decorator.eval(code, locals=self.namespace)
                 print code
                 code = ''
+            elif code_decorator is sage:
+                # special case -- the sage module (i.e., %sage) should do nothing.
+                pass
             else:
                 code = code_decorator(code)
             if code is None:
                 code = ''
 
         if code != '' and isinstance(code, (str, unicode)):
-            self.execute(code, preparse=preparse)
+            self.execute(code, preparse=preparse, namespace=namespace, locals=locals)
 
         for code_decorator in code_decorators:
             if not hasattr(code_decorator, 'eval') and hasattr(code_decorator, 'after'):
@@ -725,11 +788,12 @@ class Salvus(object):
 
 
 def execute(conn, id, code, data, preparse):
-    # initialize the salvus output streams
+
     salvus = Salvus(conn=conn, id=id, data=data)
     salvus.start_executing()
 
     try:
+        # initialize the salvus output streams
         streams = (sys.stdout, sys.stderr)
         sys.stdout = BufferedOutputStream(salvus.stdout)
         sys.stderr = BufferedOutputStream(salvus.stderr)
@@ -739,6 +803,15 @@ def execute(conn, id, code, data, preparse):
             namespace['sage_salvus'] = sage_salvus
         except:
             traceback.print_exc()
+
+        if salvus._prefix is not None:
+            if code.startswith(salvus._prefix_escape):
+                code = code[len(salvus._prefix_escape):]
+            else:
+                code = salvus._prefix + '\n' + code
+
+        if salvus._postfix is not None:
+            code += '\n' + salvus._postfix
 
         salvus.execute(code, namespace=namespace, preparse=preparse)
 
@@ -790,7 +863,11 @@ def session(conn):
 
     # seed the random number generator(s)
     import sage.all; sage.all.set_random_seed()
-    import time; import random; random.seed(time.time())
+    import random; random.seed(sage.all.initial_seed())
+
+    # get_memory_usage is (by ignorant design) not aware of being forked... (should post a trac ticket!)
+    import sage.misc.getusage
+    sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
 
     cnt = 0
     while True:
@@ -913,6 +990,7 @@ def serve_connection(conn):
         log("Child sending session description back: %s"%desc)
         conn.send_json(desc)
         session(conn=conn)
+
 
 def serve(port, host):
     #log.info('opening connection on port %s', port)
