@@ -1,24 +1,130 @@
+- [ ] (1:00?) next release:
+    - add irssi
+    - switch to minified js
+    - upgrade systemwide and salvus-only bup; gets the new metadata fuse support.
 
-- [x] (0:45?) (0:09) add link in help.html to chrome web app (from Harald Schilly) https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
+- [x] (0:30?) (1:00) fix a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
 
-- [x] (0:45?) (0:30) create a static /stats route (suggested by Keith Clawson) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
+- [x] (2:15) implement salvus.set_cell_prefix and salvus.set_cell_postfix, which are useful building blocks on which to build other things, e.g., default modes, line numbered output, etc.
 
-- [ ] (1:00?) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
+- [x] (1:30?) (1:02) implement default_mode to set default worksheet types
+        a function you can call at some point to set a default mode (or modes). For example,
+           default_mode(gp)
+        would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
 
-- [ ] (1:00?) mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+        Once the above is implemented and working, which shouldn't be hard, then I could add some GUI support, possibly.   The GUI might insert something like the following at the top:
+
+        %hide
+        %auto
+        default_mode(gp)
+
+        At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
+
+- [x] (2:00?) (0:44) gap (and octave and magma) don't work in worksheets.  why?  It's because of "signal.signal(signal.SIGCHLD, handle_session_term)"
+
+
+- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
+
+- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+
+- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
+
+- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
+
+
+- [ ] (2:30?) snap: switch to using fuse for browsing bup archives; will make things blazingly fast, *and* provides full metadata for ls listings.
+
+- [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
+
+- [ ] (2:00?) diffsync bug:
+
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
+        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
+        2":1293,"length1":8,"length2":10}],"shadow_v...
+        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
+        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"4da6b344-1a06-4210-b55b-1fc7a2dea4c0","error":"CodeMi
+        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
+        = 1287)"}
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
+        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
+        2":1293,"length1":8,"length2":10}],"shadow_v...
+        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
+        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"5ae87399-afd5-4be0-be44-821f3cffd167","error":"CodeMi
+        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
+        = 1287)"}
+
+- [ ] (1:00?) (0:45+) enable word-wrap toggle for editing files
+
+- [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
+    %md
+    $$\{ foo \}$$
+    even though this does
+    %md
+    $\{ foo \}$
+    \[
+       \{ foo \}
+    \]
+
+
+- [ ] (8:00?) create a help system, answering questions in help.html
+
+- [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
+
+- [ ] (2:00?) quotas (10GB/project)
+
+- [ ] (2:00?) display usage for each project in project page, along with global total usage
+
+- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
+
+- [ ] (1:00?) 3d: include code in cloud.sagemath library and provide non-default option to show to use it; post about that at http://trac.sagemath.org/sage_trac/ticket/12402
 
 - [ ] (3:00?) file operation notifications -- Using delete in the browser merely moves the file to the trash (but not overwriting other files).  (And similarly, using file rename in the browser, merely renames the file on the filesystem and does nothing else yet.)  There are several other actions for particular file types that *should* be taken, but aren't yet.   When you open a file, the local hub daemon creates an object in memory that represents that file/terminal/whatever -- it needs to be notified when the file is moved or deleted, but I simply haven't implemented this yet.
 
-- [ ] (1:00?) %load on a file with a syntax error gives a useless error message
+- [ ] (4:00?) (1:07+) ability to open sws files
+- [ ] (2:00?) export sagews to sws
+
+- [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
+- [ ] (3:00?) read-only viewers of projects (like collab, but read only)
+
+- [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
+
+- [ ] (1:00?) pdf view -- should have link to download pdf.
+
+- [ ] (3:00?) community tab: "explore" other projects...
+
+- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
+
+- [ ] (3:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
+  - page: design&implement the dialog where the user composes the message to friend
+  - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
+  - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g.,
+    getting added to a project, banned, etc. -- should work with email+*@'s.
+
+
+- [ ] (3:00?) latex: left/right split view.
 
 - [ ] (1:30?) terminal reconnect -- works fine on browser reconnect, but fails on dropped connection, since I didn't implement that yet.
 
-- [ ] (1:00?) next release:
-      - in sage -sh : pip install lxml
-      - systemwide  : apt-get install libxml2-dev libxslt-dev
-      - upgrade bup in machine (both in salvus and systemwide)
+- [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
 
-- [ ] good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+- [ ] (1:00?) make it so foo?[enter]  and foo??[enter] both work.
+
+
+- [ ] (1:00?) admin -- make it so the services file can have variables so I don't have to change the same base in a million places.
+
+- [ ] (1:30?) (0:12+) use backup.coffee to make a regular text dump of complete db, except for the blobs.
+
+# This just gives tons of errors :-(
+
+  process.env['SALVUS_BACKUP'] = '/mnt/snap/backup/'
+  b = require('backup').backup(keyspace:'salvus', hosts:['10.1.1.2'], cb:console.log)
+  b.dump_keyspace_to_filesystem(console.log)
+
+- [ ] (1:00?) %load on a file with a syntax error gives a useless error message
 
 - [ ] make modified project table also record the user and record it forever.
 
@@ -35,10 +141,6 @@ WHY?  Ideas:
 
 I disabled all but web1's snap, and
 
-- [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
-
-- [ ] (1:00?) make it so foo?[enter]  and foo??[enter] both work.
-
 - [ ] (2:00?) separate targeted backup system -- minimum data needed to fully recover system:
        - backup db tables on all cassandra nodes (for now) to a single bup archive on /mnt/snap on web1
        - backup that de-duped bup to bsd.math
@@ -47,80 +149,33 @@ I disabled all but web1's snap, and
 
 - [ ] (2:30?) custom environment variables in project settings, including `SAGE_PATH` (with explanation) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fa0462bcaa7768
 
-- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
 - [ ] (1:00?) 3d: enable and test canvas rendering
-- [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
+
+- [ ] (1:30?) expand the size of the base vm, so I can start keeping all past builds of sage.
 
 - [ ] (2:00?) snap/bup caching: right now rev-list cache keeps getting bigger, with probably each cache file storing the data for all of them so far, hence wasting much space.  I can maybe somehow do better.. since at some point, this will start to waste massive space!
 
-- [x] (?) chrome app -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97af12ab4cf2b
+- [ ] (2:00?) terminal copy/paste; try to find a way to strip trailing whitespace, and deal with long lines (?)
 
-- [ ] (4:00?) (1:07+) ability to open sws files
-- [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
-- [ ] (3:00?) read-only viewers of projects (like collab, but read only)
-
-- [ ] (2:00?) terminal copy; try to find a way to strip trailing whitespace, and deal with long lines (?)
-
-- [ ] (3:00?) implement a simple "explore" public projects page
-- [ ] (3:00?) latex: left/right split view.
 - [ ] (5:00?) wiki view -- I was just browsing again through the the wiki system gollum used for the github wiki. This is basically what I am looking for - an extra folder myproject / wiki containing the wiki in human readable and editable files and folders, with default cloud view being rendered through gollum (using various rendering systems like rst or markdown). Github seems to not support mathjax anymore, but a switch to turn on mathjax on pages (or, if this is too much, mathjax being turned on by default) would be necessary in order to make math collaboration possible. Also, links to files and embedded pics from myproject / otherfolder would be good to have. Finally, making the wiki publicly visible (even if the project is still private) would be nice as well.  See https://mail.google.com/mail/u/0/?shva=1#inbox/13f9e7a22fbe59ec
 
-- [ ] (1:00?) possible optimization (maybe already implemented) -- if local_hub is about to send a blob that global_hub already knows (via db), then don't bother....
-
-- [ ] (2:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
-
-  - page: design&implement the dialog where the user composes the message to friend
-  - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
-  - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g.,
-    getting added to a project, banned, etc. -- should work with email+*@'s.
-
-- [ ] (2:00?) file change auto-update (due to frequent requests)
-
-- [ ] (1:00?) implement `default_mode`:
-        a function you can call at some point to set a default mode (or modes). For example,
-           default_mode(gp)
-        would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
-
-        Once the above is implemented and working, which shouldn't be hard, then I could add some GUI support, possibly.   The GUI might insert something like the following at the top:
-
-        %hide
-        %auto
-        default_mode(gap)
-
-        At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
-
-- [ ] (1:00?) new release:
-    - add irssi
-    - switch to minified js
+- [ ] (1:00?) possible optimization (maybe already implemented) -- if `local_hub` is about to send a blob that global_hub already knows (via db), then don't bother....
 
 - [ ] (1:00?) when searching again, keep the last search in the input box
 
 - [ ] (3:00?) keyboard shortcuts
 
-- [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
-
 - [ ] (2:00?) transfer ownership: transfer this project to another user
-
-- [ ] (4:00?) feature -- make it easy to join a 100% persistent logged irc chatroom for sage while on cloud (?)
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).
 
 - [ ] (3:00?) LXC per-project (which will imply quotas)
 
-
 - [ ] (1:30?) way to star projects; show the starred ones first no matter what; have a starred selector
-
 
 - [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 
-
-- [ ] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
-
 - [ ] (1:15?) Jason grout doesn't like "0 to disable" for autosave interval.
-
-- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
-
-- [ ] (1:00?) bug: cd in terminal thing in cloud.sagemath not working.  (huh?)
 
 - [ ] (5:00?) terminal: implement a scrollbar
 
@@ -128,21 +183,15 @@ I disabled all but web1's snap, and
 
 - [ ] (1:00?) fulltext search: for output lines, double check each result and make sure search term isn't in uuid
 
-- [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
-
 - [ ] (1:30?) make list of open files, order, font sizes, etc., tied to local storage on a machine
 
 - [ ] (2:00?) in hub (around `mesg_codemirror_get_session`) should we be much more careful adding client to sync'd session -- have the client send back confirmation.
-
-- [ ] (1:30?) my "monitor" thing in admin does not work -- instead it should do the full roundtrip ping and check that time is small enough... if possible.
 
 - [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
 
 - [ ] (0:30?) when filling in settings for collaborators, show a spinner while waiting for info to download.
 
 - [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
-
-- [ ] (0:20?) when delete a tab, need to resize all tabs
 
 - [ ] (3:00?) fix doc sync with multiple hubs
 
@@ -166,17 +215,7 @@ I disabled all but web1's snap, and
 
 - [ ] (1:00?) firefox terminal -- resizes all wrong; bottom lines chopped... sometimes.  But sometimes fine.
 
-- [ ] (2:00?) (won't fix for now) opera; cursor goes haywire if you zoom in codemirror.
-
-- [ ] (2:00?) export sagews to sws
-
 - [ ] (1:00?) (0:13+) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
-
-- [ ] (1:00?) pdf view -- should have link to download pdf.
-
-- [ ] (8:00?) create a help system, answering questions in help.html
-
-- [ ] (1:00?) (0:45+) enable word-wrap toggle;
 
 - [ ] (3:00?) snap -- massive optimization idea: could store directory tree of each snapshot *with metadata and previews (first 1K) of modified files* as a JSON object in the database; this would make browsing snapshots and previews instant, but of course recovery would take the full amount of time...
 
@@ -186,27 +225,7 @@ I disabled all but web1's snap, and
 
 - [ ] (1:00?) start installing a bunch of optional R packages into sage.
 
-- [ ] (2:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
-
 - [ ] (2:00?) idea -- change compute nodes so they have a UUID that is indexed and regularly updated in DB, for project accounts... much like with snap servers.
-
-- [ ] (0:45?) confirmation before closing a project
-
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
-- [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
-
-- [ ] (2:00?) octave interface (like GAP) also doesn't work in .sagews !
-
-- [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
-    %md
-    $$\{ foo \}$$
-    even though this does
-    %md
-    $\{ foo \}$
-    \[
-       \{ foo \}
-    \]
 
 - [ ] (1:00?) client.exec is timing out after about 10 seconds no matter what.  This messes up "disk usage", among other things...  I wonder why?
 
@@ -2863,3 +2882,37 @@ debug: client --> hub: {"event":"codemirror_get_session","path":"salvus/notes/fi
 66","id":"2361dc19-cc0e-46c3-9f64-46a8918c5c7e"}
 debug: opts = {"project_id":"6a63fd69-c1c7-4960-9299-54cb96523966","account_id":"992e6b83-17fa-4d43-bcc5-aa78160973e4"}
 
+
+- [x] (0:45?) (0:09) add link in help.html to chrome web app (from Harald Schilly) https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
+
+- [x] (0:45?) (1:10) create a static /stats route (suggested by Keith Clawson) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
+
+- [x] (1:00?)  (0:40) next release:
+      x - in sage -sh : pip install lxml
+      x - systemwide  : apt-get install libxml2-dev libxslt-dev
+      x - upgrade bup in machine (both in salvus and systemwide)
+
+- [x] (1:00?) (0:40)  mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it) -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+
+- [x] (1:00?) (0:19) dynamic interact control creation broken (reported by Jason Grout)
+@interact
+def f(n=(0,1)):
+    print n
+f.x=5
+
+- [x] (0:30?) (0:07) when browsing snapshots and mousing over a link, it doesn't change color.
+
+- [x] (1:00?) (0:15) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
+
+- [x] (?) chrome app -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97af12ab4cf2b
+
+- [x] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
+
+- [x] (0:30?) (0:08) with typeset mode on, latex object should not get typeset.
+
+- [x] (1:00?) (0:50) 1snap: test out the recent patches here: https://github.com/thom311/bup/commits/feat_vfs_metadata_POSTED and here https://github.com/thom311/bup
+    - make a copy of my current bup repo of user's data to web2 for testing.
+    - ensure bup is updated
+    - make up a few benchmarks and tests and record results
+    - try same with patches applied
+    - if all is good, post.

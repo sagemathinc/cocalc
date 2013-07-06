@@ -587,7 +587,7 @@ class exports.Editor
             if t.hasClass("project-search-menu-item")
                 file_tabs = true
                 continue
-            else if file_tabs
+            else if file_tabs and t.hasClass("salvus-editor-filename-pill")
                 x.push(t)
         if x.length == 0
             return

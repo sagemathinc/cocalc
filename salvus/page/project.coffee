@@ -552,7 +552,7 @@ class ProjectPage
         elt = @container.find(".project-command-line")
         input = elt.find("input")
         command0 = input.val()
-        command = command0 + "\npwd"
+        command = command0 + "\necho $HOME `pwd`"
         input.val("")
         @container?.find(".project-command-line-output").show()
         t = setTimeout((() => @container.find(".project-command-line-spinner").show().spin()), 300)
@@ -575,9 +575,12 @@ class ProjectPage
                     j = i = output.stdout.length-2
                     while i>=0 and output.stdout[i] != '\n'
                         i -= 1
-                    cwd = output.stdout.slice(i+1, j+1)
-                    if cwd.slice(0,6) == "/home/"
-                        cwd = cwd.slice(7)
+                    last = output.stdout.slice(i+1, j+1)
+                    k = last.indexOf(' ')
+                    home = last.slice(0,k)
+                    cwd = last.slice(k+1)
+                    if cwd.slice(0,home.length) == home
+                        cwd = cwd.slice(home.length)
                         k = cwd.indexOf('/')
                         if k != -1
                             cwd = cwd.slice(k+1)

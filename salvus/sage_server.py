@@ -340,6 +340,9 @@ namespace = Namespace({})
 
 class Salvus(object):
     Namespace = Namespace
+    _prefix       = ''
+    _postfix      = ''
+    _default_mode = 'sage'
 
     def _flush_stdio(self):
         """
@@ -398,6 +401,85 @@ class Salvus(object):
                 url += '?download'
             return url
 
+    def default_mode(self, mode=None):
+        """
+        Set the default mode for cell evaluation.  This is equivalent
+        to putting %mode at the top of any cell that does not start
+        with %.   Use salvus.default_mode() to return the current mode.
+        Use salvus.default_mode("") to have no default mode.
+
+        This is implemented using salvus.cell_prefix.
+        """
+        if mode is None:
+            return Salvus._default_mode
+        Salvus._default_mode = mode
+        if mode == "sage":
+            self.cell_prefix("")
+        else:
+            self.cell_prefix("%" + mode)
+
+    def cell_prefix(self, prefix=None):
+        """
+        Make it so that the given prefix code is textually
+        prepending to the input before evaluating any cell, unless
+        the first character of the cell is a %.
+
+        To append code at the end, use cell_postfix.
+
+        INPUT:
+
+        - ``prefix`` -- None (to return prefix) or a string ("" to disable)
+
+        EXAMPLES:
+
+        Make it so every cell is timed:
+
+            salvus.cell_prefix('%time')
+
+        Make it so cells are typeset using latex, and latex comments are allowed even
+        as the first line.
+
+            salvus.cell_prefix('%latex')
+
+            %sage salvus.cell_prefix('')
+
+        Evaluate each cell using GP (Pari) and display the time it took:
+
+            salvus.cell_prefix('%time\n%gp')
+
+            %sage salvus.cell_prefix('')   # back to normal
+        """
+        if prefix is None:
+            return Salvus._prefix
+        else:
+            Salvus._prefix = prefix
+
+    def cell_postfix(self, postfix=None):
+        """
+        Make it so that the given code is textually
+        appended to the input before evaluating a cell.
+        To prepend code at the beginning, use cell_prefix.
+
+        INPUT:
+
+        - ``postfix`` -- None (to return postfix) or a string ("" to disable)
+
+        EXAMPLES:
+
+        Print memory usage after evaluating each cell:
+
+            salvus.cell_postfix('print "%s MB used"%int(get_memory_usage())')
+
+        Return to normal
+
+            salvus.set_cell_postfix('')
+
+        """
+        if postfix is None:
+            return Salvus._postfix
+        else:
+            Salvus._postfix = postfix
+
     def execute(self, code, namespace=None, preparse=True, locals=None):
         if namespace is None:
             namespace = self.namespace
@@ -409,7 +491,7 @@ class Salvus(object):
                 block = parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
-                exec compile(block, '', 'single') in namespace, locals
+                exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
@@ -419,12 +501,12 @@ class Salvus(object):
                 sys.stderr.flush()
                 break
 
-    def execute_with_code_decorators(self, code_decorators, code, preparse=True):
+    def execute_with_code_decorators(self, code_decorators, code, preparse=True, namespace=None, locals=None):
         """
         salvus.execute_with_code_decorators is used when evaluating
         code blocks that are set to any non-default code_decorator.
         """
-        import inspect
+        import sage  # used below as a code decorator
         if isinstance(code_decorators, (str, unicode)):
             code_decorators = [code_decorators]
 
@@ -443,13 +525,16 @@ class Salvus(object):
                 code = code_decorator.eval(code, locals=self.namespace)
                 print code
                 code = ''
+            elif code_decorator is sage:
+                # special case -- the sage module (i.e., %sage) should do nothing.
+                pass
             else:
                 code = code_decorator(code)
             if code is None:
                 code = ''
 
         if code != '' and isinstance(code, (str, unicode)):
-            self.execute(code, preparse=preparse)
+            self.execute(code, preparse=preparse, namespace=namespace, locals=locals)
 
         for code_decorator in code_decorators:
             if not hasattr(code_decorator, 'eval') and hasattr(code_decorator, 'after'):
@@ -725,11 +810,12 @@ class Salvus(object):
 
 
 def execute(conn, id, code, data, preparse):
-    # initialize the salvus output streams
+
     salvus = Salvus(conn=conn, id=id, data=data)
     salvus.start_executing()
 
     try:
+        # initialize the salvus output streams
         streams = (sys.stdout, sys.stderr)
         sys.stdout = BufferedOutputStream(salvus.stdout)
         sys.stderr = BufferedOutputStream(salvus.stderr)
@@ -739,6 +825,13 @@ def execute(conn, id, code, data, preparse):
             namespace['sage_salvus'] = sage_salvus
         except:
             traceback.print_exc()
+
+        if salvus._prefix:
+            if not code.startswith("%"):
+                code = salvus._prefix + '\n' + code
+
+        if salvus._postfix:
+            code += '\n' + salvus._postfix
 
         salvus.execute(code, namespace=namespace, preparse=preparse)
 
@@ -790,7 +883,11 @@ def session(conn):
 
     # seed the random number generator(s)
     import sage.all; sage.all.set_random_seed()
-    import time; import random; random.seed(time.time())
+    import random; random.seed(sage.all.initial_seed())
+
+    # get_memory_usage is (by ignorant design) not aware of being forked... (should post a trac ticket!)
+    import sage.misc.getusage
+    sage.misc.getusage._proc_status = "/proc/%s/status"%os.getpid()
 
     cnt = 0
     while True:
@@ -914,6 +1011,7 @@ def serve_connection(conn):
         conn.send_json(desc)
         session(conn=conn)
 
+
 def serve(port, host):
     #log.info('opening connection on port %s', port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -921,49 +1019,53 @@ def serve(port, host):
     s.bind((host, port))
     print 'Sage server %s:%s'%(host, port)
 
-    signal.signal(signal.SIGCHLD, handle_session_term)
+    # Enabling the following signal completely breaks subprocess pexpect in many cases, which is
+    # obviously totally unacceptable.
+    #signal.signal(signal.SIGCHLD, handle_session_term)
 
-    tm = time.time()
-    print "pre-importing the sage library..."
+    def init_library():
+        tm = time.time()
+        print "pre-importing the sage library..."
 
-    # Monkey patching interact using the new and improved Salvus
-    # implementation of interact.
-    import sagenb.notebook.interact
-    sagenb.notebook.interact.interact = sage_salvus.interact
+        # Monkey patching interact using the new and improved Salvus
+        # implementation of interact.
+        import sagenb.notebook.interact
+        sagenb.notebook.interact.interact = sage_salvus.interact
 
-    # Actually import sage now.  This must happen after the interact
-    # import because of library interacts.
-    import sage.all
+        # Actually import sage now.  This must happen after the interact
+        # import because of library interacts.
+        import sage.all
 
-    # Monkey patch the html command.
-    sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
+        # Monkey patch the html command.
+        sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
 
-    # Set a useful figsize default; the matplotlib one is not notebook friendly.
-    import sage.plot.graphics
-    sage.plot.graphics.Graphics.SHOW_OPTIONS['figsize']=[8,4]
+        # Set a useful figsize default; the matplotlib one is not notebook friendly.
+        import sage.plot.graphics
+        sage.plot.graphics.Graphics.SHOW_OPTIONS['figsize']=[8,4]
 
-    # Monkey patch latex.eval, so that %latex works in worksheets
-    sage.misc.latex.latex.eval = sage_salvus.latex0
+        # Monkey patch latex.eval, so that %latex works in worksheets
+        sage.misc.latex.latex.eval = sage_salvus.latex0
 
-    # Doing an integral start embedded ECL; unfortunately, it can
-    # easily get put in a broken state after fork that impacts future forks... ?
-    #exec "from sage.all import *; import scipy; import sympy; import pylab; from sage.calculus.predefined import x; integrate(sin(x**2),x);" in namespace
+        # Plot, integrate, etc., -- so startup time of worksheets is minimal.
+        
+        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
+        print 'imported sage library in %s seconds'%(time.time() - tm)
 
-    exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
-    print 'imported sage library in %s seconds'%(time.time() - tm)
+        for k,v in sage_salvus.interact_functions.iteritems():
+            namespace[k] = sagenb.notebook.interact.__dict__[k] = v
 
-    for k,v in sage_salvus.interact_functions.iteritems():
-        namespace[k] = sagenb.notebook.interact.__dict__[k] = v
+        namespace['_salvus_parsing'] = parsing
 
-    namespace['_salvus_parsing'] = parsing
+        for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
+                     'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
+                     'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
+                     'reset', 'restore', 'md', 'load', 'typeset_mode', 'default_mode']:
+            namespace[name] = getattr(sage_salvus, name)
 
-    for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
-                 'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
-                 'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
-                 'reset', 'restore', 'md', 'load', 'typeset_mode']:
-        namespace[name] = getattr(sage_salvus, name)
+        sage_salvus.default_namespace = dict(namespace)
 
-    sage_salvus.default_namespace = dict(namespace)
+    # Initialize sage library.
+    init_library()
 
     t = time.time()
     s.listen(128)

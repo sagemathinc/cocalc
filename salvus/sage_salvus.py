@@ -2536,6 +2536,8 @@ def sws_to_sagews(filename):
 
 
 _system_sys_displayhook = sys.displayhook
+import sage.misc.latex, types
+TYPESET_MODE_EXCLUDES = (sage.misc.latex.LatexExpr, types.NoneType)
 
 def typeset_mode(on=True):
     """
@@ -2550,13 +2552,36 @@ def typeset_mode(on=True):
     """
     if on:
         def f(obj):
-            if obj is None:
-                return
-            salvus.tex(obj)
+            if isinstance(obj, TYPESET_MODE_EXCLUDES):
+                _system_sys_displayhook(obj)
+            else:
+                salvus.tex(obj)
         sys.displayhook = f
     else:
         sys.displayhook = _system_sys_displayhook
 
+def default_mode(mode):
+    """
+    Set the default mode for cell evaluation.  This is equivalent
+    to putting %mode at the top of any cell that does not start
+    with %.   Use default_mode() to return the current mode.
+    Use default_mode("") to have no default mode.
 
+    EXAMPLES::
+
+    Make Pari/GP the default mode:
+
+        default_mode("gp")
+        default_mode()   # outputs "gp"
+
+    Then switch back to Sage::
+
+        default_mode("")   # or default_mode("sage")
+
+    You can also use default_mode as a line decorator::
+
+        %default_mode gp   # equivalent to default_mode("gp")
+    """
+    return salvus.default_mode(mode)
 
 
