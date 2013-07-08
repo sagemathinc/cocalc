@@ -13,7 +13,7 @@ cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
 # Create version file, based on the current time
-echo "exports.version=`date +"%s"`" > node_modules/salvus_version.js
+# echo "exports.version=`date +"%s"`" > node_modules/salvus_version.js
 
 ###########
 # Backend server code:

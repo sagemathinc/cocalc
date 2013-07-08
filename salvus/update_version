@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+. salvus-env
+
+set -e
+
+# Create version file, based on the current time
+echo "exports.version=`date +"%s"`" > node_modules/salvus_version.js
+
