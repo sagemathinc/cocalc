@@ -1,6 +1,9 @@
+- [ ] (4:00?) snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+
+- [ ] (4:00?) project restore from snap: restore project from most recent snap.
 
 - [ ] (1:00?) make interact functions callable
-
+ 
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
 - [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
