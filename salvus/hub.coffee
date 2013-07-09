@@ -3884,9 +3884,16 @@ _local_blobs = {}
 save_blob = (opts) ->
     opts = defaults opts,
         uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
-        value : required   # NOTE: value *must* be a Buffer.
+        #value : required   # NOTE: value *must* be a Buffer.
+        value : undefined
         cb    : required
         ttl   : undefined  # object in blobstore will have *at least* this ttl; if there is already something,  in blobstore with longer ttl, we leave it.
+
+    if not opts.value?
+        err = "BUG -- error in save_blob; received a save_blob request with undefined value"
+        winston.debug(err)
+        opts.cb(err)
+        return
 
     if opts.value.length > 5000000
         if not opts.ttl?

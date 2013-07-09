@@ -1,31 +1,42 @@
-- [ ] (1:00?) next release:
-    - add irssi
-    - switch to minified js
-    - upgrade systemwide and salvus-only bup; gets the new metadata fuse support.
+- [ ] (1:30?) this was happening:
+Trace
+    at exports.defaults (/home/salvus/salvus/salvus/node_modules/misc.js:66:19)
+    at save_blob (/home/salvus/salvus/salvus/node_modules/hub.js:5237:12)
+    at project.read_file.cb (/home/salvus/salvus/salvus/node_modules/hub.js:1560:22)
+    at /home/salvus/salvus/salvus/node_modules/hub.js:3563:18
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:226:13
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:136:25
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:223:17
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:550:34
+    at Object.socket.recv_mesg.cb (/home/salvus/salvus/salvus/node_modules/hub.js:3555:22)
+    at timeout [as _onTimeout] (/home/salvus/salvus/salvus/node_modules/misc_node.js:122:25)
+debug: BUG ****************************************************************************
+debug: Uncaught exception: misc.defaults -- TypeError: property 'value' must be specified: (obj1={"uuid":"ff784074-2b1b-4e93-8c23-7148dd5a322a","ttl":86400}, obj2={"value":"__!!!!!!this is a required property!!!!!!__","cb":"__!!!!!!this is a required property!!!!!!__"})
+debug: Error
 
-- [x] (0:30?) (1:00) fix a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
-
-- [x] (2:15) implement salvus.set_cell_prefix and salvus.set_cell_postfix, which are useful building blocks on which to build other things, e.g., default modes, line numbered output, etc.
-
-- [x] (1:30?) (1:02) implement default_mode to set default worksheet types
-        a function you can call at some point to set a default mode (or modes). For example,
-           default_mode(gp)
-        would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
-
-        Once the above is implemented and working, which shouldn't be hard, then I could add some GUI support, possibly.   The GUI might insert something like the following at the top:
-
-        %hide
-        %auto
-        default_mode(gp)
-
-        At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
-
-- [x] (2:00?) (0:44) gap (and octave and magma) don't work in worksheets.  why?  It's because of "signal.signal(signal.SIGCHLD, handle_session_term)"
+(I changed the code to turn it into a log message error, instead of total death.)
 
 
-- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
+- [ ] (4:00?) snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
 
-- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+Ideas for how this could work:
+
+Have bup repos --
+
+        bup/2013-07-01-182300   # starts at 2013-07-01-182300
+        bup/2013-07-05-142647   # starts at 2013-07-05-142647
+        bup/2013-07-07-111711   # starts at 2013-07-07-111711
+
+On startup snap.coffee reads the directories, finds these, and builds a little data structure
+so that given a timestamp, one can easily tell which bup to use to get that snapshot.
+
+
+xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repack+bup/13ebbbf423578744>
+  This doesn't appear to make much (if any) difference regarding speed.
+
+- [ ] (4:00?) project restore from snap: restore project from most recent snap.
+
+- [ ] (1:00?) make interact functions callable
 
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
@@ -33,8 +44,11 @@
 
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
 
-- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
+- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
 
+- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+
+- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
 
 - [ ] (2:30?) snap: switch to using fuse for browsing bup archives; will make things blazingly fast, *and* provides full metadata for ls listings.
 
@@ -2916,3 +2930,28 @@ f.x=5
     - make up a few benchmarks and tests and record results
     - try same with patches applied
     - if all is good, post.
+
+- [x] (0:30?) (1:00) fix a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
+
+- [x] (2:15) implement salvus.set_cell_prefix and salvus.set_cell_postfix, which are useful building blocks on which to build other things, e.g., default modes, line numbered output, etc.
+
+- [x] (1:30?) (1:02) implement default_mode to set default worksheet types
+        a function you can call at some point to set a default mode (or modes). For example,
+           default_mode(gp)
+        would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
+
+        Once the above is implemented and working, which shouldn't be hard, then I could add some GUI support, possibly.   The GUI might insert something like the following at the top:
+
+        %hide
+        %auto
+        default_mode(gp)
+
+        At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
+
+- [x] (2:00?) (0:44) gap (and octave and magma) don't work in worksheets.  why?  It's because of "signal.signal(signal.SIGCHLD, handle_session_term)"
+
+
+- [x] (1:00?) (2:17) next release: -- took a long time, due to things going to hell with snap getting restarted at the wrong moment and getting wrecked, then me getting idiotically confused fixing it.  I learned about the suckage of my backups on disk.math... which I don't really need anyways.
+    x- add irssi
+    x - make sure to switch to minified js
+    x- upgrade systemwide and salvus-only bup; gets the new metadata fuse support (which I'm not using, but)

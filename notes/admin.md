@@ -3,10 +3,10 @@
     new_vm_image.py
     ssh localhost -p 2222
     cd salvus/salvus &&  git pull
-    # switch to minified js in page/head.html
+    ./update_version
     ./make_coffee && sleep 3 && ./make_coffee
     sudo apt-get update; sudo apt-get upgrade
-    # if changes, reboot
+    # if changes, reboot_this_computer
     shutdown_this_computer
     cd ~/vm/images/base/
     virsh_list
@@ -16,15 +16,20 @@
     replace x y services
     cd ~/salvus/salvus; . salvus-env; ipython
     import admin; s = admin.Services('conf/deploy_storm/')
+
+    # If web stuff only
     time s.restart_web()
+
+    # If more than just web:
+    time s.stop_system(); s.start_system()
+
+    # TEST
 
     cd ~/salvus/salvus/conf/deploy_cloud
     replace x y services
     cd ~/salvus/salvus; . salvus-env; ipython
     import admin; s = admin.Services('conf/deploy_cloud/')
     time s.restart_web()
-    # start the bup ls on 10.1.1.3 for now
-    # check that all bups working: keep_fresh
 
 # Restart only web part:
 
@@ -77,6 +82,18 @@ update-alternatives --config java
 - create latex file
 - file search
 - open another account and edit worksheet by two people "at once"
+
+
+# Mounting a backup img:
+
+This works on cloud's since they have guestmount; not possible on disk.math, which makes those backups worth less (?).
+
+salvus@cloud2:~/vm/images/backup/bup/fuse/cloud1/latest/home/salvus/vm/images/persistent$ guestmount -a web1-snap.img -m/dev/
+vda1 --ro ~/mnt
+
+salvus@cloud2:~/vm/images/backup/bup/fuse/cloud1/latest/home/salvus/vm/images/persistent$
+salvus@cloud2:~/vm/images/backup/bup/fuse/cloud1/latest/home/salvus/vm/images/persistent$ ls ~/mnt/
+backup  backup_snap  dfall~  idea  keep_fresh  lost+found  snap0  status
 
 
 
