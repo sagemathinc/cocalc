@@ -1701,7 +1701,6 @@ push_to_clients = (opts) ->
 #
 ################################################
 
-codemirror_sessions = {by_path:{}, by_uuid:{}}
 
 # The CodeMirrorDiffSyncLocalHub class represents a local hub viewed
 # as a remote server for this hub.
@@ -1709,6 +1708,9 @@ codemirror_sessions = {by_path:{}, by_uuid:{}}
 # TODO later: refactor code, since it seems like all these
 # DiffSync[Hub/Client] etc. things are defined by a write_mesg function.
 #
+
+
+codemirror_sessions = {by_path:{}, by_uuid:{}}
 
 class CodeMirrorDiffSyncLocalHub
     constructor: (@cm_session) ->
@@ -1762,12 +1764,14 @@ class CodeMirrorSession
     constructor: (opts) ->
         opts = defaults opts,
             local_hub    : required
+            project_id   : required
             session_uuid : required
             path         : required
             content      : required
             chat         : required
 
         @local_hub    = opts.local_hub
+        @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @path         = opts.path
         @chat         = opts.chat
@@ -1786,7 +1790,7 @@ class CodeMirrorSession
             factor      : 1.5
             cb          : cb
             f           : (cb) =>
-                delete codemirror_sessions.by_path[@path]
+                delete codemirror_sessions.by_path[@project_id + @path]
                 delete codemirror_sessions.by_uuid[@session_uuid]
                 delete @_upstream_sync_lock
                 @local_hub.call
@@ -2191,11 +2195,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if not err
                         cb(err, socket)
                     else
-                        if retries > 1
+                        if retries == 0
                             cb(err)
                         else
-                            delete @_status
-                            @new_socket(cb, retries + 1)
+                            delete @_status  # forget port and secret token.
+                            @new_socket(cb, retries - 1)
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
@@ -2380,8 +2384,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if session?
                 opts.cb(false, session)
                 return
-        if opts.path?
-            session = codemirror_sessions.by_path[opts.path]
+        if opts.path? and opts.project_id?
+            session = codemirror_sessions.by_path[opts.project_id + opts.path]
             if session?
                 opts.cb(false, session)
                 return
@@ -2397,12 +2401,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 else
                     session = new CodeMirrorSession
                         local_hub    : @
+                        project_id   : opts.project_id
                         session_uuid : resp.session_uuid
                         path         : resp.path
                         content      : resp.content
                         chat         : resp.chat
                     codemirror_sessions.by_uuid[resp.session_uuid] = session
-                    codemirror_sessions.by_path[resp.path] = session
+                    codemirror_sessions.by_path[opts.project_id + resp.path] = session
                     opts.cb(false, session)
 
     #########################################

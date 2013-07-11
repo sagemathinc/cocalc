@@ -1359,7 +1359,7 @@ class Services(object):
             self.start(service, parallel=True, wait=False)
         #log.info(" ** Starting compute")
         #self.start('compute', parallel=False, wait=False)
-        self.monitor_hubs()
+        #self.monitor_hubs()
 
     def stop_system(self):
         if 'cassandra' in self._services:
@@ -1391,7 +1391,10 @@ class Services(object):
         import  cassandra, sys, urllib2
         def is_working(ip):
              try:
-                 return urllib2.urlopen('http://%s:%s'%(ip,HUB_PORT), timeout=5).read()  == 'hub server'
+                 t = time.time()
+                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
+                 print "ping:", time.time() - t, "   status: ", s 
+                 return True
              except:
                  return False
         i = 0
@@ -1399,7 +1402,6 @@ class Services(object):
             if i % 80 == 0:
                 print "Monitoring hubs: ", hosts
             i += 1
-            print ":-)",
             sys.stdout.flush()
             for ip in hosts:
                 if not is_working(ip):
