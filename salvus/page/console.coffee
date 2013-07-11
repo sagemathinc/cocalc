@@ -609,7 +609,7 @@ class Console extends EventEmitter
         new_cols = Math.max(1,Math.floor(elt.width() / character_width))
 
         # Determine number of rows from the height of the row , as computed above.
-        new_rows = Math.max(1,Math.floor(elt.height() / row_height))
+        new_rows = Math.max(1,Math.floor((elt.height()-10) / row_height))
 
         # Resize the renderer
         @terminal.resize(new_cols, new_rows)

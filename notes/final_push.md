@@ -9,6 +9,8 @@
 unbind C-b
 set -g prefix `
 
+- [ ] (0:45?) trash can at right of screen often not visible.
+
 - [ ] (1:30?) introduce space at the bottom of a worksheet
 
 
