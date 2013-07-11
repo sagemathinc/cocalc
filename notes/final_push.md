@@ -1,11 +1,27 @@
-- [x] (1:00?) hub -- request to edit a file in a project is ignoring the project id!?
-It's this line in hub.coffee:
-        if opts.path?
-            session = codemirror_sessions.by_path[opts.path]
-- [x] (1:00?) local hub reconnect serious bug.
-        It seems to be a mistake with handling of the retries option to this in hub.coffee:
-            new_socket: (cb, retries) =>
-      https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+
+- [ ] (0:45?) terminal -- paste line (not just for mobile)
+
+- [ ] (0:30?) change default cursor to be transparent
+
+- [ ] (0:30?) new release
+   - make sure to *re-fix* this on the vm: https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+   - tmux conf for salvus user
+unbind C-b
+set -g prefix `
+
+- [ ] (1:30?) introduce space at the bottom of a worksheet
+
+
+- [ ] (0:40?) terminal -- last line cutoff in various context; just subtract one for now...
+
+- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
+
+- [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
+
+- [ ] (2:00?) download recent terminal history as file
+
+
+- [ ] (1:30?) change cursor so it is configurable to be transparent or a vertical bar -- configurable (requested by Rob Beezer) - https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13fcf5dc2f951a26
 
 - [ ] (1:00?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
 
@@ -30,11 +46,6 @@ exports.defaults salvus.min.js:5
 Uncaught misc.defaults -- TypeError: property 'account_id' must be specified: (obj1={"project_id":"de12e703-05c9-4c8c-9ae0-75a9c0063a8a"}, obj2={"project_id":"__!!!!!!this is a required property!!!!!!__","account_id":"__!!!!!!this is a required property!!!!!!__"}) salvus.min.js:5
 
 
-- [ ] (0:30?) new release
-   - make sure to *re-fix* this on the vm: https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
-   - tmux conf for salvus user
-unbind C-b
-set -g prefix `
 
 - [ ] (1:30?) this was happening:
 Trace
@@ -3000,3 +3011,12 @@ f.x=5
     x- add irssi
     x - make sure to switch to minified js
     x- upgrade systemwide and salvus-only bup; gets the new metadata fuse support (which I'm not using, but)
+
+- [x] (1:00?) hub -- request to edit a file in a project is ignoring the project id!?
+It's this line in hub.coffee:
+        if opts.path?
+            session = codemirror_sessions.by_path[opts.path]
+- [x] (1:00?) local hub reconnect serious bug.
+        It seems to be a mistake with handling of the retries option to this in hub.coffee:
+            new_socket: (cb, retries) =>
+      https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
