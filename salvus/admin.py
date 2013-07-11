@@ -1391,7 +1391,9 @@ class Services(object):
         import  cassandra, sys, urllib2
         def is_working(ip):
              try:
-                 print urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
+                 t = time.time()
+                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
+                 print "ping:", time.time() - t, "   status: ", s 
                  return True
              except:
                  return False
