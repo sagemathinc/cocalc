@@ -1214,15 +1214,12 @@ class Client extends EventEmitter
                         @push_to_client(mesg)
 
     get_codemirror_session : (mesg, cb) =>
-        @get_project mesg, 'write', (err, project) =>                                                                                       
-            if err                                                                                                                          
-                return                                                                                                                      
-            session = project.codemirror_sessions.by_uuid[mesg.session_uuid]
-            if not session?
-                @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not know about a codemirror session with session_uuid='#{mesg.session_uuid}'"))
-                cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
-            else
-                cb(false, session)
+        session = codemirror_sessions.by_uuid[mesg.session_uuid]
+        if not session?
+            @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not know about a codemirror session with session_uuid='#{mesg.session_uuid}'"))
+            cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
+        else
+            cb(false, session)
 
     mesg_codemirror_disconnect: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
@@ -1712,9 +1709,11 @@ push_to_clients = (opts) ->
 # DiffSync[Hub/Client] etc. things are defined by a write_mesg function.
 #
 
+
+codemirror_sessions = {by_path:{}, by_uuid:{}}
+
 class CodeMirrorDiffSyncLocalHub
     constructor: (@cm_session) ->
-        @codemirror_sessions = {by_path:{}, by_uuid:{}}
 
     write_mesg: (event, obj, cb) =>
         if not obj?
@@ -1765,12 +1764,14 @@ class CodeMirrorSession
     constructor: (opts) ->
         opts = defaults opts,
             local_hub    : required
+            project_id   : required
             session_uuid : required
             path         : required
             content      : required
             chat         : required
 
         @local_hub    = opts.local_hub
+        @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @path         = opts.path
         @chat         = opts.chat
@@ -1789,8 +1790,8 @@ class CodeMirrorSession
             factor      : 1.5
             cb          : cb
             f           : (cb) =>
-                delete @codemirror_sessions.by_path[@path]
-                delete @codemirror_sessions.by_uuid[@session_uuid]
+                delete codemirror_sessions.by_path[@project_id + @path]
+                delete codemirror_sessions.by_uuid[@session_uuid]
                 delete @_upstream_sync_lock
                 @local_hub.call
                     mesg : message.codemirror_get_session(path:@path)
@@ -1802,7 +1803,7 @@ class CodeMirrorSession
                             cb?(resp.error)
                         else
                             @session_uuid = resp.session_uuid
-                            @codemirror_sessions.by_uuid[@session_uuid] = @
+                            codemirror_sessions.by_uuid[@session_uuid] = @
 
                             # Reconnect to the upstream (local_hub) server, being careful to save our current edits.
                             edit_stack = @diffsync_server.edit_stack
@@ -2379,12 +2380,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             path         : undefined
             cb           : required    # cb(err, session)
         if opts.session_uuid?
-            session = @codemirror_sessions.by_uuid[opts.session_uuid]
+            session = codemirror_sessions.by_uuid[opts.session_uuid]
             if session?
                 opts.cb(false, session)
                 return
-        if opts.path?
-            session = @codemirror_sessions.by_path[opts.path]
+        if opts.path? and opts.project_id?
+            session = codemirror_sessions.by_path[opts.project_id + opts.path]
             if session?
                 opts.cb(false, session)
                 return
@@ -2400,12 +2401,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 else
                     session = new CodeMirrorSession
                         local_hub    : @
+                        project_id   : opts.project_id
                         session_uuid : resp.session_uuid
                         path         : resp.path
                         content      : resp.content
                         chat         : resp.chat
-                    @codemirror_sessions.by_uuid[resp.session_uuid] = session
-                    @codemirror_sessions.by_path[resp.path] = session
+                    codemirror_sessions.by_uuid[resp.session_uuid] = session
+                    codemirror_sessions.by_path[opts.project_id + resp.path] = session
                     opts.cb(false, session)
 
     #########################################
