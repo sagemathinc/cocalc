@@ -2191,11 +2191,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if not err
                         cb(err, socket)
                     else
-                        if retries > 1
+                        if retries == 0
                             cb(err)
                         else
-                            delete @_status
-                            @new_socket(cb, retries + 1)
+                            delete @_status  # forget port and secret token.
+                            @new_socket(cb, retries - 1)
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
