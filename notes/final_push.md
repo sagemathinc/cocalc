@@ -1,3 +1,40 @@
+- [ ] (1:30?) this was happening:
+Trace
+    at exports.defaults (/home/salvus/salvus/salvus/node_modules/misc.js:66:19)
+    at save_blob (/home/salvus/salvus/salvus/node_modules/hub.js:5237:12)
+    at project.read_file.cb (/home/salvus/salvus/salvus/node_modules/hub.js:1560:22)
+    at /home/salvus/salvus/salvus/node_modules/hub.js:3563:18
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:226:13
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:136:25
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:223:17
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:550:34
+    at Object.socket.recv_mesg.cb (/home/salvus/salvus/salvus/node_modules/hub.js:3555:22)
+    at timeout [as _onTimeout] (/home/salvus/salvus/salvus/node_modules/misc_node.js:122:25)
+debug: BUG ****************************************************************************
+debug: Uncaught exception: misc.defaults -- TypeError: property 'value' must be specified: (obj1={"uuid":"ff784074-2b1b-4e93-8c23-7148dd5a322a","ttl":86400}, obj2={"value":"__!!!!!!this is a required property!!!!!!__","cb":"__!!!!!!this is a required property!!!!!!__"})
+debug: Error
+
+(I changed the code to turn it into a log message error, instead of total death.)
+
+
+- [ ] (4:00?) snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+
+Ideas for how this could work:
+
+Have bup repos --
+
+        bup/2013-07-01-182300   # starts at 2013-07-01-182300
+        bup/2013-07-05-142647   # starts at 2013-07-05-142647
+        bup/2013-07-07-111711   # starts at 2013-07-07-111711
+
+On startup snap.coffee reads the directories, finds these, and builds a little data structure
+so that given a timestamp, one can easily tell which bup to use to get that snapshot.
+
+
+xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repack+bup/13ebbbf423578744>
+  This doesn't appear to make much (if any) difference regarding speed.
+
+- [ ] (4:00?) project restore from snap: restore project from most recent snap.
 
 - [ ] (1:00?) make interact functions callable
 
