@@ -1,9 +1,88 @@
+- [x] (1:00?) hub -- request to edit a file in a project is ignoring the project id!?
+It's this line in hub.coffee:
+        if opts.path?
+            session = codemirror_sessions.by_path[opts.path]
+- [x] (1:00?) local hub reconnect serious bug.
+        It seems to be a mistake with handling of the retries option to this in hub.coffee:
+            new_socket: (cb, retries) =>
+      https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+
+- [ ] (1:00?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
+
+- [ ] this interact doesn't work: interacts.geometry.unit_circle()
+
+- [ ] ping appeared slow and I saw this on the client... -- I wonder if the slow ping I was seeing the other day was only for *ME*?:
+Error in event handler for 'undefined': Cannot read property 'settings' of undefined TypeError: Cannot read property 'settings' of undefined
+    at chrome-extension://gighmmpiobklfepjocnamgkkbiglidom/adblock_start_common.js:176:13
+    at <error: illegal access>
+    at Event.dispatchToListener (event_bindings:356:21)
+    at Event.dispatch_ (event_bindings:342:27)
+    at Event.dispatch (event_bindings:362:17)
+    at Object.chromeHidden.Port.dispatchOnDisconnect (miscellaneous_bindings:258:27) [VM] event_bindings (27):346
+Event.dispatch_ [VM] event_bindings (27):346
+connection is not working... attempting to fix. salvus.min.js:6
+SockJS connection just closed, so trying to make a new one... salvus.min.js:6
+connection is not working... attempting to fix. salvus.min.js:6
+SockJS connection just closed, so trying to make a new one... salvus.min.js:6
+error Timeout after 90 seconds index.min.js:7
+console.trace() salvus.min.js:5
+exports.defaults salvus.min.js:5
+Uncaught misc.defaults -- TypeError: property 'account_id' must be specified: (obj1={"project_id":"de12e703-05c9-4c8c-9ae0-75a9c0063a8a"}, obj2={"project_id":"__!!!!!!this is a required property!!!!!!__","account_id":"__!!!!!!this is a required property!!!!!!__"}) salvus.min.js:5
+
+
+- [ ] (0:30?) new release
+   - make sure to *re-fix* this on the vm: https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+   - tmux conf for salvus user
+unbind C-b
+set -g prefix `
+
+- [ ] (1:30?) this was happening:
+Trace
+    at exports.defaults (/home/salvus/salvus/salvus/node_modules/misc.js:66:19)
+    at save_blob (/home/salvus/salvus/salvus/node_modules/hub.js:5237:12)
+    at project.read_file.cb (/home/salvus/salvus/salvus/node_modules/hub.js:1560:22)
+    at /home/salvus/salvus/salvus/node_modules/hub.js:3563:18
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:226:13
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:136:25
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:223:17
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:550:34
+    at Object.socket.recv_mesg.cb (/home/salvus/salvus/salvus/node_modules/hub.js:3555:22)
+    at timeout [as _onTimeout] (/home/salvus/salvus/salvus/node_modules/misc_node.js:122:25)
+debug: BUG ****************************************************************************
+debug: Uncaught exception: misc.defaults -- TypeError: property 'value' must be specified: (obj1={"uuid":"ff784074-2b1b-4e93-8c23-7148dd5a322a","ttl":86400}, obj2={"value":"__!!!!!!this is a required property!!!!!!__","cb":"__!!!!!!this is a required property!!!!!!__"})
+debug: Error
+
+(I changed the code to turn it into a log message error, instead of total death.)
+
+
+- [ ] (0:30?) test http://trac.sagemath.org/sage_trac/ticket/14733 and comment on https://mail.google.com/mail/ca/u/0/#inbox/13fbc06de50c79aa
+
+
+
+
 - [ ] (4:00?) snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+
+Ideas for how this could work:
+
+Have bup repos --
+
+        bup/2013-07-01-182300   # starts at 2013-07-01-182300
+        bup/2013-07-05-142647   # starts at 2013-07-05-142647
+        bup/2013-07-07-111711   # starts at 2013-07-07-111711
+
+On startup snap.coffee reads the directories, finds these, and builds a little data structure
+so that given a timestamp, one can easily tell which bup to use to get that snapshot.
+
+
+xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repack+bup/13ebbbf423578744>
+  This doesn't appear to make much (if any) difference regarding speed.
+
+- [ ] (4:00?) project restore from snap: restore project from most recent snap.
 
 - [ ] (4:00?) project restore from snap: restore project from most recent snap.
 
 - [ ] (1:00?) make interact functions callable
- 
+
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
 - [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
