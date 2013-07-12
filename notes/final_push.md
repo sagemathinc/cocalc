@@ -1,33 +1,50 @@
+4 hour session now:
 
-- [x] (0:45?) terminal -- paste line (not just for mobile)
+- [x] (1:00?) (2:30+) multiple hubs -- get it to work!
+    x - add my laptop to vpn
+    - connecting normal and via vpn gives 2 different hubs :-)
+    - it turns out, the problem is that syncnow doesn't seem to broadcast; otherwise everything works.
+    - but the cursor movement *does* get broadcast; worksheet evaluation works. just editing input
+      doesn't broadcast the sync message.
+    - guess -- localhub doesn't broadcast the syncnow messages.
 
-- [x] (0:30?) change default cursor to be transparent
+ - [x] (0:48?) very basic 3d:
+Example:
+%var x,y,z
+T = RDF(golden_ratio)
+p = 2 - (cos(x + T*y) + cos(x - T*y) + cos(y + T*z) + cos(y - T*z) + cos(z - T*x) + cos(z + T*x))
+r = 4.77
+show(implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r), plot_points=40), threejs=True)
 
-- [ ] (0:30?) new release
-   - make sure to *re-fix* this on the vm: https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
-   - tmux conf for salvus user
-unbind C-b
-set -g prefix `
+- [ ] (0:45?) release:
 
-- [ ] (0:45?) trash can at right of screen often not visible.
+   [ ] conf file: 4 hubs instead of one
+   [ ] scp -r wstein@10.3.1.1:.emacs ~
+       scp -r wstein@10.3.1.1:.emacs-scripts ~
+       change wstein to salvus in .emacs
+   [ ] New tmux config -- add this:
+           bind-key ` send-prefix
+   [ ] apt-get install libevent-dev
+   [ ] Upgrade to new tmux! (see build.py)
 
+---
+
+- [ ] (0:30?) trash can at right of screen often not visible.
 - [ ] (1:30?) introduce space at the bottom of a worksheet
+- [ ] (0:30?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
+- [ ] (0:30?) this interact doesn't work: interacts.geometry.unit_circle()
 
+-----
 
-- [ ] (0:40?) terminal -- last line cutoff in various context; just subtract one for now...
+- [ ] (1:00?) if connection to hub goes down that reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated.
+
+- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
 
 - [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
 
 - [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
 
-- [ ] (2:00?) download recent terminal history as file
-
-
 - [ ] (1:30?) change cursor so it is configurable to be transparent or a vertical bar -- configurable (requested by Rob Beezer) - https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13fcf5dc2f951a26
-
-- [ ] (1:00?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
-
-- [ ] this interact doesn't work: interacts.geometry.unit_circle()
 
 - [ ] ping appeared slow and I saw this on the client... -- I wonder if the slow ping I was seeing the other day was only for *ME*?:
 Error in event handler for 'undefined': Cannot read property 'settings' of undefined TypeError: Cannot read property 'settings' of undefined
@@ -3022,3 +3039,14 @@ It's this line in hub.coffee:
         It seems to be a mistake with handling of the retries option to this in hub.coffee:
             new_socket: (cb, retries) =>
       https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+
+- [x] (0:40?) terminal -- last line cutoff in various context; just subtract one for now...
+- [x] (0:45?) terminal -- paste line (not just for mobile)
+- [x] (0:30?) change default cursor to be transparent
+
+ [x] (0:30?) new release
+   - x make sure to *re-fix* this on the vm: https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+     /usr/local/sage-5.10/devel/sage-main/build/sage/sandpiles/sandpile.py
+   - x tmux conf for salvus user
+unbind C-b
+set -g prefix `

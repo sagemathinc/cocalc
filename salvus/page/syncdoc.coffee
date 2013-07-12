@@ -42,9 +42,10 @@ templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
+salvus_threejs = require("salvus_threejs")
 
 # Return true if there are currently unsynchronized changes, e.g., due to the network
-# connection being down, or cloud.sagemath not working, or a bug. 
+# connection being down, or cloud.sagemath not working, or a bug.
 exports.unsynced_docs = () ->
     return $(".salvus-editor-codemirror-not-synced:visible").length > 0
 
