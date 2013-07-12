@@ -1,7 +1,7 @@
 
-- [ ] (0:45?) terminal -- paste line (not just for mobile)
+- [x] (0:45?) terminal -- paste line (not just for mobile)
 
-- [ ] (0:30?) change default cursor to be transparent
+- [x] (0:30?) change default cursor to be transparent
 
 - [ ] (0:30?) new release
    - make sure to *re-fix* this on the vm: https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
