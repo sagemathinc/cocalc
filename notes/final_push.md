@@ -8,7 +8,7 @@ x - restart hub and test (?)
 
 - [x] (0:45?) (1:22) editor: add setting -- strip_trailing_whitespace
 
-- [ ] (0:45?) editor: add setting -- word wrap
+- [x] (0:45?) (0:08) editor: add setting -- word wrap
 
 - [ ] (0:45?) editor: add setting -- vim mode
 

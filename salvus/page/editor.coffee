@@ -880,7 +880,7 @@ class CodeMirrorEditor extends FileEditor
             electric_chars    : true
             undo_depth        : 1000
             match_brackets    : true
-            line_wrapping     : true
+            line_wrapping     : editor_settings.line_wrapping
             #theme             : "solarized"  # see static/codemirror*/themes or head.html
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters

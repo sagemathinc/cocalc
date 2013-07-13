@@ -412,7 +412,8 @@ class AccountSettings
                     val.font = $(".account-settings-terminal-font").val()
                 when 'editor_settings'
                     val = {}
-                    val.strip_trailing_whitespace = element.find(".account-settings-strip_trailing_whitespace").is(":checked")
+                    for x in ['strip_trailing_whitespace', 'line_wrapping']
+                        val[x] = element.find(".account-settings-#{x}").is(":checked")
                 else
                     val = element.val()
             @settings[prop] = val
@@ -473,7 +474,8 @@ class AccountSettings
                     if not value?
                         value = {}
                     value = misc.merge(value, message.account_settings_defaults.editor_settings)
-                    element.find(".account-settings-strip_trailing_whitespace").prop("checked", value.strip_trailing_whitespace)
+                    for x in ['strip_trailing_whitespace', 'line_wrapping']
+                        element.find(".account-settings-#{x}").prop("checked", value[x])
                 else
                     set(element, value)
 
