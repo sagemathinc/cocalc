@@ -1,40 +1,89 @@
-4 hour session now:
+--> - [ ] (0:45?) account: add an editor JSON object setting:
 
-- [x] (1:00?) (2:30+) multiple hubs -- get it to work!
-    x - add my laptop to vpn
-    - connecting normal and via vpn gives 2 different hubs :-)
-    - it turns out, the problem is that syncnow doesn't seem to broadcast; otherwise everything works.
-    - but the cursor movement *does* get broadcast; worksheet evaluation works. just editing input
-      doesn't broadcast the sync message.
-    - guess -- localhub doesn't broadcast the syncnow messages.
+x- alter table accounts add editor_settings varchar;
+x- modify message
+x - modify account
+x- modify hub
+x - modify cassandra.coffee
+- restart hub and test (?)
 
- - [x] (0:48?) very basic 3d:
-Example:
-%var x,y,z
-T = RDF(golden_ratio)
-p = 2 - (cos(x + T*y) + cos(x - T*y) + cos(y + T*z) + cos(y - T*z) + cos(z - T*x) + cos(z + T*x))
-r = 4.77
-show(implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r), plot_points=40), threejs=True)
 
-- [ ] (0:45?) release:
+- [ ] (0:45?) editor: add setting -- "strip trailing whitespace".
 
-   [ ] conf file: 4 hubs instead of one
-   [ ] scp -r wstein@10.3.1.1:.emacs ~
-       scp -r wstein@10.3.1.1:.emacs-scripts ~
-       change wstein to salvus in .emacs
-   [ ] New tmux config -- add this:
-           bind-key ` send-prefix
-   [ ] apt-get install libevent-dev
-   [ ] Upgrade to new tmux! (see build.py)
+- [ ] (0:45?) editor: add setting -- vim mode
+
+- [ ] (0:45?) editor: add setting -- color scheme
+
+- [ ] (0:30?) new release that just updates web part; send email in response to beezer on sage-cloud.
+      - Do this on db for both cloud and storm: "alter table accounts add editor_settings varchar;"
+
+- [ ] (0:30?) account settings: move autosave to editor settings, in a backwards compatible way.
+- [ ] (0:30?) account settings: move evaluate_key to editor settings, in a backwards compatible way.
+
 
 ---
 
-- [ ] (0:30?) trash can at right of screen often not visible.
+- [ ] (4:00?) snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+
+Ideas for how this could work:
+
+Have bup repos --
+
+        bup/2013-07-01-182300   # starts at 2013-07-01-182300
+        bup/2013-07-05-142647   # starts at 2013-07-05-142647
+        bup/2013-07-07-111711   # starts at 2013-07-07-111711
+
+On startup snap.coffee reads the directories, finds these, and builds a little data structure
+so that given a timestamp, one can easily tell which bup to use to get that snapshot.
+
+- [ ] (4:00?) snap: project restore from snap -- restore project from most recent snap.
+
+- [ ] (?) snap: rollback safety mode.
+       1. Save refs/HEAD in a directory "rollback/" right before making the snapshot.
+       2. Save a list of all files in objects/pack/
+       3. Ensure that "bup ls master/latest" works.
+       4. After making the snapshot:
+          4b. Use fuse and make a directory tree listing of master/latest,
+              including timestamps and file sizes. Store this in cassandra database and local file.
+              If this fails, roll everything back and report an error.
+              (The directory listing would be another property of the row corresponding to
+              the entry in the db for this snapshot -- this will be used by the server when
+              users browse the snapshots, and memcached by server for some amount of time.)
+       5. Also store in the database a list of the files that changed in this snapshot (?).
+          This would be most useful as a table:
+                   project_id uuid
+                   path       varchar
+                   timestamp  timestamp   # or maybe varchar -- have to be able to sort by this.
+                   preview    varchar      # (?) -- could store first 1K of the file, for certain formats.
+          with project_id,path the primary keys.
+          Then we could easily track the progress of a file in a project and very quickly browse previews...
+          but maybe that is going too far.  It would take time/compute by the snap server to actually
+          extract all this info, given that it will be used rarely.
+
+
+
+---
+
+
+- [ ] (1:00?) make interact functions callable
+
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+
+- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
+
+- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
+
+- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+- [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
+
+
 - [ ] (1:30?) introduce space at the bottom of a worksheet
+
+- [ ] (0:30?) trash can at right of screen often not visible.
 - [ ] (0:30?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
 - [ ] (0:30?) this interact doesn't work: interacts.geometry.unit_circle()
-
------
 
 - [ ] (1:00?) if connection to hub goes down that reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated.
 
@@ -88,46 +137,13 @@ debug: Error
 - [ ] (0:30?) test http://trac.sagemath.org/sage_trac/ticket/14733 and comment on https://mail.google.com/mail/ca/u/0/#inbox/13fbc06de50c79aa
 
 
-
-
-- [ ] (4:00?) snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
-
-Ideas for how this could work:
-
-Have bup repos --
-
-        bup/2013-07-01-182300   # starts at 2013-07-01-182300
-        bup/2013-07-05-142647   # starts at 2013-07-05-142647
-        bup/2013-07-07-111711   # starts at 2013-07-07-111711
-
-On startup snap.coffee reads the directories, finds these, and builds a little data structure
-so that given a timestamp, one can easily tell which bup to use to get that snapshot.
-
-
 xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repack+bup/13ebbbf423578744>
   This doesn't appear to make much (if any) difference regarding speed.
-
-- [ ] (4:00?) project restore from snap: restore project from most recent snap.
-
-- [ ] (4:00?) project restore from snap: restore project from most recent snap.
-
-- [ ] (1:00?) make interact functions callable
-
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
-- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
-
-- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
-
-- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
-
-- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 
 - [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
 
 - [ ] (2:30?) snap: switch to using fuse for browsing bup archives; will make things blazingly fast, *and* provides full metadata for ls listings.
 
-- [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
 
 - [ ] (2:00?) diffsync bug:
 
@@ -3050,3 +3066,33 @@ It's this line in hub.coffee:
    - x tmux conf for salvus user
 unbind C-b
 set -g prefix `
+
+
+4 hour session now:
+
+- [x] (1:00?) (2:30+) multiple hubs -- get it to work!
+    x - add my laptop to vpn
+    - connecting normal and via vpn gives 2 different hubs :-)
+    - it turns out, the problem is that syncnow doesn't seem to broadcast; otherwise everything works.
+    - but the cursor movement *does* get broadcast; worksheet evaluation works. just editing input
+      doesn't broadcast the sync message.
+    - guess -- localhub doesn't broadcast the syncnow messages.
+
+ - [x] (0:48?) very basic 3d:
+Example:
+%var x,y,z
+T = RDF(golden_ratio)
+p = 2 - (cos(x + T*y) + cos(x - T*y) + cos(y + T*z) + cos(y - T*z) + cos(z - T*x) + cos(z + T*x))
+r = 4.77
+show(implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r), plot_points=40), threejs=True)
+
+- [x] (0:45?) (0:31) release:
+
+   [x] conf file: 4 hubs instead of one
+   [x] scp -r wstein@10.3.1.1:.emacs ~
+       scp -r wstein@10.3.1.1:.emacs-scripts ~
+       change wstein to salvus in .emacs
+   [x] New tmux config -- add this:
+           bind-key ` send-prefix
+   [x] apt-get install libevent-dev
+   [x] Upgrade to new tmux! (see build.py)
