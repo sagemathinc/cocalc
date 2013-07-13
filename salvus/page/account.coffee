@@ -354,24 +354,27 @@ $("#account").find("a[href=#sign-out]").click(sign_out)
 
 class AccountSettings
     load_from_server: (cb) ->
-        salvus_client.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
-            if error
-                alert_message(type:"error", message:"Error loading account settings - #{error}")
-                @settings = 'error'
-                cb(error)
-                return
+        salvus_client.get_account_settings
+            account_id : account_id
+            cb         : (error, settings_mesg) =>
+                if error
+                    alert_message(type:"error", message:"Error loading account settings - #{error}")
+                    @settings = 'error'
+                    cb(error)
+                    return
 
-            if settings_mesg.event != "account_settings"
-                alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
-                cb("invalid message")
-                return
+                console.log("settings_mesg = ", settings_mesg)
 
-            @settings = settings_mesg
-            delete @settings['id']
-            delete @settings['event']
+                if settings_mesg.event != "account_settings"
+                    alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
+                    cb("invalid message")
+                    return
 
-            cb()
-        )
+                @settings = settings_mesg
+                delete @settings['id']
+                delete @settings['event']
+
+                cb()
 
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
@@ -407,9 +410,12 @@ class AccountSettings
 
                     # color scheme
                     val.font = $(".account-settings-terminal-font").val()
+                when 'editor_settings'
+                    val = {}
 
                 else
                     val = element.val()
+            console.log(prop, val)
             @settings[prop] = val
 
 
@@ -464,6 +470,9 @@ class AccountSettings
                         if not value.font?
                             value.font = 'droid-sans-mono'
                         $(".account-settings-terminal-font").val(value.font)
+                when 'editor_settings'
+                    # TODO -- will get more refined over time.
+                    set(element, "(not implemented)")
                 else
                     set(element, value)
 
@@ -481,6 +490,8 @@ class AccountSettings
         if not @settings? or @settings == 'error'
             opts.cb("There are no account settings to save.")
             return
+
+        console.log("@settings = ", @settings)
         salvus_client.save_account_settings
             account_id : account_id
             settings   : @settings

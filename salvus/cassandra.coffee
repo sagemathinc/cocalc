@@ -912,7 +912,7 @@ class exports.Salvus extends exports.Cassandra
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
-                             'autosave', 'terminal']
+                             'autosave', 'terminal', 'editor_settings']
         )
         where = {}
         if opts.account_id?
@@ -925,7 +925,7 @@ class exports.Salvus extends exports.Cassandra
             where   : where
             columns : opts.columns
             objectify : true
-            json    : ['terminal']
+            json    : ['terminal', 'editor_settings']
             cb      : (error, results) ->
                 if error
                     opts.cb(error)
@@ -966,7 +966,7 @@ class exports.Salvus extends exports.Cassandra
                     table      : 'accounts'
                     where      : {'account_id':opts.account_id}
                     set        : opts.settings
-                    json       : ['terminal']
+                    json       : ['terminal', 'editor_settings']
                     cb         : (error, result) ->
                         opts.cb(error, result)
                         cb()

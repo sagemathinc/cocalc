@@ -111,6 +111,8 @@ CREATE TABLE accounts (
     autosave           int,
     terminal           varchar, // JSON
 
+    editor_settings    varchar, // JSON
+
     enable_tooltips    boolean
 );
 
@@ -358,7 +360,7 @@ CREATE TABLE admin_log (
 ////////////////////
 // Server stats
 ///////////////////
- 
+
 CREATE TABLE stats (
     time timestamp PRIMARY KEY,
     timestamp varchar,

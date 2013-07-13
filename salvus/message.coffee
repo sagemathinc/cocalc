@@ -514,7 +514,8 @@ exports.unrestricted_account_settings =
     email_maintenance    : required
     enable_tooltips      : required
     autosave             : required   # time in seconds or 0 to disable
-    terminal             : required   # time in seconds or 0 to disable
+    terminal             : required   # JSON object -- client interprets
+    editor_settings      : required   # JSON object -- client interprets
 
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
@@ -528,6 +529,7 @@ exports.account_settings_defaults =
     connect_Dropbox    : ''
     autosave           : 180
     terminal           : {font_size:14, color_scheme:'solarized-light', font:'droid-sans-mono'}
+    editor_settings    : {}
 
 # client <--> hub
 message(

@@ -1,11 +1,10 @@
---> - [ ] (0:45?) account: add an editor JSON object setting:
-
+- [x] (0:45?) (0:65) account: add an editor JSON object setting:
 x- alter table accounts add editor_settings varchar;
 x- modify message
 x - modify account
 x- modify hub
 x - modify cassandra.coffee
-- restart hub and test (?)
+x - restart hub and test (?)
 
 
 - [ ] (0:45?) editor: add setting -- "strip trailing whitespace".

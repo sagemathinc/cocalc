@@ -3778,6 +3778,7 @@ get_account_settings = (mesg, push_to_client) ->
                         push_to_client(message.error(id:mesg.id, error:error))
                         cb(true) # bail out
                     else
+                        # TODO -- none of this is used anymore
                         account_settings.plan_name = plan.name
                         account_settings.storage_limit = plan.storage_limit
                         account_settings.session_limit = plan.session_limit
