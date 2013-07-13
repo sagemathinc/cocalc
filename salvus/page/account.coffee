@@ -8,6 +8,7 @@
 {IS_MOBILE}     = require("feature")
 
 misc     = require("misc")
+message  = require("message")
 to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
@@ -76,7 +77,7 @@ $("#account-settings-change-settings-button").click (event) ->
             if error
                 alert_message(type:"error", message:error)
             else
-                alert_message(type:"info", message:"You have saved your settings.")
+                alert_message(type:"info", message:"You have saved your settings.  Changes only apply to newly opened files and terminals.")
     )
 
 $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
@@ -363,7 +364,6 @@ class AccountSettings
                     cb(error)
                     return
 
-                console.log("settings_mesg = ", settings_mesg)
 
                 if settings_mesg.event != "account_settings"
                     alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
@@ -412,10 +412,9 @@ class AccountSettings
                     val.font = $(".account-settings-terminal-font").val()
                 when 'editor_settings'
                     val = {}
-
+                    val.strip_trailing_whitespace = element.find(".account-settings-strip_trailing_whitespace").is(":checked")
                 else
                     val = element.val()
-            console.log(prop, val)
             @settings[prop] = val
 
 
@@ -471,8 +470,10 @@ class AccountSettings
                             value.font = 'droid-sans-mono'
                         $(".account-settings-terminal-font").val(value.font)
                 when 'editor_settings'
-                    # TODO -- will get more refined over time.
-                    set(element, "(not implemented)")
+                    if not value?
+                        value = {}
+                    value = misc.merge(value, message.account_settings_defaults.editor_settings)
+                    element.find(".account-settings-strip_trailing_whitespace").prop("checked", value.strip_trailing_whitespace)
                 else
                     set(element, value)
 
@@ -491,7 +492,6 @@ class AccountSettings
             opts.cb("There are no account settings to save.")
             return
 
-        console.log("@settings = ", @settings)
         salvus_client.save_account_settings
             account_id : account_id
             settings   : @settings

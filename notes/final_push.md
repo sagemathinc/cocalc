@@ -6,15 +6,22 @@ x- modify hub
 x - modify cassandra.coffee
 x - restart hub and test (?)
 
+- [x] (0:45?) (1:22) editor: add setting -- strip_trailing_whitespace
 
-- [ ] (0:45?) editor: add setting -- "strip trailing whitespace".
+- [ ] (0:45?) editor: add setting -- word wrap
 
 - [ ] (0:45?) editor: add setting -- vim mode
 
 - [ ] (0:45?) editor: add setting -- color scheme
 
+- [ ] (1:30?) worksheet: force space at the bottom of a worksheet
+      - make it so the formatter (or local hub?) ensures that there is space
+      - use this option too:                 #cursorScrollMargin: 50
+
 - [ ] (0:30?) new release that just updates web part; send email in response to beezer on sage-cloud.
       - Do this on db for both cloud and storm: "alter table accounts add editor_settings varchar;"
+
+---
 
 - [ ] (0:30?) account settings: move autosave to editor settings, in a backwards compatible way.
 - [ ] (0:30?) account settings: move evaluate_key to editor settings, in a backwards compatible way.
@@ -77,8 +84,6 @@ so that given a timestamp, one can easily tell which bup to use to get that snap
 - [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 - [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
 
-
-- [ ] (1:30?) introduce space at the bottom of a worksheet
 
 - [ ] (0:30?) trash can at right of screen often not visible.
 - [ ] (0:30?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)

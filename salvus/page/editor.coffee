@@ -865,9 +865,12 @@ class FileEditor extends EventEmitter
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
+
+        editor_settings = require('account').account_settings.settings.editor_settings
+
         opts = @opts = defaults opts,
             mode              : required
-            delete_trailing_whitespace : true   # delete all trailing whitespace on save
+            delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
             allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
             line_numbers      : true
             first_line_number : 1
@@ -959,6 +962,8 @@ class CodeMirrorEditor extends FileEditor
                 #theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
                 extraKeys       : extraKeys
+                #cursorScrollMargin: 50
+                #cursorBlinkRate: 1000
 
 
         @codemirror = make_editor(elt[0])
