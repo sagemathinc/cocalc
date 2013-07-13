@@ -10,6 +10,8 @@ x - restart hub and test (?)
 
 - [x] (0:45?) (0:08) editor: add setting -- word wrap
 
+- [x] (0:45?) (0:21) editor: add setting -- toggle line numbers
+
 - [ ] (0:45?) editor: add setting -- vim mode
 
 - [ ] (0:45?) editor: add setting -- color scheme

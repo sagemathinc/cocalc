@@ -353,6 +353,8 @@ $("#account").find("a[href=#sign-out]").click(sign_out)
 # Account settings
 ################################################
 
+EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping', 'line_numbers']
+
 class AccountSettings
     load_from_server: (cb) ->
         salvus_client.get_account_settings
@@ -412,7 +414,7 @@ class AccountSettings
                     val.font = $(".account-settings-terminal-font").val()
                 when 'editor_settings'
                     val = {}
-                    for x in ['strip_trailing_whitespace', 'line_wrapping']
+                    for x in EDITOR_SETTINGS_CHECKBOXES
                         val[x] = element.find(".account-settings-#{x}").is(":checked")
                 else
                     val = element.val()
@@ -474,7 +476,7 @@ class AccountSettings
                     if not value?
                         value = {}
                     value = misc.merge(value, message.account_settings_defaults.editor_settings)
-                    for x in ['strip_trailing_whitespace', 'line_wrapping']
+                    for x in EDITOR_SETTINGS_CHECKBOXES
                         element.find(".account-settings-#{x}").prop("checked", value[x])
                 else
                     set(element, value)

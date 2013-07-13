@@ -528,8 +528,14 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 180
-    terminal           : {font_size:14, color_scheme:'solarized-light', font:'droid-sans-mono'}
-    editor_settings    : { strip_trailing_whitespace:true, line_wrapping:false }
+    terminal           :
+        font_size    : 14
+        color_scheme : 'solarized-light'
+        font         : 'droid-sans-mono'
+    editor_settings    :
+        strip_trailing_whitespace : true
+        line_wrapping             : false
+        line_numbers              : true
 
 # client <--> hub
 message(

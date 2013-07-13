@@ -872,7 +872,7 @@ class CodeMirrorEditor extends FileEditor
             mode              : required
             delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
             allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
-            line_numbers      : true
+            line_numbers      : editor_settings.line_numbers
             first_line_number : 1
             indent_unit       : 4
             tab_size          : 4

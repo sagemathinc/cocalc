@@ -187,7 +187,7 @@ class SynchronizedDocument extends EventEmitter
                     @editor.editor.close(@filename)
             else
                 @codemirror.setOption('readOnly', false)
-                @ui_synced(true)
+                @ui_synced(false)
                 @editor.init_autosave()
                 @sync_soon()  # do a first sync asap.
 
