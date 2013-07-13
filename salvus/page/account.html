@@ -232,7 +232,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
                         </div>
 
-                        <div class="row">
+                        <div class="row hide">
                             <div class="row span2" rel="tooltip" title="The default font size for editor.">
                                 Font size (px)
                             </div>
@@ -244,7 +244,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
                         </div>
 
-                        <div class="row">
+                        <div class="row hide">
                             <div class="row span2" rel="tooltip" title="How many spaces a block (whatever that means in the edited language) should be indented.">
                                 Indent spaces
                             </div>
@@ -256,7 +256,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
                         </div>
 
-                        <div class="row">
+                        <div class="row hide">
                             <div class="row span2" rel="tooltip" title="The default font for text editors.">
                                 Font family
                             </div>
@@ -269,7 +269,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
                         </div>
 
-                        <div class="row">
+                        <div class="row hide">
                             <div class="row span2" rel="tooltip" title="">
                                 Color scheme
                             </div>
@@ -298,7 +298,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                             </div>
                         </div>
 
-                        <div class="row">
+                        <div class="row hide">
                             <div class="row span2" rel="tooltip" title="Set the keyboard bindings">Bindings</div>
                             <div class="row span3">
                                 <select>
@@ -311,41 +311,60 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
                         <div class="row">
                             <div class="row span5">
-                                <label class="checkbox">
+                                <label class="checkbox"  rel="tooltip" title="Whether to scroll or wrap for long lines.">
                                     <input type="checkbox" checked="checked"
                                         class="account-settings-line_wrapping" rel="tooltip"
-                                        title="Whether to scroll or wrap for long lines.">Line wrapping
+                                        >Line wrapping: <span class="lighten">scroll or wrap long lines</span>
                                 </label>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="row span5">
-                                <label class="checkbox">
+                                <label class="checkbox" rel="tooltip"
+                                        title="Show line numbers to the left of the editor">
                                     <input type="checkbox" checked="checked"
-                                        class="account-settings-line_numbers" rel="tooltip"
-                                        title="Show line numbers to the left of the editor">Line numbers
+                                        class="account-settings-line_numbers" rel="tooltip">Line numbers:
+                                    <span class="lighten">show line numbers</span>
                                 </label>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when  they are saved.">
-                                    <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Strip trailing whitespace
+                                <label class="checkbox" rel="tooltip" title="Whether to use the context sensitive indentation that the mode provides (or just indent the same as the line before).">
+                                    <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent:
+                                    <span class="lighten">context sensitive indentation</span>
                                 </label>
                             </div>
                         </div>
 
                         <div class="row">
                             <div class="row span5">
-                                <label class="checkbox" rel="tooltip" title="Whether to use the context-sensitive indentation that the mode provides (or just indent the same as the line before).">
-                                    <input type="checkbox" checked="checked" class="account-settings-smart_indent">Smart indent
+                                <label class="checkbox" rel="tooltip" title="Whether the editor should reindent the current line when a character is typed that might change its proper indentation (only works if the mode supports indentation).">
+                                    <input type="checkbox" checked="checked" class="account-settings-electric_chars">Electric characters:
+                                    <span class="lighten">sometimes reindent current line</span>
                                 </label>
                             </div>
                         </div>
 
-                        <br>
+                        <div class="row">
+                            <div class="row span5">
+                                <label class="checkbox" rel="tooltip" title="Whether the editor should visually indicate matching brackets.">
+                                    <input type="checkbox" checked="checked" class="account-settings-match_brackets">Match brackets:
+                                    <span class="lighten">highlight matching brackets near cursor</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="row span5">
+                                <label class="checkbox" rel="tooltip" title="If checked, trailing whitespace will be stripped from files when they are saved.">
+                                    <input type="checkbox" checked="checked" class="account-settings-strip_trailing_whitespace">Delete trailing whitespace:
+                                    <span class="lighten">remove whenever file is saved</span>
+                                </label>
+                            </div>
+                        </div>
 
                     </div>
 

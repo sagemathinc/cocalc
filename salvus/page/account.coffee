@@ -353,7 +353,8 @@ $("#account").find("a[href=#sign-out]").click(sign_out)
 # Account settings
 ################################################
 
-EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping', 'line_numbers']
+EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping',
+                              'line_numbers', 'smart_indent', 'match_brackets', 'electric_chars']
 
 class AccountSettings
     load_from_server: (cb) ->
@@ -438,6 +439,12 @@ class AccountSettings
         $("#account-settings-error").hide()
 
         for prop, value of @settings
+            def = message.account_settings_defaults[prop]
+            if typeof(def) == "object"
+                if not value?
+                    value = {}
+                @settings[prop] = value = misc.defaults(value, def)
+
             element = $("#account-settings-#{prop}")
             switch prop
                 when 'enable_tooltips'
@@ -473,9 +480,6 @@ class AccountSettings
                             value.font = 'droid-sans-mono'
                         $(".account-settings-terminal-font").val(value.font)
                 when 'editor_settings'
-                    if not value?
-                        value = {}
-                    value = misc.merge(value, message.account_settings_defaults.editor_settings)
                     for x in EDITOR_SETTINGS_CHECKBOXES
                         element.find(".account-settings-#{x}").prop("checked", value[x])
                 else

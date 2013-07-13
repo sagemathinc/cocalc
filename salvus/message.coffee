@@ -528,14 +528,23 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 180
+    editor_settings    :
+        strip_trailing_whitespace : true
+        line_wrapping             : true
+        line_numbers              : true
+        smart_indent              : true
+        electric_chars            : true
+        match_brackets            : true
+        first_line_number         : 1
+        indent_unit               : 4
+        tab_size                  : 4
+        bindings                  : "standard"
+        theme                     : "standard"
+        undo_depth                : 200
     terminal           :
         font_size    : 14
         color_scheme : 'solarized-light'
         font         : 'droid-sans-mono'
-    editor_settings    :
-        strip_trailing_whitespace : true
-        line_wrapping             : false
-        line_numbers              : true
 
 # client <--> hub
 message(

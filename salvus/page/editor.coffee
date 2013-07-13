@@ -867,20 +867,24 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
 
         editor_settings = require('account').account_settings.settings.editor_settings
+        console.log(editor_settings)
 
         opts = @opts = defaults opts,
             mode              : required
             delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
             allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
             line_numbers      : editor_settings.line_numbers
-            first_line_number : 1
-            indent_unit       : 4
-            tab_size          : 4
-            smart_indent      : true
-            electric_chars    : true
-            undo_depth        : 1000
-            match_brackets    : true
+            first_line_number : editor_settings.first_line_number
+            indent_unit       : editor_settings.indent_unit
+            tab_size          : editor_settings.tab_size
+            smart_indent      : editor_settings.smart_indent
+            electric_chars    : editor_settings.electric_chars
+            undo_depth        : editor_settings.undo_depth
+            match_brackets    : editor_settings.match_brackets
             line_wrapping     : editor_settings.line_wrapping
+            bindings          : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
+            theme             : editor_settings.theme
+
             #theme             : "solarized"  # see static/codemirror*/themes or head.html
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
@@ -948,7 +952,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
 
         make_editor = (node) =>
-            return CodeMirror.fromTextArea node,
+            options =
                 firstLineNumber : opts.first_line_number
                 autofocus       : false
                 mode            : opts.mode
@@ -959,11 +963,14 @@ class CodeMirrorEditor extends FileEditor
                 electricChars   : opts.electric_chars
                 undoDepth       : opts.undo_depth
                 matchBrackets   : opts.match_brackets
-                #theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
                 extraKeys       : extraKeys
-                #cursorScrollMargin: 50
+                cursorScrollMargin : 50
                 #cursorBlinkRate: 1000
+
+            if opts.theme? and opts.theme != "standard"
+                options.theme = opts.theme
+            return CodeMirror.fromTextArea(node, options)
 
 
         @codemirror = make_editor(elt[0])

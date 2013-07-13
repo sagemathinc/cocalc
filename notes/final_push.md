@@ -7,21 +7,20 @@ x - modify cassandra.coffee
 x - restart hub and test (?)
 
 - [x] (0:45?) (1:22) editor: add setting -- strip_trailing_whitespace
-
 - [x] (0:45?) (0:08) editor: add setting -- word wrap
-
 - [x] (0:45?) (0:21) editor: add setting -- toggle line numbers
+- [x] (0:15?) editor: add setting -- toggle smart indent
 
-- [ ] (0:45?) editor: add setting -- vim mode
-
-- [ ] (0:45?) editor: add setting -- color scheme
-
-- [ ] (1:30?) worksheet: force space at the bottom of a worksheet
-      - make it so the formatter (or local hub?) ensures that there is space
-      - use this option too:                 #cursorScrollMargin: 50
 
 - [ ] (0:30?) new release that just updates web part; send email in response to beezer on sage-cloud.
       - Do this on db for both cloud and storm: "alter table accounts add editor_settings varchar;"
+
+
+- [ ] (0:45?) editor: add setting -- vim mode
+- [ ] (0:45?) editor: add setting -- color scheme
+- [ ] (1:30?) worksheet: force space at the bottom of a worksheet
+      - make it so the formatter (or local hub?) ensures that there is space
+      - use this option too:                 #cursorScrollMargin: 50
 
 ---
 

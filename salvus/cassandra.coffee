@@ -903,7 +903,7 @@ class exports.Salvus extends exports.Cassandra
         return account_id
 
     get_account: (opts={}) ->
-        opts = defaults(opts,
+        opts = defaults opts,
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
@@ -913,7 +913,6 @@ class exports.Salvus extends exports.Cassandra
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
                              'autosave', 'terminal', 'editor_settings']
-        )
         where = {}
         if opts.account_id?
             where.account_id = opts.account_id

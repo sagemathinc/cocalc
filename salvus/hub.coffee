@@ -329,7 +329,7 @@ class Client extends EventEmitter
     #######################################################
     push_to_client: (mesg) =>
         winston.debug("hub --> client (#{@account_id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
-        @push_data_to_client(JSON_CHANNEL, to_json(mesg))
+        @push_data_to_client(JSON_CHANNEL, to_json(mesg)) 
 
     push_data_to_client: (channel, data) ->
         @conn.write(channel + data)
@@ -3756,11 +3756,11 @@ get_account_settings = (mesg, push_to_client) ->
                         push_to_client(message.error(id:mesg.id, error:error))
                         cb(true) # bail
                     else
+                        delete data['password_hash']
+
                         # 2. Set defaults for unset keys.  We do this so that in the
                         # long run it will always be easy to migrate the database
                         # forward (with new columns).
-                        delete data['password_hash']
-
                         for key, val of message.account_settings_defaults
                             if not data[key]?
                                 data[key] = val
