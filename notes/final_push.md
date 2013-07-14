@@ -1,14 +1,10 @@
+- [x] (1:30?) (1:05) editor: add setting -- vim and emacs modes
 
-- [ ] (1:30?) (1:05) editor: add setting -- vim and emacs modes
-
-
-- [ ] (0:45?) editor: add setting -- color scheme
-
-
+- [x] (1:00?) editor: add setting -- color scheme
 
 - [ ] (1:30?) worksheet: force space at the bottom of a worksheet
       - make it so the formatter (or local hub?) ensures that there is space
-      - use this option too:                 #cursorScrollMargin: 50
+      - use this option too: #cursorScrollMargin: 50
 
 - [ ] (1:00?) terminal -- fact control-shift-minus works in emacs codemirror mode (in app), so it must be possible to intercept it in javascript app for chrome after all(?)
 

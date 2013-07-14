@@ -424,6 +424,8 @@ class AccountSettings
                     # Keyboard bindings
                     val.bindings = element.find(".account-settings-editor-bindings").val()
 
+                    # Color schemes
+                    val.theme = element.find(".account-settings-editor-color_scheme").val()
 
                 else
                     val = element.val()
@@ -497,6 +499,7 @@ class AccountSettings
                     for x in EDITOR_SETTINGS_CHECKBOXES
                         element.find(".account-settings-#{x}").prop("checked", value[x])
                     element.find(".account-settings-editor-bindings").val(value.bindings)
+                    element.find(".account-settings-editor-color_scheme").val(value.theme)
                 else
                     set(element, value)
 

@@ -884,7 +884,6 @@ class CodeMirrorEditor extends FileEditor
             bindings          : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
             theme             : editor_settings.theme
 
-            #theme             : "solarized"  # see static/codemirror*/themes or head.html
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
@@ -975,6 +974,7 @@ class CodeMirrorEditor extends FileEditor
 
             cm = CodeMirror.fromTextArea(node, options)
             cm.save = () => @click_save_button()
+            #$(cm.getWrapperElement()).css('font-family':'droid-sans-mono !important')
             return cm
 
 
@@ -1189,8 +1189,6 @@ class CodeMirrorEditor extends FileEditor
             scroller.css('height':ht)
             cm_wrapper = $(cm.getWrapperElement())
             cm_wrapper.css
-                #'background-color':'#ffffe8'
-                'background-color':'#ffffff'
                 height : ht
                 width  : width
             cm.refresh()
