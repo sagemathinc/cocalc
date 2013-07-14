@@ -411,14 +411,28 @@ class AccountSettings
                     # color scheme
                     val.color_scheme = $(".account-settings-terminal-color_scheme").val()
 
-                    # color scheme
+                    # Terminal font
                     val.font = $(".account-settings-terminal-font").val()
+
                 when 'editor_settings'
                     val = {}
+
+                    # Checkbox options
                     for x in EDITOR_SETTINGS_CHECKBOXES
                         val[x] = element.find(".account-settings-#{x}").is(":checked")
+
+                    # Keyboard bindings
+                    val.bindings = element.find(".account-settings-editor-bindings").val()
+
+
                 else
                     val = element.val()
+
+
+            # There are a number of settings that aren't yet implemented in the GUI...
+            if typeof(val) == "object"
+                val = misc.defaults(val, message.account_settings_defaults[prop])
+
             @settings[prop] = val
 
 
@@ -482,6 +496,7 @@ class AccountSettings
                 when 'editor_settings'
                     for x in EDITOR_SETTINGS_CHECKBOXES
                         element.find(".account-settings-#{x}").prop("checked", value[x])
+                    element.find(".account-settings-editor-bindings").val(value.bindings)
                 else
                     set(element, value)
 

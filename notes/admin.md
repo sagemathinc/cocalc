@@ -23,6 +23,8 @@
     # If more than just web:
     time s.stop_system(); s.start_system()
 
+    # Check that the snap server isn't hosed... (for now!) -- this step will go away very soon.
+
     # TEST
 
     cd ~/salvus/salvus/conf/deploy_cloud

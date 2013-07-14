@@ -867,7 +867,6 @@ class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
 
         editor_settings = require('account').account_settings.settings.editor_settings
-        console.log(editor_settings)
 
         opts = @opts = defaults opts,
             mode              : required
@@ -940,7 +939,7 @@ class CodeMirrorEditor extends FileEditor
             "Ctrl-'"       : "indentAuto"
 
             "Tab"          : (editor)   => @press_tab_key(editor)
-            "Esc"          : (editor)   => @interrupt_key()
+            "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
         # We will replace this by a general framework...
         if misc.filename_extension(filename) == "sagews"
@@ -966,11 +965,17 @@ class CodeMirrorEditor extends FileEditor
                 lineWrapping    : opts.line_wrapping
                 extraKeys       : extraKeys
                 cursorScrollMargin : 50
+
+            if opts.bindings? and opts.bindings != "standard"
+                options.keyMap = opts.bindings
                 #cursorBlinkRate: 1000
 
             if opts.theme? and opts.theme != "standard"
                 options.theme = opts.theme
-            return CodeMirror.fromTextArea(node, options)
+
+            cm = CodeMirror.fromTextArea(node, options)
+            cm.save = () => @click_save_button()
+            return cm
 
 
         @codemirror = make_editor(elt[0])

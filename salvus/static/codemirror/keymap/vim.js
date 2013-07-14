@@ -925,7 +925,7 @@
         }
         function onPromptKeyDown(e, _query, close) {
           var keyName = CodeMirror.keyName(e);
-          if (keyName == 'Esc' || keyName == 'Ctrl-C' || keyName == 'Ctrl-[') {
+          if (keyName == 'Esc' || keyName == 'Ctrl-[') {
             updateSearchQuery(cm, originalQuery);
             clearSearchHighlight(cm);
             cm.scrollTo(originalScrollPos.left, originalScrollPos.top);
@@ -985,7 +985,7 @@
         }
         function onPromptKeyDown(e, _input, close) {
           var keyName = CodeMirror.keyName(e);
-          if (keyName == 'Esc' || keyName == 'Ctrl-C' || keyName == 'Ctrl-[') {
+          if (keyName == 'Esc' || keyName == 'Ctrl-[') {
             CodeMirror.e_stop(e);
             close();
             cm.focus();
@@ -3311,7 +3311,6 @@
             // fall through and exit.
           case 'Q':
           case 'Esc':
-          case 'Ctrl-C':
           case 'Ctrl-[':
             stop(close);
             break;
@@ -3428,7 +3427,6 @@
       // indentation from o, O, i_<CR>
       'Esc': exitInsertMode,
       'Ctrl-[': exitInsertMode,
-      'Ctrl-C': exitInsertMode,
       'Ctrl-N': 'autocomplete',
       'Ctrl-P': 'autocomplete',
       'Enter': function(cm) {

@@ -1,26 +1,16 @@
-- [x] (0:45?) (0:65) account: add an editor JSON object setting:
-x- alter table accounts add editor_settings varchar;
-x- modify message
-x - modify account
-x- modify hub
-x - modify cassandra.coffee
-x - restart hub and test (?)
 
-- [x] (0:45?) (1:22) editor: add setting -- strip_trailing_whitespace
-- [x] (0:45?) (0:08) editor: add setting -- word wrap
-- [x] (0:45?) (0:21) editor: add setting -- toggle line numbers
-- [x] (0:15?) editor: add setting -- toggle smart indent
+- [ ] (1:30?) (1:05) editor: add setting -- vim and emacs modes
 
 
-- [ ] (0:30?) new release that just updates web part; send email in response to beezer on sage-cloud.
-      - Do this on db for both cloud and storm: "alter table accounts add editor_settings varchar;"
-
-
-- [ ] (0:45?) editor: add setting -- vim mode
 - [ ] (0:45?) editor: add setting -- color scheme
+
+
+
 - [ ] (1:30?) worksheet: force space at the bottom of a worksheet
       - make it so the formatter (or local hub?) ensures that there is space
       - use this option too:                 #cursorScrollMargin: 50
+
+- [ ] (1:00?) terminal -- fact control-shift-minus works in emacs codemirror mode (in app), so it must be possible to intercept it in javascript app for chrome after all(?)
 
 ---
 
@@ -3101,3 +3091,20 @@ show(implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r), plot_points=40), thr
            bind-key ` send-prefix
    [x] apt-get install libevent-dev
    [x] Upgrade to new tmux! (see build.py)
+
+
+- [x] (0:45?) (0:65) account: add an editor JSON object setting:
+x- alter table accounts add editor_settings varchar;
+x- modify message
+x - modify account
+x- modify hub
+x - modify cassandra.coffee
+x - restart hub and test (?)
+
+- [x] (0:45?) (1:22) editor: add setting -- strip_trailing_whitespace
+- [x] (0:45?) (0:08) editor: add setting -- word wrap
+- [x] (0:45?) (0:21) editor: add setting -- toggle line numbers
+- [x] (0:15?) editor: add setting -- toggle smart indent
+
+- [x] (0:30?) (0:20) new release that just updates web part; send email in response to beezer on sage-cloud.
+      - Do this on db for both cloud and storm: "alter table accounts add editor_settings varchar;"
