@@ -156,9 +156,13 @@ tried to write to .bup/lock at the same time, so go to 1.
         ssh XqT8YljQ@localhost "rm -f .bup/lock"
 
 
-- [ ] (0:45?) add property to projects database table `snapshots_disabled`, which can be one of:
+- [x] (0:45?) (0:22) add property to projects database table `snapshots_disabled`, which can be one of:
         true = snapshots disabled because a problem occurred
         null/false = snapshots are not disabled
+
+            alter table projects add snapshots_disabled boolean;
+            create index on projects(snapshots_disabled);
+
       Change snap to consult this entry before making a snapshot.
       Index this so we can easily check to see all projects with snapshots disabled, if/when this happens.
 

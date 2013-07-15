@@ -220,7 +220,8 @@ CREATE TABLE projects (
      account_id       uuid,          // id of the owner of this project
      title            varchar,
      description      varchar,
-     public           boolean,  // whether or not the project is visible to everybody in the world
+     public           boolean,   // whether or not the project is visible to everybody in the world
+     snapshots_disabled boolean, // if true, don't make snapshots (e.g., because something is weird)
 
      last_edited      timestamp,// timestamp of last modification of the project
 
@@ -232,6 +233,8 @@ CREATE TABLE projects (
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 );
+
+CREATE INDEX ON projects(snapshots_disabled);   
 
 CREATE TABLE project_users (
      project_id       uuid,

@@ -541,11 +541,6 @@ snapshot_project = (opts) ->
         project_id : required
         cb         : undefined
     winston.info("enqueuing project #{opts.project_id} for snapshot")
-
-    if opts.project_id == "6a63fd69-c1c7-4960-9299-54cb96523966"
-        # special case -- my own local dev server account shouldn't backup into itself
-        opts.cb?()
-        return
     snapshot_queue.push(opts)
 
 repository_is_corrupt = false
@@ -561,7 +556,6 @@ monitor_snapshot_queue = () ->
         user = undefined
         {project_id, cb} = snapshot_queue.shift()
 
-        winston.debug("Making a snapshot of project #{project_id}")
         location    = undefined
         user        = undefined
         timestamp   = undefined
@@ -571,6 +565,21 @@ monitor_snapshot_queue = () ->
         bup_active  = undefined
         retry_later = false
         async.series([
+            (cb) ->
+                database.select_one
+                    table   : 'projects'
+                    where   : {project_id: project_id}
+                    columns : ['snapshots_disabled']
+                    objectify : false
+                    cb      : (err, result) ->
+                        if err
+                            cb(err)
+                        else
+                            if result[0]
+                                cb("Not making snapshot of project #{project_id}, since they are disabled for this project.")
+                            else
+                                cb()
+
             (cb) ->
                 active_path (err, path) ->
                     if err
@@ -593,6 +602,7 @@ monitor_snapshot_queue = () ->
                             cb()
             # get a lock on the deployed project
             (c) ->
+                winston.debug("Trying to lock #{project_id} for snapshotting.")
                 create_lock
                     location : location
                     cb       : (err) ->
@@ -601,6 +611,7 @@ monitor_snapshot_queue = () ->
                             # put back in the queue to try again later
                             snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
                         c(err)
+                        
             # create index
             (cb) ->
                 t = misc.walltime()
