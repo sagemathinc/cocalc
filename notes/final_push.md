@@ -75,7 +75,7 @@ Stage 1: Highly scalable and fast
 - [x] (0:15?) (0:01) make sure "dummy" field of `snap_commits` not used anymore in code.
 
 
-> - [ ] (1:00?) (1:10+) deploy and test on cloud.sagemath:
+- [x] (1:00?) (1:50) stage 1 snap update -- deploy and test on cloud.sagemath
       x- update code on web1, cassandra1
       x- make snapshot
       x- stop snap server
@@ -90,12 +90,27 @@ Stage 1: Highly scalable and fast
 
       - update database  <--- in progress on cloud (will take about 6 hours (?))
 
-      - restart hub and snap and test:
+      This is taking too long, so I'm trying a different approach:
+
+        cqlsh:salvus> copy snap_commits to 'snap_commits'  ;
+        55183 rows exported in 55.797 seconds.
+
+        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits |wc -l
+        13854
+        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits > good_commits
+        salvus@web1:~$ wc -l good_commits
+        13854 good_commits
+        salvus@web1:~$ replace ,,, ,00bf485a-ff27-4940-aaf0-da0cf7957ffe, good_commits
+
+        cqlsh:salvus> drop table snap_commits
+        cqlsh:salvus> # paste in code to make table from scratch
+        cqlsh:salvus> COPY snap_commits (server_id,project_id,"timestamp",repo_id,size) FROM 'good_commits'
+        13854 rows imported in 28.201 seconds.
+
+      x - restart hub and snap and test:
             s.restart('hub'); s.restart("snap")
 
-      - once it is working, delete "active" file, and see that it starts a new repo, which is fast.
-
-      - update code with stage 2 (and 3?) changes (which should be done) and start snaps on four machines.
+      x - once it is working, delete "active" file, and see that it starts a new repo, which is fast.
 
 
 ---
@@ -104,13 +119,33 @@ Stage 2: Robustness
 
 - [x] (0:30?) (0:10) trash can at right of screen often not visible.
 
-
 - [x] (0:15?) (0:05) remove (comment out) the fsck stuff, since we're going to store the data on multiple
         machines for robustness, and this fsck stuff is never useful, but is very slow.
 
-- [ ] (1:00?) write locking code so I can run multiple bup servers in parallel without corruption.
+--> - [ ] (1:00?) (0:38+) write locking code so I can run multiple bup servers in parallel without corruption.
       We *must* make the lock on the filesystem of the remote account, not using the db, because the db
-      is not instantly consistent!
+      is not instantly consistent.
+
+`get_lock` function
+
+1. check if there is a file .bup/lock, and if so read it:
+       {server_id:?,  expire:?}
+
+        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lock
+        {server_id:?,  expire:?}
+        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lockx
+        cat: .bup/lockx: No such file or directory
+
+2. if the file is there and the `expire` timestamp has not passed, wait until after that timestamp to try again (do other backups)
+3. if the file is there and the `expire` timestamp has passed, proceed as follows:
+4. create .bup/lock with contents:
+       {server_id:?,  expire:?}
+   where expire is maybe 15 minutes in the future (?) -- whatever the timeout is on making backups.
+5. wait 3 seconds, then check again to see if .bup/lock is exactly what we created.  If not, another bup server
+   tried to write to .bup/lock at the same time, so go to 1.
+6. make the backup as usual.
+7. delete .bup/lock
+
 
 - [ ] (0:45?) add property to projects database table `snapshots_disabled`, which can be one of:
         true = snapshots disabled because a problem occurred
@@ -120,6 +155,8 @@ Stage 2: Robustness
 
 - [ ] (1:30?) make it possible to roll back the snapshot if something goes wrong when making it; in particular,
       if it is too big (as defined by taking too long, say).  Set property in above table if this happens.
+
+- [ ] (0:30?) something different -- fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
 
 
 ---
