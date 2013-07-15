@@ -75,34 +75,52 @@ Stage 1: Highly scalable and fast
 - [x] (0:15?) (0:01) make sure "dummy" field of `snap_commits` not used anymore in code.
 
 
-> - [ ] (1:00?) deploy and test on cloud.sagemath:
+> - [ ] (1:00?) (1:10+) deploy and test on cloud.sagemath:
       x- update code on web1, cassandra1
       x- make snapshot
       x- stop snap server
-      - alter db schemas
+      x- alter db schemas
 
         import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['10.1.1.2'])
         cassandra.july14_snap_commits_update("61a7d705-8c7d-47a5-ab10-2f62de36bc6b", "00bf485a-ff27-4940-aaf0-da0cf7957ffe")
 
-      - change filesystem
-      - update database
-      - start snap server on web1
-      - test by restarting hub and snap!:
-            s.restart('hub'); s.restart("snap")    
-      - once it is working, delete "active" file, and see it start a new repo, which is faster.
+      x - change filesystem
+      x - update code on web1-4 !
+            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.1.3:salvus; ./make_coffee"
+
+      - update database  <--- in progress on cloud (will take about 6 hours (?))
+
+      - restart hub and snap and test:
+            s.restart('hub'); s.restart("snap")
+
+      - once it is working, delete "active" file, and see that it starts a new repo, which is fast.
+
+      - update code with stage 2 (and 3?) changes (which should be done) and start snaps on four machines.
 
 
 ---
 
 Stage 2: Robustness
 
-- [ ] (1:00?) write db based locking code so I can run multiple bup servers in parallel without corruption.
-- [ ] (0:15?) add property to projects database table `snapshots_disabled`, which can be one of:
-        'user' = user requested snapshots be disabled  (but don't implement anything about this yet)
-        'suspiciuos' = snapshots disabled because a problem occurred
-        'no' = snapshots are not disabled
+- [x] (0:30?) (0:10) trash can at right of screen often not visible.
+
+
+- [x] (0:15?) (0:05) remove (comment out) the fsck stuff, since we're going to store the data on multiple
+        machines for robustness, and this fsck stuff is never useful, but is very slow.
+
+- [ ] (1:00?) write locking code so I can run multiple bup servers in parallel without corruption.
+      We *must* make the lock on the filesystem of the remote account, not using the db, because the db
+      is not instantly consistent!
+
+- [ ] (0:45?) add property to projects database table `snapshots_disabled`, which can be one of:
+        true = snapshots disabled because a problem occurred
+        null/false = snapshots are not disabled
+      Change snap to consult this entry before making a snapshot.
+      Index this so we can easily check to see all projects with snapshots disabled, if/when this happens.
+
 - [ ] (1:30?) make it possible to roll back the snapshot if something goes wrong when making it; in particular,
-      if it is too big (as defined by taking too long, say).
+      if it is too big (as defined by taking too long, say).  Set property in above table if this happens.
+
 
 ---
 Stage 3: Highly available
@@ -200,7 +218,6 @@ we will have to use fuse with the new metadata support.
 - [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
 
 
-- [ ] (0:30?) trash can at right of screen often not visible.
 - [ ] (0:30?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
 - [ ] (0:30?) this interact doesn't work: interacts.geometry.unit_circle()
 
