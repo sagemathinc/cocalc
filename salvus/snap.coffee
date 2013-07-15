@@ -968,16 +968,21 @@ initialize_snap_dir = (cb) ->
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
 
 ensure_active_bup_dir_exists = (cb) ->
-    fs.exists "#{bup_dir}/active", (exists) ->
+    active_file = "#{bup_dir}/active"
+    fs.exists active_file, (exists) ->
         if exists
             cb()
         else
-            u = uuid.v4()
-            fs.writeFileSync("#{bup_dir}/active", u)
-            bup
-                args    : ['init']
-                bup_dir : "#{bup_dir}/#{u}"
-                cb      : cb
+            misc_node.ensure_containing_directory_exists active_file, (err) -> 
+                if err
+                    cb("FATAL -- unable to create #{bup_dir}")
+                    return
+                u = uuid.v4()
+                bup
+                    args    : ['init']
+                    bup_dir : "#{bup_dir}/#{u}"
+                    cb      : cb
+                fs.writeFileSync(active_file, u)
 
 
 # Generate or read uuid of this server, which is the longterm identification
@@ -1121,11 +1126,11 @@ exports.start_server = start_server = () ->
     winston.info "starting server..."
     async.series([
         (cb) ->
+            initialize_snap_dir(cb)
+        (cb) ->
             create_server (err,port) ->
                 listen_port = port
                 cb(err)
-        (cb) ->
-            initialize_snap_dir(cb)
         (cb) ->
             initialize_server_uuid(cb)
         (cb) ->
