@@ -42,11 +42,35 @@ Stage 1: Highly scalable and fast
 
         ALTER TABLE snap_commits DROP dummy;    // This doesn't work yet!  It will when I upgrade to a newer cassandra.
 
-- [ ] (1:00?) determine steps to manually change an existing repo to new structure and do it locally (record):
-      * change filesystem
-      * update database -- so that existing commits all have `repo_id=server_id`
-- [ ] (0:30?) change query protocol and implementation to also send the `repo_id`.
-- [ ] (1:00?) write `bup_dir` function in snap.coffee that uses the new structure, and change all bup calls to use it.  test.
+- [x] (1:00?) (1:51) determine steps to manually change an existing repo to new structure and do it locally (record):
+      * stop snap server
+
+           s.stop('snap')
+
+      * change filesystem:
+
+           In Python:   import uuid; str(uuid.uuid4())
+
+             cd /mnt/snap/snap0/
+             mv bup c57141ff-7ba8-4d8d-9877-fe3c743f46ca
+             mkdir bup
+             mv c57141ff-7ba8-4d8d-9877-fe3c743f46ca bup/
+             echo "c57141ff-7ba8-4d8d-9877-fe3c743f46ca" > bup/active
+
+      * update database -- so that existing commits all have `repo_id= above uuid"
+
+             command line: 'nodetool snapshot'
+
+             in ipython:
+
+             import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['localhost'])
+             cassandra.set_nodes(['localhost'])
+             cassandra.july14_snap_commits_update("23e8d7ee-0ce5-43d7-9746-ee1f92e0e2cf", "c57141ff-7ba8-4d8d-9877-fe3c743f46ca")
+
+
+--> - [ ] (1:30?) change query protocol and implementation to also send and receive the `repo_id`; and write `bup_dir`
+          function in snap.coffee that uses the new structure, and change all bup calls to use it.  test.
+
 - [ ] (0:45?) write code to initialize a new bup archive and active pointing at it.
 - [ ] (1:00?) write db based locking code so I can run multiple bup servers in parallel without corruption.
 - [ ] (0:15?) make sure "dummy" field of `snap_commits` not used anymore in code.

@@ -329,7 +329,7 @@ class Client extends EventEmitter
     #######################################################
     push_to_client: (mesg) =>
         winston.debug("hub --> client (#{@account_id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
-        @push_data_to_client(JSON_CHANNEL, to_json(mesg)) 
+        @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
         @conn.write(channel + data)
@@ -1433,23 +1433,19 @@ snap_command_restore_or_log = (opts) ->
         timeout    : 60
         cb         : required   # cb(err)
 
-    servers = undefined
+    location = undefined
     socket = undefined
     async.series([
         (cb) ->
             # find a snap server with this particular snapshot
-            database.snap_servers_with_commit
+            database.snap_locate_commit
                 project_id : opts.project_id
                 timestamp  : opts.snapshot
-                cb         : (err, _servers) ->
-                    servers = _servers
+                cb         : (err, r) ->
+                    location = r
                     cb(err)
        (cb) ->
-            if servers.length == 0
-                cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
-                return
-            server = misc.random_choice(servers)
-            connect_to_snap_server server, (err, _socket) ->
+            connect_to_snap_server location.server, (err, _socket) ->
                 socket = _socket
                 cb(err)
         (cb) ->
@@ -1458,6 +1454,7 @@ snap_command_restore_or_log = (opts) ->
                 socket     : socket
                 project_id : opts.project_id
                 snapshot   : opts.snapshot
+                repo_id    : location.repo_id
                 path       : opts.path
                 timeout    : opts.timeout
                 cb         : cb
@@ -1473,9 +1470,9 @@ snap_command_ls = (opts) ->
         cb         : required   # cb(err, list of results when meaningful)
     if opts.snapshot?
         # Get directory listing inside a given snapshot
-        listing = undefined
-        servers = undefined
-        socket  = undefined
+        listing  = undefined
+        location = undefined
+        socket   = undefined
         async.series([
             # First check for cached listing in the database
             (cb) ->
@@ -1490,21 +1487,17 @@ snap_command_ls = (opts) ->
                 if listing?  # already got it from cache, so done
                     cb(); return
                 # find snap servers with this particular snapshot
-                database.snap_servers_with_commit
+                database.snap_locate_commit
                     project_id : opts.project_id
                     timestamp  : opts.snapshot
-                    cb         : (err, _servers) ->
-                        servers = _servers
+                    cb         : (err, r) ->
+                        location = r
                         cb(err)
            (cb) ->
                 if listing?
                     cb(); return
-                if servers.length == 0
-                    cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
-                    return
                 # get the listing from a server
-                server = misc.random_choice(servers)
-                connect_to_snap_server server, (err, _socket) ->
+                connect_to_snap_server location.server, (err, _socket) ->
                     socket = _socket
                     cb(err)
             (cb) ->
@@ -1515,6 +1508,7 @@ snap_command_ls = (opts) ->
                     socket  : socket
                     project_id : opts.project_id
                     snapshot   : opts.snapshot
+                    repo_id    : location.repo_id
                     path       : opts.path
                     timeout    : opts.timeout
                     cb         : (err, _listing) ->

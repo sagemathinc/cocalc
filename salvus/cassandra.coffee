@@ -672,36 +672,45 @@ class exports.Salvus extends exports.Cassandra
             objectify : true
             cb        : opts.cb
 
-    # Return array of all *active* snap servers with the given commit.
+    # Return one snap server and repo_id with the given commit.
     # The servers are the same format as output by snap_servers above.
-    snap_servers_with_commit: (opts) =>
+    snap_locate_commit: (opts) =>
         opts = defaults opts,
             project_id : required
             timestamp  : required
-            cb         : required   # (err, list of objects)
+            cb         : required   # (err, {server:{host:?,port:?,key:?}, repo_id:?})
 
-        server_ids = undefined
-        servers    = undefined
+        locations = undefined
+        answer    = undefined
         async.series([
             (cb) =>
                 @select
                     table      : 'snap_commits'   # this query uses ALLOW FILTERING.
                     where      : {project_id : opts.project_id, timestamp : opts.timestamp}
-                    columns    : ['server_id']
-                    objectify  : false
-                    cb         : (err, results) =>
-                        if err
-                            cb(err)
-                        else
-                            server_ids = (r[0] for r in results)
-                            cb()
+                    columns    : ['server_id', 'repo_id']
+                    objectify  : true
+                    cb         : (err, r) =>
+                        locations = r
+                        cb(err)
             (cb) =>
+                server_ids = (x.server_id for x in locations)
                 @snap_servers
                     server_ids : server_ids
                     cb         : (err, _servers) =>
-                        servers = _servers
-                        cb(err)
-        ], (err) => opts.cb(err, servers))
+                        if err
+                            cb(err); return
+                        servers = (x for x in _servers when x.id in server_ids)
+                        if servers.length == 0
+                            cb("no snapshot server with snapshot #{opts.timestamp} of #{opts.project_id}"); return
+                        server = misc.random_choice(servers)
+                        for x in locations
+                            if x.server_id == server.id
+                                answer = {server:server, repo_id:x.repo_id}
+                                cb()
+                                return
+                        cb("Internal BUG -- problem location snapshot server with snapshot #{opts.timestamp} of #{opts.project_id}")
+
+        ], (err) => opts.cb(err, answer))
 
     snap_commits: (opts) =>
         opts = defaults opts,

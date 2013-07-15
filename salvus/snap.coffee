@@ -55,6 +55,7 @@ bup = (opts) ->
     else
         command = "bup"
 
+    winston.debug("bup_dir = '#{opts.bup_dir}'")
     misc_node.execute_code
         command : command
         args    : opts.args
@@ -225,20 +226,24 @@ fuse_remove_all_mounts = (cb) ->
 
 
 ## ------------
-# Provide listing of  available snapshots/files in a project.
+# Provide listing of available snapshots/files in a project.
 # Caching in the database is done by the client (hub, in this case).
 snap_ls = (opts) ->
     opts = defaults opts,
-        project_id : required
-        snapshot   : undefined  # if given, return directory listing for this snapshot
-        path       : '.'        # return list of files in this path (if snapshot is defined)
+        snapshot   : required
+        repo_id    : required
+        path       : '.'        # return list of files in this path
         cb         : required   # cb(err, list)
-    if not opts.snapshot?
-        opts.cb(false, _info_snapshot_list(opts.project_id))
-    else
-        if not opts.snapshot?
-            opts.snapshot = ''  # list all snapshots
-        _info_directory_list(opts.project_id, opts.snapshot, opts.path, opts.cb)
+    bup
+        args    : ['ls', '-a', "master/#{opts.snapshot}/#{opts.path}"]
+        bup_dir : bup_dir + '/' + opts.repo_id
+        timeout : 60
+        cb      : (err, output) ->
+            if err
+                opts.cb(err)
+            else
+                v = output.stdout.trim().split('\n')
+                opts.cb(false, v)
 
 
 # Modify the array "files" in place by append a slash after each
@@ -255,20 +260,6 @@ append_slashes_after_directory_names = (path, files, cb) ->
                 cb()
     async.map([0...files.length], f, cb)
 
-# Get list of all files inside a given directory; in the list, directories have a "/" appended.
-_info_directory_list = (project_id, snapshot, path, cb) ->  # cb(err, file list)
-    bup
-        args    : ['ls', '-a', "master/#{snapshot}/#{path}"]
-        #args    : ['ls', '-a', "#{project_id}/#{snapshot}/#{path}"]
-        timeout : 60
-        cb      : (err, output) ->
-            if err
-                cb(err)
-            else
-                v = output.stdout.trim().split('\n')
-                if snapshot == ''
-                    v = (x.slice(0,x.length-1) for x in v when x != 'latest@')
-                cb(false, v)
 
 # List of all projects with at least one backup
 _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
@@ -307,6 +298,7 @@ snap_restore = (opts) ->
     opts = defaults opts,
         project_id      : required
         snapshot        : required
+        repo_id         : required
         path            : '.'
         compress        : false        # use compression when transferring data via rsync
         snapshot_first  : false        # ensure there is a new snapshot before restoring.
@@ -354,6 +346,7 @@ snap_restore = (opts) ->
             t = misc.walltime()
             bup
                args    : ["restore", "--outdir=#{outdir}", target]
+               bup_dir : bup_dir + '/' + opts.repo_id
                timeout : 2*3600   # 4 GB takes about 3 minutes...
                cb      : (err) ->
                    winston.info("restore time (#{target}) -- #{misc.walltime(t)}")
@@ -436,17 +429,8 @@ snap_restore = (opts) ->
     )
 
 
-test2 = () ->
-    t = misc.walltime()
-    console.log("doing snap_restore test")
-    snap_restore
-        project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
-        snapshot   : '2013-05-26-140204' # '2013-05-23-184921'
-        path       : 'a 2.txt'           # '.', 'salvus/notes/'
-        cb         : (err) ->
-            console.log("restore test returned after #{misc.walltime(t)} seconds -- #{err}")
-
 ## -------
+## ** PROBABLY BROKEN **
 # Return a log of timestamps (commit names) that changed the file (or directory) at the
 # given path, according to 'git log'.  For a discussion of using 'git log' with bup, see:
 #    https://groups.google.com/forum/?fromgroups#!topic/bup-list/vwoSJ1j9JEg
@@ -454,6 +438,7 @@ test2 = () ->
 snap_log = (opts) ->
     opts = defaults opts,
         project_id : required
+        repo_id    : required
         path       : '.'
         cb         : required    # cb(err, array of time stamps)
 
@@ -461,7 +446,7 @@ snap_log = (opts) ->
     git_log = (path, cb) ->
         misc_node.execute_code
             command : "git"
-            path    : bup_dir
+            path    : bup_dir + "/" + repo_id
             args    : ["log", '--pretty="%b"', '--follow', opts.project_id, '--', path]
             timeout : 360
             cb      : (err, output) ->
@@ -484,16 +469,6 @@ snap_log = (opts) ->
         timestamps.reverse()
         opts.cb(err, timestamps)
     )
-
-test3 = () ->
-    t = misc.walltime()
-    console.log("doing snap_log test")
-    snap_log
-        project_id : 'f0c51934-9d09-4586-b8db-fd2e6f11e57e'
-        path       : 'output-buffering.sagews'  #'a 2.txt'  # '.', 'salvus/notes/'
-        cb         : (err, timestamps) ->
-            console.log("timestamps = ", timestamps)
-            console.log("log test returned after #{misc.walltime(t)} seconds -- #{err}")
 
 
 
@@ -533,6 +508,8 @@ monitor_snapshot_queue = () ->
         timestamp = undefined
         size_before = undefined
         size_after = undefined
+        repo_id = fs.readFileSync("#{bup_dir}/active").toString()
+        bup_active = bup_dir + "/" + repo_id
         async.series([
             # wait 2 seconds, to ensure uniqueness of time stamp
             (cb) ->
@@ -553,13 +530,14 @@ monitor_snapshot_queue = () ->
                 t = misc.walltime()
                 bup
                     args : ['on', user, 'index', '.']
+                    bup_dir : bup_active    # TODO: does this matter -- this runs on remote. ??
                     cb   : (err) ->
                         winston.info("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
 
             # compute disk usage before save
             (cb) ->
-                misc_node.disk_usage pack_dir, (err, usage) ->
+                misc_node.disk_usage bup_active, (err, usage) ->
                     size_before = usage
                     cb(err)
 
@@ -568,8 +546,8 @@ monitor_snapshot_queue = () ->
                 t = misc.walltime()
                 d = Math.ceil(misc.walltime())
                 bup
-                    #args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', project_id, '.']
                     args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', 'master', '.']
+                    bup_dir : bup_active
                     cb   : (err) ->
                         winston.info("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
                         if not err
@@ -582,6 +560,7 @@ monitor_snapshot_queue = () ->
                 t = misc.walltime()
                 bup
                     args    : ['fsck', '--quick', '-g']
+                    bup_dir : bup_active
                     timeout : 3600  # allow as long as it takes (which should be a few seconds)
                     cb      : (err) ->
                         winston.info("time to update checksums: #{misc.walltime(t)} s")
@@ -596,7 +575,7 @@ monitor_snapshot_queue = () ->
             # (The main reason for doing this is to protect against projects that have random data
             # files in them -- we can refuse to snapshot after a certain total amount of usage.)
             (cb) ->
-                misc_node.disk_usage pack_dir, (err, usage) ->
+                misc_node.disk_usage bup_active, (err, usage) ->
                     size_after = usage
                     # Also, save total size of bup archive to global variable, so it can
                     # be reported on next update the snap_servers table.
@@ -609,8 +588,9 @@ monitor_snapshot_queue = () ->
             (cb) ->
                 t = misc.walltime()
                 bup
-                    args : ['ls', "master/#{timestamp}"]
-                    cb   : (err) ->
+                    args    : ['ls', "master/#{timestamp}"]
+                    bup_dir : bup_active
+                    cb      : (err) ->
                         winston.info("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s")
                         cb(err)
 
@@ -624,6 +604,7 @@ monitor_snapshot_queue = () ->
                     where :
                         server_id  : snap_server_uuid
                         project_id : project_id
+                        repo_id    : repo_id
                         timestamp  : timestamp
                     cb    : (err) ->
                         winston.info("time to record commit to database: #{misc.walltime(t)}")
@@ -665,40 +646,6 @@ snapshot_projects = (opts) ->
                 # bup process in their account manually, etc.
                 cb()
     async.map(opts.project_ids, f, ((err, results) -> opts.cb?(error)))
-
-##--
-
-# Resend meta-information about all commits to the database.
-# This excludes the size of the commit, since that is not stored on disk.
-# The main motivation is that we ran snapshots for a few days before
-# having a database.  However, this could also be useful if a new snap
-# server is brought online using an rsync copy of an existing bup repo.
-resend_all_commits = (cb) ->
-    winston.info("resending all commits to database")
-    projects = undefined
-    async.series([
-        (cb) ->
-            _info_all_projects_with_a_backup (err, _projects) ->
-                projects = _projects
-                cb(err)
-        (cb) ->
-            f = (project_id, cb) ->
-                _info_directory_list project_id, '', '.', (err, commits) ->
-                    console.log(misc.to_json(commits))
-                    g = (timestamp, cb) ->
-                        winston.debug("commit #{project_id} #{timestamp}")
-                        database.update
-                            table : 'snap_commits'
-                            set   : {dummy:true}
-                            where :
-                                server_id  : snap_server_uuid
-                                project_id : project_id
-                                timestamp  : timestamp
-                            cb    : cb
-                    async.mapLimit(commits, 3, g, cb)
-            async.mapLimit(projects, 5, f, cb)
-    ], cb)
-
 
 
 
@@ -744,8 +691,8 @@ handle_mesg = (socket, mesg) ->
     switch mesg.command
         when 'ls'
             snap_ls
-                project_id : mesg.project_id
                 snapshot   : mesg.snapshot
+                repo_id    : mesg.repo_id
                 path       : mesg.path
                 cb         : (err, files) ->
                     if err
@@ -757,6 +704,7 @@ handle_mesg = (socket, mesg) ->
             snap_restore
                 project_id : mesg.project_id
                 snapshot   : mesg.snapshot
+                repo_id    : mesg.repo_id
                 path       : mesg.path
                 cb         : (err) ->
                     if err
@@ -765,8 +713,12 @@ handle_mesg = (socket, mesg) ->
                         send(message.success())
 
         when 'log'
+            # TODO -- this can't work with the new master/ only use of bup, which is
+            # way more efficient.  Also, it would have to take into account all the repo_id's
+            # which would be another issue!   So this is probably totally broken.
             snap_log
                 project_id : mesg.project_id
+                repo_id    : mesg.repo_id
                 path       : mesg.path
                 cb         : (err, commits) ->
                     if err
@@ -803,8 +755,8 @@ create_server = (cb) ->  # cb(err, randomly assigned port)
         cb(err, port)
 
 ##------------------------------------
-
-
+## WARNING!  These tests below were used when writing this code, and surely are broken now that
+## the code has been modified and used in production.  They should probably just be deleted.
 ##------------------------------------
 # TCP client
 
@@ -916,18 +868,20 @@ exports.client_snap = (opts) ->
         command    : required   # "ls", "restore", "log"
         project_id : undefined
         snapshot   : undefined
+        repo_id    : undefined
         path       : '.'
         timeout    : 60
         cb         : required   # cb(err, list of results when meaningful)
 
-    if opts.command == 'ls'
-        # no checks
-    else if opts.command == 'restore'
+    if opts.command in ['restore', 'ls']
         if not opts.project_id?
-            opts.cb("project_id must be defined to use the restore command")
+            opts.cb("project_id must be defined to use the #{opts.command} command")
             return
         else if not opts.snapshot?
-            opts.cb("snapshot must be defined when using the restore command")
+            opts.cb("snapshot must be defined when using the #{opts.command} command")
+            return
+        else if not opts.repo_id?
+            opts.cb("repo_id must be defined when using the #{opts.command} command")
             return
     else if opts.command == 'log'
         if not opts.project_id?
@@ -940,7 +894,7 @@ exports.client_snap = (opts) ->
         opts.cb("unknown command '#{opts.command}'")
         return
 
-    mesg = {id:uuid.v4(), command:opts.command, project_id: opts.project_id, snapshot:opts.snapshot, path:opts.path}
+    mesg = {id:uuid.v4(), command:opts.command, project_id: opts.project_id, snapshot:opts.snapshot, path:opts.path, repo_id:opts.repo_id}
     list = undefined
     async.series([
         (cb) ->
@@ -967,7 +921,6 @@ exports.client_snap = (opts) ->
 snap_dir  = undefined
 snap_corrupt_file = undefined
 bup_dir   = undefined
-pack_dir  = undefined
 tmp_dir   = undefined
 uuid_file = undefined
 initialize_snap_dir = (cb) ->
@@ -981,7 +934,6 @@ initialize_snap_dir = (cb) ->
     if fs.existsSync(snap_corrupt_file)
         repository_is_corrupt = true
 
-    pack_dir  = bup_dir  + '/objects/pack'
     tmp_dir   = snap_dir + '/tmp'
     uuid_file = snap_dir + '/server_uuid'
     winston.info("path=#{snap_dir} should exist")
@@ -1056,7 +1008,8 @@ size_of_bup_archive = undefined
 register_with_database = (cb) ->
     winston.info("registering with database server...")
     if not size_of_bup_archive?
-        misc_node.disk_usage pack_dir, (err, usage) ->
+        repo_id = fs.readFileSync("#{bup_dir}/active").toString()
+        misc_node.disk_usage bup_dir + "/" + repo_id, (err, usage) ->
             if err
                 winston.info("error computing usage -- #{err}")
                 # try next time
@@ -1174,8 +1127,8 @@ exports.start_server = start_server = () ->
             cb()
         (cb) ->
             snapshot_active_projects(cb)
-        (cb) ->
-            ensure_all_projects_have_a_snapshot(cb)
+        #(cb) ->
+        #    ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
         #    test3()
         #    cb()
