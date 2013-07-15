@@ -263,21 +263,24 @@ CREATE TABLE recently_modified_projects (
    very small ttl (e.g., 15 seconds) that is periodically updated. */
 CREATE TABLE snap_servers (
     id         uuid,
-    host       varchar,     /* hostname */
-    port       int,         /* integer port */
-    key        varchar,     /* random string needed to unlock tcp connection */
-    size       int,         /* total size in kilobytes of the objects/pack directory of the archive */
+    host       varchar,    /* hostname */
+    port       int,        /* integer port */
+    key        varchar,    /* random string needed to unlock tcp connection */
+    size       int,        /* total size in kilobytes of the objects/pack directory of the archive */
     PRIMARY KEY(id)
 );
 
 CREATE TABLE snap_commits (
-    server_id  uuid,       /* matches the id of snap_servers table above */
+    server_id  uuid,       /* id into snap_servers table above */
     project_id uuid,       /* id of the project */
     timestamp  varchar,    /* date of commit, in the bup string format */
     size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
-    dummy      boolean,    /* used if we want to enter a commit but don't know the size and don't want to change the size */
+    repo_id    uuid,       /* id of the bup repo that contains this snapshot */
     PRIMARY KEY(server_id, project_id, timestamp)
 );
+
+CREATE INDEX ON snap_commits(repo_id);
+
 
 /* snap_ls_cache entries should always be inserted with a ttl (e.g., a few days) */
 CREATE TABLE snap_ls_cache (

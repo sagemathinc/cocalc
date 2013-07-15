@@ -1,37 +1,120 @@
-- [x] (1:30?) (1:05) editor: add setting -- vim and emacs modes
+overall goal -- snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
 
-- [x] (1:00?) editor: add setting -- color scheme
+- [x] (3:00?) (4:00) make implementation plan
 
-- [ ] (1:30?) worksheet: force space at the bottom of a worksheet
-      - make it so the formatter (or local hub?) ensures that there is space
-      - use this option too: #cursorScrollMargin: 50
+     Have bup archives:
 
-- [ ] (1:00?) terminal -- fact control-shift-minus works in emacs codemirror mode (in app), so it must be possible to intercept it in javascript app for chrome after all(?)
+              bup/39e53e00-469a-4d4a-9f1c-6a579e88a265/
+              bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/
+              ...
+              bup/a835a7a5-508c-44a9-90d2-158b9f07db87/
+
+     and a file
+
+              bup/active
+
+     that contains the one line giving the uuid of the active bup repo.
+
+              a835a7a5-508c-44a9-90d2-158b9f07db87
+
+     The "bup/active" bup archive is the one used for all writes.
+     Some reads and indexing happens with the other archivies.
+
+     On startup, if there is no bup/active file or the repo it refers to doesn't exist, then a new repo is generated.
+
+     SYNC: Any snap server could rsync out a newer version of "bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/" (say) at any time.
+     When it does this, the local snap server has to update to know what new snapshots are stored there.
+     When it does the rsync to update it is critical that it copy over all the packfiles  first, *then* copy over the new refs/heads/master,
+     otherwise the archive would be temporarily unreadable.
+     Periodically the local snap server will scan the refs/heads/master, and if it changes then it will update its local index.
+     This way the local active archive can be made highly available to other servers regularly, i.e., the newest backups are available
+     from several other servers.
+
 
 ---
 
-- [ ] (0:30?) account settings: move autosave to editor settings, in a backwards compatible way.
-- [ ] (0:30?) account settings: move evaluate_key to editor settings, in a backwards compatible way.
+Stage 1: Highly scalable and fast
+
+- [x] (0:10?) (0:13) snap: alter database schema table to add new column `repo_id` and an index on it.
+
+        alter table snap_commits add repo_id uuid;
+        CREATE INDEX ON snap_commits(repo_id);
+
+        ALTER TABLE snap_commits DROP dummy;    // This doesn't work yet!  It will when I upgrade to a newer cassandra.
+
+- [ ] (1:00?) determine steps to manually change an existing repo to new structure and do it locally (record):
+      * change filesystem
+      * update database -- so that existing commits all have `repo_id=server_id`
+- [ ] (0:30?) change query protocol and implementation to also send the `repo_id`.
+- [ ] (1:00?) write `bup_dir` function in snap.coffee that uses the new structure, and change all bup calls to use it.  test.
+- [ ] (0:45?) write code to initialize a new bup archive and active pointing at it.
+- [ ] (1:00?) write db based locking code so I can run multiple bup servers in parallel without corruption.
+- [ ] (0:15?) make sure "dummy" field of `snap_commits` not used anymore in code.
+- [ ] (1:00?) deploy and test on cloud.sagemath:
+      - stop snap server
+      - alter db schemas
+      - change filesystem
+      - update database
+      - update code on web1
+      - start snap server on web1 (only for now)
 
 
 ---
 
-- [ ] (4:00?) snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+Stage 2: Robustness
 
-Ideas for how this could work:
+- [ ] (0:15?) add property to projects database table `snapshots_disabled`, which can be one of:
+        'user' = user requested snapshots be disabled  (but don't implement anything about this yet)
+        'suspiciuos' = snapshots disabled because a problem occurred
+        'no' = snapshots are not disabled
+- [ ] (1:30?) make it possible to roll back the snapshot if something goes wrong when making it; in particular,
+      if it is too big (as defined by taking too long, say).
 
-Have bup repos --
+---
+Stage 3: Highly available
 
-        bup/2013-07-01-182300   # starts at 2013-07-01-182300
-        bup/2013-07-05-142647   # starts at 2013-07-05-142647
-        bup/2013-07-07-111711   # starts at 2013-07-07-111711
+- [ ] (1:30?) write code to rsync out a specic bup repo to another specific snap server, then
+      update the `snap_commits` table with the latest updates.  This update will be
+      done by the snap server that is pushing out the repo; will have to add an index
+      on a column to the db.
+- [ ] (0:45?) write code to automatically sync out active repo every so often (?), and also
+      when making a new active repo.
 
-On startup snap.coffee reads the directories, finds these, and builds a little data structure
-so that given a timestamp, one can easily tell which bup to use to get that snapshot.
+---
 
-- [ ] (4:00?) snap: project restore from snap -- restore project from most recent snap.
+Stage 4: Overall scalability
 
-- [ ] (?) snap: rollback safety mode.
+- [ ] (1:30?) hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
+- [ ] (1:30?) hub: code to un-deploy projects that have been inactive for a while.
+
+---
+Stage 5: New Stuff that Builds on Snapshots
+
+- [ ] implement ability to open files in the .snapshot directory read only -- using
+      a full editor view (but in codemirror read-only mode); does *not* require
+      that the project is deployed.
+- [ ] handle long url into a snapshot (?), i.e.,
+             https://cloud.sagemath.com/projects/project_uuid/.snapshot/timestamp/path/into/project
+      when user (who must be logged in) visits this URL, they will open that project and the
+      given file in the project, assuming they have appropriate permission to do so.
+- [ ] client: read-only view of a file in a project.
+
+
+
+----
+
+
+- [ ] (1:00?) snap: implement locking so that if two snap servers try to make a snapshot of a project at the same time... only one does and the other waits.
+
+- [ ] (2:00?) snap: when making a snapshot, save a JSON object with the complete directory listing to the database;
+this will make all browsing of past snapshots very fast and provide metadata (e.g., file permissions). Alternatively,
+we will have to use fuse with the new metadata support.
+
+- [ ] (2:00?) snap: project restore from snap -- restore project from most recent snap.
+
+- [ ] (2:00?) snap: bup repo redundancy; once each repo is done, it should get pushed out to the other snap servers via rsync.
+
+- [ ] (2:00?) snap: rollback safety mode.
        1. Save refs/HEAD in a directory "rollback/" right before making the snapshot.
        2. Save a list of all files in objects/pack/
        3. Ensure that "bup ls master/latest" works.
@@ -55,8 +138,19 @@ so that given a timestamp, one can easily tell which bup to use to get that snap
 
 
 
+
 ---
 
+- [ ] (1:30?) upgrade to cassandra 1.2.6: <http://www.datastax.com/documentation/cassandra/1.2/index.html#cassandra/install/installDeb_t.html>
+
+- [ ] (0:30?) add link to http://codemirror.net/demo/theme.html
+- [ ] (1:00?) terminal -- fact control-shift-minus works in emacs codemirror mode (in app), so it must be possible to intercept it in javascript app for chrome after all(?)
+- [ ] (1:30?) worksheet: force space at the bottom of a worksheet
+      - make it so the formatter (or local hub?) ensures that there is space
+      - use this option too: #cursorScrollMargin: 50
+
+- [ ] (0:30?) account settings: move autosave to editor settings, in a backwards compatible way.
+- [ ] (0:30?) account settings: move evaluate_key to editor settings, in a backwards compatible way.
 
 - [ ] (1:00?) make interact functions callable
 
@@ -223,19 +317,6 @@ xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repac
 - [ ] (1:00?) %load on a file with a syntax error gives a useless error message
 
 - [ ] make modified project table also record the user and record it forever.
-
-- [ ] snaps still broken -- blob errors on web2 and web3:
-salvus@web2:/mnt/snap/snap0$ BUP_DIR=bup bup ls master/2013-07-02-205639
-KeyError: "blob '544176469e2854f7902dee3a8059785be5981f1c:' is missing"
-
-WHY?  Ideas:
-  I've turned off the one on web3, so now it is only on web1 for a while.
-  If this does not fail, then probably the issue is multiple bups hitting
-  the same project.  Can probably fix if we can specify the remote BUP path,
-  hence keep them separate.   Alterantively, shard, and have only one
-  bup ever make a snapshot, then put it via rsync to other servers.
-
-I disabled all but web1's snap, and
 
 - [ ] (2:00?) separate targeted backup system -- minimum data needed to fully recover system:
        - backup db tables on all cassandra nodes (for now) to a single bup archive on /mnt/snap on web1
@@ -3104,3 +3185,27 @@ x - restart hub and test (?)
 
 - [x] (0:30?) (0:20) new release that just updates web part; send email in response to beezer on sage-cloud.
       - Do this on db for both cloud and storm: "alter table accounts add editor_settings varchar;"
+
+
+- [x] (1:30?) (1:05) editor: add setting -- vim and emacs modes
+
+- [x] (1:00?) editor: add setting -- color scheme
+
+- [x] new release
+     - remember -- switch to minified
+
+---
+- [x] snaps still broken -- blob errors on web2 and web3:
+salvus@web2:/mnt/snap/snap0$ BUP_DIR=bup bup ls master/2013-07-02-205639
+KeyError: "blob '544176469e2854f7902dee3a8059785be5981f1c:' is missing"
+
+WHY?  Ideas:
+  I've turned off the one on web3, so now it is only on web1 for a while.
+  If this does not fail, then probably the issue is multiple bups hitting
+  the same project.  Can probably fix if we can specify the remote BUP path,
+  hence keep them separate.   Alterantively, shard, and have only one
+  bup ever make a snapshot, then put it via rsync to other servers.
+
+I disabled all but web1's snap, and it works fine for a long, long time under heavy use.
+Also, there is a lot on the mailing lists about multiple bups not working.
+

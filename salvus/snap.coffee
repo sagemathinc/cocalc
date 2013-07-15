@@ -65,10 +65,15 @@ bup = (opts) ->
 
 ##------------------------------------------
 # This section contains functions for accessing the bup archive
-# through fuse. We do this as much as possible because bup-fuse
+# through fuse. At one point, we did this as much as possible because bup-fuse
 # and the operating system *caches* the directory tree information.
-# If we try to use bup itself, every directory listing takes
-# a huge amount of time.  Using bup-fuse instead, stores this
+# However, there are also major memory issues with doing this, which
+# suggest that it is a bad idea.  Also, things are efficient and much
+# faster if we just store a listing of all files at the time we make the
+# snapshot.
+#
+# Past justifcation: If we try to use bup itself, every directory listing takes
+# too much time.  Using bup-fuse instead, stores this
 # work in memory, and we only have this slowness on the *first* read.
 
 # Use the functions that start with "fuse_" below.
@@ -328,7 +333,6 @@ snap_restore = (opts) ->
 
     user   = undefined
     outdir = "#{tmp_dir}/#{uuid.v4()}"
-    #target = "#{opts.project_id}/#{opts.snapshot}/#{opts.path}"
     target = "master/#{opts.snapshot}/#{opts.path}"
     dest   = undefined
     escaped_dest = undefined
@@ -599,15 +603,15 @@ monitor_snapshot_queue = () ->
                     size_of_bup_archive = size_after
                     cb(err)
 
-            # Do a "bup ls", which causes the cache to be updated (so a user doesn't have to wait several seconds the 
-            # first time they do a view on a snapshot).  Also, if this fails for some reason, we do *NOT* want to 
+            # Do a "bup ls", which causes the cache to be updated (so a user doesn't have to wait several seconds the
+            # first time they do a view on a snapshot).  Also, if this fails for some reason, we do *NOT* want to
             # ever record this as a successful snapshot in the database.
             (cb) ->
                 t = misc.walltime()
                 bup
                     args : ['ls', "master/#{timestamp}"]
                     cb   : (err) ->
-                        winston.info("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s") 
+                        winston.info("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s")
                         cb(err)
 
             # record that we successfully made a snapshot to the database, and our local cache
