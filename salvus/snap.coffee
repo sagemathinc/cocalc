@@ -37,11 +37,13 @@ cassandra = require 'cassandra'
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, level: 'debug')
 
+DEFAULT_TIMEOUT = 60*15   # time in seconds; max time we would ever wait to "bup index" or "bup save"
+
 # Run a bup command
 bup = (opts) ->
     opts = defaults opts,
         args    : []
-        timeout : 3600   # default timeout of 1 hour -- could backup around 30-40 GB...?
+        timeout : DEFAULT_TIMEOUT
         bup_dir : required
         cb      : (err, output) ->
             if err
@@ -471,6 +473,61 @@ snap_log = (opts) ->
     )
 
 
+##
+# Getting and removing lock on the remote bup repo.  This is necessary
+# because one cannot safely have to bup's simultaneously making a backup
+# of a given remote path, as is discussed (a lot) on the mailing list.
+# Also, for my purpose, that would be meaningless and undesirable for users.
+
+create_lock = (opts) ->
+    opts = defaults opts,
+        location : required
+        ttl      : 2*DEFAULT_TIMEOUT   # time to live, in seconds
+        cb       : required
+
+    user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
+    async.series([
+        (cb) ->
+             # check if project is currently locked -- if so, returns an error.
+             misc_node.execute_code
+                 command     : 'ssh'
+                 args        : [user, 'cat .bup/lock']
+                 timeout     : 10
+                 err_on_exit : false
+                 max_output  : 2048  # in case some asshole makes .bup/lock a multi-gigabyte file.
+                 cb          : (err, output) ->
+                     if output.stderr.indexOf("such file") == -1
+                         # There is a lock file
+                         try
+                             lock = misc.from_json(output.stdout)
+                             if lock.expire > misc.walltime()
+                                 cb("project at #{user} is currently locked")
+                                 return
+                         catch e
+                             # corrupt lock file -- we take over
+                     cb()
+        (cb) ->
+             # create the lock
+             lock = misc.to_json
+                    expire : misc.walltime() + opts.ttl
+                    server_id: snap_server_uuid
+             misc_node.execute_code
+                 command : 'ssh'
+                 args    : [user, "mkdir -p .bup; echo '#{lock}' > .bup/lock"]
+                 timeout : 10
+                 cb      : cb
+    ], opts.cb)
+
+remove_lock = (opts) ->
+    opts = defaults opts,
+        location : required
+        cb       : required
+    user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
+    misc_node.execute_code
+        command : 'ssh'
+        args    : [user, 'rm -f .bup/lock']
+        cb      : opts.cb
+
 
 # Enqueue the given project to be snapshotted as soon as possible.
 # cb(err) upon completion of snapshot, where cb is optional.
@@ -505,33 +562,45 @@ monitor_snapshot_queue = () ->
         {project_id, cb} = snapshot_queue.shift()
 
         winston.debug("Making a snapshot of project #{project_id}")
-        timestamp = undefined
+        location    = undefined
+        user        = undefined
+        timestamp   = undefined
         size_before = undefined
-        size_after = undefined
-        repo_id = undefined
-        bup_active = undefined
+        size_after  = undefined
+        repo_id     = undefined
+        bup_active  = undefined
+        retry_later = false
         async.series([
-            # wait 2 seconds, to ensure uniqueness of time stamp
             (cb) ->
-                setTimeout(cb, 2000)
-            (cb) ->
-                ensure_active_bup_dir_exists(cb)
-            (cb) ->
-                # sync is OK, since file so small.
-                repo_id = fs.readFileSync("#{bup_dir}/active").toString().trim()
-                bup_active = bup_dir + "/" + repo_id
-                cb()
+                active_path (err, path) ->
+                    if err
+                        cb(err)
+                    else
+                        repo_id = path.repo_id
+                        bup_active = path.active_path
+                        cb()
             # get deployed location of project (which can change at any time!)
             (cb) ->
                 database.get_project_location
                     project_id : project_id
-                    cb         : (err, location) ->
+                    cb         : (err, _location) ->
                         if err
                             cb(err)
                         else
+                            location = _location
                             user = "#{location.username}@#{location.host}"
                             # TODO: support location.port != 22 and location.path != '.'   !!?
                             cb()
+            # get a lock on the deployed project
+            (c) ->
+                create_lock
+                    location : location
+                    cb       : (err) ->
+                        if err
+                            retry_later = true
+                            # put back in the queue to try again later
+                            snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
+                        c(err)
             # create index
             (cb) ->
                 t = misc.walltime()
@@ -563,7 +632,13 @@ monitor_snapshot_queue = () ->
                         if not err
                             # used below when creating database entry
                             timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
-                        cb(err)
+                        # No matter what happens, we need to remove the lock we just made *now*.
+                        remove_lock
+                            location : location
+                            cb       : (lock_err) ->
+                                if lock_err
+                                    winston.debug("non fatal error removing snapshot lock (#{project_id}) -- #{lock_err}")
+                                cb(err)  # err is the outer err from saving
 
             # update checksums, which make recover in case of file damage possible
             (cb) ->
@@ -624,12 +699,14 @@ monitor_snapshot_queue = () ->
                         cb()
 
         ], (err) ->
-            setTimeout(monitor_snapshot_queue, 50)
-            cb?(err)
+            # wait 3 seconds, to ensure uniqueness of time stamp, not be too aggressive checking locks, etc.
+            setTimeout(monitor_snapshot_queue, 3000)
+            if not retry_later
+                cb?(err)
         )
     else
         # check again soon
-        setTimeout(monitor_snapshot_queue, 500)
+        setTimeout(monitor_snapshot_queue, 3000)
 
 # snapshot all projects in the given input array, and call opts.cb on completion.
 snapshot_projects = (opts) ->
@@ -955,8 +1032,6 @@ initialize_snap_dir = (cb) ->
         (cb) ->
             misc_node.ensure_containing_directory_exists uuid_file, cb
         (cb) ->
-            ensure_active_bup_dir_exists(cb)
-        (cb) ->
             fuse_remove_all_mounts(cb)
         (cb) ->
             winston.debug("deleting temporary directory...")
@@ -970,18 +1045,6 @@ initialize_snap_dir = (cb) ->
     ], cb)
     # TODO: we could do some significant checks at this point, e.g.,
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
-
-ensure_active_bup_dir_exists = (cb) ->
-    fs.exists "#{bup_dir}/active", (exists) ->
-        if exists
-            cb()
-        else
-            u = uuid.v4()
-            fs.writeFileSync("#{bup_dir}/active", u)
-            bup
-                args    : ['init']
-                bup_dir : "#{bup_dir}/#{u}"
-                cb      : cb
 
 
 # Generate or read uuid of this server, which is the longterm identification
@@ -1022,15 +1085,31 @@ generate_secret_key = (cb) ->
         secret_key = buf.toString('base64')
         cb()
 
+
+active_path = (cb) ->   # cb(err, {active_path:?, repo_id:?})
+    active = "#{bup_dir}/active"
+    fs.readFile active, (err, data) ->
+        if not err
+            repo_id = data.toString().trim()
+            cb(false, {active_path:"#{bup_dir}/#{repo_id}", repo_id:repo_id})
+        else
+            misc_node.ensure_containing_directory_exists active, (err) ->
+                u = uuid.v4()
+                path = "#{bup_dir}/#{u}"
+                fs.writeFile active, u, (err) ->
+                    bup
+                        args    : ['init']
+                        bup_dir : path
+                        cb      : (err) -> cb(err, {active_path:path, repo_id:u})
+
 # Write entry to the database periodicially (with ttl) that this
 # snap server is up and running, and provide the key.
 size_of_bup_archive = undefined
 register_with_database = (cb) ->
     winston.info("registering with database server...")
     if not size_of_bup_archive?
-        ensure_active_bup_dir_exists () ->
-            repo_id = fs.readFileSync("#{bup_dir}/active").toString().trim()
-            misc_node.disk_usage bup_dir + "/" + repo_id, (err, usage) ->
+        active_path (err, path) ->
+            misc_node.disk_usage path.active_path, (err, usage) ->
                 if err
                     winston.info("error computing usage -- #{err}")
                     # try next time

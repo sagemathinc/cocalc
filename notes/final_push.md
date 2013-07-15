@@ -75,7 +75,7 @@ Stage 1: Highly scalable and fast
 - [x] (0:15?) (0:01) make sure "dummy" field of `snap_commits` not used anymore in code.
 
 
-- [x] (1:00?) (1:50) stage 1 snap update -- deploy and test on cloud.sagemath
+- [x] (1:00?) (2:00) stage 1 snap update -- deploy and test on cloud.sagemath
       x- update code on web1, cassandra1
       x- make snapshot
       x- stop snap server
@@ -122,11 +122,11 @@ Stage 2: Robustness
 - [x] (0:15?) (0:05) remove (comment out) the fsck stuff, since we're going to store the data on multiple
         machines for robustness, and this fsck stuff is never useful, but is very slow.
 
---> - [ ] (1:00?) (0:38+) write locking code so I can run multiple bup servers in parallel without corruption.
+- [x] (1:00?) (2:48+) write locking code so I can run multiple snap servers in parallel without corruption.
       We *must* make the lock on the filesystem of the remote account, not using the db, because the db
       is not instantly consistent.
 
-`get_lock` function
+Lock functionality:
 
 1. check if there is a file .bup/lock, and if so read it:
        {server_id:?,  expire:?}
@@ -136,15 +136,24 @@ Stage 2: Robustness
         wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lockx
         cat: .bup/lockx: No such file or directory
 
-2. if the file is there and the `expire` timestamp has not passed, wait until after that timestamp to try again (do other backups)
-3. if the file is there and the `expire` timestamp has passed, proceed as follows:
-4. create .bup/lock with contents:
-       {server_id:?,  expire:?}
-   where expire is maybe 15 minutes in the future (?) -- whatever the timeout is on making backups.
-5. wait 3 seconds, then check again to see if .bup/lock is exactly what we created.  If not, another bup server
-   tried to write to .bup/lock at the same time, so go to 1.
-6. make the backup as usual.
-7. delete .bup/lock
+2. if the file is there and the `expire` timestamp has not passed, wait until after
+   that timestamp to try again (do other backups)
+
+3. create .bup/lock with contents: `{server_id:?,  expire:?}`
+   where expire is maybe 20 minutes in the future (?) -- whatever the max time is on making backups.
+
+        ssh XqT8YljQ@localhost "echo '{server_id:blah,  expire:blah}' > .bup/lock"
+
+4. wait 1 second, then check again to see if .bup/lock is exactly what we created.  If not, another bup server
+tried to write to .bup/lock at the same time, so go to 1.
+
+        ssh XqT8YljQ@localhost "cat .bup/lock"
+
+5. make the backup exactly as usual.
+
+6. delete .bup/lock
+
+        ssh XqT8YljQ@localhost "rm -f .bup/lock"
 
 
 - [ ] (0:45?) add property to projects database table `snapshots_disabled`, which can be one of:
