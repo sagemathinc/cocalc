@@ -19,6 +19,11 @@
     margin-bottom: 1ex !important;
 }
 
+.project-file-listing {
+    margin-left  : 3em;
+    margin-right : 3em;
+}
+
 .project-file-listing-container {
     /* overflow-y: auto;
     overflow-x: hidden; */
