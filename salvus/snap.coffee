@@ -42,7 +42,7 @@ bup = (opts) ->
     opts = defaults opts,
         args    : []
         timeout : 3600   # default timeout of 1 hour -- could backup around 30-40 GB...?
-        bup_dir : bup_dir  # defined below when initializing snap_dir
+        bup_dir : required
         cb      : (err, output) ->
             if err
                 winston.info("error -- #{err}")
@@ -504,16 +504,23 @@ monitor_snapshot_queue = () ->
         user = undefined
         {project_id, cb} = snapshot_queue.shift()
 
-        winston.info("making a snapshot of project #{project_id}")
+        winston.debug("Making a snapshot of project #{project_id}")
         timestamp = undefined
         size_before = undefined
         size_after = undefined
-        repo_id = fs.readFileSync("#{bup_dir}/active").toString()
-        bup_active = bup_dir + "/" + repo_id
+        repo_id = undefined
+        bup_active = undefined
         async.series([
             # wait 2 seconds, to ensure uniqueness of time stamp
             (cb) ->
                 setTimeout(cb, 2000)
+            (cb) ->
+                ensure_active_bup_dir_exists(cb)
+            (cb) ->
+                # sync is OK, since file so small.
+                repo_id = fs.readFileSync("#{bup_dir}/active").toString().trim()
+                bup_active = bup_dir + "/" + repo_id
+                cb()
             # get deployed location of project (which can change at any time!)
             (cb) ->
                 database.get_project_location
@@ -532,24 +539,27 @@ monitor_snapshot_queue = () ->
                     args : ['on', user, 'index', '.']
                     bup_dir : bup_active    # TODO: does this matter -- this runs on remote. ??
                     cb   : (err) ->
-                        winston.info("time to index #{project_id}: #{misc.walltime(t)} s")
+                        winston.debug("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
 
             # compute disk usage before save
             (cb) ->
+                winston.debug("disk usage before save")
                 misc_node.disk_usage bup_active, (err, usage) ->
+                    winston.debug("usage related in: #{err}, #{usage}")
                     size_before = usage
                     cb(err)
 
             # save
             (cb) ->
+                winston.debug("doing the actual save...")
                 t = misc.walltime()
                 d = Math.ceil(misc.walltime())
                 bup
                     args : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', 'master', '.']
                     bup_dir : bup_active
                     cb   : (err) ->
-                        winston.info("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
+                        winston.debug("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
                         if not err
                             # used below when creating database entry
                             timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
@@ -563,7 +573,7 @@ monitor_snapshot_queue = () ->
                     bup_dir : bup_active
                     timeout : 3600  # allow as long as it takes (which should be a few seconds)
                     cb      : (err) ->
-                        winston.info("time to update checksums: #{misc.walltime(t)} s")
+                        winston.debug("time to update checksums: #{misc.walltime(t)} s")
                         if err
                             # This means that the repository got
                             # corrupted somehow.  This requires manual intervention.
@@ -591,7 +601,7 @@ monitor_snapshot_queue = () ->
                     args    : ['ls', "master/#{timestamp}"]
                     bup_dir : bup_active
                     cb      : (err) ->
-                        winston.info("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s")
+                        winston.debug("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s")
                         cb(err)
 
             # record that we successfully made a snapshot to the database, and our local cache
@@ -600,14 +610,13 @@ monitor_snapshot_queue = () ->
                 _last_snapshot_cache[project_id] = t
                 database.update
                     table : 'snap_commits'
-                    set   : {size: size_after - size_before}
+                    set   : {size: size_after - size_before, repo_id:repo_id}
                     where :
                         server_id  : snap_server_uuid
                         project_id : project_id
-                        repo_id    : repo_id
                         timestamp  : timestamp
                     cb    : (err) ->
-                        winston.info("time to record commit to database: #{misc.walltime(t)}")
+                        winston.debug("time to record commit to database: #{misc.walltime(t)}")
                         cb()
 
         ], (err) ->
@@ -940,12 +949,9 @@ initialize_snap_dir = (cb) ->
 
     async.series([
         (cb) ->
-            misc_node.ensure_containing_directory_exists uuid_file, (err) ->
-                if err
-                    cb(err)
-                else
-                    bup(args:['init'])
-                    cb()
+            misc_node.ensure_containing_directory_exists uuid_file, cb
+        (cb) ->
+            ensure_active_bup_dir_exists(cb)
         (cb) ->
             fuse_remove_all_mounts(cb)
         (cb) ->
@@ -961,7 +967,17 @@ initialize_snap_dir = (cb) ->
     # TODO: we could do some significant checks at this point, e.g.,
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
 
-
+ensure_active_bup_dir_exists = (cb) ->
+    fs.exists "#{bup_dir}/active", (exists) ->
+        if exists
+            cb()
+        else
+            u = uuid.v4()
+            fs.writeFileSync("#{bup_dir}/active", u)
+            bup
+                args    : ['init']
+                bup_dir : "#{bup_dir}/#{u}"
+                cb      : cb
 
 
 # Generate or read uuid of this server, which is the longterm identification
@@ -1008,16 +1024,17 @@ size_of_bup_archive = undefined
 register_with_database = (cb) ->
     winston.info("registering with database server...")
     if not size_of_bup_archive?
-        repo_id = fs.readFileSync("#{bup_dir}/active").toString()
-        misc_node.disk_usage bup_dir + "/" + repo_id, (err, usage) ->
-            if err
-                winston.info("error computing usage -- #{err}")
-                # try next time
-                size_of_bup_archive = 0
-                setTimeout((() -> register_with_database(cb)), 1000*registration_interval_seconds)
-            else
-                size_of_bup_archive = usage
-                register_with_database(cb)
+        ensure_active_bup_dir_exists () ->
+            repo_id = fs.readFileSync("#{bup_dir}/active").toString().trim()
+            misc_node.disk_usage bup_dir + "/" + repo_id, (err, usage) ->
+                if err
+                    winston.info("error computing usage -- #{err}")
+                    # try next time
+                    size_of_bup_archive = 0
+                    setTimeout((() -> register_with_database(cb)), 1000*registration_interval_seconds)
+                else
+                    size_of_bup_archive = usage
+                    register_with_database(cb)
         return
 
     database.update

@@ -38,7 +38,8 @@ Stage 1: Highly scalable and fast
 - [x] (0:10?) (0:13) snap: alter database schema table to add new column `repo_id` and an index on it.
 
         alter table snap_commits add repo_id uuid;
-        CREATE INDEX ON snap_commits(repo_id);
+
+        CREATE INDEX ON snap_commits(repo_id);  // not used yet, so not making it yet.
 
         ALTER TABLE snap_commits DROP dummy;    // This doesn't work yet!  It will when I upgrade to a newer cassandra.
 
@@ -68,25 +69,34 @@ Stage 1: Highly scalable and fast
              cassandra.july14_snap_commits_update("23e8d7ee-0ce5-43d7-9746-ee1f92e0e2cf", "c57141ff-7ba8-4d8d-9877-fe3c743f46ca")
 
 
---> - [ ] (1:30?) change query protocol and implementation to also send and receive the `repo_id`; and write `bup_dir`
-          function in snap.coffee that uses the new structure, and change all bup calls to use it.  test.
+- [x] (1:30?) (1:30) change query protocol and implementation to also send and receive the `repo_id`; and write `bup_dir`
+          function in snap.coffee that uses the new structure, and change all bup calls to use it.
+- [x] (1:30?) (1:03) test and debug above changes; write code to initialize a new bup archive and active pointing at it.
+- [x] (0:15?) (0:01) make sure "dummy" field of `snap_commits` not used anymore in code.
 
-- [ ] (0:45?) write code to initialize a new bup archive and active pointing at it.
-- [ ] (1:00?) write db based locking code so I can run multiple bup servers in parallel without corruption.
-- [ ] (0:15?) make sure "dummy" field of `snap_commits` not used anymore in code.
-- [ ] (1:00?) deploy and test on cloud.sagemath:
-      - stop snap server
+
+> - [ ] (1:00?) deploy and test on cloud.sagemath:
+      x- update code on web1, cassandra1
+      x- make snapshot
+      x- stop snap server
       - alter db schemas
+
+        import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['10.1.1.2'])
+        cassandra.july14_snap_commits_update("61a7d705-8c7d-47a5-ab10-2f62de36bc6b", "00bf485a-ff27-4940-aaf0-da0cf7957ffe")
+
       - change filesystem
       - update database
-      - update code on web1
-      - start snap server on web1 (only for now)
+      - start snap server on web1
+      - test by restarting hub and snap!:
+            s.restart('hub'); s.restart("snap")    
+      - once it is working, delete "active" file, and see it start a new repo, which is faster.
 
 
 ---
 
 Stage 2: Robustness
 
+- [ ] (1:00?) write db based locking code so I can run multiple bup servers in parallel without corruption.
 - [ ] (0:15?) add property to projects database table `snapshots_disabled`, which can be one of:
         'user' = user requested snapshots be disabled  (but don't implement anything about this yet)
         'suspiciuos' = snapshots disabled because a problem occurred
