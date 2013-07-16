@@ -12,6 +12,14 @@
 #
 #################################################################
 
+DEFAULT_TIMEOUT   = 60*15   # time in seconds; max time we would ever wait to "bup index" or "bup save"
+
+# The following is an extra measure, just in case the user somehow gets around quotas.
+# This is the max size of an individual snapshot; if exceeded, then project is black listed.
+# This is for one single snapshot, not all of them in sum.
+gigabyte = 1000*1000*1000
+MAX_SNAPSHOT_SIZE = 6*gigabyte
+
 secret_key_length             = 128
 registration_interval_seconds = 15
 
@@ -37,7 +45,6 @@ cassandra = require 'cassandra'
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, level: 'debug')
 
-DEFAULT_TIMEOUT = 60*15   # time in seconds; max time we would ever wait to "bup index" or "bup save"
 
 # Run a bup command
 bup = (opts) ->
@@ -528,6 +535,55 @@ remove_lock = (opts) ->
         args    : [user, 'rm -f .bup/lock']
         cb      : opts.cb
 
+##
+# Rolling back problematic commits
+get_rollback_info = (opts) ->
+    opts = defaults opts,
+        bup_dir : required
+        cb      : required   # opts.cb(err, rollback_info)
+
+    rollback_info = {bup_dir:opts.bup_dir}
+    async.series([
+        (cb) ->
+            fs.readFile "#{opts.bup_dir}/refs/heads/master", (err, data) ->
+                if err
+                    cb(err)
+                else
+                    rollback_info.master = data.toString()
+                    cb()
+        (cb) ->
+            fs.readdir "#{opts.bup_dir}/objects/pack", (err, files) ->
+                if err
+                    cb(err)
+                else
+                    rollback_info.pack = files
+                    cb()
+    ], (err) ->
+        opts.cb(err, rollback_info)
+    )
+
+rollback_last_save = (opts) ->
+    opts = defaults opts,
+        rollback_info : required
+        cb            : required # opts.cb(err)
+    info = opts.rollback_info
+    winston.debug("Rolling back last commit attempt in '#{info.bup_dir}'")
+    async.series([
+        (cb) ->
+            fs.writeFile "#{info.bup_dir}/refs/heads/master", info.master, cb
+        (cb) ->
+            fs.readdir "#{info.bup_dir}/objects/pack", (err, files) ->
+                if err
+                    cb(err)
+                else
+                    f = (filename, c) ->
+                        if filename not in info.pack
+                            fs.unlink("#{info.bup_dir}/objects/pack/#{filename}", c)
+                        else
+                            c()
+                    async.map(files, f, cb)
+    ], opts.cb)
+
 
 # Enqueue the given project to be snapshotted as soon as possible.
 # cb(err) upon completion of snapshot, where cb is optional.
@@ -564,6 +620,8 @@ monitor_snapshot_queue = () ->
         repo_id     = undefined
         bup_active  = undefined
         retry_later = false
+        rollback_info = undefined
+        rollback_file = undefined
         async.series([
             (cb) ->
                 database.select_one
@@ -587,7 +645,44 @@ monitor_snapshot_queue = () ->
                     else
                         repo_id = path.repo_id
                         bup_active = path.active_path
+                        rollback_file = "#{bup_active}/rollback"
                         cb()
+
+            # compute disk usage before save
+            (cb) ->
+                winston.debug("disk usage before save")
+                misc_node.disk_usage bup_active, (err, usage) ->
+                    winston.debug("usage related in: #{err}, #{usage}")
+                    size_before = usage
+                    cb(err)
+
+            # check for a leftover rollback file; this will be left around when the
+            # server is killed while making a backup.
+            (cb) ->
+                fs.exists rollback_file, (exists) ->
+                    winston.debug("found rollback file")
+                    if exists
+                        fs.readFile rollback_file, (err, data) ->
+                            if err
+                                cb(err)
+                            else
+                                rollback_last_save
+                                    rollback_info : misc.from_json(data.toString())
+                                    cb            : (err) ->
+                                        if err
+                                            cb(err)
+                                        else
+                                            fs.unlink(rollback_file, cb)
+                    else
+                        cb()
+
+            (cb) ->
+                get_rollback_info
+                    bup_dir : bup_active
+                    cb      : (err, info) ->
+                        rollback_info = info
+                        fs.writeFile rollback_file, misc.to_json(rollback_info), cb
+
             # get deployed location of project (which can change at any time!)
             (cb) ->
                 database.get_project_location
@@ -611,7 +706,7 @@ monitor_snapshot_queue = () ->
                             # put back in the queue to try again later
                             snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
                         c(err)
-                        
+
             # create index
             (cb) ->
                 t = misc.walltime()
@@ -621,14 +716,6 @@ monitor_snapshot_queue = () ->
                     cb   : (err) ->
                         winston.debug("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
-
-            # compute disk usage before save
-            (cb) ->
-                winston.debug("disk usage before save")
-                misc_node.disk_usage bup_active, (err, usage) ->
-                    winston.debug("usage related in: #{err}, #{usage}")
-                    size_before = usage
-                    cb(err)
 
             # save
             (cb) ->
@@ -640,6 +727,11 @@ monitor_snapshot_queue = () ->
                     bup_dir : bup_active
                     cb   : (err) ->
                         winston.debug("time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
+
+                        # If bup is killed during save, then this doesn't get removed, and on use
+                        # we rollback as specified.
+                        fs.unlink "#{bup_active}/rollback"
+
                         if not err
                             # used below when creating database entry
                             timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
@@ -649,38 +741,13 @@ monitor_snapshot_queue = () ->
                             cb       : (lock_err) ->
                                 if lock_err
                                     winston.debug("non fatal error removing snapshot lock (#{project_id}) -- #{lock_err}")
-                                cb(err)  # err is the outer err from saving
-
-            # update checksums, which make recover in case of file damage possible
-            (cb) ->
-
-                cb(); return    # skipping, since this is never useful and takes a lot of time.
-                                # we get robustness through redundancy instead.
-
-                t = misc.walltime()
-                bup
-                    args    : ['fsck', '--quick', '-g']
-                    bup_dir : bup_active
-                    timeout : 3600  # allow as long as it takes (which should be a few seconds)
-                    cb      : (err) ->
-                        winston.debug("time to update checksums: #{misc.walltime(t)} s")
-                        if err
-                            # This means that the repository got
-                            # corrupted somehow.  This requires manual intervention.
-                            repository_is_corrupt = true
-                            fs.writeFileSync(snap_corrupt_file, 'Filesystem failed fsck and is corrupt.  Please investigate manually, then delete this file.\n')
-                        cb(err)
-
-            # Compute disk usage after snapshot -- how much disk space was used by making this snapshot
-            # (The main reason for doing this is to protect against projects that have random data
-            # files in them -- we can refuse to snapshot after a certain total amount of usage.)
-            (cb) ->
-                misc_node.disk_usage bup_active, (err, usage) ->
-                    size_after = usage
-                    # Also, save total size of bup archive to global variable, so it can
-                    # be reported on next update the snap_servers table.
-                    size_of_bup_archive = size_after
-                    cb(err)
+                                if err
+                                    rollback_last_save
+                                        rollback_info:rollback_info
+                                        cb : (rb_err) ->
+                                            cb(err)
+                                else
+                                    cb(err) # err is the outer err from saving
 
             # Do a "bup ls", which causes the cache to be updated (so a user doesn't have to wait several seconds the
             # first time they do a view on a snapshot).  Also, if this fails for some reason, we do *NOT* want to
@@ -694,13 +761,41 @@ monitor_snapshot_queue = () ->
                         winston.debug("time to get ls of new snapshot #{timestamp}: #{misc.walltime(t)} s")
                         cb(err)
 
-            # record that we successfully made a snapshot to the database, and our local cache
+            # Compute disk usage after snapshot -- how much disk space was used by making this snapshot
+            # (The main reason for doing this is to protect against projects that have random data
+            # files in them -- we can refuse to snapshot after a certain total amount of usage.)
             (cb) ->
+                misc_node.disk_usage bup_active, (err, usage) ->
+                    size_after = usage
+                    # Also, save total size of bup archive to global variable, so it can
+                    # be reported on next update the snap_servers table.
+                    size_of_bup_archive = size_after
+                    cb(err)
+
+            # record (in db) that we successfully made a snapshot, unless snapshot was too big.
+            (cb) ->
+                size = size_after - size_before
+                winston.debug("Snapshot of #{project_id}: increased archive by #{size} bytes")
+                if size > MAX_SNAPSHOT_SIZE
+                    err = "*** Snapshot size of #{project_id} exceeds max snapshot usage size of #{MAX_SNAPSHOT_SIZE}, so we are removing it, and turned off snapshots of this project in the database."
+                    winston.debug(err)
+
+                    database.update  # fire and forget this
+                        table : "projects"
+                        set   : {"snapshots_disabled":true}
+                        where : {project_id : project_id}
+
+                    rollback_last_save
+                        rollback_info : rollback_info
+                        cb : (rb_err) ->
+                            cb(err)
+                    return
+
                 t = misc.walltime()
                 _last_snapshot_cache[project_id] = t
                 database.update
                     table : 'snap_commits'
-                    set   : {size: size_after - size_before, repo_id:repo_id}
+                    set   : {size: size, repo_id:repo_id}
                     where :
                         server_id  : snap_server_uuid
                         project_id : project_id
@@ -1095,7 +1190,6 @@ generate_secret_key = (cb) ->
     require('crypto').randomBytes secret_key_length, (ex, buf) ->
         secret_key = buf.toString('base64')
         cb()
-
 
 active_path = (cb) ->   # cb(err, {active_path:?, repo_id:?})
     active = "#{bup_dir}/active"

@@ -166,10 +166,8 @@ tried to write to .bup/lock at the same time, so go to 1.
       Change snap to consult this entry before making a snapshot.
       Index this so we can easily check to see all projects with snapshots disabled, if/when this happens.
 
-- [ ] (1:30?) make it possible to roll back the snapshot if something goes wrong when making it; in particular,
+- [x] (1:30?) (1:18) snap: make it possible to roll back the snapshot if something goes wrong when making it (e.g., server is restarted); in particular,
       if it is too big (as defined by taking too long, say).  Set property in above table if this happens.
-
-- [ ] (0:30?) something different -- fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
 
 
 ---
@@ -200,11 +198,15 @@ Stage 5: New Stuff that Builds on Snapshots
       when user (who must be logged in) visits this URL, they will open that project and the
       given file in the project, assuming they have appropriate permission to do so.
 - [ ] client: read-only view of a file in a project.
+- [ ] (1:00?) change bup ls to use fuse to get full metainfo:
+        time mkdir fuse; BUP_DIR=. bup fuse fuse; ls -lh fuse/master/latest/; fusermount -u fuse; rmdir fuse
 
 
 
 ----
 
+
+- [ ] (0:30?) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
 
 - [ ] (1:00?) snap: implement locking so that if two snap servers try to make a snapshot of a project at the same time... only one does and the other waits.
 
