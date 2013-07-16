@@ -292,3 +292,20 @@ exports.uniquify_string = (s) ->
             seen_already[c] = true
     return t
 
+
+# Return string t=s+'\n'*k so that t ends in at least n newlines.
+# Returns s itself (so no copy made) if s already ends in n newlines (a common case).
+### -- not used
+exports.ensure_string_ends_in_newlines = (s, n) ->
+    j = s.length-1
+    while j >= 0 and j >= s.length-n and s[j] == '\n'
+        j -= 1
+    # Now either j = -1 or s[j] is not a newline (and it is the first character not a newline from the right).
+    console.log(j)
+    k = n - (s.length - (j + 1))
+    console.log(k)
+    if k == 0
+        return s
+    else
+        return s + Array(k+1).join('\n')   # see http://stackoverflow.com/questions/1877475/repeat-character-n-times
+###

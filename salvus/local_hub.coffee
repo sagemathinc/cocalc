@@ -200,7 +200,7 @@ class ConsoleSessions
                             # we are getting a large burst of output at once
                             # DISABLED -- (1) send control-c -- maybe it will help
                             # console_socket.write(String.fromCharCode(3))
-                            
+
                             # (2) and ignore more data
                             client_socket.write('[...]')
                             return

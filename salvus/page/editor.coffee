@@ -963,7 +963,7 @@ class CodeMirrorEditor extends FileEditor
                 matchBrackets   : opts.match_brackets
                 lineWrapping    : opts.line_wrapping
                 extraKeys       : extraKeys
-                cursorScrollMargin : 50
+                cursorScrollMargin : 100
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings

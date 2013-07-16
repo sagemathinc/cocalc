@@ -1,209 +1,36 @@
-overall goal -- snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+- [x] (1:30?) (0:58) worksheet: force space at the bottom of a worksheet
+      - make it so the formatter (or local hub?) ensures that there is space
+      - use this option too: #cursorScrollMargin: 50
 
-- [x] (3:00?) (4:00) make implementation plan
+- [ ] (0:30?) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
 
-     Have bup archives:
+- [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
 
-              bup/39e53e00-469a-4d4a-9f1c-6a579e88a265/
-              bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/
-              ...
-              bup/a835a7a5-508c-44a9-90d2-158b9f07db87/
+- [ ] (1:00?) make interact functions callable
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
+- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
+- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 
-     and a file
 
-              bup/active
-
-     that contains the one line giving the uuid of the active bup repo.
-
-              a835a7a5-508c-44a9-90d2-158b9f07db87
-
-     The "bup/active" bup archive is the one used for all writes.
-     Some reads and indexing happens with the other archivies.
-
-     On startup, if there is no bup/active file or the repo it refers to doesn't exist, then a new repo is generated.
-
-     SYNC: Any snap server could rsync out a newer version of "bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/" (say) at any time.
-     When it does this, the local snap server has to update to know what new snapshots are stored there.
-     When it does the rsync to update it is critical that it copy over all the packfiles  first, *then* copy over the new refs/heads/master,
-     otherwise the archive would be temporarily unreadable.
-     Periodically the local snap server will scan the refs/heads/master, and if it changes then it will update its local index.
-     This way the local active archive can be made highly available to other servers regularly, i.e., the newest backups are available
-     from several other servers.
+- [ ] (2:00?) snap/hub: code to un-deploy projects that have been inactive for a while.
 
 
 ---
 
-Stage 1: Highly scalable and fast
-
-- [x] (0:10?) (0:13) snap: alter database schema table to add new column `repo_id` and an index on it.
-
-        alter table snap_commits add repo_id uuid;
-
-        CREATE INDEX ON snap_commits(repo_id);  // not used yet, so not making it yet.
-
-        ALTER TABLE snap_commits DROP dummy;    // This doesn't work yet!  It will when I upgrade to a newer cassandra.
-
-- [x] (1:00?) (1:51) determine steps to manually change an existing repo to new structure and do it locally (record):
-      * stop snap server
-
-           s.stop('snap')
-
-      * change filesystem:
-
-           In Python:   import uuid; str(uuid.uuid4())
-
-             cd /mnt/snap/snap0/
-             mv bup c57141ff-7ba8-4d8d-9877-fe3c743f46ca
-             mkdir bup
-             mv c57141ff-7ba8-4d8d-9877-fe3c743f46ca bup/
-             echo "c57141ff-7ba8-4d8d-9877-fe3c743f46ca" > bup/active
-
-      * update database -- so that existing commits all have `repo_id= above uuid"
-
-             command line: 'nodetool snapshot'
-
-             in ipython:
-
-             import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['localhost'])
-             cassandra.set_nodes(['localhost'])
-             cassandra.july14_snap_commits_update("23e8d7ee-0ce5-43d7-9746-ee1f92e0e2cf", "c57141ff-7ba8-4d8d-9877-fe3c743f46ca")
-
-
-- [x] (1:30?) (1:30) change query protocol and implementation to also send and receive the `repo_id`; and write `bup_dir`
-          function in snap.coffee that uses the new structure, and change all bup calls to use it.
-- [x] (1:30?) (1:03) test and debug above changes; write code to initialize a new bup archive and active pointing at it.
-- [x] (0:15?) (0:01) make sure "dummy" field of `snap_commits` not used anymore in code.
-
-
-- [x] (1:00?) (2:00) stage 1 snap update -- deploy and test on cloud.sagemath
-      x- update code on web1, cassandra1
-      x- make snapshot
-      x- stop snap server
-      x- alter db schemas
-
-        import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['10.1.1.2'])
-        cassandra.july14_snap_commits_update("61a7d705-8c7d-47a5-ab10-2f62de36bc6b", "00bf485a-ff27-4940-aaf0-da0cf7957ffe")
-
-      x - change filesystem
-      x - update code on web1-4 !
-            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.1.3:salvus; ./make_coffee"
-
-      - update database  <--- in progress on cloud (will take about 6 hours (?))
-
-      This is taking too long, so I'm trying a different approach:
-
-        cqlsh:salvus> copy snap_commits to 'snap_commits'  ;
-        55183 rows exported in 55.797 seconds.
-
-        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits |wc -l
-        13854
-        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits > good_commits
-        salvus@web1:~$ wc -l good_commits
-        13854 good_commits
-        salvus@web1:~$ replace ,,, ,00bf485a-ff27-4940-aaf0-da0cf7957ffe, good_commits
-
-        cqlsh:salvus> drop table snap_commits
-        cqlsh:salvus> # paste in code to make table from scratch
-        cqlsh:salvus> COPY snap_commits (server_id,project_id,"timestamp",repo_id,size) FROM 'good_commits'
-        13854 rows imported in 28.201 seconds.
-
-      x - restart hub and snap and test:
-            s.restart('hub'); s.restart("snap")
-
-      x - once it is working, delete "active" file, and see that it starts a new repo, which is fast.
-
-
----
-
-Stage 2: Robustness
-
-- [x] (0:30?) (0:10) trash can at right of screen often not visible.
-
-- [x] (0:15?) (0:05) remove (comment out) the fsck stuff, since we're going to store the data on multiple
-        machines for robustness, and this fsck stuff is never useful, but is very slow.
-
-- [x] (1:00?) (2:48+) write locking code so I can run multiple snap servers in parallel without corruption.
-      We *must* make the lock on the filesystem of the remote account, not using the db, because the db
-      is not instantly consistent.
-
-Lock functionality:
-
-1. check if there is a file .bup/lock, and if so read it:
-       {server_id:?,  expire:?}
-
-        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lock
-        {server_id:?,  expire:?}
-        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lockx
-        cat: .bup/lockx: No such file or directory
-
-2. if the file is there and the `expire` timestamp has not passed, wait until after
-   that timestamp to try again (do other backups)
-
-3. create .bup/lock with contents: `{server_id:?,  expire:?}`
-   where expire is maybe 20 minutes in the future (?) -- whatever the max time is on making backups.
-
-        ssh XqT8YljQ@localhost "echo '{server_id:blah,  expire:blah}' > .bup/lock"
-
-4. wait 1 second, then check again to see if .bup/lock is exactly what we created.  If not, another bup server
-tried to write to .bup/lock at the same time, so go to 1.
-
-        ssh XqT8YljQ@localhost "cat .bup/lock"
-
-5. make the backup exactly as usual.
-
-6. delete .bup/lock
-
-        ssh XqT8YljQ@localhost "rm -f .bup/lock"
-
-
-- [x] (0:45?) (0:22) add property to projects database table `snapshots_disabled`, which can be one of:
-        true = snapshots disabled because a problem occurred
-        null/false = snapshots are not disabled
-
-            alter table projects add snapshots_disabled boolean;
-            create index on projects(snapshots_disabled);
-
-      Change snap to consult this entry before making a snapshot.
-      Index this so we can easily check to see all projects with snapshots disabled, if/when this happens.
-
-- [x] (1:30?) (1:18) snap: make it possible to roll back the snapshot if something goes wrong when making it (e.g., server is restarted); in particular,
-      if it is too big (as defined by taking too long, say).  Set property in above table if this happens.
-
-- [x] (0:20?) (0:06) make `snap_interval` configurable through admin.py
-
-- [x] (0:45?) (1:32) update code on cloud1, snap1-4 on storm (then cloud), update services, and start 4 snap servers going.
-
-        # 4 = number of snap servers; 60 = average time between snapshot somewhere.
-        [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
-
-
-            ssh 10.2.1.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
-            ssh 10.2.2.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
-            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
-
-            ssh 10.1.2.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
-            ssh 10.1.3.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
-            ssh 10.1.4.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
-
-
-        x Improve how rsync to bsd.math works for backups, to backup all snaps (not just web1).
-
----
-Stage 3: Highly available
+Snap Stage 3: Highly available
 
 - [ ] (1:30?) write code to rsync out a specic bup repo to another specific snap server, then
       update the `snap_commits` table with the latest updates.  This update will be
       done by the snap server that is pushing out the repo; will have to add an index
       on a column to the db.
-- [ ] (0:45?) write code to automatically sync out active repo every so often (?), and also
-      when making a new active repo.
+
+- [ ] (1:30?) write code to automatically sync out active repo every so often (?), and also
+      when making a new active repo (by filling in database stuff)
 
 ---
 
-Stage 4: Overall scalability
-
-- [ ] (1:30?) hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
-- [ ] (1:30?) hub: code to un-deploy projects that have been inactive for a while.
 
 ---
 Stage 5: New Stuff that Builds on Snapshots
@@ -224,7 +51,12 @@ Stage 5: New Stuff that Builds on Snapshots
 ----
 
 
-- [ ] (0:30?) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
+- [ ] (1:00?) snap--  write code to switch to automatically new bup repo in a snap when something happens:
+           - but WHAT?  I will wait and watch to see how to set this up:
+                - time to create bup ls cache.
+                - number of commits
+                - total size of repo.
+           - switching is as simple as removing the file "active".
 
 - [ ] (1:00?) snap: implement locking so that if two snap servers try to make a snapshot of a project at the same time... only one does and the other waits.
 
@@ -266,25 +98,12 @@ we will have to use fuse with the new metadata support.
 - [ ] (1:30?) upgrade to cassandra 1.2.6: <http://www.datastax.com/documentation/cassandra/1.2/index.html#cassandra/install/installDeb_t.html>
 
 - [ ] (0:30?) add link to http://codemirror.net/demo/theme.html
+
 - [ ] (1:00?) terminal -- fact control-shift-minus works in emacs codemirror mode (in app), so it must be possible to intercept it in javascript app for chrome after all(?)
-- [ ] (1:30?) worksheet: force space at the bottom of a worksheet
-      - make it so the formatter (or local hub?) ensures that there is space
-      - use this option too: #cursorScrollMargin: 50
 
 - [ ] (0:30?) account settings: move autosave to editor settings, in a backwards compatible way.
 - [ ] (0:30?) account settings: move evaluate_key to editor settings, in a backwards compatible way.
 
-- [ ] (1:00?) make interact functions callable
-
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
-- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
-
-- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
-
-- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
-
-- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 - [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
 
 
@@ -3330,3 +3149,195 @@ WHY?  Ideas:
 I disabled all but web1's snap, and it works fine for a long, long time under heavy use.
 Also, there is a lot on the mailing lists about multiple bups not working.
 
+overall goal -- snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+
+- [x] (3:00?) (4:00) make implementation plan
+
+     Have bup archives:
+
+              bup/39e53e00-469a-4d4a-9f1c-6a579e88a265/
+              bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/
+              ...
+              bup/a835a7a5-508c-44a9-90d2-158b9f07db87/
+
+     and a file
+
+              bup/active
+
+     that contains the one line giving the uuid of the active bup repo.
+
+              a835a7a5-508c-44a9-90d2-158b9f07db87
+
+     The "bup/active" bup archive is the one used for all writes.
+     Some reads and indexing happens with the other archivies.
+
+     On startup, if there is no bup/active file or the repo it refers to doesn't exist, then a new repo is generated.
+
+     SYNC: Any snap server could rsync out a newer version of "bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/" (say) at any time.
+     When it does this, the local snap server has to update to know what new snapshots are stored there.
+     When it does the rsync to update it is critical that it copy over all the packfiles  first, *then* copy over the new refs/heads/master,
+     otherwise the archive would be temporarily unreadable.
+     Periodically the local snap server will scan the refs/heads/master, and if it changes then it will update its local index.
+     This way the local active archive can be made highly available to other servers regularly, i.e., the newest backups are available
+     from several other servers.
+
+
+---
+
+Stage 1: Highly scalable and fast
+
+- [x] (0:10?) (0:13) snap: alter database schema table to add new column `repo_id` and an index on it.
+
+        alter table snap_commits add repo_id uuid;
+
+        CREATE INDEX ON snap_commits(repo_id);  // not used yet, so not making it yet.
+
+        ALTER TABLE snap_commits DROP dummy;    // This doesn't work yet!  It will when I upgrade to a newer cassandra.
+
+- [x] (1:00?) (1:51) determine steps to manually change an existing repo to new structure and do it locally (record):
+      * stop snap server
+
+           s.stop('snap')
+
+      * change filesystem:
+
+           In Python:   import uuid; str(uuid.uuid4())
+
+             cd /mnt/snap/snap0/
+             mv bup c57141ff-7ba8-4d8d-9877-fe3c743f46ca
+             mkdir bup
+             mv c57141ff-7ba8-4d8d-9877-fe3c743f46ca bup/
+             echo "c57141ff-7ba8-4d8d-9877-fe3c743f46ca" > bup/active
+
+      * update database -- so that existing commits all have `repo_id= above uuid"
+
+             command line: 'nodetool snapshot'
+
+             in ipython:
+
+             import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['localhost'])
+             cassandra.set_nodes(['localhost'])
+             cassandra.july14_snap_commits_update("23e8d7ee-0ce5-43d7-9746-ee1f92e0e2cf", "c57141ff-7ba8-4d8d-9877-fe3c743f46ca")
+
+
+- [x] (1:30?) (1:30) change query protocol and implementation to also send and receive the `repo_id`; and write `bup_dir`
+          function in snap.coffee that uses the new structure, and change all bup calls to use it.
+- [x] (1:30?) (1:03) test and debug above changes; write code to initialize a new bup archive and active pointing at it.
+- [x] (0:15?) (0:01) make sure "dummy" field of `snap_commits` not used anymore in code.
+
+
+- [x] (1:00?) (2:00) stage 1 snap update -- deploy and test on cloud.sagemath
+      x- update code on web1, cassandra1
+      x- make snapshot
+      x- stop snap server
+      x- alter db schemas
+
+        import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['10.1.1.2'])
+        cassandra.july14_snap_commits_update("61a7d705-8c7d-47a5-ab10-2f62de36bc6b", "00bf485a-ff27-4940-aaf0-da0cf7957ffe")
+
+      x - change filesystem
+      x - update code on web1-4 !
+            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.1.3:salvus; ./make_coffee"
+
+      - update database  <--- in progress on cloud (will take about 6 hours (?))
+
+      This is taking too long, so I'm trying a different approach:
+
+        cqlsh:salvus> copy snap_commits to 'snap_commits'  ;
+        55183 rows exported in 55.797 seconds.
+
+        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits |wc -l
+        13854
+        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits > good_commits
+        salvus@web1:~$ wc -l good_commits
+        13854 good_commits
+        salvus@web1:~$ replace ,,, ,00bf485a-ff27-4940-aaf0-da0cf7957ffe, good_commits
+
+        cqlsh:salvus> drop table snap_commits
+        cqlsh:salvus> # paste in code to make table from scratch
+        cqlsh:salvus> COPY snap_commits (server_id,project_id,"timestamp",repo_id,size) FROM 'good_commits'
+        13854 rows imported in 28.201 seconds.
+
+      x - restart hub and snap and test:
+            s.restart('hub'); s.restart("snap")
+
+      x - once it is working, delete "active" file, and see that it starts a new repo, which is fast.
+
+
+---
+
+Stage 2: Robustness
+
+- [x] (0:30?) (0:10) trash can at right of screen often not visible.
+
+- [x] (0:15?) (0:05) remove (comment out) the fsck stuff, since we're going to store the data on multiple
+        machines for robustness, and this fsck stuff is never useful, but is very slow.
+
+- [x] (1:00?) (2:48+) write locking code so I can run multiple snap servers in parallel without corruption.
+      We *must* make the lock on the filesystem of the remote account, not using the db, because the db
+      is not instantly consistent.
+
+Lock functionality:
+
+1. check if there is a file .bup/lock, and if so read it:
+       {server_id:?,  expire:?}
+
+        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lock
+        {server_id:?,  expire:?}
+        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lockx
+        cat: .bup/lockx: No such file or directory
+
+2. if the file is there and the `expire` timestamp has not passed, wait until after
+   that timestamp to try again (do other backups)
+
+3. create .bup/lock with contents: `{server_id:?,  expire:?}`
+   where expire is maybe 20 minutes in the future (?) -- whatever the max time is on making backups.
+
+        ssh XqT8YljQ@localhost "echo '{server_id:blah,  expire:blah}' > .bup/lock"
+
+4. wait 1 second, then check again to see if .bup/lock is exactly what we created.  If not, another bup server
+tried to write to .bup/lock at the same time, so go to 1.
+
+        ssh XqT8YljQ@localhost "cat .bup/lock"
+
+5. make the backup exactly as usual.
+
+6. delete .bup/lock
+
+        ssh XqT8YljQ@localhost "rm -f .bup/lock"
+
+
+- [x] (0:45?) (0:22) add property to projects database table `snapshots_disabled`, which can be one of:
+        true = snapshots disabled because a problem occurred
+        null/false = snapshots are not disabled
+
+            alter table projects add snapshots_disabled boolean;
+            create index on projects(snapshots_disabled);
+
+      Change snap to consult this entry before making a snapshot.
+      Index this so we can easily check to see all projects with snapshots disabled, if/when this happens.
+
+- [x] (1:30?) (1:18) snap: make it possible to roll back the snapshot if something goes wrong when making it (e.g., server is restarted); in particular,
+      if it is too big (as defined by taking too long, say).  Set property in above table if this happens.
+
+- [x] (0:20?) (0:06) make `snap_interval` configurable through admin.py
+
+- [x] (0:45?) (1:32) update code on cloud1, snap1-4 on storm (then cloud), update services, and start 4 snap servers going.
+
+        # 4 = number of snap servers; 60 = average time between snapshot somewhere.
+        [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
+
+
+            ssh 10.2.1.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+            ssh 10.2.2.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+
+            ssh 10.1.2.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+            ssh 10.1.3.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+            ssh 10.1.4.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+
+
+        x Improve how rsync to bsd.math works for backups, to backup all snaps (not just web1).
+
+---
+1
