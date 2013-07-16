@@ -545,14 +545,18 @@ get_rollback_info = (opts) ->
         cb      : required   # opts.cb(err, rollback_info)
 
     rollback_info = {bup_dir:opts.bup_dir}
+    master = "#{opts.bup_dir}/refs/heads/master"
     async.series([
-        (cb) ->
-            fs.readFile "#{opts.bup_dir}/refs/heads/master", (err, data) ->
-                if err
-                    cb(err)
-                else
-                    rollback_info.master = data.toString()
-                    cb()
+        (cb) -> 
+            fs.exists master, (exists) ->
+                if not exists
+                    cb(); return
+                fs.readFile master, (err, data) ->
+                    if err
+                        cb(err)
+                    else
+                        rollback_info.master = data.toString()
+                        cb()
         (cb) ->
             fs.readdir "#{opts.bup_dir}/objects/pack", (err, files) ->
                 if err
@@ -568,11 +572,17 @@ rollback_last_save = (opts) ->
     opts = defaults opts,
         rollback_info : required
         cb            : required # opts.cb(err)
+
     info = opts.rollback_info
+
     winston.debug("Rolling back last commit attempt in '#{info.bup_dir}'")
+
     async.series([
         (cb) ->
-            fs.writeFile "#{info.bup_dir}/refs/heads/master", info.master, cb
+            if info.master?
+                fs.writeFile "#{info.bup_dir}/refs/heads/master", info.master, cb
+            else
+                cb()
         (cb) ->
             fs.readdir "#{info.bup_dir}/objects/pack", (err, files) ->
                 if err
