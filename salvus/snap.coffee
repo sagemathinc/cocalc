@@ -533,7 +533,9 @@ remove_lock = (opts) ->
     misc_node.execute_code
         command : 'ssh'
         args    : [user, 'rm -f .bup/lock']
-        cb      : opts.cb
+        cb      : (err) ->
+            # err here is non-fatal; lock has a timeout, etc. 
+	    opts.cb()
 
 ##
 # Rolling back problematic commits
@@ -543,14 +545,18 @@ get_rollback_info = (opts) ->
         cb      : required   # opts.cb(err, rollback_info)
 
     rollback_info = {bup_dir:opts.bup_dir}
+    master = "#{opts.bup_dir}/refs/heads/master"
     async.series([
-        (cb) ->
-            fs.readFile "#{opts.bup_dir}/refs/heads/master", (err, data) ->
-                if err
-                    cb(err)
-                else
-                    rollback_info.master = data.toString()
-                    cb()
+        (cb) -> 
+            fs.exists master, (exists) ->
+                if not exists
+                    cb(); return
+                fs.readFile master, (err, data) ->
+                    if err
+                        cb(err)
+                    else
+                        rollback_info.master = data.toString()
+                        cb()
         (cb) ->
             fs.readdir "#{opts.bup_dir}/objects/pack", (err, files) ->
                 if err
@@ -566,11 +572,17 @@ rollback_last_save = (opts) ->
     opts = defaults opts,
         rollback_info : required
         cb            : required # opts.cb(err)
+
     info = opts.rollback_info
+
     winston.debug("Rolling back last commit attempt in '#{info.bup_dir}'")
+
     async.series([
         (cb) ->
-            fs.writeFile "#{info.bup_dir}/refs/heads/master", info.master, cb
+            if info.master?
+                fs.writeFile "#{info.bup_dir}/refs/heads/master", info.master, cb
+            else
+                cb()
         (cb) ->
             fs.readdir "#{info.bup_dir}/objects/pack", (err, files) ->
                 if err
@@ -681,7 +693,7 @@ monitor_snapshot_queue = () ->
                     bup_dir : bup_active
                     cb      : (err, info) ->
                         rollback_info = info
-                        fs.writeFile rollback_file, misc.to_json(rollback_info), cb
+                        cb(err)
 
             # get deployed location of project (which can change at any time!)
             (cb) ->
@@ -703,8 +715,10 @@ monitor_snapshot_queue = () ->
                     cb       : (err) ->
                         if err
                             retry_later = true
-                            # put back in the queue to try again later
-                            snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
+                            winston.debug("Couldn't lock #{project_id}, so put back in the queue to try again later (in 30 seconds)")
+                            f = () ->
+                                snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
+                            setTimeout(f, 30000)  
                         c(err)
 
             # create index
@@ -716,6 +730,10 @@ monitor_snapshot_queue = () ->
                     cb   : (err) ->
                         winston.debug("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
+
+            # write rollback file
+            (cb) ->
+                fs.writeFile rollback_file, misc.to_json(rollback_info), cb
 
             # save
             (cb) ->
@@ -1267,7 +1285,7 @@ age_of_most_recent_snapshot_in_seconds = (id) ->
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
     project_ids = undefined
-    winston.info("snapshot_active_projects...")
+    winston.debug("checking for recently modified project.") 
     async.series([
         (cb) ->
             database.select
@@ -1278,19 +1296,19 @@ snapshot_active_projects = (cb) ->
                     project_ids = (r[0] for r in results)
                     cb(err)
         (cb) ->
-            winston.info("recently modified projects: #{misc.to_json(project_ids)}")
+            winston.debug("recently modified projects: #{misc.to_json(project_ids)}")
 
             v = []
             for id in project_ids
                 if age_of_most_recent_snapshot_in_seconds(id) >= program.snap_interval
                     v.push(id)
-            winston.info("projects needing snapshots: #{misc.to_json(v)}")
+            winston.debug("projects needing snapshots: #{misc.to_json(v)}")
             snapshot_projects
                 project_ids : v
                 cb          : cb
     ], (err) ->
         if err
-            winston.info("Error snapshoting active projects -- #{err}")
+            winston.debug("Error snapshoting active projects -- #{err}")
             # TODO: We need to trigger something more drastic somehow at some point...?
 
         setTimeout(snapshot_active_projects, 10000)  # check every 10 seconds
