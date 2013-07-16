@@ -652,7 +652,7 @@ monitor_snapshot_queue = () ->
             (cb) ->
                 winston.debug("disk usage before save")
                 misc_node.disk_usage bup_active, (err, usage) ->
-                    winston.debug("usage related in: #{err}, #{usage}")
+                    winston.debug("usage: #{err}, #{usage} bytes")
                     size_before = usage
                     cb(err)
 
