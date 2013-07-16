@@ -8,7 +8,7 @@
 # DC0:RAC0   128.95.242.135 cloud1   # 06salvus
 10.1.1.1 tower     kvm-host   admin edge  cloud1    # 64gb ram; 16 cores; 6tb disk
 10.2.1.2 tower     kvm        cassandra   storm-cassandra1
-10.2.1.3 tower     kvm        hub hub1 nginx snap   storm-web1
+10.2.1.3 tower     kvm        hub hub1 nginx snap1 snap   storm-web1
 10.2.1.4 tower     kvm        compute     storm-compute1a
 
 # DC0:RAC0   128.95.242.137 cloud2   # 07salvus
