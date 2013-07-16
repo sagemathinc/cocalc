@@ -816,6 +816,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
     pad_bottom_with_newlines: (n) =>
         cm = @codemirror
         m = cm.lineCount()
+        if m <= 13  # don't bother until worksheet gets big
+            return
         j = m-1
         while j >= 0 and j >= m-n and cm.getLine(j).length == 0
             j -= 1
