@@ -505,7 +505,8 @@ class Hub(Process):
 ####################
 class Snap(Process):
     def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
-                 snap_dir=None, logfile=None, pidfile=None, resend_all_commits=False):
+                 snap_dir=None, logfile=None, pidfile=None, resend_all_commits=False,
+                 snap_interval=None):
         if pidfile is None:
             pidfile = os.path.join(PIDS, 'snap-%s.pid'%id)
         if logfile is None:
@@ -513,10 +514,8 @@ class Snap(Process):
 
         if snap_dir is None:
             snap_dir = os.path.join(DATA, 'snap-%s'%id)
-        Process.__init__(self, id, name='snap', port=0,
-                         pidfile = pidfile,
-                         logfile = logfile,
-                         start_cmd = [os.path.join(PWD, 'snap'),
+
+        start_cmd = [os.path.join(PWD, 'snap'),
                                       'start',
                                       '--host', host,
                                       '--database_nodes', monitor_database,
@@ -524,7 +523,14 @@ class Snap(Process):
                                       '--keyspace', keyspace,
                                       '--snap_dir', snap_dir,
                                       '--pidfile', pidfile,
-                                      '--logfile', logfile],
+                                      '--logfile', logfile]
+        if snap_interval is not None:
+            start_cmd += ["--snap_interval", str(snap_interval)]
+
+        Process.__init__(self, id, name='snap', port=0,
+                         pidfile = pidfile,
+                         logfile = logfile,
+                         start_cmd = start_cmd,
                          stop_cmd   = [os.path.join(PWD, 'snap'), 'stop'],
                          reload_cmd = [os.path.join(PWD, 'snap'), 'restart'])
 

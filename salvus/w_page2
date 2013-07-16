@@ -1,2 +1,2 @@
 . salvus-env
-watch2  page/*.coffee ./make_page2
+watch2  client.coffee message.coffee misc.coffee  page/*.coffee ./make_page2

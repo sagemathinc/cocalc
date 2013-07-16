@@ -242,7 +242,7 @@ Editor for files in a project
 .sagews-output {
     padding: 6px;
     padding-right: 0px;
-    background-color: #f9f9f9;
+    /* background-color: #f9f9f9; */ /* this messes up codemirror themes */
     margin: 0px;  /* WARNING: Must be 0 for codemirror 3.14 ! */
     border:1px solid #ddd;
     border-radius:5px;

@@ -111,6 +111,8 @@ CREATE TABLE accounts (
     autosave           int,
     terminal           varchar, // JSON
 
+    editor_settings    varchar, // JSON
+
     enable_tooltips    boolean
 );
 
@@ -218,7 +220,8 @@ CREATE TABLE projects (
      account_id       uuid,          // id of the owner of this project
      title            varchar,
      description      varchar,
-     public           boolean,  // whether or not the project is visible to everybody in the world
+     public           boolean,   // whether or not the project is visible to everybody in the world
+     snapshots_disabled boolean, // if true, don't make snapshots (e.g., because something is weird)
 
      last_edited      timestamp,// timestamp of last modification of the project
 
@@ -230,6 +233,8 @@ CREATE TABLE projects (
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 );
+
+CREATE INDEX ON projects(snapshots_disabled);   
 
 CREATE TABLE project_users (
      project_id       uuid,
@@ -261,21 +266,24 @@ CREATE TABLE recently_modified_projects (
    very small ttl (e.g., 15 seconds) that is periodically updated. */
 CREATE TABLE snap_servers (
     id         uuid,
-    host       varchar,     /* hostname */
-    port       int,         /* integer port */
-    key        varchar,     /* random string needed to unlock tcp connection */
-    size       int,         /* total size in kilobytes of the objects/pack directory of the archive */
+    host       varchar,    /* hostname */
+    port       int,        /* integer port */
+    key        varchar,    /* random string needed to unlock tcp connection */
+    size       int,        /* total size in kilobytes of the objects/pack directory of the archive */
     PRIMARY KEY(id)
 );
 
 CREATE TABLE snap_commits (
-    server_id  uuid,       /* matches the id of snap_servers table above */
+    server_id  uuid,       /* id into snap_servers table above */
     project_id uuid,       /* id of the project */
     timestamp  varchar,    /* date of commit, in the bup string format */
     size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
-    dummy      boolean,    /* used if we want to enter a commit but don't know the size and don't want to change the size */
+    repo_id    uuid,       /* id of the bup repo that contains this snapshot */
     PRIMARY KEY(server_id, project_id, timestamp)
 );
+
+CREATE INDEX ON snap_commits(repo_id);
+
 
 /* snap_ls_cache entries should always be inserted with a ttl (e.g., a few days) */
 CREATE TABLE snap_ls_cache (
@@ -358,7 +366,7 @@ CREATE TABLE admin_log (
 ////////////////////
 // Server stats
 ///////////////////
- 
+
 CREATE TABLE stats (
     time timestamp PRIMARY KEY,
     timestamp varchar,

@@ -204,11 +204,11 @@ exports.connect_to_locked_socket = (opts) ->
         winston.debug("misc_node: connected, now sending secret token")
         socket.write(token)
 
-    # This is called in case there is an error trying to make the connection, e.g., "connection refused". 
+    # This is called in case there is an error trying to make the connection, e.g., "connection refused".
     socket.on "error", (err) =>
         if timer?
             clearTimeout(timer)
-        cb(err) 
+        cb(err)
 
 
 # Compute a uuid v4 from the Sha-1 hash of data.
@@ -398,6 +398,7 @@ exports.execute_code = (opts) ->
         if tmpfilename?
             fs.unlink(tmpfilename)
 
+        winston.debug("finished exec of #{opts.command}")
         if not opts.err_on_exit and ran_code
             # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
             opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})

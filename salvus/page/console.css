@@ -48,6 +48,7 @@
     font-family: droid-sans-mono;  /* really set in console.coffee, overriding this! */
     padding: 1ex;
     margin: 0px;
+    white-space: nowrap;    /* critical at least for firefox and IE */
 }
 
 .salvus-console-cursor-blur  {
