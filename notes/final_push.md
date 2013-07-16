@@ -171,10 +171,22 @@ tried to write to .bup/lock at the same time, so go to 1.
 
 - [x] (0:20?) (0:06) make `snap_interval` configurable through admin.py
 
-- [ ] (0:45?) update code on cloud1, snap1-4 on storm (then cloud), update services, and start 4 snap servers going.
+- [x] (0:45?) (1:32) update code on cloud1, snap1-4 on storm (then cloud), update services, and start 4 snap servers going.
 
         # 4 = number of snap servers; 60 = average time between snapshot somewhere.
         [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
+
+
+            ssh 10.2.1.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+            ssh 10.2.2.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+
+            ssh 10.1.2.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+            ssh 10.1.3.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+            ssh 10.1.4.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+
+
+        x Improve how rsync to bsd.math works for backups, to backup all snaps (not just web1).
 
 ---
 Stage 3: Highly available

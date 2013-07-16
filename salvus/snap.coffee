@@ -534,7 +534,7 @@ remove_lock = (opts) ->
         command : 'ssh'
         args    : [user, 'rm -f .bup/lock']
         cb      : (err) ->
-            # err here is non-fatal; lock has a timeout, etc. 
+            # err here is non-fatal; lock has a timeout, etc.
 	    opts.cb()
 
 ##
@@ -547,7 +547,7 @@ get_rollback_info = (opts) ->
     rollback_info = {bup_dir:opts.bup_dir}
     master = "#{opts.bup_dir}/refs/heads/master"
     async.series([
-        (cb) -> 
+        (cb) ->
             fs.exists master, (exists) ->
                 if not exists
                     cb(); return
@@ -718,7 +718,7 @@ monitor_snapshot_queue = () ->
                             winston.debug("Couldn't lock #{project_id}, so put back in the queue to try again later (in 30 seconds)")
                             f = () ->
                                 snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
-                            setTimeout(f, 30000)  
+                            setTimeout(f, 30000)
                         c(err)
 
             # create index
@@ -1285,7 +1285,7 @@ age_of_most_recent_snapshot_in_seconds = (id) ->
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
     project_ids = undefined
-    winston.debug("checking for recently modified project.") 
+    winston.debug("checking for recently modified project.")
     async.series([
         (cb) ->
             database.select
