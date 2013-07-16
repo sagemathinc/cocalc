@@ -1,6 +1,3 @@
-- [x] (1:30?) (0:58) worksheet: force space at the bottom of a worksheet
-      - make it so the formatter (or local hub?) ensures that there is space
-      - use this option too: #cursorScrollMargin: 50
 
 - [ ] (0:30?) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
 
@@ -3340,4 +3337,8 @@ tried to write to .bup/lock at the same time, so go to 1.
         x Improve how rsync to bsd.math works for backups, to backup all snaps (not just web1).
 
 ---
-1
+
+- [x] (1:30?) (1:22) worksheet: force space at the bottom of a worksheet
+      - make it so the formatter (or local hub?) ensures that there is space
+      - use this option too: #cursorScrollMargin: 50
+
