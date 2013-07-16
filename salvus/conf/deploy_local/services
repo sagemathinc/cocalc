@@ -12,7 +12,7 @@ localhost
 [hub]
 localhost {'keyspace':'test'}
 
-[snap] {'keyspace':'test', 'snap_dir':'/mnt/snap/snap0'}
+[snap] {'keyspace':'test', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':120}
 localhost
 
 # The only thing that runs as root is stunnel and haproxy, since

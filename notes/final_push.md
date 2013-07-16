@@ -169,6 +169,12 @@ tried to write to .bup/lock at the same time, so go to 1.
 - [x] (1:30?) (1:18) snap: make it possible to roll back the snapshot if something goes wrong when making it (e.g., server is restarted); in particular,
       if it is too big (as defined by taking too long, say).  Set property in above table if this happens.
 
+- [x] (0:20?) (0:06) make `snap_interval` configurable through admin.py
+
+- [ ] (0:45?) update code on cloud1, snap1-4 on storm (then cloud), update services, and start 4 snap servers going.
+
+        # 4 = number of snap servers; 60 = average time between snapshot somewhere.
+        [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
 
 ---
 Stage 3: Highly available
