@@ -1,9 +1,29 @@
+- Solve this problem:  https://mail.google.com/mail/ca/u/0/#inbox/13fe7ed868cd74a0
+    - importer for sage worksheets
+    - ability to publish
+
+- [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.
+
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[-1," "],[0,"\n- [ ] ("]],"start1":0,"start2":
+        0,"length1":9,"length2":8}],"shadow_version":2,"shadow_checksum":169729},{"edits":[{"diffs":[[0,"wn.\n\n-  "],[-1,"x"],[1,"["],[0,"] (
+        1:00?"]],"start1":244,"start2":244,"length1":17,"len...
+        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
+        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"40f7e658-a2c0-491a-b786-155b81939702","error":"Co
+        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- shadow version fr
+        om the future 2 > 1"}
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"s down.\n"],[1," "],[0,"\n- "],[-1,"["],[0
+        ," "],[1,"x"],[0,"] (1:00?"]],"start1":240,"start2":240,"length1":21,"length2":22}],"shadow_version":1,"shadow_checksum":169728},{"edi
+        ts":[{"diffs":[[0,"wn.\n"],[-1," "],[0,"\n- "],[1,"[...
+        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
+        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"b69f7e1e-b6f1-492f-a4c4-772b35aa0215","error":"Co
+        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- checksum mismatch
+         (169728 != 169730)"}
 
 - [ ] (0:30?) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
 
 - [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
 
-- [ ] (1:00?) make interact functions callable
+-  x] (1:00?) make interact functions callable
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
