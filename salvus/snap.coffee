@@ -533,7 +533,9 @@ remove_lock = (opts) ->
     misc_node.execute_code
         command : 'ssh'
         args    : [user, 'rm -f .bup/lock']
-        cb      : opts.cb
+        cb      : (err) ->
+            # err here is non-fatal; lock has a timeout, etc. 
+	    opts.cb()
 
 ##
 # Rolling back problematic commits
