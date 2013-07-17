@@ -1,9 +1,12 @@
 
-- [x] (1:00?) change the default permissions when new accounts are created so that home is not world readable
+- [x] (1:00?) (0:25) change the default permissions when new accounts are created so that home is not world readable
           - Change this line in /etc/login.defs:  `UMASK           077`
           - Change all existing permissions to not be world readable on 4 compute nodes: `chmod og-rwx *`
+- [x] (0:45?) (0:17) changing permissions broke the 1-line terminal :-(  FIXed -- I had chmod'd /tmp. Oops.
 
-- [ ] (0:45?) changing permissions broke the 1-line terminal :-(  FIX.
+- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
+
+- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
 
 - [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
 
@@ -141,10 +144,6 @@ we will have to use fuse with the new metadata support.
 - [ ] (0:30?) this interact doesn't work: interacts.geometry.unit_circle()
 
 - [ ] (1:00?) if connection to hub goes down that reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated.
-
-- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
-
-- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
 
 - [ ] (3:00?) fuse mount snapshot path so is accessable read only in term. (?)
 
