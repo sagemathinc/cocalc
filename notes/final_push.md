@@ -1,6 +1,19 @@
+
+- [x] (1:00?) change the default permissions when new accounts are created so that home is not world readable
+          - Change this line in /etc/login.defs:  `UMASK           077`
+          - Change all existing permissions to not be world readable on 4 compute nodes: `chmod og-rwx *`
+
+- [ ] (0:45?) changing permissions broke the 1-line terminal :-(  FIX.
+
+- [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
+
+- [ ] (1:30?) search filenames only -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe8775dac2a83b
+
 - Solve this problem:  https://mail.google.com/mail/ca/u/0/#inbox/13fe7ed868cd74a0
     - importer for sage worksheets
     - ability to publish
+
+- [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
 
 - [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.
 
@@ -133,6 +146,8 @@ we will have to use fuse with the new metadata support.
 
 - [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
 
+- [ ] (3:00?) fuse mount snapshot path so is accessable read only in term. (?)
+
 - [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
 
 - [ ] (1:30?) change cursor so it is configurable to be transparent or a vertical bar -- configurable (requested by Rob Beezer) - https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13fcf5dc2f951a26
@@ -218,8 +233,6 @@ xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repac
 
 
 - [ ] (8:00?) create a help system, answering questions in help.html
-
-- [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
 
 - [ ] (2:00?) quotas (10GB/project)
 
