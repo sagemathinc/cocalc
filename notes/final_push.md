@@ -1,5 +1,5 @@
 
-- [ ] (0:30?) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
+- [x] (0:30?) (0:17) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd     actually nothing to see here; I was completely confused.
 
 - [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
 
