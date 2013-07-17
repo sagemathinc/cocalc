@@ -1,9 +1,3 @@
-
-- [x] (1:00?) (0:25) change the default permissions when new accounts are created so that home is not world readable
-          - Change this line in /etc/login.defs:  `UMASK           077`
-          - Change all existing permissions to not be world readable on 4 compute nodes: `chmod og-rwx *`
-- [x] (0:45?) (0:17) changing permissions broke the 1-line terminal :-(  FIXed -- I had chmod'd /tmp. Oops.
-
 - [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
 
 - [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
@@ -34,8 +28,6 @@
         debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"b69f7e1e-b6f1-492f-a4c4-772b35aa0215","error":"Co
         deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- checksum mismatch
          (169728 != 169730)"}
-
-- [ ] (0:30?) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd
 
 - [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
 
@@ -3374,3 +3366,9 @@ tried to write to .bup/lock at the same time, so go to 1.
       - make it so the formatter (or local hub?) ensures that there is space
       - use this option too: #cursorScrollMargin: 50
 
+- [x] (0:30?) (0:17) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd     actually nothing to see here; I was completely confused.
+
+- [x] (1:00?) change the default permissions when new accounts are created so that home is not world readable
+          - Change this line in /etc/login.defs:  `UMASK           077`
+          - Change all existing permissions to not be world readable on 4 compute nodes: `chmod og-rwx *`
+- [x] (0:45?) (0:17) changing permissions broke the 1-line terminal :-(  FIXed -- I had chmod'd /tmp. Oops.
