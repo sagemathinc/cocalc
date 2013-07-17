@@ -1,9 +1,42 @@
 
 - [x] (0:30?) (0:17) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd     actually nothing to see here; I was completely confused.
 
+- [x] (1:00?) change the default permissions when new accounts are created so that home is not world readable
+          - Change this line in /etc/login.defs:  `UMASK           077`
+          - Change all existing permissions to not be world readable on 4 compute nodes: `chmod og-rwx *`
+
+- [ ] (0:45?) changing permissions broke the 1-line terminal :-(  FIX.
+
+- [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
+
+- [ ] (1:30?) search filenames only -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe8775dac2a83b
+
+- Solve this problem:  https://mail.google.com/mail/ca/u/0/#inbox/13fe7ed868cd74a0
+    - importer for sage worksheets
+    - ability to publish
+
+- [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
+
+- [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.
+
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[-1," "],[0,"\n- [ ] ("]],"start1":0,"start2":
+        0,"length1":9,"length2":8}],"shadow_version":2,"shadow_checksum":169729},{"edits":[{"diffs":[[0,"wn.\n\n-  "],[-1,"x"],[1,"["],[0,"] (
+        1:00?"]],"start1":244,"start2":244,"length1":17,"len...
+        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
+        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"40f7e658-a2c0-491a-b786-155b81939702","error":"Co
+        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- shadow version fr
+        om the future 2 > 1"}
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"s down.\n"],[1," "],[0,"\n- "],[-1,"["],[0
+        ," "],[1,"x"],[0,"] (1:00?"]],"start1":240,"start2":240,"length1":21,"length2":22}],"shadow_version":1,"shadow_checksum":169728},{"edi
+        ts":[{"diffs":[[0,"wn.\n"],[-1," "],[0,"\n- "],[1,"[...
+        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
+        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"b69f7e1e-b6f1-492f-a4c4-772b35aa0215","error":"Co
+        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- checksum mismatch
+         (169728 != 169730)"}
+
 - [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
 
-- [ ] (1:00?) make interact functions callable
+-  x] (1:00?) make interact functions callable
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
@@ -113,6 +146,8 @@ we will have to use fuse with the new metadata support.
 
 - [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
 
+- [ ] (3:00?) fuse mount snapshot path so is accessable read only in term. (?)
+
 - [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
 
 - [ ] (1:30?) change cursor so it is configurable to be transparent or a vertical bar -- configurable (requested by Rob Beezer) - https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13fcf5dc2f951a26
@@ -198,8 +233,6 @@ xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repac
 
 
 - [ ] (8:00?) create a help system, answering questions in help.html
-
-- [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
 
 - [ ] (2:00?) quotas (10GB/project)
 

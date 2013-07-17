@@ -21,6 +21,8 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
+   0. Change this line in /etc/login.defs:  "UMASK           077"
+
    1. ATLAS:
 
          apt-get install libatlas3gf-base liblapack-dev
