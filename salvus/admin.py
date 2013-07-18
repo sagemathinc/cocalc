@@ -1414,7 +1414,7 @@ class Services(object):
                      print ":-( Restarting %s"%ip
                      self.restart('hub',host=ip)
                      try:
-                         message = {'action':'restart', 'reason':'stopped responding to monitor'}
+                         message = {'action':'restart', 'reason':'stopped responding to monitor', 'ip':ip}
                          cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
                               {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
                      except Exception, msg:
