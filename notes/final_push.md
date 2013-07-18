@@ -1,3 +1,15 @@
+- [ ] (0:30?) stats -- number of snap servers up.
+- [ ] (0:30?) stats -- add field that shows number of active connections to each hub
+- [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
+
+---
+
+- [ ] (2:00?) (5am project) change vpn routing -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff2c1cff9ac8f1
+- [ ] (2:00?) make a fairly precise implementation plan for the next 6 weeks (July + August).
+- [ ] (0:30?) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator"
+
 - [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.
 
 debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"e6bf"],[1,"x"],[0,"︠\n"],[1,"@interact\ndef _(n=[0..len(t)-1]):\n
@@ -23,8 +35,6 @@ e to push diffsync changes from client (id=11c7c1f2-8bef-4313-80ef-a830050a0576)
          (169728 != 169730)"}
 
 
-- [ ] (1:00?) stats -- at field that shows number of active connections to each hub.
-
 - [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
 
 - [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
@@ -46,7 +56,6 @@ e to push diffsync changes from client (id=11c7c1f2-8bef-4313-80ef-a830050a0576)
 
 - [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
 
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
 - [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
@@ -3388,3 +3397,16 @@ tried to write to .bup/lock at the same time, so go to 1.
           - Change this line in /etc/login.defs:  `UMASK           077`
           - Change all existing permissions to not be world readable on 4 compute nodes: `chmod og-rwx *`
 - [x] (0:45?) (0:17) changing permissions broke the 1-line terminal :-(  FIXed -- I had chmod'd /tmp. Oops.
+
+
+- [x] `snap_commits` -- is the DB back?
+This query times out:
+
+        SELECT * FROM snap_commits WHERE project_id = 9268574e-315d-4840-b576-c9ff05f84562 and timestamp='2013-07-17-163946' allow filtering;
+
+However, I must change it to (1) query all snap servers (every so often), then do specific query:
+
+        select id from snap_servers;
+        SELECT * FROM snap_commits WHERE server_id in (1ce2577a-b065-4f70-870a-ae8395a15ffe,c8f7e17d-c4d9-4fb8-9df4-b147981d4364) and  project_id = 9268574e-315d-4840-b576-c9ff05f84562 and timestamp='2013-07-17-163946' ;
+
+this is massively better!
