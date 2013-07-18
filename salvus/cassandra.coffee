@@ -349,16 +349,17 @@ class exports.Cassandra extends EventEmitter
             timeout  : 3000
 
         @keyspace = opts.keyspace
-        @conn = new helenus.ConnectionPool(
+
+        @conn = new helenus.ConnectionPool
             hosts     :  opts.hosts
             keyspace  :  opts.keyspace
             timeout   :  opts.timeout
             cqlVersion: '3.0.0'
-        )
-        @conn.on('error', (err) =>
+
+        @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
             @emit('error', err)
-        )
+
 
         @conn.connect (err) =>
             opts.cb?(err, @)
@@ -1495,6 +1496,12 @@ class exports.Salvus extends exports.Cassandra
                     table : 'recently_modified_projects'
                     cb    : (err, val) =>
                         stats.active_projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'snap_servers'
+                    cb    : (err, val) =>
+                        stats.snap_servers = val
                         cb(err)
             (cb) =>
                 @update

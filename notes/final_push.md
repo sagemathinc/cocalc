@@ -1,4 +1,9 @@
-- [ ] (0:30?) stats -- number of snap servers up.
+
+- [x] (0:30?) (0:26) stats -- number of snap servers up.
+    alter table stats add snap_servers int;
+
+- [ ] (0:30?) `update_stats` function in database should also make a database entry with the computed stats; this might be nice to look at later.
+
 - [ ] (0:30?) stats -- add field that shows number of active connections to each hub
 - [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes

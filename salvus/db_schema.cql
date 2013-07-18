@@ -372,6 +372,7 @@ CREATE TABLE stats (
     timestamp varchar,
     accounts int,
     projects int,
-    active_projects int
+    active_projects int,
+    snap_servers int
 );
 
