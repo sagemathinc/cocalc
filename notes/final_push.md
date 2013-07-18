@@ -1,18 +1,11 @@
-- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
-
-- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
-
-- [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
-
-- [ ] (1:30?) search filenames only -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe8775dac2a83b
-
-- Solve this problem:  https://mail.google.com/mail/ca/u/0/#inbox/13fe7ed868cd74a0
-    - importer for sage worksheets
-    - ability to publish
-
-- [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
-
 - [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.
+
+debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"e6bf"],[1,"x"],[0,"︠\n"],[1,"@interact\ndef _(n=[0..len(t)-1]):\n
+   "],[0,"html(t["],[-1,"3"],[1,"n"],[0,"].ht"]],"start1":140,"start2":140,"length1":18,"length2":57}],"shadow_version":75,"shadow_checksum":8481}],"last_vers
+ion_...
+debug: client_diffsync; the clients are 11c7c1f2-8bef-4313-80ef-a830050a0576
+debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"c4b54934-7fb3-420c-8225-4cd78435befa","error":"CodeMirrorSession -- unabl
+e to push diffsync changes from client (id=11c7c1f2-8bef-4313-80ef-a830050a0576) -- reset -- shadow version from the future 75 > 0"}
 
         debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[-1," "],[0,"\n- [ ] ("]],"start1":0,"start2":
         0,"length1":9,"length2":8}],"shadow_version":2,"shadow_checksum":169729},{"edits":[{"diffs":[[0,"wn.\n\n-  "],[-1,"x"],[1,"["],[0,"] (
@@ -29,9 +22,30 @@
         deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- checksum mismatch
          (169728 != 169730)"}
 
+
+- [ ] (1:00?) stats -- at field that shows number of active connections to each hub.
+
+- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
+
+- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
+
+- [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
+
+- [ ] (1:30?) search filenames only -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe8775dac2a83b
+
+- [ ] (1:00?) make interact functions callable
+
+- MOTIVATION: Solve this problem:  https://mail.google.com/mail/ca/u/0/#inbox/13fe7ed868cd74a0
+    - importer for sage worksheets
+    - ability to publish
+
+- [ ] make snaps a filesystem: http://sourceforge.net/apps/mediawiki/fuse/index.php?title=SimpleFilesystemHowto
+
+- [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
+
+
 - [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
 
--  x] (1:00?) make interact functions callable
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 - [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
@@ -257,6 +271,8 @@ xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repac
 
 
 - [ ] (3:00?) latex: left/right split view.
+
+- [ ] (3:00?) support cassandra authentication in addition to use firewall: http://image.slidesharecdn.com/cassandrasummit2013keynote-130613151129-phpapp01/95/slide-18-638.jpg?1371154320
 
 - [ ] (1:30?) terminal reconnect -- works fine on browser reconnect, but fails on dropped connection, since I didn't implement that yet.
 

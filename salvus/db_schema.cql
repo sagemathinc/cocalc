@@ -234,7 +234,7 @@ CREATE TABLE projects (
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 );
 
-CREATE INDEX ON projects(snapshots_disabled);   
+CREATE INDEX ON projects(snapshots_disabled);
 
 CREATE TABLE project_users (
      project_id       uuid,
