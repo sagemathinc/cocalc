@@ -258,12 +258,30 @@ CREATE TABLE recently_modified_projects (
     location   varchar
 );
 
+
+
 ////////////////////////////////////////////
-// Snap -- the project snapshot server
+// Hubs -- the global hubs that coordinate users with resources
+////////////////////////////////////////////
+
+/* The hub servers -- entries in this table should always be inserted with a
+   small ttl (e.g., 30 seconds) that is periodically updated. */
+
+
+CREATE TABLE hub_servers (
+    host       varchar,    /* hostname (ip address) */
+    port       int,
+    clients    int,        /* total number of connected clients right now */
+    PRIMARY KEY(host, port)
+);
+
+
+////////////////////////////////////////////
+// Snap -- the project snapshot servers
 ////////////////////////////////////////////
 
 /* The snap servers -- entries in this table should always be inserted with a
-   very small ttl (e.g., 15 seconds) that is periodically updated. */
+   very small ttl (e.g., 15 seconds); the entry then gets periodically updated. */
 CREATE TABLE snap_servers (
     id         uuid,
     host       varchar,    /* hostname */
@@ -373,6 +391,7 @@ CREATE TABLE stats (
     accounts int,
     projects int,
     active_projects int,
-    snap_servers int
+    snap_servers int,
+    hub_servers varchar /* JSON */
 );
 

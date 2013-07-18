@@ -1,10 +1,20 @@
 
 - [x] (0:30?) (0:26) stats -- number of snap servers up.
-    alter table stats add snap_servers int;
 
-- [ ] (0:30?) `update_stats` function in database should also make a database entry with the computed stats; this might be nice to look at later.
+        alter table stats add snap_servers int;
 
-- [ ] (0:30?) stats -- add field that shows number of active connections to each hub
+- [x] (0:30?) (0:55) stats -- add field that shows number of active connections to each hub
+
+        alter table stats add hub_servers varchar;
+
+        CREATE TABLE hub_servers (
+            host       varchar,    /* hostname (ip address) */
+            port       int,
+            clients    int,        /* total number of connected clients right now */
+            PRIMARY KEY(host, port)
+        );
+
+
 - [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 

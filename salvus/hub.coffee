@@ -31,6 +31,9 @@ MESG_QUEUE_MAX_SIZE_MB  = 5
 # then the BLOB is saved indefinitely.
 BLOB_TTL = 60*60*24    # 1 day
 
+# How frequently to register with the database that this hub is up and running, and also report
+# number of connected clients
+REGISTER_INTERVAL_S = 30   # every 30 seconds
 
 # node.js -- builtin libraries
 net     = require 'net'
@@ -1398,6 +1401,20 @@ update_server_stats = () ->
             if not err
                 _server_stats_cache = stats
 
+
+
+register_hub = (cb) ->
+    database.update
+        table : 'hub_servers'
+        where : {host : program.host, port : program.port}
+        set   : {clients: misc.len(clients)}
+        ttl   : 2*REGISTER_INTERVAL_S
+        cb    : (err) ->
+            if err
+                winston.debug("Error registering with database - #{err}")
+            else
+                winston.debug("Successfully registered with database.")
+            cb?(err)
 
 ##-------------------------------
 #
@@ -4263,6 +4280,7 @@ exports.start_server = start_server = () ->
 
             # start updating stats every minute
             update_server_stats(); setInterval(update_server_stats, 60*1000)
+            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
             init_sockjs_server()
             init_stateless_exec()

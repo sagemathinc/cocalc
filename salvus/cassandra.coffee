@@ -1504,9 +1504,18 @@ class exports.Salvus extends exports.Cassandra
                         stats.snap_servers = val
                         cb(err)
             (cb) =>
+                @select
+                    table     : 'hub_servers'
+                    columns   : ['host', 'port', 'clients']
+                    objectify : true
+                    cb    : (err, val) =>
+                        stats.hub_servers = val
+                        cb(err)
+            (cb) =>
                 @update
                     table : 'stats'
                     set   : stats
+                    json  : ['hub_servers']
                     where : {time:now()}
                     cb    : cb
         ], (err) =>
