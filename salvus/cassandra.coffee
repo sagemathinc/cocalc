@@ -680,26 +680,26 @@ class exports.Salvus extends exports.Cassandra
             timestamp  : required
             cb         : required   # (err, {server:{host:?,port:?,key:?}, repo_id:?})
 
-        locations = undefined
         answer    = undefined
+        servers   = undefined
         async.series([
             (cb) =>
-                @select
-                    table      : 'snap_commits'   # this query uses ALLOW FILTERING.
-                    where      : {project_id : opts.project_id, timestamp : opts.timestamp}
-                    columns    : ['server_id', 'repo_id']
-                    objectify  : true
-                    cb         : (err, r) =>
-                        locations = r
+                @snap_servers
+                    cb : (err, _servers) =>
+                        servers = _servers
                         cb(err)
             (cb) =>
-                server_ids = (x.server_id for x in locations)
-                @snap_servers
-                    server_ids : server_ids
-                    cb         : (err, _servers) =>
+                server_ids = (x.id for x in servers)
+                @select
+                    table      : 'snap_commits'   # this query uses ALLOW FILTERING.
+                    where      : {server_id:{'in':server_ids}, project_id : opts.project_id, timestamp : opts.timestamp}
+                    columns    : ['server_id', 'repo_id']
+                    objectify  : true
+                    cb         : (err, locations) =>
                         if err
                             cb(err); return
-                        servers = (x for x in _servers when x.id in server_ids)
+                        server_ids = (x.server_id for x in locations)
+                        servers = (x for x in servers when x.id in server_ids)
                         if servers.length == 0
                             cb("no snapshot server with snapshot #{opts.timestamp} of #{opts.project_id}"); return
                         server = misc.random_choice(servers)

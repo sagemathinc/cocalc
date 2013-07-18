@@ -191,6 +191,9 @@ destroy_create_account_tooltips = () ->
 top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 
 $("#create_account-button").click((event) ->
+
+    _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
+
     destroy_create_account_tooltips()
 
     opts = {}
@@ -284,6 +287,8 @@ sign_in = () ->
 
 first_login = true
 signed_in = (mesg) ->
+    _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
+
     # Record which hub we're connected to.
     $("#connection_bars").find("i").tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
 
@@ -326,6 +331,8 @@ salvus_client.on("signed_in", signed_in)
 # Explicit sign out
 ################################################
 sign_out = () ->
+
+    _gaq.push(['_trackEvent', 'account', 'sign_out'])  # custom google analytic event -- user explicitly signed out.
 
     # require('worksheet1').close_scratch_worksheet()
     $("#connection_bars").find("i").tooltip('destroy')
@@ -670,6 +677,8 @@ $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_pa
 forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
 
 $("#account-forgot_password_reset-button-submit").click (event) ->
+    _gaq.push(['_trackEvent', 'account', 'forgot_password'])  # custom google analytic event -- user signed in
+
     new_password = $("#account-forgot_password_reset-new_password").val()
     forgot_password_reset.find(".account-error-text").hide()
     salvus_client.reset_forgot_password

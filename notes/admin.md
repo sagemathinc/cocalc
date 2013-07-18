@@ -41,6 +41,9 @@ s.restart_web()
 time s._hosts.nodetool('snapshot salvus', wait=True)
 
 # How to initiaite repair all nodes (once a week, takes a long time)
+
+!!! WAIT -- best to do one at a time; doing all at once leads to major performance issues! !!!
+
 time s._hosts.nodetool('snapshot repair', wait=False)
 
 # How to control memory usage for development:
