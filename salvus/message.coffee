@@ -228,7 +228,7 @@ message
     event        : 'codemirror_get_session'
     path         : undefined   # at least one of path or session_uuid must be defined
     session_uuid : undefined
-    project_id   : undefined
+    project_id   : required
     id           : undefined
 
 # local_hub --> hub --> client
@@ -514,7 +514,8 @@ exports.unrestricted_account_settings =
     email_maintenance    : required
     enable_tooltips      : required
     autosave             : required   # time in seconds or 0 to disable
-    terminal             : required   # time in seconds or 0 to disable
+    terminal             : required   # JSON object -- client interprets
+    editor_settings      : required   # JSON object -- client interprets
 
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
@@ -527,7 +528,23 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 180
-    terminal           : {font_size:14, color_scheme:'solarized-light', font:'droid-sans-mono'}
+    editor_settings    :
+        strip_trailing_whitespace : true
+        line_wrapping             : true
+        line_numbers              : true
+        smart_indent              : true
+        electric_chars            : true
+        match_brackets            : true
+        first_line_number         : 1
+        indent_unit               : 4
+        tab_size                  : 4
+        bindings                  : "standard"
+        theme                     : "standard"
+        undo_depth                : 200
+    terminal           :
+        font_size    : 14
+        color_scheme : 'solarized-light'
+        font         : 'droid-sans-mono'
 
 # client <--> hub
 message(

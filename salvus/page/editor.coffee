@@ -587,7 +587,7 @@ class exports.Editor
             if t.hasClass("project-search-menu-item")
                 file_tabs = true
                 continue
-            else if file_tabs
+            else if file_tabs and t.hasClass("salvus-editor-filename-pill")
                 x.push(t)
         if x.length == 0
             return
@@ -865,20 +865,25 @@ class FileEditor extends EventEmitter
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
+
+        editor_settings = require('account').account_settings.settings.editor_settings
+
         opts = @opts = defaults opts,
             mode              : required
-            delete_trailing_whitespace : true   # delete all trailing whitespace on save
+            delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
             allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
-            line_numbers      : true
-            first_line_number : 1
-            indent_unit       : 4
-            tab_size          : 4
-            smart_indent      : true
-            electric_chars    : true
-            undo_depth        : 1000
-            match_brackets    : true
-            line_wrapping     : true
-            #theme             : "solarized"  # see static/codemirror*/themes or head.html
+            line_numbers      : editor_settings.line_numbers
+            first_line_number : editor_settings.first_line_number
+            indent_unit       : editor_settings.indent_unit
+            tab_size          : editor_settings.tab_size
+            smart_indent      : editor_settings.smart_indent
+            electric_chars    : editor_settings.electric_chars
+            undo_depth        : editor_settings.undo_depth
+            match_brackets    : editor_settings.match_brackets
+            line_wrapping     : editor_settings.line_wrapping
+            bindings          : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
+            theme             : editor_settings.theme
+
             # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
@@ -933,7 +938,7 @@ class CodeMirrorEditor extends FileEditor
             "Ctrl-'"       : "indentAuto"
 
             "Tab"          : (editor)   => @press_tab_key(editor)
-            "Esc"          : (editor)   => @interrupt_key()
+            "Shift-Ctrl-C" : (editor)   => @interrupt_key()
 
         # We will replace this by a general framework...
         if misc.filename_extension(filename) == "sagews"
@@ -945,7 +950,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys[evaluate_key] = (editor)   => @action_key(execute: true, advance:true, split:false)
 
         make_editor = (node) =>
-            return CodeMirror.fromTextArea node,
+            options =
                 firstLineNumber : opts.first_line_number
                 autofocus       : false
                 mode            : opts.mode
@@ -956,9 +961,21 @@ class CodeMirrorEditor extends FileEditor
                 electricChars   : opts.electric_chars
                 undoDepth       : opts.undo_depth
                 matchBrackets   : opts.match_brackets
-                #theme           : opts.theme
                 lineWrapping    : opts.line_wrapping
                 extraKeys       : extraKeys
+                cursorScrollMargin : 100
+
+            if opts.bindings? and opts.bindings != "standard"
+                options.keyMap = opts.bindings
+                #cursorBlinkRate: 1000
+
+            if opts.theme? and opts.theme != "standard"
+                options.theme = opts.theme
+
+            cm = CodeMirror.fromTextArea(node, options)
+            cm.save = () => @click_save_button()
+            #$(cm.getWrapperElement()).css('font-family':'droid-sans-mono !important')
+            return cm
 
 
         @codemirror = make_editor(elt[0])
@@ -1172,8 +1189,6 @@ class CodeMirrorEditor extends FileEditor
             scroller.css('height':ht)
             cm_wrapper = $(cm.getWrapperElement())
             cm_wrapper.css
-                #'background-color':'#ffffe8'
-                'background-color':'#ffffff'
                 height : ht
                 width  : width
             cm.refresh()

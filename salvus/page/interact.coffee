@@ -77,7 +77,7 @@ class Interact
             row       = $("<div class='row-fluid'></div>")
             container = $("<div class='span12 salvus-interact-var-#{var0}'></div>")
             row.append(container)
-            new_control = interact_control(control_desc, panel.data('update'))
+            new_control = interact_control(control_desc, @element.data('update'))
             if new_control?
                 container.append(new_control)
                 @element.append(row)

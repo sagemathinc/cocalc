@@ -42,9 +42,10 @@ templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
+salvus_threejs = require("salvus_threejs")
 
 # Return true if there are currently unsynchronized changes, e.g., due to the network
-# connection being down, or cloud.sagemath not working, or a bug. 
+# connection being down, or cloud.sagemath not working, or a bug.
 exports.unsynced_docs = () ->
     return $(".salvus-editor-codemirror-not-synced:visible").length > 0
 
@@ -186,7 +187,7 @@ class SynchronizedDocument extends EventEmitter
                     @editor.editor.close(@filename)
             else
                 @codemirror.setOption('readOnly', false)
-                @ui_synced(true)
+                @ui_synced(false)
                 @editor.init_autosave()
                 @sync_soon()  # do a first sync asap.
 
@@ -812,6 +813,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return @_cm_lines = @cm_wrapper().find(".CodeMirror-lines")
 
 
+    pad_bottom_with_newlines: (n) =>
+        cm = @codemirror
+        m = cm.lineCount()
+        if m <= 13  # don't bother until worksheet gets big
+            return
+        j = m-1
+        while j >= 0 and j >= m-n and cm.getLine(j).length == 0
+            j -= 1
+        k = n - (m - (j + 1))
+        if k > 0
+            cm.replaceRange(Array(k+1).join('\n'), {ch:0, line:m} )
+
     process_sage_updates: (start) =>
         #console.log("processing Sage updates")
         # For each line in the editor (or starting at line start), check if the line
@@ -821,6 +834,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         cm = @codemirror
         if not start?
             start = 0
+
+        @pad_bottom_with_newlines(10)
+
         for line in [start...cm.lineCount()]
             x = cm.getLine(line)
 

@@ -16,8 +16,8 @@ top_navbar.coffee
 
 alerts.coffee
 
+salvus_threejs.coffee
 
-3d.coffee
 console.coffee
 
 account.coffee

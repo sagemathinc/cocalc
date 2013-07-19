@@ -39,6 +39,12 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 {ensure_containing_directory_exists, abspath} = misc_node
 
+# Uncomment these 2 lines to set the log level to "debug" in order to see lots of
+# debugging output about what is happening:
+
+# winston.remove(winston.transports.Console)
+# winston.add(winston.transports.Console, level: 'debug')
+
 #####################################################################
 # Generate the "secret_token" file as
 # $HOME/.sagemathcloud/data/secret_token if it does not already
@@ -194,7 +200,7 @@ class ConsoleSessions
                             # we are getting a large burst of output at once
                             # DISABLED -- (1) send control-c -- maybe it will help
                             # console_socket.write(String.fromCharCode(3))
-                            
+
                             # (2) and ignore more data
                             client_socket.write('[...]')
                             return
@@ -559,6 +565,7 @@ class CodeMirrorDiffSyncHub
             id               : @current_mesg_id
             edit_stack       : edit_stack
             last_version_ack : last_version_ack
+        cb?()
 
     sync_ready: () =>
         @write_mesg('diffsync_ready')
@@ -1054,11 +1061,12 @@ class CodeMirrorSession
 
     client_diffsync: (socket, mesg) =>
         @is_active = true
+
         write_mesg = (event, obj) ->
             if not obj?
                 obj = {}
             obj.id = mesg.id
-            socket.write_mesg 'json', message['event'](obj)
+            socket.write_mesg 'json', message[event](obj)
 
         # Message from some client reporting new edits, thus initiating a sync.
         ds_client = @diffsync_clients[socket.id]

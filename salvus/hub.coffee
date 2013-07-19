@@ -1398,9 +1398,6 @@ update_server_stats = () ->
             if not err
                 _server_stats_cache = stats
 
-# Update stats every minute
-setInterval(update_server_stats, 60*1000)
-setTimeout(update_server_stats, 5000)  # and a few seconds after startup (no harm if this fails)
 
 ##-------------------------------
 #
@@ -1436,23 +1433,19 @@ snap_command_restore_or_log = (opts) ->
         timeout    : 60
         cb         : required   # cb(err)
 
-    servers = undefined
+    location = undefined
     socket = undefined
     async.series([
         (cb) ->
             # find a snap server with this particular snapshot
-            database.snap_servers_with_commit
+            database.snap_locate_commit
                 project_id : opts.project_id
                 timestamp  : opts.snapshot
-                cb         : (err, _servers) ->
-                    servers = _servers
+                cb         : (err, r) ->
+                    location = r
                     cb(err)
        (cb) ->
-            if servers.length == 0
-                cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
-                return
-            server = misc.random_choice(servers)
-            connect_to_snap_server server, (err, _socket) ->
+            connect_to_snap_server location.server, (err, _socket) ->
                 socket = _socket
                 cb(err)
         (cb) ->
@@ -1461,6 +1454,7 @@ snap_command_restore_or_log = (opts) ->
                 socket     : socket
                 project_id : opts.project_id
                 snapshot   : opts.snapshot
+                repo_id    : location.repo_id
                 path       : opts.path
                 timeout    : opts.timeout
                 cb         : cb
@@ -1476,9 +1470,9 @@ snap_command_ls = (opts) ->
         cb         : required   # cb(err, list of results when meaningful)
     if opts.snapshot?
         # Get directory listing inside a given snapshot
-        listing = undefined
-        servers = undefined
-        socket  = undefined
+        listing  = undefined
+        location = undefined
+        socket   = undefined
         async.series([
             # First check for cached listing in the database
             (cb) ->
@@ -1493,21 +1487,17 @@ snap_command_ls = (opts) ->
                 if listing?  # already got it from cache, so done
                     cb(); return
                 # find snap servers with this particular snapshot
-                database.snap_servers_with_commit
+                database.snap_locate_commit
                     project_id : opts.project_id
                     timestamp  : opts.snapshot
-                    cb         : (err, _servers) ->
-                        servers = _servers
+                    cb         : (err, r) ->
+                        location = r
                         cb(err)
            (cb) ->
                 if listing?
                     cb(); return
-                if servers.length == 0
-                    cb("No active server with snapshot '#{opts.snapshot}' of project '#{opts.project_id}'.")
-                    return
                 # get the listing from a server
-                server = misc.random_choice(servers)
-                connect_to_snap_server server, (err, _socket) ->
+                connect_to_snap_server location.server, (err, _socket) ->
                     socket = _socket
                     cb(err)
             (cb) ->
@@ -1518,6 +1508,7 @@ snap_command_ls = (opts) ->
                     socket  : socket
                     project_id : opts.project_id
                     snapshot   : opts.snapshot
+                    repo_id    : location.repo_id
                     path       : opts.path
                     timeout    : opts.timeout
                     cb         : (err, _listing) ->
@@ -1704,7 +1695,6 @@ push_to_clients = (opts) ->
 #
 ################################################
 
-codemirror_sessions = {by_path:{}, by_uuid:{}}
 
 # The CodeMirrorDiffSyncLocalHub class represents a local hub viewed
 # as a remote server for this hub.
@@ -1712,6 +1702,9 @@ codemirror_sessions = {by_path:{}, by_uuid:{}}
 # TODO later: refactor code, since it seems like all these
 # DiffSync[Hub/Client] etc. things are defined by a write_mesg function.
 #
+
+
+codemirror_sessions = {by_path:{}, by_uuid:{}}
 
 class CodeMirrorDiffSyncLocalHub
     constructor: (@cm_session) ->
@@ -1765,12 +1758,14 @@ class CodeMirrorSession
     constructor: (opts) ->
         opts = defaults opts,
             local_hub    : required
+            project_id   : required
             session_uuid : required
             path         : required
             content      : required
             chat         : required
 
         @local_hub    = opts.local_hub
+        @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @path         = opts.path
         @chat         = opts.chat
@@ -1789,7 +1784,7 @@ class CodeMirrorSession
             factor      : 1.5
             cb          : cb
             f           : (cb) =>
-                delete codemirror_sessions.by_path[@path]
+                delete codemirror_sessions.by_path[@project_id + @path]
                 delete codemirror_sessions.by_uuid[@session_uuid]
                 delete @_upstream_sync_lock
                 @local_hub.call
@@ -2194,11 +2189,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if not err
                         cb(err, socket)
                     else
-                        if retries > 1
+                        if retries == 0
                             cb(err)
                         else
-                            delete @_status
-                            @new_socket(cb, retries + 1)
+                            delete @_status  # forget port and secret token.
+                            @new_socket(cb, retries - 1)
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
@@ -2383,8 +2378,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if session?
                 opts.cb(false, session)
                 return
-        if opts.path?
-            session = codemirror_sessions.by_path[opts.path]
+        if opts.path? and opts.project_id?
+            session = codemirror_sessions.by_path[opts.project_id + opts.path]
             if session?
                 opts.cb(false, session)
                 return
@@ -2400,12 +2395,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 else
                     session = new CodeMirrorSession
                         local_hub    : @
+                        project_id   : opts.project_id
                         session_uuid : resp.session_uuid
                         path         : resp.path
                         content      : resp.content
                         chat         : resp.chat
                     codemirror_sessions.by_uuid[resp.session_uuid] = session
-                    codemirror_sessions.by_path[resp.path] = session
+                    codemirror_sessions.by_path[opts.project_id + resp.path] = session
                     opts.cb(false, session)
 
     #########################################
@@ -3754,11 +3750,11 @@ get_account_settings = (mesg, push_to_client) ->
                         push_to_client(message.error(id:mesg.id, error:error))
                         cb(true) # bail
                     else
+                        delete data['password_hash']
+
                         # 2. Set defaults for unset keys.  We do this so that in the
                         # long run it will always be easy to migrate the database
                         # forward (with new columns).
-                        delete data['password_hash']
-
                         for key, val of message.account_settings_defaults
                             if not data[key]?
                                 data[key] = val
@@ -3776,6 +3772,7 @@ get_account_settings = (mesg, push_to_client) ->
                         push_to_client(message.error(id:mesg.id, error:error))
                         cb(true) # bail out
                     else
+                        # TODO -- none of this is used anymore
                         account_settings.plan_name = plan.name
                         account_settings.storage_limit = plan.storage_limit
                         account_settings.session_limit = plan.session_limit
@@ -3887,9 +3884,16 @@ _local_blobs = {}
 save_blob = (opts) ->
     opts = defaults opts,
         uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
-        value : required   # NOTE: value *must* be a Buffer.
+        #value : required   # NOTE: value *must* be a Buffer.
+        value : undefined
         cb    : required
         ttl   : undefined  # object in blobstore will have *at least* this ttl; if there is already something,  in blobstore with longer ttl, we leave it.
+
+    if not opts.value?
+        err = "BUG -- error in save_blob; received a save_blob request with undefined value"
+        winston.debug(err)
+        opts.cb(err)
+        return
 
     if opts.value.length > 5000000
         if not opts.ttl?
@@ -4248,11 +4252,22 @@ exports.start_server = start_server = () ->
     init_http_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-    database = new cass.Salvus(hosts:hosts, keyspace:program.keyspace)
-    init_sockjs_server()
-    init_stateless_exec()
-    http_server.listen(program.port, program.host)
-    winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+
+    # Once we connect to the database, start serving.
+
+    new cass.Salvus
+        hosts    : hosts
+        keyspace : program.keyspace
+        cb       : (err, _db) ->
+            database = _db
+
+            # start updating stats every minute
+            update_server_stats(); setInterval(update_server_stats, 60*1000)
+
+            init_sockjs_server()
+            init_stateless_exec()
+            http_server.listen(program.port, program.host)
+            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments

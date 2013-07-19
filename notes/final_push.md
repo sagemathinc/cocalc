@@ -1,43 +1,299 @@
+- [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.
 
-- [x] (0:45?) (0:09) add link in help.html to chrome web app (from Harald Schilly) https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
+debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"e6bf"],[1,"x"],[0,"︠\n"],[1,"@interact\ndef _(n=[0..len(t)-1]):\n
+   "],[0,"html(t["],[-1,"3"],[1,"n"],[0,"].ht"]],"start1":140,"start2":140,"length1":18,"length2":57}],"shadow_version":75,"shadow_checksum":8481}],"last_vers
+ion_...
+debug: client_diffsync; the clients are 11c7c1f2-8bef-4313-80ef-a830050a0576
+debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"c4b54934-7fb3-420c-8225-4cd78435befa","error":"CodeMirrorSession -- unabl
+e to push diffsync changes from client (id=11c7c1f2-8bef-4313-80ef-a830050a0576) -- reset -- shadow version from the future 75 > 0"}
 
-- [x] (0:45?) (0:30) create a static /stats route (suggested by Keith Clawson) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[-1," "],[0,"\n- [ ] ("]],"start1":0,"start2":
+        0,"length1":9,"length2":8}],"shadow_version":2,"shadow_checksum":169729},{"edits":[{"diffs":[[0,"wn.\n\n-  "],[-1,"x"],[1,"["],[0,"] (
+        1:00?"]],"start1":244,"start2":244,"length1":17,"len...
+        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
+        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"40f7e658-a2c0-491a-b786-155b81939702","error":"Co
+        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- shadow version fr
+        om the future 2 > 1"}
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"s down.\n"],[1," "],[0,"\n- "],[-1,"["],[0
+        ," "],[1,"x"],[0,"] (1:00?"]],"start1":240,"start2":240,"length1":21,"length2":22}],"shadow_version":1,"shadow_checksum":169728},{"edi
+        ts":[{"diffs":[[0,"wn.\n"],[-1," "],[0,"\n- "],[1,"[...
+        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
+        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"b69f7e1e-b6f1-492f-a4c4-772b35aa0215","error":"Co
+        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- checksum mismatch
+         (169728 != 169730)"}
 
-- [ ] (1:00?) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
 
-- [ ] (1:00?) mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+- [ ] (1:00?) stats -- at field that shows number of active connections to each hub.
+
+- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
+
+- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
+
+- [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
+
+- [ ] (1:30?) search filenames only -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe8775dac2a83b
+
+- [ ] (1:00?) make interact functions callable
+
+- MOTIVATION: Solve this problem:  https://mail.google.com/mail/ca/u/0/#inbox/13fe7ed868cd74a0
+    - importer for sage worksheets
+    - ability to publish
+
+- [ ] make snaps a filesystem: http://sourceforge.net/apps/mediawiki/fuse/index.php?title=SimpleFilesystemHowto
+
+- [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
+
+
+- [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
+
+- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
+- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
+- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
+- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+
+
+- [ ] (2:00?) snap/hub: code to un-deploy projects that have been inactive for a while.
+
+
+---
+
+Snap Stage 3: Highly available
+
+- [ ] (1:30?) write code to rsync out a specic bup repo to another specific snap server, then
+      update the `snap_commits` table with the latest updates.  This update will be
+      done by the snap server that is pushing out the repo; will have to add an index
+      on a column to the db.
+
+- [ ] (1:30?) write code to automatically sync out active repo every so often (?), and also
+      when making a new active repo (by filling in database stuff)
+
+---
+
+
+---
+Stage 5: New Stuff that Builds on Snapshots
+
+- [ ] implement ability to open files in the .snapshot directory read only -- using
+      a full editor view (but in codemirror read-only mode); does *not* require
+      that the project is deployed.
+- [ ] handle long url into a snapshot (?), i.e.,
+             https://cloud.sagemath.com/projects/project_uuid/.snapshot/timestamp/path/into/project
+      when user (who must be logged in) visits this URL, they will open that project and the
+      given file in the project, assuming they have appropriate permission to do so.
+- [ ] client: read-only view of a file in a project.
+- [ ] (1:00?) change bup ls to use fuse to get full metainfo:
+        time mkdir fuse; BUP_DIR=. bup fuse fuse; ls -lh fuse/master/latest/; fusermount -u fuse; rmdir fuse
+
+
+
+----
+
+
+- [ ] (1:00?) snap--  write code to switch to automatically new bup repo in a snap when something happens:
+           - but WHAT?  I will wait and watch to see how to set this up:
+                - time to create bup ls cache.
+                - number of commits
+                - total size of repo.
+           - switching is as simple as removing the file "active".
+
+- [ ] (1:00?) snap: implement locking so that if two snap servers try to make a snapshot of a project at the same time... only one does and the other waits.
+
+- [ ] (2:00?) snap: when making a snapshot, save a JSON object with the complete directory listing to the database;
+this will make all browsing of past snapshots very fast and provide metadata (e.g., file permissions). Alternatively,
+we will have to use fuse with the new metadata support.
+
+- [ ] (2:00?) snap: project restore from snap -- restore project from most recent snap.
+
+- [ ] (2:00?) snap: bup repo redundancy; once each repo is done, it should get pushed out to the other snap servers via rsync.
+
+- [ ] (2:00?) snap: rollback safety mode.
+       1. Save refs/HEAD in a directory "rollback/" right before making the snapshot.
+       2. Save a list of all files in objects/pack/
+       3. Ensure that "bup ls master/latest" works.
+       4. After making the snapshot:
+          4b. Use fuse and make a directory tree listing of master/latest,
+              including timestamps and file sizes. Store this in cassandra database and local file.
+              If this fails, roll everything back and report an error.
+              (The directory listing would be another property of the row corresponding to
+              the entry in the db for this snapshot -- this will be used by the server when
+              users browse the snapshots, and memcached by server for some amount of time.)
+       5. Also store in the database a list of the files that changed in this snapshot (?).
+          This would be most useful as a table:
+                   project_id uuid
+                   path       varchar
+                   timestamp  timestamp   # or maybe varchar -- have to be able to sort by this.
+                   preview    varchar      # (?) -- could store first 1K of the file, for certain formats.
+          with project_id,path the primary keys.
+          Then we could easily track the progress of a file in a project and very quickly browse previews...
+          but maybe that is going too far.  It would take time/compute by the snap server to actually
+          extract all this info, given that it will be used rarely.
+
+
+
+
+---
+
+- [ ] (1:30?) upgrade to cassandra 1.2.6: <http://www.datastax.com/documentation/cassandra/1.2/index.html#cassandra/install/installDeb_t.html>
+
+- [ ] (0:30?) add link to http://codemirror.net/demo/theme.html
+
+- [ ] (1:00?) terminal -- fact control-shift-minus works in emacs codemirror mode (in app), so it must be possible to intercept it in javascript app for chrome after all(?)
+
+- [ ] (0:30?) account settings: move autosave to editor settings, in a backwards compatible way.
+- [ ] (0:30?) account settings: move evaluate_key to editor settings, in a backwards compatible way.
+
+- [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
+
+
+- [ ] (0:30?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
+- [ ] (0:30?) this interact doesn't work: interacts.geometry.unit_circle()
+
+- [ ] (1:00?) if connection to hub goes down that reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated.
+
+- [ ] (3:00?) fuse mount snapshot path so is accessable read only in term. (?)
+
+- [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
+
+- [ ] (1:30?) change cursor so it is configurable to be transparent or a vertical bar -- configurable (requested by Rob Beezer) - https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13fcf5dc2f951a26
+
+- [ ] ping appeared slow and I saw this on the client... -- I wonder if the slow ping I was seeing the other day was only for *ME*?:
+Error in event handler for 'undefined': Cannot read property 'settings' of undefined TypeError: Cannot read property 'settings' of undefined
+    at chrome-extension://gighmmpiobklfepjocnamgkkbiglidom/adblock_start_common.js:176:13
+    at <error: illegal access>
+    at Event.dispatchToListener (event_bindings:356:21)
+    at Event.dispatch_ (event_bindings:342:27)
+    at Event.dispatch (event_bindings:362:17)
+    at Object.chromeHidden.Port.dispatchOnDisconnect (miscellaneous_bindings:258:27) [VM] event_bindings (27):346
+Event.dispatch_ [VM] event_bindings (27):346
+connection is not working... attempting to fix. salvus.min.js:6
+SockJS connection just closed, so trying to make a new one... salvus.min.js:6
+connection is not working... attempting to fix. salvus.min.js:6
+SockJS connection just closed, so trying to make a new one... salvus.min.js:6
+error Timeout after 90 seconds index.min.js:7
+console.trace() salvus.min.js:5
+exports.defaults salvus.min.js:5
+Uncaught misc.defaults -- TypeError: property 'account_id' must be specified: (obj1={"project_id":"de12e703-05c9-4c8c-9ae0-75a9c0063a8a"}, obj2={"project_id":"__!!!!!!this is a required property!!!!!!__","account_id":"__!!!!!!this is a required property!!!!!!__"}) salvus.min.js:5
+
+
+
+- [ ] (1:30?) this was happening:
+Trace
+    at exports.defaults (/home/salvus/salvus/salvus/node_modules/misc.js:66:19)
+    at save_blob (/home/salvus/salvus/salvus/node_modules/hub.js:5237:12)
+    at project.read_file.cb (/home/salvus/salvus/salvus/node_modules/hub.js:1560:22)
+    at /home/salvus/salvus/salvus/node_modules/hub.js:3563:18
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:226:13
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:136:25
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:223:17
+    at /home/salvus/salvus/salvus/node_modules/async/lib/async.js:550:34
+    at Object.socket.recv_mesg.cb (/home/salvus/salvus/salvus/node_modules/hub.js:3555:22)
+    at timeout [as _onTimeout] (/home/salvus/salvus/salvus/node_modules/misc_node.js:122:25)
+debug: BUG ****************************************************************************
+debug: Uncaught exception: misc.defaults -- TypeError: property 'value' must be specified: (obj1={"uuid":"ff784074-2b1b-4e93-8c23-7148dd5a322a","ttl":86400}, obj2={"value":"__!!!!!!this is a required property!!!!!!__","cb":"__!!!!!!this is a required property!!!!!!__"})
+debug: Error
+
+(I changed the code to turn it into a log message error, instead of total death.)
+
+
+- [ ] (0:30?) test http://trac.sagemath.org/sage_trac/ticket/14733 and comment on https://mail.google.com/mail/ca/u/0/#inbox/13fbc06de50c79aa
+
+
+xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repack+bup/13ebbbf423578744>
+  This doesn't appear to make much (if any) difference regarding speed.
+
+- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
+
+- [ ] (2:30?) snap: switch to using fuse for browsing bup archives; will make things blazingly fast, *and* provides full metadata for ls listings.
+
+
+- [ ] (2:00?) diffsync bug:
+
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
+        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
+        2":1293,"length1":8,"length2":10}],"shadow_v...
+        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
+        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"4da6b344-1a06-4210-b55b-1fc7a2dea4c0","error":"CodeMi
+        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
+        = 1287)"}
+        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
+        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
+        2":1293,"length1":8,"length2":10}],"shadow_v...
+        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
+        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"5ae87399-afd5-4be0-be44-821f3cffd167","error":"CodeMi
+        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
+        = 1287)"}
+
+- [ ] (1:00?) (0:45+) enable word-wrap toggle for editing files
+
+- [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
+    %md
+    $$\{ foo \}$$
+    even though this does
+    %md
+    $\{ foo \}$
+    \[
+       \{ foo \}
+    \]
+
+
+- [ ] (8:00?) create a help system, answering questions in help.html
+
+- [ ] (2:00?) quotas (10GB/project)
+
+- [ ] (2:00?) display usage for each project in project page, along with global total usage
+
+- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
+
+- [ ] (1:00?) 3d: include code in cloud.sagemath library and provide non-default option to show to use it; post about that at http://trac.sagemath.org/sage_trac/ticket/12402
 
 - [ ] (3:00?) file operation notifications -- Using delete in the browser merely moves the file to the trash (but not overwriting other files).  (And similarly, using file rename in the browser, merely renames the file on the filesystem and does nothing else yet.)  There are several other actions for particular file types that *should* be taken, but aren't yet.   When you open a file, the local hub daemon creates an object in memory that represents that file/terminal/whatever -- it needs to be notified when the file is moved or deleted, but I simply haven't implemented this yet.
 
-- [ ] (1:00?) %load on a file with a syntax error gives a useless error message
+- [ ] (4:00?) (1:07+) ability to open sws files
+- [ ] (2:00?) export sagews to sws
+
+- [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
+- [ ] (3:00?) read-only viewers of projects (like collab, but read only)
+
+- [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
+
+- [ ] (1:00?) pdf view -- should have link to download pdf.
+
+- [ ] (3:00?) community tab: "explore" other projects...
+
+- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
+
+- [ ] (3:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
+  - page: design&implement the dialog where the user composes the message to friend
+  - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
+  - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g.,
+    getting added to a project, banned, etc. -- should work with email+*@'s.
+
+
+- [ ] (3:00?) latex: left/right split view.
+
+- [ ] (3:00?) support cassandra authentication in addition to use firewall: http://image.slidesharecdn.com/cassandrasummit2013keynote-130613151129-phpapp01/95/slide-18-638.jpg?1371154320
 
 - [ ] (1:30?) terminal reconnect -- works fine on browser reconnect, but fails on dropped connection, since I didn't implement that yet.
-
-- [ ] (1:00?) next release:
-      - in sage -sh : pip install lxml
-      - systemwide  : apt-get install libxml2-dev libxslt-dev
-      - upgrade bup in machine (both in salvus and systemwide)
-
-- [ ] good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
-
-- [ ] make modified project table also record the user and record it forever.
-
-- [ ] snaps still broken -- blob errors on web2 and web3:
-salvus@web2:/mnt/snap/snap0$ BUP_DIR=bup bup ls master/2013-07-02-205639
-KeyError: "blob '544176469e2854f7902dee3a8059785be5981f1c:' is missing"
-
-WHY?  Ideas:
-  I've turned off the one on web3, so now it is only on web1 for a while.
-  If this does not fail, then probably the issue is multiple bups hitting
-  the same project.  Can probably fix if we can specify the remote BUP path,
-  hence keep them separate.   Alterantively, shard, and have only one
-  bup ever make a snapshot, then put it via rsync to other servers.
-
-I disabled all but web1's snap, and
 
 - [ ] (0:45?) make all open documents do one initial sync on first connect or open... I'm sick of cursor jumps!
 
 - [ ] (1:00?) make it so foo?[enter]  and foo??[enter] both work.
+
+
+- [ ] (1:00?) admin -- make it so the services file can have variables so I don't have to change the same base in a million places.
+
+- [ ] (1:30?) (0:12+) use backup.coffee to make a regular text dump of complete db, except for the blobs.
+
+# This just gives tons of errors :-(
+
+  process.env['SALVUS_BACKUP'] = '/mnt/snap/backup/'
+  b = require('backup').backup(keyspace:'salvus', hosts:['10.1.1.2'], cb:console.log)
+  b.dump_keyspace_to_filesystem(console.log)
+
+- [ ] (1:00?) %load on a file with a syntax error gives a useless error message
+
+- [ ] make modified project table also record the user and record it forever.
 
 - [ ] (2:00?) separate targeted backup system -- minimum data needed to fully recover system:
        - backup db tables on all cassandra nodes (for now) to a single bup archive on /mnt/snap on web1
@@ -47,80 +303,33 @@ I disabled all but web1's snap, and
 
 - [ ] (2:30?) custom environment variables in project settings, including `SAGE_PATH` (with explanation) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fa0462bcaa7768
 
-- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
 - [ ] (1:00?) 3d: enable and test canvas rendering
-- [ ] (1:00?) 3d: include code in cloud.sagemath library and make show use it by default
+
+- [ ] (1:30?) expand the size of the base vm, so I can start keeping all past builds of sage.
 
 - [ ] (2:00?) snap/bup caching: right now rev-list cache keeps getting bigger, with probably each cache file storing the data for all of them so far, hence wasting much space.  I can maybe somehow do better.. since at some point, this will start to waste massive space!
 
-- [x] (?) chrome app -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97af12ab4cf2b
+- [ ] (2:00?) terminal copy/paste; try to find a way to strip trailing whitespace, and deal with long lines (?)
 
-- [ ] (4:00?) (1:07+) ability to open sws files
-- [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
-- [ ] (3:00?) read-only viewers of projects (like collab, but read only)
-
-- [ ] (2:00?) terminal copy; try to find a way to strip trailing whitespace, and deal with long lines (?)
-
-- [ ] (3:00?) implement a simple "explore" public projects page
-- [ ] (3:00?) latex: left/right split view.
 - [ ] (5:00?) wiki view -- I was just browsing again through the the wiki system gollum used for the github wiki. This is basically what I am looking for - an extra folder myproject / wiki containing the wiki in human readable and editable files and folders, with default cloud view being rendered through gollum (using various rendering systems like rst or markdown). Github seems to not support mathjax anymore, but a switch to turn on mathjax on pages (or, if this is too much, mathjax being turned on by default) would be necessary in order to make math collaboration possible. Also, links to files and embedded pics from myproject / otherfolder would be good to have. Finally, making the wiki publicly visible (even if the project is still private) would be nice as well.  See https://mail.google.com/mail/u/0/?shva=1#inbox/13f9e7a22fbe59ec
 
-- [ ] (1:00?) possible optimization (maybe already implemented) -- if local_hub is about to send a blob that global_hub already knows (via db), then don't bother....
-
-- [ ] (2:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
-
-  - page: design&implement the dialog where the user composes the message to friend
-  - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
-  - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g.,
-    getting added to a project, banned, etc. -- should work with email+*@'s.
-
-- [ ] (2:00?) file change auto-update (due to frequent requests)
-
-- [ ] (1:00?) implement `default_mode`:
-        a function you can call at some point to set a default mode (or modes). For example,
-           default_mode(gp)
-        would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
-
-        Once the above is implemented and working, which shouldn't be hard, then I could add some GUI support, possibly.   The GUI might insert something like the following at the top:
-
-        %hide
-        %auto
-        default_mode(gap)
-
-        At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
-
-- [ ] (1:00?) new release:
-    - add irssi
-    - switch to minified js
+- [ ] (1:00?) possible optimization (maybe already implemented) -- if `local_hub` is about to send a blob that global_hub already knows (via db), then don't bother....
 
 - [ ] (1:00?) when searching again, keep the last search in the input box
 
 - [ ] (3:00?) keyboard shortcuts
 
-- [ ] (1:00?) change the default permissions when new accounts are created so that home is not world readable
-
 - [ ] (2:00?) transfer ownership: transfer this project to another user
-
-- [ ] (4:00?) feature -- make it easy to join a 100% persistent logged irc chatroom for sage while on cloud (?)
 
 - [ ] (0:45?) on connection reconnect, sync all syncdoc docs with hub (just like we do with fixing terminals).
 
 - [ ] (3:00?) LXC per-project (which will imply quotas)
 
-
 - [ ] (1:30?) way to star projects; show the starred ones first no matter what; have a starred selector
-
 
 - [ ] (3:00?) snap: IDEA -- make it possible to optionally restore to a different location, which could be any path in *any project*.  This would make it possible to easily merge/move/etc. data from one project to another, and would not be hard to implement.
 
-
-- [ ] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
-
 - [ ] (1:15?) Jason grout doesn't like "0 to disable" for autosave interval.
-
-- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
-
-- [ ] (1:00?) bug: cd in terminal thing in cloud.sagemath not working.  (huh?)
 
 - [ ] (5:00?) terminal: implement a scrollbar
 
@@ -128,21 +337,15 @@ I disabled all but web1's snap, and
 
 - [ ] (1:00?) fulltext search: for output lines, double check each result and make sure search term isn't in uuid
 
-- [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
-
 - [ ] (1:30?) make list of open files, order, font sizes, etc., tied to local storage on a machine
 
 - [ ] (2:00?) in hub (around `mesg_codemirror_get_session`) should we be much more careful adding client to sync'd session -- have the client send back confirmation.
-
-- [ ] (1:30?) my "monitor" thing in admin does not work -- instead it should do the full roundtrip ping and check that time is small enough... if possible.
 
 - [ ] (1:00?) responsive -- worksheets: change how new cell insert acts
 
 - [ ] (0:30?) when filling in settings for collaborators, show a spinner while waiting for info to download.
 
 - [ ] (2:00?) BUG: trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
-
-- [ ] (0:20?) when delete a tab, need to resize all tabs
 
 - [ ] (3:00?) fix doc sync with multiple hubs
 
@@ -166,17 +369,7 @@ I disabled all but web1's snap, and
 
 - [ ] (1:00?) firefox terminal -- resizes all wrong; bottom lines chopped... sometimes.  But sometimes fine.
 
-- [ ] (2:00?) (won't fix for now) opera; cursor goes haywire if you zoom in codemirror.
-
-- [ ] (2:00?) export sagews to sws
-
 - [ ] (1:00?) (0:13+) bug -- open a pdf then hit space -- you get back to the file search -- should go to next page.
-
-- [ ] (1:00?) pdf view -- should have link to download pdf.
-
-- [ ] (8:00?) create a help system, answering questions in help.html
-
-- [ ] (1:00?) (0:45+) enable word-wrap toggle;
 
 - [ ] (3:00?) snap -- massive optimization idea: could store directory tree of each snapshot *with metadata and previews (first 1K) of modified files* as a JSON object in the database; this would make browsing snapshots and previews instant, but of course recovery would take the full amount of time...
 
@@ -186,27 +379,7 @@ I disabled all but web1's snap, and
 
 - [ ] (1:00?) start installing a bunch of optional R packages into sage.
 
-- [ ] (2:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
-
 - [ ] (2:00?) idea -- change compute nodes so they have a UUID that is indexed and regularly updated in DB, for project accounts... much like with snap servers.
-
-- [ ] (0:45?) confirmation before closing a project
-
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
-
-- [ ] (3:00?) support multiple hubs properly -- they didn't work right with cloud.sagemath, so I reduced the deployment to only one hub on cloud1 -- no high availability!! -- until I carefully debug through this.
-
-- [ ] (2:00?) octave interface (like GAP) also doesn't work in .sagews !
-
-- [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
-    %md
-    $$\{ foo \}$$
-    even though this does
-    %md
-    $\{ foo \}$
-    \[
-       \{ foo \}
-    \]
 
 - [ ] (1:00?) client.exec is timing out after about 10 seconds no matter what.  This messes up "disk usage", among other things...  I wonder why?
 
@@ -2863,3 +3036,355 @@ debug: client --> hub: {"event":"codemirror_get_session","path":"salvus/notes/fi
 66","id":"2361dc19-cc0e-46c3-9f64-46a8918c5c7e"}
 debug: opts = {"project_id":"6a63fd69-c1c7-4960-9299-54cb96523966","account_id":"992e6b83-17fa-4d43-bcc5-aa78160973e4"}
 
+
+- [x] (0:45?) (0:09) add link in help.html to chrome web app (from Harald Schilly) https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb
+
+- [x] (0:45?) (1:10) create a static /stats route (suggested by Keith Clawson) -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97405c6c4c2f6
+
+- [x] (1:00?)  (0:40) next release:
+      x - in sage -sh : pip install lxml
+      x - systemwide  : apt-get install libxml2-dev libxslt-dev
+      x - upgrade bup in machine (both in salvus and systemwide)
+
+- [x] (1:00?) (0:40)  mini-terminal -- fix the "working directory" bug (Harald Schilly bumped it) -- https://mail.google.com/mail/u/0/?shva=1#starred/13fa4331a85fb67a)
+
+- [x] (1:00?) (0:19) dynamic interact control creation broken (reported by Jason Grout)
+@interact
+def f(n=(0,1)):
+    print n
+f.x=5
+
+- [x] (0:30?) (0:07) when browsing snapshots and mousing over a link, it doesn't change color.
+
+- [x] (1:00?) (0:15) sage parse bug: "for i in range(10): print i" results in "SyntaxError: unexpected EOF while parsing"!
+
+- [x] (?) chrome app -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f97af12ab4cf2b
+
+- [x] (2:00?) Implement new single-branch bup approach, namely have all snapshots for all projects in a single master, and use Cassandra to know what's what. This would loose file tracking, but we could do that via the db directly later....
+
+- [x] (0:30?) (0:08) with typeset mode on, latex object should not get typeset.
+
+- [x] (1:00?) (0:50) 1snap: test out the recent patches here: https://github.com/thom311/bup/commits/feat_vfs_metadata_POSTED and here https://github.com/thom311/bup
+    - make a copy of my current bup repo of user's data to web2 for testing.
+    - ensure bup is updated
+    - make up a few benchmarks and tests and record results
+    - try same with patches applied
+    - if all is good, post.
+
+- [x] (0:30?) (1:00) fix a tab resize bug, where tabs all get small, then bug, depending on which is clicked on.
+
+- [x] (2:15) implement salvus.set_cell_prefix and salvus.set_cell_postfix, which are useful building blocks on which to build other things, e.g., default modes, line numbered output, etc.
+
+- [x] (1:30?) (1:02) implement default_mode to set default worksheet types
+        a function you can call at some point to set a default mode (or modes). For example,
+           default_mode(gp)
+        would make it so every cell is as if it had "%gp" if no other "% modes" are at the top of the cell.   The input to default_mode would be any callable or object with an eval method, so you can easily make your own.
+
+        Once the above is implemented and working, which shouldn't be hard, then I could add some GUI support, possibly.   The GUI might insert something like the following at the top:
+
+        %hide
+        %auto
+        default_mode(gp)
+
+        At the top of a worksheet, the above would make it so the worksheet starts in gap mode.
+
+- [x] (2:00?) (0:44) gap (and octave and magma) don't work in worksheets.  why?  It's because of "signal.signal(signal.SIGCHLD, handle_session_term)"
+
+
+- [x] (1:00?) (2:17) next release: -- took a long time, due to things going to hell with snap getting restarted at the wrong moment and getting wrecked, then me getting idiotically confused fixing it.  I learned about the suckage of my backups on disk.math... which I don't really need anyways.
+    x- add irssi
+    x - make sure to switch to minified js
+    x- upgrade systemwide and salvus-only bup; gets the new metadata fuse support (which I'm not using, but)
+
+- [x] (1:00?) hub -- request to edit a file in a project is ignoring the project id!?
+It's this line in hub.coffee:
+        if opts.path?
+            session = codemirror_sessions.by_path[opts.path]
+- [x] (1:00?) local hub reconnect serious bug.
+        It seems to be a mistake with handling of the retries option to this in hub.coffee:
+            new_socket: (cb, retries) =>
+      https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+
+- [x] (0:40?) terminal -- last line cutoff in various context; just subtract one for now...
+- [x] (0:45?) terminal -- paste line (not just for mobile)
+- [x] (0:30?) change default cursor to be transparent
+
+ [x] (0:30?) new release
+   - x make sure to *re-fix* this on the vm: https://mail.google.com/mail/ca/u/0/#search/perkinson/13fbae2f160be196
+     /usr/local/sage-5.10/devel/sage-main/build/sage/sandpiles/sandpile.py
+   - x tmux conf for salvus user
+unbind C-b
+set -g prefix `
+
+
+4 hour session now:
+
+- [x] (1:00?) (2:30+) multiple hubs -- get it to work!
+    x - add my laptop to vpn
+    - connecting normal and via vpn gives 2 different hubs :-)
+    - it turns out, the problem is that syncnow doesn't seem to broadcast; otherwise everything works.
+    - but the cursor movement *does* get broadcast; worksheet evaluation works. just editing input
+      doesn't broadcast the sync message.
+    - guess -- localhub doesn't broadcast the syncnow messages.
+
+ - [x] (0:48?) very basic 3d:
+Example:
+%var x,y,z
+T = RDF(golden_ratio)
+p = 2 - (cos(x + T*y) + cos(x - T*y) + cos(y + T*z) + cos(y - T*z) + cos(z - T*x) + cos(z + T*x))
+r = 4.77
+show(implicit_plot3d(p, (x, -r, r), (y, -r, r), (z, -r, r), plot_points=40), threejs=True)
+
+- [x] (0:45?) (0:31) release:
+
+   [x] conf file: 4 hubs instead of one
+   [x] scp -r wstein@10.3.1.1:.emacs ~
+       scp -r wstein@10.3.1.1:.emacs-scripts ~
+       change wstein to salvus in .emacs
+   [x] New tmux config -- add this:
+           bind-key ` send-prefix
+   [x] apt-get install libevent-dev
+   [x] Upgrade to new tmux! (see build.py)
+
+
+- [x] (0:45?) (0:65) account: add an editor JSON object setting:
+x- alter table accounts add editor_settings varchar;
+x- modify message
+x - modify account
+x- modify hub
+x - modify cassandra.coffee
+x - restart hub and test (?)
+
+- [x] (0:45?) (1:22) editor: add setting -- strip_trailing_whitespace
+- [x] (0:45?) (0:08) editor: add setting -- word wrap
+- [x] (0:45?) (0:21) editor: add setting -- toggle line numbers
+- [x] (0:15?) editor: add setting -- toggle smart indent
+
+- [x] (0:30?) (0:20) new release that just updates web part; send email in response to beezer on sage-cloud.
+      - Do this on db for both cloud and storm: "alter table accounts add editor_settings varchar;"
+
+
+- [x] (1:30?) (1:05) editor: add setting -- vim and emacs modes
+
+- [x] (1:00?) editor: add setting -- color scheme
+
+- [x] new release
+     - remember -- switch to minified
+
+---
+- [x] snaps still broken -- blob errors on web2 and web3:
+salvus@web2:/mnt/snap/snap0$ BUP_DIR=bup bup ls master/2013-07-02-205639
+KeyError: "blob '544176469e2854f7902dee3a8059785be5981f1c:' is missing"
+
+WHY?  Ideas:
+  I've turned off the one on web3, so now it is only on web1 for a while.
+  If this does not fail, then probably the issue is multiple bups hitting
+  the same project.  Can probably fix if we can specify the remote BUP path,
+  hence keep them separate.   Alterantively, shard, and have only one
+  bup ever make a snapshot, then put it via rsync to other servers.
+
+I disabled all but web1's snap, and it works fine for a long, long time under heavy use.
+Also, there is a lot on the mailing lists about multiple bups not working.
+
+overall goal -- snap: implement a "multi-snap" system, where we have multiple bup archives managed by the same snap server; start a new archive when a threshhold is met.
+
+- [x] (3:00?) (4:00) make implementation plan
+
+     Have bup archives:
+
+              bup/39e53e00-469a-4d4a-9f1c-6a579e88a265/
+              bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/
+              ...
+              bup/a835a7a5-508c-44a9-90d2-158b9f07db87/
+
+     and a file
+
+              bup/active
+
+     that contains the one line giving the uuid of the active bup repo.
+
+              a835a7a5-508c-44a9-90d2-158b9f07db87
+
+     The "bup/active" bup archive is the one used for all writes.
+     Some reads and indexing happens with the other archivies.
+
+     On startup, if there is no bup/active file or the repo it refers to doesn't exist, then a new repo is generated.
+
+     SYNC: Any snap server could rsync out a newer version of "bup/58ac371-f444-4c4f-8446-8fa81b7aecaf/" (say) at any time.
+     When it does this, the local snap server has to update to know what new snapshots are stored there.
+     When it does the rsync to update it is critical that it copy over all the packfiles  first, *then* copy over the new refs/heads/master,
+     otherwise the archive would be temporarily unreadable.
+     Periodically the local snap server will scan the refs/heads/master, and if it changes then it will update its local index.
+     This way the local active archive can be made highly available to other servers regularly, i.e., the newest backups are available
+     from several other servers.
+
+
+---
+
+Stage 1: Highly scalable and fast
+
+- [x] (0:10?) (0:13) snap: alter database schema table to add new column `repo_id` and an index on it.
+
+        alter table snap_commits add repo_id uuid;
+
+        CREATE INDEX ON snap_commits(repo_id);  // not used yet, so not making it yet.
+
+        ALTER TABLE snap_commits DROP dummy;    // This doesn't work yet!  It will when I upgrade to a newer cassandra.
+
+- [x] (1:00?) (1:51) determine steps to manually change an existing repo to new structure and do it locally (record):
+      * stop snap server
+
+           s.stop('snap')
+
+      * change filesystem:
+
+           In Python:   import uuid; str(uuid.uuid4())
+
+             cd /mnt/snap/snap0/
+             mv bup c57141ff-7ba8-4d8d-9877-fe3c743f46ca
+             mkdir bup
+             mv c57141ff-7ba8-4d8d-9877-fe3c743f46ca bup/
+             echo "c57141ff-7ba8-4d8d-9877-fe3c743f46ca" > bup/active
+
+      * update database -- so that existing commits all have `repo_id= above uuid"
+
+             command line: 'nodetool snapshot'
+
+             in ipython:
+
+             import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['localhost'])
+             cassandra.set_nodes(['localhost'])
+             cassandra.july14_snap_commits_update("23e8d7ee-0ce5-43d7-9746-ee1f92e0e2cf", "c57141ff-7ba8-4d8d-9877-fe3c743f46ca")
+
+
+- [x] (1:30?) (1:30) change query protocol and implementation to also send and receive the `repo_id`; and write `bup_dir`
+          function in snap.coffee that uses the new structure, and change all bup calls to use it.
+- [x] (1:30?) (1:03) test and debug above changes; write code to initialize a new bup archive and active pointing at it.
+- [x] (0:15?) (0:01) make sure "dummy" field of `snap_commits` not used anymore in code.
+
+
+- [x] (1:00?) (2:00) stage 1 snap update -- deploy and test on cloud.sagemath
+      x- update code on web1, cassandra1
+      x- make snapshot
+      x- stop snap server
+      x- alter db schemas
+
+        import cassandra; cassandra.KEYSPACE='test'; cassandra.set_nodes(['10.1.1.2'])
+        cassandra.july14_snap_commits_update("61a7d705-8c7d-47a5-ab10-2f62de36bc6b", "00bf485a-ff27-4940-aaf0-da0cf7957ffe")
+
+      x - change filesystem
+      x - update code on web1-4 !
+            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.1.3:salvus; ./make_coffee"
+
+      - update database  <--- in progress on cloud (will take about 6 hours (?))
+
+      This is taking too long, so I'm trying a different approach:
+
+        cqlsh:salvus> copy snap_commits to 'snap_commits'  ;
+        55183 rows exported in 55.797 seconds.
+
+        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits |wc -l
+        13854
+        salvus@web1:~$ grep 61a7d705-8c7d-47a5-ab10-2f62de36bc6b snap_commits > good_commits
+        salvus@web1:~$ wc -l good_commits
+        13854 good_commits
+        salvus@web1:~$ replace ,,, ,00bf485a-ff27-4940-aaf0-da0cf7957ffe, good_commits
+
+        cqlsh:salvus> drop table snap_commits
+        cqlsh:salvus> # paste in code to make table from scratch
+        cqlsh:salvus> COPY snap_commits (server_id,project_id,"timestamp",repo_id,size) FROM 'good_commits'
+        13854 rows imported in 28.201 seconds.
+
+      x - restart hub and snap and test:
+            s.restart('hub'); s.restart("snap")
+
+      x - once it is working, delete "active" file, and see that it starts a new repo, which is fast.
+
+
+---
+
+Stage 2: Robustness
+
+- [x] (0:30?) (0:10) trash can at right of screen often not visible.
+
+- [x] (0:15?) (0:05) remove (comment out) the fsck stuff, since we're going to store the data on multiple
+        machines for robustness, and this fsck stuff is never useful, but is very slow.
+
+- [x] (1:00?) (2:48+) write locking code so I can run multiple snap servers in parallel without corruption.
+      We *must* make the lock on the filesystem of the remote account, not using the db, because the db
+      is not instantly consistent.
+
+Lock functionality:
+
+1. check if there is a file .bup/lock, and if so read it:
+       {server_id:?,  expire:?}
+
+        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lock
+        {server_id:?,  expire:?}
+        wstein@localhost:~/salvus/salvus$ ssh XqT8YljQ@localhost cat .bup/lockx
+        cat: .bup/lockx: No such file or directory
+
+2. if the file is there and the `expire` timestamp has not passed, wait until after
+   that timestamp to try again (do other backups)
+
+3. create .bup/lock with contents: `{server_id:?,  expire:?}`
+   where expire is maybe 20 minutes in the future (?) -- whatever the max time is on making backups.
+
+        ssh XqT8YljQ@localhost "echo '{server_id:blah,  expire:blah}' > .bup/lock"
+
+4. wait 1 second, then check again to see if .bup/lock is exactly what we created.  If not, another bup server
+tried to write to .bup/lock at the same time, so go to 1.
+
+        ssh XqT8YljQ@localhost "cat .bup/lock"
+
+5. make the backup exactly as usual.
+
+6. delete .bup/lock
+
+        ssh XqT8YljQ@localhost "rm -f .bup/lock"
+
+
+- [x] (0:45?) (0:22) add property to projects database table `snapshots_disabled`, which can be one of:
+        true = snapshots disabled because a problem occurred
+        null/false = snapshots are not disabled
+
+            alter table projects add snapshots_disabled boolean;
+            create index on projects(snapshots_disabled);
+
+      Change snap to consult this entry before making a snapshot.
+      Index this so we can easily check to see all projects with snapshots disabled, if/when this happens.
+
+- [x] (1:30?) (1:18) snap: make it possible to roll back the snapshot if something goes wrong when making it (e.g., server is restarted); in particular,
+      if it is too big (as defined by taking too long, say).  Set property in above table if this happens.
+
+- [x] (0:20?) (0:06) make `snap_interval` configurable through admin.py
+
+- [x] (0:45?) (1:32) update code on cloud1, snap1-4 on storm (then cloud), update services, and start 4 snap servers going.
+
+        # 4 = number of snap servers; 60 = average time between snapshot somewhere.
+        [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
+
+
+            ssh 10.2.1.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+            ssh 10.2.2.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+            ssh 10.2.3.3 "cd salvus/salvus; git pull 10.2.4.3:salvus; ./make_coffee"
+
+            ssh 10.1.2.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+            ssh 10.1.3.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+            ssh 10.1.4.3 "cd salvus/salvus; git pull 10.1.1.3:salvus; ./make_coffee"
+
+
+        x Improve how rsync to bsd.math works for backups, to backup all snaps (not just web1).
+
+---
+
+- [x] (1:30?) (1:22) worksheet: force space at the bottom of a worksheet
+      - make it so the formatter (or local hub?) ensures that there is space
+      - use this option too: #cursorScrollMargin: 50
+
+- [x] (0:30?) (0:17) fix the bug harald reported with cython and "//mnt" -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe3b70d4cf20dd     actually nothing to see here; I was completely confused.
+
+- [x] (1:00?) change the default permissions when new accounts are created so that home is not world readable
+          - Change this line in /etc/login.defs:  `UMASK           077`
+          - Change all existing permissions to not be world readable on 4 compute nodes: `chmod og-rwx *`
+- [x] (0:45?) (0:17) changing permissions broke the 1-line terminal :-(  FIXed -- I had chmod'd /tmp. Oops.

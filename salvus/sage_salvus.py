@@ -1873,17 +1873,17 @@ fork = Fork()
 
 
 ####################################################
-# Display of 2d graphics objects
+# Display of 2d/3d graphics objects
 ####################################################
 
 from sage.misc.all import tmp_filename
 
-def show_2d_plot(obj, svg, **kwds):
+def show_2d_plot_using_matplotlib(obj, svg, **kwds):
     t = tmp_filename(ext = '.svg' if svg else '.png')
     obj.save(t, **kwds)
     salvus.file(t)
 
-def show_3d_plot(obj, **kwds):
+def show_3d_plot_using_tachyon(obj, **kwds):
     t = tmp_filename(ext = '.png')
     obj.save(t, **kwds)
     salvus.file(t)
@@ -1891,20 +1891,28 @@ def show_3d_plot(obj, **kwds):
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
-def show(obj, svg=False, **kwds):
+def show(obj, svg=False, threejs=False, **kwds):
     """
     Show an expression, typeset nicely in tex, or a 2d or 3d graphics object.
 
-       - svg: (default False); if true, render graphics using svg.  This is False by default,
+       - svg: (default False); if True, render graphics using svg.  This is False by default,
          since at least Google Chrome mis-renders this as empty:
               line([(10, 0), (10, 15)], color='black').show(svg=True)
 
+       - threejs: (default False for now); if True, render 3d plots using THREE.js.  This is False
+         by default until the render is more well developed.  For example, right now it doesn't
+         render colors.
+
        - display: (default: True); if true use display math for expression (big and centered).
+
     """
     if isinstance(obj, (Graphics, GraphicsArray)):
-        show_2d_plot(obj, svg=svg, **kwds)
+        show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):
-        show_3d_plot(obj, **kwds)
+        if threejs:
+            show_3d_plot_using_threejs(obj, **kwds)
+        else:
+            show_3d_plot_using_tachyon(obj, **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True
@@ -2536,6 +2544,8 @@ def sws_to_sagews(filename):
 
 
 _system_sys_displayhook = sys.displayhook
+import sage.misc.latex, types
+TYPESET_MODE_EXCLUDES = (sage.misc.latex.LatexExpr, types.NoneType)
 
 def typeset_mode(on=True):
     """
@@ -2550,13 +2560,64 @@ def typeset_mode(on=True):
     """
     if on:
         def f(obj):
-            if obj is None:
-                return
-            salvus.tex(obj)
+            if isinstance(obj, TYPESET_MODE_EXCLUDES):
+                _system_sys_displayhook(obj)
+            else:
+                salvus.tex(obj)
         sys.displayhook = f
     else:
         sys.displayhook = _system_sys_displayhook
 
+def default_mode(mode):
+    """
+    Set the default mode for cell evaluation.  This is equivalent
+    to putting %mode at the top of any cell that does not start
+    with %.   Use default_mode() to return the current mode.
+    Use default_mode("") to have no default mode.
+
+    EXAMPLES::
+
+    Make Pari/GP the default mode:
+
+        default_mode("gp")
+        default_mode()   # outputs "gp"
+
+    Then switch back to Sage::
+
+        default_mode("")   # or default_mode("sage")
+
+    You can also use default_mode as a line decorator::
+
+        %default_mode gp   # equivalent to default_mode("gp")
+    """
+    return salvus.default_mode(mode)
 
 
 
+
+#######################################################
+# Three.js based plotting
+#######################################################
+
+def show_3d_plot_using_threejs(p, **kwds):
+    import os, uuid
+    # Save rendered 3d scene to a temporary file
+    # TODO: there is no color information here yet -- see docs for .obj.
+    id = uuid.uuid4()
+    filename = "." + str(id) + '.obj'
+    try:
+        open(filename,'w').write(p.obj())
+        # Get URL to the file
+        obj_url = salvus.file(filename, show=False)
+    finally:
+        # It should now be safe to remove the file from disk
+        os.unlink(filename)
+
+    # Create div that will contain our 3d scene
+    html("<div id=%s style='border:1px solid black'>"%id, hide=False)
+
+    # Display the object
+    s = "d=$('#%s'); d.data('three', new salvus_threejs.ThreeJSobj('%s', d, obj.mtl))"%(id, obj_url)
+    salvus.coffeescript(s, obj={'mtl':p.mtl_str()} )
+
+    # TODO: what about garbage collection / memory leaks!?

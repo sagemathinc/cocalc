@@ -8,6 +8,7 @@
 {IS_MOBILE}     = require("feature")
 
 misc     = require("misc")
+message  = require("message")
 to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
@@ -76,7 +77,7 @@ $("#account-settings-change-settings-button").click (event) ->
             if error
                 alert_message(type:"error", message:error)
             else
-                alert_message(type:"info", message:"You have saved your settings.")
+                alert_message(type:"info", message:"You have saved your settings.  Changes only apply to newly opened files and terminals.")
     )
 
 $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
@@ -190,6 +191,9 @@ destroy_create_account_tooltips = () ->
 top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 
 $("#create_account-button").click((event) ->
+
+    _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
+
     destroy_create_account_tooltips()
 
     opts = {}
@@ -283,6 +287,8 @@ sign_in = () ->
 
 first_login = true
 signed_in = (mesg) ->
+    _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
+
     # Record which hub we're connected to.
     $("#connection_bars").find("i").tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
 
@@ -326,6 +332,8 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 sign_out = () ->
 
+    _gaq.push(['_trackEvent', 'account', 'sign_out'])  # custom google analytic event -- user explicitly signed out.
+
     # require('worksheet1').close_scratch_worksheet()
     $("#connection_bars").find("i").tooltip('destroy')
 
@@ -352,26 +360,31 @@ $("#account").find("a[href=#sign-out]").click(sign_out)
 # Account settings
 ################################################
 
+EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping',
+                              'line_numbers', 'smart_indent', 'match_brackets', 'electric_chars']
+
 class AccountSettings
     load_from_server: (cb) ->
-        salvus_client.get_account_settings(account_id:account_id, cb:(error, settings_mesg) =>
-            if error
-                alert_message(type:"error", message:"Error loading account settings - #{error}")
-                @settings = 'error'
-                cb(error)
-                return
+        salvus_client.get_account_settings
+            account_id : account_id
+            cb         : (error, settings_mesg) =>
+                if error
+                    alert_message(type:"error", message:"Error loading account settings - #{error}")
+                    @settings = 'error'
+                    cb(error)
+                    return
 
-            if settings_mesg.event != "account_settings"
-                alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
-                cb("invalid message")
-                return
 
-            @settings = settings_mesg
-            delete @settings['id']
-            delete @settings['event']
+                if settings_mesg.event != "account_settings"
+                    alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
+                    cb("invalid message")
+                    return
 
-            cb()
-        )
+                @settings = settings_mesg
+                delete @settings['id']
+                delete @settings['event']
+
+                cb()
 
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
@@ -405,11 +418,30 @@ class AccountSettings
                     # color scheme
                     val.color_scheme = $(".account-settings-terminal-color_scheme").val()
 
-                    # color scheme
+                    # Terminal font
                     val.font = $(".account-settings-terminal-font").val()
+
+                when 'editor_settings'
+                    val = {}
+
+                    # Checkbox options
+                    for x in EDITOR_SETTINGS_CHECKBOXES
+                        val[x] = element.find(".account-settings-#{x}").is(":checked")
+
+                    # Keyboard bindings
+                    val.bindings = element.find(".account-settings-editor-bindings").val()
+
+                    # Color schemes
+                    val.theme = element.find(".account-settings-editor-color_scheme").val()
 
                 else
                     val = element.val()
+
+
+            # There are a number of settings that aren't yet implemented in the GUI...
+            if typeof(val) == "object"
+                val = misc.defaults(val, message.account_settings_defaults[prop])
+
             @settings[prop] = val
 
 
@@ -430,6 +462,12 @@ class AccountSettings
         $("#account-settings-error").hide()
 
         for prop, value of @settings
+            def = message.account_settings_defaults[prop]
+            if typeof(def) == "object"
+                if not value?
+                    value = {}
+                @settings[prop] = value = misc.defaults(value, def)
+
             element = $("#account-settings-#{prop}")
             switch prop
                 when 'enable_tooltips'
@@ -464,6 +502,11 @@ class AccountSettings
                         if not value.font?
                             value.font = 'droid-sans-mono'
                         $(".account-settings-terminal-font").val(value.font)
+                when 'editor_settings'
+                    for x in EDITOR_SETTINGS_CHECKBOXES
+                        element.find(".account-settings-#{x}").prop("checked", value[x])
+                    element.find(".account-settings-editor-bindings").val(value.bindings)
+                    element.find(".account-settings-editor-color_scheme").val(value.theme)
                 else
                     set(element, value)
 
@@ -481,6 +524,7 @@ class AccountSettings
         if not @settings? or @settings == 'error'
             opts.cb("There are no account settings to save.")
             return
+
         salvus_client.save_account_settings
             account_id : account_id
             settings   : @settings
@@ -633,6 +677,8 @@ $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_pa
 forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
 
 $("#account-forgot_password_reset-button-submit").click (event) ->
+    _gaq.push(['_trackEvent', 'account', 'forgot_password'])  # custom google analytic event -- user signed in
+
     new_password = $("#account-forgot_password_reset-new_password").val()
     forgot_password_reset.find(".account-error-text").hide()
     salvus_client.reset_forgot_password

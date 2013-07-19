@@ -21,6 +21,8 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
+   0. Change this line in /etc/login.defs:  "UMASK           077"
+
    1. ATLAS:
 
          apt-get install libatlas3gf-base liblapack-dev
@@ -44,9 +46,13 @@ Before building, do:
 
    3. Additional packages (mainly for users, not building).
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket ghc libxml2-dev libxslt-dev
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket ghc libxml2-dev libxslt-dev irssi libevent-dev
 
-   # TODO -- more disk space, then include more haskell packages...
+   4. Ensure tmux is at least 1.8 and if not:
+
+       wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install
+
+  # TODO -- more disk space, then include more haskell packages...
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).

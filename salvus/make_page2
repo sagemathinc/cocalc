@@ -2,5 +2,5 @@
 
 . salvus-env
 
-time coffee -b -o page/temp page/*.coffee
+time coffee -b -o page/temp client.coffee message.coffee misc.coffee page/*.coffee
 ./make_page

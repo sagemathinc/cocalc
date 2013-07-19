@@ -2,7 +2,8 @@
 
 #  import admin; reload(admin); s = admin.Services('conf/deploy_local/', username='wstein'); h=s._hosts
 
-[cassandra] {'cluster_name':'salvus1', 'commitlog_total_space_in_mb':'512'}
+#[cassandra] {'cluster_name':'salvus1', 'commitlog_total_space_in_mb':'512'}
+[cassandra] {'cluster_name':'salvus1'}
 localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 
 [nginx]
@@ -11,7 +12,7 @@ localhost
 [hub]
 localhost {'keyspace':'test'}
 
-[snap] {'keyspace':'test', 'snap_dir':'/mnt/snap/snap0'}
+[snap] {'keyspace':'test', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':120}
 localhost
 
 # The only thing that runs as root is stunnel and haproxy, since

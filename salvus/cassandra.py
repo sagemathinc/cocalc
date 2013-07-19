@@ -501,3 +501,60 @@ def record_that_compute_server_stopped(host):
 def tokens(n):
     RING_SIZE = 2**127
     return [RING_SIZE / n * x for x in range(n)]
+
+
+##########################################################################
+# One off maintenance tasks, which may be useful as templates, etc.
+##########################################################################
+def july14_snap_commits_update(keep_server_id, repo_id):
+    # Delete every entry in the snap_commits table that doesn't
+    # have the given keep_server_id.
+    # For those that do, set their repo_id field.
+    # Also, discard size; it's not useful as recorded.
+    c = cursor()
+    i = 0
+    for commit in cursor_execute("SELECT server_id, project_id, timestamp, size FROM snap_commits LIMIT 1000000"):
+        print commit
+        server_id = commit[0]
+        project_id = commit[1]
+        timestamp = commit[2]
+        print i, server_id, project_id, timestamp
+        i += 1
+
+        q = "DELETE FROM snap_commits WHERE server_id=%s AND project_id=%s AND timestamp='%s'"%(server_id, project_id, timestamp)
+        print q
+        if not c.execute(str(q)):
+            print "error"
+            break
+        print server_id, type(server_id), keep_server_id
+        if str(server_id) == keep_server_id:
+            q = "UPDATE snap_commits SET repo_id=%s WHERE server_id=%s AND project_id=%s AND timestamp='%s'"%(repo_id, server_id, project_id, timestamp)
+            print q
+            if not c.execute(str(q)):
+                print "error"
+                break
+
+def july14_delete_old_snap_commits(cutoff):
+    c = cursor()
+    i = 0
+    for commit in cursor_execute("SELECT server_id, project_id, timestamp, repo_id FROM snap_commits LIMIT 1000000"):
+        print commit
+        server_id = commit[0]
+        project_id = commit[1]
+        timestamp = commit[2]
+        print i, server_id, project_id, timestamp
+        i += 1
+        if timestamp < cutoff:
+            q = "DELETE FROM snap_commits WHERE server_id=%s AND project_id=%s AND timestamp='%s'"%(server_id, project_id, timestamp)
+            print q
+            if not c.execute(str(q)):
+                print "error"
+                break
+
+
+
+
+
+
+
+
