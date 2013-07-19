@@ -2,6 +2,8 @@
 
 - [ ] (0:45?) create a cell decorator "%typeset" that typesets output.
 
+- [ ] (1:30?) sync: restart project server; this causes a different set of issues than killing hub connection. 
+
 - [ ] (1:30?) mathjax (?) bug: BROWSER HANG
         var('P a b R T V_m')
         s = solve((((P - (a/V_m^2)) * (V_m-b)) / (R*T)) == 1, V_m)
@@ -867,7 +869,7 @@ features;
  ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
 
 
---> * (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
+* (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
 
 * (0:10?) [x] (0:12) change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
 * (0:25?) [x] (0:25) fix path bugginess that I guess I introduced yesterday, which made sage not start.
