@@ -14,6 +14,9 @@
             PRIMARY KEY(host, port)
         );
 
+- [x] (0:18) deploy
+
+--> - [ ] (0:15) add something to "Help" showing number of users currently connected. 
 
 - [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
 - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
