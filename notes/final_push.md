@@ -1,3 +1,5 @@
+- [ ] (0:30?) in "+New file" change it to "Filename (spaces are fine):"
+
 
 - [x] (0:30?) (0:26) stats -- number of snap servers up.
 
@@ -18,7 +20,7 @@
 
 - [x] (0:15?) (0:07) add something to "Help" showing number of users currently connected.
 
---> - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+- [x] (2:00?) (1:43) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
 - [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
 

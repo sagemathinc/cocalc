@@ -2544,10 +2544,19 @@ def sws_to_sagews(filename):
 
 
 _system_sys_displayhook = sys.displayhook
-import sage.misc.latex, types
-TYPESET_MODE_EXCLUDES = (sage.misc.latex.LatexExpr, types.NoneType)
 
-def typeset_mode(on=True):
+def displayhook(obj):
+    if isinstance(obj, (sage.plot.plot3d.base.Graphics3d, sage.plot.graphics.Graphics)):
+        show(obj)
+    else:
+        _system_sys_displayhook(obj)
+
+sys.displayhook = displayhook
+import sage.misc.latex, types
+# We make this a list so that users can append to it easily.
+TYPESET_MODE_EXCLUDES = [sage.misc.latex.LatexExpr, types.NoneType, type, sage.plot.plot3d.base.Graphics3d, sage.plot.graphics.Graphics]
+
+def typeset_mode(on=True, display=True, **args):
     """
     Turn typeset mode on or off.  When on, each output is typeset using LaTeX.
 
@@ -2557,16 +2566,18 @@ def typeset_mode(on=True):
 
          typeset_mode(False)  # turn typesetting off
 
+         typeset_mode(True, display=False) # typesetting mode on, but do not make output big and centered
+
     """
     if on:
         def f(obj):
-            if isinstance(obj, TYPESET_MODE_EXCLUDES):
-                _system_sys_displayhook(obj)
+            if isinstance(obj, tuple(TYPESET_MODE_EXCLUDES)):
+                displayhook(obj)
             else:
-                salvus.tex(obj)
+                salvus.tex(obj, display=display)
         sys.displayhook = f
     else:
-        sys.displayhook = _system_sys_displayhook
+        sys.displayhook = displayhook
 
 def default_mode(mode):
     """
