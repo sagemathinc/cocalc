@@ -1,4 +1,5 @@
-# Upgrade web-only part:
+
+# Upgrade web-only part:  
 
     new_vm_image.py
     ssh localhost -p 2222

@@ -16,16 +16,20 @@
 
 - [x] (0:18) deploy
 
---> - [ ] (0:15) add something to "Help" showing number of users currently connected. 
+- [x] (0:15?) (0:07) add something to "Help" showing number of users currently connected.
+
+--> - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
 
 - [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
-- [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+
 
 
 ---
 
 - [ ] (2:00?) (5am project) change vpn routing -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff2c1cff9ac8f1
+
 - [ ] (2:00?) make a fairly precise implementation plan for the next 6 weeks (July + August).
+
 - [ ] (0:30?) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator"
 
 - [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.

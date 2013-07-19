@@ -1148,6 +1148,9 @@ class CodeMirrorEditor extends FileEditor
             #console.log('skipping show because things not defined yet.')
             return
 
+        if @syncdoc?
+            @syncdoc.sync()
+            
         @element.show()
         @codemirror.refresh()
 
