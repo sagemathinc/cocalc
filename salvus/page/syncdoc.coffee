@@ -420,14 +420,15 @@ class SynchronizedDocument extends EventEmitter
         @_sync_cursor_pos = @codemirror.getCursor()
         @dsync_client.push_edits (err) =>
             if err
-                #console.log("sync done -- error = ", err)
+                # console.log("sync done -- error = ", err)
                 @_syncing = false
                 if not @_sync_failures?
                     @_sync_failures = 1
                 else
                     @_sync_failures += 1
                 if @_sync_failures % 6 == 0 and err != 'retry'
-                    alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server. (You can refresh your browser, but might loose some changes.)")
+                    # TODO
+                    #alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server. (You can refresh your browser, but might loose some changes.)")
                     @sync_soon(10000)
                 else
                     @sync_soon()

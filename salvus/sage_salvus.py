@@ -2543,6 +2543,22 @@ def sws_to_sagews(filename):
     return outfile
 
 
+## Make it so pylab (matplotlib) figures display, at least using pylab.show
+def _show_pylab():
+    try:
+        filename = uuid()+'.png'
+        pylab.savefig(filename)
+        salvus.file(filename)
+    finally:
+        try:
+            os.unlink(filename)
+        except:
+            pass
+
+import pylab; pylab.show = _show_pylab
+
+## Our own displayhook
+
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
