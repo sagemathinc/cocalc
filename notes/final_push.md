@@ -1,32 +1,25 @@
 
-- [x] (0:30?) (0:26) stats -- number of snap servers up.
+- [x] (2:00?) (0:27) (5am project) change vpn routing -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff2c1cff9ac8f1
 
-        alter table stats add snap_servers int;
+- [x] (0:30?) (0:28) email about some bugs related to `typeset_mode`.
 
-- [x] (0:30?) (0:55) stats -- add field that shows number of active connections to each hub
+- [x] (0:30?) plots --improve `typeset_mode` to properly treat graphics
 
-        alter table stats add hub_servers varchar;
+- [x] (0:45?) make default builtin sys.displayhook properly output 3d plots (and 2d); basically move some code from typesetmode out.
 
-        CREATE TABLE hub_servers (
-            host       varchar,    /* hostname (ip address) */
-            port       int,
-            clients    int,        /* total number of connected clients right now */
-            PRIMARY KEY(host, port)
-        );
 
-- [x] (0:18) deploy
+- [ ] (0:45?) create a cell decorator "%typeset" that typesets output.
 
-- [x] (0:15?) (0:07) add something to "Help" showing number of users currently connected.
+- [ ] (1:30?) mathjax (?) bug: BROWSER HANG
 
---> - [ ] (2:00?) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+        var('P a b R T V_m')
+        s = solve((((P - (a/V_m^2)) * (V_m-b)) / (R*T)) == 1, V_m)
+        show(s)
+        # then try to do "print s"
 
 - [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
 
-
-
----
-
-- [ ] (2:00?) (5am project) change vpn routing -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff2c1cff9ac8f1
+- [ ] (3:00?) copying/move files between projects -- see https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13ff5f8838de4834
 
 - [ ] (2:00?) make a fairly precise implementation plan for the next 6 weeks (July + August).
 
@@ -3432,3 +3425,26 @@ However, I must change it to (1) query all snap servers (every so often), then d
         SELECT * FROM snap_commits WHERE server_id in (1ce2577a-b065-4f70-870a-ae8395a15ffe,c8f7e17d-c4d9-4fb8-9df4-b147981d4364) and  project_id = 9268574e-315d-4840-b576-c9ff05f84562 and timestamp='2013-07-17-163946' ;
 
 this is massively better!
+
+
+
+- [x] (0:30?) (0:26) stats -- number of snap servers up.
+
+        alter table stats add snap_servers int;
+
+- [x] (0:30?) (0:55) stats -- add field that shows number of active connections to each hub
+
+        alter table stats add hub_servers varchar;
+
+        CREATE TABLE hub_servers (
+            host       varchar,    /* hostname (ip address) */
+            port       int,
+            clients    int,        /* total number of connected clients right now */
+            PRIMARY KEY(host, port)
+        );
+
+- [x] (0:18) deploy
+
+- [x] (0:15?) (0:07) add something to "Help" showing number of users currently connected.
+
+- [x] (2:00?) (1:50) first sync -- cursor jumps back 6 characters; worksheets show secret codes
