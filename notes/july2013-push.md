@@ -15,201 +15,79 @@ July 29 --
 July 30 --
 July 31 --
 
-# User Visible Features
+# Growth
 
-- [ ] (4:00?) (1:07+) ability to open sws files
+- [ ] (1:00?) Add the link/banner to the sagenb login screen.
+- [ ] (2:00?) Add way to invite a friend when adding collaborators to a project.
 
-# UI Improvements
+# Frontend Bug Fixes
 
+- [ ] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.
+- [ ] (2:00?) rename/copy/mo/copy/move a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 - [ ] (2:00?) clarify how search works!  -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff8a0b89d4684a
-
-- [ ] (1:00?) global default for file order mode.
-
-- [ ] (1:30?) switching between open files in projects: Control+Alt+Arrow or Shift+Command+Arrow (on OS X)
-
-- [ ] (1:30?) select block of code and comment / uncomment:
-
 - [ ] (0:15?) get rid of border for this: <div class="sagews-input" style="width: 1184px;"><hr class="sagews-input-hr"></div>
-
-- [ ] (0:45?) create a cell decorator "%typeset" that typesets output.
-
-- [ ] (1:30?) way to configure displayhook output modes; e.g., svg versus png, threejs versus tachyon, etc.
-
+- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
+- [ ] (0:30?) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator"
 - [ ] (1:30?) mathjax (?) bug: BROWSER HANG
-
         var('P a b R T V_m')
         s = solve((((P - (a/V_m^2)) * (V_m-b)) / (R*T)) == 1, V_m)
         show(s)
         # then try to do "print s"
-
-- [ ] idea: in project settings, specify a list of things to do when project is started; scripts to run, worksheets to evaluate, etc.
-
 - [ ] right click to copy from a worksheet in Firefox (OS X) doesn't work, often "copy" doesn't show up in the menu, though keyboard shortcut still works.
-
-- [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
-
-- [ ] (3:00?) copying/move files between projects -- see https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13ff5f8838de4834
-
-- [ ] (2:00?) make a fairly precise implementation plan for the next 6 weeks (July + August).
-
-- [ ] (0:30?) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator"
-
-- [ ] (1:30?) I just had a client browser session that wouldn't sync -- this was from the hub log.  Opening a new browser sync'd fine.
-
-debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"e6bf"],[1,"x"],[0,"︠\n"],[1,"@interact\ndef _(n=[0..len(t)-1]):\n
-   "],[0,"html(t["],[-1,"3"],[1,"n"],[0,"].ht"]],"start1":140,"start2":140,"length1":18,"length2":57}],"shadow_version":75,"shadow_checksum":8481}],"last_vers
-ion_...
-debug: client_diffsync; the clients are 11c7c1f2-8bef-4313-80ef-a830050a0576
-debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"c4b54934-7fb3-420c-8225-4cd78435befa","error":"CodeMirrorSession -- unabl
-e to push diffsync changes from client (id=11c7c1f2-8bef-4313-80ef-a830050a0576) -- reset -- shadow version from the future 75 > 0"}
-
-        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[-1," "],[0,"\n- [ ] ("]],"start1":0,"start2":
-        0,"length1":9,"length2":8}],"shadow_version":2,"shadow_checksum":169729},{"edits":[{"diffs":[[0,"wn.\n\n-  "],[-1,"x"],[1,"["],[0,"] (
-        1:00?"]],"start1":244,"start2":244,"length1":17,"len...
-        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
-        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"40f7e658-a2c0-491a-b786-155b81939702","error":"Co
-        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- shadow version fr
-        om the future 2 > 1"}
-        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"s down.\n"],[1," "],[0,"\n- "],[-1,"["],[0
-        ," "],[1,"x"],[0,"] (1:00?"]],"start1":240,"start2":240,"length1":21,"length2":22}],"shadow_version":1,"shadow_checksum":169728},{"edi
-        ts":[{"diffs":[[0,"wn.\n"],[-1," "],[0,"\n- "],[1,"[...
-        debug: client_diffsync; the clients are 2c279391-a0e1-46eb-8d39-891323854a94,9b3428ad-c438-4ccc-91a6-4ce37f1aec6e
-        debug: hub --> client (25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5): {"event":"error","id":"b69f7e1e-b6f1-492f-a4c4-772b35aa0215","error":"Co
-        deMirrorSession -- unable to push diffsync changes from client (id=2c279391-a0e1-46eb-8d39-891323854a94) -- reset -- checksum mismatch
-         (169728 != 169730)"}
-
-
-- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
-
-- [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
-
-- [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
-
-- [ ] (1:30?) search filenames only -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe8775dac2a83b
-
-- [ ] (1:00?) make interact functions callable
-
-- MOTIVATION: Solve this problem:  https://mail.google.com/mail/ca/u/0/#inbox/13fe7ed868cd74a0
-    - importer for sage worksheets
-    - ability to publish
-
-- [ ] make snaps a filesystem: http://sourceforge.net/apps/mediawiki/fuse/index.php?title=SimpleFilesystemHowto
-
-- [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
-
-
-- [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
-
-- [ ] (1:30?) good way to rename a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
-- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
-- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
-- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
-
-
-- [ ] (2:00?) snap/hub: code to un-deploy projects that have been inactive for a while.
-
-
----
-
-Snap Stage 3: Highly available
-
-- [ ] (1:30?) write code to rsync out a specic bup repo to another specific snap server, then
-      update the `snap_commits` table with the latest updates.  This update will be
-      done by the snap server that is pushing out the repo; will have to add an index
-      on a column to the db.
-
-- [ ] (1:30?) write code to automatically sync out active repo every so often (?), and also
-      when making a new active repo (by filling in database stuff)
-
----
-
-
----
-Stage 5: New Stuff that Builds on Snapshots
-
-- [ ] implement ability to open files in the .snapshot directory read only -- using
-      a full editor view (but in codemirror read-only mode); does *not* require
-      that the project is deployed.
-- [ ] handle long url into a snapshot (?), i.e.,
-             https://cloud.sagemath.com/projects/project_uuid/.snapshot/timestamp/path/into/project
-      when user (who must be logged in) visits this URL, they will open that project and the
-      given file in the project, assuming they have appropriate permission to do so.
-- [ ] client: read-only view of a file in a project.
-- [ ] (1:00?) change bup ls to use fuse to get full metainfo:
-        time mkdir fuse; BUP_DIR=. bup fuse fuse; ls -lh fuse/master/latest/; fusermount -u fuse; rmdir fuse
-
-
-
-----
-
-
-- [ ] (1:00?) snap--  write code to switch to automatically new bup repo in a snap when something happens:
-           - but WHAT?  I will wait and watch to see how to set this up:
-                - time to create bup ls cache.
-                - number of commits
-                - total size of repo.
-           - switching is as simple as removing the file "active".
-
-- [ ] (1:00?) snap: implement locking so that if two snap servers try to make a snapshot of a project at the same time... only one does and the other waits.
-
-- [ ] (2:00?) snap: when making a snapshot, save a JSON object with the complete directory listing to the database;
-this will make all browsing of past snapshots very fast and provide metadata (e.g., file permissions). Alternatively,
-we will have to use fuse with the new metadata support.
-
-- [ ] (2:00?) snap: project restore from snap -- restore project from most recent snap.
-
-- [ ] (2:00?) snap: bup repo redundancy; once each repo is done, it should get pushed out to the other snap servers via rsync.
-
-- [ ] (2:00?) snap: rollback safety mode.
-       1. Save refs/HEAD in a directory "rollback/" right before making the snapshot.
-       2. Save a list of all files in objects/pack/
-       3. Ensure that "bup ls master/latest" works.
-       4. After making the snapshot:
-          4b. Use fuse and make a directory tree listing of master/latest,
-              including timestamps and file sizes. Store this in cassandra database and local file.
-              If this fails, roll everything back and report an error.
-              (The directory listing would be another property of the row corresponding to
-              the entry in the db for this snapshot -- this will be used by the server when
-              users browse the snapshots, and memcached by server for some amount of time.)
-       5. Also store in the database a list of the files that changed in this snapshot (?).
-          This would be most useful as a table:
-                   project_id uuid
-                   path       varchar
-                   timestamp  timestamp   # or maybe varchar -- have to be able to sort by this.
-                   preview    varchar      # (?) -- could store first 1K of the file, for certain formats.
-          with project_id,path the primary keys.
-          Then we could easily track the progress of a file in a project and very quickly browse previews...
-          but maybe that is going too far.  It would take time/compute by the snap server to actually
-          extract all this info, given that it will be used rarely.
-
-
-
-
----
-
-- [ ] (1:30?) upgrade to cassandra 1.2.6: <http://www.datastax.com/documentation/cassandra/1.2/index.html#cassandra/install/installDeb_t.html>
-
-- [ ] (0:30?) add link to http://codemirror.net/demo/theme.html
-
 - [ ] (1:00?) terminal -- fact control-shift-minus works in emacs codemirror mode (in app), so it must be possible to intercept it in javascript app for chrome after all(?)
-
-- [ ] (0:30?) account settings: move autosave to editor settings, in a backwards compatible way.
-- [ ] (0:30?) account settings: move evaluate_key to editor settings, in a backwards compatible way.
-
-- [ ] (2:00?) snap: restore target -- user specify give target path (could be clever and do restore in 2 parts; 1 stage it locally on snap server, and 2 rsync it out once we know the destination).
-
-
 - [ ] (0:30?) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll (crystal)
 - [ ] (0:30?) this interact doesn't work: interacts.geometry.unit_circle()
 
-- [ ] (1:00?) if connection to hub goes down that reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated.
+- [ ] (1:00?) if connection to hub goes down, then reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated properly
 
-- [ ] (3:00?) fuse mount snapshot path so is accessable read only in term. (?)
+- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
+- [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
+    %md
+    $$\{ foo \}$$
+    even though this does
+    %md
+    $\{ foo \}$
+    \[
+       \{ foo \}
+    \]
 
-- [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
+- [ ] (1:00?) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "import md2" works with any sage.
+- [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
 
+
+# Frontend Features
+
+- [ ] (4:00?) (1:07+) ability to open sws files
+- [ ] (2:00?) snap: restore target; allow the user to specify a given target path
+- [ ] (2:00?) export sagews to sws
+- [ ] (2:00?) account settings: keyboard shortcuts
+- [ ] (2:00?) display usage for each project in project page, along with global total usage
+- [ ] (0:45?) create a cell decorator "%typeset" that typesets output.
+- [ ] idea: in project settings, specify a list of things to do when project is started; scripts to run, worksheets to evaluate, etc.
+- [ ] idea: in project settings, specify a list of things to do when project is started; scripts to run, worksheets to evaluate, etc.
+- [ ] (3:00?) copying/move files between projects -- see https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13ff5f8838de4834
+- [ ] (1:30?) terminal -- a "history" button; click it and get a modal that contains the current terminal history; can be select-all'd.
+- [ ] (1:30?) way to configure displayhook output modes; e.g., svg versus png, threejs versus tachyon, etc.
+- [ ] (1:00?) global default for file order mode.
+- [ ] (1:30?) select block of code and comment / uncomment
+- [ ] (1:30?) shortcut to switch between open files in projects: Control+Alt+Arrow or Shift+Command+Arrow (on OS X)
+- [ ] (1:30?) search filenames only -- https://mail.google.com/mail/u/0/?shva=1#inbox/13fe8775dac2a83b
+- [ ] (1:00?) make interact functions callable
+- [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
+- [ ] doc: how to X (make lots of specific todo's)
+- [ ] (1:30?) make page like http://codemirror.net/demo/theme.html, but showing a file and a worksheet.
 - [ ] (1:30?) change cursor so it is configurable to be transparent or a vertical bar -- configurable (requested by Rob Beezer) - https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13fcf5dc2f951a26
 
+# Server Bugs
+
+- [ ] (2:00?) quotas (10GB/project)
+- [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
+- [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
+- [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
+- [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+- [ ] (2:00?) snap/hub: code to un-deploy projects that have been inactive for a while.
+- [ ] (1:30?) upgrade to cassandra 1.2.6: <http://www.datastax.com/documentation/cassandra/1.2/index.html#cassandra/install/installDeb_t.html>
+- [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
 - [ ] ping appeared slow and I saw this on the client... -- I wonder if the slow ping I was seeing the other day was only for *ME*?:
 Error in event handler for 'undefined': Cannot read property 'settings' of undefined TypeError: Cannot read property 'settings' of undefined
     at chrome-extension://gighmmpiobklfepjocnamgkkbiglidom/adblock_start_common.js:176:13
@@ -227,8 +105,6 @@ error Timeout after 90 seconds index.min.js:7
 console.trace() salvus.min.js:5
 exports.defaults salvus.min.js:5
 Uncaught misc.defaults -- TypeError: property 'account_id' must be specified: (obj1={"project_id":"de12e703-05c9-4c8c-9ae0-75a9c0063a8a"}, obj2={"project_id":"__!!!!!!this is a required property!!!!!!__","account_id":"__!!!!!!this is a required property!!!!!!__"}) salvus.min.js:5
-
-
 
 - [ ] (1:30?) this was happening:
 Trace
@@ -249,63 +125,33 @@ debug: Error
 (I changed the code to turn it into a log message error, instead of total death.)
 
 
-- [ ] (0:30?) test http://trac.sagemath.org/sage_trac/ticket/14733 and comment on https://mail.google.com/mail/ca/u/0/#inbox/13fbc06de50c79aa
+
+# Server Features
+
+- [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
+- [ ] (1:30?) on restart, copy log files for service to a central location (i'm constantly loosing super-useful logs)
+- [ ] (2:00?) snap/hub: "deploy" a project using a snapshot, in case it is no longer deployed or the vm is down.
+- [ ] (2:00?) snap: write code to rsync out a specic bup repo to another specific snap server, then update the `snap_commits` table with the latest updates.  This update will be done by the snap server that is pushing out the repo; will have to add an index on a column to the db.
+- [ ] (2:00?) snap: write code to automatically sync out active repo every so often (?), and also when making a new active repo (by filling in database stuff)
+- [ ] (1:30?) snap--  write code to switch to automatically new bup repo in a snap when something happens:
+           - but WHAT?  I will wait and watch to see how to set this up:
+                - time to create bup ls cache.
+                - number of commits
+                - total size of repo.
+           - switching is as simple as removing the file "active".
+- [ ] (2:00?) implement ability to open files in the .snapshot directory (or anywhere) read only -- using
+      a full editor view (but in codemirror read-only mode); does *not* require
+      that the project is deployed.
+- [ ] (2:00?) handle long url into a snapshot (or other), i.e.,
+             https://cloud.sagemath.com/projects/project_uuid/.snapshot/timestamp/path/into/project
+      when user (who must be logged in) visits this URL, they will open that project and the
+      given file in the project, assuming they have appropriate permission to do so.
+- [ ] (1:00?) change bup ls to use fuse to get full metainfo... or (better) make bup ls get the metainfo directly.
+        time mkdir fuse; BUP_DIR=. bup fuse fuse; ls -lh fuse/master/latest/; fusermount -u fuse; rmdir fuse
+
+---
 
 
-xx - I should test repacking! <https://mail.google.com/mail/ca/u/0/#search/repack+bup/13ebbbf423578744>
-  This doesn't appear to make much (if any) difference regarding speed.
-
-- [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
-
-- [ ] (2:30?) snap: switch to using fuse for browsing bup archives; will make things blazingly fast, *and* provides full metadata for ls listings.
-
-
-- [ ] (2:00?) diffsync bug:
-
-        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
-        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
-        2":1293,"length1":8,"length2":10}],"shadow_v...
-        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
-        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"4da6b344-1a06-4210-b55b-1fc7a2dea4c0","error":"CodeMi
-        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
-        = 1287)"}
-        debug: client --> hub: {"event":"codemirror_diffsync","edit_stack":[{"edits":[{"diffs":[[0,"f54a80︠\n"],[1,"%"]],"start1":1292,"start2":12
-        92,"length1":8,"length2":9}],"shadow_version":4,"shadow_checksum":1300},{"edits":[{"diffs":[[0,"54a80︠\n%"],[1,"md"]],"start1":1293,"start
-        2":1293,"length1":8,"length2":10}],"shadow_v...
-        debug: client_diffsync; the clients are 5d9a10b6-14d7-462d-8376-5b5aab28ba22
-        debug: hub --> client (44a42396-3e6e-4ba0-b967-7ceb120b6e0f): {"event":"error","id":"5ae87399-afd5-4be0-be44-821f3cffd167","error":"CodeMi
-        rrorSession -- unable to push diffsync changes from client (id=5d9a10b6-14d7-462d-8376-5b5aab28ba22) -- reset -- checksum mismatch (1303 !
-        = 1287)"}
-
-- [ ] (1:00?) (0:45+) enable word-wrap toggle for editing files
-
-- [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
-    %md
-    $$\{ foo \}$$
-    even though this does
-    %md
-    $\{ foo \}$
-    \[
-       \{ foo \}
-    \]
-
-
-- [ ] (8:00?) create a help system, answering questions in help.html
-
-- [ ] (2:00?) quotas (10GB/project)
-
-- [ ] (2:00?) display usage for each project in project page, along with global total usage
-
-- [ ] (1:00?) 3d: fix the camera issue (that generates the large log)
-
-- [ ] (1:00?) 3d: include code in cloud.sagemath library and provide non-default option to show to use it; post about that at http://trac.sagemath.org/sage_trac/ticket/12402
-
-- [ ] (3:00?) file operation notifications -- Using delete in the browser merely moves the file to the trash (but not overwriting other files).  (And similarly, using file rename in the browser, merely renames the file on the filesystem and does nothing else yet.)  There are several other actions for particular file types that *should* be taken, but aren't yet.   When you open a file, the local hub daemon creates an object in memory that represents that file/terminal/whatever -- it needs to be notified when the file is moved or deleted, but I simply haven't implemented this yet.
-
-- [ ] (4:00?) (1:07+) ability to open sws files
-- [ ] (2:00?) export sagews to sws
-
-- [ ] (2:30?) make the split view of worksheets work; the debugging aspect is no longer needed, really.
 - [ ] (3:00?) read-only viewers of projects (like collab, but read only)
 
 - [ ] (2:00?) create a "snapshot" interact control based on Vivek and Jen's work.
