@@ -294,7 +294,7 @@ signed_in = (mesg) ->
     _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
 
     # Record which hub we're connected to.
-    $("#connection_bars").find("i").tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
+    $("#connection_bars").find("i").tooltip('destroy').tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
