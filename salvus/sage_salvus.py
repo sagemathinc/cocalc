@@ -2666,3 +2666,14 @@ def show_3d_plot_using_threejs(p, **kwds):
     salvus.coffeescript(s, obj={'mtl':p.mtl_str()} )
 
     # TODO: what about garbage collection / memory leaks!?
+
+
+# Monkey patch around a bug in Python's findsource that breaks deprecation in cloud worksheets.
+# This won't matter if we switch to not using exec, since then there will be a file behind
+# each block of code.  However, for now we have to do this.
+import inspect
+_findsource = inspect.findsource
+def findsource(object):
+    try: return _findsource(object)
+    except: raise IOError('source code not available')  # as *claimed* by the Python docs!
+inspect.findsource = findsource

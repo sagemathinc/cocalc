@@ -51,10 +51,8 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [x] (0:30?) (0:04) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator" -- fluke
 - [x] (1:00?) (0:16) make it so foo?[enter]  and foo??[enter] both work.
 - [x] (0:30?) (1:16) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll; fixed by switching to using http://jschr.github.io/bootstrap-modal/, which is much more powerful anyways.
-
-- [ ] (1:00?) (0:28) `graphics_array(...).show()` and pyplot's don't just display
-
-- [ ] (1:30?) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
+- [x] (1:00?) (0:28) `graphics_array(...).show()` and pyplot's don't just display
+- [x] (1:30?) (0:18) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 
 
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
