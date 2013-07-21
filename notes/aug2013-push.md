@@ -99,6 +99,7 @@
 - [ ] (2:00?) snap/hub: code to un-deploy projects that have been inactive for a while.
 - [ ] (2:00?) Major bug/issue -- I just noticed that the ip address of clients appears to be on the VPN!  NOt their true external ip addresses.  This means my anti-account-creation, etc., measures are going to apply to everybody at once, rather than just a given external IP.  HMM.  This is tricky.  Of course, the impact is to restrict users much more severly.
 - [ ] (1:00?) am I writing cassandra blobs as string constants? -- something about that in docs "Cassandra blobs as string constants"?
+- [ ] (1:00?) when sending an email to reset account; if there is no account with that email, send that fact in the email *not* as an error back to the client, since otherwise we give away that the email is attached to an account.
 
 
 # Server Features
