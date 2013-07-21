@@ -35,7 +35,9 @@ July 31:
 
 # Growth features
 
-- [ ] (1:00?) Add a big link/banner to the sagenb login screen suggesting people try cloud.sagemath.
+- [x] (1:00?) (0:11) Add link/banner to the sagenb login screen suggesting people try cloud.sagemath.
+I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_64-Linux/devel/sagenb-git/sagenb/data/sage/html/login.html
+
 - [ ] (3:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
   - page: design&implement the dialog where the user composes the message to friend
   - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
@@ -50,10 +52,16 @@ July 31:
 - [x] (1:00?) (0:16) make it so foo?[enter]  and foo??[enter] both work.
 - [x] (0:30?) (1:16) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll; fixed by switching to using http://jschr.github.io/bootstrap-modal/, which is much more powerful anyways.
 
+- [ ] (1:00?) (0:28) `graphics_array(...).show()` and pyplot's don't just display
+
+- [ ] (1:30?) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
+
+
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
+- [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
+
 - [ ] (2:00?) optimize computation of diffs for synchronized document editing when there is a long line; right now, every time it diffs the entire doc.  If there is a single huge line of output -- e.g., take july2013-push.md and render it using md in a worksheet, so we get a huge single line of output -- then suddenly things feel very slow.
 - [ ] (1:00?) if "Recent" tab is open and you switch project tabs, then switch back, sometimes Recent looks empty (seen many times, not sure how to replicate)
-- [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
 - [ ] (0:45?) on reconnect, sync all synchronized docs with hub (just like we do with fixing terminals).
 - [ ] (2:00?) rename/copy/move a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 - [ ] (2:00?) improve how search in a doc works!  -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff8a0b89d4684a
@@ -81,11 +89,9 @@ July 31:
             print a
 - [ ] (1:00?) UI/client: warn before opening huge files... (recommend vim/emacs... or implement something that streams?)
 - [ ] (0:45?) BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore.
-- [ ] (1:00?) `graphics_array(...).show()` doesn't work: https://mail.google.com/mail/u/0/?shva=1#inbox/13e6a16d768d26a3
 - [ ] (1:00?) markdown -- there is no way to just insert a $.  Make \$ just $ without math....? somehow.
 - [ ] (1:00?) search should not include hidden files by default....
 - [ ] (1:00?) client.exec is timing out after about 10 seconds no matter what.  This messes up "disk usage", among other things...  I wonder why?
-- [ ] (1:30?) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 - [ ] (1:00?) show(animate) doesn't work
 - [ ] (1:00?) when user exits terminal, restart terminal automatically... when they hit a key?
 - [ ] (1:00?) update codemirror display more, e.g., after making output.  see https://groups.google.com/forum/#!topic/codemirror/aYpevIzBUYk

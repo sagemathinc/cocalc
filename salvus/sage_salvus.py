@@ -1920,6 +1920,7 @@ def show(obj, svg=False, threejs=False, **kwds):
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
+GraphicsArray.show = show
 
 ###################################################
 # %auto -- automatically evaluate a cell on load
@@ -2544,6 +2545,7 @@ def sws_to_sagews(filename):
 
 
 ## Make it so pylab (matplotlib) figures display, at least using pylab.show
+import pylab
 def _show_pylab():
     try:
         filename = uuid()+'.png'
@@ -2554,15 +2556,28 @@ def _show_pylab():
             os.unlink(filename)
         except:
             pass
+pylab.show = _show_pylab
 
-import pylab; pylab.show = _show_pylab
+import matplotlib.pyplot
+def _show_pyplot():
+    try:
+        filename = uuid()+'.png'
+        matplotlib.pyplot.savefig(filename)
+        salvus.file(filename)
+    finally:
+        try:
+            os.unlink(filename)
+        except:
+            pass
+matplotlib.pyplot.show = _show_pyplot
+
 
 ## Our own displayhook
 
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (sage.plot.plot3d.base.Graphics3d, sage.plot.graphics.Graphics)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray)):
         show(obj)
     else:
         _system_sys_displayhook(obj)
@@ -2570,7 +2585,10 @@ def displayhook(obj):
 sys.displayhook = displayhook
 import sage.misc.latex, types
 # We make this a list so that users can append to it easily.
-TYPESET_MODE_EXCLUDES = [sage.misc.latex.LatexExpr, types.NoneType, type, sage.plot.plot3d.base.Graphics3d, sage.plot.graphics.Graphics]
+TYPESET_MODE_EXCLUDES = [sage.misc.latex.LatexExpr, types.NoneType,
+                         type, sage.plot.plot3d.base.Graphics3d,
+                         sage.plot.graphics.Graphics,
+                         sage.plot.graphics.GraphicsArray]
 
 def typeset_mode(on=True, display=True, **args):
     """
