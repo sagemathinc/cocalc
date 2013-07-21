@@ -57,8 +57,9 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [x] (0:30?) (0:05) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup; upgrade to jQuery 2.0.3
 - [x] (1:00?) (0:06) make interact functions callable
 - [x] (1:00?) (0:42) interact bugs with `input_grid` first time, etc.
+- [x] (1:00?) (0:13) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "%md" mode works with any sage install, not just system-wide one. 
 
-- [ ] (1:00?) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "import md2" works with any sage.
+- [ ] (1:00?) first sync still confusing -- deletes stuff on first save (?); throw in a first save?
 
 - [ ] (1:00?) strip "sage:" prompts from input blocks like in sagenb.org and command line.
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
@@ -110,6 +111,7 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
 - [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
 - [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
+- [ ] (0:20?) tooltips on delete project and public/private look wrong (not bootstraped)
 
 # User Features
 
