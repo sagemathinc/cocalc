@@ -54,9 +54,7 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [x] (1:00?) (0:28) `graphics_array(...).show()` and pyplot's don't just display
 - [x] (1:30?) (0:18) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 - [x] (1:00?) (0:05) if connection to hub goes down, then reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated properly
-
-
-- [ ] (0:30?) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup.
+- [x] (0:30?) (0:05) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup; upgrade to jQuery 2.0.3
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
 - [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
 - [ ] (2:00?) optimize computation of diffs for synchronized document editing when there is a long line; right now, every time it diffs the entire doc.  If there is a single huge line of output -- e.g., take july2013-push.md and render it using md in a worksheet, so we get a huge single line of output -- then suddenly things feel very slow.
