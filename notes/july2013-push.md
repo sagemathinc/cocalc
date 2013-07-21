@@ -10,8 +10,8 @@ July 21:
       - some svg stuff for tish's thesis
       - sws conversion
 
-July 22
-July 23
+July 22:
+July 23:
 July 24
 July 25
 July 26
