@@ -46,7 +46,6 @@ July 31:
 - [x] (0:15?) (0:10) get rid of border for this: <div class="sagews-input" style="width: 1184px;"><hr class="sagews-input-hr"></div>
 - [x] (0:15?) (0:17) make worksheet/editor font be user's monospace no matter what for now; otherwise, is really annoying.
 - [x] (0:30?) (0:04) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator" -- fluke
-
 - [x] (1:00?) (0:16) make it so foo?[enter]  and foo??[enter] both work.
 
 - [ ] (2:00?) optimize computation of diffs for synchronized document editing when there is a long line; right now, every time it diffs the entire doc.  If there is a single huge line of output -- e.g., take july2013-push.md and render it using md in a worksheet, so we get a huge single line of output -- then suddenly things feel very slow.
@@ -131,6 +130,7 @@ July 31:
 - [ ] (1:00?) make it so "create a new file" allows you to just paste a URL in the filename blank... to get a file from the web; much simpler!
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
 - [ ] (3:00?) copying/move file/directory *between* projects -- see https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13ff5f8838de4834
+- [ ] (1:00?) display docstrings formatted using sphinx (look at how we did this in sagenb)
 
 # Major new features
 
