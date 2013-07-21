@@ -1,4 +1,3 @@
-
 --------------------------------------------------------------------------------------------------
 --------------------------------------------------------------------------------------------------
 
@@ -256,7 +255,7 @@ features;
  ignoring sections from worksheets, and moving them elsewhere.  I'll likely remove them for the release.
 
 
---> * (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
+* (0:45?) [x] (0:34) HELP: create a tab for help (linked to from the about page and various places).
 
 * (0:10?) [x] (0:12) change the "full screen" icon to be the same as in Chrome OS X (and grey, not orange)
 * (0:25?) [x] (0:25) fix path bugginess that I guess I introduced yesterday, which made sage not start.
@@ -2832,6 +2831,7 @@ this is massively better!
 
 
 - [x] (2:00?) (0:27) (5am project) change vpn routing -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff2c1cff9ac8f1
+<<<<<<< HEAD
 
 - [x] (0:30?) (0:28) email about some bugs related to `typeset_mode`.
 
@@ -2839,3 +2839,10 @@ this is massively better!
 
 - [x] (0:45?) make default builtin sys.displayhook properly output 3d plots (and 2d); basically move some code from typesetmode out.
 1
+=======
+- [x] (0:30?) (0:28) email about some bugs related to `typeset_mode`.
+- [x] (0:30?) plots --improve `typeset_mode` to properly treat graphics
+- [x] (0:45?) make default builtin sys.displayhook properly output 3d plots (and 2d); basically move some code from typesetmode out.
+- [x] (2:00?) (1:43) first sync -- cursor jumps back 6 characters; worksheets show secret codes
+1
+>>>>>>> 161ef6a933a87638678e7c4d1eaf6421808a19c3
