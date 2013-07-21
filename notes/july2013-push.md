@@ -4,6 +4,7 @@ July 21:
 
   - morning: 6am-11:30am (about 5 hours)
       - some easy stuff to warm up
+      - support email: install 4ti2
       - maybe tackle the project restart top priority bug
 
   - after skate: 3pm - 11pm (minus dinner) (about 7 hours)
