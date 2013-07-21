@@ -57,11 +57,9 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [x] (0:30?) (0:05) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup; upgrade to jQuery 2.0.3
 - [x] (1:00?) (0:06) make interact functions callable
 - [x] (1:00?) (0:42) interact bugs with `input_grid` first time, etc.
-- [x] (1:00?) (0:13) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "%md" mode works with any sage install, not just system-wide one. 
+- [x] (1:00?) (0:13) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "%md" mode works with any sage install, not just system-wide one.
+- [x] (1:00?) (0:40) strip "sage:" prompts from input blocks like in sagenb.org and command line; this makes copying code from docstrings much easier, etc.
 
-- [ ] (1:00?) first sync still confusing -- deletes stuff on first save (?); throw in a first save?
-
-- [ ] (1:00?) strip "sage:" prompts from input blocks like in sagenb.org and command line.
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
 - [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
 - [ ] (2:00?) optimize computation of diffs for synchronized document editing when there is a long line; right now, every time it diffs the entire doc.  If there is a single huge line of output -- e.g., take july2013-push.md and render it using md in a worksheet, so we get a huge single line of output -- then suddenly things feel very slow.
@@ -70,6 +68,7 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (2:00?) rename/copy/move a file:  'Something my students have complained about: after clicking an "Rename file", a box appears around the name of the file.  It is then tempting to click inside of that box (or triple click, even), but if you try this, you are taken to the file itself.  I was confused by this behavior at first, too.  It would perhaps at least be nice if after clicking on "Rename file", there was an easy way to delete the long default file name. ' (Dave Perkinson)
 - [ ] (2:00?) improve how search in a doc works!  -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ff8a0b89d4684a
 - [ ] (1:30?) terminal -- firefox copy/paste (requested by everybody)
+- [ ] (1:00?) first sync still confusing -- deletes stuff on first save (?); throw in a first save?
 - [ ] (0:30?) Still some mathjax + markdown issues... e.g.,  This doesn't work
     %md
     $$\{ foo \}$$

@@ -484,6 +484,7 @@ class Salvus(object):
         if namespace is None:
             namespace = self.namespace
 
+        code   = parsing.strip_leading_prompts(code)
         blocks = parsing.divide_into_blocks(code)
 
         for start, stop, block in blocks:
