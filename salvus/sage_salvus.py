@@ -832,9 +832,16 @@ class InputGrid:
             return x
 
     def from_client(self, x):
-        # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
-        s = '[' + ','.join([str(t) for t in x]) + ']'
-        self.value = sage_eval(s)
+        if len(x) == 0:
+            self.value = []
+        elif isinstance(x[0], list):
+            self.value = [[sage_eval(t) for t in z] for z in x]
+        else:
+            # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
+            s = '[' + ','.join([str(t) for t in x]) + ']'
+            v = sage_eval(s)
+            self.value = [v[n:n+self.ncols] for n in range(0, self.nrows*self.ncols, self.ncols)]
+
         return self.to_value(self.value) if self.to_value is not None else self.value
 
     def to_client(self, x=None):
@@ -849,6 +856,17 @@ class InputGrid:
 def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
     r"""
     A grid of input boxes, for use with the :func:`interact` command.
+
+    INPUT:
+
+    - ``nrows`` - an integer
+    - ``ncols`` - an integer
+    - ``default`` - an object; the default put in this input box
+    - ``label`` - a string; the label rendered to the left of the box.
+    - ``to_value`` - a list; the grid output (list of rows) is
+      sent through this function.  This may reformat the data or
+      coerce the type.
+    - ``width`` - an integer; size of each input box in characters
 
     EXAMPLES:
 

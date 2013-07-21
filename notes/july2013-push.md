@@ -56,12 +56,11 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [x] (1:00?) (0:05) if connection to hub goes down, then reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated properly
 - [x] (0:30?) (0:05) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup; upgrade to jQuery 2.0.3
 - [x] (1:00?) (0:06) make interact functions callable
-- [ ] (1:00?) interact bug -- this doesn't output matrix first time:
-        @interact
-        def f(a = input_grid(2,2,[[1,2],[3,4]])):
-            print a
+- [x] (1:00?) (0:42) interact bugs with `input_grid` first time, etc.
+
 - [ ] (1:00?) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "import md2" works with any sage.
 
+- [ ] (1:00?) strip "sage:" prompts from input blocks like in sagenb.org and command line.
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
 - [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
 - [ ] (2:00?) optimize computation of diffs for synchronized document editing when there is a long line; right now, every time it diffs the entire doc.  If there is a single huge line of output -- e.g., take july2013-push.md and render it using md in a worksheet, so we get a huge single line of output -- then suddenly things feel very slow.
@@ -136,6 +135,7 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (2:00?) image/pdf file change auto-update (due to frequent requests from users)
 - [ ] (3:00?) copying/move file/directory *between* projects -- see https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/13ff5f8838de4834
 - [ ] (1:00?) display docstrings formatted using sphinx (look at how we did this in sagenb)
+- [ ] (0:30?) make it so the Restart... buttons are formatted like the delete/private buttons just to the right.
 
 # Major new features
 
