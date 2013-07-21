@@ -55,6 +55,13 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [x] (1:30?) (0:18) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
 - [x] (1:00?) (0:05) if connection to hub goes down, then reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated properly
 - [x] (0:30?) (0:05) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup; upgrade to jQuery 2.0.3
+- [x] (1:00?) (0:06) make interact functions callable
+- [ ] (1:00?) interact bug -- this doesn't output matrix first time:
+        @interact
+        def f(a = input_grid(2,2,[[1,2],[3,4]])):
+            print a
+- [ ] (1:00?) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "import md2" works with any sage.
+
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
 - [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
 - [ ] (2:00?) optimize computation of diffs for synchronized document editing when there is a long line; right now, every time it diffs the entire doc.  If there is a single huge line of output -- e.g., take july2013-push.md and render it using md in a worksheet, so we get a huge single line of output -- then suddenly things feel very slow.
@@ -73,16 +80,11 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
        \{ foo \}
     \]
 - [ ] (1:30?) terminal reconnect -- works fine on browser reconnect, but fails on dropped connection, since I didn't implement that yet.
-- [ ] (1:00?) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "import md2" works with any sage.
 - [ ] (1:00?) fulltext search: should exclude uuid cell start marker lines
 - [ ] (1:00?) fulltext search: for output lines, double check each result and make sure search term isn't in uuid
 - [ ] (0:30?) make all open document sync every n seconds no matter what.
 - [ ] (1:00?) on connection reset, force all open documents to sync.
 - [ ] (1:00?) UI: renaming a long filename doesn't work.
-- [ ] (1:00?) interact bug -- this doesn't output matrix first time:
-        @interact
-        def f(a = input_grid(2,2,[[1,2],[3,4]])):
-            print a
 - [ ] (1:00?) UI/client: warn before opening huge files... (recommend vim/emacs... or implement something that streams?)
 - [ ] (0:45?) BUG: clearing the "recent files" list makes it so none of the open file tabs at the top of the screen work anymore.
 - [ ] (1:00?) markdown -- there is no way to just insert a $.  Make \$ just $ without math....? somehow.
@@ -106,7 +108,6 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (1:00?) don't allow editing a file if it is above a certain relatively small size (at least, give a warning)
 - [ ] (1:00?) BUG in sage execute: "divide into blocks" to respect code decorators, plus fix ugly recombination of if/while/etc.
 - [ ] (0:45?) BUG: os x "control-o" should also accept command-o
-- [ ] (1:00?) make interact functions callable
 - [ ] (0:30?) update the salvus.file docstring with current TTL parameters.
 - [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
 - [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921

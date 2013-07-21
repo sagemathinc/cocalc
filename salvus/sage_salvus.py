@@ -219,6 +219,9 @@ class InteractFunction(object):
     def __init__(self, interact_cell):
         self.__dict__['interact_cell'] = interact_cell
 
+    def __call__(self, *args, **kwds):
+        return self.interact_cell._f(*args, **kwds)
+
     def __setattr__(self, arg, value):
         I = self.__dict__['interact_cell']
         if arg in I._controls and not isinstance(value, control):
