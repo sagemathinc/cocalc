@@ -221,7 +221,6 @@ Editor for files in a project
 /*********** Synchronized Worksheets *****************/
 
 .sagews-input {
-    border:solid 1px white;
     height:1em;
 }
 
