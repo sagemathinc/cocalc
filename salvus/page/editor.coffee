@@ -974,7 +974,12 @@ class CodeMirrorEditor extends FileEditor
 
             cm = CodeMirror.fromTextArea(node, options)
             cm.save = () => @click_save_button()
-            #$(cm.getWrapperElement()).css('font-family':'droid-sans-mono !important')
+
+            # The Codemirror themes impose their own weird fonts, but most users want whatever
+            # they've configured as "monospace" in their browser.  So we force that back:
+            e = $(cm.getWrapperElement())
+            e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery            
+
             return cm
 
 
@@ -1150,7 +1155,7 @@ class CodeMirrorEditor extends FileEditor
 
         if @syncdoc?
             @syncdoc.sync()
-            
+
         @element.show()
         @codemirror.refresh()
 

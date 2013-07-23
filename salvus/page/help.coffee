@@ -18,4 +18,4 @@ update_stats = () ->
                 n = 0
             else
                 n = (x['clients'] for x in stats.hub_servers).reduce((s,t) -> s+t)
-            X.find(".salvus-stats-number-of-logged-in-users").text(n)
+            X.find(".salvus-stats-number-of-clients").text(n)

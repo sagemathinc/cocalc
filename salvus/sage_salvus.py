@@ -219,6 +219,9 @@ class InteractFunction(object):
     def __init__(self, interact_cell):
         self.__dict__['interact_cell'] = interact_cell
 
+    def __call__(self, *args, **kwds):
+        return self.interact_cell._f(*args, **kwds)
+
     def __setattr__(self, arg, value):
         I = self.__dict__['interact_cell']
         if arg in I._controls and not isinstance(value, control):
@@ -829,9 +832,16 @@ class InputGrid:
             return x
 
     def from_client(self, x):
-        # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
-        s = '[' + ','.join([str(t) for t in x]) + ']'
-        self.value = sage_eval(s)
+        if len(x) == 0:
+            self.value = []
+        elif isinstance(x[0], list):
+            self.value = [[sage_eval(t) for t in z] for z in x]
+        else:
+            # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
+            s = '[' + ','.join([str(t) for t in x]) + ']'
+            v = sage_eval(s)
+            self.value = [v[n:n+self.ncols] for n in range(0, self.nrows*self.ncols, self.ncols)]
+
         return self.to_value(self.value) if self.to_value is not None else self.value
 
     def to_client(self, x=None):
@@ -846,6 +856,17 @@ class InputGrid:
 def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
     r"""
     A grid of input boxes, for use with the :func:`interact` command.
+
+    INPUT:
+
+    - ``nrows`` - an integer
+    - ``ncols`` - an integer
+    - ``default`` - an object; the default put in this input box
+    - ``label`` - a string; the label rendered to the left of the box.
+    - ``to_value`` - a list; the grid output (list of rows) is
+      sent through this function.  This may reformat the data or
+      coerce the type.
+    - ``width`` - an integer; size of each input box in characters
 
     EXAMPLES:
 
@@ -1920,6 +1941,7 @@ def show(obj, svg=False, threejs=False, **kwds):
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
+GraphicsArray.show = show
 
 ###################################################
 # %auto -- automatically evaluate a cell on load
@@ -2543,11 +2565,53 @@ def sws_to_sagews(filename):
     return outfile
 
 
-_system_sys_displayhook = sys.displayhook
-import sage.misc.latex, types
-TYPESET_MODE_EXCLUDES = (sage.misc.latex.LatexExpr, types.NoneType)
+## Make it so pylab (matplotlib) figures display, at least using pylab.show
+import pylab
+def _show_pylab():
+    try:
+        filename = uuid()+'.png'
+        pylab.savefig(filename)
+        salvus.file(filename)
+    finally:
+        try:
+            os.unlink(filename)
+        except:
+            pass
+pylab.show = _show_pylab
 
-def typeset_mode(on=True):
+import matplotlib.pyplot
+def _show_pyplot():
+    try:
+        filename = uuid()+'.png'
+        matplotlib.pyplot.savefig(filename)
+        salvus.file(filename)
+    finally:
+        try:
+            os.unlink(filename)
+        except:
+            pass
+matplotlib.pyplot.show = _show_pyplot
+
+
+## Our own displayhook
+
+_system_sys_displayhook = sys.displayhook
+
+def displayhook(obj):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray)):
+        show(obj)
+    else:
+        _system_sys_displayhook(obj)
+
+sys.displayhook = displayhook
+import sage.misc.latex, types
+# We make this a list so that users can append to it easily.
+TYPESET_MODE_EXCLUDES = [sage.misc.latex.LatexExpr, types.NoneType,
+                         type, sage.plot.plot3d.base.Graphics3d,
+                         sage.plot.graphics.Graphics,
+                         sage.plot.graphics.GraphicsArray]
+
+def typeset_mode(on=True, display=True, **args):
     """
     Turn typeset mode on or off.  When on, each output is typeset using LaTeX.
 
@@ -2557,16 +2621,18 @@ def typeset_mode(on=True):
 
          typeset_mode(False)  # turn typesetting off
 
+         typeset_mode(True, display=False) # typesetting mode on, but do not make output big and centered
+
     """
     if on:
         def f(obj):
-            if isinstance(obj, TYPESET_MODE_EXCLUDES):
-                _system_sys_displayhook(obj)
+            if isinstance(obj, tuple(TYPESET_MODE_EXCLUDES)):
+                displayhook(obj)
             else:
-                salvus.tex(obj)
+                salvus.tex(obj, display=display)
         sys.displayhook = f
     else:
-        sys.displayhook = _system_sys_displayhook
+        sys.displayhook = displayhook
 
 def default_mode(mode):
     """
@@ -2621,3 +2687,14 @@ def show_3d_plot_using_threejs(p, **kwds):
     salvus.coffeescript(s, obj={'mtl':p.mtl_str()} )
 
     # TODO: what about garbage collection / memory leaks!?
+
+
+# Monkey patch around a bug in Python's findsource that breaks deprecation in cloud worksheets.
+# This won't matter if we switch to not using exec, since then there will be a file behind
+# each block of code.  However, for now we have to do this.
+import inspect
+_findsource = inspect.findsource
+def findsource(object):
+    try: return _findsource(object)
+    except: raise IOError('source code not available')  # as *claimed* by the Python docs!
+inspect.findsource = findsource

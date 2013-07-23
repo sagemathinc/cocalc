@@ -190,6 +190,10 @@ destroy_create_account_tooltips = () ->
 
 top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 
+$("a[href=#link-terms]").click (event) ->
+    $("#link-terms").modal('show')
+    return false
+
 $("#create_account-button").click((event) ->
 
     _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
@@ -290,7 +294,7 @@ signed_in = (mesg) ->
     _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
 
     # Record which hub we're connected to.
-    $("#connection_bars").find("i").tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
+    $("#connection_bars").find("i").tooltip('destroy').tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
@@ -354,7 +358,9 @@ sign_out = () ->
     return false
 
 
-$("#account").find("a[href=#sign-out]").click(sign_out)
+$("#account").find("a[href=#sign-out]").click (event) ->
+    sign_out()
+    return false
 
 ################################################
 # Account settings
@@ -539,7 +545,9 @@ account_settings = exports.account_settings = new AccountSettings()
 
 change_email_address = $("#account-change_email_address")
 
-$("a[href='#account-change_email_address']").click((event)->$('#account-change_email_address').modal('show'))  # should not be needed
+$("a[href=#account-change_email_address]").click (event) ->
+    $('#account-change_email_address').modal('show')
+    return false
 
 close_change_email_address = () ->
     change_email_address.modal('hide').find('input').val('')
@@ -604,7 +612,9 @@ change_password.find(".close").click((event) -> close_change_password())
 $("#account-change_password-button-cancel").click((event)->close_change_password())
 change_password.on("shown", () -> $("#account-change_password-old_password").focus())
 
-$("a[href='#account-change_password']").click((event)->$('#account-change_password').modal('show'))  # should not be needed
+$("a[href=#account-change_password]").click (event) ->
+    $('#account-change_password').modal('show')
+    return false
 
 $("#account-change_password-button-submit").click (event) ->
     salvus_client.change_password
@@ -635,7 +645,9 @@ $("#account-change_password-button-submit").click (event) ->
 ################################################
 
 forgot_password = $("#account-forgot_password")
-$("a[href='#account-forgot_password']").click((event) -> forgot_password.modal())
+$("a[href=#account-forgot_password]").click (event) ->
+    forgot_password.modal()
+    return false
 
 close_forgot_password = () ->
     forgot_password.modal('hide').find('input').val('')
@@ -702,7 +714,7 @@ $("#account-forgot_password_reset-button-submit").click (event) ->
 ################################################
 # Upgrade account
 ################################################
-$("a[href='#account-settings-upgrade']").click (event) ->
+$("a[href=#account-settings-upgrade]").click (event) ->
     alert_message(type:'error', message:"Only free accounts are currently available.")
     return false
 

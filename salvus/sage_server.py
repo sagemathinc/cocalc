@@ -484,6 +484,7 @@ class Salvus(object):
         if namespace is None:
             namespace = self.namespace
 
+        code   = parsing.strip_leading_prompts(code)
         blocks = parsing.divide_into_blocks(code)
 
         for start, stop, block in blocks:
@@ -491,7 +492,10 @@ class Salvus(object):
                 block = parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
-                exec compile(block+'\n', '', 'single') in namespace, locals
+                if block.lstrip().endswith('?'):
+                    print parsing.introspect(block, namespace=namespace, preparse=False)['result']
+                else:
+                    exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
@@ -1047,7 +1051,7 @@ def serve(port, host):
         sage.misc.latex.latex.eval = sage_salvus.latex0
 
         # Plot, integrate, etc., -- so startup time of worksheets is minimal.
-        
+
         exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
         print 'imported sage library in %s seconds'%(time.time() - tm)
 
