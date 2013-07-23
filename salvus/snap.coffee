@@ -1288,6 +1288,8 @@ snapshot_active_projects = (cb) ->
     winston.debug("checking for recently modified project.")
     async.series([
         (cb) ->
+            connect_to_database(cb)
+        (cb) ->
             database.select
                 table   : 'recently_modified_projects'
                 columns : ['project_id']
@@ -1349,7 +1351,7 @@ exports.start_server = start_server = () ->
             monitor_snapshot_queue()
             cb()
         (cb) ->
-            snapshot_active_projects(cb)
+            setInterval(snapshot_active_projects, 10000)
         #(cb) ->
         #    ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
