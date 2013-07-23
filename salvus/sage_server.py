@@ -484,7 +484,7 @@ class Salvus(object):
         if namespace is None:
             namespace = self.namespace
 
-        code   = parsing.strip_leading_prompts(code)
+        #code   = parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print x"
         blocks = parsing.divide_into_blocks(code)
 
         for start, stop, block in blocks:
