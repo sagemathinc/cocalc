@@ -25,5 +25,3 @@ if os.path.exists('/mnt/home/'):
 
     os.system("mkdir -p /mnt/home/scratch; mkdir -p /scratch; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/scratch /scratch;  chmod a+rwx /mnt/home/scratch/")
 
-    # Remove .ssh keys on compute node from /mnt/home/salvus account, since this is a security risk (in case compute node is r00ted).
-    os.system("rm -rf /mnt/home/salvus/.ssh/id_rsa*")
