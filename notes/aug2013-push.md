@@ -19,7 +19,6 @@
 - [ ] (0:30?) this interact doesn't work: `interacts.geometry.unit_circle()`
 - [ ] (2:00?) terminal copy/paste; try to find a way to strip trailing whitespace, and deal with long lines (?)
 - [ ] (1:00?) when searching again, keep the last search in the input box
-- [ ] (1:15?) grout doesn't like "0 to disable" for autosave interval.
 - [ ] (1:00?) %load on a file with a syntax error gives a useless error message
 - [ ] (1:00?) mobile worksheets: change how new cell insert acts to be actually usable!
 - [ ] (2:00?) trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.

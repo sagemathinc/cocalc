@@ -1,19 +1,11 @@
 #120 hours is the max reasonable for the rest of July, 2013
 
-July 21:
-
-  - morning: 6am-11:30am (about 5 hours)
-      - some easy stuff to warm up
-      - support email: install 4ti2
-      - maybe tackle the project restart top priority bug
-
-  - after skate: 3pm - 11pm (minus dinner) (about 7 hours)
-      - some svg stuff for tish's thesis
-      - sws conversion
-
-July 22:
-July 23:
-July 24:
+July 21: got a TON done in the morning
+July 22: spent the day learning D3 and making some tish-thesis-diagrams
+July 23: I will spend 10 hours fulltime on cloud.sagemath today:
+           goals -- new release, fix bugs, catch up on email,
+           [x] (1:16) new release
+July 24: meet students; get that NSF thing done. a bit on cloud in morning.
 July 25:
 July 26:
 July 27:
@@ -22,7 +14,16 @@ July 29:
 July 30:
 July 31:
 
-# Top priority bugs
+# Top priority
+
+- [ ] (0:45?) snap: order of snapshots needed (as returned from db) should be randomized
+
+--> - [ ] (0:45?) snap: if the recovering file itself is corrupt (e.g., empty), then snap can't unpickle it and fails to startup.  Need to wrap that `misc.from_json` in a try/catch.
+
+- [ ] (1:00?) snap: is not querying the database enough.  e.g., if stopped by lock, just stops querying db.  BAD!
+
+- [ ] (2:00?) snap: when database gets slow even once, snap servers just *STOP* querying, and that's that.  They make no more snapshots.
+
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
        - open a worksheet or file to edit
@@ -33,6 +34,11 @@ July 31:
 
 - [ ] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.  I have no clear way to reproduce this.
 
+
+- [ ] (4:00?) LXC, closing projects, etc., if possible, would be *very* good -- e.g. -- on july 22 one VM became unusable due to running out of memory, etc.
+
+- [ ] (1:30?) security issue -- should probably remove `/home/salvus/.ssh/id_rsa` from compute salvus on boot... since this grants access to other machines.  On the other hand, be careful since this is needed for making new projects the way I do now.
+
 # Growth features
 
 - [x] (1:00?) (0:11) Add link/banner to the sagenb login screen suggesting people try cloud.sagemath.
@@ -42,6 +48,8 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
   - page: design&implement the dialog where the user composes the message to friend
   - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
   - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g., getting added to a project, banned, etc. -- should work with email+*@'s.
+
+- [ ] (3:00?) templates -- https://mail.google.com/mail/u/0/?shva=1#inbox/140073638f4efd87
 
 # User Visible Bugs
 
@@ -59,6 +67,9 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [x] (1:00?) (0:42) interact bugs with `input_grid` first time, etc.
 - [x] (1:00?) (0:13) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "%md" mode works with any sage install, not just system-wide one.
 - [x] (1:00?) (0:40) strip "sage:" prompts from input blocks like in sagenb.org and command line; this makes copying code from docstrings much easier, etc.
+
+
+- [ ] (1:00?) tab completion bug: edge case -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/14004a6da697a304
 
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
 - [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
@@ -111,6 +122,8 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
 - [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 - [ ] (0:20?) tooltips on delete project and public/private look wrong (not bootstraped)
+
+- [ ] (1:15?) get rid of 0=disable autosave; very dangerous.
 
 # User Features
 
