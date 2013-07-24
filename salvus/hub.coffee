@@ -2806,19 +2806,20 @@ get_project_location = (project_id, cb, attempts) ->   # cb(err, location)
                                 database.set_project_location
                                     project_id : project_id
                                     location   : location
-                                cb(false, location)
 
-                                # We now initiate a restore; this does *not* block on getting the project object and
-                                # letting the user do other things with the project.  That's why we call "cb" first
-                                # just above, which should look suspicious to you, dear reader.
+                                # We now initiate a restore; this blocks on getting the project object and
+                                # letting the user do other things with the project.   I tried not locking
+                                # on this and it is confusing (and terrifying!) as a user to see "no files" at
+                                # the beginning.
                                 restore_project_from_most_recent_snapshot
                                     project_id : project_id
                                     location   : location
                                     cb         : (err) =>
                                         if err
-                                            winston.debug("Error restoring project #{project_id} -- #{err}")
+                                            cb("Error restoring project #{project_id} -- #{err}")
                                         else
                                             winston.debug("Successfully restored project #{project_id}")
+                                            cb(false, location)
 
 class Project
     constructor: (@project_id, cb) ->

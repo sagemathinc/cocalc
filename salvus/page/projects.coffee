@@ -126,9 +126,9 @@ create_project_item = (project) ->
     item.find(".projects-description").text(project.description)
 
     if not project.location?
-        item.find(".projects-location").text("(in storage)")
+        item.find(".projects-location").html("<i class='icon-archive'> </i>stored")
     else if project.location == "deploying"
-        item.find(".projects-location").text("deploying...")
+        item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
 
     ###
     # This is too cluttered and is somewhat meaningless.
@@ -217,19 +217,19 @@ open_project = (project, item) ->
             message:"WARNING: Opening project #{project.title} will take extra time, since it hasn't been opened in a while.  This takes around 1 minute per gigabyte."
             timeout: 30
         if item?
-            item.find(".projects-location").text("deploying...")
+            item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
         salvus_client.project_info
             project_id : project.project_id
             cb         : (err, info) ->
                 if err
                     alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
                     if item?
-                        item.find(".projects-location").text("(last open failed)")
+                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
                     return
                 if not info.location?
                     alert_message(type:"error", message:"error opening project (missing info)", timeout:6)
                     if item?
-                        item.find(".projects-location").text("(last open failed)")
+                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
                 else
                     project.location = location
                     if item?

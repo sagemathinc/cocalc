@@ -726,8 +726,8 @@ monitor_snapshot_queue = () ->
                         if err
                             cb(err)
                         else
-                            if _location == "deploying"
-                                cb("can't snapshot #{project_id} since it is currently being deployed")
+                            if not _location? or not _location.username?
+                                cb("can't snapshot #{project_id} since it is not deployed")
                                 return
                             location = _location
                             user = "#{location.username}@#{location.host}"
