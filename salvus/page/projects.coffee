@@ -122,7 +122,11 @@ create_project_item = (project) ->
     item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
     if project.size?
         item.find(".projects-size").text(human_readable_size(project.size))
+
     item.find(".projects-description").text(project.description)
+
+    if not project.location?
+        item.find(".projects-location").text("(in storage)")
     ###
     # This is too cluttered and is somewhat meaningless.
     if project.location.username?
@@ -198,8 +202,28 @@ update_project_view = (show_all=false) ->
 open_project = (project) ->
     #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
     #    alert_message(type:"warning", message:"Please close a project before opening more projects.")
-    project_page(project)
-    top_navbar.switch_to_page(project.project_id)
+    f = () ->
+        project_page(project)
+        top_navbar.switch_to_page(project.project_id)
+
+    if project.location?
+        f()
+    else
+        alert_message
+            type:"info"
+            message:"WARNING: Opening project #{project.title} will take extra time, since it hasn't been opened in a while.  Please be patient."
+            timeout: 15
+        salvus_client.project_info
+            project_id : project.project_id
+            cb         : (err, info) ->
+                if err
+                    alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
+                    return
+                if not info.location?
+                    alert_message(type:"error", message:"error opening project (missing info)", timeout:6)
+                else
+                    project.location = location
+                    f()
 
 
 ################################################

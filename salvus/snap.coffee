@@ -602,14 +602,20 @@ rollback_last_save = (opts) ->
 # It is safe to enqueue a project repeatedly -- it'll get snapshoted
 # at most every snap_interval seconds.
 
-snapshot_queue = []
+
+snapshot_queue = []    # list of {project_id:?, cbs:[list of callback functions (or undefined)]}
 
 snapshot_project = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : undefined
     winston.info("enqueuing project #{opts.project_id} for snapshot")
-    snapshot_queue.push(opts)
+    for x in snapshot_queue
+        if x.project_id = opts.project_id
+            x.cbs.push(opts.cb)
+            return
+
+    snapshot_queue.push({project_id:opts.project_id, cbs:[opts.cb]})
 
 repository_is_corrupt = false
 monitor_snapshot_queue = () ->
@@ -617,12 +623,13 @@ monitor_snapshot_queue = () ->
 
         if repository_is_corrupt
             while snapshot_queue.length > 0
-                {project_id, cb} = snapshot_queue.shift()
-                cb?("the repository is corrupt")
+                {project_id, cbs} = snapshot_queue.shift()
+                for cb in cbs
+                    cb?("the repository is totally corrupt")
             return
 
         user = undefined
-        {project_id, cb} = snapshot_queue.shift()
+        {project_id, cbs} = snapshot_queue.shift()
 
         location    = undefined
         user        = undefined
@@ -708,7 +715,7 @@ monitor_snapshot_queue = () ->
                             # TODO: support location.port != 22 and location.path != '.'   !!?
                             cb()
             # get a lock on the deployed project
-            (c) ->
+            (cb) ->
                 winston.debug("Trying to lock #{project_id} for snapshotting.")
                 create_lock
                     location : location
@@ -717,9 +724,10 @@ monitor_snapshot_queue = () ->
                             retry_later = true
                             winston.debug("Couldn't lock #{project_id}, so put back in the queue to try again later (in 30 seconds)")
                             f = () ->
-                                snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
+                                for c in cbs
+                                    snapshot_project(project_id:project_id, cb:c)
                             setTimeout(f, 30000)
-                        c(err)
+                        cb(err)
 
             # create index
             (cb) ->
@@ -826,7 +834,8 @@ monitor_snapshot_queue = () ->
             # wait 3 seconds, to ensure uniqueness of time stamp, not be too aggressive checking locks, etc.
             setTimeout(monitor_snapshot_queue, 3000)
             if not retry_later
-                cb?(err)
+                for cb in cbs
+                    cb?(err)
         )
     else
         # check again soon
@@ -1285,7 +1294,7 @@ age_of_most_recent_snapshot_in_seconds = (id) ->
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
     project_ids = undefined
-    winston.debug("checking for recently modified project.")
+    winston.debug("checking for recently modified projects.")
     async.series([
         (cb) ->
             connect_to_database(cb)
@@ -1304,7 +1313,7 @@ snapshot_active_projects = (cb) ->
             for id in project_ids
                 if age_of_most_recent_snapshot_in_seconds(id) >= program.snap_interval
                     v.push(id)
-            winston.debug("projects needing snapshots: #{misc.to_json(v)}")
+            winston.debug("projects needing snapshots (since snapshot age > #{program.snap_interval}): #{misc.to_json(v)}")
             snapshot_projects
                 project_ids : v
                 cb          : cb
@@ -1312,8 +1321,6 @@ snapshot_active_projects = (cb) ->
         if err
             winston.debug("Error snapshoting active projects -- #{err}")
             # TODO: We need to trigger something more drastic somehow at some point...?
-
-        setTimeout(snapshot_active_projects, 10000)  # check every 10 seconds
 
         cb?()
     )

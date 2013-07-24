@@ -1598,6 +1598,52 @@ connect_to_snap_server = (server, cb) ->
                 cb(err, socket)
 
 
+restore_project_from_most_recent_snapshot = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        location   : required
+        cb         : undefined
+
+    timestamp = "nothing to do"
+    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} --> #{misc.to_json(opts.location)}")
+    async.series([
+        (cb) ->
+            # We get a list of *all* currently available snapshots, since right now there
+            # is now way to get just the most recent one.
+            snap_command
+                command    : "ls"
+                project_id : opts.project_id
+                cb         : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        if results.length == 0
+                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no snapshots; nothing to do")
+                        else
+                            timestamp = results[0]
+                        cb()
+        (cb) ->
+            if timestamp == "nothing to do"
+                # nothing to do
+                cb()
+            else
+                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- started the restore")
+                snap_command
+                    command : "restore"
+                    project_id : opts.project_id
+                    snapshot   : timestamp
+                    timeout    : 1800
+                    cb         : (err) ->
+                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- finished restore")
+                        if err
+                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- BUG restore #{timestamp} error -- #{err}")
+                        cb(err)
+
+    ], (err) -> opts.cb?(err))
+
+
+
+
 
 ##############################
 # Create the SockJS Server
@@ -2700,6 +2746,65 @@ new_project = (project_id, cb) ->   # cb(err, project)
             cb(err, P)
         )
 
+get_project_location = (project_id, cb, attempts) ->   # cb(err, location)
+    if not attempts?
+        attempts = 20
+
+    database.get_project_location
+        project_id : project_id
+        cb         : (err, location) =>
+            if err
+                cb(err); return
+
+            if location == "deploying"
+                winston.debug("get_project_location: something else is currently deploying #{project_id}")
+                # Another hub or "thread" of this hub is currently deploying
+                # the project.  We keep querying every few seconds until this changes.
+                if attempts <= 0
+                    cb("failed to deploy project (too many attempts)")
+                    return
+                else
+                    winston.debug("get_project_location -- try again in 3 seconds (attempts=#{attempts}).")
+                    f = () ->
+                        get_project_location(project_id, cb, attempts-1)
+                    setTimeout(f, 3000)
+                    return
+
+            if location?
+                cb(false, location)
+                return
+
+            database.update
+                table : "projects"
+                set   : {location:"deploying"}
+                where : {project_id:project_id}
+                ttl   : 60
+                cb    : (err) ->
+                    if err
+                        cb(err); return
+                    else
+                        new_random_unix_user
+                            cb : (err, location) =>
+                                if err
+                                    cb("project location not defined -- and allocating new one led to error -- #{err}")
+                                    return
+                                database.set_project_location
+                                    project_id : project_id
+                                    location   : location
+                                cb(false, location)
+
+                                # We now initiate a restore; this does *not* block on getting the project object and
+                                # letting the user do other things with the project.  That's why we call "cb" first
+                                # just above, which should look suspicious to you, dear reader.
+                                restore_project_from_most_recent_snapshot
+                                    project_id : project_id
+                                    location   : location
+                                    cb         : (err) =>
+                                        if err
+                                            winston.debug("Error restoring project #{project_id} -- #{err}")
+                                        else
+                                            winston.debug("Successfully restored project #{project_id}")
+
 class Project
     constructor: (@project_id, cb) ->
         if not @project_id?
@@ -2707,36 +2812,10 @@ class Project
         winston.debug("Instantiating Project class for project with id #{@project_id}.")
         async.series([
             (cb) =>
-                database.get_project_location
-                    project_id : @project_id
-                    cb         : (err, location) =>
-                        if err
-                            cb(err); return
-                        if location?
-                            @location = location
-                            cb(); return
-                        new_random_unix_user
-                            cb : (err, location) =>
-                                if err
-                                    cb("project location not defined -- and allocating new one led to error -- #{err}")
-                                else
-                                    # Copy project's files from the most recent snapshot to the
-                                    # new unix user account.
-                                    # TODO
-                                    ###
-                                    backup_server.restore_project
-                                        project_id : @project_id
-                                        location   : location
-                                        cb         : (err) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                database.set_project_location
-                                                    project_id : @project_id
-                                                    location   : location
-                                                @location = location
-                                                cb()
-                                    ###
+                winston.debug("Getting project #{@project_id} location.")
+                get_project_location @project_id, (err, location) =>
+                    @location = location
+                    cb(err)
             (cb) =>
                 winston.debug("Location of project #{misc.to_json(@location)}")
                 new_local_hub
@@ -3214,6 +3293,9 @@ new_random_unix_user = (opts) ->
     replenish_random_unix_user_cache()
 
 new_random_unix_user_cache_target_size = 1
+if program.keyspace == "test"
+    new_random_unix_user_cache_target_size = 0
+
 new_random_unix_user.cache = []
 replenish_random_unix_user_cache = () ->
     cache = new_random_unix_user.cache
@@ -3226,7 +3308,7 @@ replenish_random_unix_user_cache = () ->
                     # try again in 5 seconds
                     setTimeout(replenish_random_unix_user_cache, 5000)
                 else
-                    winston.debug("Got new unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
+                    winston.debug("New unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
                     new_local_hub
                         username : user.username
                         host     : user.host
