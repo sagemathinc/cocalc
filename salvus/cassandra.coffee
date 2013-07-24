@@ -1163,10 +1163,12 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             project_id : required
             location   : undefined   # undefined is meaningful, and means "not deployed anywhere" (as does "")
+            ttl        : undefined   # used when deploying
             cb         : undefined
         @update
             table : 'projects'
             json  : ['location']
+            ttl   : opts.ttl
             set   :
                 location : opts.location
             where :

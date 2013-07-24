@@ -127,6 +127,9 @@ create_project_item = (project) ->
 
     if not project.location?
         item.find(".projects-location").text("(in storage)")
+    else if project.location == "deploying"
+        item.find(".projects-location").text("deploying...")
+
     ###
     # This is too cluttered and is somewhat meaningless.
     if project.location.username?
@@ -139,7 +142,7 @@ create_project_item = (project) ->
     ###
     item.click (event) ->
         #try
-        open_project(project)
+        open_project(project, item)
         #catch e
         #    console.log(e)
         return false
@@ -199,30 +202,38 @@ update_project_view = (show_all=false) ->
     else
         $("#projects-show_all").hide()
 
-open_project = (project) ->
+open_project = (project, item) ->
     #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
     #    alert_message(type:"warning", message:"Please close a project before opening more projects.")
     f = () ->
         project_page(project)
         top_navbar.switch_to_page(project.project_id)
 
-    if project.location?
+    if project.location? and project.location != "deploying"
         f()
     else
         alert_message
             type:"info"
-            message:"WARNING: Opening project #{project.title} will take extra time, since it hasn't been opened in a while.  Please be patient."
-            timeout: 15
+            message:"WARNING: Opening project #{project.title} will take extra time, since it hasn't been opened in a while.  This takes around 1 minute per gigabyte."
+            timeout: 30
+        if item?
+            item.find(".projects-location").text("deploying...")
         salvus_client.project_info
             project_id : project.project_id
             cb         : (err, info) ->
                 if err
                     alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
+                    if item?
+                        item.find(".projects-location").text("(last open failed)")
                     return
                 if not info.location?
                     alert_message(type:"error", message:"error opening project (missing info)", timeout:6)
+                    if item?
+                        item.find(".projects-location").text("(last open failed)")
                 else
                     project.location = location
+                    if item?
+                        item.find(".projects-location").text("")
                     f()
 
 

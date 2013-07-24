@@ -350,6 +350,7 @@ snap_restore = (opts) ->
                         # TODO: support location.port != 22 and location.path != '.'   !!?
                         user = "#{location.username}@#{location.host}"
                         cb()
+
         # Extract file or path to temporary location.
         (cb) ->
             t = misc.walltime()
@@ -360,6 +361,19 @@ snap_restore = (opts) ->
                cb      : (err) ->
                    winston.info("restore time (#{target}) -- #{misc.walltime(t)}")
                    cb(err)
+
+        # If target path is ., then remove .sagemathcloud, since we *must* not restore it,
+        # since it contains a bunch of invalid and out of data cache info, etc., which will
+        # cause all kinds of trouble.
+        (cb) ->
+            if opts.path != '.'
+                cb(); return
+            winston.debug("removing .sagemathcloud since target path is '.'")
+            misc_node.execute_code
+                command : "rm"
+                args    : ["-rf", outdir + "/.sagemathcloud/"]
+                cb      : (err, output) ->
+                    cb()
 
         (cb) ->
             # Determine destination path and ensure it exists.  Note that rsync seems like
@@ -435,6 +449,8 @@ snap_restore = (opts) ->
             command : "rm"
             args    : ['-rf', outdir]
             timeout : 3600
+            cb      : (err, output) ->
+                winston.debug("finished removing temporary extraction directory")
     )
 
 
@@ -710,10 +726,14 @@ monitor_snapshot_queue = () ->
                         if err
                             cb(err)
                         else
+                            if _location == "deploying"
+                                cb("can't snapshot #{project_id} since it is currently being deployed")
+                                return
                             location = _location
                             user = "#{location.username}@#{location.host}"
                             # TODO: support location.port != 22 and location.path != '.'   !!?
                             cb()
+
             # get a lock on the deployed project
             (cb) ->
                 winston.debug("Trying to lock #{project_id} for snapshotting.")

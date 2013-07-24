@@ -1020,7 +1020,21 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        @push_to_client(message.project_info(id:mesg.id, info:info))
+                        if not info.location
+                            # This is what would happen if the project were shelved after being created;
+                            # suddenly the location would be null, even though in some hubs the Project
+                            # instance would exist.  In this case, we need to recreate the project, which
+                            # will deploy it somewhere.
+                            delete _project_cache[project.project_id]
+                            @get_project mesg, 'read', (err, project) =>
+                                # give it this one try only this time.
+                                project.get_info (err, info) =>
+                                    if err
+                                        @error_to_client(id:mesg.id, error:err)
+                                    else
+                                        @push_to_client(message.project_info(id:mesg.id, info:info))
+                        else
+                            @push_to_client(message.project_info(id:mesg.id, info:info))
 
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
@@ -2720,12 +2734,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 # Projects
 ##############################
 
-# Connect to a local hub (using appropriate port and secret token),
-# login, and enhance socket with our message protocol.
-
+# Create a project object that is connected to a local hub (using
+# appropriate port and secret token), login, and enhance socket
+# with our message protocol.
 
 _project_cache = {}
 new_project = (project_id, cb) ->   # cb(err, project)
+    winston.debug("new_project(#{project_id})")
     P = _project_cache[project_id]
     if P?
         if P == "instantiating"
@@ -2738,7 +2753,7 @@ new_project = (project_id, cb) ->   # cb(err, project)
         _project_cache[project_id] = "instantiating"
         start_time = misc.walltime()
         new Project(project_id, (err, P) ->
-            winston.debug("new_project: time= #{misc.walltime() - start_time}")
+            winston.debug("new Project(#{project_id}): time= #{misc.walltime() - start_time}")
             if err
                 delete _project_cache[project_id]
             else
@@ -2747,6 +2762,7 @@ new_project = (project_id, cb) ->   # cb(err, project)
         )
 
 get_project_location = (project_id, cb, attempts) ->   # cb(err, location)
+    winston.debug
     if not attempts?
         attempts = 20
 
@@ -2757,7 +2773,7 @@ get_project_location = (project_id, cb, attempts) ->   # cb(err, location)
                 cb(err); return
 
             if location == "deploying"
-                winston.debug("get_project_location: something else is currently deploying #{project_id}")
+                winston.debug("get_project_location: another hub is currently deploying #{project_id}")
                 # Another hub or "thread" of this hub is currently deploying
                 # the project.  We keep querying every few seconds until this changes.
                 if attempts <= 0
@@ -2774,11 +2790,10 @@ get_project_location = (project_id, cb, attempts) ->   # cb(err, location)
                 cb(false, location)
                 return
 
-            database.update
-                table : "projects"
-                set   : {location:"deploying"}
-                where : {project_id:project_id}
-                ttl   : 60
+            database.set_project_location
+                project_id : project_id
+                location   : "deploying"
+                ttl        : 60
                 cb    : (err) ->
                     if err
                         cb(err); return
@@ -2815,9 +2830,9 @@ class Project
                 winston.debug("Getting project #{@project_id} location.")
                 get_project_location @project_id, (err, location) =>
                     @location = location
+                    winston.debug("Location of project #{@project_id} is #{misc.to_json(@location)}")
                     cb(err)
             (cb) =>
-                winston.debug("Location of project #{misc.to_json(@location)}")
                 new_local_hub
                     username : @location.username
                     host     : @location.host
@@ -3340,6 +3355,7 @@ new_random_unix_user_no_cache = (opts) ->
                         cb(err)
                     else
                         host = resp.host
+                        winston.debug("creating new unix user on #{host}")
                         cb()
         (cb) ->
             # ssh to that computer and create account using script
@@ -3351,12 +3367,15 @@ new_random_unix_user_no_cache = (opts) ->
                 err_on_exit: true
                 cb      : (err, output) =>
                     if err
+                        winston.debug("failed to create new unix user on #{host} -- #{err}")
                         cb(err)
                     else
                         username = output.stdout.replace(/\s/g, '')
                         if username.length == 0
+                            winston.debug("FAILED to create new user on #{host}; empty username")
                             cb("error creating user")
                         else
+                            winston.debug("created new user #{username} on #{host}")
                             cb()
 
     ], (err) ->
