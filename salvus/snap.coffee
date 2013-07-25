@@ -701,13 +701,27 @@ monitor_snapshot_queue = () ->
                             if err
                                 cb(err)
                             else
-                                rollback_last_save
-                                    rollback_info : misc.from_json(data.toString())
-                                    cb            : (err) ->
-                                        if err
-                                            cb(err)
-                                        else
-                                            fs.unlink(rollback_file, cb)
+                                s = data.toString()
+                                try
+                                    rollback_info = misc.from_json(s)
+                                    winston.debug("rollback info: '#{s}'")
+                                catch
+                                    # Something went wrong parsing the rollback JSON file; maybe it is corrupt
+                                    # or empty.  This would be a good place to take more dramatic measures,
+                                    # once they are implemented.
+                                    winston.debug("rollback file *corrupt* (not using); content='#{s}'")
+                                    rollback_info = undefined
+
+                                if rollback_info?
+                                    rollback_last_save
+                                        rollback_info : rollback_info
+                                        cb            : (err) ->
+                                            if err
+                                                cb(err)
+                                            else
+                                                fs.unlink(rollback_file, cb)
+                                else
+                                    cb()
                     else
                         cb()
 
