@@ -1598,7 +1598,7 @@ window.CodeMirror = (function() {
       // Workaround for webkit bug https://bugs.webkit.org/show_bug.cgi?id=90206
       // Add a char to the end of textarea before paste occur so that
       // selection doesn't span to the end of textarea.
-      if (webkit) {
+      if (webkit && !chrome) {
         var start = d.input.selectionStart, end = d.input.selectionEnd;
         d.input.value += "$";
         d.input.selectionStart = start;
