@@ -1,5 +1,5 @@
 
-# Upgrade web-only part:  
+# Upgrade web-only part:
 
     new_vm_image.py
     ssh localhost -p 2222
@@ -44,6 +44,8 @@ time s._hosts.nodetool('snapshot salvus', wait=True)
 # How to initiaite repair all nodes (once a week, takes a long time)
 
 !!! WAIT -- best to do one at a time; doing all at once leads to major performance issues! !!!
+
+    nodetool repair salvus -pr 
 
 time s._hosts.nodetool('snapshot repair', wait=False)
 

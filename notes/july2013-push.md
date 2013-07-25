@@ -7,25 +7,54 @@ July 23: I will spend 10 hours fulltime on cloud.sagemath today:
            [x] (1:16) new release
 July 24: meet students; get that NSF thing done. a bit on cloud in morning.
 July 25:
-July 26:
+July 26: (more sage days stuff!)
 July 27:
 July 28:
 July 29:
 July 30:
 July 31:
 
+# TODAY - 12 hours work; go skate prob at 7pm.
+
+- [x] (0:45?) planning and general ops (just looking over everything).
+- [x] (0:30?) (0:19) snap: if the recovering file itself is corrupt (e.g., empty), then snap can't unpickle it and fails to startup.  Need to wrap that `misc.from_json` in a try/catch.
+- [x] (0:30?) (0:30) upgrade codemirror, which has bugfixes, e.g., python indent; adds five new themes.  Add link to theme previews in settings.
+- [x] (0:30?) (1:00) sage-cloud email
+- [x] (0:30?) sage days
+
+
+- [ ] (2:00?) write function in hub to move a project to storage:
+    - [x] make a snapshot on all running snap servers; 2 must succeed
+    - [ ] set location to null in db
+    - [ ] delete files and account (need a "delete account" script to make the create account script).
+    - [ ] add projects db entry
+
+- [ ] (0:45?) hub:  for each Project/LocalHub class in global hub, check every 15 minutes to
+      ensure that it is actively being modified.  If not, collect it.  This is critical, since
+      we absolutely can't have a Project/LocalHub class sitting around in some hub when we
+      move that project to storage.
+
+- [ ] (1:00?) hub: implement `snapshot_project` function.
+
+- [ ] (1:30?) write code in hub that periodically moves older projects to storage (probably have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage)
+
+- [ ] (1:30?) write code in hub that ensures local hubs are started up for projects that have been accessed in the last n days (again, a ttl'd new db schema field would do this).
+
+- [ ] (1:00?) fix issues so that UI properly shows project restore status
+
+- [ ] (1:00?) fully address potential race condition when restoring projects (don't want multiple hubs to restore simultaneously)
+
+- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
+
+- [ ] (1:00?) next release
+    - definitely `update_version`
+    - sudo apt-get install sysstat
+    - test new codemirror
+    - redo `recently_modified_projects` db schema table
+
 # Top priority
 
-- [ ] (0:45?) snap: order of snapshots needed (as returned from db) should be randomized
-
---> - [ ] (0:45?) snap: if the recovering file itself is corrupt (e.g., empty), then snap can't unpickle it and fails to startup.  Need to wrap that `misc.from_json` in a try/catch.
-
-- [ ] (1:00?) snap: is not querying the database enough.  e.g., if stopped by lock, just stops querying db.  BAD!
-
-- [ ] (2:00?) snap: when database gets slow even once, snap servers just *STOP* querying, and that's that.  They make no more snapshots.
-
-
-- [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off any sane user:
+- [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off user:
        - open a worksheet or file to edit
        - restart local hub, but do NOT restart global hub
        - re-open the same file
@@ -34,40 +63,24 @@ July 31:
 
 - [ ] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.  I have no clear way to reproduce this.
 
-
 - [ ] (4:00?) LXC, closing projects, etc., if possible, would be *very* good -- e.g. -- on july 22 one VM became unusable due to running out of memory, etc.
 
 - [ ] (1:30?) security issue -- should probably remove `/home/salvus/.ssh/id_rsa` from compute salvus on boot... since this grants access to other machines.  On the other hand, be careful since this is needed for making new projects the way I do now.
 
 # Growth features
 
-- [x] (1:00?) (0:11) Add link/banner to the sagenb login screen suggesting people try cloud.sagemath.
-I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_64-Linux/devel/sagenb-git/sagenb/data/sage/html/login.html
-
 - [ ] (3:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
   - page: design&implement the dialog where the user composes the message to friend
   - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
-  - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g., getting added to a project, banned, etc. -- should work with email+*@'s.
+  - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g., getting added to a project, banned, etc. -- should work with `email+*@'s`
 
 - [ ] (3:00?) templates -- https://mail.google.com/mail/u/0/?shva=1#inbox/140073638f4efd87
 
 # User Visible Bugs
 
-- [x] (0:10?) (0:10) rename "1468 accounts (34 signed in)" -->  "1468 accounts (34 connected clients) "
-- [x] (0:15?) (0:10) get rid of border for this: <div class="sagews-input" style="width: 1184px;"><hr class="sagews-input-hr"></div>
-- [x] (0:15?) (0:17) make worksheet/editor font be user's monospace no matter what for now; otherwise, is really annoying.
-- [x] (0:30?) (0:04) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator" -- fluke
-- [x] (1:00?) (0:16) make it so foo?[enter]  and foo??[enter] both work.
-- [x] (0:30?) (1:16) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll; fixed by switching to using http://jschr.github.io/bootstrap-modal/, which is much more powerful anyways.
-- [x] (1:00?) (0:28) `graphics_array(...).show()` and pyplot's don't just display
-- [x] (1:30?) (0:18) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
-- [x] (1:00?) (0:05) if connection to hub goes down, then reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated properly
-- [x] (0:30?) (0:05) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup; upgrade to jQuery 2.0.3
-- [x] (1:00?) (0:06) make interact functions callable
-- [x] (1:00?) (0:42) interact bugs with `input_grid` first time, etc.
-- [x] (1:00?) (0:13) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "%md" mode works with any sage install, not just system-wide one.
-- [x] (1:00?) (0:40) strip "sage:" prompts from input blocks like in sagenb.org and command line; this makes copying code from docstrings much easier, etc.
+- [ ] (1:00?) reduce the terminal output rate-limiation thresh-hold -- it is ANNOYING or buggy.
 
+- [ ] (1:00?) (0:40+) strip "sage:" prompts from input blocks like in sagenb.org and command line; this makes copying code from docstrings much easier, etc.
 
 - [ ] (1:00?) tab completion bug: edge case -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/14004a6da697a304
 
@@ -122,8 +135,11 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (0:45?) worksheet: highlighting many cells and pressing shift-enter results in many new cells
 - [ ] (1:00?) bug in block parser -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f21ec599d17921
 - [ ] (0:20?) tooltips on delete project and public/private look wrong (not bootstraped)
-
 - [ ] (1:15?) get rid of 0=disable autosave; very dangerous.
+- [ ] (0:45?) MAYBE -- when adding blank lines at bottom, if cursor is at *very* bottom and backspace, it can be confusing.
+
+
+
 
 # User Features
 
@@ -153,13 +169,16 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 
 # Major new features
 
-- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
 - [ ] (3:00?) read-only viewers of projects (like collab, but read only)
 - [ ] (3:00?) sagews html editing: try using tinymce to edit %html cells -- editing the output would modify the input (but keep hidden ?)  NEW release! http://www.tinymce.com;  codemirror intro -- https://mail.google.com/mail/u/0/?shva=1#starred/13f5b853999289dc
 
 
-# Server Bugs
+# Server Bugs and issues
 
+- [ ] (1:00?) hub: need to clear `_local_hub_cache` if it isn't active for a while; this is important for when projects get de-allocate from disk.
+
+- [ ] (2:00?) salvus.file python function should not return until all object is written to the database, etc.; also, give an error if file too big, etc.
+- [ ] (2:00?) need to auto-kill `_project_cache` entries after some inactivity; same for `local_hub` objects.
 - [ ] (2:00?) local hub reconnect issue -- see the log for web1 and this email -- https://mail.google.com/mail/u/0/?shva=1#sent/13fea00fb602fa13
 - [ ] (2:00?) enable quotas (10GB/project)
 - [ ] (2:00?) hub -- ensure connection to diffsync sessions is secure in that even if the sessionid is known by attacker, they can't use it.
@@ -199,13 +218,14 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (2:00?)  `local_hub`: pushes out output *too* often/quickly; make a for loop and can easily kill the browser with sync requests.
 - [ ] (1:00?) when database gets slow/unavailable, the snap servers stop registering... due to not catching an exception!
 
+- [ ] (4:00?) the function `snap_command_ls` in the hub doesn't scale past 10,000 commits -- it'll just start ignoring snapshots when they exceed a certain number.  This is obviously sort of good, since we don't want to return too massive of a list.  I will have to come up with a more scalable plan for obtaining and displaying this info.  This returns about 1400 right now (for my main project):
+
+        select count(*) from snap_commits where project_id=3702601d-9fbc-4e4e-b7ab-c10a79e34d3b and server_id in (c8f7e17d-c4d9-4fb8-9df4-b147981d4364,041bb4e5-7423-442b-b28c-46d5c5212b77, 61a7d705-8c7d-47a5-ab10-2f62de36bc6b, 1ce2577a-b065-4f70-870a-ae8395a15ffe);
+
 
 # Server Features
 
-- [ ] (1:30?) automatically and regularly copy log files to a central location (i'm constantly loosing super-useful logs!)
-- [ ] (0:15?) install aldor -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ffceb2441ad76e
-- [ ] (2:00?) automatically deploy a project using a snapshot, in case it is no longer deployed or the vm is down.
-- [ ] (1:30?) snap:  write code to switch automatically to new bup repo in a snap when things "get slow".  But when is that?  time to create bup ls cache?  number of commits? total size of repo? (switching is as simple as removing the file "active")
+- [ ] (1:30?) snap:  write code to switch automatically to new bup repo in a snap when things "get slow".  But when is that?  *WHEN number of commits hits about 4000* (switching is as simple as removing the file "active")
 
 # Operations
 
@@ -214,7 +234,47 @@ I added some html to /sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_
 - [ ] (1:30?) build: automated tests to confirm that salvus environment doesn't suck: https://mail.google.com/mail/u/0/?shva=1#starred/13e690cc3464efb4
 - [ ] (1:30?) (0:12+) use backup.coffee to make a regular text dump of complete db (except maybe blobs?)
 - [ ] (1:30?) expand the size of the base vm, so I can start keeping all past builds of sage.
+- [ ] (1:30?) monitor: function that monitors available disk space, memory, cpu load, etc. on all nodes, and includes that in a db table, which gets queried by the "stats/" URL.  This will be a database entry with ttl.   The "stats/" data will at some point get "visualized" using d3.   http://www.linuxexplorers.com/2012/08/linux-commands-to-check-cpu-and-memory-usage/
+- [ ] (2:00?) swap: implement - swap space for VM's
+- [ ] (2:00?) log aggregation: automatically and regularly copy log files to a central location (i'm constantly loosing super-useful logs!)
 
 
 
 
+# DONE
+
+- [x] (0:15?) install aldor -- https://mail.google.com/mail/u/0/?shva=1#inbox/13ffceb2441ad76e
+
+- [x] (2:00?) (8:00+) automatically deploy a project using a snapshot, in case it is no longer deployed:
+
+   - when opening project, if location is null, do this:
+     part 1:
+       - allocate new location (from pool)
+       - check database for newest available snapshot
+       - if no snapshots, done
+       - if snapshot, recover -- user will see files appearing
+
+     part 2:
+       - set flag in projects db entry that indicates "in recovery state"
+       - add some UI stuff so user can tell that files are being recovered
+
+                testing with fa52035d-4e9c-4e90-a1fa-d85a7fa69401
+                {"host":"localhost","username":"TtWVSmiP","port":22,"path":"."}
+                cqlsh:test> update projects set location=null where project_id=fa52035d-4e9c-4e90-a1fa-d85a7fa69401;
+                cqlsh:test> select * from projects where project_id=fa52035d-4e9c-4e90-a1fa-d85a7fa69401;
+- [x] (0:10?) (0:10) rename "1468 accounts (34 signed in)" -->  "1468 accounts (34 connected clients) "
+- [x] (0:15?) (0:10) get rid of border for this: <div class="sagews-input" style="width: 1184px;"><hr class="sagews-input-hr"></div>
+- [x] (0:15?) (0:17) make worksheet/editor font be user's monospace no matter what for now; otherwise, is really annoying.
+- [x] (0:30?) (0:04) i see this in the address bar?  why?  "https://cloud.sagemath.com/#add-collaborator" -- fluke
+- [x] (1:00?) (0:16) make it so foo?[enter]  and foo??[enter] both work.
+- [x] (0:30?) (1:16) create new project -- the "OK" button, etc., might not be visible, and there is no way to scroll; fixed by switching to using http://jschr.github.io/bootstrap-modal/, which is much more powerful anyways.
+- [x] (1:00?) (0:28) `graphics_array(...).show()` and pyplot's don't just display
+- [x] (1:30?) (0:18) deprecation broken by something cloud does! `find_minimum_on_interval(x, 0, 3)`
+- [x] (1:00?) (0:05) if connection to hub goes down, then reconnects, the tooltip about which hub we're connected to (in the top right) doesn't get updated properly
+- [x] (0:30?) (0:05) `GET https://localhost/jquery/jquery-2.0.1.min.map 404 (Not Found)` in log on startup; upgrade to jQuery 2.0.3
+- [x] (1:00?) (0:06) make interact functions callable
+- [x] (1:00?) (0:42) interact bugs with `input_grid` first time, etc.
+- [x] (1:00?) (0:13) move markdown2 (etc.) libraries to be in .sagemathcloud instead, so that "%md" mode works with any sage install, not just system-wide one.
+
+- [x] (2:00?) snap: when database gets slow even once, snap servers just *STOP* querying, and that's that.  They make no more snapshots.
+- [x] (1:00?) (0:11) Add link/banner to the sagenb login screen suggesting people try cloud.sagemath. I added some html to `/sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_64-Linux/devel/sagenb-git/sagenb/data/sage/html/login.html`

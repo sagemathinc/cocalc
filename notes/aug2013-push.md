@@ -6,6 +6,8 @@
 
 # User Visible Bugs
 
+- [ ] (3:00?) improve css styles for dark themes, especially for mathjax -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/1400483ec22a8992
+- [ ] (2:00?) the docstring popup is ugly and painful -- https://mail.google.com/mail/u/0/?shva=1#starred/140127ce418cbfff
 - [ ] (1:30?) %prun profiler is now broken; just shows nonsense.
 - [ ] (1:30?) sync/worksheets infinite loop printout in worksheet kills everything... NEED rate limiting of burst output, etc., like for terminals.
 
@@ -44,6 +46,7 @@
 
 # User Features
 
+- [ ] (2:00?) customizable cursor
 - [ ] (2:00?) implement ability to open files in the .snapshot directory (or anywhere) read only -- using a full editor view (but in codemirror read-only mode); does *not* require that the project is deployed.
 - [ ] (2:00?) snap: restore target; allow the user to specify a given target path
 - [ ] (2:00?) 3d: support for mtl files and colors -- see cloud project.
