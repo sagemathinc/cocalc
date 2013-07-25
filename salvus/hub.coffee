@@ -1655,9 +1655,68 @@ restore_project_from_most_recent_snapshot = (opts) ->
 
     ], (err) -> opts.cb?(err))
 
+# Make some number of snapshots on some minimum distinct number
+# of snapshot servers of the given project, if possible.
+snapshot_project = (opts) ->
+    opts = defaults opts,
+        project_id   : required
+        min_replicas : 1
+        cb           : undefined       # cb(err) -- called only when snapshots definitely have been made and reported to db
+    # TODO!
+    opts.cb?()
 
 
+# Move a project to longterm storage:
+#
+# This function assumes this is safe, i.e., that there is no Project class created on some
+# global hub, which would incorrectly think the project is still allocated somewhere.
+#
+#    - make a snapshot on all running snap servers; at least 2 must succeed
+#    - set location to null in database
+#    - delete files and account (need a "delete account" script to make the create account script).
+#
+move_project_to_longterm_storage = (opts) ->
+    opts = defaults opts,
+        project_id   : required
+        min_replicas : 2
+        cb           : undefined
 
+    location = undefined
+    async.series([
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- getting location of #{opts.project_id}")
+            database.get_project_location
+                project_id : opts.project_id
+                cb         : (err, _location) =>
+                    if err
+                        cb(err); return
+                    else if _location == "deploying"
+                        cb("project curently being opened, so refusing to move it to storage")
+                    else if not _location?
+                        cb("ok")
+                    else
+                        location = _location
+                        cb()
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- making at least 2 snapshots of #{opts.project_id}")
+            snapshot_project
+                project_id    : opts.project_id
+                min_replicas  : opts.min_replicas
+                cb : cb
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- setting location to null in database")
+            database.set_project_location
+                project_id : opts.project_id
+                location   : undefined   # means not deployed anywhere
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- deleting account and all associated files")
+
+    ], (err) ->
+        if err == "done"
+            cb?()
+        else
+            cb?(err)
+    )
 
 ##############################
 # Create the SockJS Server
@@ -1671,7 +1730,7 @@ init_sockjs_server = () ->
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 
-#######################################################
+    #######################################################
 # Pushing a message to clients; querying for clients
 # This is (or will be) subtle, due to having
 # multiple HUBs running on different computers.
@@ -2760,6 +2819,10 @@ new_project = (project_id, cb) ->   # cb(err, project)
                 _project_cache[project_id] = P
             cb(err, P)
         )
+
+# Get the location of the given project, or if it isn't located somewhere,
+# then deploy it and report back the location when done deploying.
+# Use database.get_project_location to get the project location without deploying.
 
 get_project_location = (project_id, cb, attempts) ->   # cb(err, location)
     winston.debug
