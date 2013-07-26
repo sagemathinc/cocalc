@@ -9,7 +9,9 @@ You should put the following in visudo:
             salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/delete_unix_user.py *
 
 ALSO **IMPORTANT** put a locally built copy of .sagemathcloud (with secret deleted) in
-scripts/skel to massively speed up new project creation.
+scripts/skel to massively speed up new project creation.  You might make a symlink like this:
+
+      sudo ln -s /home/salvus/salvus/salvus/scripts/skel .
 
 """
 

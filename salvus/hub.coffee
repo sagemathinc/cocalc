@@ -3464,7 +3464,7 @@ new_random_unix_user_no_cache = (opts) ->
             # ssh to that computer and create account using script
             misc_node.execute_code
                 command : 'ssh'
-                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'salvus/salvus/scripts/create_unix_user.py']
+                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', '/usr/local/bin/create_unix_user.py']
                 timeout : 45
                 bash    : false
                 err_on_exit: true

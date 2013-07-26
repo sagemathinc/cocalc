@@ -59,6 +59,10 @@ July 31:
       and
            chmod +x delete_unix_user.py create_unix_user.py
            chmod -s delete_unix_user.py create_unix_user.py
+
+    - make symlink like this:
+       cd /usr/local/bin; sudo ln -s /home/salvus/salvus/salvus/scripts/skel .
+
     - redo `recently_modified_projects` db schema table
 
 # Top priority
