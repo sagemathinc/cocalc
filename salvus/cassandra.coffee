@@ -538,6 +538,7 @@ class exports.Cassandra extends EventEmitter
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
+        @_touch_project_cache = {}
         if not opts.keyspace?
             opts.keyspace = 'salvus'
         super(opts)
@@ -1221,12 +1222,26 @@ class exports.Salvus extends exports.Cassandra
         @uuid_value_store(name:'project_save_lock').delete(uuid:opts.project_id, cb:opts.cb)
 
     # Set last_edited for this project to right now, and possibly update its size.
+    # It is safe and efficient to call this function very frequently since it will
+    # actually hit the database at most once every 30 seconds (per project).  In particular,
+    # once called, it ignores subsequent calls for the same project for 30 seconds.
     touch_project: (opts) ->
         opts = defaults opts,
             project_id : required
             location   : undefined
             size       : undefined
             cb         : undefined
+
+        id = opts.project_id
+        tm = @_touch_project_cache[id]
+        if tm?
+            if misc.walltime(tm) < 30
+                opts.cb?()
+                return
+            else
+                delete @_touch_project_cache[id]
+                
+        @_touch_project_cache[id] = misc.walltime()
 
         set = {last_edited: now()}
         if opts.size
