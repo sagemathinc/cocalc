@@ -1740,7 +1740,7 @@ test_longterm = () ->
         cb         : (err) ->
             winston.debug("test_longterm err = #{err}")
 
-setTimeout(test_longterm, 5000)
+#setTimeout(test_longterm, 5000)
 
 
 ##############################
@@ -4546,7 +4546,7 @@ exports.start_server = start_server = () ->
         cb       : (err, _db) ->
             database = _db
 
-            # start updating stats every minute
+            # start updating stats cache every minute (on every hub)
             update_server_stats(); setInterval(update_server_stats, 60*1000)
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 

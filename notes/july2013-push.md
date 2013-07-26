@@ -18,9 +18,8 @@ July 31:
 
 - [x] (1:00?) (0:27) add a few "email wstein@gmail.com in it isn't working" messages to the HTML.
 
-- [x] (2:00?) (4:00) debug "save project to storage" functionality and fix issues so that UI properly shows project restore status during restore
-
-- [ ] (0:30?) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
+- [x] (2:00?) (4:10) debug "save project to storage" functionality and fix issues so that UI properly shows project restore status during restore
+- [x] (0:30?) (0:36) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
 - [ ] (0:30?) cassandra: rate limit project "touch"
 - [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
 - [ ] (0:30?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
@@ -47,6 +46,11 @@ July 31:
 
     - redo `recently_modified_projects` db schema table
 
+    - update stats schema:
+
+            alter table stats add last_day_projects int;
+            alter table stats add last_week_projects int;
+            alter table stats add last_month_projects int;
 
 # Top priority
 

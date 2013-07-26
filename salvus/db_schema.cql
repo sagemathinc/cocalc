@@ -393,6 +393,8 @@ CREATE TABLE stats (
     accounts int,
     projects int,
     active_projects int,
+    last_day_projects int,
+    last_week_projects int,
     snap_servers int,
     hub_servers varchar /* JSON */
 );

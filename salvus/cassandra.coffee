@@ -16,7 +16,7 @@ MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
 # recent times, used for recently_modified_projects
-exports.RECENT_TIMES = RECENT_TIMES = 
+exports.RECENT_TIMES = RECENT_TIMES =
     short : 5*60
     day   : 60*60*24
     week  : 60*60*24*7
@@ -1504,8 +1504,30 @@ class exports.Salvus extends exports.Cassandra
             (cb) =>
                 @count
                     table : 'recently_modified_projects'
+                    where : {ttl : 'short'}
                     cb    : (err, val) =>
                         stats.active_projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    where : {ttl : 'day'}
+                    cb    : (err, val) =>
+                        stats.last_day_projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    where : {ttl : 'week'}
+                    cb    : (err, val) =>
+                        stats.last_week_projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    where : {ttl : 'month'}
+                    cb    : (err, val) =>
+                        stats.last_month_projects = val
                         cb(err)
             (cb) =>
                 @count
