@@ -5,8 +5,8 @@ Complete delete a given unix user
 
 You should put the following in visudo:
 
-   salvus ALL=(ALL)   NOPASSWD:  /home/salvus/salvus/salvus/scripts/delete_unix_user.py ""
-
+            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/create_unix_user.py ""
+            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/delete_unix_user.py *
 """
 
 from subprocess import Popen, PIPE
@@ -30,7 +30,7 @@ def deluser(username):
     cmd(['rm', '-rf', home])
 
 if len(sys.argv) != 2:
-    sys.stderr.write("Usage: sudo %s <username>"%sys.argv[0])
+    sys.stderr.write("Usage: sudo %s <username>\n"%sys.argv[0])
     sys.stderr.flush()
     sys.exit(1)
 else:
