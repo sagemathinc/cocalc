@@ -1675,6 +1675,7 @@ snapshot_project = (opts) ->
 #    - set location to null in database
 #    - delete files and account (need a "delete account" script to make the create account script).
 #
+# Also, it's an error if the location is not on the 10.x subnet or 'localhost'.
 move_project_to_longterm_storage = (opts) ->
     opts = defaults opts,
         project_id   : required
@@ -1695,8 +1696,11 @@ move_project_to_longterm_storage = (opts) ->
                     else if not _location?
                         cb("ok")
                     else
-                        location = _location
-                        cb()
+                        if location.host == 'localhost' or location.host.slice(0,3) == '10.'
+                            location = _location
+                            cb()
+                        else
+                            cb("refusing to move project at non-VPN/non-local location (=#{location.host}) to longterm storage!")
         (cb) ->
             winston.debug("move_project_to_longterm_storage -- making at least 2 snapshots of #{opts.project_id}")
             snapshot_project
@@ -1710,6 +1714,9 @@ move_project_to_longterm_storage = (opts) ->
                 location   : undefined   # means not deployed anywhere
         (cb) ->
             winston.debug("move_project_to_longterm_storage -- deleting account and all associated files")
+            delete_unix_user
+                location : location
+                cb       : cb
 
     ], (err) ->
         if err == "done"
@@ -3355,7 +3362,39 @@ is_valid_password = (password) ->
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
 
+# Delete a unix user from some compute vm (as specified by location).
+# NOTE: Since this can get called automatically, and there is the possibility
+# of adding locations not on our VPN, if the location isn't 'localhost' or
+# on the 10.x vpn, then it is an error.
+delete_unix_user = (opts) ->
+    opts = defaults opts,
+        location : required
+        timeout  : 120        # it could take a while to delete all files
+        cb       : undefined
 
+    misc_node.execute_code
+    command : 'ssh'
+    args    : ['-o', 'StrictHostKeyChecking=no', opts.location.host, 'sudo',
+               'salvus/salvus/scripts/delete_unix_user.py', opts.location.username]
+    timeout : opts.timeout
+    bash    : false
+    err_on_exit: true
+    cb      : (err, output) =>
+        if err
+            winston.debug("failed to create new unix user on #{host} -- #{err}")
+            cb(err)
+        else
+            username = output.stdout.replace(/\s/g, '')
+            if username.length == 0
+                winston.debug("FAILED to create new user on #{host}; empty username")
+                cb("error creating user")
+            else
+                winston.debug("created new user #{username} on #{host}")
+                cb()
+
+
+
+# Create a unix user with some random user name on some compute vm.
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb          : required
@@ -3426,7 +3465,7 @@ new_random_unix_user_no_cache = (opts) ->
             misc_node.execute_code
                 command : 'ssh'
                 args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'salvus/salvus/scripts/create_unix_user.py']
-                timeout : 20
+                timeout : 45
                 bash    : false
                 err_on_exit: true
                 cb      : (err, output) =>
