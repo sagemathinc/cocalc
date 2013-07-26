@@ -16,8 +16,13 @@ MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
 # recent times, used for recently_modified_projects
-RECENT_TIMES = {'short':{ttl:5*60,desc:'5 minutes'}, 'medium':{ttl:60*60*24,desc:'1 day'}, 'long':{ttl:60*60*24*7,desc:'1 week'}}
-RECENT_TIMES_ARRAY = [RECENT_TIMES.short, RECENT_TIMES.medium, RECENT_TIMES.long]
+exports.RECENT_TIMES = RECENT_TIMES = 
+    short : 5*60
+    day   : 60*60*24
+    week  : 60*60*24*7
+    month : 60*60*24*7*30
+
+RECENT_TIMES_ARRAY = ({desc:desc,ttl:ttl} for desc,ttl of RECENT_TIMES)
 
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
@@ -1144,7 +1149,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'projects'
             where   : {project_id: opts.project_id}
-            columns : ['location']
+            columns : ['location','title']   # include title to avoid situation when location is null.
             json    : ['location']
             cb : (err, results) ->
                 if err
@@ -1154,16 +1159,16 @@ class exports.Salvus extends exports.Cassandra
                 else
                     location = results[0][0]
                     # We also support "" for the host not being
-                    # defined, since some drivers, e.g., cqlsh do not
+                    # defined, since some drivers might not
                     # support setting a column to null.
-                    if not location? or not location
+                    if not location
                         location = undefined
                     opts.cb(false, location)
 
     set_project_location: (opts) ->
         opts = defaults opts,
             project_id : required
-            location   : undefined   # undefined is meaningful, and means "not deployed anywhere" (as does "")
+            location   : required    # "" means "not deployed anywhere" -- see get_project_location above.
             ttl        : undefined   # used when deploying
             cb         : undefined
         @update
@@ -1232,7 +1237,7 @@ class exports.Salvus extends exports.Cassandra
             set   : set
             where : {project_id : opts.project_id}
             cb    : (err, result) =>
-                if err or not opts.location?
+                if err or not opts.location
                     opts.cb?(err); return
                 f = (t, cb) =>
                     @update

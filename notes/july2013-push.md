@@ -18,16 +18,17 @@ July 31:
 
 - [x] (1:00?) (0:27) add a few "email wstein@gmail.com in it isn't working" messages to the HTML.
 
---> - [ ] (1:00?) debug "save project to storage" functionality
+- [x] (2:00?) (4:00) debug "save project to storage" functionality and fix issues so that UI properly shows project restore status during restore
 
-- [ ] (1:00?) fix issues so that UI properly shows project restore status
-- [ ] (1:30?) hub: implement `snapshot_project` function.
-- [ ] (1:00?) hub:  for each Project/LocalHub class in global hub, check every 15 minutes to
-      ensure that it is actively being modified.  If not, collect it.  This is critical, since
-      we absolutely can't have a Project/LocalHub class sitting around in some hub when we
-      move that project to storage.
-- [ ] (1:30?) write code in hub that periodically moves older projects to storage (probably have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage)
-- [ ] (1:30?) next release
+- [ ] (0:30?) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
+- [ ] (0:30?) cassandra: rate limit project "touch"
+- [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
+- [ ] (0:30?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
+- [ ] (0:30?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
+- [ ] (1:00?) write code in hub that periodically moves older projects to storage.  Maybe have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage.  Have two modes: a slower one that iterates over all projects, and one that takes project that were active in the last *month*, but not in the last week, and shelves only those.  Run on all hubs -- at a randomized interval, and iterating over the projects in a random order.
+
+- [ ] (1:30?) new release (early Sat morning)
+    - check that I have backups
     - definitely `update_version`
     - sudo apt-get install sysstat
     - test new codemirror
@@ -45,6 +46,7 @@ July 31:
        cd /usr/local/bin; sudo ln -s /home/salvus/salvus/salvus/scripts/skel .
 
     - redo `recently_modified_projects` db schema table
+
 
 # Top priority
 

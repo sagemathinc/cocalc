@@ -306,6 +306,7 @@ _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
 snap_restore = (opts) ->
     opts = defaults opts,
         project_id      : required
+        location        : undefined    # if undefined, queries the db for a default target (which must not be 'deploying' or undefined or '' in database!)
         snapshot        : required
         repo_id         : required
         path            : '.'
@@ -337,19 +338,27 @@ snap_restore = (opts) ->
     target = "master/#{opts.snapshot}/#{opts.path}"
     dest   = undefined
     escaped_dest = undefined
+    location = undefined
 
     async.series([
         # Get remote project location from database
         (cb) ->
-            database.get_project_location
-                project_id : opts.project_id
-                cb         : (err, location) ->
-                    if err
+            if opts.location
+                location = opts.location
+                cb()
+            else
+                database.get_project_location
+                    project_id : opts.project_id
+                    cb         : (err, _location) ->
+                        location = _location
                         cb(err)
-                    else
-                        # TODO: support location.port != 22 and location.path != '.'   !!?
-                        user = "#{location.username}@#{location.host}"
-                        cb()
+        (cb) ->
+            # TODO: support location.port != 22 and location.path != '.'   !!?
+            if not location or not location.username? or not location.host?
+                cb("unable to restore to location #{misc.to_json(location)}")
+            else
+                user = "#{location.username}@#{location.host}"
+                cb()
 
         # Extract file or path to temporary location.
         (cb) ->
@@ -740,7 +749,7 @@ monitor_snapshot_queue = () ->
                         if err
                             cb(err)
                         else
-                            if not _location? or not _location.username?
+                            if not _location or not _location.username?
                                 cb("can't snapshot #{project_id} since it is not deployed")
                                 return
                             location = _location
@@ -960,6 +969,7 @@ handle_mesg = (socket, mesg) ->
         when 'restore'
             snap_restore
                 project_id : mesg.project_id
+                location   : mesg.location
                 snapshot   : mesg.snapshot
                 repo_id    : mesg.repo_id
                 path       : mesg.path
@@ -1124,6 +1134,7 @@ exports.client_snap = (opts) ->
         socket     : required
         command    : required   # "ls", "restore", "log"
         project_id : undefined
+        location   : undefined  # used by command='restore' to send files to some non-default location (the default is the project location in the database)
         snapshot   : undefined
         repo_id    : undefined
         path       : '.'
@@ -1151,7 +1162,7 @@ exports.client_snap = (opts) ->
         opts.cb("unknown command '#{opts.command}'")
         return
 
-    mesg = {id:uuid.v4(), command:opts.command, project_id: opts.project_id, snapshot:opts.snapshot, path:opts.path, repo_id:opts.repo_id}
+    mesg = {id:uuid.v4(), command:opts.command, project_id: opts.project_id, snapshot:opts.snapshot, location:opts.location, path:opts.path, repo_id:opts.repo_id}
     list = undefined
     async.series([
         (cb) ->
@@ -1336,7 +1347,7 @@ snapshot_active_projects = (cb) ->
             database.select
                 table   : 'recently_modified_projects'
                 columns : ['project_id']
-                where   : {ttl:cassandra.RECENT_TIMES.short.ttl}
+                where   : {ttl:'short'}
                 objectify : false
                 cb : (err, results) =>
                     project_ids = (r[0] for r in results)
