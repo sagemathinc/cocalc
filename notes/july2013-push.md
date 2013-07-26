@@ -50,6 +50,15 @@ July 31:
     - definitely `update_version`
     - sudo apt-get install sysstat
     - test new codemirror
+    - put the following in visudo:
+
+            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/create_unix_user.py ""
+            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/delete_unix_user.py *
+
+      and put the appropriate files in /usr/local/bin
+      and
+           chmod +x delete_unix_user.py create_unix_user.py
+           chmod -s delete_unix_user.py create_unix_user.py
     - redo `recently_modified_projects` db schema table
 
 # Top priority
@@ -174,6 +183,8 @@ July 31:
 
 
 # Server Bugs and issues
+
+- [ ] (1:00?) admin: the `compute_server` database table is only done purely manually, but should be automatic based on something in services file.
 
 - [ ] (1:00?) hub: need to clear `_local_hub_cache` if it isn't active for a while; this is important for when projects get de-allocate from disk.
 

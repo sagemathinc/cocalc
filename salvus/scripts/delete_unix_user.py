@@ -9,17 +9,11 @@ You should put the following in visudo:
 
 """
 
-BASE_DIR='/mnt/home'
-
 from subprocess import Popen, PIPE
-import os
+import os, sys
 
-def deluser(username):
-    # We use the deluser unix command.
-    # deluser [options] [--force] [--remove-home] [--remove-all-files]
-
-    args = ['deluser', '--force', '--remove-home', username]
-    out = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=shell)
+def cmd(args):
+    out = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
     e = out.wait()
     stdout = out.stdout.read()
     stderr = out.stderr.read()
@@ -27,11 +21,18 @@ def deluser(username):
         sys.stdout.write(stdout)
         sys.stderr.write(stderr)
         sys.exit(e)
-    else:
-        sys.exit(0)
 
-if len(sys.argv) == 0:
-    print "Usage: %s <username>"%sys.argv[0]
+def deluser(username):
+    # We use the deluser unix command.
+    # deluser [options] [--force] [--remove-home] [--remove-all-files]
+    home = os.popen("echo ~%s"%username).read().strip()
+    cmd(['deluser', '--force', username])
+    cmd(['rm', '-rf', home])
+
+if len(sys.argv) != 2:
+    sys.stderr.write("Usage: sudo %s <username>"%sys.argv[0])
+    sys.stderr.flush()
+    sys.exit(1)
 else:
     deluser(sys.argv[1])
 
