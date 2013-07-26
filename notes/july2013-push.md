@@ -6,47 +6,28 @@ July 23: I will spend 10 hours fulltime on cloud.sagemath today:
            goals -- new release, fix bugs, catch up on email,
            [x] (1:16) new release
 July 24: meet students; get that NSF thing done. a bit on cloud in morning.
-July 25:
-July 26: (more sage days stuff!)
+July 25: worked on "save project to storage"
+Friday July 26: (more sage days?)
 July 27:
 July 28:
 July 29:
 July 30:
 July 31:
 
-# TODAY - 12 hours work; go skate prob at 7pm.
+# TODAY - finish this no matter what!
 
-- [x] (0:45?) planning and general ops (just looking over everything).
-- [x] (0:30?) (0:19) snap: if the recovering file itself is corrupt (e.g., empty), then snap can't unpickle it and fails to startup.  Need to wrap that `misc.from_json` in a try/catch.
-- [x] (0:30?) (0:30) upgrade codemirror, which has bugfixes, e.g., python indent; adds five new themes.  Add link to theme previews in settings.
-- [x] (0:30?) (1:00) sage-cloud email
-- [x] (0:30?) sage days
+- [x] (1:00?) (0:27) add a few "email wstein@gmail.com in it isn't working" messages to the HTML.
 
+--> - [ ] (1:00?) debug "save project to storage" functionality
 
-- [ ] (2:00?) write function in hub to move a project to storage:
-    - [x] make a snapshot on all running snap servers; 2 must succeed
-    - [ ] set location to null in db
-    - [ ] delete files and account (need a "delete account" script to make the create account script).
-    - [ ] add projects db entry
-
-- [ ] (0:45?) hub:  for each Project/LocalHub class in global hub, check every 15 minutes to
+- [ ] (1:00?) fix issues so that UI properly shows project restore status
+- [ ] (1:30?) hub: implement `snapshot_project` function.
+- [ ] (1:00?) hub:  for each Project/LocalHub class in global hub, check every 15 minutes to
       ensure that it is actively being modified.  If not, collect it.  This is critical, since
       we absolutely can't have a Project/LocalHub class sitting around in some hub when we
       move that project to storage.
-
-- [ ] (1:00?) hub: implement `snapshot_project` function.
-
 - [ ] (1:30?) write code in hub that periodically moves older projects to storage (probably have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage)
-
-- [ ] (1:30?) write code in hub that ensures local hubs are started up for projects that have been accessed in the last n days (again, a ttl'd new db schema field would do this).
-
-- [ ] (1:00?) fix issues so that UI properly shows project restore status
-
-- [ ] (1:00?) fully address potential race condition when restoring projects (don't want multiple hubs to restore simultaneously)
-
-- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
-
-- [ ] (1:00?) next release
+- [ ] (1:30?) next release
     - definitely `update_version`
     - sudo apt-get install sysstat
     - test new codemirror
@@ -66,6 +47,10 @@ July 31:
     - redo `recently_modified_projects` db schema table
 
 # Top priority
+
+- [ ] (1:30?) write code in hub that ensures local hubs are started up for projects that have been accessed in the last n days (again, a ttl'd new db schema field would do this).
+
+- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off user:
        - open a worksheet or file to edit
@@ -293,3 +278,15 @@ July 31:
 
 - [x] (2:00?) snap: when database gets slow even once, snap servers just *STOP* querying, and that's that.  They make no more snapshots.
 - [x] (1:00?) (0:11) Add link/banner to the sagenb login screen suggesting people try cloud.sagemath. I added some html to `/sagenb/sage_install/sage-5.4-sage.math.washington.edu-x86_64-Linux/devel/sagenb-git/sagenb/data/sage/html/login.html`
+
+
+- [x] (0:45?) planning and general ops (just looking over everything).
+- [x] (0:30?) (0:19) snap: if the recovering file itself is corrupt (e.g., empty), then snap can't unpickle it and fails to startup.  Need to wrap that `misc.from_json` in a try/catch.
+- [x] (0:30?) (0:30) upgrade codemirror, which has bugfixes, e.g., python indent; adds five new themes.  Add link to theme previews in settings.
+- [x] (0:30?) (1:00) sage-cloud email
+- [x] (0:30?) sage days
+- [x] (2:00?) write function in hub to move a project to storage:
+    - [x] make a snapshot on all running snap servers; 2 must succeed
+    - [x] set location to null in db
+    - [x] delete files and account (need a "delete account" script to make the create account script).
+    - [x] add projects db entry

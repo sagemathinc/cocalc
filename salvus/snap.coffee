@@ -1336,6 +1336,7 @@ snapshot_active_projects = (cb) ->
             database.select
                 table   : 'recently_modified_projects'
                 columns : ['project_id']
+                where   : {ttl:cassandra.RECENT_TIMES.short.ttl}
                 objectify : false
                 cb : (err, results) =>
                     project_ids = (r[0] for r in results)

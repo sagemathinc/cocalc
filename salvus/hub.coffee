@@ -3369,7 +3369,7 @@ is_valid_password = (password) ->
 delete_unix_user = (opts) ->
     opts = defaults opts,
         location : required
-        timeout  : 120        # it could take a while to delete all files
+        timeout  : 120        # it could take a while to "rm -rf" all files?
         cb       : undefined
 
     misc_node.execute_code

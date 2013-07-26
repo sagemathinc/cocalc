@@ -15,6 +15,10 @@
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
+# recent times, used for recently_modified_projects
+RECENT_TIMES = {'short':{ttl:5*60,desc:'5 minutes'}, 'medium':{ttl:60*60*24,desc:'1 day'}, 'long':{ttl:60*60*24*7,desc:'1 week'}}
+RECENT_TIMES_ARRAY = [RECENT_TIMES.short, RECENT_TIMES.medium, RECENT_TIMES.long]
+
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
@@ -73,9 +77,6 @@ exports.create_schema = (conn, cb) ->
 
         cb(err)
     )
-
-
-
 
 class UUIDStore
     set: (opts) ->
@@ -1233,16 +1234,18 @@ class exports.Salvus extends exports.Cassandra
             cb    : (err, result) =>
                 if err or not opts.location?
                     opts.cb?(err); return
-                @update
-                    table : 'recently_modified_projects'
-                    json  : ['location']
-                    set   : {location:opts.location}
-                    where : {project_id : opts.project_id}
-                    # This ttl should be substantially bigger than the snapshot_interval
-                    # in snap.coffee, but not too long to make the query and search of
-                    # everything in this table slow.
-                    ttl   : 5*60   # 5 minutes -- just a guess; this may need tuning as Salvus grows!
-                    cb    : opts.cb
+                f = (t, cb) =>
+                    @update
+                        table : 'recently_modified_projects'
+                        json  : ['location']
+                        set   : {location:opts.location}
+                        where : {ttl:t.desc, project_id : opts.project_id}
+                        # This ttl should be substantially bigger than the snapshot_interval
+                        # in snap.coffee, but not too long to make the query and search of
+                        # everything in this table slow.
+                        ttl   : t.ttl
+                        cb    : cb
+                async.map(RECENT_TIMES_ARRAY, f, (err) -> opts.cb?(err))
 
     create_project: (opts) ->
         opts = defaults opts,
