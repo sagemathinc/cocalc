@@ -125,7 +125,7 @@ create_project_item = (project) ->
 
     item.find(".projects-description").text(project.description)
 
-    if not project.location?
+    if not project.location
         item.find(".projects-location").html("<i class='icon-archive'> </i>stored")
     else if project.location == "deploying"
         item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")

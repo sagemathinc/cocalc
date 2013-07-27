@@ -15,6 +15,15 @@
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
+# recent times, used for recently_modified_projects
+exports.RECENT_TIMES = RECENT_TIMES =
+    short : 5*60
+    day   : 60*60*24
+    week  : 60*60*24*7
+    month : 60*60*24*7*30
+
+RECENT_TIMES_ARRAY = ({desc:desc,ttl:ttl} for desc,ttl of RECENT_TIMES)
+
 misc    = require('misc')
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
@@ -73,9 +82,6 @@ exports.create_schema = (conn, cb) ->
 
         cb(err)
     )
-
-
-
 
 class UUIDStore
     set: (opts) ->
@@ -532,6 +538,7 @@ class exports.Cassandra extends EventEmitter
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
+        @_touch_project_cache = {}
         if not opts.keyspace?
             opts.keyspace = 'salvus'
         super(opts)
@@ -1143,7 +1150,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'projects'
             where   : {project_id: opts.project_id}
-            columns : ['location']
+            columns : ['location','title']   # include title to avoid situation when location is null.
             json    : ['location']
             cb : (err, results) ->
                 if err
@@ -1153,16 +1160,16 @@ class exports.Salvus extends exports.Cassandra
                 else
                     location = results[0][0]
                     # We also support "" for the host not being
-                    # defined, since some drivers, e.g., cqlsh do not
+                    # defined, since some drivers might not
                     # support setting a column to null.
-                    if not location? or not location
+                    if not location
                         location = undefined
                     opts.cb(false, location)
 
     set_project_location: (opts) ->
         opts = defaults opts,
             project_id : required
-            location   : undefined   # undefined is meaningful, and means "not deployed anywhere" (as does "")
+            location   : required    # "" means "not deployed anywhere" -- see get_project_location above.
             ttl        : undefined   # used when deploying
             cb         : undefined
         @update
@@ -1215,12 +1222,25 @@ class exports.Salvus extends exports.Cassandra
         @uuid_value_store(name:'project_save_lock').delete(uuid:opts.project_id, cb:opts.cb)
 
     # Set last_edited for this project to right now, and possibly update its size.
+    # It is safe and efficient to call this function very frequently since it will
+    # actually hit the database at most once every 30 seconds (per project).  In particular,
+    # once called, it ignores subsequent calls for the same project for 30 seconds.
     touch_project: (opts) ->
         opts = defaults opts,
             project_id : required
-            location   : undefined
             size       : undefined
             cb         : undefined
+
+        id = opts.project_id
+        tm = @_touch_project_cache[id]
+        if tm?
+            if misc.walltime(tm) < 30
+                opts.cb?()
+                return
+            else
+                delete @_touch_project_cache[id]
+
+        @_touch_project_cache[id] = misc.walltime()
 
         set = {last_edited: now()}
         if opts.size
@@ -1231,18 +1251,19 @@ class exports.Salvus extends exports.Cassandra
             set   : set
             where : {project_id : opts.project_id}
             cb    : (err, result) =>
-                if err or not opts.location?
+                if err
                     opts.cb?(err); return
-                @update
-                    table : 'recently_modified_projects'
-                    json  : ['location']
-                    set   : {location:opts.location}
-                    where : {project_id : opts.project_id}
-                    # This ttl should be substantially bigger than the snapshot_interval
-                    # in snap.coffee, but not too long to make the query and search of
-                    # everything in this table slow.
-                    ttl   : 5*60   # 5 minutes -- just a guess; this may need tuning as Salvus grows!
-                    cb    : opts.cb
+                f = (t, cb) =>
+                    @update
+                        table : 'recently_modified_projects'
+                        set   : {dummy:true}
+                        where : {ttl:t.desc, project_id : opts.project_id}
+                        # This ttl should be substantially bigger than the snapshot_interval
+                        # in snap.coffee, but not too long to make the query and search of
+                        # everything in this table slow.
+                        ttl   : t.ttl
+                        cb    : cb
+                async.map(RECENT_TIMES_ARRAY, f, (err) -> opts.cb?(err))
 
     create_project: (opts) ->
         opts = defaults opts,
@@ -1496,8 +1517,30 @@ class exports.Salvus extends exports.Cassandra
             (cb) =>
                 @count
                     table : 'recently_modified_projects'
+                    where : {ttl : 'short'}
                     cb    : (err, val) =>
                         stats.active_projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    where : {ttl : 'day'}
+                    cb    : (err, val) =>
+                        stats.last_day_projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    where : {ttl : 'week'}
+                    cb    : (err, val) =>
+                        stats.last_week_projects = val
+                        cb(err)
+            (cb) =>
+                @count
+                    table : 'recently_modified_projects'
+                    where : {ttl : 'month'}
+                    cb    : (err, val) =>
+                        stats.last_month_projects = val
                         cb(err)
             (cb) =>
                 @count
