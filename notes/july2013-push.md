@@ -15,6 +15,7 @@ July 30:
 July 31:
 
 # TODAY
+
 - [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
 
 - [ ] (0:30?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
@@ -32,8 +33,6 @@ July 31:
 
 - [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
 
-- [ ] (1:30?) snap: make it only take a snapshot if a file does change.
-
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off user:
        - open a worksheet or file to edit
        - restart local hub, but do NOT restart global hub
@@ -42,6 +41,8 @@ July 31:
        THIS is very serious.  The user must refresh their browser to fix this.  BAD.  And wastes resources.
 
 - [ ] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.  I have no clear way to reproduce this.
+
+- [ ] (1:30?) snap: make it only take a snapshot if a file does change.
 
 - [ ] (4:00?) LXC, closing projects, etc., if possible, would be *very* good -- e.g. -- on july 22 one VM became unusable due to running out of memory, etc.
 

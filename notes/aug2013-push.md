@@ -23,7 +23,10 @@
 - [ ] (1:00?) when searching again, keep the last search in the input box
 - [ ] (1:00?) %load on a file with a syntax error gives a useless error message
 - [ ] (1:00?) mobile worksheets: change how new cell insert acts to be actually usable!
-- [ ] (2:00?) trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.
+
+- [ ] (2:00?) trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.  The google drive download setup looks nice; they make a temporary zip of the files, then email you a link -- maybe I could do that. (Of course, their's is frickin' broken due to a redirect loop on chrome.)
+
+
 - [ ] (1:30?) converting the large cassandra12.pdf to png's to display in browser silently fails; probably a timeout (?)
 - [ ] (1:30?) firefox (linux) -- both copy and paste with terminal are completely broken
 - [ ] (1:00?) firefox recent files list -- pills wrong size
