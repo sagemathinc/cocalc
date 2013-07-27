@@ -1228,7 +1228,6 @@ class exports.Salvus extends exports.Cassandra
     touch_project: (opts) ->
         opts = defaults opts,
             project_id : required
-            location   : undefined
             size       : undefined
             cb         : undefined
 
@@ -1240,7 +1239,7 @@ class exports.Salvus extends exports.Cassandra
                 return
             else
                 delete @_touch_project_cache[id]
-                
+
         @_touch_project_cache[id] = misc.walltime()
 
         set = {last_edited: now()}
@@ -1252,13 +1251,12 @@ class exports.Salvus extends exports.Cassandra
             set   : set
             where : {project_id : opts.project_id}
             cb    : (err, result) =>
-                if err or not opts.location
+                if err
                     opts.cb?(err); return
                 f = (t, cb) =>
                     @update
                         table : 'recently_modified_projects'
-                        json  : ['location']
-                        set   : {location:opts.location}
+                        set   : {dummy:true}
                         where : {ttl:t.desc, project_id : opts.project_id}
                         # This ttl should be substantially bigger than the snapshot_interval
                         # in snap.coffee, but not too long to make the query and search of

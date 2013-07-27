@@ -21,7 +21,8 @@ July 31:
 - [x] (2:00?) (4:10) debug "save project to storage" functionality and fix issues so that UI properly shows project restore status during restore
 - [x] (0:30?) (0:36) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
 - [x] (0:30?) (0:30) cassandra: rate limit project "touch"
-- [ ] (0:15?) hub: make it so that the following actions all touch a project: diffsync action,
+- [x] (0:15?) (1:30) hub: make it so that the following actions all touch a project: diffsync action, terminal activity,
+
 - [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
 - [ ] (0:30?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
 - [ ] (0:30?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.

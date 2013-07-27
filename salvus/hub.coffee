@@ -904,7 +904,7 @@ class Client extends EventEmitter
                         cb(err)
                     else
                         project = _project
-                        database.touch_project(project_id:mesg.project_id, location:project.location)
+                        database.touch_project(project_id:mesg.project_id)
                         cb()
         ], (err) =>
                 if err
@@ -1237,6 +1237,8 @@ class Client extends EventEmitter
             cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
         else
             cb(false, session)
+            # Record that a client is actively doing something with this session.
+            database.touch_project(project_id:session.project_id)
 
     mesg_codemirror_disconnect: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
@@ -2509,6 +2511,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.client.push_data_to_client(channel, history)
                     console_socket.on 'data', (data) ->
                         opts.client.push_data_to_client(channel, data)
+                        # Record in database that there was activity in this project.
+                        database.touch_project(project_id:opts.project_id)
                 else
                     console_socket.history = ''
                     console_socket.on 'data', (data) ->
@@ -2522,6 +2526,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                             data = "[...]"+data.slice(data.length-5000)
 
                         opts.client.push_data_to_client(channel, data)
+
+                        # Record in database that there was activity in this project.
+                        database.touch_project(project_id:opts.project_id)
 
 
     #########################################

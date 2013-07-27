@@ -256,7 +256,7 @@ CREATE INDEX ON project_blobs(project_id);
 CREATE TABLE recently_modified_projects (
     ttl        varchar,   /* '5 minutes', '1 day', '1 week'  */
     project_id uuid,
-    location   varchar,
+    dummy      boolean,
     PRIMARY KEY(ttl, project_id)
 );
 
