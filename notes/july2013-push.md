@@ -22,16 +22,12 @@ July 31:
 - [x] (0:30?) (0:36) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
 - [x] (0:30?) (0:30) cassandra: rate limit project "touch"
 - [x] (0:15?) (1:30) hub: make it so that the following actions all touch a project: diffsync action, terminal activity,
+- [x] (0:10?) (0:10) update codemirror to current master version
 
-- [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
-- [ ] (0:30?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
-- [ ] (0:30?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
-- [ ] (1:00?) write code in hub that periodically moves older projects to storage.  Maybe have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage.  Have two modes: a slower one that iterates over all projects, and one that takes project that were active in the last *month*, but not in the last week, and shelves only those.  Run on all hubs -- at a randomized interval, and iterating over the projects in a random order.
-
-- [ ] (1:30?) new release (early Sat morning)
+- [ ] (1:30?) new release (Friday evening or Sat morning)
     - check that I have backups
     - definitely `update_version`
-    - sudo apt-get install sysstat
+    - sudo apt-get install sysstat    # and anything for axiom people
     - test new codemirror
     - put the following in visudo:
 
@@ -53,6 +49,18 @@ July 31:
             alter table stats add last_day_projects int;
             alter table stats add last_week_projects int;
             alter table stats add last_month_projects int;
+
+
+- [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
+
+- [ ] (0:30?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
+
+- [ ] (0:30?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
+
+- [ ] (1:00?) write code in hub that periodically moves older projects to storage.  Maybe have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage.  Have two modes: a slower one that iterates over all projects, and one that takes project that were active in the last *month*, but not in the last week, and shelves only those.  Run on all hubs -- at a randomized interval, and iterating over the projects in a random order.
+
+- [ ] (1:00?) new release
+
 
 # Top priority
 
