@@ -17,19 +17,18 @@ July 31:
 # TODAY - finish this no matter what!
 
 - [x] (1:00?) (0:27) add a few "email wstein@gmail.com in it isn't working" messages to the HTML.
-
 - [x] (2:00?) (4:10) debug "save project to storage" functionality and fix issues so that UI properly shows project restore status during restore
 - [x] (0:30?) (0:36) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
 - [x] (0:30?) (0:30) cassandra: rate limit project "touch"
 - [x] (0:15?) (1:30) hub: make it so that the following actions all touch a project: diffsync action, terminal activity,
 - [x] (0:10?) (0:10) update codemirror to current master version
 
-- [ ] (1:30?) new release (Friday evening or Sat morning)
+--> - [ ] (1:30?) (0:45+) new release (Friday evening or Sat morning)
     - check that I have backups
-    - definitely `update_version`
-    - sudo apt-get install sysstat    # and anything for axiom people
-    - test new codemirror
-    - put the following in visudo:
+    - x definitely `update_version`
+    - x sudo apt-get install sysstat    # and anything for axiom people
+    - x test new codemirror
+    - x put the following in visudo:
 
             salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/create_unix_user.py ""
             salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/delete_unix_user.py *
@@ -39,13 +38,11 @@ July 31:
            chmod +x delete_unix_user.py create_unix_user.py
            chmod -s delete_unix_user.py create_unix_user.py
 
-    - make symlink like this:
+    - x make symlink like this:
        cd /usr/local/bin; sudo ln -s /home/salvus/salvus/salvus/scripts/skel .
 
     - redo `recently_modified_projects` db schema table
-
     - update stats schema:
-
             alter table stats add last_day_projects int;
             alter table stats add last_week_projects int;
             alter table stats add last_month_projects int;
