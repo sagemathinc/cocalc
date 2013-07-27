@@ -46,8 +46,9 @@ July 31:
 
 - [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
 
-- [ ] (1:00?) next release
+- [ ] (2:00?) next release
     - definitely `update_version`
+    - update sage install to include http://trac.sagemath.org/ticket/14733
     - sudo apt-get install sysstat
     - test new codemirror
     - put the following in visudo:
