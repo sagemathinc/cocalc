@@ -1,35 +1,31 @@
-#120 hours is the max reasonable for the rest of July, 2013
 
-July 21: got a TON done in the morning
-July 22: spent the day learning D3 and making some tish-thesis-diagrams
-July 23: I will spend 10 hours fulltime on cloud.sagemath today:
-           goals -- new release, fix bugs, catch up on email,
-           [x] (1:16) new release
-July 24: meet students; get that NSF thing done. a bit on cloud in morning.
-July 25: worked on "save project to storage"
-Friday July 26: (more sage days?)
-July 27:
-July 28:
-July 29:
-July 30:
-July 31:
+July 28 (Sunday): tish+skate: until 2pm; 1:30pm-1am (11.5 hours) -- work super hard on cloud.sagemath
+July 29 (Monday): 8am-12am -- 16 hours on cloud.sagemath (no skating)
+July 30 (Tuesday): 8am-12am -- 16 hours on cloud.sagemath (no skating)
 
-# TODAY
+July 31 (Wed): students meetings; pick up tish; bs day, skating
 
-- [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
+# next 42 hours.
 
-- [ ] (0:30?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
+- [ ] (2:00?) expand the storage of the compute VM's
 
-- [ ] (0:30?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
+- [ ] (2:30?) expand the storage of the base VM so can have many linux installs, haskell, etc.; and add SWAP
+
+- [ ] (1:00?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
+
+- [ ] (1:00?) hub: implement `snapshot_project` function (and make sure to change number of copies for delete to 1 on localhost).
 
 - [ ] (1:00?) write code in hub that periodically moves older projects to storage.  Maybe have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage.  Have two modes: a slower one that iterates over all projects, and one that takes project that were active in the last *month*, but not in the last week, and shelves only those.  Run on all hubs -- at a randomized interval, and iterating over the projects in a random order.
 
+- [ ] (0:30?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
+
+- [ ] (4:00?) (1:07+) ability to open sws files
+- [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat (just a link for now)
+
+
 - [ ] (1:00?) new release
 
-
-# Top priority
-
-- [ ] (1:30?) write code in hub that ensures local hubs are started up for projects that have been accessed in the last n days (again, a ttl'd new db schema field would do this).
+- [ ] (1:30?) write code in hub that ensures local hubs are always pre-started up for projects that have been accessed in the last week (again, a ttl'd new db schema field would do this).
 
 - [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
 
@@ -44,16 +40,21 @@ July 31:
 
 - [ ] (1:30?) snap: make it only take a snapshot if a file does change.
 
-- [ ] (4:00?) LXC, closing projects, etc., if possible, would be *very* good -- e.g. -- on july 22 one VM became unusable due to running out of memory, etc.
-
-- [ ] (1:30?) security issue -- should probably remove `/home/salvus/.ssh/id_rsa` from compute salvus on boot... since this grants access to other machines.  On the other hand, be careful since this is needed for making new projects the way I do now.
-
-# Growth features
+- [ ] (2:00?) ulimit individual projects -- on july 22 one VM became unusable due to running out of memory, etc.
 
 - [ ] (3:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
   - page: design&implement the dialog where the user composes the message to friend
   - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
   - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g., getting added to a project, banned, etc. -- should work with `email+*@'s`
+
+
+
+
+---
+
+- [ ] (1:30?) security issue -- should probably remove `/home/salvus/.ssh/id_rsa` from compute salvus on boot... since this grants access to other machines.  On the other hand, be careful since this is needed for making new projects the way I do now.
+
+# Growth features
 
 - [ ] (3:00?) templates -- https://mail.google.com/mail/u/0/?shva=1#inbox/140073638f4efd87
 
@@ -124,8 +125,6 @@ July 31:
 
 # User Features
 
-- [ ] (4:00?) (1:07+) ability to open sws files
-- [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat (just a link for now)
 - [ ] (2:00?) account settings: keyboard shortcuts
 - [ ] (1:00?) display last computed usage for each project in project page, along with global total usage
 - [ ] (0:45?) create a cell decorator "%typeset" that typesets output for only that cell using `typeset_mode(1)`

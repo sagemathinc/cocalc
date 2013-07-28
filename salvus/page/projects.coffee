@@ -105,6 +105,9 @@ DEFAULT_MAX_PROJECTS = 50
 $("#projects-show_all").click( (event) -> update_project_view(true) )
 template = $("#projects-project_list_item_template")
 
+template_project_stored = $(".projects-location-states").find(".projects-location-restoring")
+template_project_deploying = $(".projects-location-states").find(".projects-locatin-deploying")
+
 create_project_item = (project) ->
     item = template.clone().show().data("project", project)
 
@@ -125,10 +128,10 @@ create_project_item = (project) ->
 
     item.find(".projects-description").text(project.description)
 
-    if not project.location
-        item.find(".projects-location").html("<i class='icon-archive'> </i>stored")
+    if not project.location  # undefined or empty string
+        item.find(".projects-location").append(template_project_stored.clone())
     else if project.location == "deploying"
-        item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
+        item.find(".projects-location").append(template_project_deploying.clone())
 
     ###
     # This is too cluttered and is somewhat meaningless.
