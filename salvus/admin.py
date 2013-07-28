@@ -1398,7 +1398,7 @@ class Services(object):
         def is_working(ip):
              try:
                  t = time.time()
-                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
+                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=5).read()
                  print "ping: %s"%ip, time.time() - t, "   status: ", s
                  return True
              except:
@@ -1414,7 +1414,7 @@ class Services(object):
                      print ":-( Restarting %s"%ip
                      self.restart('hub',host=ip)
                      try:
-                         message = {'action':'restart', 'reason':'stopped responding to monitor', 'ip':ip}
+                         message = {'action':'restart', 'reason':'stopped responding to monitor for 5 seconds', 'ip':ip}
                          cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
                               {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
                      except Exception, msg:
