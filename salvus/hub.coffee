@@ -2512,7 +2512,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     console_socket.on 'data', (data) ->
                         opts.client.push_data_to_client(channel, data)
                         # Record in database that there was activity in this project.
-                        database.touch_project(project_id:opts.project_id)
+                        # This is *way* too frequent -- a tmux session make it always on for no reason.
+                        # Maybe re-enable if I make bups not happen if no files change.
+                        # database.touch_project(project_id:opts.project_id)
                 else
                     console_socket.history = ''
                     console_socket.on 'data', (data) ->
@@ -2527,8 +2529,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
                         opts.client.push_data_to_client(channel, data)
 
-                        # Record in database that there was activity in this project.
-                        database.touch_project(project_id:opts.project_id)
+                        # See comment above.
+                        #database.touch_project(project_id:opts.project_id)
 
 
     #########################################

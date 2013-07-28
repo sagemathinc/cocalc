@@ -14,39 +14,7 @@ July 29:
 July 30:
 July 31:
 
-# TODAY - finish this no matter what!
-
-- [x] (1:00?) (0:27) add a few "email wstein@gmail.com in it isn't working" messages to the HTML.
-- [x] (2:00?) (4:10) debug "save project to storage" functionality and fix issues so that UI properly shows project restore status during restore
-- [x] (0:30?) (0:36) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
-- [x] (0:30?) (0:30) cassandra: rate limit project "touch"
-- [x] (0:15?) (1:30) hub: make it so that the following actions all touch a project: diffsync action, terminal activity,
-- [x] (0:10?) (0:10) update codemirror to current master version
-
---> - [ ] (1:30?) (0:45+) new release (Friday evening or Sat morning)
-    - check that I have backups
-    - x definitely `update_version`
-    - x sudo apt-get install sysstat    # and anything for axiom people
-    - x test new codemirror
-    - x put the following in visudo:
-
-            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/create_unix_user.py ""
-            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/delete_unix_user.py *
-
-      and put the appropriate files in /usr/local/bin
-      and
-           chmod +x delete_unix_user.py create_unix_user.py
-           chmod -s delete_unix_user.py create_unix_user.py
-
-    - x make symlink like this:
-       cd /usr/local/bin; sudo ln -s /home/salvus/salvus/salvus/scripts/skel .
-
-    - redo `recently_modified_projects` db schema table
-    - update stats schema:
-            alter table stats add last_day_projects int;
-            alter table stats add last_week_projects int;
-            alter table stats add last_month_projects int;
-
+# TODAY
 
 - [ ] (0:30?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
 
@@ -73,6 +41,8 @@ July 31:
        THIS is very serious.  The user must refresh their browser to fix this.  BAD.  And wastes resources.
 
 - [ ] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.  I have no clear way to reproduce this.
+
+- [ ] (1:30?) snap: make it only take a snapshot if a file does change.
 
 - [ ] (4:00?) LXC, closing projects, etc., if possible, would be *very* good -- e.g. -- on july 22 one VM became unusable due to running out of memory, etc.
 
@@ -303,3 +273,33 @@ July 31:
     - [x] set location to null in db
     - [x] delete files and account (need a "delete account" script to make the create account script).
     - [x] add projects db entry
+
+- [x] (1:00?) (0:27) add a few "email wstein@gmail.com in it isn't working" messages to the HTML.
+- [x] (2:00?) (4:10) debug "save project to storage" functionality and fix issues so that UI properly shows project restore status during restore
+- [x] (0:30?) (0:36) stats object -- unbreak; change to show number of `recently_modified projects` for each time window; change help.html accordingly, of course.
+- [x] (0:30?) (0:30) cassandra: rate limit project "touch"
+- [x] (0:15?) (1:30) hub: make it so that the following actions all touch a project: diffsync action, terminal activity,
+- [x] (0:10?) (0:10) update codemirror to current master version
+- [x] (1:30?) (1:34) new release (Friday evening or Sat morning)
+    - check that I have backups
+    - x definitely `update_version`
+    - x sudo apt-get install sysstat    # and anything for axiom people
+    - x test new codemirror
+    - x put the following in visudo:
+
+            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/create_unix_user.py ""
+            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/delete_unix_user.py *
+
+      and put the appropriate files in /usr/local/bin
+      and
+           chmod +x delete_unix_user.py create_unix_user.py
+           chmod -s delete_unix_user.py create_unix_user.py
+
+    - x make symlink like this:
+       cd /usr/local/bin; sudo ln -s /home/salvus/salvus/salvus/scripts/skel .
+
+    - redo `recently_modified_projects` db schema table
+    - update stats schema:
+            alter table stats add last_day_projects int;
+            alter table stats add last_week_projects int;
+            alter table stats add last_month_projects int;
