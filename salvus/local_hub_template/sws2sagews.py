@@ -1,0 +1,1 @@
+../scripts/sws2sagews.py
