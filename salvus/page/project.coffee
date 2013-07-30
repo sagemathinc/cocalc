@@ -1895,7 +1895,7 @@ class ProjectPage
         ext = filename_extension(path)
         @editor.open path, (err, opened_path) =>
             if err
-                alert_message(type:"error", message:"Error opening '#{path}' -- #{err}")
+                alert_message(type:"error", message:"Error opening '#{path}' -- #{err}", timeout:10)
             else
                 @display_tab("project-editor")
                 @editor.display_tab(opened_path)
