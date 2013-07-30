@@ -7,7 +7,8 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
 
 # next 42 hours.
 
-- [ ] (2:00?) expand the storage of the compute VM's
+--> - [ ] (2:00?) expand the storage of the compute VM's:
+
 
 - [ ] (2:30?) expand the storage of the base VM so can have many linux installs, haskell, etc.; and add SWAP
 

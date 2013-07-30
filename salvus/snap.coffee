@@ -634,12 +634,13 @@ snapshot_project = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : undefined
-    winston.info("enqueuing project #{opts.project_id} for snapshot")
+    winston.debug("snapshot_project(#{opts.project_id})")
     for x in snapshot_queue
-        if x.project_id = opts.project_id
+        if x.project_id == opts.project_id
+            winston.debug("project #{opts.project_id} already in snapshot queue -- adding callback")
             x.cbs.push(opts.cb)
             return
-
+    winston.debug("adding #{opts.project_id} to queue")
     snapshot_queue.push({project_id:opts.project_id, cbs:[opts.cb]})
 
 repository_is_corrupt = false
@@ -654,6 +655,7 @@ monitor_snapshot_queue = () ->
             return
 
         user = undefined
+        winston.debug("snapshot_queue = #{misc.to_json(snapshot_queue)}")
         {project_id, cbs} = snapshot_queue.shift()
 
         location    = undefined
@@ -664,10 +666,12 @@ monitor_snapshot_queue = () ->
         repo_id     = undefined
         bup_active  = undefined
         retry_later = false
+        nothing_to_do = false
         rollback_info = undefined
         rollback_file = undefined
         async.series([
             (cb) ->
+                winston.debug("snapshot: checking if disabled for #{project_id}")
                 database.select_one
                     table   : 'projects'
                     where   : {project_id: project_id}
@@ -678,11 +682,12 @@ monitor_snapshot_queue = () ->
                             cb(err)
                         else
                             if result[0]
-                                cb("Not making snapshot of project #{project_id}, since they are disabled for this project.")
+                                cb("snapshots disabled for #{project_id}t")
                             else
                                 cb()
 
             (cb) ->
+                winston.debug("snapshot: getting active path")
                 active_path (err, path) ->
                     if err
                         cb(err)
@@ -694,7 +699,7 @@ monitor_snapshot_queue = () ->
 
             # compute disk usage before save
             (cb) ->
-                winston.debug("disk usage before save")
+                winston.debug("snapshot: compute disk usage before save")
                 misc_node.disk_usage bup_active, (err, usage) ->
                     winston.debug("usage: #{err}, #{usage} bytes")
                     size_before = usage
@@ -777,10 +782,34 @@ monitor_snapshot_queue = () ->
                 t = misc.walltime()
                 bup
                     args : ['on', user, 'index', '.']
-                    bup_dir : bup_active    # TODO: does this matter -- this runs on remote. ??
+                    bup_dir : bup_active
                     cb   : (err) ->
                         winston.debug("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
+
+            # count the number of interesting modified files
+            # This only makes sense because we just made the index above successfully.
+            (cb) ->
+                misc_node.execute_code
+                    command : "bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$' |wc -l"
+                    timeout : 30  # should be very fast no matter what.
+                    bash    : true
+                    env     : {BUP_DIR : bup_active}
+                    cb      : (err, output) ->
+                        if err
+                            winston.debug("SERIOUS BUG issue: error determining number of modified files for #{project_id}: #{err}")
+                            cb(err)
+                        else
+                            n = parseInt(output.stdout.trim())
+                            winston.debug("#{n} modified files for #{project_id}")
+                            if n == 0
+                                nothing_to_do = true
+                                _last_snapshot_cache[project_id] = misc.walltime() # don't try again to snapshot this project for a few minutes (otherwise we would index the whole thing every few seconds!)
+                                remove_lock
+                                    location : location
+                                    cb       : (err) -> cb(true)
+                            else
+                                cb()
 
             # write rollback file
             (cb) ->
@@ -876,6 +905,8 @@ monitor_snapshot_queue = () ->
         ], (err) ->
             # wait 3 seconds, to ensure uniqueness of time stamp, not be too aggressive checking locks, etc.
             setTimeout(monitor_snapshot_queue, 3000)
+            if nothing_to_do
+                err = undefined
             if not retry_later
                 for cb in cbs
                     cb?(err)
@@ -894,8 +925,9 @@ snapshot_projects = (opts) ->
         return
 
     error = undefined
-
+    winston.debug("snapshot_projects: #{misc.to_json(opts.project_ids)}")
     f = (p, cb) ->
+        winston.debug("DEBUG -- #{p}")
         snapshot_project
             project_id : p
             cb         : (err) ->
@@ -1365,7 +1397,7 @@ snapshot_active_projects = (cb) ->
                 cb          : cb
     ], (err) ->
         if err
-            winston.debug("Error snapshoting active projects -- #{err}")
+            winston.debug("Not all active projects snapshotted:  #{err}")
             # TODO: We need to trigger something more drastic somehow at some point...?
 
         cb?()
