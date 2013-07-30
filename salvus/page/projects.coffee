@@ -105,6 +105,9 @@ DEFAULT_MAX_PROJECTS = 50
 $("#projects-show_all").click( (event) -> update_project_view(true) )
 template = $("#projects-project_list_item_template")
 
+template_project_stored = $(".projects-location-states").find(".projects-location-restoring")
+template_project_deploying = $(".projects-location-states").find(".projects-locatin-deploying")
+
 create_project_item = (project) ->
     item = template.clone().show().data("project", project)
 
@@ -122,7 +125,14 @@ create_project_item = (project) ->
     item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
     if project.size?
         item.find(".projects-size").text(human_readable_size(project.size))
+
     item.find(".projects-description").text(project.description)
+
+    if not project.location  # undefined or empty string
+        item.find(".projects-location").append(template_project_stored.clone())
+    else if project.location == "deploying"
+        item.find(".projects-location").append(template_project_deploying.clone())
+
     ###
     # This is too cluttered and is somewhat meaningless.
     if project.location.username?
@@ -135,7 +145,7 @@ create_project_item = (project) ->
     ###
     item.click (event) ->
         #try
-        open_project(project)
+        open_project(project, item)
         #catch e
         #    console.log(e)
         return false
@@ -195,11 +205,39 @@ update_project_view = (show_all=false) ->
     else
         $("#projects-show_all").hide()
 
-open_project = (project) ->
+open_project = (project, item) ->
     #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
     #    alert_message(type:"warning", message:"Please close a project before opening more projects.")
-    project_page(project)
-    top_navbar.switch_to_page(project.project_id)
+    f = () ->
+        project_page(project)
+        top_navbar.switch_to_page(project.project_id)
+
+    if project.location? and project.location != "deploying"
+        f()
+    else
+        alert_message
+            type:"info"
+            message:"WARNING: Opening project #{project.title} will take extra time, since it hasn't been opened in a while.  This takes around 1 minute per gigabyte."
+            timeout: 30
+        if item?
+            item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
+        salvus_client.project_info
+            project_id : project.project_id
+            cb         : (err, info) ->
+                if err
+                    alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
+                    if item?
+                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
+                    return
+                if not info.location?
+                    alert_message(type:"error", message:"error opening project (missing info)", timeout:6)
+                    if item?
+                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
+                else
+                    project.location = location
+                    if item?
+                        item.find(".projects-location").text("")
+                    f()
 
 
 ################################################

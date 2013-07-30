@@ -31,6 +31,9 @@ MESG_QUEUE_MAX_SIZE_MB  = 5
 # then the BLOB is saved indefinitely.
 BLOB_TTL = 60*60*24    # 1 day
 
+# How frequently to register with the database that this hub is up and running, and also report
+# number of connected clients
+REGISTER_INTERVAL_S = 30   # every 30 seconds
 
 # node.js -- builtin libraries
 net     = require 'net'
@@ -901,7 +904,7 @@ class Client extends EventEmitter
                         cb(err)
                     else
                         project = _project
-                        database.touch_project(project_id:mesg.project_id, location:project.location)
+                        database.touch_project(project_id:mesg.project_id)
                         cb()
         ], (err) =>
                 if err
@@ -1017,7 +1020,21 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        @push_to_client(message.project_info(id:mesg.id, info:info))
+                        if not info.location
+                            # This is what would happen if the project were shelved after being created;
+                            # suddenly the location would be null, even though in some hubs the Project
+                            # instance would exist.  In this case, we need to recreate the project, which
+                            # will deploy it somewhere.
+                            delete _project_cache[project.project_id]
+                            @get_project mesg, 'read', (err, project) =>
+                                # give it this one try only this time.
+                                project.get_info (err, info) =>
+                                    if err
+                                        @error_to_client(id:mesg.id, error:err)
+                                    else
+                                        @push_to_client(message.project_info(id:mesg.id, info:info))
+                        else
+                            @push_to_client(message.project_info(id:mesg.id, info:info))
 
     mesg_project_session_info: (mesg) =>
         assert mesg.event == 'project_session_info'
@@ -1220,6 +1237,8 @@ class Client extends EventEmitter
             cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
         else
             cb(false, session)
+            # Record that a client is actively doing something with this session.
+            database.touch_project(project_id:session.project_id)
 
     mesg_codemirror_disconnect: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
@@ -1399,6 +1418,20 @@ update_server_stats = () ->
                 _server_stats_cache = stats
 
 
+
+register_hub = (cb) ->
+    database.update
+        table : 'hub_servers'
+        where : {host : program.host, port : program.port}
+        set   : {clients: misc.len(clients)}
+        ttl   : 2*REGISTER_INTERVAL_S
+        cb    : (err) ->
+            if err
+                winston.debug("Error registering with database - #{err}")
+            else
+                winston.debug("Successfully registered with database.")
+            cb?(err)
+
 ##-------------------------------
 #
 # Interaction with snap servers
@@ -1409,6 +1442,7 @@ snap_command = (opts) ->
     opts = defaults opts,
         command    : required   # "ls", "restore", "log"
         project_id : required
+        location   : undefined  # used by restore to send files to some non-default location (the default is the project location in the database)
         snapshot   : undefined
         path       : '.'
         timeout    : 60
@@ -1429,11 +1463,12 @@ snap_command_restore_or_log = (opts) ->
         command    : required
         project_id : required
         snapshot   : required
+        location   : undefined
         path       : '.'
         timeout    : 60
         cb         : required   # cb(err)
 
-    location = undefined
+    snap_location = undefined
     socket = undefined
     async.series([
         (cb) ->
@@ -1442,10 +1477,10 @@ snap_command_restore_or_log = (opts) ->
                 project_id : opts.project_id
                 timestamp  : opts.snapshot
                 cb         : (err, r) ->
-                    location = r
+                    snap_location = r
                     cb(err)
        (cb) ->
-            connect_to_snap_server location.server, (err, _socket) ->
+            connect_to_snap_server snap_location.server, (err, _socket) ->
                 socket = _socket
                 cb(err)
         (cb) ->
@@ -1454,7 +1489,8 @@ snap_command_restore_or_log = (opts) ->
                 socket     : socket
                 project_id : opts.project_id
                 snapshot   : opts.snapshot
-                repo_id    : location.repo_id
+                location   : opts.location
+                repo_id    : snap_location.repo_id
                 path       : opts.path
                 timeout    : opts.timeout
                 cb         : cb
@@ -1581,6 +1617,133 @@ connect_to_snap_server = (server, cb) ->
                 cb(err, socket)
 
 
+restore_project_from_most_recent_snapshot = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        location   : required
+        cb         : undefined
+
+    timestamp = "nothing to do"
+    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} --> #{misc.to_json(opts.location)}")
+    async.series([
+        (cb) ->
+            # We get a list of *all* currently available snapshots, since right now there
+            # is now way to get just the most recent one.
+            snap_command
+                command    : "ls"
+                project_id : opts.project_id
+                cb         : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        if results.length == 0
+                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no snapshots; nothing to do")
+                        else
+                            timestamp = results[0]
+                        cb()
+        (cb) ->
+            if timestamp == "nothing to do"
+                # nothing to do
+                cb()
+            else
+                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- started the restore")
+                snap_command
+                    command : "restore"
+                    project_id : opts.project_id
+                    location   : opts.location
+                    snapshot   : timestamp
+                    timeout    : 1800
+                    cb         : (err) ->
+                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- finished restore")
+                        if err
+                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- BUG restore #{timestamp} error -- #{err}")
+                        cb(err)
+
+    ], (err) -> opts.cb?(err))
+
+# Make some number of snapshots on some minimum distinct number
+# of snapshot servers of the given project, if possible.
+snapshot_project = (opts) ->
+    opts = defaults opts,
+        project_id   : required
+        min_replicas : 1
+        cb           : undefined       # cb(err) -- called only when snapshots definitely have been made and reported to db
+    # TODO!
+    winston.debug("snapshot_project #{opts.project_id} on at least #{opts.min_replicas} nodes -- STUB'")
+    opts.cb?()
+
+
+# Move a project to longterm storage:
+#
+# This function assumes this is safe, i.e., that there is no Project class created on some
+# global hub, which would incorrectly think the project is still allocated somewhere.
+#
+#    - make a snapshot on all running snap servers; at least 2 must succeed
+#    - set location to null in database
+#    - delete files and account (need a "delete account" script to make the create account script).
+#
+# Also, it's an error if the location is not on the 10.x subnet or 'localhost'.
+move_project_to_longterm_storage = (opts) ->
+    opts = defaults opts,
+        project_id   : required
+        min_replicas : 2
+        cb           : undefined
+
+    location = undefined
+    async.series([
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- getting location of #{opts.project_id}")
+            database.get_project_location
+                project_id : opts.project_id
+                cb         : (err, _location) =>
+                    location = _location
+                    if err
+                        cb(err); return
+                    else if location == "deploying"
+                        cb("project curently being opened, so refusing to move it to storage")
+                    else if not location
+                        cb("done")
+                    else
+                        if location.host == 'localhost' or location.host.slice(0,3) == '10.'
+                            cb()
+                        else
+                            cb("refusing to move project at non-VPN/non-local location (=#{location.host}) to longterm storage!")
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- making at least 2 snapshots of #{opts.project_id}")
+            snapshot_project
+                project_id    : opts.project_id
+                min_replicas  : opts.min_replicas
+                cb : cb
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- setting location to null in database")
+            database.set_project_location
+                project_id : opts.project_id
+                location   : "" # means not deployed anywhere
+                cb         : cb
+        (cb) ->
+            winston.debug("move_project_to_longterm_storage -- deleting account and all associated files")
+            delete_unix_user
+                location : location
+                cb       : cb
+
+    ], (err) ->
+        winston.debug("move_project_to_longterm_storage -- DONE (err=#{err})")
+        if err == "done"
+            cb?()
+        else
+            cb?(err)
+    )
+
+test_longterm = () ->
+    winston.debug("test_longterm...")
+    move_project_to_longterm_storage
+        project_id : '94ab8b76-672f-4a04-8b58-979fd363d34f'
+        #project_id : 'bed89d12-d2d0-49dd-aaf5-34a2b41b325a'
+        cb         : (err) ->
+            winston.debug("test_longterm err = #{err}")
+
+#setTimeout(test_longterm, 5000)
+
 
 ##############################
 # Create the SockJS Server
@@ -1594,7 +1757,7 @@ init_sockjs_server = () ->
     sockjs_server.installHandlers(http_server, {prefix:'/hub'})
 
 
-#######################################################
+    #######################################################
 # Pushing a message to clients; querying for clients
 # This is (or will be) subtle, due to having
 # multiple HUBs running on different computers.
@@ -2348,6 +2511,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.client.push_data_to_client(channel, history)
                     console_socket.on 'data', (data) ->
                         opts.client.push_data_to_client(channel, data)
+                        # Record in database that there was activity in this project.
+                        # This is *way* too frequent -- a tmux session make it always on for no reason.
+                        # Maybe re-enable if I make bups not happen if no files change.
+                        # database.touch_project(project_id:opts.project_id)
                 else
                     console_socket.history = ''
                     console_socket.on 'data', (data) ->
@@ -2361,6 +2528,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                             data = "[...]"+data.slice(data.length-5000)
 
                         opts.client.push_data_to_client(channel, data)
+
+                        # See comment above.
+                        #database.touch_project(project_id:opts.project_id)
 
 
     #########################################
@@ -2657,12 +2827,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 # Projects
 ##############################
 
-# Connect to a local hub (using appropriate port and secret token),
-# login, and enhance socket with our message protocol.
-
+# Create a project object that is connected to a local hub (using
+# appropriate port and secret token), login, and enhance socket
+# with our message protocol.
 
 _project_cache = {}
 new_project = (project_id, cb) ->   # cb(err, project)
+    winston.debug("project request (project_id=#{project_id})")
     P = _project_cache[project_id]
     if P?
         if P == "instantiating"
@@ -2675,12 +2846,125 @@ new_project = (project_id, cb) ->   # cb(err, project)
         _project_cache[project_id] = "instantiating"
         start_time = misc.walltime()
         new Project(project_id, (err, P) ->
-            winston.debug("new_project: time= #{misc.walltime() - start_time}")
+            winston.debug("new Project(#{project_id}): time= #{misc.walltime() - start_time}")
             if err
                 delete _project_cache[project_id]
             else
                 _project_cache[project_id] = P
             cb(err, P)
+        )
+
+# Get the location of the given project, or if it isn't located somewhere,
+# then deploy it and report back the location when done deploying.
+# Use database.get_project_location to get the project location without deploying.
+
+get_project_location = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : undefined       # cb(err, location)
+        attempts   : 50
+    winston.debug
+    if not attempts?
+        attempts = 50
+
+    error = true
+    location = undefined
+
+    async.series([
+        (cb) ->
+            database.get_project_location
+                project_id : opts.project_id
+                cb         : (err, _location) =>
+                    location = _location
+                    if err
+                        cb(err)
+                    else if location == "deploying"
+                        winston.debug("get_project_location: another hub is currently deploying #{opts.project_id}")
+                        # Another hub or "thread" of this hub is currently deploying
+                        # the project.  We keep querying every few seconds until this changes.
+                        if opts.attempts <= 0
+                            cb("failed to deploy project (too many attempts)")
+                        else
+                            winston.debug("get_project_location -- try again in 10 seconds (attempts=#{attempts}).")
+                            f = () ->
+                                get_project_location
+                                    project_id : opts.project_id
+                                    cb         : opts.cb
+                                    attempts   : opts.attempts-1
+                            setTimeout(f, 10000)
+                            error = false
+                            cb(true)
+                    else if location
+                        error = false
+                        cb(true)
+                    else
+                        cb() # more to do
+        (cb) ->
+            database.set_project_location
+                project_id : opts.project_id
+                location   : "deploying"
+                ttl        : 360
+                cb         : cb
+
+        (cb) ->
+            new_random_unix_user
+                cb : (err, _location) =>
+                    if err
+                        cb("project location not defined -- and allocating new one led to error -- #{err}")
+                        return
+                    location = _location
+                    cb()
+        (cb) ->
+            # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
+            # hence blocks letting the user do other things with the project.   I tried not locking
+            # on this and it is confusing (and terrifying!) as a user to see "no files" at the beginning.
+            # When I improve the UI to be clearer about what is going on, then this could be made optionally non-blocking.
+            restore_project_from_most_recent_snapshot
+                project_id : opts.project_id
+                location   : location
+                cb         : cb
+
+        (cb) ->
+            # To reduce the probability of a very rare possibility of a database race
+            # condition, at this point we check to make sure the project didn't somehow
+            # get deployed by another hub, which would cause database.get_project_location
+            # to not return "deploying".  In this case, we instead return where that deploy
+            # is, and delete the account we just made.
+            database.get_project_location
+                project_id : opts.project_id
+                cb         : (err, loc) ->
+                    if err
+                        cb(err); return
+                    if loc == "deploying"
+                        # Contents in database are as expected (no race); we set new location.
+                        # Finally set the project location.
+                        database.set_project_location
+                            project_id : opts.project_id
+                            location   : location
+                            cb         : cb
+                    else
+                        winston.debug("Project #{opts.project_id} somehow magically got deployed by another hub.")
+                        # Let other project win.
+                        # We absolutely don't want two hubs simultaneously believing a project
+                        # is in two locations, since that would potentially lead to data loss
+                        # for the user (though probably not, due to snapshots, but still!)
+                        delete_unix_user
+                            location : location
+                            # no callback -- no point at all in waiting for this.
+                        location = loc
+                        cb()
+        ], (err) ->
+            if err  # early termination of above steps
+                if error   # genuine error -- just report it
+                    opts.cb?(error, err)
+                else       # early term, but not an error
+                    if location != 'deploying'
+                        opts.cb?(false, location)
+                    else
+                        # do nothing -- opts.cb will get called later
+            else
+                # got location, the hard way
+                opts.cb?(false, location)
         )
 
 class Project
@@ -2690,38 +2974,14 @@ class Project
         winston.debug("Instantiating Project class for project with id #{@project_id}.")
         async.series([
             (cb) =>
-                database.get_project_location
+                winston.debug("Getting project #{@project_id} location.")
+                get_project_location
                     project_id : @project_id
                     cb         : (err, location) =>
-                        if err
-                            cb(err); return
-                        if location?
-                            @location = location
-                            cb(); return
-                        new_random_unix_user
-                            cb : (err, location) =>
-                                if err
-                                    cb("project location not defined -- and allocating new one led to error -- #{err}")
-                                else
-                                    # Copy project's files from the most recent snapshot to the
-                                    # new unix user account.
-                                    # TODO
-                                    ###
-                                    backup_server.restore_project
-                                        project_id : @project_id
-                                        location   : location
-                                        cb         : (err) =>
-                                            if err
-                                                cb(err)
-                                            else
-                                                database.set_project_location
-                                                    project_id : @project_id
-                                                    location   : location
-                                                @location = location
-                                                cb()
-                                    ###
+                        @location = location
+                        winston.debug("Location of project #{@project_id} is #{misc.to_json(@location)}")
+                        cb(err)
             (cb) =>
-                winston.debug("Location of project #{misc.to_json(@location)}")
                 new_local_hub
                     username : @location.username
                     host     : @location.host
@@ -3180,7 +3440,34 @@ is_valid_password = (password) ->
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
 
+# Delete a unix user from some compute vm (as specified by location).
+# NOTE: Since this can get called automatically, and there is the possibility
+# of adding locations not on our VPN, if the location isn't 'localhost' or
+# on the 10.x vpn, then it is an error.
+delete_unix_user = (opts) ->
+    opts = defaults opts,
+        location : required
+        timeout  : 120        # it could take a while to "rm -rf" all files?
+        cb       : undefined
 
+    if opts.location.username.length != 8
+        # this is just a sort of triple check
+        opts.cb?("delete_unix_user: refusing, due to suspicious username (='#{opts.location.username}') with length not 8")
+        return
+
+    misc_node.execute_code
+        command     : 'ssh'
+        args        : ['-o', 'StrictHostKeyChecking=no', opts.location.host, 'sudo',
+                      'delete_unix_user.py', opts.location.username]
+        timeout     : opts.timeout
+        bash        : false
+        err_on_exit : true
+        cb      : (err, output) =>
+            if err
+                winston.debug("failed to delete unix user #{misc.to_json(opts.location)} -- #{err}")
+            opts.cb?(err)
+
+# Create a unix user with some random user name on some compute vm.
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb          : required
@@ -3197,6 +3484,9 @@ new_random_unix_user = (opts) ->
     replenish_random_unix_user_cache()
 
 new_random_unix_user_cache_target_size = 1
+if program.keyspace == "test"
+    new_random_unix_user_cache_target_size = 0
+
 new_random_unix_user.cache = []
 replenish_random_unix_user_cache = () ->
     cache = new_random_unix_user.cache
@@ -3209,7 +3499,7 @@ replenish_random_unix_user_cache = () ->
                     # try again in 5 seconds
                     setTimeout(replenish_random_unix_user_cache, 5000)
                 else
-                    winston.debug("Got new unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
+                    winston.debug("New unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
                     new_local_hub
                         username : user.username
                         host     : user.host
@@ -3241,23 +3531,27 @@ new_random_unix_user_no_cache = (opts) ->
                         cb(err)
                     else
                         host = resp.host
+                        winston.debug("creating new unix user on #{host}")
                         cb()
         (cb) ->
             # ssh to that computer and create account using script
             misc_node.execute_code
                 command : 'ssh'
-                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'salvus/salvus/scripts/create_unix_user.py']
-                timeout : 20
+                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py']
+                timeout : 45
                 bash    : false
                 err_on_exit: true
                 cb      : (err, output) =>
                     if err
+                        winston.debug("failed to create new unix user on #{host} -- #{err}")
                         cb(err)
                     else
                         username = output.stdout.replace(/\s/g, '')
                         if username.length == 0
+                            winston.debug("FAILED to create new user on #{host}; empty username")
                             cb("error creating user")
                         else
+                            winston.debug("created new user #{username} on #{host}")
                             cb()
 
     ], (err) ->
@@ -4261,8 +4555,9 @@ exports.start_server = start_server = () ->
         cb       : (err, _db) ->
             database = _db
 
-            # start updating stats every minute
+            # start updating stats cache every minute (on every hub)
             update_server_stats(); setInterval(update_server_stats, 60*1000)
+            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
             init_sockjs_server()
             init_stateless_exec()

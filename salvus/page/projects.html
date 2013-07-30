@@ -48,7 +48,9 @@
                 </span>
             </div>
             <div class="span4 projects-description"  style="margin-left:0px"></div>
-            <div class="span1 projects-location small" style="margin-left:0px"></div>
+
+            <div class="span1 projects-location small" style="margin-left:0px">
+            </div>
         </div>
 
 
@@ -66,69 +68,71 @@
 
 </div>
 
+<div class="hide projects-location-states">
+    <span class="projects-location-deploying"><i class='icon-spinner icon-spin'> </i>restoring...</span>
+    <span class="projects-location-stored"><i class='icon-archive'> </i>stored</span>
+</div>
 
 <!-- Create new project -->
 <div class="modal hide" id="projects-create_project" tabindex="-1" role="dialog" aria-hidden="true">
-    <form>
-        <div class="modal-header big-only">
-            <button type="button" class="close" data-dismiss="modal">×</button>
-            <h2>Create a New Project</h2>
-            <div class="lighten">
-                A project is a complete self-contained collection of files and folders.
-                Sharing and collaboration occurs at the project level.
-            </div>
+    <div class="modal-header big-only">
+        <button type="button" class="close" data-dismiss="modal">×</button>
+        <h2>Create a New Project</h2>
+        <div class="lighten">
+            A project is a complete self-contained collection of files and folders.
+            Sharing and collaboration occurs at the project level.
         </div>
-        <div class="modal-body">
+    </div>
+    <div class="modal-body">
 
-            <!-- title -->
-            <div class="row span5">
-                <h4 class="big-only">Title</h4>
-                <input class="span5 offset1" type="text" placeholder="Title (you can easily change this later)" id="projects-create_project-title">
-            </div>
-
-            <!-- description -->
-            <div class="row span5">
-                <h4 class="big-only">Description</h4>
-                <input class="span5 offset1" type="text" placeholder="No description" id="projects-create_project-description">
-            </div>
-
-            <div class="row span5">
-                <span class="big-only lighten">You can change the title and description at any time later.</span>
-            </div>
-
-            <!-- public? -->
-            <div class="row span5">
-                <hr class="big-only">
-                <label class="radio">
-                    <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
-                    <span style="font-size:14pt; font-weight:bold"><i class="icon-eye-open"></i> Public</span><br>
-                    <span class="big-only lighten">Anyone can see the contents of this project. You choose who can modify it.</span>
-                </label>
-                <label class="radio">
-                    <input type="radio" name="projects-create_project-public" value="private">
-                    <span style="font-size:14pt; font-weight:bold"><i class="icon-lock"></i> Private</span><br>
-                    <span class="big-only lighten">You choose who can see and modify contents of this project.</span>
-                </label>
-            </div>
-
-            <!-- location -->
-            <!--
-            <div class="row span5">
-                <hr class="big-only">
-                <h4>Advanced (only for William Stein!): use your own Linux account</h4>
-                <span class="big-only lighten">Enter "username@host[:path] [-p port]".</span>
-                <input class="span5 offset1" type="text" placeholder="username@host[:path] [-p port]" id="projects-create_project-location">
-            </div>
-            -->
-
+        <!-- title -->
+        <div class="row span5">
+            <h4 class="big-only">Title</h4>
+            <input class="span5 offset1" type="text" placeholder="Title (you can easily change this later)" id="projects-create_project-title">
         </div>
-        <!-- do it -->
-        <div class="modal-footer">
-            <button class="btn btn-primary btn-large" type="submit" data-dismiss="modal" id="projects-create_project-button-create_project">Create Project</button>
-            <button class="btn btn-large" data-dismiss="modal" id="projects-create_project-button-cancel">Cancel</button>
 
+        <!-- description -->
+        <div class="row span5">
+            <h4 class="big-only">Description</h4>
+            <input class="span5 offset1" type="text" placeholder="No description" id="projects-create_project-description">
         </div>
-    </form>
+
+        <div class="row span5">
+            <span class="big-only lighten">You can change the title and description at any time later.</span>
+        </div>
+
+        <!-- public? -->
+        <div class="row span5">
+            <hr class="big-only">
+            <label class="radio">
+                <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
+                <span style="font-size:14pt; font-weight:bold"><i class="icon-eye-open"></i> Public</span><br>
+                <span class="big-only lighten">Anyone can see the contents of this project. You choose who can modify it.</span>
+            </label>
+            <label class="radio">
+                <input type="radio" name="projects-create_project-public" value="private">
+                <span style="font-size:14pt; font-weight:bold"><i class="icon-lock"></i> Private</span><br>
+                <span class="big-only lighten">You choose who can see and modify contents of this project.</span>
+            </label>
+        </div>
+
+        <!-- location -->
+        <!--
+<div class="row span5">
+<hr class="big-only">
+<h4>Advanced (only for William Stein!): use your own Linux account</h4>
+<span class="big-only lighten">Enter "username@host[:path] [-p port]".</span>
+<input class="span5 offset1" type="text" placeholder="username@host[:path] [-p port]" id="projects-create_project-location">
+</div>
+-->
+
+    </div>
+    <!-- do it -->
+    <div class="modal-footer">
+        <button class="btn btn-primary btn-large" type="submit" id="projects-create_project-button-create_project">Create Project</button>
+        <button class="btn btn-large" id="projects-create_project-button-cancel">Cancel</button>
+
+    </div>
 
 </div>
 

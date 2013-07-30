@@ -1,7 +1,6 @@
 <!-- Forgot password: dialog to request email be sent (and token placed in database) -->
 
 <div class="modal hide" id="account-forgot_password" tabindex="-1" role="dialog" aria-hidden="true">
-    <form>
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
             <h3>Forgot your password?</h3>
@@ -16,7 +15,6 @@
             <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
             <button class="btn" data-dismiss="modal" id="account-forgot_password-button-cancel">Cancel</button>
         </div>
-    </form>
 </div>
 
 
@@ -36,7 +34,7 @@
 <div class="span6 well well-cell">
 <label class="checkbox">
 <input type="checkbox" id="create_account-agreed_to_terms">
-I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a>
+I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
 </label>
 <h4>Use SageMath Cloud now</h4>
 <div class="btn-group">
@@ -68,6 +66,9 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                         <a href="#account-forgot_password">Forgot your password?</a>
                     </div>
                 </div>
+                <br>
+                <hr>
+                <span class="lighten" style="font-size:10pt">In case of problems, immediately email me (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working!</span>
             </form>
 
         </div>
@@ -91,7 +92,7 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
             <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password">
             <label class="checkbox">
                 <input type="checkbox" id="create_account-agreed_to_terms">
-                I agree to the <a href="#link-terms" data-toggle="modal">Sagemath Cloud Terms</a>
+                I agree to the <a href="#link-terms">Sagemath Cloud Terms</a>
             </label>
             <br  class="big-only">
             <button class="btn btn-success btn-large" type="submit" id="create_account-button">Create account for free</button>
@@ -144,14 +145,14 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
                         <div class="row">
                             <div class="row span2">Password</div>
                             <div class="row span3">
-                                <a href="#account-change_password" data-toggle="modal">Change password</a><br>
+                                <a href="#account-change_password">Change password</a><br>
                                 <a href="#account-forgot_password">Forgot password</a>
                             </div>
                         </div>
                         <br>
                         <div class="row">
                             <div class="row span2">Email</div>
-                            <div class="row span3"><span id="account-settings-email_address"></span> (<a href="#account-change_email_address" data-toggle="modal" >change</a>)</div>
+                            <div class="row span3"><span id="account-settings-email_address"></span> (<a href="#account-change_email_address">change</a>)</div>
                         </div>
                     </div>
 
@@ -271,30 +272,35 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
                         <div class="row">
                             <div class="row span2" rel="tooltip" title="The default theme for newly opened text editors and worksheets.">
-                                Theme
+                                Theme (<a href="http://codemirror.net/demo/theme.html" target="_blank">previews</a>)
                             </div>
                             <div class="row span3">
                                 <select class="account-settings-editor-color_scheme">
                                     <option value="default">Default</option>
-                                    <option value="ambiance-mobile">Ambiance-mobile</option>
+                                    <option value="3024-day">3024 day</option>
+                                    <option value="3024-night">3024 night</option>
+                                    <option value="ambiance-mobile">Ambiance mobile</option>
                                     <option value="ambiance">Ambiance</option>
+                                    <option value="base16-dark">Base 16 dark</option>
+                                    <option value="base16-light">Base 16 light</option>
                                     <option value="blackboard">Blackboard</option>
                                     <option value="cobalt">Cobalt</option>
                                     <option value="eclipse">Eclipse</option>
                                     <option value="elegant">Elegant</option>
-                                    <option value="erlang-dark">Erlang-dark</option>
-                                    <option value="lesser-dark">Lesser-dark</option>
+                                    <option value="erlang-dark">Erlang dark</option>
+                                    <option value="lesser-dark">Lesser dark</option>
                                     <option value="midnight">Midnight</option>
                                     <option value="monokai">Monokai</option>
                                     <option value="neat">Neat</option>
                                     <option value="night">Night</option>
                                     <option value="rubyblue">Rubyblue</option>
-                                    <option value="solarized dark">Solarized Dark</option>
-                                    <option value="solarized light">Solarized Light</option>
+                                    <option value="solarized dark">Solarized dark</option>
+                                    <option value="solarized light">Solarized light</option>
+                                    <option value="tomorrow-night-eighties">Tomorrow Night - Eighties</option>
                                     <option value="twilight">Twilight</option>
-                                    <option value="vibrant-ink">Vibrant-ink</option>
-                                    <option value="xq-dark">Xq-dark</option>
-                                    <option value="xq-light">Xq-light</option>
+                                    <option value="vibrant-ink">Vibrant ink</option>
+                                    <option value="xq-dark">Xq dark</option>
+                                    <option value="xq-light">Xq light</option>
                                 </select>
                             </div>
                         </div>
@@ -490,61 +496,57 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
 <!-- Change email address -->
 <div class="modal hide" id="account-change_email_address" tabindex="-1" role="dialog" aria-hidden="true">
-    <form>
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-            <h3  class="big-only">Change email address</h3>
-            <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
-        </div>
-        <div class="modal-body offset1">
-            <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
-            <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
-            <label>
-                <b  class="big-only">New email</b>
-                <input class="span4 offset1" type="text" placeholder="New email" id="account-change_email_new_address">
-            </label>
-            <br>
-            <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
-            <label>
-                <b class="big-only">Password</b>
-                <input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
-            </label>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
-            <button class="btn" data-dismiss="modal" id="account-change_email_address_cancel_button">Cancel</button>
-        </div>
-    </form>
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+        <h3  class="big-only">Change email address</h3>
+        <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
+    </div>
+    <div class="modal-body offset1">
+        <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
+        <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
+        <label>
+            <b  class="big-only">New email</b>
+            <input class="span4 offset1" type="text" placeholder="New email" id="account-change_email_new_address">
+        </label>
+        <br>
+        <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
+        <label>
+            <b class="big-only">Password</b>
+            <input class="span4 offset1" type="password" placeholder="Password"  id="account-change_email_password">
+        </label>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
+        <button class="btn" data-dismiss="modal" id="account-change_email_address_cancel_button">Cancel</button>
+    </div>
 </div>
 
 
 
 <!-- Change password -->
 <div class="modal hide" id="account-change_password" tabindex="-1" role="dialog" aria-hidden="true">
-    <form>
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-            <h3 class="big-only">Change password</h3>
-            <div class="hide account-error-text" id="account-change_password-error"></div>
-        </div>
-        <div class="modal-body offset1">
-            <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
-            <label>
-                <b class="big-only">Old password</b>
-                <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
-            </label>
-            <br>
-            <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
-            <label>
-                <b class="big-only">New password</b>
-                <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
-            </label>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
-            <button class="btn" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
-        </div>
-    </form>
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+        <h3 class="big-only">Change password</h3>
+        <div class="hide account-error-text" id="account-change_password-error"></div>
+    </div>
+    <div class="modal-body offset1">
+        <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
+        <label>
+            <b class="big-only">Old password</b>
+            <input class="span4 offset1" type="password" placeholder="Old password" id="account-change_password-old_password">
+        </label>
+        <br>
+        <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
+        <label>
+            <b class="big-only">New password</b>
+            <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
+        </label>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
+        <button class="btn" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
+    </div>
 </div>
 
 
@@ -552,22 +554,20 @@ I agree to <a href="#link-terms" data-toggle="modal">the SageMath Cloud Terms</a
 
 <!-- Forgot password: reset -->
 <div class="modal hide" id="account-forgot_password_reset" tabindex="-1" role="dialog" aria-hidden="true">
-    <form>
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-            <h3>Reset your password:</h3>
-            <br>Enter your new password.<br><br>
-            <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
-        </div>
-        <div class="modal-body offset1">
-            <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
-            <input class="span4 offset1  salvus-password-meter" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
-            <button class="btn" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
-        </div>
-    </form>
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+        <h3>Reset your password:</h3>
+        <br>Enter your new password.<br><br>
+        <div class="hide account-error-text" id="account-forgot_password_reset-error"></div>
+    </div>
+    <div class="modal-body offset1">
+        <div class="hide account-error-text" id="account-forgot_password_reset-error-new_password"></div>
+        <input class="span4 offset1  salvus-password-meter" type="password" placeholder="New password" id="account-forgot_password_reset-new_password">
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password_reset-button-submit">Change password</button>
+        <button class="btn" data-dismiss="modal" id="account-forgot_password_reset-button-cancel">Cancel</button>
+    </div>
 </div>
 
 

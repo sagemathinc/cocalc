@@ -132,6 +132,7 @@ class DiffSyncDoc
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
     # clever regarding restoring the cursor and the scroll location.
+    cm_session.codemirror._cm_session_cursor_before_reset = cm_session.codemirror.getCursor()
     cm_session.codemirror.setValueNoJump(content)
 
     return new diffsync.CustomDiffSync
@@ -189,7 +190,7 @@ class SynchronizedDocument extends EventEmitter
                 @codemirror.setOption('readOnly', false)
                 @ui_synced(false)
                 @editor.init_autosave()
-                @sync_soon()  # do a first sync asap.
+                @sync()  # do a first sync asap.
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     #console.log("change #{misc.to_json(changeObj)}")
@@ -326,9 +327,11 @@ class SynchronizedDocument extends EventEmitter
                 @_add_listeners()
 
                 if resetting
+                    #console.log("RESETTING now.")
                     @codemirror.setValueNoJump(live_content)
-                    # Force a sync.
-                    @_syncing = false
+                    cur = @codemirror._cm_session_cursor_before_reset
+                    if cur?
+                        @codemirror.setCursor(cur)
                     @sync()
 
                 if not resetting
@@ -397,10 +400,15 @@ class SynchronizedDocument extends EventEmitter
             @_ui_synced_timer = setTimeout(show_spinner, 4*@opts.sync_interval)
 
     sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
+        #console.log("sync: @_syncing=", @_syncing)
         if @_syncing? and @_syncing
             # can only sync once a complete cycle is done, or declared failure.
             cb?()
             #console.log('skipping since already syncing')
+            return
+
+        if not @dsync_client
+            # document synchronization not initialized at all yet
             return
 
         @_syncing = true
@@ -409,22 +417,25 @@ class SynchronizedDocument extends EventEmitter
             delete @_sync_soon
         before = @dsync_client.live.string()
         #console.log("sync started")
+        @_sync_cursor_pos = @codemirror.getCursor()
         @dsync_client.push_edits (err) =>
-            #console.log("dsync_client result: ", err)
             if err
+                # console.log("sync done -- error = ", err)
                 @_syncing = false
                 if not @_sync_failures?
                     @_sync_failures = 1
                 else
                     @_sync_failures += 1
-                if @_sync_failures % 6 == 0 and not err == 'retry'
-                    alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
-
-                setTimeout(@sync, 30000)  # try again soon...
+                if @_sync_failures % 6 == 0 and err != 'retry'
+                    # TODO
+                    #alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server. (You can refresh your browser, but might loose some changes.)")
+                    @sync_soon(10000)
+                else
+                    @sync_soon()
                 cb?(err)
             else
                 # We just completed a successful sync.
-                #console.log("sync done")
+                #console.log("sync done -- success")
                 @_sync_failures = 0
                 @_syncing = false
                 @emit 'sync'

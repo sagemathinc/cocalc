@@ -219,6 +219,9 @@ class InteractFunction(object):
     def __init__(self, interact_cell):
         self.__dict__['interact_cell'] = interact_cell
 
+    def __call__(self, *args, **kwds):
+        return self.interact_cell._f(*args, **kwds)
+
     def __setattr__(self, arg, value):
         I = self.__dict__['interact_cell']
         if arg in I._controls and not isinstance(value, control):
@@ -829,9 +832,16 @@ class InputGrid:
             return x
 
     def from_client(self, x):
-        # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
-        s = '[' + ','.join([str(t) for t in x]) + ']'
-        self.value = sage_eval(s)
+        if len(x) == 0:
+            self.value = []
+        elif isinstance(x[0], list):
+            self.value = [[sage_eval(t) for t in z] for z in x]
+        else:
+            # x is a list of (unicode) strings -- we sage eval them all at once (instead of individually).
+            s = '[' + ','.join([str(t) for t in x]) + ']'
+            v = sage_eval(s)
+            self.value = [v[n:n+self.ncols] for n in range(0, self.nrows*self.ncols, self.ncols)]
+
         return self.to_value(self.value) if self.to_value is not None else self.value
 
     def to_client(self, x=None):
@@ -846,6 +856,17 @@ class InputGrid:
 def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
     r"""
     A grid of input boxes, for use with the :func:`interact` command.
+
+    INPUT:
+
+    - ``nrows`` - an integer
+    - ``ncols`` - an integer
+    - ``default`` - an object; the default put in this input box
+    - ``label`` - a string; the label rendered to the left of the box.
+    - ``to_value`` - a list; the grid output (list of rows) is
+      sent through this function.  This may reformat the data or
+      coerce the type.
+    - ``width`` - an integer; size of each input box in characters
 
     EXAMPLES:
 
@@ -1920,6 +1941,7 @@ def show(obj, svg=False, threejs=False, **kwds):
 
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
+GraphicsArray.show = show
 
 ###################################################
 # %auto -- automatically evaluate a cell on load
@@ -2456,98 +2478,53 @@ def load(*args, **kwds):
 
 
 
-# Conversion
-def sws_body_to_sagews(body):
-    from uuid import uuid4
-    def uuid():
-        return unicode(uuid4())
-    MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
-    import json
+## Make it so pylab (matplotlib) figures display, at least using pylab.show
+import pylab
+def _show_pylab():
+    try:
+        filename = uuid()+'.png'
+        pylab.savefig(filename)
+        salvus.file(filename)
+    finally:
+        try:
+            os.unlink(filename)
+        except:
+            pass
+pylab.show = _show_pylab
 
-    out = u""
-    i = 0
-    while i!=-1 and i <len(body):
-        j = body.find("{{{", i)
-        if j == -1:
-            j = len(body)
-        html = body[i:j]
-        k = body.find("\n", j+3)
-        if k == -1:
-            break
-        k2 = body.find("///", k)
-        if k2 == -1:
-            output = ""
-            k2 = body.find("}}}", k)
-            if k2 == -1:
-                input = ""
-                k2 = len(body)
-            else:
-                input = body[k+1:k2]
-            i = k2+1
-        else:
-            input = body[k+1:k2]
-            k3 = body.find("}}}", k2+4)
-            if k3 == -1:
-                output = ""
-                i = len(body)
-            else:
-                output = body[k2+4:k3]
-                i = k3+1
+import matplotlib.pyplot
+def _show_pyplot():
+    try:
+        filename = uuid()+'.png'
+        matplotlib.pyplot.savefig(filename)
+        salvus.file(filename)
+    finally:
+        try:
+            os.unlink(filename)
+        except:
+            pass
+matplotlib.pyplot.show = _show_pyplot
 
-        html   = unicode(html.strip())
-        input  = unicode(input.strip())
-        output = unicode(output.strip())
-        if False and len(html) > 0:  # totally broken
-            out += u'\n' + MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
-            out += '%html\n'
-            out += html + u'\n'
-            out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                    json.dumps({'html':html}) + MARKERS['output']) + u'\n'
 
-        if out != "":
-            out += u'\n'
-        out += MARKERS['cell'] + uuid() + MARKERS['cell'] + u'\n'
-        out += input
-        if len(output) > 0:
-            out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                    json.dumps({'stdout':output}) + MARKERS['output'])
-
-    return out
-
-def sws_to_sagews(filename):
-    """
-    Convert a Sage Notebook sws file to a cloud.sagemath sagews file.
-
-    WARNING: Unfinished!
-
-    NOTE: This is still very preliminary -- it only maintains the input
-    and output of cells, and ignore many subtle things.
-
-    INPUT:
-    - ``filename`` -- the name of an sws file, say foo.sws
-
-    OUTPUT:
-    - creates a file foo[-n].sagews  and returns the name of the output file
-    """
-    import os, tarfile
-    t = tarfile.open(name=filename, mode='r:bz2', bufsize=10240)
-    body = t.extractfile('sage_worksheet/worksheet.html').read()
-    out = sws_body_to_sagews(body)
-    base = os.path.splitext(filename)[0]
-    i = 0
-    outfile = base + '.sagews'
-    while os.path.exists(outfile):
-        outfile = "%s-%s.sagews"%(base, i)
-        i += 1
-    open(outfile,'w').write(out.encode('utf8'))
-    return outfile
-
+## Our own displayhook
 
 _system_sys_displayhook = sys.displayhook
-import sage.misc.latex, types
-TYPESET_MODE_EXCLUDES = (sage.misc.latex.LatexExpr, types.NoneType)
 
-def typeset_mode(on=True):
+def displayhook(obj):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray)):
+        show(obj)
+    else:
+        _system_sys_displayhook(obj)
+
+sys.displayhook = displayhook
+import sage.misc.latex, types
+# We make this a list so that users can append to it easily.
+TYPESET_MODE_EXCLUDES = [sage.misc.latex.LatexExpr, types.NoneType,
+                         type, sage.plot.plot3d.base.Graphics3d,
+                         sage.plot.graphics.Graphics,
+                         sage.plot.graphics.GraphicsArray]
+
+def typeset_mode(on=True, display=True, **args):
     """
     Turn typeset mode on or off.  When on, each output is typeset using LaTeX.
 
@@ -2557,16 +2534,18 @@ def typeset_mode(on=True):
 
          typeset_mode(False)  # turn typesetting off
 
+         typeset_mode(True, display=False) # typesetting mode on, but do not make output big and centered
+
     """
     if on:
         def f(obj):
-            if isinstance(obj, TYPESET_MODE_EXCLUDES):
-                _system_sys_displayhook(obj)
+            if isinstance(obj, tuple(TYPESET_MODE_EXCLUDES)):
+                displayhook(obj)
             else:
-                salvus.tex(obj)
+                salvus.tex(obj, display=display)
         sys.displayhook = f
     else:
-        sys.displayhook = _system_sys_displayhook
+        sys.displayhook = displayhook
 
 def default_mode(mode):
     """
@@ -2621,3 +2600,15 @@ def show_3d_plot_using_threejs(p, **kwds):
     salvus.coffeescript(s, obj={'mtl':p.mtl_str()} )
 
     # TODO: what about garbage collection / memory leaks!?
+
+
+# Monkey patch around a bug in Python's findsource that breaks deprecation in cloud worksheets.
+# This won't matter if we switch to not using exec, since then there will be a file behind
+# each block of code.  However, for now we have to do this.
+import inspect
+_findsource = inspect.findsource
+def findsource(object):
+    try: return _findsource(object)
+    except: raise IOError('source code not available')  # as *claimed* by the Python docs!
+inspect.findsource = findsource
+

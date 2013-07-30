@@ -11,6 +11,7 @@ message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
+diffsync        = require('diffsync')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
@@ -462,10 +463,14 @@ class ProjectPage
             ins = " -i "
         else
             ins = ""
+        query = '"' + query.replace(/"/g, '\\"') + '"'
         if recursive
-            cmd = "find * -type f | grep #{ins} #{query}; rgrep -H #{ins} #{query} *"
+            cmd = "find * -type f | grep #{ins} #{query}; rgrep -H #{ins} #{query} * "
         else
-            cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} *"
+            cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} * "
+
+        # Exclude worksheet input cell markers
+        cmd += " | grep -v #{diffsync.MARKERS.cell}"
 
         path = @current_pathname()
 
@@ -482,8 +487,8 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
-            timeout    : 5   # how long grep runs on client
-            network_timeout : 10   # how long network call has until it must return something or get total error.
+            timeout    : 10   # how long grep runs on client
+            network_timeout : 15   # how long network call has until it must return something or get total error.
             max_output : max_output
             bash       : true
             err_on_exit: true
@@ -516,8 +521,11 @@ class ProjectPage
                     else
                         # the rgrep part
                         filename = line.slice(0,i)
-                        #context  = trunc(line.slice(i+1), 25)
                         context = line.slice(i+1)
+                        # strip codes in worksheet output
+                        if context.length > 0 and context[0] == diffsync.MARKERS.output
+                            i = context.slice(1).indexOf(diffsync.MARKERS.output)
+                            context = context.slice(i+2,context.length-1)
                         r = search_result.clone()
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
@@ -1885,9 +1893,12 @@ class ProjectPage
 
     open_file: (path) =>
         ext = filename_extension(path)
-        @editor.open(path)
-        @display_tab("project-editor")
-        @editor.display_tab(path)
+        @editor.open path, (err, opened_path) =>
+            if err
+                alert_message(type:"error", message:"Error opening '#{path}' -- #{err}", timeout:10)
+            else
+                @display_tab("project-editor")
+                @editor.display_tab(opened_path)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch

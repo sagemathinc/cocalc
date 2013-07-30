@@ -240,6 +240,7 @@ CodeMirror.defineExtension 'delete_trailing_whitespace', () ->
 CodeMirror.defineExtension 'setValueNoJump', (value) ->
     scroll = @getScrollInfo()
     pos = @getCursor()
+    #console.log("setValueNoJump: cursor pos = ", pos)
     @setValue(value)
     @setCursor(pos)
     @scrollTo(scroll.left, scroll.top)

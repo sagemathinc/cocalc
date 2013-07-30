@@ -254,16 +254,36 @@ CREATE INDEX ON project_blobs(project_id);
 
 /* Whenever a project is touched, we also add it to this table with a ttl. */
 CREATE TABLE recently_modified_projects (
-    project_id uuid  PRIMARY KEY,
-    location   varchar
+    ttl        varchar,   /* '5 minutes', '1 day', '1 week'  */
+    project_id uuid,
+    dummy      boolean,
+    PRIMARY KEY(ttl, project_id)
 );
 
+
+
 ////////////////////////////////////////////
-// Snap -- the project snapshot server
+// Hubs -- the global hubs that coordinate users with resources
+////////////////////////////////////////////
+
+/* The hub servers -- entries in this table should always be inserted with a
+   small ttl (e.g., 30 seconds) that is periodically updated. */
+
+
+CREATE TABLE hub_servers (
+    host       varchar,    /* hostname (ip address) */
+    port       int,
+    clients    int,        /* total number of connected clients right now */
+    PRIMARY KEY(host, port)
+);
+
+
+////////////////////////////////////////////
+// Snap -- the project snapshot servers
 ////////////////////////////////////////////
 
 /* The snap servers -- entries in this table should always be inserted with a
-   very small ttl (e.g., 15 seconds) that is periodically updated. */
+   very small ttl (e.g., 15 seconds); the entry then gets periodically updated. */
 CREATE TABLE snap_servers (
     id         uuid,
     host       varchar,    /* hostname */
@@ -279,10 +299,20 @@ CREATE TABLE snap_commits (
     timestamp  varchar,    /* date of commit, in the bup string format */
     size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
     repo_id    uuid,       /* id of the bup repo that contains this snapshot */
+    modified_files varchar, /* JSON list of strings of the paths of the files that were modified in this commit. */
     PRIMARY KEY(server_id, project_id, timestamp)
 );
 
 CREATE INDEX ON snap_commits(repo_id);
+
+CREATE TABLE snap_modified_files (
+    project_id uuid,
+    filename   varchar,
+    timestamp  varchar,
+    dummy      boolean,
+    PRIMARY KEY(project_id, filename, timestamp)
+);
+
 
 
 /* snap_ls_cache entries should always be inserted with a ttl (e.g., a few days) */
@@ -372,6 +402,10 @@ CREATE TABLE stats (
     timestamp varchar,
     accounts int,
     projects int,
-    active_projects int
+    active_projects int,
+    last_day_projects int,
+    last_week_projects int,
+    snap_servers int,
+    hub_servers varchar /* JSON */
 );
 
