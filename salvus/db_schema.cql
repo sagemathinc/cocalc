@@ -299,10 +299,20 @@ CREATE TABLE snap_commits (
     timestamp  varchar,    /* date of commit, in the bup string format */
     size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
     repo_id    uuid,       /* id of the bup repo that contains this snapshot */
+    modified_files varchar, /* JSON list of strings of the paths of the files that were modified in this commit. */
     PRIMARY KEY(server_id, project_id, timestamp)
 );
 
 CREATE INDEX ON snap_commits(repo_id);
+
+CREATE TABLE snap_modified_files (
+    project_id uuid,
+    filename   varchar,
+    timestamp  varchar,
+    dummy      boolean,
+    PRIMARY KEY(project_id, filename, timestamp)
+);
+
 
 
 /* snap_ls_cache entries should always be inserted with a ttl (e.g., a few days) */

@@ -514,7 +514,7 @@ snap_log = (opts) ->
 create_lock = (opts) ->
     opts = defaults opts,
         location : required
-        ttl      : 2*DEFAULT_TIMEOUT   # time to live, in seconds
+        ttl      : DEFAULT_TIMEOUT   # time to live, in seconds
         cb       : required
 
     user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
@@ -669,6 +669,7 @@ monitor_snapshot_queue = () ->
         nothing_to_do = false
         rollback_info = undefined
         rollback_file = undefined
+        modified_files = undefined
         async.series([
             (cb) ->
                 winston.debug("snapshot: checking if disabled for #{project_id}")
@@ -787,11 +788,15 @@ monitor_snapshot_queue = () ->
                         winston.debug("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
 
-            # count the number of interesting modified files
+            # List the interesting modified files.
             # This only makes sense because we just made the index above successfully.
+            # Note that "modified" is global to *all* snap servers, so this is actually
+            # a really sensible thing to do.  And if one snap server makes a snapshot,
+            # then no other snapshot server will make exactly the same snapshot (by a different name),
+            # which is what we want, since we will get redundancy by rsyncing them around.
             (cb) ->
                 misc_node.execute_code
-                    command : "bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$' |wc -l"
+                    command : "bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
                     timeout : 30  # should be very fast no matter what.
                     bash    : true
                     env     : {BUP_DIR : bup_active}
@@ -800,8 +805,10 @@ monitor_snapshot_queue = () ->
                             winston.debug("SERIOUS BUG issue: error determining number of modified files for #{project_id}: #{err}")
                             cb(err)
                         else
-                            n = parseInt(output.stdout.trim())
+                            modified_files = (x.slice(2) for x in output.stdout.trim().split('\n'))
+                            n = modified_files.length
                             winston.debug("#{n} modified files for #{project_id}")
+                            winston.debug("modified files = #{misc.trunc(misc.to_json(modified_files),512)}")
                             if n == 0
                                 nothing_to_do = true
                                 _last_snapshot_cache[project_id] = misc.walltime() # don't try again to snapshot this project for a few minutes (otherwise we would index the whole thing every few seconds!)
@@ -893,7 +900,8 @@ monitor_snapshot_queue = () ->
                 _last_snapshot_cache[project_id] = t
                 database.update
                     table : 'snap_commits'
-                    set   : {size: size, repo_id:repo_id}
+                    set   : {size: size, repo_id:repo_id, modified_files:modified_files}
+                    json  : ['modified_files']
                     where :
                         server_id  : snap_server_uuid
                         project_id : project_id
@@ -901,6 +909,21 @@ monitor_snapshot_queue = () ->
                     cb    : (err) ->
                         winston.debug("time to record commit to database: #{misc.walltime(t)}")
                         cb()
+
+                # Also add row to table for each modified file.  There could be a 50,000 files though,
+                # so this is slow, so we don't block on it.  TODO: do this in one transaction someday.
+                f = (filename, cb) ->
+                    database.update
+                        table : 'snap_modified_files'
+                        set   : {dummy: true}
+                        where :
+                            project_id : project_id
+                            filename   : filename
+                            timestamp : timestamp
+                        cb : cb
+                t = misc.walltime()
+                async.map modified_files, f, (err) ->
+                    winston.debug("finished recording snap_modified_files for project #{project_id}, time = #{misc.walltime(t)}")
 
         ], (err) ->
             # wait 3 seconds, to ensure uniqueness of time stamp, not be too aggressive checking locks, etc.
