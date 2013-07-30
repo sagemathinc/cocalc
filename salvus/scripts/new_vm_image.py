@@ -45,7 +45,7 @@ if os.path.exists(next_path):
 
 cmd("qemu-img create -b %s -f qcow2 %s"%(prev_path, next_path))
 
-cmd("virt-install --cpu host --network user,model=virtio --name %s --vcpus=16 --ram 32768 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole"%(next,next_path))
+cmd("virt-install --cpu host --network user,model=virtio --name %s --vcpus=16 --ram 32768 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
 
 cmd("virsh -c qemu:///session qemu-monitor-command --hmp %s 'hostfwd_add ::2222-:22'"%next)
 
@@ -66,6 +66,12 @@ You probably want to do something like this:
     reboot -h now
     ssh localhost -p 2222
     sudo shutdown -h now
+
+ For the console, do this on your laptop:
+
+    ssh -X -L 5900:localhost:12101 salvus@cloud1
+
+ then connect to localhost:5900 in your VNC viewer (such as krdc).
 
  Then
 
