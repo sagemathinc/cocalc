@@ -141,7 +141,7 @@ def sws_to_sagews(filename):
     i = 0
     outfile = base + '.sagews'
     if os.path.exists(outfile):
-        sys.stderr.write("%s: Sagemath cloud worksheet '%s' already exists.  Not overwriting.\n"%(sys.argv[0], outfile))
+        sys.stderr.write("%s: Warning --Sagemath cloud worksheet '%s' already exists.  Not overwriting.\n"%(sys.argv[0], outfile))
         sys.stderr.flush()
     else:
         sys.stdout.write("%s: Creating Sagemath cloud worksheet '%s'\n"%(sys.argv[0], outfile))

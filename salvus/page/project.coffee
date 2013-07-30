@@ -1893,9 +1893,12 @@ class ProjectPage
 
     open_file: (path) =>
         ext = filename_extension(path)
-        @editor.open(path)
-        @display_tab("project-editor")
-        @editor.display_tab(path)
+        @editor.open path, (err, opened_path) =>
+            if err
+                alert_message(type:"error", message:"Error opening '#{path}' -- #{err}")
+            else
+                @display_tab("project-editor")
+                @editor.display_tab(opened_path)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch
