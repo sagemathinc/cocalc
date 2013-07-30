@@ -3,11 +3,73 @@
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 
 import json, sys
+
 from uuid import uuid4
 def uuid():
     return unicode(uuid4())
 
-# Conversion
+def process_html(html):
+    if '"div-interact-1"' in html:
+        # probably an interact
+        return ""
+    else:
+        return html
+
+def process_output(s):
+    s = s.strip()
+    if not s:
+        return []
+    i = s.find("Traceback (most recent call last):")
+    if i != -1:
+        s0 = s[:i]
+        s1 = s[i:]
+        if s0:
+            return [{'stdout':s0}, {'stderr':s1}]
+        else:
+            return [{'stderr':s1}]
+    else:
+        return [{'stdout':s}]
+
+
+DISPLAY_MATH = {'open':'<html><script type=\"math/tex; mode=display\">', 'close':'</script></html>', 'display':True}
+INLINE_MATH = {'open':'<html><script type=\"math/tex\">', 'close':'</script></html>', 'display':False}
+HTML = {'open':'<html>', 'close':'</html>'}
+def output_messages(output):
+    messages = []
+
+    while len(output) > 0:
+        found = False
+        for marker in [DISPLAY_MATH, INLINE_MATH]:
+            i = output.find(marker['open'])
+            if i != -1:
+                messages.extend(process_output(output[:i]))
+                j = output.find(marker['close'])
+                if j != -1:
+                    messages.append({'tex':{'tex':output[i+len(marker['open']):j], 'display':marker['display']}})
+                    output = output[j+len(marker['close']):]
+                    found = True
+                    break
+        if found: continue
+
+        i = output.find(HTML['open'])
+        if i != -1:
+            messages.extend(process_output(output[:i]))
+            j = output.find(HTML['close'])
+            if j != -1:
+                messages.append({'html':process_html(output[i+len(HTML['open']):j])})
+                output = output[j+len(HTML['close']):]
+                continue
+
+        messages.extend(process_output(output))
+        output = ''
+
+    return MARKERS['output'].join(unicode(json.dumps(x)) for x in messages)
+
+def migrate_input(s):
+    # Given the input to a cell, possibly make modifications heuristically to it to make it more
+    # Sagemath Cloud friendly.
+    return s
+
 def sws_body_to_sagews(body):
 
     out = u""
@@ -27,9 +89,10 @@ def sws_body_to_sagews(body):
             if k2 == -1:
                 input = ""
                 k2 = len(body)
+                i = len(body)
             else:
                 input = body[k+1:k2]
-            i = k2+1
+                i = k2+4
         else:
             input = body[k+1:k2]
             k3 = body.find("}}}", k2+4)
@@ -38,25 +101,25 @@ def sws_body_to_sagews(body):
                 i = len(body)
             else:
                 output = body[k2+4:k3]
-                i = k3+1
+                i = k3+4
 
         html   = unicode(html.strip())
-        input  = unicode(input.strip())
+        input  = unicode(migrate_input(input.strip()))
         output = unicode(output.strip())
-        if False and len(html) > 0:  # totally broken
-            out += u'\n' + MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
+
+
+        if html:
+            out += MARKERS['cell'] + uuid() + 'i' + MARKERS['cell'] + u'\n'
             out += '%html\n'
             out += html + u'\n'
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
                     json.dumps({'html':html}) + MARKERS['output']) + u'\n'
 
-        if out != "":
-            out += u'\n'
-        out += MARKERS['cell'] + uuid() + MARKERS['cell'] + u'\n'
-        out += input
-        if len(output) > 0:
+        if input or output:
+            out += MARKERS['cell'] + uuid() + MARKERS['cell'] + u'\n'
+            out += input
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
-                    json.dumps({'stdout':output}) + MARKERS['output'])
+                    output_messages(output) + MARKERS['output']) + u'\n'
 
     return out
 
