@@ -2,7 +2,7 @@
 
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 
-import cPickle, json, sys
+import cPickle, json, os, sys
 
 from uuid import uuid4
 def uuid():
@@ -141,6 +141,19 @@ def extra_modes(meta):
     # The 'a' means "auto".
     return MARKERS['cell'] + uuid() + 'a' + MARKERS['cell'] + u'\n%auto\n' + s
 
+def write_data_files(t):
+    prefix = 'sage_worksheet/data/'
+    data = [p.path for p in t if p.path.startswith(prefix)]
+    out = []
+    target = "foo.data"
+    if data:
+        if not os.path.exists(target):
+            os.makedirs(target)
+        for p in data:
+            dest = os.path.join(target, p[len(prefix):])
+            out.append(dest)
+            open(dest,'wb').write(t.extractfile(p).read())
+    return out, target
 
 def sws_to_sagews(filename):
     """
@@ -152,12 +165,19 @@ def sws_to_sagews(filename):
     OUTPUT:
     - creates a file foo[-n].sagews  and returns the name of the output file
     """
+    out = ''
+
     import os, tarfile
     t = tarfile.open(name=filename, mode='r:bz2', bufsize=10240)
     body = t.extractfile('sage_worksheet/worksheet.html').read()
+
+    data_files, data_path = write_data_files(t)
+    if data_files:
+        out += MARKERS['cell'] + uuid() + 'ai' + MARKERS['cell'] + u'\n%hide\n%auto\nDATA="%s/"\n'%data_path
+
     meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
 
-    out = sws_body_to_sagews(body)
+    out += sws_body_to_sagews(body)
     out = extra_modes(meta) + out
 
     base = os.path.splitext(filename)[0]
