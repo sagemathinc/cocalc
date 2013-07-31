@@ -2,7 +2,7 @@
 
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 
-import json, sys
+import cPickle, json, sys
 
 from uuid import uuid4
 def uuid():
@@ -116,12 +116,31 @@ def sws_body_to_sagews(body):
                     json.dumps({'html':html}) + MARKERS['output']) + u'\n'
 
         if input or output:
-            out += MARKERS['cell'] + uuid() + MARKERS['cell'] + u'\n'
+            modes = ''
+            if '%auto' in input:
+                modes += 'a'
+            if '%hide' in input:
+                modes += 'i'
+            if '%hideall' in input:
+                modes += 'o'
+            out += MARKERS['cell'] + uuid() + modes + MARKERS['cell'] + u'\n'
             out += input
             out += (u'\n' + MARKERS['output'] + uuid() + MARKERS['output'] +
                     output_messages(output) + MARKERS['output']) + u'\n'
 
     return out
+
+def extra_modes(meta):
+    s = ''
+    if meta['pretty_print']:
+        s += u'typeset_mode(True, display=False)\n'
+    if meta['system'] != 'sage':
+        s += u'%%default_mode %s\n'%meta['system']
+    if not s:
+        return ''
+    # The 'a' means "auto".
+    return MARKERS['cell'] + uuid() + 'a' + MARKERS['cell'] + u'\n%auto\n' + s
+
 
 def sws_to_sagews(filename):
     """
@@ -136,7 +155,11 @@ def sws_to_sagews(filename):
     import os, tarfile
     t = tarfile.open(name=filename, mode='r:bz2', bufsize=10240)
     body = t.extractfile('sage_worksheet/worksheet.html').read()
+    meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
+
     out = sws_body_to_sagews(body)
+    out = extra_modes(meta) + out
+
     base = os.path.splitext(filename)[0]
     i = 0
     outfile = base + '.sagews'
