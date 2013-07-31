@@ -113,7 +113,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 #### tinc vpn ####
                 tinc_path = os.path.join(tmp_path, 'home/salvus/salvus/salvus/data/local/etc/tinc/')
                 open(os.path.join(tinc_path, 'tinc-up'),'w').write(
-                    "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.0.0.0"%ip_address)
+                    "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.192.0.0"%ip_address)
                 open(os.path.join(tinc_path, 'tinc.conf'),'w').write(
                     "Name = %s\nConnectTo = %s"%(tincname, vmhost_tincname))
                 rsa_key_priv = os.path.join(tinc_path, 'rsa_key.priv')

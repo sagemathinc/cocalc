@@ -1,0 +1,1 @@
+../scripts/docx2txt.py

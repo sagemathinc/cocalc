@@ -379,9 +379,55 @@ class exports.Editor
         if @counter?
             @counter.text(len(@tabs))
 
-    open: (filename) =>
+    open: (filename, cb) =>   # cb(err, actual_opened_filename)
+        if not filename?
+            cb("BUG -- open(undefined) makes no sense")
+            return
+
+        if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
+            alert_message(type:"info",message:"Opening converted Sagemath Cloud worksheet file instead of '#{filename}...")
+            @convert_sagenb_worksheet filename, (err, sagews_filename) =>
+                if not err
+                    @open(sagews_filename, cb)
+                else
+                    cb("Error converting Sage Notebook sws file -- #{err}")
+            return
+
+        if filename_extension(filename).toLowerCase() == "docx"   # Microsoft Word Document
+            alert_message(type:"info", message:"Opening converted plane text file instead of '#{filename}...")
+            @convert_docx_file filename, (err, new_filename) =>
+                if not err
+                    @open(new_filename, cb)
+                else
+                    cb("Error converting Microsoft Docx file -- #{err}")
+            return
+
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
             @tabs[filename] = @create_tab(filename:filename)
+
+        cb(false, filename)
+
+    convert_sagenb_worksheet: (filename, cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "sws2sagews.py"
+            args       : [filename]
+            cb         : (err, output) =>
+                if err
+                    cb("#{err}, #{misc.to_json(output)}")
+                else
+                    cb(false, filename.slice(0,filename.length-3) + 'sagews')
+
+    convert_docx_file: (filename, cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "docx2txt.py"
+            args       : [filename]
+            cb         : (err, output) =>
+                if err
+                    cb("#{err}, #{misc.to_json(output)}")
+                else
+                    cb(false, filename.slice(0,filename.length-4) + 'txt')
 
     file_options: (filename, content) =>   # content may be undefined
         ext = filename_extension(filename)?.toLowerCase()
@@ -978,7 +1024,7 @@ class CodeMirrorEditor extends FileEditor
             # The Codemirror themes impose their own weird fonts, but most users want whatever
             # they've configured as "monospace" in their browser.  So we force that back:
             e = $(cm.getWrapperElement())
-            e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery            
+            e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
 
             return cm
 

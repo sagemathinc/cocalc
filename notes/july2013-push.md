@@ -36,7 +36,12 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
 
 Hi,
 
-I've updated https://cloud.sagemath.com.  
+I've updated https://cloud.sagemath.com.   The changes are:
+
+    * Added FriCAS (thanks to help from Bill Page and Ralf Hemmecke).
+      You can now type "fricas" in the terminal to run it.
+
+    *
 
 
 

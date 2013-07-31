@@ -452,7 +452,9 @@ class DiffSyncFile_server extends diffsync.DiffSync
                 fs.readFile file, (err, data) =>
                     if err
                         cb(err); return
-                    @init(doc:data.toString(), id:"file_server")
+                    # NOTE: we immediately delete \r's since the client editor (Codemirror) immediately deletes them
+                    # on editor creation; if we don't delete them, all sync attempts fail and hell is unleashed.
+                    @init(doc:data.toString().replace(/\r/g,''), id:"file_server")
                     # winston.debug("got new file contents = '#{@live}'")
                     @_start_watching_file()
                     cb(err, @live)
@@ -471,7 +473,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
             if err
                 @_start_watching_file()
             else
-                @live = data.toString()
+                @live = data.toString().replace(/\r/g,'')  # NOTE: we immediately delete \r's (see above).
                 @cm_session.sync_filesystem (err) =>
                     @_start_watching_file()
 
