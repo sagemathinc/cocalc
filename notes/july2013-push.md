@@ -68,8 +68,12 @@ I've updated https://cloud.sagemath.com.   The changes are:
     * Snapshots are now not made unless a file has actually changed since the last time there
       was a snapshot.   Also, the changed files are now recorded in the database.  This will
       soon (not right now) provide a way -- given a file -- to see a list of the snapshots
-      in which it changed, and also, given a snapshot, see which files changed in it.  
+      in which it changed, and also, given a snapshot, see which files changed in it.
 
+    * Wrote script to monitor the database server every few seconds and restart it if it
+      crashes.  These crashes were responsible for some downtime recently.
+      The crashes should likely go away when I upgrade Cassandra, but having this monitor
+      will at least minimize downtime. 
 
 
 
