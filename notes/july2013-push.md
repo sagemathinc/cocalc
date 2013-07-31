@@ -5,12 +5,102 @@ July 30 (Tuesday): 8am-12am -- 16 hours on cloud.sagemath (no skating)
 
 July 31 (Wed): students meetings; pick up tish; bs day, skating
 
-# next 42 hours.
+# immediate goals
+            - [ ] 2 hours -- fix Downloads/own.sws  bug.
+            - [ ] 2 hours -- more refinement of sws converter
+            - [ ] 2 hours -- basic ipynb converter.
+            - [ ] 1 hour -- worksheet showing on sync weirdness (?)
+            - [ ] 30 min -- upgrade codemirror 3.15
+            - [ ] 3 hours -- implement global chat / community tab
+            - [x] 1 hour (5 actual hours) -- shop for computers
+            - [ ] 1 hour -- more email
 
---> - [ ] (2:00?) expand the storage of the compute VM's:
+
+- [x] (2:00?) conversion of sws files, part 2: Deal with as many edge cases as I can think of:
+   - title
+   x - default mode
+   x - typeset mode
+   -> - %auto
+   -> - %hideall
+   -> - %hide
+   x- (0:45?) (0:37) DATA variable
+    - img src: I can't do this without a URL scheme, etc., which is a big project.
+         window.history.pushState("object or string", "Title", "/project/foo/sd22.sagews");
+         http://stackoverflow.com/questions/824349/modify-the-url-without-reloading-the-page/3354511#3354511
 
 
-- [ ] (2:30?) expand the storage of the base VM so can have many linux installs, haskell, etc.; and add SWAP
+--> - [ ] (1:00?) next release
+    -- apt-get install python-lxml
+    -- include fricas/aldor -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13ffceb2441ad76e
+
+
+Hi,
+
+I've updated https://cloud.sagemath.com.   The changes are:
+
+    * Added FriCAS (thanks to help from Bill Page and Ralf Hemmecke).
+      You can now type "fricas" in the terminal to run it.
+
+    * Implemented automatic conversion of Sage Notebook .sws files to .sagews file.
+      Just click on a .sws file and if there is no corresponding .sagews file, then
+      it is generated then opened.  Look carefully at the result, since there are
+      many heuristics in the conversion script.  It handles typeset mode, default
+      modes, the DATA directory contents, etc.   It can't handle
+      <img src="foo.png"> (with foo.png in the DATA directory) yet.
+      In any case, this should be pretty useful in making it possible to use
+      older Sage Notebook worksheets in https://cloud.sagemath.com.
+
+    * Automatic conversion of Microsoft Word .docx files to .txt files when you click
+      on them.   There's a parser in Python to do this, so why not.
+
+    * Fixed a serious bug in synchronized document editing -- if you tried to edit
+      a file with "\r\n" for newlines (e.g., as produced often by Windows),
+      the synchronization would go into an infinite checksum error loop
+      and it would never work.  The \r's are now stripped on the server side
+      automatically before editing starts.
+
+    * CSS -- I changed how output is indicated in worksheets; now it is just a line
+      on the left.  Feedback appreciated.
+
+    * Project search -- exclude cell UUID's and make the search look for the complete string
+      in cases there are spaces in the input.
+
+    * Snapshots are now not made unless a file has actually changed since the last time there
+      was a snapshot.   Also, the changed files are now recorded in the database.  This will
+      soon (not right now) provide a way -- given a file -- to see a list of the snapshots
+      in which it changed, and also, given a snapshot, see which files changed in it.
+
+    * Wrote script to monitor the database server every few seconds and restart it if it
+      crashes.  These crashes were responsible for some downtime recently.
+      The crashes should likely go away when I upgrade Cassandra, but having this monitor
+      will at least minimize downtime. 
+
+
+
+---
+
+- [ ] (5:00?) url schema.
+
+
+- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
+
+
+- [ ] (1:00?) snap: make snap lock more robust; IDEA -- if there is a lock of a certain age (?), check if that user is running any bups; if not, delete lock ?
+- [ ] (1:00?) snap servers and database flakiness
+        [for hours getting this, even though it was STUPID]
+        debug: Not all active projects snapshotted:  HelenusNoAvailableNodesException: Could Not Connect To Any Nodes
+        [then I killed that snap.js process and suddenly (because of forever)]
+        debug: TCP server--      host:'127.0.0.1', port:37452
+        debug: removing all fuse mounts...
+        debug: deleting temporary directory...
+        debug: execute_code: "rm -rf /mnt/snap/snap0/tmp"
+        debug: Spawn the command rm with given args -rf,/mnt/snap/snap0/tmp
+
+
+
+- [ ] (1:00?) crontabs: https://mail.google.com/mail/u/0/?shva=1#inbox/14010044719e83b3
+
+- [ ] (1:00?) serious synchronization bug/issue: when a worksheet gets updated, sometimes it is made visible, even if that tab is in the background.  CONFUSING!
 
 - [ ] (1:00?) project storage ui polish: add html for all three project states: stored, restoring, active with tooltips explaining them; make html for this clean; make each "lighten" class.; color codes
 
@@ -18,17 +108,16 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
 
 - [ ] (1:00?) write code in hub that periodically moves older projects to storage.  Maybe have to modify db schema to make this efficient, e.g., only ever look at projects that are not in storage.  Have two modes: a slower one that iterates over all projects, and one that takes project that were active in the last *month*, but not in the last week, and shelves only those.  Run on all hubs -- at a randomized interval, and iterating over the projects in a random order.
 
-- [ ] (0:30?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
+- [ ] (1:00?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
 
-- [ ] (4:00?) (1:07+) ability to open sws files
+
+---
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat (just a link for now)
 
 
-- [ ] (1:00?) new release
+- [ ] (0:30?) upgrade to codemirror 3.15: https://mail.google.com/mail/u/0/?shva=1#inbox/14029b596102b364
 
 - [ ] (1:30?) write code in hub that ensures local hubs are always pre-started up for projects that have been accessed in the last week (again, a ttl'd new db schema field would do this).
-
-- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
 
 - [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off user:
        - open a worksheet or file to edit
@@ -39,8 +128,6 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
 
 - [ ] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.  I have no clear way to reproduce this.
 
-- [ ] (1:30?) snap: make it only take a snapshot if a file does change.
-
 - [ ] (2:00?) ulimit individual projects -- on july 22 one VM became unusable due to running out of memory, etc.
 
 - [ ] (3:00?) (0:43+) "invite a friend" easy way to invite somebody else to get an account when sharing projects
@@ -49,6 +136,19 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
   - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g., getting added to a project, banned, etc. -- should work with `email+*@'s`
 
 
+- [ ] (1:00?) (0:07) WAIT on this; see what happens with more swap; make cassandra get auto-restarted when it runs out of memory.
+
+        Cassandra keeps running out of memory and crashes... and doesn't get restarted, which totally kills everything.
+        Having swap will help a lot, probably, Auto-restarting cassandra would help anyways (forever).
+        ERROR [Thread-5] 2013-07-28 22:46:03,795 CassandraDaemon.java (line 174) Exception in thread Thread[Thread-5,5,main]
+        java.lang.OutOfMemoryError: unable to create new native thread
+                at java.lang.Thread.start0(Native Method)
+                at java.lang.Thread.start(Thread.java:640)
+                at java.util.concurrent.ThreadPoolExecutor.addThread(ThreadPoolExecutor.java:681)
+                at java.util.concurrent.ThreadPoolExecutor.addIfUnderMaximumPoolSize(ThreadPoolExecutor.java:727)
+                at java.util.concurrent.ThreadPoolExecutor.execute(ThreadPoolExecutor.java:655)
+                at org.apache.cassandra.thrift.CustomTThreadPoolServer.serve(CustomTThreadPoolServer.java:113)
+                at org.apache.cassandra.thrift.ThriftServer$ThriftServerThread.run(ThriftServer.java:111)
 
 
 ---
@@ -61,14 +161,16 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
 
 # User Visible Bugs
 
-- [ ] (1:00?) reduce the terminal output rate-limiation thresh-hold -- it is ANNOYING or buggy.
+- [ ] (1:00?) reduce the terminal output rate-limitation thresh-hold -- it is ANNOYING or buggy when using top.
 
 - [ ] (1:00?) (0:40+) strip "sage:" prompts from input blocks like in sagenb.org and command line; this makes copying code from docstrings much easier, etc.
 
 - [ ] (1:00?) tab completion bug: edge case -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/14004a6da697a304
 
 - [ ] (0:30?) creating a new cell should always scroll that cell into view, but often doesn't.
+
 - [ ] (1:00?) highlight some blank space at bottom and do "shift-enter" -- get lots of new empty cells.
+
 - [ ] (2:00?) optimize computation of diffs for synchronized document editing when there is a long line; right now, every time it diffs the entire doc.  If there is a single huge line of output -- e.g., take july2013-push.md and render it using md in a worksheet, so we get a huge single line of output -- then suddenly things feel very slow.
 - [ ] (1:00?) if "Recent" tab is open and you switch project tabs, then switch back, sometimes Recent looks empty (seen many times, not sure how to replicate)
 - [ ] (0:45?) on reconnect, sync all synchronized docs with hub (just like we do with fixing terminals).
@@ -86,9 +188,9 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
        \{ foo \}
     \]
 - [ ] (1:30?) terminal reconnect -- works fine on browser reconnect, but fails on dropped connection, since I didn't implement that yet.
-- [ ] (1:00?) fulltext search: should exclude uuid cell start marker lines
+
+
 - [ ] (1:00?) fulltext search: for output lines, double check each result and make sure search term isn't in uuid
-- [ ] (0:30?) make all open document sync every n seconds no matter what.
 - [ ] (1:00?) on connection reset, force all open documents to sync.
 - [ ] (1:00?) UI: renaming a long filename doesn't work.
 - [ ] (1:00?) UI/client: warn before opening huge files... (recommend vim/emacs... or implement something that streams?)
@@ -126,6 +228,9 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
 
 # User Features
 
+- [ ] (2:00?) write a simple ipynb --> sagews convertor, since it is so similar to above and easier.
+      See my worksheet in tmp/.
+      Make it so clicking does automatic conversion.
 - [ ] (2:00?) account settings: keyboard shortcuts
 - [ ] (1:00?) display last computed usage for each project in project page, along with global total usage
 - [ ] (0:45?) create a cell decorator "%typeset" that typesets output for only that cell using `typeset_mode(1)`
@@ -155,6 +260,8 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
 
 
 # Server Bugs and issues
+
+- [ ] (1:00?) snap: optimize this 'debug: finished recording snap_modified_files for project 5a986d67-833b-4f34-91a4-d084fdbf3159, time = 4.772000074386597' by putting it in a single transaction.
 
 - [ ] (1:00?) admin: the `compute_server` database table is only done purely manually, but should be automatic based on something in services file.
 
@@ -294,6 +401,7 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
       and
            chmod +x delete_unix_user.py create_unix_user.py
            chmod -s delete_unix_user.py create_unix_user.py
+1
 
     - x make symlink like this:
        cd /usr/local/bin; sudo ln -s /home/salvus/salvus/salvus/scripts/skel .
@@ -303,3 +411,126 @@ July 31 (Wed): students meetings; pick up tish; bs day, skating
             alter table stats add last_day_projects int;
             alter table stats add last_week_projects int;
             alter table stats add last_month_projects int;
+
+
+- [x] (2:00?) (3:20) expand the storage of the compute VM's:
+          [x] compute1a, [x] compute2a, [ ] compute3a, [ ] compute4a
+    x- Change services file:
+     'disk':'home:128'  -> 'disk':'home:128,home2:1024'
+    x- Reboot the vm's:
+      [cloud.restart('vm',hostname='compute%sa'%i) for i in [1,2,3,4]]
+    - cd /mnt; time sudo rsync -axH home/ home2/; sync
+      time sudo rsync -axvH home/ home2/; sync
+      time sudo shutdown -h now
+    - Shutoff vm through ipython
+    - Delete (move to TRASH) the home image, and move the home2 image to home.
+    x- Edit the services file:   'disk':'home:128,home2:1024' -->  'disk':'home:1024'
+    - Restart controlling ipython process.
+    - [cloud.start('vm',hostname='compute%sa'%i) for i in [1,2,3,4]]
+
+- [x] (2:30?) (2:23+) expand the storage of the base VM so can have many linux installs, haskell, etc.; and add SWAP
+    x - how big?  256GB
+         - 12GB = base OS install + packages
+         - 60GB = 10 sages at 6GB/each
+         - 48GB swap (?)
+         - 48GB tmp
+         - TOTAL = 152GB
+    x - change services file for storm-compute1a to have an external 256GB disk -- and make sure it uses newest base vm.
+    x - boot it up
+    x - unmount
+    x - use dd to copy over the complete root image to this new disk
+    x- fdisk, confirm looks plausible (?)
+    x- expand /dev/vdc5 to use new space: http://theducks.org/2009/11/expanding-lvm-partitions-in-vmware-on-the-fly/
+salvus@storm-compute1a:~$ sudo fdisk -l /dev/vdc
+
+Disk /dev/vdc: 274.9 GB, 274877906944 bytes
+16 heads, 63 sectors/track, 532610 cylinders, total 536870912 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x000d72a0
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/vdc1   *        2048      499711      248832   83  Linux
+/dev/vdc2          499712    33554431    16527360    5  Extended
+/dev/vdc5          501760    33554431    16526336   8e  Linux LVM
+
+    - change services file back
+    - reload storm object and restart vm
+    - rename the image we just made
+    - start a new vm with this new image as its base, and test that it books.
+    - use pvresize to expand the physical volume to use all the new space:     pvresize /dev/vda5
+    - create/resize volumes:
+        / (160GB)
+
+        swap (48GB)
+        tmp  (48GB)
+
+            lvcreate -L48G salvus-base -n /dev/salvus-base/tmp
+            lvcreate -L48G salvus-base -n /dev/salvus-base/swap
+            lvextend -L+144G /dev/salvus-base/root
+            resize2fs /dev/salvus-base/root
+
+    - make swap and format tmp -- we do *NOT* mount/enable these, since don't want sparse image to get huge.
+
+        mkfs.ext4 /dev/salvus-base/tmp
+        mkswap /dev/salvus-base/swap
+    - format tmp
+
+
+
+
+- [x] (1:00?) new non-default beta sage; test new bigger vm image.
+    - x build sage-5.11.beta?
+    - install optional stuff into that sage (?)
+    - test as storm-compute1a
+    - push at to other nodes
+    - deploy on storm:
+       fix permissions of sage install:
+
+           find . -type d -print -exec chmod a+rx {} \;
+           chmod a+r -R .
+           find . -executable -exec chmod a+rx {} \;
+    - deploy on cloud.
+
+- [x] (0:30?) (0:15) permissions: it looks like I screwed up the permissions of new project account creation... again. manually fix and fix scripts, again.
+No, just a few weren't fixed:
+   ls -lt|grep -v "drwx------"
+
+- [x] (0:45?) restart everything with improved swap, etc.:
+
+    - do another push (?)
+    - test on storm first
+    - do on cloud.  Will be an improvement.
+
+- [x] (1:30?) (1:51) do not make snapshot if no files changed; this is pretty AWESOME.  It makes it so every snapshot has a genuine change in it, and doesn't exist without any changed files.  And each snap servers snapshots are really different, so they have a reason for existence.
+
+- [x] (0:10?) (0:10) push out new snap settings
+
+- [x] (1:00?) (0:56) snap: record in database list of files changed in this snapshot, and also make a new table that allows us to find the times when a file changed.
+
+- [x] (1:00?) (0:40) fulltext search: exclude cell uuid codes; also make all searches a single string search
+
+- [x] (1:30?) (0:35) automatic conversion of docx files to txt -- just take the code from "Clarita Thesis" project.
+
+- [x] (4:00?) (5:00) automatic conversion of sws files:
+        - you click on a sws file, and if there is a sagews file with the same name, that is just opened instead (with a message).
+        - If there is no such file, then the sagews file is created and opened (with a message).
+        - At some point I'll also write exportors from sagews to many different formats, including sws.  But not yet.
+        - Probably the most pleasant way to implement the sws --> sagews conversion is via a standalone Python scriptn    :  "sws2sagews"
+          An updated copy will also be in ~/.sagemathcloud, which is in the PATH.  This way we can do the conversion without ever
+          involving `sage_salvus.py`.  It also makes it easier for the user to customize things if so desired (?).
+          It makes batch processing easier too.
+        x - (2:58) Create a simpler convert script that works on my first example.
+        x - (0:55) Integrate sws2sagews conversion into cloud framework:
+             x - ensure is in .sagemathcloud PATH.
+             x - gets run when .sws file clicked on, but doesn't overwrite output.
+
+
+- [x] (2:00?) (0:30) automatic relaunch of db *when* it dies... or maybe upgrade and it won't die anymore (?): it turns out cassandra really dies, so the .status(...) monitor in admin detects this. So, I can add restart functionality to admin.py.  No matter what, this is a good thing to have.  And will be easy.
+
+- [x] (2:00?) (1:36) the file Downloads/own.sws on my laptop when loaded immediately leads to an infinite sync loop due to a checksum mismatch. What's wrong with it?  How does it completely break the entire diffsync setup?  Must find out!
+
+    - NOTE 1: there are ^M's in the file, i.e., DOS line endings (caused by github).  Maybe that is the problem.
+    - Removing them does fix the problem.
+    - try making a worksheet with trivial use of them.
