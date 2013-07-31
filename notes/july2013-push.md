@@ -41,7 +41,34 @@ I've updated https://cloud.sagemath.com.   The changes are:
     * Added FriCAS (thanks to help from Bill Page and Ralf Hemmecke).
       You can now type "fricas" in the terminal to run it.
 
-    *
+    * Implemented automatic conversion of Sage Notebook .sws files to .sagews file.
+      Just click on a .sws file and if there is no corresponding .sagews file, then
+      it is generated then opened.  Look carefully at the result, since there are
+      many heuristics in the conversion script.  It handles typeset mode, default
+      modes, the DATA directory contents, etc.   It can't handle
+      <img src="foo.png"> (with foo.png in the DATA directory) yet.
+      In any case, this should be pretty useful in making it possible to use
+      older Sage Notebook worksheets in https://cloud.sagemath.com.
+
+    * Automatic conversion of Microsoft Word .docx files to .txt files when you click
+      on them.   There's a parser in Python to do this, so why not.
+
+    * Fixed a serious bug in synchronized document editing -- if you tried to edit
+      a file with "\r\n" for newlines (e.g., as produced often by Windows),
+      the synchronization would go into an infinite checksum error loop
+      and it would never work.  The \r's are now stripped on the server side
+      automatically before editing starts.
+
+    * CSS -- I changed how output is indicated in worksheets; now it is just a line
+      on the left.  Feedback appreciated.
+
+    * Project search -- exclude cell UUID's and make the search look for the complete string
+      in cases there are spaces in the input.
+
+    * Snapshots are now not made unless a file has actually changed since the last time there
+      was a snapshot.   Also, the changed files are now recorded in the database.  This will
+      soon (not right now) provide a way -- given a file -- to see a list of the snapshots
+      in which it changed, and also, given a snapshot, see which files changed in it.  
 
 
 
