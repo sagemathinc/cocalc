@@ -1756,7 +1756,7 @@ class ProjectPage
         # Restart worksheet server
         link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            link.find(".spinner").show()
+            link.find("i").addClass('icon-spin')
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
@@ -1779,7 +1779,7 @@ class ProjectPage
         # Restart local project server
         link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            link.find(".spinner").show()
+            link.find("i").addClass('icon-spin')
             alert_message
                 type    : "info"
                 message :"Restarting project server.  This should take around 15 seconds..."
@@ -1802,7 +1802,7 @@ class ProjectPage
                                 if err
                                     f()
                                 else
-                                    link.find(".spinner").hide()
+                                    link.find("i").removeClass('icon-spin')
                                     alert_message
                                         type    : "success"
                                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
