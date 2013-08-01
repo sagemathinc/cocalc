@@ -29,7 +29,7 @@ MESG_QUEUE_MAX_SIZE_MB  = 5
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24    # 1 day
+BLOB_TTL = 60*60*24    # 24 hours
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -2295,16 +2295,19 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         winston.debug("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
         # Store blob in DB.
-        f = () ->
-            save_blob
-                uuid  : opts.uuid
-                value : opts.blob
-                ttl   : BLOB_TTL
-                cb    : (err) =>
-                     if err
-                         winston.debug("handle_blob: error! -- #{err}")
-        # DEBUG -- simulate latency so we can ensure that this is properly handled in real life applications.                            
-        setTimeout(f, 1000)
+        save_blob
+            uuid  : opts.uuid
+            value : opts.blob
+            ttl   : BLOB_TTL
+            cb    : (err, ttl) =>
+                if err
+                    resp = message.save_blob(sha1:opts.uuid, error:err)
+                    winston.debug("handle_blob: error! -- #{err}")
+                else
+                    resp = message.save_blob(sha1:opts.uuid, ttl:ttl)
+
+                @local_hub_socket  (err,socket) ->
+                     socket.write_mesg('json', resp)
 
     # The unique standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>
@@ -4177,69 +4180,51 @@ exports.send_email = send_email = (opts={}) ->
 # Blobs
 ########################################
 
-_local_blobs = {}
+MAX_BLOB_SIZE = 5000000
+MAX_BLOB_SIZE_HUMAN = "5MB"
+
 save_blob = (opts) ->
     opts = defaults opts,
-        uuid  : undefined  # if not give, is generated; function always returns the uuid that was used
+        uuid  : undefined  # if not given, is generated; function always returns the uuid that was used
         #value : required   # NOTE: value *must* be a Buffer.
         value : undefined
-        cb    : required
-        ttl   : undefined  # object in blobstore will have *at least* this ttl; if there is already something,  in blobstore with longer ttl, we leave it.
+        cb    : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds; if there is already something,  in blobstore with longer ttl, we leave it; undefined = infinite ttl
 
     if not opts.value?
-        err = "BUG -- error in save_blob; received a save_blob request with undefined value"
+        err = "BUG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined value"
         winston.debug(err)
         opts.cb(err)
         return
 
-    if opts.value.length > 5000000
-        if not opts.ttl?
-            opts.cb("Permanent blobs must be at most 5MB, but you tried to store one of size #{Math.floor(opts.value.length/1000000)} MB")
-            return
-        if not opts.uuid?
-            opts.uuid = uuid.v4()
-        if opts.value.length > 15000000  # 15MB
-            # ensure time is *really short*, so we don't waste RAM
-            opts.ttl = 60
-        else
-            # ensure time is *really short*, so we don't waste RAM
-            opts.ttl = Math.min(600, opts.ttl)  # ensure time is <= 10 minutes in all cases.
+    if opts.value.length > MAX_BLOB_SIZE
+        opts.cb("blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.value.length/1000000}MB")
+        return
 
-        winston.debug("storing blob of size #{opts.value.length/1000000} MB locally in RAM with timeout #{opts.ttl} seconds.")
-        u = opts.uuid
-        _local_blobs[u] = opts.value
-
-        remove_from_store = () ->
-            winston.debug("Deleting temporary blob from local RAM")
-            delete _local_blobs[u]
-        setTimeout(remove_from_store, opts.ttl * 1000)
-
-        opts.cb(false)
-        return opts.uuid
-    else
-        # permanent blob or small blob with ttl
-        db = database.uuid_blob_store(name:"blobs")
-        db.get_ttl
-            uuid : opts.uuid
-            cb   : (err, ttl) ->
-                if err
-                    opts.cb(err)
-                else
-                    if ttl? and (ttl == 0 or ttl >= opts.ttl)
-                        # nothing to do
-                        opts.cb()
-                    else
-                        db.set(opts)
+    # Store the blob in the database, if it isn't there already.
+    db = database.uuid_blob_store(name:"blobs")
+    db.get_ttl
+        uuid : opts.uuid
+        cb   : (err, ttl) ->
+            if err
+                opts.cb(err); return
+            if ttl? and (ttl == 0 or ttl >= opts.ttl)
+                # nothing to store -- done.
+                opts.cb(false, ttl)
+            else
+                # store it in the database
+                ttl = opts.ttl
+                if not ttl?
+                    ttl = 0
+                f = opts.cb
+                opts.cb = (err) -> f(err, ttl)
+                db.set(opts)
 
 get_blob = (opts) ->
     opts = defaults opts,
         uuid : required
         cb   : required
-    x = _local_blobs[opts.uuid]
-    if x?
-        opts.cb(false, x)
-    else
-        database.uuid_blob_store(name:"blobs").get(opts)
+    database.uuid_blob_store(name:"blobs").get(opts)
 
 # For each element of the array blob_ids, remove its ttl.
 _make_blobs_permanent_cache = {}
@@ -4349,7 +4334,7 @@ class SageSession
                     uuid  : mesg.uuid
                     value : mesg.blob
                     ttl   : BLOB_TTL  # deleted after this long
-                    cb    : (err) ->
+                    cb    : (err, ttl) ->
                         if err
                             winston.debug("Error saving blob for Sage Session -- #{err}")
             else

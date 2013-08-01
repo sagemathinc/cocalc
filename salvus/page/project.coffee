@@ -1762,7 +1762,7 @@ class ProjectPage
                 command    : "sage_server stop; sage_server start"
                 timeout    : 10
                 cb         : (err, output) =>
-                    link.find(".spinner").hide()
+                    link.find("i").removeClass('icon-spin')
                     if err
                         alert_message
                             type    : "error"

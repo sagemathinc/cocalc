@@ -716,8 +716,8 @@ class CodeMirrorSession
                                     sha1 : sha1
                                     cb   : (resp) -> socket.write_mesg('json', resp)
 
-                                # DEBUG -- for testing purposes.
-                                handle_save_blob_message(message.save_blob(sha1:sha1,ttl:1000))
+                                ## DEBUG -- for testing purposes -- simulate the response message
+                                ## handle_save_blob_message(message.save_blob(sha1:sha1,ttl:1000))
 
 
                         when 'json'
@@ -1523,7 +1523,6 @@ handle_save_blob_message = (mesg) ->
         for x in v
             x[0](mesg)
         delete _save_blob_callbacks[mesg.sha1]
-
 
 ###############################################
 # Handle a message from the client

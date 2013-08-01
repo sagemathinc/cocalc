@@ -336,6 +336,13 @@ class Namespace(dict):
             for f in self._on_change[None]:
                 f(x,y)
 
+class TemporaryURL:
+    def __init__(self, url, ttl):
+        self.url = url
+        self.ttl = ttl
+    def __repr__(self):
+        return self.url
+
 namespace = Namespace({})
 
 class Salvus(object):
@@ -375,23 +382,27 @@ class Salvus(object):
 
     def file(self, filename, show=True, done=False, download=False, once=None):
         """
-        Sends a file to the browser and returns a uuid that can be
-        used to access the file (usually for 24 hours); the URL looks like this:
+        Display or provide a link to the given file.  Raises a RuntimeError if this
+        is not possible, e.g, if the file is too large.
 
-                /blobs/filename?uuid=the_uuid
+        If show=True (the default), the browser will show the file,
+        or provide a clickable link to it if there is no way to show it.
 
-        If show is true (the default), the browser will show the file
-        as well, or provide a link to it.
+        If show=False, this function returns an object T such that
+        T.url (or str(t)) is a string of the form "/blobs/filename?uuid=the_uuid"
+        that can be used to access the file even if the file is immediately
+        deleted after calling this function (the file is stored in a database).
+        Also, T.ttl is the time to live (in seconds) of the object.  A ttl of
+        0 means the object is permanently available.
 
-        If you instead use the URL
-
+        If you use the URL
                /blobs/filename?uuid=the_uuid&download
-
-        the server will include a header that tells the browser to
+        then the server will include a header that tells the browser to
         download the file to disk instead of displaying it.
 
-        If show=False, only returns the url (and sends JSON message with show:false).
-        This can be useful for constructing custom HTML that directly accesses blobs.
+        This function creates an output message {file:...}; if the user saves
+        a worksheet containing this message, then any referenced blobs are made
+        permanent in the database.
 
         The uuid is based on the Sha-1 hash of the file content (it is computed using the
         function sage_server.uuidsha1).  Any two files with the same content have the
@@ -401,17 +412,15 @@ class Salvus(object):
 
         mesg = None
         while mesg is None:
-            print "waiting for message..."
             self.message_queue.recv()
-            print "got message..."
             for i, (typ, m) in enumerate(self.message_queue.queue):
-                print "typ = ", typ
-                print "m = ", m
                 if typ == 'json' and m['event'] == 'save_blob' and m['sha1'] == file_uuid:
                     mesg = m
                     del self.message_queue[i]
                     break
-        print mesg
+
+        if 'error' in mesg:
+            raise RuntimeError("error saving blob -- " + mesg['error'])
 
         self._flush_stdio()
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
@@ -419,7 +428,7 @@ class Salvus(object):
             url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
             if download:
                 url += '?download'
-            return url
+            return TemporaryURL(url=url, ttl=mesg['ttl'])
 
     def default_mode(self, mode=None):
         """
