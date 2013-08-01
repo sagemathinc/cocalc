@@ -5,98 +5,29 @@ July 30 (Tuesday): 8am-12am -- 16 hours on cloud.sagemath (no skating)
 
 July 31 (Wed): students meetings; pick up tish; bs day, skating
 
-# immediate goals
-            - [ ] 2 hours -- fix Downloads/own.sws  bug.
-            - [ ] 2 hours -- more refinement of sws converter
-            - [ ] 2 hours -- basic ipynb converter.
-            - [ ] 1 hour -- worksheet showing on sync weirdness (?)
-            - [ ] 30 min -- upgrade codemirror 3.15
-            - [ ] 3 hours -- implement global chat / community tab
-            - [x] 1 hour (5 actual hours) -- shop for computers
-            - [ ] 1 hour -- more email
 
+--> - [ ] (1:30?) (2:32+) fix the salvus.file timing issues -- make sure to lock until hub confirms file saved to db:
 
-- [x] (2:00?) conversion of sws files, part 2: Deal with as many edge cases as I can think of:
-   - title
-   x - default mode
-   x - typeset mode
-   -> - %auto
-   -> - %hideall
-   -> - %hide
-   x- (0:45?) (0:37) DATA variable
-    - img src: I can't do this without a URL scheme, etc., which is a big project.
-         window.history.pushState("object or string", "Title", "/project/foo/sd22.sagews");
-         http://stackoverflow.com/questions/824349/modify-the-url-without-reloading-the-page/3354511#3354511
+            ( ) - in local hub, TODO: add something to "handle_save_blob_message"
+            ( ) - in global hub, upon saving a blob, send a message in the usual back to the local hub about what happened.
+            ( ) - improve python code to fully use this functionality
+            ( ) - improve file download code to use this functionality
 
+- [x] (0:30?) (0:04) ui - cleanup -- make the icon-refresh's in project settings spin themselves, instead of another icon.
 
---> - [ ] (1:00?) next release
-    -- apt-get install python-lxml
-    -- include fricas/aldor -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13ffceb2441ad76e
+- [ ] (1:00?) see misc project sws2sagews.py -- the DATA directory thing is a disaster still!
 
-
-Hi,
-
-I've updated https://cloud.sagemath.com.   The changes are:
-
-    * Added FriCAS (thanks to help from Bill Page and Ralf Hemmecke).
-      You can now type "fricas" in the terminal to run it.
-
-    * Implemented automatic conversion of Sage Notebook .sws files to .sagews file.
-      Just click on a .sws file and if there is no corresponding .sagews file, then
-      it is generated then opened.  Look carefully at the result, since there are
-      many heuristics in the conversion script.  It handles typeset mode, default
-      modes, the DATA directory contents, etc.   It can't handle
-      <img src="foo.png"> (with foo.png in the DATA directory) yet.
-      In any case, this should be pretty useful in making it possible to use
-      older Sage Notebook worksheets in https://cloud.sagemath.com.
-
-    * Automatic conversion of Microsoft Word .docx files to .txt files when you click
-      on them.   There's a parser in Python to do this, so why not.
-
-    * Fixed a serious bug in synchronized document editing -- if you tried to edit
-      a file with "\r\n" for newlines (e.g., as produced often by Windows),
-      the synchronization would go into an infinite checksum error loop
-      and it would never work.  The \r's are now stripped on the server side
-      automatically before editing starts.
-
-    * CSS -- I changed how output is indicated in worksheets; now it is just a line
-      on the left.  Feedback appreciated.
-
-    * Project search -- exclude cell UUID's and make the search look for the complete string
-      in cases there are spaces in the input.
-
-    * Snapshots are now not made unless a file has actually changed since the last time there
-      was a snapshot.   Also, the changed files are now recorded in the database.  This will
-      soon (not right now) provide a way -- given a file -- to see a list of the snapshots
-      in which it changed, and also, given a snapshot, see which files changed in it.
-
-    * Wrote script to monitor the database server every few seconds and restart it if it
-      crashes.  These crashes were responsible for some downtime recently.
-      The crashes should likely go away when I upgrade Cassandra, but having this monitor
-      will at least minimize downtime. 
-
-
+- [ ] (1:00?) delete all output -- see https://mail.google.com/mail/ca/u/0/#inbox/140371ee97f8e5e5
 
 ---
+- [ ] (0:30?) upgrade to codemirror 3.15: https://mail.google.com/mail/u/0/?shva=1#inbox/14029b596102b364
 
-- [ ] (5:00?) url schema.
+- [ ] (1:00?) syncdocs sometimes freeze -- maybe need a try/catch I don't know.
 
 
-- [ ] (3:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
-
+- [ ] (6:00?) community tab: a system-wide chatroom that all connected users can use to chat (math enabled)
 
 - [ ] (1:00?) snap: make snap lock more robust; IDEA -- if there is a lock of a certain age (?), check if that user is running any bups; if not, delete lock ?
-- [ ] (1:00?) snap servers and database flakiness
-        [for hours getting this, even though it was STUPID]
-        debug: Not all active projects snapshotted:  HelenusNoAvailableNodesException: Could Not Connect To Any Nodes
-        [then I killed that snap.js process and suddenly (because of forever)]
-        debug: TCP server--      host:'127.0.0.1', port:37452
-        debug: removing all fuse mounts...
-        debug: deleting temporary directory...
-        debug: execute_code: "rm -rf /mnt/snap/snap0/tmp"
-        debug: Spawn the command rm with given args -rf,/mnt/snap/snap0/tmp
-
-
 
 - [ ] (1:00?) crontabs: https://mail.google.com/mail/u/0/?shva=1#inbox/14010044719e83b3
 
@@ -110,12 +41,7 @@ I've updated https://cloud.sagemath.com.   The changes are:
 
 - [ ] (1:00?) hub:  for each Project/LocalHub class in global hub, check every 30 minutes to ensure that it is actively being modified.  If not, collect it.  This is critical, since we absolutely can't have a Project/LocalHub class sitting around in some hub when we move that project to storage.  Also, it avoids memory leaks.
 
-
----
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat (just a link for now)
-
-
-- [ ] (0:30?) upgrade to codemirror 3.15: https://mail.google.com/mail/u/0/?shva=1#inbox/14029b596102b364
 
 - [ ] (1:30?) write code in hub that ensures local hubs are always pre-started up for projects that have been accessed in the last week (again, a ttl'd new db schema field would do this).
 
@@ -134,24 +60,6 @@ I've updated https://cloud.sagemath.com.   The changes are:
   - page: design&implement the dialog where the user composes the message to friend
   - hub?: need to make it so 'https://cloud.sagemath.com/signup' immediately displays the "create an account" page.
   - hub: need to add a db table of "signup triggers", e.g., actions that happen when a particular email address is signed up, e.g., getting added to a project, banned, etc. -- should work with `email+*@'s`
-
-
-- [ ] (1:00?) (0:07) WAIT on this; see what happens with more swap; make cassandra get auto-restarted when it runs out of memory.
-
-        Cassandra keeps running out of memory and crashes... and doesn't get restarted, which totally kills everything.
-        Having swap will help a lot, probably, Auto-restarting cassandra would help anyways (forever).
-        ERROR [Thread-5] 2013-07-28 22:46:03,795 CassandraDaemon.java (line 174) Exception in thread Thread[Thread-5,5,main]
-        java.lang.OutOfMemoryError: unable to create new native thread
-                at java.lang.Thread.start0(Native Method)
-                at java.lang.Thread.start(Thread.java:640)
-                at java.util.concurrent.ThreadPoolExecutor.addThread(ThreadPoolExecutor.java:681)
-                at java.util.concurrent.ThreadPoolExecutor.addIfUnderMaximumPoolSize(ThreadPoolExecutor.java:727)
-                at java.util.concurrent.ThreadPoolExecutor.execute(ThreadPoolExecutor.java:655)
-                at org.apache.cassandra.thrift.CustomTThreadPoolServer.serve(CustomTThreadPoolServer.java:113)
-                at org.apache.cassandra.thrift.ThriftServer$ThriftServerThread.run(ThriftServer.java:111)
-
-
----
 
 - [ ] (1:30?) security issue -- should probably remove `/home/salvus/.ssh/id_rsa` from compute salvus on boot... since this grants access to other machines.  On the other hand, be careful since this is needed for making new projects the way I do now.
 
@@ -534,3 +442,97 @@ No, just a few weren't fixed:
     - NOTE 1: there are ^M's in the file, i.e., DOS line endings (caused by github).  Maybe that is the problem.
     - Removing them does fix the problem.
     - try making a worksheet with trivial use of them.
+
+# immediate goals
+            - [ ] 2 hours -- fix Downloads/own.sws  bug.
+            - [ ] 2 hours -- more refinement of sws converter
+            - [ ] 2 hours -- basic ipynb converter.
+            - [ ] 1 hour -- worksheet showing on sync weirdness (?)
+            - [ ] 30 min -- upgrade codemirror 3.15
+            - [ ] 3 hours -- implement global chat / community tab
+            - [x] 1 hour (5 actual hours) -- shop for computers
+            - [ ] 1 hour -- more email
+
+
+- [x] (2:00?) conversion of sws files, part 2: Deal with as many edge cases as I can think of:
+   - title
+   x - default mode
+   x - typeset mode
+   -> - %auto
+   -> - %hideall
+   -> - %hide
+   x- (0:45?) (0:37) DATA variable
+    - img src: I can't do this without a URL scheme, etc., which is a big project.
+         window.history.pushState("object or string", "Title", "/project/foo/sd22.sagews");
+         http://stackoverflow.com/questions/824349/modify-the-url-without-reloading-the-page/3354511#3354511
+
+
+--> - [ ] (1:00?) next release
+    -- apt-get install python-lxml
+    -- include fricas/aldor -- see https://mail.google.com/mail/u/0/?shva=1#inbox/13ffceb2441ad76e
+
+
+Hi,
+
+I've updated https://cloud.sagemath.com.   The changes are:
+
+    * Added FriCAS (thanks to help from Bill Page and Ralf Hemmecke).
+      You can now type "fricas" in the terminal to run it.
+
+    * Implemented automatic conversion of Sage Notebook .sws files to .sagews file.
+      Just click on a .sws file and if there is no corresponding .sagews file, then
+      it is generated then opened.  Look carefully at the result, since there are
+      many heuristics in the conversion script.  It handles typeset mode, default
+      modes, the DATA directory contents, etc.   It can't handle
+      <img src="foo.png"> (with foo.png in the DATA directory) yet.
+      In any case, this should be pretty useful in making it possible to use
+      older Sage Notebook worksheets in https://cloud.sagemath.com.
+      You can run this conversion yourself on a file by typing "sws2sagews.py filename.sws".
+
+    * Automatic conversion of Microsoft Word .docx files to .txt files when you click
+      on them.   It's not Google Docs, but it might be somewhat useful.
+      You can use this converter on the command line by typing "docx2txt.py filename.docx".
+
+    * Fixed a serious bug in synchronized document editing -- if you tried to edit
+      a file with "\r\n" for newlines (e.g., as produced often by Windows),
+      the synchronization would go into an infinite checksum error loop
+      and it would never work.  The \r's are now stripped on the server side
+      automatically before editing starts.
+
+    * CSS -- I changed how output is indicated in worksheets; now it is just a line
+      on the left.  Feedback appreciated.
+
+    * Project search -- exclude cell UUID's and make the search look for the complete string
+      in cases there are spaces in the input.
+
+    * Snapshots are now not made unless a file has actually changed since the last time there
+      was a snapshot.   Also, the changed files are now recorded in the database.  This will
+      soon (not right now) provide a way -- given a file -- to see a list of the snapshots
+      in which it changed, and also, given a snapshot, see which files changed in it.
+
+    * Wrote script to monitor the database server every few seconds and restart it if it
+      crashes.  These crashes were responsible for some downtime recently.
+      The crashes should likely go away when I upgrade Cassandra, but having this monitor
+      will at least minimize downtime.
+
+
+    * I also spent quite a while today planning to buy more hardware for the cluster.
+
+ William
+
+
+
+---
+- [x] (1:00?) (0:07) WAIT on this; see what happens with more swap; make cassandra get auto-restarted when it runs out of memory.
+
+        Cassandra keeps running out of memory and crashes... and doesn't get restarted, which totally kills everything.
+        Having swap will help a lot, probably, Auto-restarting cassandra would help anyways (forever).
+        ERROR [Thread-5] 2013-07-28 22:46:03,795 CassandraDaemon.java (line 174) Exception in thread Thread[Thread-5,5,main]
+        java.lang.OutOfMemoryError: unable to create new native thread
+                at java.lang.Thread.start0(Native Method)
+                at java.lang.Thread.start(Thread.java:640)
+                at java.util.concurrent.ThreadPoolExecutor.addThread(ThreadPoolExecutor.java:681)
+                at java.util.concurrent.ThreadPoolExecutor.addIfUnderMaximumPoolSize(ThreadPoolExecutor.java:727)
+                at java.util.concurrent.ThreadPoolExecutor.execute(ThreadPoolExecutor.java:655)
+                at org.apache.cassandra.thrift.CustomTThreadPoolServer.serve(CustomTThreadPoolServer.java:113)
+                at org.apache.cassandra.thrift.ThriftServer$ThriftServerThread.run(ThriftServer.java:111)
