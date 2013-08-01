@@ -173,7 +173,7 @@ def sws_to_sagews(filename):
 
     data_files, data_path = write_data_files(t)
     if data_files:
-        out += MARKERS['cell'] + uuid() + 'ai' + MARKERS['cell'] + u'\n%hide\n%auto\nDATA="%s/"\n'%data_path
+        out += MARKERS['cell'] + uuid() + 'ai' + MARKERS['cell'] + u'\n%%hide\n%%auto\nDATA="%s/"\n'%data_path
 
     meta = cPickle.loads(t.extractfile('sage_worksheet/worksheet_conf.pickle').read())
 
