@@ -398,6 +398,21 @@ class Salvus(object):
         same Sha1 hash.
         """
         file_uuid = self._conn.send_file(filename)
+
+        mesg = None
+        while mesg is None:
+            print "waiting for message..."
+            self.message_queue.recv()
+            print "got message..."
+            for i, (typ, m) in enumerate(self.message_queue.queue):
+                print "typ = ", typ
+                print "m = ", m
+                if typ == 'json' and m['event'] == 'save_blob' and m['sha1'] == file_uuid:
+                    mesg = m
+                    del self.message_queue[i]
+                    break
+        print mesg
+
         self._flush_stdio()
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
         if not show:
@@ -879,13 +894,19 @@ def drop_privileges(id, home, transient, username):
     sage.misc.misc.DOT_SAGE = home + '/.sage/'
 
 
-class MessageQueue:
+class MessageQueue(list):
     def __init__(self, conn):
         self.queue = []
         self.conn  = conn
 
     def __repr__(self):
         return "Sage Server Message Queue"
+
+    def __getitem__(self, i):
+        return self.queue[i]
+
+    def __delitem__(self, i):
+        del self.queue[i]
 
     def next_mesg(self):
         """
@@ -906,6 +927,7 @@ class MessageQueue:
         mesg = self.conn.recv()
         self.queue.insert(0,mesg)
         return mesg
+
 
 
 def session(conn):

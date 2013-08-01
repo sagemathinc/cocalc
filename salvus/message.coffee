@@ -1086,3 +1086,19 @@ message
     stats     : undefined    # gets filled in by the hub
 
 
+    
+#############################################
+#
+# Message sent in response to attempt to save a blob
+# to the database.
+#
+# hub --> local_hub --> sage_server
+#
+#############################################
+message
+    event     : 'save_blob'
+    id        : undefined
+    sha1      : required     # the sha-1 hash of the blob that we just processed
+    ttl       : undefined    # ttl in seconds of the blob if saved; 0=infinite
+    error     : undefined    # if not saving, a message explaining why.
+

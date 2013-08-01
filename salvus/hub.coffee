@@ -2295,13 +2295,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
         winston.debug("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
         # Store blob in DB.
-        save_blob
-            uuid  : opts.uuid
-            value : opts.blob
-            ttl   : BLOB_TTL
-            cb    : (err) =>
-                 if err
-                     winston.debug("handle_blob: error! -- #{err}")
+        f = () ->
+            save_blob
+                uuid  : opts.uuid
+                value : opts.blob
+                ttl   : BLOB_TTL
+                cb    : (err) =>
+                     if err
+                         winston.debug("handle_blob: error! -- #{err}")
+        # DEBUG -- simulate latency so we can ensure that this is properly handled in real life applications.                            
+        setTimeout(f, 1000)
 
     # The unique standing authenticated control socket to the remote local_hub daemon.
     local_hub_socket: (cb) =>

@@ -698,9 +698,28 @@ class CodeMirrorSession
                     #winston.debug("sage session: received message #{type}, #{misc.to_json(mesg)}")
                     switch type
                         when 'blob'
-                            winston.debug("codemirror session: got blob from sage session; forwarding to all connected hubs.")
-                            for id, ds_client of @diffsync_clients
+                            sha1 = mesg.uuid
+                            if @diffsync_clients.length == 0
+                                error = 'no global hubs are connected to the local hub, so nowhere to send file'
+                                winston.debug("codemirror session: got blob from sage session -- #{error}")
+                                resp =  message.save_blob
+                                    error  : error
+                                    sha1   : sha1
+                                socket.write_mesg('json', resp)
+                            else
+                                winston.debug("codemirror session: got blob from sage session -- forwarding to a random hub")
+                                hub = misc.random_choice_from_obj(@diffsync_clients)
+                                id = hub[0]; ds_client = hub[1]
                                 ds_client.remote.socket.write_mesg('blob', mesg)
+
+                                receive_save_blob_message
+                                    sha1 : sha1
+                                    cb   : (resp) -> socket.write_mesg('json', resp)
+
+                                # DEBUG -- for testing purposes.
+                                handle_save_blob_message(message.save_blob(sha1:sha1,ttl:1000))
+
+
                         when 'json'
                             c = @_sage_output_cb[mesg.id]
                             if c?
@@ -1459,6 +1478,52 @@ project_exec = (socket, mesg) ->
                     stderr    : out.stderr
                     exit_code : out.exit_code
 
+_save_blob_callbacks = {}
+receive_save_blob_message = (opts) ->
+    opts = defaults opts,
+        sha1    : required
+        cb      : required
+        timeout : 30  # maximum time in seconds to wait for response message
+
+    sha1 = opts.sha1
+    id = misc.uuid()
+    if not _save_blob_callbacks[sha1]?
+        _save_blob_callbacks[sha1] = [[opts.cb, id]]
+    else
+        _save_blob_callbacks[sha1].push([opts.cb, id])
+
+    # Timeout functionality -- send a response after opts.timeout seconds,
+    # in case no hub responded.
+    f = () ->
+        v = _save_blob_callbacks[sha1]
+        if v?
+            mesg = message.save_blob
+                sha1  : sha1
+                error : 'timed out after local hub waited for #{opts.timeout} seconds'
+
+            w = []
+            for x in v   # this is O(n) instead of O(1), but who cares since n is usually 1.
+                if x[1] == id
+                    x[0](mesg)
+                else
+                    w.push(x)
+
+            if w.length == 0
+                delete _save_blob_callbacks[sha1]
+            else
+                _save_blob_callbacks[sha1] = w
+
+    if opts.timeout
+        setTimeout(f, opts.timeout*1000)
+
+
+handle_save_blob_message = (mesg) ->
+    v = _save_blob_callbacks[mesg.sha1]
+    if v?
+        for x in v
+            x[0](mesg)
+        delete _save_blob_callbacks[mesg.sha1]
+
 
 ###############################################
 # Handle a message from the client
@@ -1495,6 +1560,8 @@ handle_mesg = (socket, mesg, handler) ->
                     socket.write_mesg('json', message.signal_sent(id:mesg.id))
             when 'terminate_session'
                 terminate_session(socket, mesg)
+            when 'save_blob'
+                handle_save_blob_message(mesg)
             else
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")

@@ -13,6 +13,12 @@ exports.merge = (dest, objs ...) ->
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
 
+# Given an object map {foo:bar, ...} returns an array [foo, bar] randomly
+# chosen from the object map.
+exports.random_choice_from_obj = (obj) ->
+    k = exports.random_choice(exports.keys(obj))
+    return [k, obj[k]]
+
 # Returns a random integer in the range, inclusive (like in Python)
 exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
 
