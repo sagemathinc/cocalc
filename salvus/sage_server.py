@@ -72,7 +72,7 @@ def uuidsha1(data):
 # A tcp connection with support for sending various types of messages, especially JSON.
 class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(conn, ConnectionJSON)
+        assert not isinstance(conn, ConnectionJSON)  # avoid common mistake -- conn is supposed to be from socket.socket...
         self._conn = conn
 
     def close(self):
@@ -355,12 +355,13 @@ class Salvus(object):
     def __repr__(self):
         return ''
 
-    def __init__(self, conn, id, data=None):
+    def __init__(self, conn, id, data=None, message_queue=None):
         self._conn = conn
         self._id   = id
         self._done = True    # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
         self.data = data
         self.namespace = namespace
+        self.message_queue = message_queue
         namespace['salvus'] = self   # beware of circular ref?
         # Monkey patch in our "require" command.
         namespace['require'] = self.require
@@ -375,7 +376,7 @@ class Salvus(object):
     def file(self, filename, show=True, done=False, download=False, once=None):
         """
         Sends a file to the browser and returns a uuid that can be
-        used to access the file (for 10 minutes) at
+        used to access the file (usually for 24 hours); the URL looks like this:
 
                 /blobs/filename?uuid=the_uuid
 
@@ -391,6 +392,10 @@ class Salvus(object):
 
         If show=False, only returns the url (and sends JSON message with show:false).
         This can be useful for constructing custom HTML that directly accesses blobs.
+
+        The uuid is based on the Sha-1 hash of the file content (it is computed using the
+        function sage_server.uuidsha1).  Any two files with the same content have the
+        same Sha1 hash.
         """
         file_uuid = self._conn.send_file(filename)
         self._flush_stdio()
@@ -813,9 +818,9 @@ class Salvus(object):
         sage_salvus.typeset_mode(on)
 
 
-def execute(conn, id, code, data, preparse):
+def execute(conn, id, code, data, preparse, message_queue):
 
-    salvus = Salvus(conn=conn, id=id, data=data)
+    salvus = Salvus(conn=conn, id=id, data=data, message_queue=message_queue)
     salvus.start_executing()
 
     try:
@@ -873,6 +878,36 @@ def drop_privileges(id, home, transient, username):
     import sage.misc.misc
     sage.misc.misc.DOT_SAGE = home + '/.sage/'
 
+
+class MessageQueue:
+    def __init__(self, conn):
+        self.queue = []
+        self.conn  = conn
+
+    def __repr__(self):
+        return "Sage Server Message Queue"
+
+    def next_mesg(self):
+        """
+        Remove oldest message from the queue and return it.
+        If the queue is empty, wait for a message to arrive
+        and return it (does not place it in the queue).
+        """
+        if self.queue:
+            return self.queue.pop()
+        else:
+            return self.conn.recv()
+
+    def recv(self):
+        """
+        Wait until one message is received and enqueue it.
+        Also returns the mesg.
+        """
+        mesg = self.conn.recv()
+        self.queue.insert(0,mesg)
+        return mesg
+
+
 def session(conn):
     """
     This is run by the child process that is forked off on each new
@@ -883,6 +918,8 @@ def session(conn):
 
     - ``conn`` -- the TCP connection
     """
+    mq = MessageQueue(conn)
+
     pid = os.getpid()
 
     # seed the random number generator(s)
@@ -896,14 +933,15 @@ def session(conn):
     cnt = 0
     while True:
         try:
-            typ, mesg = conn.recv()
+            typ, mesg = mq.next_mesg()
+
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
             event = mesg['event']
             if event == 'terminate_session':
                 return
             elif event == 'execute_code':
                 try:
-                    execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
+                    execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'], message_queue=mq)
                 except:
                     pass
             elif event == 'introspect':
