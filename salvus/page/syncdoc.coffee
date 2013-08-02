@@ -187,10 +187,15 @@ class SynchronizedDocument extends EventEmitter
                 bootbox.alert "<h3>Unable to open '#{@filename}'</h3>", () =>
                     @editor.editor.close(@filename)
             else
-                @codemirror.setOption('readOnly', false)
                 @ui_synced(false)
                 @editor.init_autosave()
-                @sync()  # do a first sync asap.
+                first_sync = () =>
+                    @sync (err) =>
+                        if err
+                            setTimeout(first_sync, 1000)
+                        else
+                            @codemirror.setOption('readOnly', false)
+                first_sync()
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     #console.log("change #{misc.to_json(changeObj)}")
