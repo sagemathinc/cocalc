@@ -244,8 +244,6 @@
                                         <span class="lighten">Can view and <b>modify</b> this project</span>
                                     </div>
                                     <div class="span8">
-
-
                                         <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
                                         <input class="project-add-collaborator-input search-query" type="search" placeholder="Search for people">
                                         <select multiple="multiple" class="project-add-collaborator-select hide"> </select>
@@ -258,6 +256,11 @@
                                     </div>
                                 </div>
                                 <div class="row">
+                                    <div class="project-collaborators-loading hide row-fluid">
+                                        <div class="span8 offset4">
+                                            Loading collaborators... <i class="icon-spinner icon-spin"> </i>
+                                        </div>
+                                    </div>
                                     <div class="project-collaborators lighten">
                                     </div>
                                 </div>
@@ -291,7 +294,7 @@
                                 <br>
                                 <div class="row-fluid">
                                     <div class="span8">
-                                        Restart this project server.  This will completely kill all terminal and worksheet sessions, and may help in case things are mysteriously not working. 
+                                        Restart this project server.  This will completely kill all terminal and worksheet sessions, and may help in case things are mysteriously not working.
                                     </div>
                                     <div class="span4">
                                         <a href="#restart-project" class="btn btn-warning"

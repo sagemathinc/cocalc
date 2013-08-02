@@ -1641,6 +1641,8 @@ class ProjectPage
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
+        collabs_loading = @container.find(".project-collaborators-loading")
+
         add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
 
         @container.find("a[href=#invite-friend]").click () =>
@@ -1667,9 +1669,11 @@ class ProjectPage
 
         already_collab = {}
         update_collaborators = () =>
+            collabs_loading.show()
             salvus_client.project_users
                 project_id : @project.project_id
                 cb : (err, users) =>
+                    collabs_loading.hide()
                     if not err
                         collabs.empty()
                         already_collab = {}
