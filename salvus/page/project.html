@@ -75,7 +75,7 @@
                 <li class="super-menu project-pages-button"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> New</a></li>
 
                 <!-- Project activities  -->
-                <li class="super-menu project-pages-button"><a data-target="project-chat" data-toggle="tooltip" data-placement="right" title="What happening with this project?"><i class="project-control-icon icon-user"> </i></a></li>
+                <li class="super-menu project-pages-button"><a data-target="project-activity" data-toggle="tooltip" data-placement="right" title="What happening with this project"><i class="project-control-icon icon-user"> </i></a></li>
 
                 <!-- Project settings -->
                 <li class="super-menu project-pages-button "><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> <span class="not-big">Settings</span></a></li>
@@ -215,12 +215,32 @@
                 </div>
             </div>
 
+            <!-- Page to see project activity log -->
+            <div class="project-activity hide">  <!-- hidden by default -->
+                <h1 class="big-only" style="margin-left:1em;">Project Activity</h1>
+
+                <div class="row">
+                    <div class="well" style="margin-left:3em; margin-right:3em;">
+                        <div class="row-fluid">
+                            <textarea placeholder="What's going on with this project?" class="span7 well project-activity-well project-activity-chat"></textarea>
+                            <div class="span4 pull-right well  project-activity-well project-activity-current-users">
+                            </div>
+                        </div>
+                        <div class="row-fluid">
+                            <div class="span12 well  project-activity-well project-activity-log">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
                 <h1 class="big-only" style="margin-left:1em;">Project Settings and Controls</h1>
                 <div class="row">
-
-                    <div class="well" style="margin-left:3em;">
+                    <div class="well" style="margin-left:3em; margin-right:3em;">
                         <div class="row-fluid">
                             <div class="span6 well project-heading-well">
                                 <!-- Title of the project (editable) -->
@@ -376,7 +396,7 @@
                 <h1  class="big-only" style="margin-left:1em;">Search Current Directory</h1>
                 <div class="project-search-spinner hide">
                 </div>
-                <div class="row well"  style="margin-left:3em;">
+                <div class="row well"  style="margin-left:3em; margin-right:3em;">
                     <div class="span8">
 
                         <input class="project-search-form-input search-query" type="search" placeholder="Search files in the current directory...">

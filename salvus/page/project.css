@@ -6,6 +6,16 @@
     top: 40px;
 }
 
+
+.project-activity-well {
+    background-color:white;
+}
+
+.project-activity-log {
+    overflow-y:auto;
+    height:
+}
+
 .project-disk_usage {
     background-color:white;
 }
@@ -13,6 +23,7 @@
 .project-settings-well {
     background-color:white;
 }
+
 
 .project-add-collaborator-input {
     width: 95%;
