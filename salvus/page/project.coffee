@@ -1766,11 +1766,11 @@ class ProjectPage
                     if err
                         alert_message
                             type    : "error"
-                            message : "Error trying to restart worksheet server.  Try restarting the project instead."
+                            message : "Error trying to restart worksheet server.  Try restarting the project server instead."
                     else
                         alert_message
                             type    : "info"
-                            message : "Worksheet server restarted.  Newly (re-)started worksheets will fork off from the newly started Sage session."
+                            message : "Worksheet server restarted.  Restarted worksheets will use a new Sage session."
                             timeout : 4
             return false
 

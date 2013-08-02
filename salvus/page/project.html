@@ -276,17 +276,31 @@
                         <div class="row-fluid">
                             <div class="span6 well project-settings-well">
                                 <h4>Restart...</h4>
-                                <!-- Restart the Sage worksheet server  -->
-                                <a href="#restart-worksheet-server" class="btn btn-warning"
-                                    data-toggle="tooltip" data-placement="top" title="Restart your Sage Worksheet server.   You'll need to do this if you modify your own custom $HOME/bin/sage.  Newly (re-)started worksheets will use the updated version of Sage.">
-                                    <i class="icon-refresh"> </i> Worksheet Server
-                                </a>
 
-                                <!-- Restart the local hub  -->
-                                <a href="#restart-project" class="btn btn-warning"
-                                    data-toggle="tooltip" data-placement="right" title="Restart this project server (this will kill all worksheet and console sessions).">
-                                    <i class="icon-refresh"> </i> Project Server
-                                </a>
+                                <div class="row-fluid">
+                                    <div class="span8">
+                                        Restart this Sage Worksheet server.  Existing worksheet sessions are unaffected; do this if you customize $HOME/bin/sage, so that restarted worksheets will use the new version of Sage.
+                                    </div>
+                                    <div class="span4">
+                                        <a href="#restart-worksheet-server" class="btn btn-warning"
+                                           data-toggle="tooltip" data-placement="top" title="Restart your Sage Worksheet server.">
+                                            <i class="icon-refresh"> </i> Worksheet Server
+                                        </a>
+                                    </div>
+                                </div>
+                                <br>
+                                <div class="row-fluid">
+                                    <div class="span8">
+                                        Restart this project server.  This will completely kill all terminal and worksheet sessions, and may help in case things are mysteriously not working. 
+                                    </div>
+                                    <div class="span4">
+                                        <a href="#restart-project" class="btn btn-warning"
+                                           data-toggle="tooltip" data-placement="right" title="Restart this project server">
+                                            <i class="icon-refresh"> </i> Project Server
+                                        </a>
+                                    </div>
+                                </div>
+
                             </div>
                             <div class="span6 well project-settings-well">
                                 <h4>Danger!</h4>
@@ -303,6 +317,7 @@
                                         </a>
                                     </div>
                                 </div>
+                                <br>
                                 <div class="row-fluid project-settings-make-private hide" style="margin-top:1ex">
                                     <div class="span8">
                                         Make it so you choose who can see and modify contents of this project
