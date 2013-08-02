@@ -1,3 +1,5 @@
+// CodeMirror version 3.15
+//
 // CodeMirror is the only global var we claim
 window.CodeMirror = (function() {
   "use strict";
@@ -1014,7 +1016,7 @@ window.CodeMirror = (function() {
 
   function measureLineInner(cm, line) {
     var display = cm.display, measure = emptyArray(line.text.length);
-    var pre = lineContent(cm, line, measure);
+    var pre = lineContent(cm, line, measure, true);
 
     // IE does not cache element positions of inline elements between
     // calls to getBoundingClientRect. This makes the loop below,
@@ -1107,7 +1109,7 @@ window.CodeMirror = (function() {
     var cached = !hasBadSpan && findCachedMeasurement(cm, line);
     if (cached) return measureChar(cm, line, line.text.length, cached.measure, "right").right;
 
-    var pre = lineContent(cm, line);
+    var pre = lineContent(cm, line, null, true);
     var end = pre.appendChild(zeroWidthElement(cm.display.measure));
     removeChildrenAndAdd(cm.display.measure, pre);
     return getRect(end).right - getRect(cm.display.lineDiv).left;
@@ -3130,7 +3132,7 @@ window.CodeMirror = (function() {
       if (width != null) this.display.wrapper.style.width = interpret(width);
       if (height != null) this.display.wrapper.style.height = interpret(height);
       if (this.options.lineWrapping)
-        cm.display.measureLineCache.length = cm.display.measureLineCachePos = 0;
+        this.display.measureLineCache.length = this.display.measureLineCachePos = 0;
       this.curOp.forceUpdate = true;
     }),
 
@@ -3358,6 +3360,7 @@ window.CodeMirror = (function() {
   CodeMirror.innerMode = function(mode, state) {
     while (mode.innerMode) {
       var info = mode.innerMode(state);
+      if (!info || info.mode == mode) break;
       state = info.state;
       mode = info.mode;
     }
@@ -3736,7 +3739,7 @@ window.CodeMirror = (function() {
         break;
       }
       runInOp(cm, function() {
-        cm.curOp.selectionChanged = cm.curOp.forceUpdate = true;
+        cm.curOp.selectionChanged = cm.curOp.forceUpdate = cm.curOp.updateMaxLine = true;
       });
     }
   };
@@ -4256,13 +4259,14 @@ window.CodeMirror = (function() {
       (styleToClassCache[style] = "cm-" + style.replace(/ +/g, " cm-"));
   }
 
-  function lineContent(cm, realLine, measure) {
+  function lineContent(cm, realLine, measure, copyWidgets) {
     var merged, line = realLine, empty = true;
     while (merged = collapsedSpanAtStart(line))
       line = getLine(cm.doc, merged.find().from.line);
 
-    var builder = {pre: elt("pre"), col: 0, pos: 0, display: !measure,
-                   measure: null, measuredSomething: false, cm: cm};
+    var builder = {pre: elt("pre"), col: 0, pos: 0,
+                   measure: null, measuredSomething: false, cm: cm,
+                   copyWidgets: copyWidgets};
     if (line.textClass) builder.pre.className = line.textClass;
 
     do {
@@ -4386,7 +4390,7 @@ window.CodeMirror = (function() {
   function buildCollapsedSpan(builder, size, marker, ignoreWidget) {
     var widget = !ignoreWidget && marker.replacedWith;
     if (widget) {
-      if (!builder.display) widget = widget.cloneNode(true);
+      if (builder.copyWidgets) widget = widget.cloneNode(true);
       builder.pre.appendChild(widget);
       if (builder.measure) {
         if (size) {
@@ -5789,7 +5793,7 @@ window.CodeMirror = (function() {
 
   // THE END
 
-  CodeMirror.version = "3.14.1";
+  CodeMirror.version = "3.15.0";
 
   return CodeMirror;
 })();
