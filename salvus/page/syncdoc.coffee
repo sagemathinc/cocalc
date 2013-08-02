@@ -703,6 +703,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         buttons.find("a[href=#toggle-output]").click () =>
             @action(execute:false, toggle_output:true)
             return false
+        buttons.find("a[href=#delete-output]").click () =>
+            @action(execute:false, delete_output:true)
+            return false
         buttons.find("a[href=#interrupt]").click () =>
             @interrupt()
             return false
@@ -1213,6 +1216,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             execute : false # if false, do whatever else we would do, but don't actually execute code.
             toggle_input  : false  # if true; toggle whether input is displayed; ranges all toggle same as first
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
+            delete_output : false  # if true; delete all the the output in the range
             cm      : @codemirror
 
         if opts.pos?
@@ -1254,6 +1258,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @move_cursor_to_next_cell()
                 @action(opts)
             else
+                @sync_soon()
+            return
+
+        if opts.delete_output
+            n = @find_output_line(pos.line)
+            if n?
+                opts.cm.removeLine(n)
                 @sync_soon()
             return
 
