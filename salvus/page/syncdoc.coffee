@@ -167,6 +167,76 @@ class DiffSyncHub
 
 {EventEmitter} = require('events')
 
+class AbstractSynchronizedDocument extends EventEmitter
+    constructor: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            filename   : required
+            cb         : undefined   # cb(err) once doc is connected to.
+        @project_id = opts.project_id
+        @filename   = opts.filename
+        @connect(opts.cb)
+
+    connect: (cb) =>
+        salvus_client.call
+            timeout : 30     # a reasonable amount of time, since file could be *large*
+            message : message.codemirror_get_session
+                path         : @filename
+                project_id   : @project_id
+            cb      : (err, resp) =>
+                if resp.event == 'error'
+                    err = resp.error
+                if err
+                    cb(err); return
+                @session_uuid = resp.session_uuid
+                @chat = resp.chat
+                @dsync_client = new diffsync.DiffSync(doc:resp.content)
+                @dsync_server = new DiffSyncHub(@)
+                @dsync_client.connect(@dsync_server)
+                @dsync_server.connect(@dsync_client)
+                cb()
+
+    live: () => @dsync_client?.live
+
+    _add_listeners: () =>
+        salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
+        salvus_client.on 'codemirror_bcast', @_receive_broadcast
+
+    _remove_listeners: () =>
+        salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
+        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
+
+    _diffsync_ready: (mesg) =>
+        if mesg.session_uuid == @session_uuid
+            @sync_soon()
+
+    _receive_broadcast: (mesg) =>
+        if mesg.session_uuid != @session_uuid
+            return
+
+    call: (opts) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : 45
+            cb          : undefined
+        opts.message.session_uuid = @session_uuid
+        salvus_client.call
+            message : opts.message
+            timeout : opts.timeout
+            cb      : (err, result) =>
+                if result? and result.event == 'reconnect'
+                    do_reconnect = () =>
+                        @connect (err) =>
+                            if err
+                                opts.cb?(err)
+                            else
+                                opts.cb?('reconnect')  # still an error condition
+                    setTimeout(do_reconnect, 1000)  # give server some room
+                else
+                    opts.cb?(err, result)
+
+exports.AbstractSynchronizedDocument = AbstractSynchronizedDocument
+
 class SynchronizedDocument extends EventEmitter
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,
@@ -184,7 +254,7 @@ class SynchronizedDocument extends EventEmitter
 
         @connect (err, resp) =>
             if err
-                bootbox.alert "<h3>Unable to open '#{@filename}'</h3>", () =>
+                bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - #{err}", () =>
                     @editor.editor.close(@filename)
             else
                 @ui_synced(false)
@@ -282,13 +352,11 @@ class SynchronizedDocument extends EventEmitter
                 delete @_connect_callbacks
                 @element.find(".salvus-editor-codemirror-loading").hide()
                 #console.log("new session: ", resp)
+                if resp.event == 'error'
+                    err = resp.error
                 if err
                     for cb in cbs
                         cb(err)
-                    return
-                if resp.event == 'error'
-                    for cb in cbs
-                        cb(resp.event)
                     return
 
                 @session_uuid = resp.session_uuid
@@ -420,7 +488,6 @@ class SynchronizedDocument extends EventEmitter
         if @_sync_soon?
             clearTimeout(@_sync_soon)
             delete @_sync_soon
-        before = @dsync_client.live.string()
         #console.log("sync started")
         @_sync_cursor_pos = @codemirror.getCursor()
         @dsync_client.push_edits (err) =>

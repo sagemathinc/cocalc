@@ -916,6 +916,7 @@ class CodeMirrorEditor extends FileEditor
 
         opts = @opts = defaults opts,
             mode              : required
+            read_only         : false
             delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
             allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
             line_numbers      : editor_settings.line_numbers
@@ -943,9 +944,9 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         @init_save_button()
-        @init_close_button()
         @init_edit_buttons()
 
+        @init_close_button()
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
@@ -1008,6 +1009,7 @@ class CodeMirrorEditor extends FileEditor
                 undoDepth       : opts.undo_depth
                 matchBrackets   : opts.match_brackets
                 lineWrapping    : opts.line_wrapping
+                readOnly        : opts.read_only
                 extraKeys       : extraKeys
                 cursorScrollMargin : 100
 
@@ -1263,7 +1265,7 @@ class CodeMirrorEditor extends FileEditor
             if @_split_view
                 @codemirror1.focus()
 
-codemirror_session_editor = (editor, filename, extra_opts) ->
+codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     ext = filename_extension(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)

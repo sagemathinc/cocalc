@@ -170,6 +170,8 @@ class ProjectPage
         @init_trash_link()
         @init_snapshot_link()
 
+        @init_project_activity()  # must be after @create_editor()
+
         @init_project_download()
 
         @init_project_restart()
@@ -1516,6 +1518,25 @@ class ProjectPage
             local_storage(@project.project_id, '', 'sort_by_time', @_sort_by_time)
             @update_file_list_tab()
             return false
+
+    init_project_activity: () =>
+        page = @container.find(".project-activity")
+        LOG_FILE = '.sagemathcloud.log'
+        @ensure_file_exists
+            path : LOG_FILE
+            cb   : (err) =>
+                if err
+                    # TODO -- something in the GUI about failing
+                    # to init project activity page ?
+                    return
+                console.log("making ASD")
+                ASD = require('syncdoc').AbstractSynchronizedDocument
+                @project_log = new ASD
+                    project_id : @project.project_id
+                    filename   : LOG_FILE
+                    cb         : (err) =>
+                        console.log("returned err=#{err}")
+                        page.find(".project-activity-log").text(@project_log.live())
 
     init_project_download: () =>
         # Download entire project
