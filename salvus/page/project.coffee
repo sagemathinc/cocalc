@@ -12,6 +12,7 @@ message         = require('message')
 async           = require('async')
 misc            = require('misc')
 diffsync        = require('diffsync')
+account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
@@ -1541,10 +1542,12 @@ class ProjectPage
                     console.log("project_log sync")
                     log_output.text(@project_log.live())
 
+                @project_activity({event:'open_project'})
+
                 chat_input = page.find(".project-activity-chat")
                 chat_input.keydown (evt) =>
                     if evt.which == 13
-                        @project_activity(chat_input.val())
+                        @project_activity({event:'chat', mesg:chat_input.val()})
                         chat_input.val('')
                         return false
 
@@ -1554,11 +1557,20 @@ class ProjectPage
             alert_message(type:"error", message:"Unable to initial project activity page -- #{err}")
         )
 
-    project_activity: (desc) =>
+    project_activity: (mesg) =>
         if @project_log?
-            name = require('account').account_settings.fullname()
-            @project_log.live(name + ": " + $.trim(desc) + '\n' + @project_log.live())
+            mesg.fullname   = account.account_settings.fullname()
+            mesg.account_id = account.account_settings.account_id
+            s = misc.to_json(new Date())
+            mesg.date = s.slice(1, s.length-1)
+            @project_log.live(misc.to_json(mesg) + '\n' + @project_log.live())
             @project_log.sync()
+        else
+            # try again in 15 seconds
+            f = () =>
+                @project_activity(mesg)
+            setTimeout(f, 15000)
+
 
     init_project_download: () =>
         # Download entire project

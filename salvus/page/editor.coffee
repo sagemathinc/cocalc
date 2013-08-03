@@ -525,6 +525,10 @@ class exports.Editor
             content     : undefined
             extra_opts  : required
         #console.log('create_editor: ', opts)
+
+        @project_page.project_activity({event:'open', filename:filename, type:editor_name})
+
+
         # Some of the editors below might get the content later and will call @file_options again then.
         switch editor_name
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
@@ -1266,7 +1270,6 @@ class CodeMirrorEditor extends FileEditor
                 @codemirror1.focus()
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
-    editor.project_page.project_activity("open #{filename}")
     ext = filename_extension(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
