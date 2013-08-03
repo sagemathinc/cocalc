@@ -339,7 +339,7 @@ class ProjectPage
 
     # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_console_sessions: (sessions, cb) =>
-        console.log("initialize console sessions: ", sessions)
+        #console.log("initialize console sessions: ", sessions)
         #@display_tab("project-editor")
         for session_uuid, obj of sessions
             if obj.status == 'running'
@@ -351,7 +351,7 @@ class ProjectPage
 
     # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_sage_sessions: (sessions, cb) =>
-        console.log("initialize sage sessions: ", sessions)
+        #console.log("initialize sage sessions: ", sessions)
         #TODO -- not enough info to do this yet.
         #for session_uuid, obj of sessions
         #    tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
@@ -1522,21 +1522,43 @@ class ProjectPage
     init_project_activity: () =>
         page = @container.find(".project-activity")
         LOG_FILE = '.sagemathcloud.log'
-        @ensure_file_exists
-            path : LOG_FILE
-            cb   : (err) =>
-                if err
-                    # TODO -- something in the GUI about failing
-                    # to init project activity page ?
-                    return
-                console.log("making ASD")
+        async.series([
+            (cb) =>
+                @ensure_file_exists
+                    path : LOG_FILE
+                    cb   : cb
+
+            (cb) =>
                 ASD = require('syncdoc').AbstractSynchronizedDocument
                 @project_log = new ASD
                     project_id : @project.project_id
                     filename   : LOG_FILE
-                    cb         : (err) =>
-                        console.log("returned err=#{err}")
-                        page.find(".project-activity-log").text(@project_log.live())
+                    cb         : cb
+
+            (cb) =>
+                log_output = page.find(".project-activity-log")
+                @project_log.on 'sync', () =>
+                    console.log("project_log sync")
+                    log_output.text(@project_log.live())
+
+                chat_input = page.find(".project-activity-chat")
+                chat_input.keydown (evt) =>
+                    if evt.which == 13
+                        @project_activity(chat_input.val())
+                        chat_input.val('')
+                        return false
+
+
+        ], (err) =>
+            # TODO -- should put error in page and retry periodically
+            alert_message(type:"error", message:"Unable to initial project activity page -- #{err}")
+        )
+
+    project_activity: (desc) =>
+        if @project_log?
+            name = require('account').account_settings.fullname()
+            @project_log.live(name + ": " + $.trim(desc) + '\n' + @project_log.live())
+            @project_log.sync()
 
     init_project_download: () =>
         # Download entire project

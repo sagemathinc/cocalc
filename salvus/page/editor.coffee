@@ -1266,6 +1266,7 @@ class CodeMirrorEditor extends FileEditor
                 @codemirror1.focus()
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
+    editor.project_page.project_activity("open #{filename}")
     ext = filename_extension(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)

@@ -175,30 +175,42 @@ class AbstractSynchronizedDocument extends EventEmitter
             cb         : undefined   # cb(err) once doc is connected to.
         @project_id = opts.project_id
         @filename   = opts.filename
-        @connect(opts.cb)
+        @connect (err) =>
+            if not err
+                @sync()
+            opts.cb?(err)
 
     connect: (cb) =>
+        @_remove_listeners()
         salvus_client.call
             timeout : 30     # a reasonable amount of time, since file could be *large*
+
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @project_id
-            cb      : (err, resp) =>
+
+            cb : (err, resp) =>
                 if resp.event == 'error'
                     err = resp.error
                 if err
-                    cb(err); return
+                    cb?(err); return
                 @session_uuid = resp.session_uuid
-                @chat = resp.chat
+                @chat         = resp.chat
                 @dsync_client = new diffsync.DiffSync(doc:resp.content)
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
-                cb()
+                @_add_listeners()
+                cb?()
 
-    live: () => @dsync_client?.live
+    live: (s) =>
+        if s?
+            @dsync_client.live = s
+        else
+            @dsync_client?.live
 
     _add_listeners: () =>
+        console.log("asd: adding listeners")
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.on 'codemirror_bcast', @_receive_broadcast
 
@@ -207,12 +219,32 @@ class AbstractSynchronizedDocument extends EventEmitter
         salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
 
     _diffsync_ready: (mesg) =>
+        console.log("abstract doc sync: diffsync_ready:")
         if mesg.session_uuid == @session_uuid
-            @sync_soon()
+            @sync (err) =>
+                console.log("abstract doc sync -- #{err}")
+                if err == 'retry'
+                    @sync (err) =>
+                        console.log("abstract doc sync (1 retry) -- #{err}")
 
     _receive_broadcast: (mesg) =>
         if mesg.session_uuid != @session_uuid
             return
+
+    sync: (cb) =>
+        if @_syncing
+            cb?()
+            return
+        if not @dsync_client
+            cb?("document synchronization not initialized at all yet")
+            return
+        @_syncing = true
+        @dsync_client.push_edits (err) =>
+            @_syncing = false
+            if not err
+                @emit('sync')
+            cb?(err)
+
 
     call: (opts) =>
         opts = defaults opts,
@@ -236,6 +268,10 @@ class AbstractSynchronizedDocument extends EventEmitter
                     opts.cb?(err, result)
 
 exports.AbstractSynchronizedDocument = AbstractSynchronizedDocument
+
+
+
+
 
 class SynchronizedDocument extends EventEmitter
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
@@ -481,7 +517,7 @@ class SynchronizedDocument extends EventEmitter
             return
 
         if not @dsync_client
-            # document synchronization not initialized at all yet
+            cb?("document synchronization not initialized at all yet")
             return
 
         @_syncing = true
@@ -510,7 +546,7 @@ class SynchronizedDocument extends EventEmitter
                 #console.log("sync done -- success")
                 @_sync_failures = 0
                 @_syncing = false
-                @emit 'sync'
+                @emit('sync')
                 @ui_synced(true)
                 cb?()
 
