@@ -526,7 +526,14 @@ class exports.Editor
             extra_opts  : required
         #console.log('create_editor: ', opts)
 
-        @project_page.project_activity({event:'open', filename:filename, type:editor_name})
+        if editor_name == 'codemirror'
+            if filename.slice(filename.length-7) == '.sagews'
+                typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore
+            else
+                typ = 'file'
+        else
+            typ = editor_name
+        @project_page.project_activity({event:'open', filename:filename, type:typ})
 
 
         # Some of the editors below might get the content later and will call @file_options again then.

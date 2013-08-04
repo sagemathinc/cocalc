@@ -1546,7 +1546,7 @@ class ProjectPage
 
                 chat_input = page.find(".project-activity-chat")
                 chat_input.keydown (evt) =>
-                    if evt.which == 13
+                    if evt.which == 13 and not evt.shiftKey
                         @project_activity({event:'chat', mesg:chat_input.val()})
                         chat_input.val('')
                         return false
@@ -1572,7 +1572,6 @@ class ProjectPage
             setTimeout(f, 15000)
 
     render_project_activity_log: (log) =>
-        console.log("rendering project activity log...")
         if @_last_rendered_log?
             if log.slice(0,@_last_rendered_log.length) == @_last_rendered_log
                 # simply extending the log
@@ -1583,9 +1582,53 @@ class ProjectPage
                 @_project_activity_log.html('')
         else
             render = log
-
-        @_project_activity_log.html(@_project_activity_log.html() + '\n' + render)
         @_last_rendered_log = render
+        template = $(".project-activity-templates")
+        template_entry = template.find(".project-activity-entry")
+        that = @
+
+        for e in render.split('\n')
+            if $.trim(e).length == 0
+                continue
+            try
+                entry = JSON.parse(e)
+            catch
+                console.log("invalid log entry: '#{e}'")
+                entry = {event:'other'}
+
+            elt = undefined
+            switch entry.event
+                when 'chat'
+                    elt = template.find(".project-activity-chat").clone()
+                    elt.find(".project-activity-chat-mesg").text(entry.mesg).mathjax()
+                when 'open_project'
+                    elt = template.find(".project-activity-open_project").clone()
+                when 'open'
+                    elt = template.find(".project-activity-open").clone()
+                    elt.find(".project-activity-open-filename").text(entry.filename).click () ->
+                        filename = $(@).text()
+                        that.display_tab("project-editor")
+                        tab = that.editor.create_tab(filename:filename)
+                        that.editor.display_tab(filename)
+                        return false
+                    elt.find(".project-activity-open-type").text(entry.type)
+                else
+                    elt = template.find(".project-activity-other").clone()
+                    elt.find(".project-activity-value").text(e)
+
+            if elt?
+                x = template_entry.clone()
+                x.find(".project-activity-value").append(elt)
+                if entry.fullname?
+                    x.find(".project-activity-name").text(entry.fullname)
+                else
+                    x.find(".project-activity-name").hide()
+                if entry.date?
+                    x.find(".project-activity-date").attr('title',(new Date(entry.date)).toISOString()).timeago()
+                else
+                    x.find(".project-activity-date").hide()
+
+                @_project_activity_log.prepend(x)
 
 
     init_project_download: () =>
