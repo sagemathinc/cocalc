@@ -171,7 +171,13 @@ exports.max = (array) -> (array.reduce((a,b) -> Math.max(a, b)))
 exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
-exports.filename_extension = (filename) -> filename_extension_re.exec(filename)[1]
+exports.filename_extension = (filename) ->
+    ext = filename_extension_re.exec(filename)[1]
+    if ext?
+        return ext
+    else
+        return ''
+
 
 exports.copy = (obj) ->
     r = {}

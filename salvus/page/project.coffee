@@ -1522,6 +1522,7 @@ class ProjectPage
 
     init_project_activity: () =>
         page = @container.find(".project-activity")
+        @_project_activity_log = page.find(".project-activity-log")
         LOG_FILE = '.sagemathcloud.log'
         async.series([
             (cb) =>
@@ -1539,8 +1540,7 @@ class ProjectPage
             (cb) =>
                 log_output = page.find(".project-activity-log")
                 @project_log.on 'sync', () =>
-                    console.log("project_log sync")
-                    log_output.text(@project_log.live())
+                    @render_project_activity_log(@project_log.live())
 
                 @project_activity({event:'open_project'})
 
@@ -1563,13 +1563,29 @@ class ProjectPage
             mesg.account_id = account.account_settings.account_id
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
-            @project_log.live(misc.to_json(mesg) + '\n' + @project_log.live())
+            @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
             @project_log.sync()
         else
             # try again in 15 seconds
             f = () =>
                 @project_activity(mesg)
             setTimeout(f, 15000)
+
+    render_project_activity_log: (log) =>
+        console.log("rendering project activity log...")
+        if @_last_rendered_log?
+            if log.slice(0,@_last_rendered_log.length) == @_last_rendered_log
+                # simply extending the log
+                render = log.slice(@_last_rendered_log.length)
+            else
+                # for now just re-do the whole thing
+                render = log
+                @_project_activity_log.html('')
+        else
+            render = log
+
+        @_project_activity_log.html(@_project_activity_log.html() + '\n' + render)
+        @_last_rendered_log = render
 
 
     init_project_download: () =>
