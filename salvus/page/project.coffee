@@ -1556,6 +1556,8 @@ class ProjectPage
 
                 @_project_activity_log_page = 0
                 page.find(".project-activity-newer").click () =>
+                    if page.find(".project-activity-newer").hasClass('disabled')
+                        return false
                     @_project_activity_log_page -= 1
                     page.find(".project-activity-older").removeClass('disabled')
                     if @_project_activity_log_page < 0
@@ -1567,6 +1569,8 @@ class ProjectPage
                     return false
 
                 page.find(".project-activity-older").click () =>
+                    if page.find(".project-activity-older").hasClass('disabled')
+                        return false
                     @_project_activity_log_page += 1
                     page.find(".project-activity-newer").removeClass('disabled')
                     @render_project_activity_log()
@@ -1586,7 +1590,7 @@ class ProjectPage
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
             @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
-            @project_log.sync()
+            @project_log.save()  # causes a sync first
         else
             # try again in 15 seconds
             f = () =>

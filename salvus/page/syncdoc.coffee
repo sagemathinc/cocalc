@@ -246,6 +246,14 @@ class AbstractSynchronizedDocument extends EventEmitter
                 @emit('sync')
             cb?(err)
 
+    save: (cb) =>
+        if @dsync_client?
+            @sync () =>
+                @call
+                    message: message.codemirror_write_to_disk()
+                    cb : cb
+        else
+            cb?("Unable to save '#{@filename}' since it is not yet loaded.")
 
     call: (opts) =>
         opts = defaults opts,
