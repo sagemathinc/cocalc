@@ -1631,9 +1631,12 @@ class ProjectPage
                     elt = template.find(".project-activity-open").clone()
                     elt.find(".project-activity-open-filename").text(entry.filename).click () ->
                         filename = $(@).text()
-                        that.display_tab("project-editor")
-                        tab = that.editor.create_tab(filename:filename)
-                        that.editor.display_tab(filename)
+                        if filename == ".sagemathcloud.log"
+                            alert_message(type:"error", message:"Edit .sagemathcloud.log via the terminal (this is safe).")
+                        else
+                            that.display_tab("project-editor")
+                            tab = that.editor.create_tab(filename:filename)
+                            that.editor.display_tab(filename)
                         return false
                     elt.find(".project-activity-open-type").text(entry.type)
                 else

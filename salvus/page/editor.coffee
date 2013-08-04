@@ -384,6 +384,10 @@ class exports.Editor
             cb("BUG -- open(undefined) makes no sense")
             return
 
+        if filename == ".sagemathcloud.log"
+            cb("You can only edit '.sagemathcloud.log' via the terminal.")
+            return
+
         if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
             alert_message(type:"info",message:"Opening converted Sagemath Cloud worksheet file instead of '#{filename}...")
             @convert_sagenb_worksheet filename, (err, sagews_filename) =>
