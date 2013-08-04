@@ -31,7 +31,7 @@ template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
 template_project_collab        = templates.find(".project-collab")
 
-##################################################
+################################O##################
 # Initialize the modal project management dialogs
 ##################################################
 delete_path_dialog = $("#project-delete-path-dialog")
@@ -1540,16 +1540,38 @@ class ProjectPage
             (cb) =>
                 log_output = page.find(".project-activity-log")
                 @project_log.on 'sync', () =>
-                    @render_project_activity_log(@project_log.live())
+                    @render_project_activity_log()
 
-                @project_activity({event:'open_project'})
+                # In practice this seems kind of lame...
+                #@project_activity({event:'open_project'})
 
                 chat_input = page.find(".project-activity-chat")
                 chat_input.keydown (evt) =>
                     if evt.which == 13 and not evt.shiftKey
-                        @project_activity({event:'chat', mesg:chat_input.val()})
-                        chat_input.val('')
+                        mesg = $.trim(chat_input.val())
+                        if mesg
+                            @project_activity({event:'chat', mesg:mesg})
+                            chat_input.val('')
                         return false
+
+                @_project_activity_log_page = 0
+                page.find(".project-activity-newer").click () =>
+                    @_project_activity_log_page -= 1
+                    page.find(".project-activity-older").removeClass('disabled')
+                    if @_project_activity_log_page < 0
+                        @_project_activity_log_page = 0
+                    else
+                        @render_project_activity_log()
+                    if @_project_activity_log_page == 0
+                        page.find(".project-activity-newer").addClass('disabled')
+                    return false
+
+                page.find(".project-activity-older").click () =>
+                    @_project_activity_log_page += 1
+                    page.find(".project-activity-newer").removeClass('disabled')
+                    @render_project_activity_log()
+                    return false
+
 
 
         ], (err) =>
@@ -1571,29 +1593,31 @@ class ProjectPage
                 @project_activity(mesg)
             setTimeout(f, 15000)
 
-    render_project_activity_log: (log) =>
-        if @_last_rendered_log?
-            if log.slice(0,@_last_rendered_log.length) == @_last_rendered_log
-                # simply extending the log
-                render = log.slice(@_last_rendered_log.length)
-            else
-                # for now just re-do the whole thing
-                render = log
-                @_project_activity_log.html('')
-        else
-            render = log
-        @_last_rendered_log = render
+    render_project_activity_log: () =>
+        log = @project_log.live()
+        items_per_page = 30
+        page = @_project_activity_log_page
+
+        @_project_activity_log.html('')
+
+        lines = log.split('\n')
+        start = Math.max(0, lines.length - (page+1)*items_per_page)
+        stop  = lines.length - page*items_per_page
+        lines = lines.slice(start, stop)
+
         template = $(".project-activity-templates")
         template_entry = template.find(".project-activity-entry")
         that = @
 
-        for e in render.split('\n')
+        if lines.length < items_per_page
+            @container.find(".project-activity-older").addClass('disabled')
+
+        for e in lines
             if $.trim(e).length == 0
                 continue
             try
                 entry = JSON.parse(e)
             catch
-                console.log("invalid log entry: '#{e}'")
                 entry = {event:'other'}
 
             elt = undefined

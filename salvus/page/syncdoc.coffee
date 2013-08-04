@@ -210,7 +210,6 @@ class AbstractSynchronizedDocument extends EventEmitter
             @dsync_client?.live
 
     _add_listeners: () =>
-        console.log("asd: adding listeners")
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.on 'codemirror_bcast', @_receive_broadcast
 
@@ -219,19 +218,14 @@ class AbstractSynchronizedDocument extends EventEmitter
         salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
 
     _diffsync_ready: (mesg) =>
-        console.log("abstract doc sync: diffsync_ready:")
         if mesg.session_uuid == @session_uuid
-            @sync (err) =>
-                console.log("abstract doc sync -- #{err}")
-                if err == 'retry'
-                    @sync (err) =>
-                        console.log("abstract doc sync (1 retry) -- #{err}")
+            @sync()
 
     _receive_broadcast: (mesg) =>
         if mesg.session_uuid != @session_uuid
             return
 
-    sync: (cb) =>
+    sync: (cb, retry_delay) =>
         if @_syncing
             cb?()
             return
@@ -241,6 +235,13 @@ class AbstractSynchronizedDocument extends EventEmitter
         @_syncing = true
         @dsync_client.push_edits (err) =>
             @_syncing = false
+            if err
+                if not retry_delay?
+                    retry_delay = 1000
+                f = () =>
+                    @sync(cb, 1.3*retry_delay)
+                setTimeout(f, retry_delay)
+
             if not err
                 @emit('sync')
             cb?(err)
