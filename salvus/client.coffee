@@ -1223,6 +1223,8 @@ class exports.Connection extends EventEmitter
         @call
             message : message.get_project_users(project_id:opts.project_id)
             cb      : (err, resp) =>
+                if resp?.event == 'error'
+                    err = resp.error
                 if err
                     opts.cb(err)
                 else

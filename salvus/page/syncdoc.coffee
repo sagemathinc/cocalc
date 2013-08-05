@@ -196,7 +196,7 @@ class AbstractSynchronizedDocument extends EventEmitter
                     cb?(err); return
                 @session_uuid = resp.session_uuid
                 @chat         = resp.chat
-                @dsync_client = new diffsync.DiffSync(doc:resp.content, id:'foobar')
+                @dsync_client = new diffsync.DiffSync(doc:resp.content)
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)

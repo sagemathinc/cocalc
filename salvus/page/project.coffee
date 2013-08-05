@@ -1071,7 +1071,6 @@ class ProjectPage
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
-        #console.log("current_path = ", @current_path)
 
         # Update the display of the path above the listing or file preview
         @update_current_path()
@@ -1096,9 +1095,8 @@ class ProjectPage
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
-                    console.log("error", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
-                        console.log("using last path without error:  ", @_last_path_without_error)
+                        #console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
                         @update_file_list_tab(no_focus)
@@ -1529,8 +1527,9 @@ class ProjectPage
         async.series([
             (cb) =>
                 @ensure_file_exists
-                    path : LOG_FILE
-                    cb   : cb
+                    path  : LOG_FILE
+                    alert : false
+                    cb    : cb
 
             (cb) =>
                 ASD = require('syncdoc').AbstractSynchronizedDocument
@@ -1576,12 +1575,17 @@ class ProjectPage
                     page.find(".project-activity-newer").removeClass('disabled')
                     @render_project_activity_log()
                     return false
-
-
-
         ], (err) =>
-            # TODO -- should put error in page and retry periodically
-            alert_message(type:"error", message:"Unable to initial project activity page -- #{err}")
+            if err
+                # Just try again with exponential backoff  This can and does fail if say the project is first being initailized.
+                if not @_init_project_activity?
+                    @_init_project_activity = 3000
+                else
+                    @_init_project_activity = Math.min(1.3*@_init_project_activity, 60000)
+
+                setTimeout((() => @init_project_activity()), @_init_project_activity)
+            else
+                @_init_project_activity = undefined
         )
 
     project_activity: (mesg) =>
@@ -2218,5 +2222,4 @@ project_page = exports.project_page = (project) ->
     p = new ProjectPage(project)
     project_pages[project.project_id] = p
     return p
-
 
