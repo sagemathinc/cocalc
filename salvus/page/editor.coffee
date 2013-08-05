@@ -471,11 +471,13 @@ class exports.Editor
 
         containing_path = misc.path_split(filename).head
         ignore_clicks = false
-        link.find("a").click () =>
+        link.find("a").click (e) =>
             if ignore_clicks
                 return false
-            @display_tab(path:link_filename.text())
-            @project_page.set_current_path(containing_path)
+            foreground = not(e.which==2 or e.ctrlKey)
+            @display_tab(path:link_filename.text(), foreground:foreground)
+            if foreground
+                @project_page.set_current_path(containing_path)
 
         create_editor_opts =
             editor_name : opts0.editor

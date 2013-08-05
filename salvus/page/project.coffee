@@ -519,7 +519,7 @@ class ProjectPage
                         filename = line
                         r = search_result.clone()
                         r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
-                            that.open_file(path:$(@).data('filename'), foreground:e.which!=2)
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey)  )
                         r.find("span").addClass('lighten').text('(filename)')
                     else
                         # the rgrep part
@@ -532,7 +532,7 @@ class ProjectPage
                         r = search_result.clone()
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
-                            that.open_file(path:$(@).data('filename'), foreground:e.which!=2)
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
 
                     search_output.append(r)
                     if num_results >= max_results
@@ -1262,7 +1262,7 @@ class ProjectPage
             else
                 @open_file
                     path : fullname
-                    foreground : e.which != 2
+                    foreground : not(e.which==2 or e.ctrlKey)
             return false
 
         if not is_snapshot or isdir
@@ -1639,7 +1639,7 @@ class ProjectPage
                         if filename == ".sagemathcloud.log"
                             alert_message(type:"error", message:"Edit .sagemathcloud.log via the terminal (this is safe).")
                         else
-                            that.open_file(path:filename, foreground:e.which!=2)
+                            that.open_file(path:filename, foreground: not(e.which==2 or e.ctrlKey))
                         return false
                     elt.find(".project-activity-open-type").text(entry.type)
                 else
