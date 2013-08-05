@@ -21,9 +21,16 @@ compute_search_data = () ->
         for project in project_list
             project.search = (project.title+' '+project.description).toLowerCase()
 
+project_list_spinner = $("#projects").find(".projects-project-list-spinner")
+
 update_project_list = exports.update_project_list = () ->
+
+    timer = setTimeout( (() -> project_list_spinner.show().spin()), 2500 )
+
     salvus_client.get_projects
         cb: (error, mesg) ->
+            clearTimeout(timer); project_list_spinner.spin(false).hide()
+
             if not error and mesg.event == 'all_projects'
                 project_list = mesg.projects
 
