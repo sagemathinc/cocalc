@@ -518,8 +518,8 @@ class ProjectPage
                         # the find part
                         filename = line
                         r = search_result.clone()
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
-                            that.open_file($(@).data('filename'))
+                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                            that.open_file(path:$(@).data('filename'), foreground:e.which!=2)
                         r.find("span").addClass('lighten').text('(filename)')
                     else
                         # the rgrep part
@@ -531,8 +531,8 @@ class ProjectPage
                             context = context.slice(i+2,context.length-1)
                         r = search_result.clone()
                         r.find("span").text(context)
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
-                            that.open_file($(@).data('filename'))
+                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                            that.open_file(path:$(@).data('filename'), foreground:e.which!=2)
 
                     search_output.append(r)
                     if num_results >= max_results
@@ -951,7 +951,7 @@ class ProjectPage
                 return false
             @display_tab("project-editor")
             tab = @editor.create_tab(filename:p, content:"")
-            @editor.display_tab(p)
+            @editor.display_tab(path:p)
             return false
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
@@ -965,7 +965,7 @@ class ProjectPage
                 return false
             @display_tab("project-editor")
             tab = @editor.create_tab(filename:p, content:"")
-            @editor.display_tab(p)
+            @editor.display_tab(path:p)
             return false
 
         create_file = (ext) =>
@@ -984,7 +984,7 @@ class ProjectPage
                         alert_message(type:"info", message:"Created new file '#{p}'")
                         @display_tab("project-editor")
                         tab = @editor.create_tab(filename:p, content:"")
-                        @editor.display_tab(p)
+                        @editor.display_tab(path:p)
             return false
 
         create_folder = () =>
@@ -1255,12 +1255,14 @@ class ProjectPage
 
         b = t.find(".project-file-buttons")
 
-        open = () =>
+        open = (e) =>
             if isdir
                 @current_path.push(name)
                 @update_file_list_tab()
             else
-                @open_file(fullname)
+                @open_file
+                    path : fullname
+                    foreground : e.which != 2
             return false
 
         if not is_snapshot or isdir
@@ -1542,8 +1544,7 @@ class ProjectPage
                 @project_log.on 'sync', () =>
                     @render_project_activity_log()
 
-                # In practice this seems kind of lame...
-                #@project_activity({event:'open_project'})
+                @project_activity({event:'open_project'})
 
                 chat_input = page.find(".project-activity-chat")
                 chat_input.keydown (evt) =>
@@ -1633,14 +1634,12 @@ class ProjectPage
                     elt = template.find(".project-activity-open_project").clone()
                 when 'open'
                     elt = template.find(".project-activity-open").clone()
-                    elt.find(".project-activity-open-filename").text(entry.filename).click () ->
+                    elt.find(".project-activity-open-filename").text(entry.filename).click (e) ->
                         filename = $(@).text()
                         if filename == ".sagemathcloud.log"
                             alert_message(type:"error", message:"Edit .sagemathcloud.log via the terminal (this is safe).")
                         else
-                            that.display_tab("project-editor")
-                            tab = that.editor.create_tab(filename:filename)
-                            that.editor.display_tab(filename)
+                            that.open_file(path:filename, foreground:e.which!=2)
                         return false
                     elt.find(".project-activity-open-type").text(entry.type)
                 else
@@ -2040,14 +2039,19 @@ class ProjectPage
                 window.open(result.url)
 
 
-    open_file: (path) =>
-        ext = filename_extension(path)
-        @editor.open path, (err, opened_path) =>
+    open_file: (opts) =>
+        opts = defaults opts,
+            path       : required
+            foreground : true      # display in foreground as soon as possible
+
+        ext = filename_extension(opts.path)
+        @editor.open opts.path, (err, opened_path) =>
             if err
                 alert_message(type:"error", message:"Error opening '#{path}' -- #{err}", timeout:10)
             else
-                @display_tab("project-editor")
-                @editor.display_tab(opened_path)
+                if opts.foreground
+                    @display_tab("project-editor")
+                @editor.display_tab(path:opened_path, foreground:opts.foreground)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch

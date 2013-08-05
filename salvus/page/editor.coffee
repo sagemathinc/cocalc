@@ -342,7 +342,7 @@ class exports.Editor
                 return false
 
             if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
-                @display_tab(@active_tab.filename)
+                @display_tab(path:@active_tab.filename)
                 return
 
             v = $.trim(search_box.val()).toLowerCase()
@@ -367,7 +367,7 @@ class exports.Editor
                 filename = tab.filename
                 if match(filename)
                     if first and event.keyCode == 13 # enter -- select first match (if any)
-                        @display_tab(filename)
+                        @display_tab(path:filename)
                         first = false
                     if v != ""
                         tab.link.addClass(include); tab.link.removeClass(exclude)
@@ -474,7 +474,7 @@ class exports.Editor
         link.find("a").click () =>
             if ignore_clicks
                 return false
-            @display_tab(link_filename.text())
+            @display_tab(path:link_filename.text())
             @project_page.set_current_path(containing_path)
 
         create_editor_opts =
@@ -579,7 +579,7 @@ class exports.Editor
         open_file = (name) =>
             @project_page.set_current_path(misc.path_split(name).head)
             @project_page.display_tab("project-editor")
-            @display_tab(name)
+            @display_tab(path:name)
 
         link.find(".salvus-editor-close-button-x").click () =>
             if ignore_clicks
@@ -729,27 +729,40 @@ class exports.Editor
         $(".salvus-editor-recent-files").show()
         $(".project-editor-recent-files-header").show()
 
-    # Make the give tab active.
-    display_tab: (filename) =>
+    # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
+    display_tab: (opts) =>
+        opts = defaults opts,
+            path       : required
+            foreground : true      # display in foreground as soon as possible
+
+        filename = opts.path
+
         if not @tabs[filename]?
             return
 
-        @hide_recent_file_list()
-        @show_editor_content()
+        if opts.foreground
+            @hide_recent_file_list()
+            @show_editor_content()
+
         prev_active_tab = @active_tab
         for name, tab of @tabs
             if name == filename
                 @active_tab = tab
                 ed = tab.editor()
-                ed.show()
-                setTimeout((() -> ed.show(); ed.focus()), 100)
-                @element.find(".btn-group").children().removeClass('disabled')
+
+                if opts.foreground
+                    ed.show()
+                    setTimeout((() -> ed.show(); ed.focus()), 100)
+                    @element.find(".btn-group").children().removeClass('disabled')
+
                 top_link = @active_tab.open_file_pill
                 if top_link?
-                    @make_open_file_pill_active(top_link)
+                    if opts.foreground
+                        @make_open_file_pill_active(top_link)
                 else
                     @create_opened_file_tab(filename)
-                    @make_open_file_pill_active(@active_tab.open_file_pill)
+                    if opts.foreground
+                        @make_open_file_pill_active(@active_tab.open_file_pill)
             else
                 tab.hide_editor()
 
@@ -768,7 +781,7 @@ class exports.Editor
                 label  : misc.path_split(filename).tail
                 onshow : () =>
                     navbar.switch_to_page(@project_id)
-                    @display_tab(filename)
+                    @display_tab(path:filename)
                     navbar.make_button_active(id)
 
     onshow: () =>  # should be called when the editor is shown.
