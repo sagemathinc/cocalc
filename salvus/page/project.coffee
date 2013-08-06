@@ -1588,7 +1588,7 @@ class ProjectPage
                 @_init_project_activity = undefined
         )
 
-    project_activity: (mesg) =>
+    project_activity: (mesg, delay) =>
         if @project_log?.connected()
             mesg.fullname   = account.account_settings.fullname()
             mesg.account_id = account.account_settings.account_id
@@ -1597,10 +1597,13 @@ class ProjectPage
             @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
             @project_log.save()  # causes a sync first
         else
-            # try again in 15 seconds
+            if not delay?
+                delay = 300
+            else
+                delay = Math.min(15000, delay*1.3)
             f = () =>
-                @project_activity(mesg)
-            setTimeout(f, 15000)
+                @project_activity(mesg, delay)
+            setTimeout(f, delay)
 
     render_project_activity_log: () =>
         log = @project_log.live()

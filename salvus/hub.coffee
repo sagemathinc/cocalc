@@ -2055,11 +2055,11 @@ class CodeMirrorSession
         winston.debug("client_diffsync; the clients are #{misc.keys(@diffsync_clients)}")
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
-            f = () ->
+            f = () =>
                 r = message.reconnect(id:mesg.id, reason:"Client with id #{client.id} is not registered with this hub for editing #{@path} in some project.")
                 client.push_to_client(r)
             # We wait a bit before sending the reconnect message, since this is often the
-            # result of resetting the local_hub connection (which takes 10-15 seconds), and
+            # result of resetting the local_hub connection (which takes 5 seconds), and
             # the client will instantly try to reconnect again, which will fail and lead to
             # this again, which ends up slowing everything down.
             setTimeout(f, 1000)

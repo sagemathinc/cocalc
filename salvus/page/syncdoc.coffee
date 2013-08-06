@@ -196,11 +196,25 @@ class AbstractSynchronizedDocument extends EventEmitter
                     cb?(err); return
                 @session_uuid = resp.session_uuid
                 @chat         = resp.chat
+
+                if @_last_sync?
+                    # We have sync'd before.
+                    patch = diffsync.dmp.patch_make(@_last_sync, @live())
+
                 @dsync_client = new diffsync.DiffSync(doc:resp.content)
+
+                if @_last_sync?
+                    # applying missed patches the live that we just got.
+                    @live(diffsync.dmp.patch_apply(patch, @live())[0])
+                else
+                    # This initialiation is the first sync.
+                    @_last_sync   = resp.content
+
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
+
                 cb?()
 
     connected: () =>
@@ -236,16 +250,22 @@ class AbstractSynchronizedDocument extends EventEmitter
             cb?("document synchronization not initialized at all yet")
             return
         @_syncing = true
+        snapshot = @live()
         @dsync_client.push_edits (err) =>
             @_syncing = false
             if err
                 if not retry_delay?
-                    retry_delay = 1000
+                    retry_delay = 250
                 f = () =>
-                    @sync(cb, 1.3*retry_delay)
+                    if err != 'retry'
+                        @connect (err) =>
+                            @sync(cb, 1.3*retry_delay)
+                    else
+                        @sync(cb, 1.3*retry_delay)
                 setTimeout(f, retry_delay)
 
             if not err
+                @_last_sync = snapshot    # What was the last successful sync with upstream.
                 @emit('sync')
             cb?(err)
 
