@@ -1936,30 +1936,14 @@ class ProjectPage
                 type    : "info"
                 message :"Restarting project server.  This should take around 15 seconds..."
                 timeout : 10
-
-            project_id = @project.project_id
-            salvus_client.exec
-                project_id : project_id
-                command    : 'stop_smc'
-                timeout    : 3
+            salvus_client.restart_project_server
+                project_id : @project.project_id
                 cb         : () =>
-                    # We do something else now, which will trigger the hub to notice the
-                    # server is down and restart it.
-                    f = () ->
-                        salvus_client.exec
-                            project_id : project_id
-                            command    : 'ls'  # doesn't matter
-                            timeout    : 3
-                            cb         : (err, output) =>
-                                if err
-                                    f()
-                                else
-                                    link.find("i").removeClass('icon-spin')
-                                    alert_message
-                                        type    : "success"
-                                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                                        timeout : 2
-                    f()
+                    link.find("i").removeClass('icon-spin')
+                    alert_message
+                        type    : "success"
+                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                        timeout : 2
             return false
 
     init_snapshot_link: () =>

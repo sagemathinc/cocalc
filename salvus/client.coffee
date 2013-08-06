@@ -702,6 +702,7 @@ class exports.Connection extends EventEmitter
 
     ############################################
     # Scratch worksheet
+    # TODO: delete all this -- is deprecated.
     #############################################
     save_scratch_worksheet: (opts={}) ->
         opts = defaults opts,
@@ -1085,6 +1086,7 @@ class exports.Connection extends EventEmitter
 
     #################################################
     # Git Commands
+    # TODO: this is all deprecated (?).
     #################################################
 
     git_remove_file: (opts) =>
@@ -1387,6 +1389,40 @@ class exports.Connection extends EventEmitter
                     if opts.path == '.' and opts.hidden
                         v.files.unshift({name:'.snapshot', isdir:true})
                     opts.cb(err, v)
+
+    #################################################
+    # Project Server Control
+    #################################################
+    restart_project_server: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required    # will keep retrying until it succeeds at which point opts.cb().
+
+        wait     = 1000
+        max_wait = 30000
+        @exec
+            project_id : opts.project_id
+            command    : 'stop_smc'
+            timeout    : 3
+            cb         : () =>
+                # We do something else now, which will trigger the hub to notice the
+                # server is down and restart it.
+                f = () =>
+                    @exec
+                        project_id : opts.project_id
+                        command    : 'ls'  # doesn't matter
+                        timeout    : 3
+                        cb         : (err) =>
+                            if err
+                                wait = Math.min(max_wait, wait*1.3)
+                                console.log("trying again in ", wait)
+                                setTimeout(f, wait)
+                            else
+                                opts.cb()
+                f()
+        return false
+
+
 
 
 #################################################
