@@ -330,7 +330,7 @@ class Client extends EventEmitter
     # Pushing messages to this particular connected client
     #######################################################
     push_to_client: (mesg) =>
-        winston.debug("hub --> client (#{@account_id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
+        winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}") if mesg.event != 'pong'
         @push_data_to_client(JSON_CHANNEL, to_json(mesg))
 
     push_data_to_client: (channel, data) ->
@@ -555,7 +555,7 @@ class Client extends EventEmitter
             winston.error("error parsing incoming mesg (invalid JSON): #{mesg}")
             return
         if mesg.event.slice(0,4) != 'ping' and mesg.event != 'codemirror_bcast'
-            winston.debug("client --> hub: #{misc.trunc(to_safe_str(mesg), 300)}")
+            winston.debug("client --> hub (client=#{@id}): #{misc.trunc(to_safe_str(mesg), 300)}")
         handler = @["mesg_#{mesg.event}"]
         if handler?
             handler(mesg)
@@ -1988,7 +1988,7 @@ class CodeMirrorSession
                             # reconnect messages, and keep going fine, eventually.
                             @diffsync_clients = {}
 
-                            cb() 
+                            cb()
 
     set_content: (content) =>
         @diffsync_server.live = content
@@ -2080,14 +2080,12 @@ class CodeMirrorSession
                     winston.debug("CodeMirrorSession -- push_edits returned -- #{err}")
 
             if before != @diffsync_server.live
-                # Master view of the document changed, so suggest other clients sync
-                for id, ds of @diffsync_clients
-                    if client.id != id
-                        ds.remote.sync_ready()
-                # Also, sync new state with upstream local_hub.
-                @sync (err) =>
-                    if err
-                        @reconnect()
+                # Sync new state with upstream local_hub.
+                @sync () =>
+                    # View of the document changed and we're done syncing with upstream, so suggest other clients sync with us.
+                    for id, ds of @diffsync_clients
+                        if client.id != id
+                            ds.remote.sync_ready()
 
     get_snapshot: () =>
         return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
