@@ -254,6 +254,60 @@ exports.retry_until_success = (opts) ->
                 opts.cb?()
     setTimeout(g, delta)
 
+
+# Attempt (using exponential backoff) to execute the given function.
+# Will keep retrying until it succeeds, then call "cb()".   You may
+# call this multiple times and all callbacks will get called once the
+# connection succeeds, since it keeps a stack of all cb's.
+# The function f that gets called should make one attempt to do what it
+# does, then on success do cb() and on failure cb(err).
+# It must *NOT* call the RetryUntilSuccess callable object.
+#
+# Usage
+#
+#      @foo = retry_until_success_wrapper(f:@_foo)
+#      @bar = retry_until_success_wrapper(f:@_foo, start_delay:100, max_delay:10000, exp_factor:1.5)
+#
+exports.retry_until_success_wrapper = (opts) ->
+    _X = new RetryUntilSuccess(opts)
+    return (cb) -> _X.call(cb)
+
+class RetryUntilSuccess
+    constructor: (opts) ->
+        @opts = exports.defaults opts,
+            f           : exports.defaults.required    # f(cb);  cb(err)
+            start_delay : 100         # times are all in milliseconds
+            max_delay   : 20000
+            exp_factor  : 1.4
+            logname     : undefined
+
+    call: (cb, retry_delay) =>
+        if @opts.logname?
+            console.log("#{@opts.logname}(... #{retry_delay})")
+        if not @_cb_stack?
+            @_cb_stack = []
+        if cb?
+            @_cb_stack.push(cb)
+        if @_calling
+            return
+        @_calling = true
+        @opts.f (err) =>
+            @_calling = false
+            if err
+                if not retry_delay?
+                    retry_delay = @opts.start_delay
+                else
+                    retry_delay = Math.min(@opts.max_delay, @opts.exp_factor*retry_delay)
+                f = () =>
+                    @call(undefined, retry_delay)
+                setTimeout(f, retry_delay)
+            else
+                if @_cb_stack?
+                    for cb in @_cb_stack
+                        cb()
+                    delete @_cb_stack
+
+
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
 class exports.StringCharMapping
     constructor: (opts={}) ->

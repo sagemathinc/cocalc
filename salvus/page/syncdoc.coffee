@@ -166,58 +166,35 @@ class DiffSyncHub
 
 {EventEmitter} = require('events')
 
+
 class AbstractSynchronizedDocument extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
             project_id : required
             filename   : required
-            cb         : undefined   # cb(err) once doc is connected to.
+            cb         : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
+
         @project_id = opts.project_id
         @filename   = opts.filename
+
+        @connect    = misc.retry_until_success_wrapper(f:@_connect) #, logname:'connect')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync) #, logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save) #, logname:'save')
+
         @connect (err) =>
-            if err
-                opts.cb?(err)
-            else
-                @sync () =>
-                    opts.cb?()
+            opts.cb(err, @)
 
-    # Attempt (using exponential backoff) to connect to the remote server.
-    # Will keep retrying until it succeeds, then call "cb()".   You may
-    # call this multiple times and all callbacks will get called once the
-    # connection succeeds.
-    connect: (cb, retry_delay) =>
-        if not @_connecting_cb_stack?
-            @_connecting_cb_stack = []
-        @_connecting_cb_stack.push(cb)
-        if @_connecting
-            return
-        @_connecting = true
-        @_connect (err) =>
-            @_connecting = false
-            if err
-                if not retry_delay?
-                    retry_delay = 250
-                else
-                    retry_delay = Math.min(15000, 1.3*retry_delay)
-                f = () =>
-                    @connect(cb, retry_delay)
-                setTimeout(f, retry_delay)
-            else
-                if @_connecting_cb_stack?
-                    for cb in @_connecting_cb_stack
-                        cb?()
-                    delete @_connecting_cb_stack
-
+    # "connect(cb)": Connect to the given server; will retry until it succeeds.
+    # _connect(cb): Try once to connect and on any error, cb(err).
     _connect: (cb) =>
         @_remove_listeners()
-        salvus_client.call
+        delete @session_uuid
+        @call
             timeout : 30     # a reasonable amount of time, since file could be *large*
-
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @project_id
-
-            cb : (err, resp) =>
+            cb      : (err, resp) =>
                 if resp.event == 'error'
                     err = resp.error
                 if err
@@ -245,100 +222,78 @@ class AbstractSynchronizedDocument extends EventEmitter
 
                 cb?()
 
-    connected: () =>
-        return @dsync_server?  # only defined once we have connection.
+    _add_listeners: () =>
+        salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
+        #salvus_client.on 'codemirror_bcast', @_receive_broadcast
 
+    _remove_listeners: () =>
+        salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
+        #salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
+
+    _diffsync_ready: (mesg) =>
+        if mesg.session_uuid == @session_uuid
+            @sync()
+
+    #_receive_broadcast: (mesg) =>
+    #    if mesg.session_uuid != @session_uuid
+    #        return
+
+    # @live(): the current live version of this document as a string, or
+    # @live(s): set the live version
     live: (s) =>
         if s?
             @dsync_client.live = s
         else
             @dsync_client?.live
 
-    _add_listeners: () =>
-        salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.on 'codemirror_bcast', @_receive_broadcast
-
-    _remove_listeners: () =>
-        salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
-
-    _diffsync_ready: (mesg) =>
-        if mesg.session_uuid == @session_uuid
-            @sync()
-
-    _receive_broadcast: (mesg) =>
-        if mesg.session_uuid != @session_uuid
-            return
-
-    # Sync will keep trying with exponential backoff until is definitely
-    # succeeds.   It then calls cb().
-    sync: (cb, retry_delay) =>
-        if not @_syncing_cb_stack?
-            @_syncing_cb_stack = []
-
-        @_syncing_cb_stack.push(cb)
-
-        if @_syncing
-            return
-
-        if not @dsync_client
-            f = () =>
-                @sync(cb, retry_delay)
-            setTimeout(f, 1000)  # doesn't hit server, since purely client side.
-            return
-
-        @_syncing = true
+    # "sync(cb)": keep trying to synchronize until success; then do cb()
+    # _sync(cb) -- try once to sync; on any error cb(err).
+    _sync: (cb) =>
         snapshot = @live()
         @dsync_client.push_edits (err) =>
-            @_syncing = false
             if err
-                if not retry_delay?
-                    retry_delay = 250
-                else
-                    retry_delay = Math.min(15000, 1.3*retry_delay)
-                f = () =>
-                    if err != 'retry'
-                        @connect (err) =>
-                            @sync(cb, retry_delay)
-                    else
-                        @sync(cb, retry_delay)
-                setTimeout(f, retry_delay)
-
-            if not err
+                if err == 'retry'
+                    cb?(err)
+                else  # all other errors should reconnect first.
+                    @connect () =>
+                        cb?(err)
+            else
                 @_last_sync = snapshot    # What was the last successful sync with upstream.
                 @emit('sync')
-                if @_syncing_cb_stack?
-                    for cb in @_syncing_cb_stack
-                        cb?()
-                    delete @_syncing_cb_stack
+                cb?()
 
-    # TODO: change to use proper cb stack and backoff too -- logic below is wrong
-    save: (cb, delay) =>
-        if @dsync_client?
-            @sync () =>
-                @call
-                    message: message.codemirror_write_to_disk()
-                    cb : cb
-        else
-            if not delay?
-                delay = 250
-            else
-                delay = Math.min(30000, 1.3*delay)
-            f = () =>
-                @save(cb, delay)
-            setTimeout(f, delay)
+    # save(cb): write out file to disk retrying until success.
+    # _save(cb): try to sync then write to disk; if anything goes wrong, cb(err).
+    _save: (cb) =>
+        if not @dsync_client?
+            cb("must be connected before saving"); return
+        @_sync (err) =>
+            if err
+                cb(err); return
+            @call
+                message : message.codemirror_write_to_disk()
+                timeout : 10
+                cb      : (err, resp) ->
+                    if err or resp.event != 'success'
+                        cb(true)
+                    else
+                        cb()
 
     call: (opts) =>
         opts = defaults opts,
             message     : required
-            timeout     : 45
+            timeout     : 30
             cb          : undefined
         opts.message.session_uuid = @session_uuid
         salvus_client.call(opts)
 
-exports.AbstractSynchronizedDocument = AbstractSynchronizedDocument
+class SynchronizedString extends AbstractSynchronizedDocument
+    # same for now
 
+synchronized_string = (opts) ->
+    new SynchronizedString(opts)
 
+exports.synchronized_string = synchronized_string
 
 
 

@@ -1532,11 +1532,12 @@ class ProjectPage
                     cb    : cb
 
             (cb) =>
-                ASD = require('syncdoc').AbstractSynchronizedDocument
-                @project_log = new ASD
+                require('syncdoc').synchronized_string
                     project_id : @project.project_id
                     filename   : LOG_FILE
-                    cb         : cb
+                    cb         : (err, doc) =>
+                        @project_log = doc
+                        cb(err)
 
             (cb) =>
                 log_output = page.find(".project-activity-log")
@@ -1589,12 +1590,13 @@ class ProjectPage
         )
 
     project_activity: (mesg, delay) =>
-        if @project_log?.connected()
+        if @project_log?
             mesg.fullname   = account.account_settings.fullname()
             mesg.account_id = account.account_settings.account_id
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
             @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
+            @render_project_activity_log()
             @project_log.save()
         else
             if not delay?
@@ -1607,6 +1609,11 @@ class ProjectPage
 
     render_project_activity_log: () =>
         log = @project_log.live()
+        if @_render_project_activity_log_last? and @_render_project_activity_log == log
+            return
+        else
+            @_render_project_activity_log_last = log
+
         items_per_page = 30
         page = @_project_activity_log_page
 
