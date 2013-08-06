@@ -13,7 +13,6 @@
 #
 ##############################################################################
 
-
 SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -1199,6 +1198,16 @@ class Client extends EventEmitter
                     else
                         @push_to_client(resp)
 
+    mesg_project_restart: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.local_hub.restart (err) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.success(id:mesg.id))
+
     ################################################
     # CodeMirror Sessions
     ################################################
@@ -2249,6 +2258,26 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             else
                 cb(false, @)
 
+    restart: (cb) =>
+        if @_restart_lock
+            cb("already restarting")
+            return
+        async.series([
+            (cb) =>
+                winston.debug("Push latest version of code to remote machine...")
+                @_push_local_hub_code(cb)
+            (cb) =>
+                winston.debug("Restart the local services....")
+                @_exec_on_local_hub 'restart_smc', 30, (err, output) =>
+                    #winston.debug("result: #{err}, #{misc.to_json(output)}")
+                    cb(err)
+                @_restart_lock = true
+        ], (err) =>
+            #winston.debug("project restart done -- #{err}")
+            @_restart_lock = false
+            cb(err)
+        )
+
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
     # but makes sense for other sessions.
@@ -2267,7 +2296,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             opts.cb?()
         catch e
             opts.cb?("Error sending message to session #{opts.session_uuid} -- #{e}")
-
 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
     # except those in @_multi_response.
@@ -2563,7 +2591,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @call
             mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, project_id:opts.project_id, path:opts.path)
             cb   : (err, resp) =>
-                #winston.debug("new codemirror session: local_hub --> hub: #{err}, #{misc.to_json(resp)}")
+                # winston.debug("new codemirror session: local_hub --> hub: #{err}, #{misc.to_json(resp)}")
                 if err
                     opts.cb(err)
                 else if resp.event == 'error'
@@ -2647,7 +2675,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             (cb) =>
                 @_push_local_hub_code(cb)
             (cb) =>
-                @_get_local_hub_status (err,_status) =>
+                @_get_local_hub_status (err, _status) =>
                     @_status = _status
                     cb(err)
             (cb) =>
@@ -2684,7 +2712,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         )
 
     _push_local_hub_code: (cb) =>
-        winston.debug("pushing latest code to remote location")
+        winston.debug("pushing latest code to #{@address}")
+        tm = misc.walltime()
         misc_node.execute_code
             command : "rsync"
             args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
@@ -2692,16 +2721,25 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             timeout : 30
             bash    : false
             path    : SALVUS_HOME
-            cb      : cb
+            cb      : (err, output) =>
+                winston.debug("time to rsync latest code to #{@address}: #{misc.walltime(tm)} seconds -- #{err}")
+                cb(err, output)
 
     _exec_on_local_hub: (command, timeout, cb) =>
+        if @_restart_lock
+            cb("restarting..."); return
+
         # ssh [user]@[host] [-p port] .sagemathcloud/[commmand]
+        tm = misc.walltime()
         misc_node.execute_code
             command : "ssh"
             args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', "~#{@username}/.sagemathcloud/#{command}"]
             timeout : timeout
             bash    : false
-            cb      : cb
+            cb      : (err, output) =>
+                winston.debug("time to exec #{command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
+                cb(err, output)
+
 
     _get_local_hub_status: (cb) =>
         winston.debug("getting status of remote location")
@@ -2838,14 +2876,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 # with our message protocol.
 
 _project_cache = {}
-new_project = (project_id, cb) ->   # cb(err, project)
+new_project = (project_id, cb, delay) ->   # cb(err, project)
     winston.debug("project request (project_id=#{project_id})")
     P = _project_cache[project_id]
     if P?
         if P == "instantiating"
-            # Try again in a second. We must believe that the code
+            if not delay?
+                delay = 500
+            else
+                delay = Math.min(30000, 1.2*delay)
+            # Try again; We must believe that the code
             # doing the instantiation will terminate and correctly set P.
-            setTimeout((() -> new_project(project_id, cb)), 1000)
+            setTimeout((() -> new_project(project_id, cb)), delay)
         else
             cb(false, P)
     else

@@ -1,14 +1,28 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
-set -e
+import os, sys,time
 
-echo "Read SageMathCloud environment variables."
-. $HOME/.sagemathcloud/sagemathcloud-env
+os.chdir(os.environ['HOME'])
 
-echo "Rebuild any modified coffeescript"
-make_coffee
+def cmd(s):
+    print s
+    if os.system(". $HOME/.sagemathcloud/sagemathcloud-env && " + s):
+       sys.exit(1)
 
-local_hub      start
-console_server start  &
-sage_server    start  &
+cmd("cd $HOME/.sagemathcloud && ./make_coffee")
 
+cmd("local_hub start")
+
+# we redirect to /dev/null to detach file descripts so remote ssh terminates without waiting for these. 
+cmd("console_server start  </dev/null >/dev/null 2>&1 &")
+cmd("sage_server    start  </dev/null >/dev/null 2>&1 &")
+
+# wait until "data/local_hub.port" gets created (up to 15 seconds)
+i=0
+while not os.path.exists(".sagemathcloud/data/local_hub.port"):
+    time.sleep(0.1)
+    i += 1
+    print i
+    if i >= 150:
+        sys.stderr.write("Error allocating network port\n")
+        sys.exit(1)

@@ -1589,7 +1589,7 @@ class ProjectPage
         )
 
     project_activity: (mesg) =>
-        if @project_log?
+        if @project_log?.connected()
             mesg.fullname   = account.account_settings.fullname()
             mesg.account_id = account.account_settings.account_id
             s = misc.to_json(new Date())
@@ -1934,8 +1934,8 @@ class ProjectPage
             link.find("i").addClass('icon-spin')
             alert_message
                 type    : "info"
-                message :"Restarting project server.  This should take around 15 seconds..."
-                timeout : 10
+                message : "Restarting project server.  This should take around 5 seconds..."
+                timeout : 4
             salvus_client.restart_project_server
                 project_id : @project.project_id
                 cb         : () =>

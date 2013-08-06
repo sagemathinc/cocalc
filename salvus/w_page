@@ -1,2 +1,0 @@
-. salvus-env
-watch2  page/*.html page/*.css ./make_page

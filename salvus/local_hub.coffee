@@ -66,14 +66,6 @@ secret_token_length = 128
 
 init_confpath = () ->
     async.series([
-        # Ensure the CONFPATH has maximally restrictive permissions, since
-        # secret info will be stored there.
-        (cb) ->
-            winston.debug("restrict permissions")
-            misc_node.execute_code
-                command : "chmod"
-                args    : ['u+rw,og-rwx', '-R', abspath('.sagemathcloud')]
-                cb      : cb
 
         # Read or create the file; after this step the variable secret_token
         # is set and the file exists.
@@ -90,9 +82,7 @@ init_confpath = () ->
                         secret_token = buf.toString('base64')
                         fs.writeFile(secret_token_filename, secret_token, cb)
 
-        # Ensure restrictive permissions on the secret token file.  The
-        # directory permissions already restrict anybody else from
-        # looking at this file, but we do this as well, just in case.
+        # Ensure restrictive permissions on the secret token file.  
         (cb) ->
             fs.chmod(secret_token_filename, 0o600, cb)
     ])
@@ -1603,7 +1593,6 @@ server = net.createServer (socket) ->
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    init_confpath()
     server.listen program.port, '127.0.0.1', () ->
         winston.info "listening on port #{server.address().port}"
         fs.writeFile(abspath('.sagemathcloud/data/local_hub.port'), server.address().port)
@@ -1626,6 +1615,10 @@ if program._name == 'local_hub.js'
         winston.error "Uncaught exception: " + err
         if console? and console.trace?
             console.trace()
+    console.log("setting up conf path")
+    init_confpath()
     console.log("start daemon")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
     console.log("after daemon")
+
+# x

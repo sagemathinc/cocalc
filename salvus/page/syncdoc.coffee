@@ -203,6 +203,9 @@ class AbstractSynchronizedDocument extends EventEmitter
                 @_add_listeners()
                 cb?()
 
+    connected: () =>
+        return @sync_server?  # only defined once we have connection.
+
     live: (s) =>
         if s?
             @dsync_client.live = s

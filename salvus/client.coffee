@@ -1398,32 +1398,10 @@ class exports.Connection extends EventEmitter
             project_id : required
             cb         : required    # will keep retrying until it succeeds at which point opts.cb().
 
-        wait     = 1000
-        max_wait = 30000
-        @exec
-            project_id : opts.project_id
-            command    : 'stop_smc'
-            timeout    : 3
-            cb         : () =>
-                # We do something else now, which will trigger the hub to notice the
-                # server is down and restart it.
-                f = () =>
-                    @exec
-                        project_id : opts.project_id
-                        command    : 'ls'  # doesn't matter
-                        timeout    : 3
-                        cb         : (err) =>
-                            if err
-                                wait = Math.min(max_wait, wait*1.3)
-                                console.log("trying again in ", wait)
-                                setTimeout(f, wait)
-                            else
-                                opts.cb()
-                f()
-        return false
-
-
-
+        @call
+            message : message.project_restart(project_id:opts.project_id)
+            timeout : 30    # should take about 5 seconds, but maybe network is slow (?)
+            cb      : opts.cb
 
 #################################################
 # Other account Management functionality shared between client and server

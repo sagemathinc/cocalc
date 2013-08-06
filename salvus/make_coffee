@@ -9,20 +9,24 @@ set -e
 # .js files from coffee scripts.
 ############################################################
 echo "Rebuilding all CoffeeScript modules..."
+
+# Change to the directory containing this file.
 cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
 ###########
 # Backend server code:
 ###########
-time coffee -o node_modules -c *.coffee
+./scripts/make_coffee
 
 ###########
 # Code shared between backend servers and web browser clients
 ###########
 time browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
       time uglifyjs2 static/salvus.js -o static/salvus.min.js && \
-      time coffee -b -o page/temp page/*.coffee && \
+      cd page &&
+      time ../scripts/make_coffee temp &&
+      cd .. &&
       time gen_page && \
       time uglifyjs2 static/index.js -o static/index.min.js
 

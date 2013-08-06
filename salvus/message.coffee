@@ -757,6 +757,7 @@ message
     bash       : false       # if true, args are ignored and command is run as a bash command
     err_on_exit : true       # if exit code is nonzero send error return message instead of the usual output.
 
+# project --> client
 message
     event      : 'project_exec_output'
     id         : required
@@ -764,7 +765,11 @@ message
     stderr     : required
     exit_code  : required
 
-
+# client --> project
+message
+    event      : 'project_restart'
+    id         : undefined
+    project_id : required
 
 #############################################################################
 
@@ -1086,7 +1091,7 @@ message
     stats     : undefined    # gets filled in by the hub
 
 
-    
+
 #############################################
 #
 # Message sent in response to attempt to save a blob
