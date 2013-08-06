@@ -158,10 +158,9 @@ class DiffSyncHub
             cb      : (err, mesg) =>
                 if err
                     cb(err)
-                else if mesg.event == 'error'
-                    cb(mesg.error)
-                else if mesg.event == 'codemirror_diffsync_retry_later'
-                    cb('retry')
+                else if mesg.event != 'codemirror_diffsync'
+                    # various error conditions, e.g., reconnect, etc.
+                    cb(mesg.event)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
@@ -182,7 +181,34 @@ class AbstractSynchronizedDocument extends EventEmitter
                 @sync () =>
                     opts.cb?()
 
-    connect: (cb) =>
+    # Attempt (using exponential backoff) to connect to the remote server.
+    # Will keep retrying until it succeeds, then call "cb()".   You may
+    # call this multiple times and all callbacks will get called once the
+    # connection succeeds.
+    connect: (cb, retry_delay) =>
+        if not @_connecting_cb_stack?
+            @_connecting_cb_stack = []
+        @_connecting_cb_stack.push(cb)
+        if @_connecting
+            return
+        @_connecting = true
+        @_connect (err) =>
+            @_connecting = false
+            if err
+                if not retry_delay?
+                    retry_delay = 250
+                else
+                    retry_delay = Math.min(15000, 1.3*retry_delay)
+                f = () =>
+                    @connect(cb, retry_delay)
+                setTimeout(f, retry_delay)
+            else
+                if @_connecting_cb_stack?
+                    for cb in @_connecting_cb_stack
+                        cb?()
+                    delete @_connecting_cb_stack
+
+    _connect: (cb) =>
         @_remove_listeners()
         salvus_client.call
             timeout : 30     # a reasonable amount of time, since file could be *large*
@@ -207,7 +233,6 @@ class AbstractSynchronizedDocument extends EventEmitter
 
                 if @_last_sync?
                     # applying missed patches to the new upstream version that we just got from the hub.
-                    console.log("applying missed patches ", misc.to_json(patch))
                     @live(diffsync.dmp.patch_apply(patch, @live())[0])
                 else
                     # This initialiation is the first sync.
@@ -238,7 +263,6 @@ class AbstractSynchronizedDocument extends EventEmitter
         salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
 
     _diffsync_ready: (mesg) =>
-        console.log("_diffsync_ready: #{misc.to_json(mesg)}")
         if mesg.session_uuid == @session_uuid
             @sync()
 
@@ -268,7 +292,6 @@ class AbstractSynchronizedDocument extends EventEmitter
         @dsync_client.push_edits (err) =>
             @_syncing = false
             if err
-                console.log("diffsync error: #{err}")
                 if not retry_delay?
                     retry_delay = 250
                 else
@@ -289,6 +312,7 @@ class AbstractSynchronizedDocument extends EventEmitter
                         cb?()
                     delete @_syncing_cb_stack
 
+    # TODO: change to use proper cb stack and backoff too -- logic below is wrong
     save: (cb, delay) =>
         if @dsync_client?
             @sync () =>
@@ -310,20 +334,7 @@ class AbstractSynchronizedDocument extends EventEmitter
             timeout     : 45
             cb          : undefined
         opts.message.session_uuid = @session_uuid
-        salvus_client.call
-            message : opts.message
-            timeout : opts.timeout
-            cb      : (err, result) =>
-                if result? and result.event == 'reconnect'
-                    do_reconnect = () =>
-                        @connect (err) =>
-                            if err
-                                opts.cb?(err)
-                            else
-                                opts.cb?('reconnect')  # still an error condition
-                    setTimeout(do_reconnect, 1000)  # give server some room
-                else
-                    opts.cb?(err, result)
+        salvus_client.call(opts)
 
 exports.AbstractSynchronizedDocument = AbstractSynchronizedDocument
 
@@ -1482,7 +1493,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
-            #console.log("sync now")
             @sync()
 
     split_cell_at: (pos) =>

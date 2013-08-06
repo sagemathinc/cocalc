@@ -1595,8 +1595,7 @@ class ProjectPage
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
             @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
-            @project_log.save () =>
-                console.log("saved in response to #{misc.to_json(mesg)}")
+            @project_log.save()
         else
             if not delay?
                 delay = 300
