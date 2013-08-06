@@ -293,16 +293,6 @@ CREATE TABLE snap_servers (
     PRIMARY KEY(id)
 );
 
-CREATE TABLE snap_servers0 (
-    dummy      boolean,
-    id         uuid,
-    host       varchar,    /* hostname */
-    port       int,        /* integer port */
-    key        varchar,    /* random string needed to unlock tcp connection */
-    size       int,        /* total size in kilobytes of the objects/pack directory of the archive */
-    PRIMARY KEY(dummy,id)
-);
-
 
 CREATE TABLE snap_commits (
     server_id  uuid,       /* id into snap_servers table above */
