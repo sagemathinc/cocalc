@@ -1595,7 +1595,8 @@ class ProjectPage
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
             @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
-            @project_log.save()  # causes a sync first
+            @project_log.save () =>
+                console.log("saved in response to #{misc.to_json(mesg)}")
         else
             if not delay?
                 delay = 300
@@ -1661,7 +1662,10 @@ class ProjectPage
                 else
                     x.find(".project-activity-name").hide()
                 if entry.date?
-                    x.find(".project-activity-date").attr('title',(new Date(entry.date)).toISOString()).timeago()
+                    try
+                       x.find(".project-activity-date").attr('title',(new Date(entry.date)).toISOString()).timeago()
+                    catch e
+                       console.log("TODO: ignoring invalid project log time value -- #{entry.date}")
                 else
                     x.find(".project-activity-date").hide()
 

@@ -204,7 +204,8 @@ class AbstractSynchronizedDocument extends EventEmitter
                 @dsync_client = new diffsync.DiffSync(doc:resp.content)
 
                 if @_last_sync?
-                    # applying missed patches the live that we just got.
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    console.log("applying missed patches ", misc.to_json(patch))
                     @live(diffsync.dmp.patch_apply(patch, @live())[0])
                 else
                     # This initialiation is the first sync.
@@ -235,6 +236,7 @@ class AbstractSynchronizedDocument extends EventEmitter
         salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
 
     _diffsync_ready: (mesg) =>
+        console.log("_diffsync_ready: #{misc.to_json(mesg)}")
         if mesg.session_uuid == @session_uuid
             @sync()
 
@@ -242,41 +244,62 @@ class AbstractSynchronizedDocument extends EventEmitter
         if mesg.session_uuid != @session_uuid
             return
 
+    # Sync will keep trying with exponential backoff until is definitely
+    # succeeds.   It then calls cb().
     sync: (cb, retry_delay) =>
         if @_syncing
-            cb?()
+            @_syncing_cb_stack.push(cb)
             return
+
         if not @dsync_client
-            cb?("document synchronization not initialized at all yet")
+            f = () =>
+                @sync(cb, retry_delay)
+            setTimeout(f, 1000)  # doesn't hit server, since purely client side.
             return
+
         @_syncing = true
+        if @_syncing_cb_stack?
+            @_syncing_cb_stack.push(cb)
+        else
+            @_syncing_cb_stack = [cb]
         snapshot = @live()
         @dsync_client.push_edits (err) =>
             @_syncing = false
             if err
+                console.log("diffsync error: #{err}")
                 if not retry_delay?
                     retry_delay = 250
+                else
+                    retry_delay = Math.min(15000, 1.3*retry_delay)
                 f = () =>
                     if err != 'retry'
                         @connect (err) =>
-                            @sync(cb, 1.3*retry_delay)
+                            @sync(cb, retry_delay)
                     else
-                        @sync(cb, 1.3*retry_delay)
+                        @sync(cb, retry_delay)
                 setTimeout(f, retry_delay)
 
             if not err
                 @_last_sync = snapshot    # What was the last successful sync with upstream.
                 @emit('sync')
-            cb?(err)
+                for cb in @_syncing_cb_stack
+                    cb?()
+                delete @_syncing_cb_stack
 
-    save: (cb) =>
+    save: (cb, delay) =>
         if @dsync_client?
             @sync () =>
                 @call
                     message: message.codemirror_write_to_disk()
                     cb : cb
         else
-            cb?("Unable to save '#{@filename}' since it is not yet loaded.")
+            if not delay?
+                delay = 250
+            else
+                delay = Math.min(30000, 1.3*delay)
+            f = () =>
+                @save(cb, delay)
+            setTimeout(f, delay)
 
     call: (opts) =>
         opts = defaults opts,

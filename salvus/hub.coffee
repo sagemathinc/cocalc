@@ -1960,7 +1960,7 @@ class CodeMirrorSession
                 delete codemirror_sessions.by_uuid[@session_uuid]
                 delete @_upstream_sync_lock
                 @local_hub.call
-                    mesg : message.codemirror_get_session(path:@path)
+                    mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
                     cb   : (err, resp) =>
                         winston.debug("local_hub --> hub: (reconnect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
                         if err
@@ -1988,8 +1988,7 @@ class CodeMirrorSession
                             # reconnect messages, and keep going fine, eventually.
                             @diffsync_clients = {}
 
-                            # Sync with upstream.
-                            @sync(cb)
+                            cb() 
 
     set_content: (content) =>
         @diffsync_server.live = content
@@ -2098,10 +2097,14 @@ class CodeMirrorSession
             if id != exclude_id
                 ds.remote.send_mesg(mesg)
 
-    sync: (cb) =>
-        if @_upstream_sync_lock? and @_upstream_sync_lock
-            winston.debug("codemirror session: not sync'ing due to lock (already syncing with upstream local hub)")
-            cb?()
+    sync: (cb, delay) =>
+
+        if not @_upstream_sync_lock_queue?
+            @_upstream_sync_lock_queue = []
+
+        @_upstream_sync_lock_queue.push(cb)
+
+        if @_upstream_sync_lock
             return
 
         @_upstream_sync_lock = true
@@ -2112,15 +2115,28 @@ class CodeMirrorSession
             @_upstream_sync_lock = false
             if err
                 winston.debug("codemirror session sync -- ERROR pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub -- #{err}")
-                @reconnect(cb)
+                if not delay?
+                    delay = 250
+                else
+                    delay = Math.min(15000, 1.3*delay)
+                f = () =>
+                    if err == 'retry'
+                        @sync(cb, delay)
+                    else
+                        @reconnect (err) =>
+                            @sync(cb, delay)
+                setTimeout(f, delay)
             else
                 winston.debug("codemirror session sync -- pushed edits, thus completing cycle")
+                if @_upstream_sync_lock_queue?
+                    for cb in @_upstream_sync_lock_queue
+                       cb?()
+                    delete @_upstream_sync_lock_queue
                 if before != @diffsync_server.live
                     winston.debug("codemirror session sync -- there were changes.")
                     # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
                     for id, ds of @diffsync_clients
                         ds.remote.sync_ready()
-                cb?()
 
     # Add a new diffsync browser client.
     add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
@@ -2135,26 +2151,35 @@ class CodeMirrorSession
         client.on 'close', () =>
             delete @diffsync_clients[client.id]
 
-    write_to_disk: (client, mesg) =>
-        @local_hub.call
-            mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
-            cb   : (err, resp) =>
-                if err
-                    resp = message.reconnect(id:mesg.id, reason:"Error writing to disk -- #{err}")
-                    client.push_to_client(resp)
-                    @sync() # will cause a reconnect
-                else
-                    resp.id = mesg.id
-                    if misc.filename_extension(@path) == "sagews"
-                        make_blobs_permanent
-                            blob_ids   : diffsync.uuids_of_linked_files(@diffsync_server.live)
-                            cb         : (err) =>
-                                if err
-                                    client.error_to_client(id:mesg.id, error:err)
-                                else
-                                    client.push_to_client(resp)
-                    else
-                         client.push_to_client(resp)
+    write_to_disk: (client, mesg, cb) =>
+        async.series([
+            (cb) =>
+                @sync(cb)
+
+            (cb) =>
+                @local_hub.call
+                    mesg : message.codemirror_write_to_disk(session_uuid : @session_uuid)
+                    cb   : (err, resp) =>
+                        if err
+                            resp = message.reconnect(id:mesg.id, reason:"Error writing to disk -- #{err}")
+                            client.push_to_client(resp)
+                            @sync() # will cause a reconnect
+                        else
+                            winston.debug("wrote '#{@path}' to disk")
+                            resp.id = mesg.id
+                            if misc.filename_extension(@path) == "sagews"
+                                make_blobs_permanent
+                                    blob_ids   : diffsync.uuids_of_linked_files(@diffsync_server.live)
+                                    cb         : (err) =>
+                                        if err
+                                            client.error_to_client(id:mesg.id, error:err)
+                                        else
+                                            client.push_to_client(resp)
+                            else
+                                 client.push_to_client(resp)
+                        cb(err)
+        ], (err) => cb?(err))
+
 
     read_from_disk: (client, mesg) =>
         @local_hub.call
