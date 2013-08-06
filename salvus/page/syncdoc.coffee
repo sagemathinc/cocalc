@@ -176,9 +176,11 @@ class AbstractSynchronizedDocument extends EventEmitter
         @project_id = opts.project_id
         @filename   = opts.filename
         @connect (err) =>
-            if not err
-                @sync()
-            opts.cb?(err)
+            if err
+                opts.cb?(err)
+            else
+                @sync () =>
+                    opts.cb?()
 
     connect: (cb) =>
         @_remove_listeners()
@@ -247,8 +249,12 @@ class AbstractSynchronizedDocument extends EventEmitter
     # Sync will keep trying with exponential backoff until is definitely
     # succeeds.   It then calls cb().
     sync: (cb, retry_delay) =>
+        if not @_syncing_cb_stack?
+            @_syncing_cb_stack = []
+
+        @_syncing_cb_stack.push(cb)
+
         if @_syncing
-            @_syncing_cb_stack.push(cb)
             return
 
         if not @dsync_client
@@ -258,10 +264,6 @@ class AbstractSynchronizedDocument extends EventEmitter
             return
 
         @_syncing = true
-        if @_syncing_cb_stack?
-            @_syncing_cb_stack.push(cb)
-        else
-            @_syncing_cb_stack = [cb]
         snapshot = @live()
         @dsync_client.push_edits (err) =>
             @_syncing = false
@@ -282,9 +284,10 @@ class AbstractSynchronizedDocument extends EventEmitter
             if not err
                 @_last_sync = snapshot    # What was the last successful sync with upstream.
                 @emit('sync')
-                for cb in @_syncing_cb_stack
-                    cb?()
-                delete @_syncing_cb_stack
+                if @_syncing_cb_stack?
+                    for cb in @_syncing_cb_stack
+                        cb?()
+                    delete @_syncing_cb_stack
 
     save: (cb, delay) =>
         if @dsync_client?
