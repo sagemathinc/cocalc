@@ -204,7 +204,7 @@ class AbstractSynchronizedDocument extends EventEmitter
                 cb?()
 
     connected: () =>
-        return @sync_server?  # only defined once we have connection.
+        return @dsync_server?  # only defined once we have connection.
 
     live: (s) =>
         if s?
