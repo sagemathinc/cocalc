@@ -82,15 +82,15 @@ class DiffSync
 
     # "Best effort" application of array of edits.
     _apply_edits: (edits, doc, cb) =>
-        cb(false, dmp.patch_apply(edits, doc)[0])
+        cb?(false, dmp.patch_apply(edits, doc)[0])
 
     _apply_edits_to_live: (edits, cb) =>
         @_apply_edits  edits, @live, (err, result) =>
             if err
-                cb(err); return
+                cb?(err); return
             else
                 @live = result
-                cb()
+                cb?()
 
     # Return a checksum of a document
     _checksum: (doc) =>

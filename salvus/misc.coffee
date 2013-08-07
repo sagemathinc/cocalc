@@ -279,7 +279,9 @@ class RetryUntilSuccess
             start_delay : 100         # times are all in milliseconds
             max_delay   : 20000
             exp_factor  : 1.4
+            max_tries   : undefined
             logname     : undefined
+        @f = @opts.f
 
     call: (cb, retry_delay) =>
         if @opts.logname?
@@ -291,9 +293,18 @@ class RetryUntilSuccess
         if @_calling
             return
         @_calling = true
-        @opts.f (err) =>
+        if not retry_delay?
+            @attempts = 0
+        @f (err) =>
+            @attempts += 1
             @_calling = false
             if err
+                if @opts.max_tries? and @attempts >= @opts.max_tries
+                    if @_cb_stack?
+                        for cb in @_cb_stack
+                            cb()
+                        delete @_cb_stack
+                    return
                 if not retry_delay?
                     retry_delay = @opts.start_delay
                 else
