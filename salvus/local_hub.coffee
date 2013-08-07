@@ -82,7 +82,7 @@ init_confpath = () ->
                         secret_token = buf.toString('base64')
                         fs.writeFile(secret_token_filename, secret_token, cb)
 
-        # Ensure restrictive permissions on the secret token file.  
+        # Ensure restrictive permissions on the secret token file.
         (cb) ->
             fs.chmod(secret_token_filename, 0o600, cb)
     ])
@@ -427,7 +427,15 @@ class DiffSyncFile_server extends diffsync.DiffSync
 
         fs.stat @path, (no_master,stats_path) =>
             fs.stat @_backup_file, (no_backup,stats_backup) =>
-                if no_backup # no backup file -- always use master
+                if no_backup and no_master
+                    # neither exist -- create
+                    file = @path
+                    try
+                        fs.openSync(@path,'a')
+                    catch e
+                        cb('unable to create file to edit')
+                        return
+                else if no_backup # no backup file -- always use master
                     file = @path
                 else if no_master # no master file but there is a backup file -- use backup
                     file = @_backup_file
