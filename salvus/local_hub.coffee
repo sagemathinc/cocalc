@@ -425,20 +425,42 @@ class DiffSyncFile_server extends diffsync.DiffSync
         # knowing about the backup, in which case it makes more sense
         # to just go with the master.
 
-        fs.stat @path, (no_master,stats_path) =>
-            fs.stat @_backup_file, (no_backup,stats_backup) =>
+        no_master = undefined
+        stats_path = undefined
+        no_backup = undefined
+        stats_backup = undefined
+        file = undefined
+
+        async.series([
+            (cb) =>
+                fs.stat @path, (_no_master, _stats_path) =>
+                    no_master = _no_master
+                    stats_path = _stats_path
+                    cb()
+            (cb) =>
+                fs.stat @_backup_file, (_no_backup, _stats_backup) =>
+                    no_backup = _no_backup
+                    stats_backup = _stats_backup
+                    cb()
+            (cb) =>
                 if no_backup and no_master
                     # neither exist -- create
                     file = @path
-                    try
-                        fs.openSync(@path,'a')
-                    catch e
-                        cb('unable to create file to edit')
-                        return
+                    misc_node.ensure_containing_directory_exists @path, (err) =>
+                        if err
+                            cb(err)
+                        else
+                            fs.open file, 'w', (err, fd) =>
+                                if err
+                                    cb(err)
+                                else
+                                    fs.close fd, cb
                 else if no_backup # no backup file -- always use master
                     file = @path
+                    cb()
                 else if no_master # no master file but there is a backup file -- use backup
                     file = @_backup_file
+                    cb()
                 else
                     # both master and backup exist
                     if stats_path.mtime.getTime() >= stats_backup.mtime.getTime()
@@ -447,6 +469,8 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     else
                         # backup is newer
                         file = @_backup_file
+                    cb()
+            (cb) =>
                 fs.readFile file, (err, data) =>
                     if err
                         cb(err); return
@@ -455,7 +479,9 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     @init(doc:data.toString().replace(/\r/g,''), id:"file_server")
                     # winston.debug("got new file contents = '#{@live}'")
                     @_start_watching_file()
-                    cb(err, @live)
+                    cb(err)
+
+        ], (err) => cb(err, @live))
 
     kill: () =>
         if @_autosave?
@@ -523,12 +549,15 @@ class DiffSyncFile_server extends diffsync.DiffSync
 
     write_to_disk: (cb) =>
         @_stop_watching_file()
-        fs.writeFile @path, @live, (err) =>
-            @_start_watching_file()
-            if not err
-                fs.exists @_backup_file, (exists) =>
-                    fs.unlink(@_backup_file)
-            cb?(err)
+        ensure_containing_directory_exists @path, (err) =>
+            if err
+                cb?(err); return
+            fs.writeFile @path, @live, (err) =>
+                @_start_watching_file()
+                if not err
+                    fs.exists @_backup_file, (exists) =>
+                        fs.unlink(@_backup_file)
+                cb?(err)
 
     write_backup: (cb) =>
         if @cm_session.content != @_last_backup
