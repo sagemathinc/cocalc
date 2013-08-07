@@ -1576,6 +1576,9 @@ class ProjectPage
                     page.find(".project-activity-newer").removeClass('disabled')
                     @render_project_activity_log()
                     return false
+
+                cb()
+
         ], (err) =>
             if err
                 # Just try again with exponential backoff  This can and does fail if say the project is first being initailized.
@@ -1630,6 +1633,8 @@ class ProjectPage
 
         if lines.length < items_per_page
             @container.find(".project-activity-older").addClass('disabled')
+        else
+            @container.find(".project-activity-older").removeClass('disabled')
 
         for e in lines
             if $.trim(e).length == 0

@@ -168,16 +168,17 @@ class DiffSyncHub
 
 class AbstractSynchronizedDoc extends EventEmitter
     constructor: (opts) ->
-        opts = defaults opts,
+        @opts = defaults opts,
             project_id : required
             filename   : required
+            sync_interval : 1000    # no matter what, we won't send sync messages back to the server more frequently than this (in ms)
             cb         : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
 
-        @project_id = opts.project_id
-        @filename   = opts.filename
+        @project_id = @opts.project_id
+        @filename   = @opts.filename
 
         @connect    = misc.retry_until_success_wrapper(f:@_connect) #, logname:'connect')
-        @sync       = misc.retry_until_success_wrapper(f:@_sync) #, logname:'sync')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval) #, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save) #, logname:'save')
 
         @connect (err) =>
@@ -219,13 +220,18 @@ class AbstractSynchronizedDoc extends EventEmitter
         snapshot = @live()
         @dsync_client.push_edits (err) =>
             if err
-                if err == 'retry'
+                if err.indexOf('retry') != -1
+                    # This is normal -- it's because the diffsync algorithm only allows sync with
+                    # one client (and upstream) at a time.
                     cb?(err)
                 else  # all other errors should reconnect first.
                     @connect () =>
                         cb?(err)
             else
-                @_last_sync = snapshot    # What was the last successful sync with upstream.
+                s = snapshot
+                if s.copy?
+                    s = s.copy()
+                @_last_sync = s    # What was the last successful sync with upstream.
                 @emit('sync')
                 cb?()
 
@@ -301,16 +307,15 @@ synchronized_string = (opts) ->
 exports.synchronized_string = synchronized_string
 
 
-
 class SynchronizedDocument extends AbstractSynchronizedDoc
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,
             cursor_interval : 1000
-            sync_interval   : 1000
+            sync_interval   : 750   # never send sync messages up stream more often than this
 
-        @connect    = misc.retry_until_success_wrapper(f:@_connect, logname:'connect')
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save, logname:'save')
+        @connect    = misc.retry_until_success_wrapper(f:@_connect)#,  logname:'connect')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
 
         @editor.save = @save
         @codemirror = @editor.codemirror
@@ -371,10 +376,26 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 if err
                     cb(err); return
 
+
                 @session_uuid = resp.session_uuid
-                @editor._set(resp.content)
-                @codemirror.clearHistory()  # so undo history doesn't start with "empty document"
+
+                if @_last_sync?
+                    # We have sync'd before.
+                    patch = @dsync_client._compute_edits(@_last_sync, @live())
+                else
+                    @editor._set(resp.content)
+                    @codemirror.clearHistory()  # so undo history doesn't start with "empty document"
+
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
+
+                if @_last_sync?
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    @_apply_patch_to_live(patch)
+                    @emit 'sync'
+                else
+                    # This initialiation is the first sync.
+                    @_last_sync   = DiffSyncDoc(string:resp.content)
+
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
@@ -392,8 +413,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     on_undo: (instance, changeObj) =>
         # do nothing in base class
-
-
 
     on_redo: (instance, changeObj) =>
         # do nothing in base class
@@ -608,7 +627,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_data.pos = pos
 
         # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:8000)
+        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:16000)
         # Then fade the cursor out (a non-active cursor is a waste of space).
         cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
@@ -670,495 +689,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 e.remove()
             @_close_on_action_elements = []
 
-
-
-class SynchronizedDocument0 extends EventEmitter
-    constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
-        @opts = defaults opts,
-            cursor_interval : 1000
-            sync_interval   : 1000
-        @editor.save = @save
-        @codemirror = @editor.codemirror
-        @element    = @editor.element
-        @filename   = @editor.filename
-
-        @init_cursorActivity_event()
-        @init_chat()
-
-        @codemirror.setOption('readOnly', true)
-
-        @connect (err, resp) =>
-            if err
-                bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - #{err}", () =>
-                    @editor.editor.close(@filename)
-            else
-                @ui_synced(false)
-                @editor.init_autosave()
-                first_sync = () =>
-                    @sync (err) =>
-                        if err
-                            setTimeout(first_sync, 1000)
-                        else
-                            @codemirror.setOption('readOnly', false)
-                first_sync()
-
-                @codemirror.on 'change', (instance, changeObj) =>
-                    #console.log("change #{misc.to_json(changeObj)}")
-                    if changeObj.origin?
-                        if changeObj.origin == 'undo'
-                            @on_undo(instance, changeObj)
-                        if changeObj.origin == 'redo'
-                            @on_redo(instance, changeObj)
-                        if changeObj.origin != 'setValue'
-                            @ui_synced(false)
-                            @sync_soon()
-            # Done initializing and have got content.
-            cb?()
-
-    on_undo: (instance, changeObj) =>
-        # do nothing in base class
-    on_redo: (instance, changeObj) =>
-        # do nothing in base class
-
-    _add_listeners: () =>
-        salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.on 'codemirror_bcast', @_receive_broadcast
-
-    _remove_listeners: () =>
-        salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
-
-    disconnect_from_session: (cb) =>
-        @_remove_listeners()
-        salvus_client.call
-            timeout : 10
-            message : message.codemirror_disconnect(session_uuid : @session_uuid)
-            cb      : cb
-
-        # store pref in localStorage to not auto-open this file next time
-        @editor.local_storage('auto_open', false)
-
-    execute_code: (opts) =>
-        opts = defaults opts,
-            code     : required
-            data     : undefined
-            preparse : true
-            cb       : undefined
-        uuid = misc.uuid()
-        salvus_client.send(
-            message.codemirror_execute_code
-                id   : uuid
-                code : opts.code
-                data : opts.data
-                preparse : opts.preparse
-                session_uuid : @session_uuid
-        )
-        if opts.cb?
-            salvus_client.execute_callbacks[uuid] = opts.cb
-
-    introspect_line: (opts) =>
-        opts = defaults opts,
-            line     : required
-            preparse : true
-            cb       : required
-
-        salvus_client.call
-            message: message.codemirror_introspect
-                line         : opts.line
-                preparse     : opts.preparse
-                session_uuid : @session_uuid
-            cb : opts.cb
-
-    connect: (cb) =>
-        # We queue up the calls, since we don't want to call the server more than once to connect.
-        if @_connect_callbacks?
-            @_connect_callbacks.push(cb)
-            return
-        @_connect_callbacks = [cb]
-        @element.find(".salvus-editor-codemirror-loading").show()
-        @_remove_listeners()
-        salvus_client.call
-            timeout : 30     # a reasonable amount of time, since file could be *large*
-            message : message.codemirror_get_session
-                path         : @filename
-                project_id   : @editor.project_id
-            cb      : (err, resp) =>
-                cbs = @_connect_callbacks
-                delete @_connect_callbacks
-                @element.find(".salvus-editor-codemirror-loading").hide()
-                #console.log("new session: ", resp)
-                if resp.event == 'error'
-                    err = resp.error
-                if err
-                    for cb in cbs
-                        cb(err)
-                    return
-
-                @session_uuid = resp.session_uuid
-
-                # Render the chat
-                @element.find(".salvus-editor-codemirror-chat-output").html('')
-                for m in resp.chat
-                    @_receive_chat(m)
-                @new_chat_indicator(false)  # not necessarily new
-
-                # If our content is already set, we'll end up doing a merge.
-                resetting = @_previous_successful_set? and @_previous_successful_set
-
-                if not resetting
-                    # very easy
-                    @_previous_successful_set = true
-                    @editor._set(resp.content)
-                    live_content = resp.content
-                    # Reset the undo history here, since we do not want it to start with "empty document":
-                    @codemirror.clearHistory()
-                else
-                    # Doing a reset -- apply all the edits to the current version of the document.
-                    edit_stack = @dsync_client.edit_stack
-                    # Apply our offline edits to the new live version of the document.
-                    r = new DiffSyncDoc(string:resp.content)
-                    for p in edit_stack
-                        r = r.patch(p.edits)
-
-                    # Compute the patch comparing last known shadow
-                    # with our current live, and apply that patch to what the server
-                    # just sent us.  We declare that to be our new live.
-                    patch = @dsync_client.shadow.diff(@dsync_client.live)
-                    r2 = r.patch(patch)
-                    live_content = r2.string()
-
-
-                @dsync_client = codemirror_diffsync_client(@, resp.content)
-                @dsync_server = new DiffSyncHub(@)
-                @dsync_client.connect(@dsync_server)
-                @dsync_server.connect(@dsync_client)
-                @_add_listeners()
-
-                if resetting
-                    #console.log("RESETTING now.")
-                    @codemirror.setValueNoJump(live_content)
-                    cur = @codemirror._cm_session_cursor_before_reset
-                    if cur?
-                        @codemirror.setCursor(cur)
-                    @sync()
-
-                if not resetting
-                    @editor.save_button.addClass('disabled')   # start with no unsaved changes
-
-                for cb in cbs
-                    cb()
-
-    _diffsync_ready: (mesg) =>
-        if mesg.session_uuid == @session_uuid
-            @sync_soon()
-
-    call: (opts) =>
-        opts = defaults opts,
-            message     : required
-            timeout     : 45
-            cb          : undefined
-        opts.message.session_uuid = @session_uuid
-        salvus_client.call
-            message : opts.message
-            timeout : opts.timeout
-            cb      : (err, result) =>
-                if result? and result.event == 'reconnect'
-                    #console.log("codemirror sync session #{@session_uuid}: reconnecting ")
-                    do_reconnect = () =>
-                        @connect (err) =>
-                            if err
-                                #console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
-                                opts.cb?(err)
-                            else
-                                #console.log("codemirror sync session #{@session_uuid}: successful reconnect")
-                                opts.cb?('reconnect')  # still an error condition
-                    setTimeout(do_reconnect, 1000)  # give server some room
-                else
-                    opts.cb?(err, result)
-
-    sync_soon: (wait) =>
-        if not wait?
-            wait = @opts.sync_interval
-        else if wait <= 0
-            wait = 1
-        if @_sync_soon?
-            # We have already set a timer to do a sync soon.
-            #console.log("not sync_soon since -- We have already set a timer to do a sync soon.")
-            return
-        do_sync = () =>
-            @sync (didnt_sync) =>
-                delete @_sync_soon
-                if didnt_sync
-                    @sync_soon(Math.min(3000, (wait*1.5)))
-        @_sync_soon = setTimeout(do_sync, wait)
-
-    ui_synced: (synced) =>
-        if synced
-            if @_ui_synced_timer?
-                clearTimeout(@_ui_synced_timer)
-                delete @_ui_synced_timer
-            @element.find(".salvus-editor-codemirror-not-synced").hide()
-            #@element.find(".salvus-editor-codemirror-synced").show()
-        else
-            if @_ui_synced_timer?
-                return
-            show_spinner = () =>
-                @element.find(".salvus-editor-codemirror-not-synced").show()
-                #@element.find(".salvus-editor-codemirror-synced").hide()
-            @_ui_synced_timer = setTimeout(show_spinner, 4*@opts.sync_interval)
-
-    sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
-        #console.log("sync: @_syncing=", @_syncing)
-        if @_syncing? and @_syncing
-            # can only sync once a complete cycle is done, or declared failure.
-            cb?()
-            #console.log('skipping since already syncing')
-            return
-
-        if not @dsync_client
-            cb?("document synchronization not initialized at all yet")
-            return
-
-        @_syncing = true
-        if @_sync_soon?
-            clearTimeout(@_sync_soon)
-            delete @_sync_soon
-        #console.log("sync started")
-        @_sync_cursor_pos = @codemirror.getCursor()
-        @dsync_client.push_edits (err) =>
-            if err
-                # console.log("sync done -- error = ", err)
-                @_syncing = false
-                if not @_sync_failures?
-                    @_sync_failures = 1
-                else
-                    @_sync_failures += 1
-                if @_sync_failures % 6 == 0 and err != 'retry'
-                    # TODO
-                    #alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server. (You can refresh your browser, but might loose some changes.)")
-                    @sync_soon(10000)
-                else
-                    @sync_soon()
-                cb?(err)
-            else
-                # We just completed a successful sync.
-                #console.log("sync done -- success")
-                @_sync_failures = 0
-                @_syncing = false
-                @emit('sync')
-                @ui_synced(true)
-                cb?()
-
-    init_cursorActivity_event: () =>
-        @codemirror.on 'cursorActivity', (instance) =>
-            if not @_syncing
-                @send_cursor_info_to_hub_soon()
-            @editor.local_storage('cursor', @codemirror.getCursor())
-
-    init_chat: () =>
-        chat = @element.find(".salvus-editor-codemirror-chat")
-        input = chat.find(".salvus-editor-codemirror-chat-input")
-        input.keydown (evt) =>
-            if evt.which == 13 # enter
-                content = $.trim(input.val())
-                if content != ""
-                    input.val("")
-                    @send_broadcast_message({event:'chat', content:content}, true)
-                return false
-
-        @init_chat_toggle()
-
-    init_chat_toggle: () =>
-        title = @element.find(".salvus-editor-chat-title")
-        title.click () =>
-            if @editor._chat_is_hidden? and @editor._chat_is_hidden
-                @show_chat_window()
-            else
-                @hide_chat_window()
-        @hide_chat_window()  #start hidden for now, until we have a way to save this.
-
-    show_chat_window: () =>
-        # SHOW the chat window
-        @editor._chat_is_hidden = false
-        @element.find(".salvus-editor-chat-show").hide()
-        @element.find(".salvus-editor-chat-hide").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span12').addClass('span9')
-        @element.find(".salvus-editor-codemirror-chat-column").show()
-        # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
-        # if you want to try to make this resizable
-        output = @element.find(".salvus-editor-codemirror-chat-output")
-        output.scrollTop(output[0].scrollHeight)
-        @new_chat_indicator(false)
-        @editor.show()  # updates editor width
-
-    hide_chat_window: () =>
-        # HIDE the chat window
-        @editor._chat_is_hidden = true
-        @element.find(".salvus-editor-chat-hide").hide()
-        @element.find(".salvus-editor-chat-show").show()
-        @element.find(".salvus-editor-codemirror-input-box").removeClass('span9').addClass('span12')
-        @element.find(".salvus-editor-codemirror-chat-column").hide()
-        @editor.show()  # update size/display of editor (especially the width)
-
-    new_chat_indicator: (new_chats) =>
-        # Show a new chat indicator of the chat window is closed.
-        # if new_chats, indicate that there are new chats
-        # if new_chats, don't indicate new chats.
-        elt = @element.find(".salvus-editor-chat-new-chats")
-        if new_chats and @editor._chat_is_hidden
-            elt.show()
-        else
-            elt.hide()
-
-    _receive_chat: (mesg) =>
-        @new_chat_indicator(true)
-        output = @element.find(".salvus-editor-codemirror-chat-output")
-        date = new Date(mesg.date)
-        entry = templates.find(".salvus-chat-entry").clone()
-        output.append(entry)
-        header = entry.find(".salvus-chat-header")
-        if (not @_last_chat_name?) or @_last_chat_name != mesg.name or ((date.getTime() - @_last_chat_time) > 60000)
-            header.find(".salvus-chat-header-name").text(mesg.name).css(color:"#"+mesg.color)
-            header.find(".salvus-chat-header-date").attr('title', date.toISOString()).timeago()
-        else
-            header.hide()
-        @_last_chat_name = mesg.name
-        @_last_chat_time = new Date(mesg.date).getTime()
-        entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
-        output.scrollTop(output[0].scrollHeight)
-
-    send_broadcast_message: (mesg, self) ->
-        m = message.codemirror_bcast
-            session_uuid : @session_uuid
-            mesg         : mesg
-            self         : self    #if true, then also send include this client to receive message
-        salvus_client.send(m)
-
-    send_cursor_info_to_hub: () =>
-        delete @_waiting_to_send_cursor
-        if not @session_uuid # not yet connected to a session
-            return
-        @send_broadcast_message({event:'cursor', pos:@codemirror.getCursor()})
-
-    send_cursor_info_to_hub_soon: () =>
-        if @_waiting_to_send_cursor?
-            return
-        @_waiting_to_send_cursor = setTimeout(@send_cursor_info_to_hub, @opts.cursor_interval)
-
-    _receive_broadcast: (mesg) =>
-        if mesg.session_uuid != @session_uuid
-            return
-        switch mesg.mesg.event
-            when 'cursor'
-                @_receive_cursor(mesg)
-            when 'chat'
-                @_receive_chat(mesg)
-
-    _receive_cursor: (mesg) =>
-        # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
-        # annoying having a pointless indicator of another person.
-        if not @_last_cursor_pos?
-            @_last_cursor_pos = {}
-        else
-            pos = @_last_cursor_pos[mesg.color]
-            if pos? and pos.line == mesg.mesg.pos.line and pos.ch == mesg.mesg.pos.ch
-                return
-        # cursor moved.
-        @_last_cursor_pos[mesg.color] = mesg.mesg.pos   # record current position
-        @_draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
-
-    # Move the cursor with given color to the given pos.
-    _draw_other_cursor: (pos, color, name) =>
-        if not @codemirror?
-            return
-        if not @_cursors?
-            @_cursors = {}
-        id = color + name
-        cursor_data = @_cursors[id]
-        if not cursor_data?
-            cursor = templates.find(".salvus-editor-codemirror-cursor").clone().show()
-            inside = cursor.find(".salvus-editor-codemirror-cursor-inside")
-            inside.css
-                'background-color': color
-            label = cursor.find(".salvus-editor-codemirror-cursor-label")
-            label.css('color':color)
-            label.text(name)
-            cursor_data = {cursor: cursor, pos:pos}
-            @_cursors[id] = cursor_data
-        else
-            cursor_data.pos = pos
-
-        # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:8000)
-        # Then fade the cursor out (a non-active cursor is a waste of space).
-        cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
-        #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
-        @codemirror.addWidget(pos, cursor_data.cursor[0], false)
-
-    click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            # Only show the spin/saving indicator *after* a short delay, in case we can't save super-quickly.
-            show_save = () =>
-                @save_button.find('span').text("Saving...")
-                @save_button.find(".spinner").show()
-            spin = setTimeout(show_save, 250)
-            @save (err) =>
-                clearTimeout(spin)
-                @save_button.find(".spinner").hide()
-                @save_button.find('span').text('Save')
-                if not err
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
-                else
-                    alert_message(type:"error", message:"Error saving '#{@filename}' to disk -- #{err}")
-        return false
-
-    save: (cb) =>
-        if @editor.opts.delete_trailing_whitespace
-            @codemirror.delete_trailing_whitespace()
-        if @dsync_client?
-            @sync () =>
-                @call
-                    message: message.codemirror_write_to_disk()
-                    cb : cb
-        else
-            cb("Unable to save '#{@filename}' since it is not yet loaded.")
-
-    _apply_changeObj: (changeObj) =>
-        @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
-        if changeObj.next?
-            @_apply_changeObj(changeObj.next)
-
-    refresh_soon: (wait) =>
-        if not wait?
-            wait = 1000
-        if @_refresh_soon?
-            # We have already set a timer to do a refresh soon.
-            #console.log("not refresh_soon since -- We have already set a timer to do a refresh soon.")
-            return
-        do_refresh = () =>
-            delete @_refresh_soon
-            @codemirror.refresh()
-        @_refresh_soon = setTimeout(do_refresh, wait)
-
-    interrupt: () =>
-        @close_on_action()
-
-    close_on_action: (element) =>
-        # Close popups (e.g., introspection) that are set to be closed when an
-        # action, such as "execute", occurs.
-        if element?
-            if not @_close_on_action_elements?
-                @_close_on_action_elements = [element]
-            else
-                @_close_on_action_elements.push(element)
-        else if @_close_on_action_elements?
-            for e in @_close_on_action_elements
-                e.remove()
-            @_close_on_action_elements = []
-
-
-
 { MARKERS, FLAGS, ACTION_FLAGS } = diffsync
 
 class SynchronizedWorksheet extends SynchronizedDocument
@@ -1195,7 +725,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 # since we just canceled the change.
                 @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
                 @_apply_changeObj(changeObj)
-                @sync_soon()
+                @sync()
                 @process_sage_updates()
 
     init_worksheet_buttons: () =>
@@ -1271,7 +801,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 session_uuid : @session_uuid
             cb : (err) =>
                 @sync()
-                setTimeout( (() => @sync_soon()), 50 )
+                setTimeout( (() => @sync()), 50 )
                 opts.cb?(err)
 
     introspect: () =>
@@ -1766,14 +1296,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @move_cursor_to_next_cell()
                 @action(opts)
             else
-                @sync_soon()
+                @sync()
             return
 
         if opts.delete_output
             n = @find_output_line(pos.line)
             if n?
                 opts.cm.removeLine(n)
-                @sync_soon()
+                @sync()
             return
 
         block = @current_input_block(pos.line)
@@ -1795,7 +1325,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if @_toggle_input_range == 'wait'
                     @_toggle_input_range = 'hide'
 
-            @sync_soon()
+            @sync()
 
         if opts.toggle_output
             if FLAGS.hide_output in @get_cell_flagstring(marker)
@@ -1810,7 +1340,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if @_toggle_output_range == 'wait'
                     @_toggle_output_range = 'hide'
 
-            @sync_soon()
+            @sync()
 
         if opts.advance
             @move_cursor_to_next_cell()
@@ -1818,8 +1348,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if opts.execute
             @set_cell_flag(marker, FLAGS.execute)
             @sync()
-            setTimeout( (() => @sync_soon()), 50 )
-            setTimeout( (() => @sync_soon()), 200 )
+            setTimeout( (() => @sync()), 50 )
+            setTimeout( (() => @sync()), 200 )
 
 
     _diffsync_ready: (mesg) =>
@@ -1829,7 +1359,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
     split_cell_at: (pos) =>
         # Split the cell at the given pos.
         @cell_start_marker(pos.line)
-        @sync_soon()
+        @sync()
 
     move_cursor_to_next_cell: () =>
         cm = @codemirror

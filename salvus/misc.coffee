@@ -275,17 +275,19 @@ exports.retry_until_success_wrapper = (opts) ->
 class RetryUntilSuccess
     constructor: (opts) ->
         @opts = exports.defaults opts,
-            f           : exports.defaults.required    # f(cb);  cb(err)
-            start_delay : 100         # times are all in milliseconds
-            max_delay   : 20000
-            exp_factor  : 1.4
-            max_tries   : undefined
-            logname     : undefined
+            f            : exports.defaults.required    # f(cb);  cb(err)
+            start_delay  : 100         # initial delay beforing calling f again.  times are all in milliseconds
+            max_delay    : 20000
+            exp_factor   : 1.4
+            max_tries    : undefined
+            min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
+            logname      : undefined
         @f = @opts.f
 
     call: (cb, retry_delay) =>
         if @opts.logname?
             console.log("#{@opts.logname}(... #{retry_delay})")
+
         if not @_cb_stack?
             @_cb_stack = []
         if cb?
@@ -295,28 +297,43 @@ class RetryUntilSuccess
         @_calling = true
         if not retry_delay?
             @attempts = 0
-        @f (err) =>
-            @attempts += 1
-            @_calling = false
-            if err
-                if @opts.max_tries? and @attempts >= @opts.max_tries
+
+        if @opts.logname?
+            console.log("actually calling -- #{@opts.logname}(... #{retry_delay})")
+
+        g = () =>
+            if @opts.min_interval?
+                @_last_call_time = exports.mswalltime()
+            @f (err) =>
+                @attempts += 1
+                @_calling = false
+                if err? and err
+                    if @opts.max_tries? and @attempts >= @opts.max_tries
+                        if @_cb_stack?
+                            for cb in @_cb_stack
+                                cb()
+                            delete @_cb_stack
+                        return
+                    if not retry_delay?
+                        retry_delay = @opts.start_delay
+                    else
+                        retry_delay = Math.min(@opts.max_delay, @opts.exp_factor*retry_delay)
+                    f = () =>
+                        @call(undefined, retry_delay)
+                    setTimeout(f, retry_delay)
+                else
                     if @_cb_stack?
                         for cb in @_cb_stack
                             cb()
                         delete @_cb_stack
-                    return
-                if not retry_delay?
-                    retry_delay = @opts.start_delay
-                else
-                    retry_delay = Math.min(@opts.max_delay, @opts.exp_factor*retry_delay)
-                f = () =>
-                    @call(undefined, retry_delay)
-                setTimeout(f, retry_delay)
+        if not @_last_call_time? or not @opts.min_interval?
+            g()
+        else
+            w = exports.mswalltime(@_last_call_time)
+            if w < @opts.min_interval
+                setTimeout(g, @opts.min_interval - w)
             else
-                if @_cb_stack?
-                    for cb in @_cb_stack
-                        cb()
-                    delete @_cb_stack
+                g()
 
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).

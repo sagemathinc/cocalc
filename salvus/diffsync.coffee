@@ -232,19 +232,19 @@ class CustomDiffSync extends DiffSync
         return @opts.diff(version0, version1)
 
     _apply_edits: (edits, doc, cb) =>
-        cb(false, @opts.patch(edits, doc))
+        cb?(false, @opts.patch(edits, doc))
 
     _apply_edits_to_live: (edits, cb) =>
         if @opts.patch_in_place?
             @opts.patch_in_place(edits, @live)
-            cb()
+            cb?()
         else
             @_apply_edits  edits, @live, (err, result) =>
                 if err
-                    cb(err); return
+                    cb?(err); return
                 else
                     @live = result
-                    cb()
+                    cb?()
 
     _checksum: (doc) =>
         return @opts.checksum(doc)

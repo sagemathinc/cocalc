@@ -965,8 +965,8 @@ class CodeMirrorEditor extends FileEditor
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 2000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 250   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval   : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval     : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
             completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
