@@ -1420,8 +1420,8 @@ class Services(object):
                 print "found %s snap servers"%n
                 if n == 0:
                     return "no running snap servers"
-            except Exception, msg:
-                return "cassandra not working -- %s"%msg
+            except:
+                return "cassandra not working"
             return ""
 
         i = 0
@@ -1438,8 +1438,8 @@ class Services(object):
                          message = {'action':'restart', 'reason':'stopped responding to monitor for 5 seconds', 'ip':ip}
                          cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
                               {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
-                     except Exception, msg:
-                         print "Unable to record log message in database, %s"%msg
+                     except:
+                         print "Unable to record log message in database"
 
             # Next check that there is at least 1 snap server -- and making this check also confirms that 
             # cassandra is up and working.
@@ -1452,10 +1452,10 @@ class Services(object):
                      message = {'action':'restart', 'reason':status}
                      cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
                               {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'cassandra'})
-                except Exception, msg:
-                     print "Unable to record log message in database, %s"%msg
+                except Exception:
+                     print "Unable to record log message in database"
 
-            time.sleep(5)
+            time.sleep(15)
 
     def restart_web(self):
         """
