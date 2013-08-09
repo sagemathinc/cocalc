@@ -1,23 +1,145 @@
-- [ ] (1:00?) plan *32 hours* of work for Monday Aug 5 and Tuesday Aug 6
+# Aug 9:
 
-# Monday, Aug 5 (16 hours)
+- [x] (1:30?) address ssh-agent issues on my laptop
+
+- [ ] (0:30+) +) fix this massive stability issue: " system.log:java.lang.OutOfMemoryError: unable to create new native thread ":
+
+Probable cause -- number of open files (the limit is low):
+
+ $ ulimit -n
+ 32768
+
+But that isn't low.  Hmmm.  At start of cassandra, but maybe it goes up a lot.
+
+ lsof | wc -l
+
+They have recommended ulimit settings here <http://www.datastax.com/docs/1.1/troubleshooting/index>, but those exactly match what I have already, since I copied them from there!?  I'll increase nofile by a factor of 10 for next release for next release.
+
+The root cause seems to be leak TCP connections, due to a bad driver (or clients):
+
+This goes up *quickly*:
+
+salvus@cassandra1:~$ lsof |grep TCP|wc -l
+784
+salvus@cassandra1:~$ lsof |grep TCP|wc -l
+802
+
+At this rate, it will leak about 28000/day (!) and die in 2 days due to the current limit.  That's a problem. problem.
+Which clients are causing this leaking?
+
+I stopped the snap servers and the number went to 28 and stayed there.
+I restart them and things are crazy now.  
 
 
-- [ ] (1:00?) project activity log -- it gives an error on first project open and doesn't work; this is a *major* issue.
+- [ ] (0:30?) middle click to close browser tab.
+
+
+---
+
+bugfix:
+- [ ] (1:30?) reconnect *must* cause all synchronized doc sessions to immediately sync.  NEED THIS.
+
+improve quality:
+- [ ] (1:00?) salvus.blob to send info without needing to create a file at all
+- [ ] (1:00?) change salvus.javascript to send obj using salvus.blob and $.ajax.
+
+hard implement:
+- [ ] (1:30?) see misc project sws2sagews.py -- the DATA directory thing is not done
+
+update:
+- [ ] (0:30?) new release: ?
+       - change password of vm to salvus password
+       - add to ssh authorized_keys
+
+- [ ] Need to figure out how to use ssh passphrase, at some point.
+
+- [ ] (1:30?) make it so clicking on a zip/tar/etc. file in the file browser extracts it instead of trying to open the underlying file in codemirror.
+
+- [ ] (1:30?) make a screencast illustrating migrating worksheets from sagenb.
+
+- [ ] worksheet re-opening ing bug -- https://mail.google.com/mail/u/0/?shva=1#inbox/1405eea856c0d6f6
+
+- [ ] fix this bug --
+        %load parse.sage
+        Traceback (most recent call last):
+        KeyError: '__tmp__0'
+
+
+---
+
+- [ ] bug in tex -- hangs forever -- get this in output (use  pdflatex table2.tex </dev/null to fixo fix?).
+
+        /usr/share/texmf-texlive/tex/latex/memoir/mempatch.sty))
+        (/usr/share/texmf-texlive/tex/xelatex/fontspec/fontspec.sty
+        !
+         ********************************************
+         * XeTeX is required to compile this document.
+         * Sorry!
+         ********************************************.
+        \RequireXeTeX ...********************************}
+                                                          \endgroup \fi
+
+
+- [ ] try to share code between project chat and file chat -- refactor it so it is the same.
+
+- [ ] for published projects, if the URL is not indexed, spammers get nothing.
+
+- [ ] for browsing published projects, do it sort of like g+/facebook, and try to provide a feed of things likely to be interesting to a particular user.  And provide a "mark as spam".
+
+- [ ] database -- doing `select *``in cassandra does not scale at all.  I must find all instances of that and replace by a dummy or merge tables to have a fake compound primary key.
+
+- [ ] make document chat use synchronized string.
+
+
+
+- [ ] move improvements to abstractsyncdoc to also apply to hub
+- [ ] move improvements to abstractsyncdoc to also apply to local hub
+
+
+- [ ] spinner when loading log (?)
+- [ ] "failed to create sockjs connection; try again" -- should do exponential backoff...?
+- [ ] Clicking anywhere outside the password reset modal makes it vanish, which is a bad (de)sign
+
+
+- [ ] (2:00?) password reset broken when using mail with "Apple Mail.app Version 6.5 (1508)." and auto-open in chrome (found by Nathan Carter).
+
+- [ ] (2:00?) ui improvement suggestions from Nathan Carter:
+
+        If you're thinking about those dialog boxes, I'll add two other less important design observations:
+                1. Pressing enter doesn't submit the form.
+                2. Clicking the submit button doesn't give any immediate visible feedback that you did so (e.g., grey out the Sign In button), so if it takes a few seconds to get anywhere, you wonder if you really clicked it, and sometimes click again.
+
+
+- [ ] (1:00?) save fail -- GUI doesn't produce any useful error message or even warning.  in this case restarting local hub fixed problem.
+_ack":1}
+debug: client --> hub: {"event":"codemirror_write_to_disk","session_uuid":"4c7556bb-3c64-4301-b515-99fde1481e4f","id":"a465228c-3ec2-42c8-ae1f-7edc4e27c8fd"}
+debug: hub --> client (992e6b83-17fa-4d43-bcc5-aa78160973e4): {"event":"reconnect","id":"a465228c-3ec2-42c8-ae1f-7edc4e27c8fd","reason":"Error writing to disk -- true"}
+debug: codemirror session sync -- pushed edits, thus completing cycle
+
+
+- [ ] (4:00?) global system-wide chat.  I want it, so I can post about what I'm working on!
 
 - [ ] (3:00?) integrate word cloud functionality (mainly for tish thesis... but maybe more): https://github.com/jasondavies/d3-cloud
 
-- [ ] (0:30?) shift-click / middle click to open in background -- https://mail.google.com/mail/ca/u/0/#search/harald/140439ae2758e64c
-
-- [ ] (1:00?) see misc project sws2sagews.py -- the DATA directory thing is not done
+- [ ] (1:30?) fix copy paste in terminal in firefox.
 
 - [ ] (1:00?) trigger reload of user site packages -- https://mail.google.com/mail/u/0/?shva=1#inbox/1403fa803090d5b8
 
 - [ ] (1:00?) install these in compute vm's -- https://mail.google.com/mail/ca/u/0/#inbox/1404104d0535fa46esday
 
+- [ ] (1:00?) "When i click the play (▶) button on a cell, the cursor is lost (at least, here in FF)." -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/1404e1b3aa12fd89
 
-# Tuesday, Aug 6 (16 hours)
+- [ ] (1:00?) "Related to that, I propose that ALT+▶ does the same as ALT+RETURN, i.e. keep the cursor where it is – and also to mention that in the balloon help."   https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/1404e1b3aa12fd89
 
+- [ ] (1:00?) polish control-; behavior. https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/14049e4cbf217036
+
+- [ ] (3:00?) log improvements ideas -- https://mail.google.com/mail/u/0/?shva=1#search/sage-cloud/14048048587b483b
+      - project server restart
+      - sage server restart
+
+- [ ] (0:45?) turn ugly code like "timer = setTimeout( (() -> project_list_spinner.show().spin()), 500 )" into a jquery plugin.
+
+- [ ] ideal -- word cloud of opened files.
 
 
 ---
@@ -363,3 +485,53 @@
 # Operations
 
 - [ ] (3:00?) support cassandra authentication in addition to use firewall: http://image.slidesharecdn.com/cassandrasummit2013keynote-130613151129-phpapp01/95/slide-18-638.jpg?1371154320
+- [ ] (1:00?) plan *32 hours* of work for Monday Aug 5 and Tuesday Aug 6
+
+# Monday, Aug 5 (16 hours)
+
+- [x] (0:30?) (1:00) graphical indication when loading project list
+
+- [x] (0:30?) (2:16) middle click to open file in background -- https://mail.google.com/mail/ca/u/0/#search/harald/140439ae2758e64c
+      (also a lot of important design discussions with Harald during this.)
+
+- [x] (1:00?) (1:40) make it so project activity log keeps trying to initialize until it succeeds; fix error reporting if attempting to list project collaborators in settings fails; remove some console log messages when directory listing fails;
+
+- [x] (1:00?) (6:24) project restart: should work even if `stop_smc` fails; e.g., what if user deletes the `stop_smc` script.  We need to have a message devoted to restarting the project server properly, rather than this client side forcing of a side effect.;   I ended up doing a lot of things right, massively improving speed of compiling, restart, and first start.   Worth the extra 5 hours !
+
+- [x] (1:00?) (3:35) when connection drops, log will stop working -- sync not robustified.  lots more work on this.  Finally laying the foundation to really fix this shit right.
+
+
+New main goal for Aug 6, since we have the momentum: PERFECT SYNC IN ALL CONTEXTS -- day of quality improvements!
+
+- [x] (0:30) diffsync ready message from hub always results in a retry right now, which means many pointless errors.
+- [x] (0:30) first "project opened" write doesn't get properly saved.
+- [x] (0:48) change connect in ASD so it tries until success (then change sync accordingly)
+- [x] (1:10) sync of project log gets doubled up when both clients get disconnected.
+- [x] (2:00) refactor abstract sync doc retry code
+- [x] (4:30) move improvements to abstractsyncdoc to also apply to codemirror docs in client; PERFECT!
+- [x] new release:
+
+        echo "grub-common hold" | dpkg --set-selections
+
+        apt-get install markdown
+
+        git pull; ./update_version ; touch *.coffee; ./make_coffee
+
+Hi,
+
+I've updated https://cloud.sagemath.com.
+
+1. Major document synchronization improvements: I implemented differential synchronization in April, and had added little hacks in my spare time to fix some annoying issues.  I just spent the last two days just re-doing all the code, and it is now *dramatically* more robustness.  In particular, changes you make after your network connection drops (or is just starting) shouldn't just vanish, as was too-often the case before.  The new project log and chat synchronization is now also much more robust.   These improvements should make cloud.sagemath more pleasant to use; since worksheets use synchronization for evaluation, they should also work better now, and system should generally less overloaded.    For fun, you could opening a worksheet in two browser windows, compute some things, then kill your network connection and put some random different input in the same worksheet in both browsers.  Then restart your network connection and see what happens after 30 seconds.
+
+    NOTE:
+
+      - I still need to make document-level chat so that chat messages can never get dropped (using what I've done above), but haven't done this yet.
+      - When your connection resets (say due to flakie wifi), the cursor may still jump, but you shouldn't loose text.  I have a plan to fix this.
+
+2. I significantly sped up restarting projects (about 5 seconds now, instead of 15 seconds), and also initially starting a project after the VM is rebooted (should take less than 10 seconds).
+
+ -- william
+
+1
+
+- [x] (1:30?) (0:58) nice pdf of tish database.

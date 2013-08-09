@@ -18,12 +18,30 @@ import misc
 ############################################################
 DATA   = 'data'
 CONF   = 'conf'
+AGENT  = os.path.join(os.environ['HOME'], '.ssh', 'agent')
 PWD    = os.path.abspath('.')
 PIDS   = os.path.join(DATA, 'pids')   # preferred location for pid files
 LOGS   = os.path.join(DATA, 'logs')   # preferred location for pid files
 BIN    = os.path.join(DATA, 'local', 'bin')
 PYTHON = os.path.join(BIN, 'python')
 SECRETS = os.path.join(DATA,'secrets')
+
+
+# Read in socket of ssh-agent, if there is an AGENT file.
+# NOTE: I'm using this right now on my laptop, but it's not yet
+# deployed on cloud.sagemath *yet*.  When done, it will mean the
+# ssh key used by the hub and snap is password protected, which
+# will be much more secure: someone who steals ~/.ssh gets nothing,
+# though still if somebody logs in as the salvus user on one of
+# these nodes, they can ssh to other nodes, though they can't
+# change passwords, etc.   Also, this means having the ssh private
+# key on the compute vm's is no longer a security risk, since it
+# is protected by a (very long, very random) passphrase.
+if os.path.exists(AGENT):
+    for X in open(AGENT).readlines():
+        if 'SSH_AUTH_SOCK' in X:
+            # The AGENT file is as output by ssh-agent.
+            os.environ['SSH_AUTH_SOCK'] = X.split(';')[0][len('SSH_AUTH_SOCK='):]
 
 # TODO: factor out all $HOME/salvus/salvus style stuff in code below and use BASE.
 BASE = 'salvus/salvus/'
