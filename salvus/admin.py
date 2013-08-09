@@ -450,7 +450,7 @@ class Haproxy(Process):
                                                      n, x in enumerate(nginx_servers)]))
 
         if hub_servers:
-            t = Template('server hub$n $ip:$port check maxconn $maxconn')
+            t = Template('server hub$n $ip:$port cookie server$ip check maxconn $maxconn')
             hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',HUB_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(hub_servers)]))
 

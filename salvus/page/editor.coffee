@@ -583,7 +583,7 @@ class exports.Editor
             @project_page.display_tab("project-editor")
             @display_tab(path:name)
 
-        link.find(".salvus-editor-close-button-x").click () =>
+        close_tab = () =>
             if ignore_clicks
                 return false
 
@@ -622,9 +622,15 @@ class exports.Editor
             @resize_open_file_tabs()
             return false
 
+        link.find(".salvus-editor-close-button-x").click(close_tab)
+
         ignore_clicks = false
-        link.find("a").click () =>
+        link.find("a").click (e) =>
             if ignore_clicks
+                return false
+            if e.which==2 or e.ctrlKey
+                # middle (or control-) click on open tab: close the editor
+                close_tab()
                 return false
             open_file(filename)
             return false
