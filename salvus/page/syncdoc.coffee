@@ -132,6 +132,7 @@ class DiffSyncDoc
 codemirror_diffsync_client = (cm_session, content) ->
     # This happens on initialization and reconnect.  On reconnect, we could be more
     # clever regarding restoring the cursor and the scroll location.
+    cm_session.codemirror._cm_session_cursor_before_reset = cm_session.codemirror.getCursor()
     cm_session.codemirror.setValueNoJump(content)
 
     return new diffsync.CustomDiffSync
@@ -157,20 +158,165 @@ class DiffSyncHub
             cb      : (err, mesg) =>
                 if err
                     cb(err)
-                else if mesg.event == 'error'
-                    cb(mesg.error)
-                else if mesg.event == 'codemirror_diffsync_retry_later'
-                    cb('retry')
+                else if mesg.event != 'codemirror_diffsync'
+                    # various error conditions, e.g., reconnect, etc.
+                    cb(mesg.event)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
 {EventEmitter} = require('events')
 
-class SynchronizedDocument extends EventEmitter
+class AbstractSynchronizedDoc extends EventEmitter
+    constructor: (opts) ->
+        @opts = defaults opts,
+            project_id : required
+            filename   : required
+            sync_interval : 1000    # no matter what, we won't send sync messages back to the server more frequently than this (in ms)
+            cb         : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying until success
+
+        @project_id = @opts.project_id
+        @filename   = @opts.filename
+
+        @connect    = misc.retry_until_success_wrapper(f:@_connect) #, logname:'connect')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval) #, logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save) #, logname:'save')
+
+        @connect (err) =>
+            opts.cb(err, @)
+
+    _connect: (cb) =>
+        throw "define _connect in derived class"
+
+    _add_listeners: () =>
+        salvus_client.on 'codemirror_diffsync_ready', @__diffsync_ready
+        salvus_client.on 'codemirror_bcast', @__receive_broadcast
+
+    _remove_listeners: () =>
+        salvus_client.removeListener 'codemirror_diffsync_ready', @__diffsync_ready
+        salvus_client.removeListener 'codemirror_bcast', @__receive_broadcast
+
+    __diffsync_ready: (mesg) =>
+        if mesg.session_uuid == @session_uuid
+            @sync()
+
+    __receive_broadcast: (mesg) =>
+        if mesg.session_uuid != @session_uuid
+            @_receive_broadcast?(mesg)   # define in derived class
+
+    _apply_patch_to_live: (patch) =>
+        @dsync_client._apply_edits_to_live(patch)
+
+    # @live(): the current live version of this document as a string, or
+    # @live(s): set the live version
+    live: (s) =>
+        if s?
+            @dsync_client.live = s
+        else
+            return @dsync_client?.live
+
+    # "sync(cb)": keep trying to synchronize until success; then do cb()
+    # _sync(cb) -- try once to sync; on any error cb(err).
+    _sync: (cb) =>
+        snapshot = @live()
+        @dsync_client.push_edits (err) =>
+            if err
+                if err.indexOf('retry') != -1
+                    # This is normal -- it's because the diffsync algorithm only allows sync with
+                    # one client (and upstream) at a time.
+                    cb?(err)
+                else  # all other errors should reconnect first.
+                    @connect () =>
+                        cb?(err)
+            else
+                s = snapshot
+                if s.copy?
+                    s = s.copy()
+                @_last_sync = s    # What was the last successful sync with upstream.
+                @emit('sync')
+                cb?()
+
+    # save(cb): write out file to disk retrying until success.
+    # _save(cb): try to sync then write to disk; if anything goes wrong, cb(err).
+    _save: (cb) =>
+        if not @dsync_client?
+            cb("must be connected before saving"); return
+        @_sync (err) =>
+            if err
+                cb(err); return
+            @call
+                message : message.codemirror_write_to_disk()
+                timeout : 10
+                cb      : (err, resp) ->
+                    if err or resp.event != 'success'
+                        cb(true)
+                    else
+                        cb()
+
+    call: (opts) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : 30
+            cb          : undefined
+        opts.message.session_uuid = @session_uuid
+        salvus_client.call(opts)
+
+
+class SynchronizedString extends AbstractSynchronizedDoc
+    # "connect(cb)": Connect to the given server; will retry until it succeeds.
+    # _connect(cb): Try once to connect and on any error, cb(err).
+    _connect: (cb) =>
+        @_remove_listeners()
+        delete @session_uuid
+        @call
+            timeout : 30     # a reasonable amount of time, since file could be *large*
+            message : message.codemirror_get_session
+                path         : @filename
+                project_id   : @project_id
+            cb      : (err, resp) =>
+                if resp.event == 'error'
+                    err = resp.error
+                if err
+                    cb?(err); return
+                @session_uuid = resp.session_uuid
+                @chat         = resp.chat
+
+                if @_last_sync?
+                    # We have sync'd before.
+                    patch = @dsync_client._compute_edits(@_last_sync, @live())
+
+                @dsync_client = new diffsync.DiffSync(doc:resp.content)
+
+                if @_last_sync?
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    @_apply_patch_to_live(patch)
+                else
+                    # This initialiation is the first sync.
+                    @_last_sync   = resp.content
+
+                @dsync_server = new DiffSyncHub(@)
+                @dsync_client.connect(@dsync_server)
+                @dsync_server.connect(@dsync_client)
+                @_add_listeners()
+
+                cb?()
+
+
+synchronized_string = (opts) ->
+    new SynchronizedString(opts)
+
+exports.synchronized_string = synchronized_string
+
+
+class SynchronizedDocument extends AbstractSynchronizedDoc
     constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
         @opts = defaults opts,
             cursor_interval : 1000
-            sync_interval   : 1000
+            sync_interval   : 750   # never send sync messages up stream more often than this
+
+        @connect    = misc.retry_until_success_wrapper(f:@_connect)#,  logname:'connect')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
+
         @editor.save = @save
         @codemirror = @editor.codemirror
         @element    = @editor.element
@@ -179,17 +325,21 @@ class SynchronizedDocument extends EventEmitter
         @init_cursorActivity_event()
         @init_chat()
 
-        @codemirror.setOption('readOnly', true)
+        @on 'sync', () =>
+            @ui_synced(true)
 
-        @connect (err, resp) =>
+        @connect (err) =>
             if err
-                bootbox.alert "<h3>Unable to open '#{@filename}'</h3>", () =>
+                bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - #{err}", () =>
                     @editor.editor.close(@filename)
             else
-                @codemirror.setOption('readOnly', false)
                 @ui_synced(false)
                 @editor.init_autosave()
-                @sync_soon()  # do a first sync asap.
+                first_sync = () =>
+                    @sync (err) =>
+                        if err
+                            setTimeout(first_sync, 1000)
+                first_sync()
 
                 @codemirror.on 'change', (instance, changeObj) =>
                     #console.log("change #{misc.to_json(changeObj)}")
@@ -200,12 +350,70 @@ class SynchronizedDocument extends EventEmitter
                             @on_redo(instance, changeObj)
                         if changeObj.origin != 'setValue'
                             @ui_synced(false)
-                            @sync_soon()
+                            @sync()
             # Done initializing and have got content.
             cb?()
 
+    _sync: (cb) =>
+        if not @dsync_client?
+            cb("not initialized")
+            return
+        super(cb)
+
+    _connect: (cb) =>
+        @_remove_listeners()
+        delete @session_uuid
+        @ui_loading()
+        @call
+            timeout : 30     # a reasonable amount of time, since file could be *large*
+            message : message.codemirror_get_session
+                path         : @filename
+                project_id   : @editor.project_id
+            cb      : (err, resp) =>
+                @ui_loaded()
+                if resp.event == 'error'
+                    err = resp.error
+                if err
+                    cb(err); return
+
+
+                @session_uuid = resp.session_uuid
+
+                if @_last_sync?
+                    # We have sync'd before.
+                    patch = @dsync_client._compute_edits(@_last_sync, @live())
+                else
+                    @editor._set(resp.content)
+                    @codemirror.clearHistory()  # so undo history doesn't start with "empty document"
+
+                @dsync_client = codemirror_diffsync_client(@, resp.content)
+
+                if @_last_sync?
+                    # applying missed patches to the new upstream version that we just got from the hub.
+                    @_apply_patch_to_live(patch)
+                    @emit 'sync'
+                else
+                    # This initialiation is the first sync.
+                    @_last_sync   = DiffSyncDoc(string:resp.content)
+
+                @dsync_server = new DiffSyncHub(@)
+                @dsync_client.connect(@dsync_server)
+                @dsync_server.connect(@dsync_client)
+                @_add_listeners()
+                @editor.save_button.addClass('disabled')   # TODO: start with no unsaved changes -- not tech. correct!!
+
+                cb()
+
+    ui_loading: () =>
+        @element.find(".salvus-editor-codemirror-loading").show()
+
+    ui_loaded: () =>
+        @element.find(".salvus-editor-codemirror-loading").hide()
+
+
     on_undo: (instance, changeObj) =>
         # do nothing in base class
+
     on_redo: (instance, changeObj) =>
         # do nothing in base class
 
@@ -258,128 +466,11 @@ class SynchronizedDocument extends EventEmitter
                 session_uuid : @session_uuid
             cb : opts.cb
 
-    connect: (cb) =>
-        # We queue up the calls, since we don't want to call the server more than once to connect.
-        if @_connect_callbacks?
-            @_connect_callbacks.push(cb)
-            return
-        @_connect_callbacks = [cb]
-        @element.find(".salvus-editor-codemirror-loading").show()
-        @_remove_listeners()
-        salvus_client.call
-            timeout : 30     # a reasonable amount of time, since file could be *large*
-            message : message.codemirror_get_session
-                path         : @filename
-                project_id   : @editor.project_id
-            cb      : (err, resp) =>
-                cbs = @_connect_callbacks
-                delete @_connect_callbacks
-                @element.find(".salvus-editor-codemirror-loading").hide()
-                #console.log("new session: ", resp)
-                if err
-                    for cb in cbs
-                        cb(err)
-                    return
-                if resp.event == 'error'
-                    for cb in cbs
-                        cb(resp.event)
-                    return
 
-                @session_uuid = resp.session_uuid
-
-                # Render the chat
-                @element.find(".salvus-editor-codemirror-chat-output").html('')
-                for m in resp.chat
-                    @_receive_chat(m)
-                @new_chat_indicator(false)  # not necessarily new
-
-                # If our content is already set, we'll end up doing a merge.
-                resetting = @_previous_successful_set? and @_previous_successful_set
-
-                if not resetting
-                    # very easy
-                    @_previous_successful_set = true
-                    @editor._set(resp.content)
-                    live_content = resp.content
-                    # Reset the undo history here, since we do not want it to start with "empty document":
-                    @codemirror.clearHistory()
-                else
-                    # Doing a reset -- apply all the edits to the current version of the document.
-                    edit_stack = @dsync_client.edit_stack
-                    # Apply our offline edits to the new live version of the document.
-                    r = new DiffSyncDoc(string:resp.content)
-                    for p in edit_stack
-                        r = r.patch(p.edits)
-
-                    # Compute the patch comparing last known shadow
-                    # with our current live, and apply that patch to what the server
-                    # just sent us.  We declare that to be our new live.
-                    patch = @dsync_client.shadow.diff(@dsync_client.live)
-                    r2 = r.patch(patch)
-                    live_content = r2.string()
-
-
-                @dsync_client = codemirror_diffsync_client(@, resp.content)
-                @dsync_server = new DiffSyncHub(@)
-                @dsync_client.connect(@dsync_server)
-                @dsync_server.connect(@dsync_client)
-                @_add_listeners()
-
-                if resetting
-                    @codemirror.setValueNoJump(live_content)
-                    # Force a sync.
-                    @_syncing = false
-                    @sync()
-
-                if not resetting
-                    @editor.save_button.addClass('disabled')   # start with no unsaved changes
-
-                for cb in cbs
-                    cb()
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
-            @sync_soon()
-
-    call: (opts) =>
-        opts = defaults opts,
-            message     : required
-            timeout     : 45
-            cb          : undefined
-        opts.message.session_uuid = @session_uuid
-        salvus_client.call
-            message : opts.message
-            timeout : opts.timeout
-            cb      : (err, result) =>
-                if result? and result.event == 'reconnect'
-                    #console.log("codemirror sync session #{@session_uuid}: reconnecting ")
-                    do_reconnect = () =>
-                        @connect (err) =>
-                            if err
-                                #console.log("codemirror sync session #{@session_uuid}: failed to reconnect")
-                                opts.cb?(err)
-                            else
-                                #console.log("codemirror sync session #{@session_uuid}: successful reconnect")
-                                opts.cb?('reconnect')  # still an error condition
-                    setTimeout(do_reconnect, 1000)  # give server some room
-                else
-                    opts.cb?(err, result)
-
-    sync_soon: (wait) =>
-        if not wait?
-            wait = @opts.sync_interval
-        else if wait <= 0
-            wait = 1
-        if @_sync_soon?
-            # We have already set a timer to do a sync soon.
-            #console.log("not sync_soon since -- We have already set a timer to do a sync soon.")
-            return
-        do_sync = () =>
-            @sync (didnt_sync) =>
-                delete @_sync_soon
-                if didnt_sync
-                    @sync_soon(Math.min(3000, (wait*1.5)))
-        @_sync_soon = setTimeout(do_sync, wait)
+            @sync()
 
     ui_synced: (synced) =>
         if synced
@@ -395,41 +486,6 @@ class SynchronizedDocument extends EventEmitter
                 @element.find(".salvus-editor-codemirror-not-synced").show()
                 #@element.find(".salvus-editor-codemirror-synced").hide()
             @_ui_synced_timer = setTimeout(show_spinner, 4*@opts.sync_interval)
-
-    sync: (cb) =>    # cb(false if a sync occured; true-ish if anything prevented a sync from happening)
-        if @_syncing? and @_syncing
-            # can only sync once a complete cycle is done, or declared failure.
-            cb?()
-            #console.log('skipping since already syncing')
-            return
-
-        @_syncing = true
-        if @_sync_soon?
-            clearTimeout(@_sync_soon)
-            delete @_sync_soon
-        before = @dsync_client.live.string()
-        #console.log("sync started")
-        @dsync_client.push_edits (err) =>
-            #console.log("dsync_client result: ", err)
-            if err
-                @_syncing = false
-                if not @_sync_failures?
-                    @_sync_failures = 1
-                else
-                    @_sync_failures += 1
-                if @_sync_failures % 6 == 0 and not err == 'retry'
-                    alert_message(type:"error", message:"Unable to synchronize '#{@filename}' with server; changes not saved until you next connect to the server.  Do not close your browser (offline mode not yet implemented).")
-
-                setTimeout(@sync, 30000)  # try again soon...
-                cb?(err)
-            else
-                # We just completed a successful sync.
-                #console.log("sync done")
-                @_sync_failures = 0
-                @_syncing = false
-                @emit 'sync'
-                @ui_synced(true)
-                cb?()
 
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
@@ -571,7 +627,7 @@ class SynchronizedDocument extends EventEmitter
             cursor_data.pos = pos
 
         # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:8000)
+        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:16000)
         # Then fade the cursor out (a non-active cursor is a waste of space).
         cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
@@ -595,16 +651,10 @@ class SynchronizedDocument extends EventEmitter
                     alert_message(type:"error", message:"Error saving '#{@filename}' to disk -- #{err}")
         return false
 
-    save: (cb) =>
+    _save: (cb) =>
         if @editor.opts.delete_trailing_whitespace
             @codemirror.delete_trailing_whitespace()
-        if @dsync_client?
-            @sync () =>
-                @call
-                    message: message.codemirror_write_to_disk()
-                    cb : cb
-        else
-            cb("Unable to save '#{@filename}' since it is not yet loaded.")
+        super(cb)
 
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
@@ -638,7 +688,6 @@ class SynchronizedDocument extends EventEmitter
             for e in @_close_on_action_elements
                 e.remove()
             @_close_on_action_elements = []
-
 
 { MARKERS, FLAGS, ACTION_FLAGS } = diffsync
 
@@ -676,7 +725,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 # since we just canceled the change.
                 @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
                 @_apply_changeObj(changeObj)
-                @sync_soon()
+                @sync()
                 @process_sage_updates()
 
     init_worksheet_buttons: () =>
@@ -691,6 +740,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return false
         buttons.find("a[href=#toggle-output]").click () =>
             @action(execute:false, toggle_output:true)
+            return false
+        buttons.find("a[href=#delete-output]").click () =>
+            @action(execute:false, delete_output:true)
             return false
         buttons.find("a[href=#interrupt]").click () =>
             @interrupt()
@@ -749,7 +801,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 session_uuid : @session_uuid
             cb : (err) =>
                 @sync()
-                setTimeout( (() => @sync_soon()), 50 )
+                setTimeout( (() => @sync()), 50 )
                 opts.cb?(err)
 
     introspect: () =>
@@ -1202,6 +1254,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             execute : false # if false, do whatever else we would do, but don't actually execute code.
             toggle_input  : false  # if true; toggle whether input is displayed; ranges all toggle same as first
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
+            delete_output : false  # if true; delete all the the output in the range
             cm      : @codemirror
 
         if opts.pos?
@@ -1243,7 +1296,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 @move_cursor_to_next_cell()
                 @action(opts)
             else
-                @sync_soon()
+                @sync()
+            return
+
+        if opts.delete_output
+            n = @find_output_line(pos.line)
+            if n?
+                opts.cm.removeLine(n)
+                @sync()
             return
 
         block = @current_input_block(pos.line)
@@ -1265,7 +1325,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if @_toggle_input_range == 'wait'
                     @_toggle_input_range = 'hide'
 
-            @sync_soon()
+            @sync()
 
         if opts.toggle_output
             if FLAGS.hide_output in @get_cell_flagstring(marker)
@@ -1280,7 +1340,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if @_toggle_output_range == 'wait'
                     @_toggle_output_range = 'hide'
 
-            @sync_soon()
+            @sync()
 
         if opts.advance
             @move_cursor_to_next_cell()
@@ -1288,19 +1348,18 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if opts.execute
             @set_cell_flag(marker, FLAGS.execute)
             @sync()
-            setTimeout( (() => @sync_soon()), 50 )
-            setTimeout( (() => @sync_soon()), 200 )
+            setTimeout( (() => @sync()), 50 )
+            setTimeout( (() => @sync()), 200 )
 
 
     _diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
-            #console.log("sync now")
             @sync()
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.
         @cell_start_marker(pos.line)
-        @sync_soon()
+        @sync()
 
     move_cursor_to_next_cell: () =>
         cm = @codemirror

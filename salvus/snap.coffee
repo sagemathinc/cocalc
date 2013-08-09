@@ -306,6 +306,7 @@ _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
 snap_restore = (opts) ->
     opts = defaults opts,
         project_id      : required
+        location        : undefined    # if undefined, queries the db for a default target (which must not be 'deploying' or undefined or '' in database!)
         snapshot        : required
         repo_id         : required
         path            : '.'
@@ -337,19 +338,28 @@ snap_restore = (opts) ->
     target = "master/#{opts.snapshot}/#{opts.path}"
     dest   = undefined
     escaped_dest = undefined
+    location = undefined
 
     async.series([
         # Get remote project location from database
         (cb) ->
-            database.get_project_location
-                project_id : opts.project_id
-                cb         : (err, location) ->
-                    if err
+            if opts.location
+                location = opts.location
+                cb()
+            else
+                database.get_project_location
+                    project_id : opts.project_id
+                    cb         : (err, _location) ->
+                        location = _location
                         cb(err)
-                    else
-                        # TODO: support location.port != 22 and location.path != '.'   !!?
-                        user = "#{location.username}@#{location.host}"
-                        cb()
+        (cb) ->
+            # TODO: support location.port != 22 and location.path != '.'   !!?
+            if not location or not location.username? or not location.host?
+                cb("unable to restore to location #{misc.to_json(location)}")
+            else
+                user = "#{location.username}@#{location.host}"
+                cb()
+
         # Extract file or path to temporary location.
         (cb) ->
             t = misc.walltime()
@@ -360,6 +370,19 @@ snap_restore = (opts) ->
                cb      : (err) ->
                    winston.info("restore time (#{target}) -- #{misc.walltime(t)}")
                    cb(err)
+
+        # If target path is ., then remove .sagemathcloud, since we *must* not restore it,
+        # since it contains a bunch of invalid and out of data cache info, etc., which will
+        # cause all kinds of trouble.
+        (cb) ->
+            if opts.path != '.'
+                cb(); return
+            winston.debug("removing .sagemathcloud since target path is '.'")
+            misc_node.execute_code
+                command : "rm"
+                args    : ["-rf", outdir + "/.sagemathcloud/"]
+                cb      : (err, output) ->
+                    cb()
 
         (cb) ->
             # Determine destination path and ensure it exists.  Note that rsync seems like
@@ -435,6 +458,8 @@ snap_restore = (opts) ->
             command : "rm"
             args    : ['-rf', outdir]
             timeout : 3600
+            cb      : (err, output) ->
+                winston.debug("finished removing temporary extraction directory")
     )
 
 
@@ -489,7 +514,7 @@ snap_log = (opts) ->
 create_lock = (opts) ->
     opts = defaults opts,
         location : required
-        ttl      : 2*DEFAULT_TIMEOUT   # time to live, in seconds
+        ttl      : DEFAULT_TIMEOUT   # time to live, in seconds
         cb       : required
 
     user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
@@ -602,14 +627,21 @@ rollback_last_save = (opts) ->
 # It is safe to enqueue a project repeatedly -- it'll get snapshoted
 # at most every snap_interval seconds.
 
-snapshot_queue = []
+
+snapshot_queue = []    # list of {project_id:?, cbs:[list of callback functions (or undefined)]}
 
 snapshot_project = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : undefined
-    winston.info("enqueuing project #{opts.project_id} for snapshot")
-    snapshot_queue.push(opts)
+    winston.debug("snapshot_project(#{opts.project_id})")
+    for x in snapshot_queue
+        if x.project_id == opts.project_id
+            winston.debug("project #{opts.project_id} already in snapshot queue -- adding callback")
+            x.cbs.push(opts.cb)
+            return
+    winston.debug("adding #{opts.project_id} to queue")
+    snapshot_queue.push({project_id:opts.project_id, cbs:[opts.cb]})
 
 repository_is_corrupt = false
 monitor_snapshot_queue = () ->
@@ -617,12 +649,14 @@ monitor_snapshot_queue = () ->
 
         if repository_is_corrupt
             while snapshot_queue.length > 0
-                {project_id, cb} = snapshot_queue.shift()
-                cb?("the repository is corrupt")
+                {project_id, cbs} = snapshot_queue.shift()
+                for cb in cbs
+                    cb?("the repository is totally corrupt")
             return
 
         user = undefined
-        {project_id, cb} = snapshot_queue.shift()
+        winston.debug("snapshot_queue = #{misc.to_json(snapshot_queue)}")
+        {project_id, cbs} = snapshot_queue.shift()
 
         location    = undefined
         user        = undefined
@@ -632,10 +666,13 @@ monitor_snapshot_queue = () ->
         repo_id     = undefined
         bup_active  = undefined
         retry_later = false
+        nothing_to_do = false
         rollback_info = undefined
         rollback_file = undefined
+        modified_files = undefined
         async.series([
             (cb) ->
+                winston.debug("snapshot: checking if disabled for #{project_id}")
                 database.select_one
                     table   : 'projects'
                     where   : {project_id: project_id}
@@ -646,11 +683,12 @@ monitor_snapshot_queue = () ->
                             cb(err)
                         else
                             if result[0]
-                                cb("Not making snapshot of project #{project_id}, since they are disabled for this project.")
+                                cb("snapshots disabled for #{project_id}t")
                             else
                                 cb()
 
             (cb) ->
+                winston.debug("snapshot: getting active path")
                 active_path (err, path) ->
                     if err
                         cb(err)
@@ -662,7 +700,7 @@ monitor_snapshot_queue = () ->
 
             # compute disk usage before save
             (cb) ->
-                winston.debug("disk usage before save")
+                winston.debug("snapshot: compute disk usage before save")
                 misc_node.disk_usage bup_active, (err, usage) ->
                     winston.debug("usage: #{err}, #{usage} bytes")
                     size_before = usage
@@ -678,13 +716,27 @@ monitor_snapshot_queue = () ->
                             if err
                                 cb(err)
                             else
-                                rollback_last_save
-                                    rollback_info : misc.from_json(data.toString())
-                                    cb            : (err) ->
-                                        if err
-                                            cb(err)
-                                        else
-                                            fs.unlink(rollback_file, cb)
+                                s = data.toString()
+                                try
+                                    rollback_info = misc.from_json(s)
+                                    winston.debug("rollback info: '#{s}'")
+                                catch
+                                    # Something went wrong parsing the rollback JSON file; maybe it is corrupt
+                                    # or empty.  This would be a good place to take more dramatic measures,
+                                    # once they are implemented.
+                                    winston.debug("rollback file *corrupt* (not using); content='#{s}'")
+                                    rollback_info = undefined
+
+                                if rollback_info?
+                                    rollback_last_save
+                                        rollback_info : rollback_info
+                                        cb            : (err) ->
+                                            if err
+                                                cb(err)
+                                            else
+                                                fs.unlink(rollback_file, cb)
+                                else
+                                    cb()
                     else
                         cb()
 
@@ -703,12 +755,16 @@ monitor_snapshot_queue = () ->
                         if err
                             cb(err)
                         else
+                            if not _location or not _location.username?
+                                cb("can't snapshot #{project_id} since it is not deployed")
+                                return
                             location = _location
                             user = "#{location.username}@#{location.host}"
                             # TODO: support location.port != 22 and location.path != '.'   !!?
                             cb()
+
             # get a lock on the deployed project
-            (c) ->
+            (cb) ->
                 winston.debug("Trying to lock #{project_id} for snapshotting.")
                 create_lock
                     location : location
@@ -717,19 +773,50 @@ monitor_snapshot_queue = () ->
                             retry_later = true
                             winston.debug("Couldn't lock #{project_id}, so put back in the queue to try again later (in 30 seconds)")
                             f = () ->
-                                snapshot_project(project_id:project_id, cb:cb)  # cb is way above.
+                                for c in cbs
+                                    snapshot_project(project_id:project_id, cb:c)
                             setTimeout(f, 30000)
-                        c(err)
+                        cb(err)
 
             # create index
             (cb) ->
                 t = misc.walltime()
                 bup
                     args : ['on', user, 'index', '.']
-                    bup_dir : bup_active    # TODO: does this matter -- this runs on remote. ??
+                    bup_dir : bup_active
                     cb   : (err) ->
                         winston.debug("time to index #{project_id}: #{misc.walltime(t)} s")
                         cb(err)
+
+            # List the interesting modified files.
+            # This only makes sense because we just made the index above successfully.
+            # Note that "modified" is global to *all* snap servers, so this is actually
+            # a really sensible thing to do.  And if one snap server makes a snapshot,
+            # then no other snapshot server will make exactly the same snapshot (by a different name),
+            # which is what we want, since we will get redundancy by rsyncing them around.
+            (cb) ->
+                misc_node.execute_code
+                    command : "bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
+                    timeout : 30  # should be very fast no matter what.
+                    bash    : true
+                    env     : {BUP_DIR : bup_active}
+                    cb      : (err, output) ->
+                        if err
+                            winston.debug("SERIOUS BUG issue: error determining number of modified files for #{project_id}: #{err}")
+                            cb(err)
+                        else
+                            modified_files = (x.slice(2) for x in output.stdout.trim().split('\n'))
+                            n = modified_files.length
+                            winston.debug("#{n} modified files for #{project_id}")
+                            winston.debug("modified files = #{misc.trunc(misc.to_json(modified_files),512)}")
+                            if n == 0
+                                nothing_to_do = true
+                                _last_snapshot_cache[project_id] = misc.walltime() # don't try again to snapshot this project for a few minutes (otherwise we would index the whole thing every few seconds!)
+                                remove_lock
+                                    location : location
+                                    cb       : (err) -> cb(true)
+                            else
+                                cb()
 
             # write rollback file
             (cb) ->
@@ -813,7 +900,8 @@ monitor_snapshot_queue = () ->
                 _last_snapshot_cache[project_id] = t
                 database.update
                     table : 'snap_commits'
-                    set   : {size: size, repo_id:repo_id}
+                    set   : {size: size, repo_id:repo_id, modified_files:modified_files}
+                    json  : ['modified_files']
                     where :
                         server_id  : snap_server_uuid
                         project_id : project_id
@@ -822,11 +910,29 @@ monitor_snapshot_queue = () ->
                         winston.debug("time to record commit to database: #{misc.walltime(t)}")
                         cb()
 
+                # Also add row to table for each modified file.  There could be a 50,000 files though,
+                # so this is slow, so we don't block on it.  TODO: do this in one transaction someday.
+                f = (filename, cb) ->
+                    database.update
+                        table : 'snap_modified_files'
+                        set   : {dummy: true}
+                        where :
+                            project_id : project_id
+                            filename   : filename
+                            timestamp : timestamp
+                        cb : cb
+                t = misc.walltime()
+                async.map modified_files, f, (err) ->
+                    winston.debug("finished recording snap_modified_files for project #{project_id}, time = #{misc.walltime(t)}")
+
         ], (err) ->
             # wait 3 seconds, to ensure uniqueness of time stamp, not be too aggressive checking locks, etc.
             setTimeout(monitor_snapshot_queue, 3000)
+            if nothing_to_do
+                err = undefined
             if not retry_later
-                cb?(err)
+                for cb in cbs
+                    cb?(err)
         )
     else
         # check again soon
@@ -842,8 +948,9 @@ snapshot_projects = (opts) ->
         return
 
     error = undefined
-
+    winston.debug("snapshot_projects: #{misc.to_json(opts.project_ids)}")
     f = (p, cb) ->
+        winston.debug("DEBUG -- #{p}")
         snapshot_project
             project_id : p
             cb         : (err) ->
@@ -917,6 +1024,7 @@ handle_mesg = (socket, mesg) ->
         when 'restore'
             snap_restore
                 project_id : mesg.project_id
+                location   : mesg.location
                 snapshot   : mesg.snapshot
                 repo_id    : mesg.repo_id
                 path       : mesg.path
@@ -1081,6 +1189,7 @@ exports.client_snap = (opts) ->
         socket     : required
         command    : required   # "ls", "restore", "log"
         project_id : undefined
+        location   : undefined  # used by command='restore' to send files to some non-default location (the default is the project location in the database)
         snapshot   : undefined
         repo_id    : undefined
         path       : '.'
@@ -1108,7 +1217,7 @@ exports.client_snap = (opts) ->
         opts.cb("unknown command '#{opts.command}'")
         return
 
-    mesg = {id:uuid.v4(), command:opts.command, project_id: opts.project_id, snapshot:opts.snapshot, path:opts.path, repo_id:opts.repo_id}
+    mesg = {id:uuid.v4(), command:opts.command, project_id: opts.project_id, snapshot:opts.snapshot, location:opts.location, path:opts.path, repo_id:opts.repo_id}
     list = undefined
     async.series([
         (cb) ->
@@ -1285,12 +1394,15 @@ age_of_most_recent_snapshot_in_seconds = (id) ->
 # Ensure that we maintain and update snapshots of projects, according to our rules.
 snapshot_active_projects = (cb) ->
     project_ids = undefined
-    winston.debug("checking for recently modified project.")
+    winston.debug("checking for recently modified projects.")
     async.series([
+        (cb) ->
+            connect_to_database(cb)
         (cb) ->
             database.select
                 table   : 'recently_modified_projects'
                 columns : ['project_id']
+                where   : {ttl:'short'}
                 objectify : false
                 cb : (err, results) =>
                     project_ids = (r[0] for r in results)
@@ -1302,16 +1414,14 @@ snapshot_active_projects = (cb) ->
             for id in project_ids
                 if age_of_most_recent_snapshot_in_seconds(id) >= program.snap_interval
                     v.push(id)
-            winston.debug("projects needing snapshots: #{misc.to_json(v)}")
+            winston.debug("projects needing snapshots (since snapshot age > #{program.snap_interval}): #{misc.to_json(v)}")
             snapshot_projects
                 project_ids : v
                 cb          : cb
     ], (err) ->
         if err
-            winston.debug("Error snapshoting active projects -- #{err}")
+            winston.debug("Not all active projects snapshotted:  #{err}")
             # TODO: We need to trigger something more drastic somehow at some point...?
-
-        setTimeout(snapshot_active_projects, 10000)  # check every 10 seconds
 
         cb?()
     )
@@ -1349,7 +1459,7 @@ exports.start_server = start_server = () ->
             monitor_snapshot_queue()
             cb()
         (cb) ->
-            snapshot_active_projects(cb)
+            setInterval(snapshot_active_projects, 10000)
         #(cb) ->
         #    ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->

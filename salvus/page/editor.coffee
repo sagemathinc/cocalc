@@ -342,7 +342,7 @@ class exports.Editor
                 return false
 
             if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
-                @display_tab(@active_tab.filename)
+                @display_tab(path:@active_tab.filename)
                 return
 
             v = $.trim(search_box.val()).toLowerCase()
@@ -367,7 +367,7 @@ class exports.Editor
                 filename = tab.filename
                 if match(filename)
                     if first and event.keyCode == 13 # enter -- select first match (if any)
-                        @display_tab(filename)
+                        @display_tab(path:filename)
                         first = false
                     if v != ""
                         tab.link.addClass(include); tab.link.removeClass(exclude)
@@ -379,9 +379,59 @@ class exports.Editor
         if @counter?
             @counter.text(len(@tabs))
 
-    open: (filename) =>
+    open: (filename, cb) =>   # cb(err, actual_opened_filename)
+        if not filename?
+            cb("BUG -- open(undefined) makes no sense")
+            return
+
+        if filename == ".sagemathcloud.log"
+            cb("You can only edit '.sagemathcloud.log' via the terminal.")
+            return
+
+        if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
+            alert_message(type:"info",message:"Opening converted Sagemath Cloud worksheet file instead of '#{filename}...")
+            @convert_sagenb_worksheet filename, (err, sagews_filename) =>
+                if not err
+                    @open(sagews_filename, cb)
+                else
+                    cb("Error converting Sage Notebook sws file -- #{err}")
+            return
+
+        if filename_extension(filename).toLowerCase() == "docx"   # Microsoft Word Document
+            alert_message(type:"info", message:"Opening converted plane text file instead of '#{filename}...")
+            @convert_docx_file filename, (err, new_filename) =>
+                if not err
+                    @open(new_filename, cb)
+                else
+                    cb("Error converting Microsoft Docx file -- #{err}")
+            return
+
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
             @tabs[filename] = @create_tab(filename:filename)
+
+        cb(false, filename)
+
+    convert_sagenb_worksheet: (filename, cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "sws2sagews.py"
+            args       : [filename]
+            cb         : (err, output) =>
+                if err
+                    cb("#{err}, #{misc.to_json(output)}")
+                else
+                    cb(false, filename.slice(0,filename.length-3) + 'sagews')
+
+    convert_docx_file: (filename, cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            command    : "docx2txt.py"
+            args       : [filename]
+            cb         : (err, output) =>
+                if err
+                    cb("#{err}, #{misc.to_json(output)}")
+                else
+                    cb(false, filename.slice(0,filename.length-4) + 'txt')
 
     file_options: (filename, content) =>   # content may be undefined
         ext = filename_extension(filename)?.toLowerCase()
@@ -421,11 +471,13 @@ class exports.Editor
 
         containing_path = misc.path_split(filename).head
         ignore_clicks = false
-        link.find("a").click () =>
+        link.find("a").click (e) =>
             if ignore_clicks
                 return false
-            @display_tab(link_filename.text())
-            @project_page.set_current_path(containing_path)
+            foreground = not(e.which==2 or e.ctrlKey)
+            @display_tab(path:link_filename.text(), foreground:foreground)
+            if foreground
+                @project_page.set_current_path(containing_path)
 
         create_editor_opts =
             editor_name : opts0.editor
@@ -479,6 +531,17 @@ class exports.Editor
             content     : undefined
             extra_opts  : required
         #console.log('create_editor: ', opts)
+
+        if editor_name == 'codemirror'
+            if filename.slice(filename.length-7) == '.sagews'
+                typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore
+            else
+                typ = 'file'
+        else
+            typ = editor_name
+        @project_page.project_activity({event:'open', filename:filename, type:typ})
+
+
         # Some of the editors below might get the content later and will call @file_options again then.
         switch editor_name
             # codemirror is the default... TODO: JSON, since I have that jsoneditor plugin.
@@ -518,7 +581,7 @@ class exports.Editor
         open_file = (name) =>
             @project_page.set_current_path(misc.path_split(name).head)
             @project_page.display_tab("project-editor")
-            @display_tab(name)
+            @display_tab(path:name)
 
         link.find(".salvus-editor-close-button-x").click () =>
             if ignore_clicks
@@ -668,27 +731,40 @@ class exports.Editor
         $(".salvus-editor-recent-files").show()
         $(".project-editor-recent-files-header").show()
 
-    # Make the give tab active.
-    display_tab: (filename) =>
+    # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
+    display_tab: (opts) =>
+        opts = defaults opts,
+            path       : required
+            foreground : true      # display in foreground as soon as possible
+
+        filename = opts.path
+
         if not @tabs[filename]?
             return
 
-        @hide_recent_file_list()
-        @show_editor_content()
+        if opts.foreground
+            @hide_recent_file_list()
+            @show_editor_content()
+
         prev_active_tab = @active_tab
         for name, tab of @tabs
             if name == filename
                 @active_tab = tab
                 ed = tab.editor()
-                ed.show()
-                setTimeout((() -> ed.show(); ed.focus()), 100)
-                @element.find(".btn-group").children().removeClass('disabled')
+
+                if opts.foreground
+                    ed.show()
+                    setTimeout((() -> ed.show(); ed.focus()), 100)
+                    @element.find(".btn-group").children().removeClass('disabled')
+
                 top_link = @active_tab.open_file_pill
                 if top_link?
-                    @make_open_file_pill_active(top_link)
+                    if opts.foreground
+                        @make_open_file_pill_active(top_link)
                 else
                     @create_opened_file_tab(filename)
-                    @make_open_file_pill_active(@active_tab.open_file_pill)
+                    if opts.foreground
+                        @make_open_file_pill_active(@active_tab.open_file_pill)
             else
                 tab.hide_editor()
 
@@ -707,7 +783,7 @@ class exports.Editor
                 label  : misc.path_split(filename).tail
                 onshow : () =>
                     navbar.switch_to_page(@project_id)
-                    @display_tab(filename)
+                    @display_tab(path:filename)
                     navbar.make_button_active(id)
 
     onshow: () =>  # should be called when the editor is shown.
@@ -870,6 +946,7 @@ class CodeMirrorEditor extends FileEditor
 
         opts = @opts = defaults opts,
             mode              : required
+            read_only         : false
             delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
             allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
             line_numbers      : editor_settings.line_numbers
@@ -888,8 +965,8 @@ class CodeMirrorEditor extends FileEditor
             # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
-            cursor_interval   : 2000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval     : 250   # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            cursor_interval   : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
+            sync_interval     : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
             completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
@@ -897,9 +974,9 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         @init_save_button()
-        @init_close_button()
         @init_edit_buttons()
 
+        @init_close_button()
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
@@ -962,6 +1039,7 @@ class CodeMirrorEditor extends FileEditor
                 undoDepth       : opts.undo_depth
                 matchBrackets   : opts.match_brackets
                 lineWrapping    : opts.line_wrapping
+                readOnly        : opts.read_only
                 extraKeys       : extraKeys
                 cursorScrollMargin : 100
 
@@ -974,7 +1052,12 @@ class CodeMirrorEditor extends FileEditor
 
             cm = CodeMirror.fromTextArea(node, options)
             cm.save = () => @click_save_button()
-            #$(cm.getWrapperElement()).css('font-family':'droid-sans-mono !important')
+
+            # The Codemirror themes impose their own weird fonts, but most users want whatever
+            # they've configured as "monospace" in their browser.  So we force that back:
+            e = $(cm.getWrapperElement())
+            e.attr('style', e.attr('style') + '; font-family:monospace !important')  # see http://stackoverflow.com/questions/2655925/apply-important-css-style-using-jquery
+
             return cm
 
 
@@ -1148,6 +1231,9 @@ class CodeMirrorEditor extends FileEditor
             #console.log('skipping show because things not defined yet.')
             return
 
+        if @syncdoc?
+            @syncdoc.sync()
+
         @element.show()
         @codemirror.refresh()
 
@@ -1209,7 +1295,7 @@ class CodeMirrorEditor extends FileEditor
             if @_split_view
                 @codemirror1.focus()
 
-codemirror_session_editor = (editor, filename, extra_opts) ->
+codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     ext = filename_extension(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)

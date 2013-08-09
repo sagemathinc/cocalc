@@ -72,7 +72,7 @@ def uuidsha1(data):
 # A tcp connection with support for sending various types of messages, especially JSON.
 class ConnectionJSON(object):
     def __init__(self, conn):
-        assert not isinstance(conn, ConnectionJSON)
+        assert not isinstance(conn, ConnectionJSON)  # avoid common mistake -- conn is supposed to be from socket.socket...
         self._conn = conn
 
     def close(self):
@@ -336,6 +336,13 @@ class Namespace(dict):
             for f in self._on_change[None]:
                 f(x,y)
 
+class TemporaryURL:
+    def __init__(self, url, ttl):
+        self.url = url
+        self.ttl = ttl
+    def __repr__(self):
+        return self.url
+
 namespace = Namespace({})
 
 class Salvus(object):
@@ -355,12 +362,13 @@ class Salvus(object):
     def __repr__(self):
         return ''
 
-    def __init__(self, conn, id, data=None):
+    def __init__(self, conn, id, data=None, message_queue=None):
         self._conn = conn
         self._id   = id
         self._done = True    # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
         self.data = data
         self.namespace = namespace
+        self.message_queue = message_queue
         namespace['salvus'] = self   # beware of circular ref?
         # Monkey patch in our "require" command.
         namespace['require'] = self.require
@@ -374,32 +382,53 @@ class Salvus(object):
 
     def file(self, filename, show=True, done=False, download=False, once=None):
         """
-        Sends a file to the browser and returns a uuid that can be
-        used to access the file (for 10 minutes) at
+        Display or provide a link to the given file.  Raises a RuntimeError if this
+        is not possible, e.g, if the file is too large.
 
-                /blobs/filename?uuid=the_uuid
+        If show=True (the default), the browser will show the file,
+        or provide a clickable link to it if there is no way to show it.
 
-        If show is true (the default), the browser will show the file
-        as well, or provide a link to it.
+        If show=False, this function returns an object T such that
+        T.url (or str(t)) is a string of the form "/blobs/filename?uuid=the_uuid"
+        that can be used to access the file even if the file is immediately
+        deleted after calling this function (the file is stored in a database).
+        Also, T.ttl is the time to live (in seconds) of the object.  A ttl of
+        0 means the object is permanently available.
 
-        If you instead use the URL
-
+        If you use the URL
                /blobs/filename?uuid=the_uuid&download
-
-        the server will include a header that tells the browser to
+        then the server will include a header that tells the browser to
         download the file to disk instead of displaying it.
 
-        If show=False, only returns the url (and sends JSON message with show:false).
-        This can be useful for constructing custom HTML that directly accesses blobs.
+        This function creates an output message {file:...}; if the user saves
+        a worksheet containing this message, then any referenced blobs are made
+        permanent in the database.
+
+        The uuid is based on the Sha-1 hash of the file content (it is computed using the
+        function sage_server.uuidsha1).  Any two files with the same content have the
+        same Sha1 hash.
         """
         file_uuid = self._conn.send_file(filename)
+
+        mesg = None
+        while mesg is None:
+            self.message_queue.recv()
+            for i, (typ, m) in enumerate(self.message_queue.queue):
+                if typ == 'json' and m['event'] == 'save_blob' and m['sha1'] == file_uuid:
+                    mesg = m
+                    del self.message_queue[i]
+                    break
+
+        if 'error' in mesg:
+            raise RuntimeError("error saving blob -- " + mesg['error'])
+
         self._flush_stdio()
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
         if not show:
             url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
             if download:
                 url += '?download'
-            return url
+            return TemporaryURL(url=url, ttl=mesg['ttl'])
 
     def default_mode(self, mode=None):
         """
@@ -484,6 +513,7 @@ class Salvus(object):
         if namespace is None:
             namespace = self.namespace
 
+        #code   = parsing.strip_leading_prompts(code)  # broken -- wrong on "def foo(x):\n   print x"
         blocks = parsing.divide_into_blocks(code)
 
         for start, stop, block in blocks:
@@ -491,7 +521,10 @@ class Salvus(object):
                 block = parsing.preparse_code(block)
             sys.stdout.reset(); sys.stderr.reset()
             try:
-                exec compile(block+'\n', '', 'single') in namespace, locals
+                if block.lstrip().endswith('?'):
+                    print parsing.introspect(block, namespace=namespace, preparse=False)['result']
+                else:
+                    exec compile(block+'\n', '', 'single') in namespace, locals
                 sys.stdout.flush()
                 sys.stderr.flush()
             except:
@@ -809,9 +842,9 @@ class Salvus(object):
         sage_salvus.typeset_mode(on)
 
 
-def execute(conn, id, code, data, preparse):
+def execute(conn, id, code, data, preparse, message_queue):
 
-    salvus = Salvus(conn=conn, id=id, data=data)
+    salvus = Salvus(conn=conn, id=id, data=data, message_queue=message_queue)
     salvus.start_executing()
 
     try:
@@ -869,6 +902,43 @@ def drop_privileges(id, home, transient, username):
     import sage.misc.misc
     sage.misc.misc.DOT_SAGE = home + '/.sage/'
 
+
+class MessageQueue(list):
+    def __init__(self, conn):
+        self.queue = []
+        self.conn  = conn
+
+    def __repr__(self):
+        return "Sage Server Message Queue"
+
+    def __getitem__(self, i):
+        return self.queue[i]
+
+    def __delitem__(self, i):
+        del self.queue[i]
+
+    def next_mesg(self):
+        """
+        Remove oldest message from the queue and return it.
+        If the queue is empty, wait for a message to arrive
+        and return it (does not place it in the queue).
+        """
+        if self.queue:
+            return self.queue.pop()
+        else:
+            return self.conn.recv()
+
+    def recv(self):
+        """
+        Wait until one message is received and enqueue it.
+        Also returns the mesg.
+        """
+        mesg = self.conn.recv()
+        self.queue.insert(0,mesg)
+        return mesg
+
+
+
 def session(conn):
     """
     This is run by the child process that is forked off on each new
@@ -879,6 +949,8 @@ def session(conn):
 
     - ``conn`` -- the TCP connection
     """
+    mq = MessageQueue(conn)
+
     pid = os.getpid()
 
     # seed the random number generator(s)
@@ -892,14 +964,15 @@ def session(conn):
     cnt = 0
     while True:
         try:
-            typ, mesg = conn.recv()
+            typ, mesg = mq.next_mesg()
+
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
             event = mesg['event']
             if event == 'terminate_session':
                 return
             elif event == 'execute_code':
                 try:
-                    execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'])
+                    execute(conn=conn, id=mesg['id'], code=mesg['code'], data=mesg.get('data',None), preparse=mesg['preparse'], message_queue=mq)
                 except:
                     pass
             elif event == 'introspect':
@@ -1047,7 +1120,7 @@ def serve(port, host):
         sage.misc.latex.latex.eval = sage_salvus.latex0
 
         # Plot, integrate, etc., -- so startup time of worksheets is minimal.
-        
+
         exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
         print 'imported sage library in %s seconds'%(time.time() - tm)
 

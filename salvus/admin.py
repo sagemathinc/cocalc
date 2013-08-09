@@ -1385,24 +1385,45 @@ class Services(object):
                     break
         print "All vm's successfully terminated"
 
-    def monitor_hubs(self):
+    def monitor(self):
         """
-        This is temporary code to monitor the hub, which sometimes goes into an infinite loop when doc sync goes
-        to hell.  We have to just let this go and gather logging data, in order to debug it.   However, we
-        also want users to not loose access, hence the auto-restart.
+        Monitor the hub and database, and restart they go bad.
+
+           - Like any node application, the hub could go which sometimes goes into an infinite loop
+             due to a bug.  This would cause it to stop responding to HTTP requests.  
+             If this happens for 5 seconds, we restart the hub and make a note in the database.
+
+           - Cassandra 1.2.4 keeps crashing (about once a day) on me, with an out of memory error, despite
+             the host vm having 48GB swap and at least 16GB RAM.  This must be a bug.  In any case,
+             any event that results in cassandra dieing, shound then have it get restarted and
+             logged. Also, the snap servers don't recover gracefully when the database dies, so
+             we restart them too (unfortunately this can leave stale locks around, which mess up backups 
+             in progress for 15-30 minutes, at least until I make locking more sophisticated).
+             
         """
         self._hosts.password()
         # Get IP addresses of hubs
         hosts = self._hosts['hub']
         import  cassandra, sys, urllib2
-        def is_working(ip):
+        def hub_is_working(ip):
              try:
                  t = time.time()
-                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
+                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=5).read()
                  print "ping: %s"%ip, time.time() - t, "   status: ", s
                  return True
              except:
                  return False
+
+        def cassandra_snap_status():
+            try:
+                n = cassandra.cursor_execute("SELECT COUNT(*) FROM snap_servers").fetchone()[0]
+                print "found %s snap servers"%n
+                if n == 0:
+                    return "no running snap servers"
+            except:
+                return "cassandra not working"
+            return ""
+
         i = 0
         while True:
             if i % 80 == 0:
@@ -1410,16 +1431,31 @@ class Services(object):
             i += 1
             sys.stdout.flush()
             for ip in hosts:
-                if not is_working(ip):
+                if not hub_is_working(ip):
                      print ":-( Restarting %s"%ip
                      self.restart('hub',host=ip)
                      try:
-                         message = {'action':'restart', 'reason':'stopped responding to monitor', 'ip':ip}
+                         message = {'action':'restart', 'reason':'stopped responding to monitor for 5 seconds', 'ip':ip}
                          cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
                               {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
-                     except Exception, msg:
-                         print "Unable to record log message in database, %s"%msg
-            time.sleep(5)
+                     except:
+                         print "Unable to record log message in database"
+
+            # Next check that there is at least 1 snap server -- and making this check also confirms that 
+            # cassandra is up and working.
+            status = cassandra_snap_status()
+            if status:
+                print status
+                self.restart("cassandra", wait=True)
+                self.restart("snap", wait=False, parallel=True)
+                try:
+                     message = {'action':'restart', 'reason':status}
+                     cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
+                              {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'cassandra'})
+                except Exception:
+                     print "Unable to record log message in database"
+
+            time.sleep(15)
 
     def restart_web(self):
         """

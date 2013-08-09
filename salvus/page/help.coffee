@@ -12,4 +12,13 @@ update_stats = () ->
             X = $(".salvus-stats").show()
             X.find(".salvus-stats-accounts").text(stats.accounts)
             X.find(".salvus-stats-projects").text(stats.projects)
-            X.find(".salvus-stats-active-projects").text(stats.active_projects)
+            X.find(".salvus-stats-active_projects").text(stats.active_projects)
+            X.find(".salvus-stats-last_day_projects").text(stats.last_day_projects)
+            X.find(".salvus-stats-last_week_projects").text(stats.last_week_projects)
+            X.find(".salvus-stats-last_month_projects").text(stats.last_month_projects)
+
+            if stats.hub_servers.length == 0
+                n = 0
+            else
+                n = (x['clients'] for x in stats.hub_servers).reduce((s,t) -> s+t)
+            X.find(".salvus-stats-number-of-clients").text(n)

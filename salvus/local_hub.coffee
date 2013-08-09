@@ -66,14 +66,6 @@ secret_token_length = 128
 
 init_confpath = () ->
     async.series([
-        # Ensure the CONFPATH has maximally restrictive permissions, since
-        # secret info will be stored there.
-        (cb) ->
-            winston.debug("restrict permissions")
-            misc_node.execute_code
-                command : "chmod"
-                args    : ['u+rw,og-rwx', '-R', abspath('.sagemathcloud')]
-                cb      : cb
 
         # Read or create the file; after this step the variable secret_token
         # is set and the file exists.
@@ -90,9 +82,7 @@ init_confpath = () ->
                         secret_token = buf.toString('base64')
                         fs.writeFile(secret_token_filename, secret_token, cb)
 
-        # Ensure restrictive permissions on the secret token file.  The
-        # directory permissions already restrict anybody else from
-        # looking at this file, but we do this as well, just in case.
+        # Ensure restrictive permissions on the secret token file.
         (cb) ->
             fs.chmod(secret_token_filename, 0o600, cb)
     ])
@@ -435,12 +425,42 @@ class DiffSyncFile_server extends diffsync.DiffSync
         # knowing about the backup, in which case it makes more sense
         # to just go with the master.
 
-        fs.stat @path, (no_master,stats_path) =>
-            fs.stat @_backup_file, (no_backup,stats_backup) =>
-                if no_backup # no backup file -- always use master
+        no_master = undefined
+        stats_path = undefined
+        no_backup = undefined
+        stats_backup = undefined
+        file = undefined
+
+        async.series([
+            (cb) =>
+                fs.stat @path, (_no_master, _stats_path) =>
+                    no_master = _no_master
+                    stats_path = _stats_path
+                    cb()
+            (cb) =>
+                fs.stat @_backup_file, (_no_backup, _stats_backup) =>
+                    no_backup = _no_backup
+                    stats_backup = _stats_backup
+                    cb()
+            (cb) =>
+                if no_backup and no_master
+                    # neither exist -- create
                     file = @path
+                    misc_node.ensure_containing_directory_exists @path, (err) =>
+                        if err
+                            cb(err)
+                        else
+                            fs.open file, 'w', (err, fd) =>
+                                if err
+                                    cb(err)
+                                else
+                                    fs.close fd, cb
+                else if no_backup # no backup file -- always use master
+                    file = @path
+                    cb()
                 else if no_master # no master file but there is a backup file -- use backup
                     file = @_backup_file
+                    cb()
                 else
                     # both master and backup exist
                     if stats_path.mtime.getTime() >= stats_backup.mtime.getTime()
@@ -449,13 +469,19 @@ class DiffSyncFile_server extends diffsync.DiffSync
                     else
                         # backup is newer
                         file = @_backup_file
+                    cb()
+            (cb) =>
                 fs.readFile file, (err, data) =>
                     if err
                         cb(err); return
-                    @init(doc:data.toString(), id:"file_server")
+                    # NOTE: we immediately delete \r's since the client editor (Codemirror) immediately deletes them
+                    # on editor creation; if we don't delete them, all sync attempts fail and hell is unleashed.
+                    @init(doc:data.toString().replace(/\r/g,''), id:"file_server")
                     # winston.debug("got new file contents = '#{@live}'")
                     @_start_watching_file()
-                    cb(err, @live)
+                    cb(err)
+
+        ], (err) => cb(err, @live))
 
     kill: () =>
         if @_autosave?
@@ -471,7 +497,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
             if err
                 @_start_watching_file()
             else
-                @live = data.toString()
+                @live = data.toString().replace(/\r/g,'')  # NOTE: we immediately delete \r's (see above).
                 @cm_session.sync_filesystem (err) =>
                     @_start_watching_file()
 
@@ -523,12 +549,15 @@ class DiffSyncFile_server extends diffsync.DiffSync
 
     write_to_disk: (cb) =>
         @_stop_watching_file()
-        fs.writeFile @path, @live, (err) =>
-            @_start_watching_file()
-            if not err
-                fs.exists @_backup_file, (exists) =>
-                    fs.unlink(@_backup_file)
-            cb?(err)
+        ensure_containing_directory_exists @path, (err) =>
+            if err
+                cb?(err); return
+            fs.writeFile @path, @live, (err) =>
+                @_start_watching_file()
+                if not err
+                    fs.exists @_backup_file, (exists) =>
+                        fs.unlink(@_backup_file)
+                cb?(err)
 
     write_backup: (cb) =>
         if @cm_session.content != @_last_backup
@@ -696,9 +725,28 @@ class CodeMirrorSession
                     #winston.debug("sage session: received message #{type}, #{misc.to_json(mesg)}")
                     switch type
                         when 'blob'
-                            winston.debug("codemirror session: got blob from sage session; forwarding to all connected hubs.")
-                            for id, ds_client of @diffsync_clients
+                            sha1 = mesg.uuid
+                            if @diffsync_clients.length == 0
+                                error = 'no global hubs are connected to the local hub, so nowhere to send file'
+                                winston.debug("codemirror session: got blob from sage session -- #{error}")
+                                resp =  message.save_blob
+                                    error  : error
+                                    sha1   : sha1
+                                socket.write_mesg('json', resp)
+                            else
+                                winston.debug("codemirror session: got blob from sage session -- forwarding to a random hub")
+                                hub = misc.random_choice_from_obj(@diffsync_clients)
+                                id = hub[0]; ds_client = hub[1]
                                 ds_client.remote.socket.write_mesg('blob', mesg)
+
+                                receive_save_blob_message
+                                    sha1 : sha1
+                                    cb   : (resp) -> socket.write_mesg('json', resp)
+
+                                ## DEBUG -- for testing purposes -- simulate the response message
+                                ## handle_save_blob_message(message.save_blob(sha1:sha1,ttl:1000))
+
+
                         when 'json'
                             c = @_sage_output_cb[mesg.id]
                             if c?
@@ -1457,6 +1505,51 @@ project_exec = (socket, mesg) ->
                     stderr    : out.stderr
                     exit_code : out.exit_code
 
+_save_blob_callbacks = {}
+receive_save_blob_message = (opts) ->
+    opts = defaults opts,
+        sha1    : required
+        cb      : required
+        timeout : 30  # maximum time in seconds to wait for response message
+
+    sha1 = opts.sha1
+    id = misc.uuid()
+    if not _save_blob_callbacks[sha1]?
+        _save_blob_callbacks[sha1] = [[opts.cb, id]]
+    else
+        _save_blob_callbacks[sha1].push([opts.cb, id])
+
+    # Timeout functionality -- send a response after opts.timeout seconds,
+    # in case no hub responded.
+    f = () ->
+        v = _save_blob_callbacks[sha1]
+        if v?
+            mesg = message.save_blob
+                sha1  : sha1
+                error : 'timed out after local hub waited for #{opts.timeout} seconds'
+
+            w = []
+            for x in v   # this is O(n) instead of O(1), but who cares since n is usually 1.
+                if x[1] == id
+                    x[0](mesg)
+                else
+                    w.push(x)
+
+            if w.length == 0
+                delete _save_blob_callbacks[sha1]
+            else
+                _save_blob_callbacks[sha1] = w
+
+    if opts.timeout
+        setTimeout(f, opts.timeout*1000)
+
+
+handle_save_blob_message = (mesg) ->
+    v = _save_blob_callbacks[mesg.sha1]
+    if v?
+        for x in v
+            x[0](mesg)
+        delete _save_blob_callbacks[mesg.sha1]
 
 ###############################################
 # Handle a message from the client
@@ -1493,6 +1586,8 @@ handle_mesg = (socket, mesg, handler) ->
                     socket.write_mesg('json', message.signal_sent(id:mesg.id))
             when 'terminate_session'
                 terminate_session(socket, mesg)
+            when 'save_blob'
+                handle_save_blob_message(mesg)
             else
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")
@@ -1535,7 +1630,6 @@ server = net.createServer (socket) ->
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    init_confpath()
     server.listen program.port, '127.0.0.1', () ->
         winston.info "listening on port #{server.address().port}"
         fs.writeFile(abspath('.sagemathcloud/data/local_hub.port'), server.address().port)
@@ -1558,6 +1652,10 @@ if program._name == 'local_hub.js'
         winston.error "Uncaught exception: " + err
         if console? and console.trace?
             console.trace()
+    console.log("setting up conf path")
+    init_confpath()
     console.log("start daemon")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
     console.log("after daemon")
+
+# x

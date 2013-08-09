@@ -252,7 +252,7 @@ exports.execute_code = (opts) ->
         uid        : undefined
         gid        : undefined
         env        : undefined   # if given, added to exec environment
-        cb         : required
+        cb         : undefined
 
     start_time = walltime()
     winston.debug("execute_code: \"#{opts.command} #{opts.args.join(' ')}\"")
@@ -462,7 +462,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
         host        : required
         ssh_port    : 22
         remote_port : required
-        activity_time : 1800 # kill connection if the HUB doesn't
+        activity_time : 900 # kill connection if the HUB doesn't
                              # actively *receive* something on this
                              # port for this many seconds.
         keep_alive_time :  5 # network activity every this many
@@ -483,12 +483,14 @@ exports.forward_remote_port_to_localhost = (opts) ->
     winston.debug("Forward a remote port #{opts.remote_port} on #{opts.host} to localhost.")
 
     remote_address = "#{opts.username}@#{opts.host}:#{opts.remote_port} -p#{opts.ssh_port}"
-    local_port = address_to_local_port[remote_address]
 
+    ###
+    local_port = address_to_local_port[remote_address]
     if local_port?
         # We already have a valid forward
         opts.cb(false, local_port)
         return
+    ###
 
     # We have to make a new port forward
     portfinder = require('portfinder')
@@ -497,6 +499,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
         if err
             opts.cb(err)
             return
+        winston.debug("portfinder: #{local_port} available")
         command = "ssh"
         args =  ['-o', 'StrictHostKeyChecking=no', "-p", opts.ssh_port,
                  '-L', "#{local_port}:localhost:#{opts.remote_port}",

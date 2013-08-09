@@ -1,0 +1,59 @@
+#!/usr/bin/python
+
+import os, sys, time
+
+if len(sys.argv) < 4:
+    print "Usage: %s <title> <files to watch> <cmd>"%(sys.argv[0])
+    sys.exit(1)
+
+cmd = sys.argv[-1]
+title = sys.argv[1]
+watched_files = sys.argv[2:-1]
+
+for file in watched_files:
+    if not os.path.exists(file):
+        raise RuntimeError, "The file %s must exist."%file
+
+t = None
+def update_timestamps():
+    global t
+    t = dict([(name,os.path.getctime(name)) for name in watched_files])
+
+update_timestamps()
+
+def run():
+    print "\x1b]2;* (%s) Running %s\x07"%(title, cmd)
+    print cmd
+    t = time.time()
+    if os.system(cmd):
+        status = 'error'
+    else:
+        status = 'success'
+    print "\x1b]2;(%s) %s (%.1fs)\x07"%(title, status, time.time()-t)
+
+
+run()
+
+def go():
+    global t
+    while True:
+        try:
+            for watch_file in watched_files:
+                try:
+                    t2 = os.path.getctime(watch_file)
+                except:
+                    continue
+                if t2 != t[watch_file]:
+                    update_timestamps()
+                    print "%s changed"%watch_file
+                    run()
+                    break
+        except OSError:
+            pass
+        time.sleep(1)
+
+try:
+    go()
+except KeyboardInterrupt:
+    print "Ctrl-C pressed; exiting watch."
+

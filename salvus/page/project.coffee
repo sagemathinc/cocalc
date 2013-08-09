@@ -11,6 +11,8 @@ message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
+diffsync        = require('diffsync')
+account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
 {scroll_top, human_readable_size}    = require('misc_page')
@@ -29,7 +31,7 @@ template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
 template_project_collab        = templates.find(".project-collab")
 
-##################################################
+################################O##################
 # Initialize the modal project management dialogs
 ##################################################
 delete_path_dialog = $("#project-delete-path-dialog")
@@ -168,6 +170,8 @@ class ProjectPage
         @init_hidden_files_icon()
         @init_trash_link()
         @init_snapshot_link()
+
+        @init_project_activity()  # must be after @create_editor()
 
         @init_project_download()
 
@@ -336,7 +340,7 @@ class ProjectPage
 
     # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_console_sessions: (sessions, cb) =>
-        console.log("initialize console sessions: ", sessions)
+        #console.log("initialize console sessions: ", sessions)
         #@display_tab("project-editor")
         for session_uuid, obj of sessions
             if obj.status == 'running'
@@ -348,7 +352,7 @@ class ProjectPage
 
     # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_sage_sessions: (sessions, cb) =>
-        console.log("initialize sage sessions: ", sessions)
+        #console.log("initialize sage sessions: ", sessions)
         #TODO -- not enough info to do this yet.
         #for session_uuid, obj of sessions
         #    tab = @editor.create_tab(filename : obj.path, session_uuid:session_uuid)
@@ -462,10 +466,14 @@ class ProjectPage
             ins = " -i "
         else
             ins = ""
+        query = '"' + query.replace(/"/g, '\\"') + '"'
         if recursive
-            cmd = "find * -type f | grep #{ins} #{query}; rgrep -H #{ins} #{query} *"
+            cmd = "find * -type f | grep #{ins} #{query}; rgrep -H #{ins} #{query} * "
         else
-            cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} *"
+            cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} * "
+
+        # Exclude worksheet input cell markers
+        cmd += " | grep -v #{diffsync.MARKERS.cell}"
 
         path = @current_pathname()
 
@@ -482,8 +490,8 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
-            timeout    : 5   # how long grep runs on client
-            network_timeout : 10   # how long network call has until it must return something or get total error.
+            timeout    : 10   # how long grep runs on client
+            network_timeout : 15   # how long network call has until it must return something or get total error.
             max_output : max_output
             bash       : true
             err_on_exit: true
@@ -510,18 +518,21 @@ class ProjectPage
                         # the find part
                         filename = line
                         r = search_result.clone()
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
-                            that.open_file($(@).data('filename'))
+                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey)  )
                         r.find("span").addClass('lighten').text('(filename)')
                     else
                         # the rgrep part
                         filename = line.slice(0,i)
-                        #context  = trunc(line.slice(i+1), 25)
                         context = line.slice(i+1)
+                        # strip codes in worksheet output
+                        if context.length > 0 and context[0] == diffsync.MARKERS.output
+                            i = context.slice(1).indexOf(diffsync.MARKERS.output)
+                            context = context.slice(i+2,context.length-1)
                         r = search_result.clone()
                         r.find("span").text(context)
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click () ->
-                            that.open_file($(@).data('filename'))
+                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
 
                     search_output.append(r)
                     if num_results >= max_results
@@ -940,7 +951,7 @@ class ProjectPage
                 return false
             @display_tab("project-editor")
             tab = @editor.create_tab(filename:p, content:"")
-            @editor.display_tab(p)
+            @editor.display_tab(path:p)
             return false
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
@@ -954,7 +965,7 @@ class ProjectPage
                 return false
             @display_tab("project-editor")
             tab = @editor.create_tab(filename:p, content:"")
-            @editor.display_tab(p)
+            @editor.display_tab(path:p)
             return false
 
         create_file = (ext) =>
@@ -973,7 +984,7 @@ class ProjectPage
                         alert_message(type:"info", message:"Created new file '#{p}'")
                         @display_tab("project-editor")
                         tab = @editor.create_tab(filename:p, content:"")
-                        @editor.display_tab(p)
+                        @editor.display_tab(path:p)
             return false
 
         create_folder = () =>
@@ -1060,7 +1071,6 @@ class ProjectPage
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
-        #console.log("current_path = ", @current_path)
 
         # Update the display of the path above the listing or file preview
         @update_current_path()
@@ -1085,9 +1095,8 @@ class ProjectPage
                 clearTimeout(timer)
                 spinner.spin(false).hide()
                 if (err)
-                    console.log("error", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
-                        console.log("using last path without error:  ", @_last_path_without_error)
+                        #console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
                         @update_file_list_tab(no_focus)
@@ -1244,12 +1253,14 @@ class ProjectPage
 
         b = t.find(".project-file-buttons")
 
-        open = () =>
+        open = (e) =>
             if isdir
                 @current_path.push(name)
                 @update_file_list_tab()
             else
-                @open_file(fullname)
+                @open_file
+                    path : fullname
+                    foreground : not(e.which==2 or e.ctrlKey)
             return false
 
         if not is_snapshot or isdir
@@ -1509,6 +1520,169 @@ class ProjectPage
             @update_file_list_tab()
             return false
 
+    init_project_activity: () =>
+        page = @container.find(".project-activity")
+        @_project_activity_log = page.find(".project-activity-log")
+        LOG_FILE = '.sagemathcloud.log'
+        async.series([
+            (cb) =>
+                @ensure_file_exists
+                    path  : LOG_FILE
+                    alert : false
+                    cb    : cb
+
+            (cb) =>
+                require('syncdoc').synchronized_string
+                    project_id : @project.project_id
+                    filename   : LOG_FILE
+                    cb         : (err, doc) =>
+                        @project_log = doc
+                        cb(err)
+
+            (cb) =>
+                log_output = page.find(".project-activity-log")
+                @project_log.on 'sync', () =>
+                    @render_project_activity_log()
+
+                @project_activity({event:'open_project'})
+
+                chat_input = page.find(".project-activity-chat")
+                chat_input.keydown (evt) =>
+                    if evt.which == 13 and not evt.shiftKey
+                        mesg = $.trim(chat_input.val())
+                        if mesg
+                            @project_activity({event:'chat', mesg:mesg})
+                            chat_input.val('')
+                        return false
+
+                @_project_activity_log_page = 0
+                page.find(".project-activity-newer").click () =>
+                    if page.find(".project-activity-newer").hasClass('disabled')
+                        return false
+                    @_project_activity_log_page -= 1
+                    page.find(".project-activity-older").removeClass('disabled')
+                    if @_project_activity_log_page < 0
+                        @_project_activity_log_page = 0
+                    else
+                        @render_project_activity_log()
+                    if @_project_activity_log_page == 0
+                        page.find(".project-activity-newer").addClass('disabled')
+                    return false
+
+                page.find(".project-activity-older").click () =>
+                    if page.find(".project-activity-older").hasClass('disabled')
+                        return false
+                    @_project_activity_log_page += 1
+                    page.find(".project-activity-newer").removeClass('disabled')
+                    @render_project_activity_log()
+                    return false
+
+                cb()
+
+        ], (err) =>
+            if err
+                # Just try again with exponential backoff  This can and does fail if say the project is first being initailized.
+                if not @_init_project_activity?
+                    @_init_project_activity = 3000
+                else
+                    @_init_project_activity = Math.min(1.3*@_init_project_activity, 60000)
+
+                setTimeout((() => @init_project_activity()), @_init_project_activity)
+            else
+                @_init_project_activity = undefined
+        )
+
+    project_activity: (mesg, delay) =>
+        if @project_log?
+            mesg.fullname   = account.account_settings.fullname()
+            mesg.account_id = account.account_settings.account_id
+            s = misc.to_json(new Date())
+            mesg.date = s.slice(1, s.length-1)
+            @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
+            @render_project_activity_log()
+            @project_log.save()
+        else
+            if not delay?
+                delay = 300
+            else
+                delay = Math.min(15000, delay*1.3)
+            f = () =>
+                @project_activity(mesg, delay)
+            setTimeout(f, delay)
+
+    render_project_activity_log: () =>
+        log = @project_log.live()
+        if @_render_project_activity_log_last? and @_render_project_activity_log == log
+            return
+        else
+            @_render_project_activity_log_last = log
+
+        items_per_page = 30
+        page = @_project_activity_log_page
+
+        @_project_activity_log.html('')
+
+        lines = log.split('\n')
+        start = Math.max(0, lines.length - (page+1)*items_per_page)
+        stop  = lines.length - page*items_per_page
+        lines = lines.slice(start, stop)
+
+        template = $(".project-activity-templates")
+        template_entry = template.find(".project-activity-entry")
+        that = @
+
+        if lines.length < items_per_page
+            @container.find(".project-activity-older").addClass('disabled')
+        else
+            @container.find(".project-activity-older").removeClass('disabled')
+
+        for e in lines
+            if $.trim(e).length == 0
+                continue
+            try
+                entry = JSON.parse(e)
+            catch
+                entry = {event:'other'}
+
+            elt = undefined
+            switch entry.event
+                when 'chat'
+                    elt = template.find(".project-activity-chat").clone()
+                    elt.find(".project-activity-chat-mesg").text(entry.mesg).mathjax()
+                when 'open_project'
+                    elt = template.find(".project-activity-open_project").clone()
+                when 'open'
+                    elt = template.find(".project-activity-open").clone()
+                    elt.find(".project-activity-open-filename").text(entry.filename).click (e) ->
+                        filename = $(@).text()
+                        if filename == ".sagemathcloud.log"
+                            alert_message(type:"error", message:"Edit .sagemathcloud.log via the terminal (this is safe).")
+                        else
+                            that.open_file(path:filename, foreground: not(e.which==2 or e.ctrlKey))
+                        return false
+                    elt.find(".project-activity-open-type").text(entry.type)
+                else
+                    elt = template.find(".project-activity-other").clone()
+                    elt.find(".project-activity-value").text(e)
+
+            if elt?
+                x = template_entry.clone()
+                x.find(".project-activity-value").append(elt)
+                if entry.fullname?
+                    x.find(".project-activity-name").text(entry.fullname)
+                else
+                    x.find(".project-activity-name").hide()
+                if entry.date?
+                    try
+                       x.find(".project-activity-date").attr('title',(new Date(entry.date)).toISOString()).timeago()
+                    catch e
+                       console.log("TODO: ignoring invalid project log time value -- #{entry.date}")
+                else
+                    x.find(".project-activity-date").hide()
+
+                @_project_activity_log.prepend(x)
+
+
     init_project_download: () =>
         # Download entire project
         link = @container.find("a[href=#download-project]")
@@ -1633,6 +1807,8 @@ class ProjectPage
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
+        collabs_loading = @container.find(".project-collaborators-loading")
+
         add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
 
         @container.find("a[href=#invite-friend]").click () =>
@@ -1659,9 +1835,11 @@ class ProjectPage
 
         already_collab = {}
         update_collaborators = () =>
+            collabs_loading.show()
             salvus_client.project_users
                 project_id : @project.project_id
                 cb : (err, users) =>
+                    collabs_loading.hide()
                     if not err
                         collabs.empty()
                         already_collab = {}
@@ -1748,21 +1926,21 @@ class ProjectPage
         # Restart worksheet server
         link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            link.find(".spinner").show()
+            link.find("i").addClass('icon-spin')
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
                 timeout    : 10
                 cb         : (err, output) =>
-                    link.find(".spinner").hide()
+                    link.find("i").removeClass('icon-spin')
                     if err
                         alert_message
                             type    : "error"
-                            message : "Error trying to restart worksheet server.  Try restarting the project instead."
+                            message : "Error trying to restart worksheet server.  Try restarting the project server instead."
                     else
                         alert_message
                             type    : "info"
-                            message : "Worksheet server restarted.  Newly (re-)started worksheets will fork off from the newly started Sage session."
+                            message : "Worksheet server restarted.  Restarted worksheets will use a new Sage session."
                             timeout : 4
             return false
 
@@ -1771,35 +1949,19 @@ class ProjectPage
         # Restart local project server
         link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            link.find(".spinner").show()
+            link.find("i").addClass('icon-spin')
             alert_message
                 type    : "info"
-                message :"Restarting project server.  This should take around 15 seconds..."
-                timeout : 10
-
-            project_id = @project.project_id
-            salvus_client.exec
-                project_id : project_id
-                command    : 'stop_smc'
-                timeout    : 3
+                message : "Restarting project server.  This should take around 5 seconds..."
+                timeout : 4
+            salvus_client.restart_project_server
+                project_id : @project.project_id
                 cb         : () =>
-                    # We do something else now, which will trigger the hub to notice the
-                    # server is down and restart it.
-                    f = () ->
-                        salvus_client.exec
-                            project_id : project_id
-                            command    : 'ls'  # doesn't matter
-                            timeout    : 3
-                            cb         : (err, output) =>
-                                if err
-                                    f()
-                                else
-                                    link.find(".spinner").hide()
-                                    alert_message
-                                        type    : "success"
-                                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                                        timeout : 2
-                    f()
+                    link.find("i").removeClass('icon-spin')
+                    alert_message
+                        type    : "success"
+                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                        timeout : 2
             return false
 
     init_snapshot_link: () =>
@@ -1883,11 +2045,19 @@ class ProjectPage
                 window.open(result.url)
 
 
-    open_file: (path) =>
-        ext = filename_extension(path)
-        @editor.open(path)
-        @display_tab("project-editor")
-        @editor.display_tab(path)
+    open_file: (opts) =>
+        opts = defaults opts,
+            path       : required
+            foreground : true      # display in foreground as soon as possible
+
+        ext = filename_extension(opts.path)
+        @editor.open opts.path, (err, opened_path) =>
+            if err
+                alert_message(type:"error", message:"Error opening '#{path}' -- #{err}", timeout:10)
+            else
+                if opts.foreground
+                    @display_tab("project-editor")
+                @editor.display_tab(path:opened_path, foreground:opts.foreground)
 
     switch_displayed_branch: (new_branch) =>
         if new_branch != @meta.display_branch
@@ -2054,5 +2224,4 @@ project_page = exports.project_page = (project) ->
     p = new ProjectPage(project)
     project_pages[project.project_id] = p
     return p
-
 

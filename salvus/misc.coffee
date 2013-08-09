@@ -13,6 +13,12 @@ exports.merge = (dest, objs ...) ->
 # Return a random element of an array
 exports.random_choice = (array) -> array[Math.floor(Math.random() * array.length)]
 
+# Given an object map {foo:bar, ...} returns an array [foo, bar] randomly
+# chosen from the object map.
+exports.random_choice_from_obj = (obj) ->
+    k = exports.random_choice(exports.keys(obj))
+    return [k, obj[k]]
+
 # Returns a random integer in the range, inclusive (like in Python)
 exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
 
@@ -165,7 +171,13 @@ exports.max = (array) -> (array.reduce((a,b) -> Math.max(a, b)))
 exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
-exports.filename_extension = (filename) -> filename_extension_re.exec(filename)[1]
+exports.filename_extension = (filename) ->
+    ext = filename_extension_re.exec(filename)[1]
+    if ext?
+        return ext
+    else
+        return ''
+
 
 exports.copy = (obj) ->
     r = {}
@@ -241,6 +253,88 @@ exports.retry_until_success = (opts) ->
             else
                 opts.cb?()
     setTimeout(g, delta)
+
+
+# Attempt (using exponential backoff) to execute the given function.
+# Will keep retrying until it succeeds, then call "cb()".   You may
+# call this multiple times and all callbacks will get called once the
+# connection succeeds, since it keeps a stack of all cb's.
+# The function f that gets called should make one attempt to do what it
+# does, then on success do cb() and on failure cb(err).
+# It must *NOT* call the RetryUntilSuccess callable object.
+#
+# Usage
+#
+#      @foo = retry_until_success_wrapper(f:@_foo)
+#      @bar = retry_until_success_wrapper(f:@_foo, start_delay:100, max_delay:10000, exp_factor:1.5)
+#
+exports.retry_until_success_wrapper = (opts) ->
+    _X = new RetryUntilSuccess(opts)
+    return (cb) -> _X.call(cb)
+
+class RetryUntilSuccess
+    constructor: (opts) ->
+        @opts = exports.defaults opts,
+            f            : exports.defaults.required    # f(cb);  cb(err)
+            start_delay  : 100         # initial delay beforing calling f again.  times are all in milliseconds
+            max_delay    : 20000
+            exp_factor   : 1.4
+            max_tries    : undefined
+            min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
+            logname      : undefined
+        @f = @opts.f
+
+    call: (cb, retry_delay) =>
+        if @opts.logname?
+            console.log("#{@opts.logname}(... #{retry_delay})")
+
+        if not @_cb_stack?
+            @_cb_stack = []
+        if cb?
+            @_cb_stack.push(cb)
+        if @_calling
+            return
+        @_calling = true
+        if not retry_delay?
+            @attempts = 0
+
+        if @opts.logname?
+            console.log("actually calling -- #{@opts.logname}(... #{retry_delay})")
+
+        g = () =>
+            if @opts.min_interval?
+                @_last_call_time = exports.mswalltime()
+            @f (err) =>
+                @attempts += 1
+                @_calling = false
+                if err? and err
+                    if @opts.max_tries? and @attempts >= @opts.max_tries
+                        if @_cb_stack?
+                            for cb in @_cb_stack
+                                cb()
+                            delete @_cb_stack
+                        return
+                    if not retry_delay?
+                        retry_delay = @opts.start_delay
+                    else
+                        retry_delay = Math.min(@opts.max_delay, @opts.exp_factor*retry_delay)
+                    f = () =>
+                        @call(undefined, retry_delay)
+                    setTimeout(f, retry_delay)
+                else
+                    if @_cb_stack?
+                        for cb in @_cb_stack
+                            cb()
+                        delete @_cb_stack
+        if not @_last_call_time? or not @opts.min_interval?
+            g()
+        else
+            w = exports.mswalltime(@_last_call_time)
+            if w < @opts.min_interval
+                setTimeout(g, @opts.min_interval - w)
+            else
+                g()
+
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
 class exports.StringCharMapping

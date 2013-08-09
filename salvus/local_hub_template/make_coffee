@@ -1,5 +1,1 @@
-#!/usr/bin/env bash
-
-cd "$SAGEMATHCLOUD"
-
-coffee -o node_modules -c *.coffee
+../scripts/make_coffee

@@ -702,6 +702,7 @@ class exports.Connection extends EventEmitter
 
     ############################################
     # Scratch worksheet
+    # TODO: delete all this -- is deprecated.
     #############################################
     save_scratch_worksheet: (opts={}) ->
         opts = defaults opts,
@@ -1085,6 +1086,7 @@ class exports.Connection extends EventEmitter
 
     #################################################
     # Git Commands
+    # TODO: this is all deprecated (?).
     #################################################
 
     git_remove_file: (opts) =>
@@ -1223,6 +1225,8 @@ class exports.Connection extends EventEmitter
         @call
             message : message.get_project_users(project_id:opts.project_id)
             cb      : (err, resp) =>
+                if resp?.event == 'error'
+                    err = resp.error
                 if err
                     opts.cb(err)
                 else
@@ -1386,6 +1390,18 @@ class exports.Connection extends EventEmitter
                         v.files.unshift({name:'.snapshot', isdir:true})
                     opts.cb(err, v)
 
+    #################################################
+    # Project Server Control
+    #################################################
+    restart_project_server: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required    # will keep retrying until it succeeds at which point opts.cb().
+
+        @call
+            message : message.project_restart(project_id:opts.project_id)
+            timeout : 30    # should take about 5 seconds, but maybe network is slow (?)
+            cb      : opts.cb
 
 #################################################
 # Other account Management functionality shared between client and server

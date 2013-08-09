@@ -39,25 +39,32 @@ Before building, do:
 
    2. Install critical packages:
 
+         sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml
+
+# old java times...
          sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc
 
-   update-alternatives --config java  # select "oracle java 6"    # NOT 7!
+         update-alternatives --config java  # select "oracle java 6"    # NOT 7!
 
 
    3. Additional packages (mainly for users, not building).
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket ghc libxml2-dev libxslt-dev irssi libevent-dev
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn 
+
+   sudo add-apt-repository ppa:pippijn/ppa
+   sudo apt-get update; sudo apt-get install aldor
 
    4. Ensure tmux is at least 1.8 and if not:
 
        wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install
 
-  # TODO -- more disk space, then include more haskell packages...
+
 
 # SAGE SCRIPTS:
   Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
 
-# POLYMAKE:
+# POLYMAKE system-wide:
+
   # From http://www.polymake.org/doku.php/howto/install
 
   * sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
@@ -78,6 +85,8 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 # Build Sage (as usual)
 
+umask 022   # always do this so that the resulting build is usable without painful permission hacking.
+
 export SAGE_ATLAS_LIB=/usr/lib/
 export MAKE="make -j20"
 make
@@ -91,12 +100,13 @@ easy_install pip
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-[os.system("pip install %s"%s) for s in 'markdown2 markdown2Mathjax virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml'.split()]
+[os.system("pip install %s"%s) for s in 'virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml'.split()]
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
+    sage -sh
     wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz; tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install; cd ..; rm -rf basemap-1.0.6*
 
 # Also, edit the banner:
@@ -110,13 +120,14 @@ easy_install pip
 
 # OPTIONAL SAGE PACKAGES
 
-./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull sage-mode TOPCOM zeromq
+./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq
 
 # EXPERIMENTAL PACKAGES
 
-./sage -i chomp
+   ./sage -i chomp
 
-# Then delete wasted space
+
+# Then delete stupidly wasted space
 
    rm spkg/optional/*
 
@@ -129,7 +140,8 @@ easy_install pip
   make install      # this *must* be a separate step!!
   cd ..; rm -rf 4ti2*
 
-# Copy over the newest SageTex, so it actually works:
+
+# Copy over the newest SageTex, so it actually works (only do this with the default sage):
 
    sudo cp /usr/local/sage/current/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
 

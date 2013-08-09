@@ -10,7 +10,7 @@ else
    export SALVUS_BACKUP="$SALVUS_ROOT"/data/backup/
 fi
 
-export BUP_DIR=$SALVUS_BACKUP/bup
+#export BUP_DIR=$SALVUS_BACKUP/bup
 
 export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/data/local/cassandra/bin:$P/scripts:$PATH
 

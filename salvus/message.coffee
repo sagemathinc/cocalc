@@ -757,6 +757,7 @@ message
     bash       : false       # if true, args are ignored and command is run as a bash command
     err_on_exit : true       # if exit code is nonzero send error return message instead of the usual output.
 
+# project --> client
 message
     event      : 'project_exec_output'
     id         : required
@@ -764,7 +765,11 @@ message
     stderr     : required
     exit_code  : required
 
-
+# client --> project
+message
+    event      : 'project_restart'
+    id         : undefined
+    project_id : required
 
 #############################################################################
 
@@ -1085,4 +1090,20 @@ message
     id        : undefined
     stats     : undefined    # gets filled in by the hub
 
+
+
+#############################################
+#
+# Message sent in response to attempt to save a blob
+# to the database.
+#
+# hub --> local_hub --> sage_server
+#
+#############################################
+message
+    event     : 'save_blob'
+    id        : undefined
+    sha1      : required     # the sha-1 hash of the blob that we just processed
+    ttl       : undefined    # ttl in seconds of the blob if saved; 0=infinite
+    error     : undefined    # if not saving, a message explaining why.
 
