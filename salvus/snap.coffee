@@ -1397,8 +1397,6 @@ snapshot_active_projects = (cb) ->
     winston.debug("checking for recently modified projects.")
     async.series([
         (cb) ->
-            connect_to_database(cb)
-        (cb) ->
             database.select
                 table   : 'recently_modified_projects'
                 columns : ['project_id']
