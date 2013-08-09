@@ -733,5 +733,8 @@ version_check = () ->
 $(".salvus_client_version_warning").draggable().find(".icon-remove").click () ->
     $(".salvus_client_version_warning").hide()
 
+
+setTimeout(version_check, 15000)  # quick check on first connection too.
+
 setInterval(version_check, 3*60*1000)  # check once every three minutes; may increase time later as usage grows (?)
 
