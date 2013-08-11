@@ -518,7 +518,7 @@ class ProjectPage
                         # the find part
                         filename = line
                         r = search_result.clone()
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                        r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
                             that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey)  )
                         r.find("span").addClass('lighten').text('(filename)')
                     else
@@ -531,7 +531,7 @@ class ProjectPage
                             context = context.slice(i+2,context.length-1)
                         r = search_result.clone()
                         r.find("span").text(context)
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                        r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
                             that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
 
                     search_output.append(r)
@@ -1266,10 +1266,10 @@ class ProjectPage
         if not is_snapshot or isdir
             # Opening a file
             file_link = t.find("a[href=#open-file]")
-            file_link.click open
+            file_link.mousedown(open)
 
             # Clicking on link -- open the file
-            t.click open
+            t.mousedown(open)
 
 
         if is_snapshot
@@ -1653,13 +1653,14 @@ class ProjectPage
                     elt = template.find(".project-activity-open_project").clone()
                 when 'open'
                     elt = template.find(".project-activity-open").clone()
-                    elt.find(".project-activity-open-filename").text(entry.filename).click (e) ->
+                    f = (e) ->
                         filename = $(@).text()
                         if filename == ".sagemathcloud.log"
                             alert_message(type:"error", message:"Edit .sagemathcloud.log via the terminal (this is safe).")
                         else
                             that.open_file(path:filename, foreground: not(e.which==2 or e.ctrlKey))
                         return false
+                    elt.find(".project-activity-open-filename").text(entry.filename).mousedown(f)
                     elt.find(".project-activity-open-type").text(entry.type)
                 else
                     elt = template.find(".project-activity-other").clone()

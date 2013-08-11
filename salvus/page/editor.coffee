@@ -471,7 +471,7 @@ class exports.Editor
 
         containing_path = misc.path_split(filename).head
         ignore_clicks = false
-        link.find("a").click (e) =>
+        link.find("a").mousedown (e) =>
             if ignore_clicks
                 return false
             foreground = not(e.which==2 or e.ctrlKey)
@@ -625,7 +625,7 @@ class exports.Editor
         link.find(".salvus-editor-close-button-x").click(close_tab)
 
         ignore_clicks = false
-        link.find("a").click (e) =>
+        link.find("a").mousedown (e) =>
             if ignore_clicks
                 return false
             if e.which==2 or e.ctrlKey
