@@ -1932,26 +1932,24 @@ class CodeMirrorSession
         opts = defaults opts,
             local_hub    : required
             project_id   : required
-            session_uuid : required
             path         : required
-            content      : required
-            chat         : required
+            cb           : required
 
         @local_hub    = opts.local_hub
         @project_id   = opts.project_id
-        @session_uuid = opts.session_uuid
         @path         = opts.path
-        @chat         = opts.chat
 
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
         @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
 
-        # Our upstream server (the local hub)
-        @diffsync_server = new diffsync.DiffSync(doc:opts.content)
-        @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
-
         # The downstream clients of this hub
         @diffsync_clients = {}
+
+        @reconnect (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, @)
 
     reconnect: (cb) =>
         misc.retry_until_success
@@ -1973,24 +1971,20 @@ class CodeMirrorSession
                             cb?(resp.error)
                         else
                             @session_uuid = resp.session_uuid
+                            @chat         = resp.chat
                             codemirror_sessions.by_uuid[@session_uuid] = @
 
-                            # Reconnect to the upstream (local_hub) server, being careful to save our current edits.
-                            edit_stack = @diffsync_server.edit_stack
+                            # Reconnect to the upstream (local_hub) server
                             @diffsync_server = new diffsync.DiffSync(doc:resp.content)
                             @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
 
-                            # Apply all of the edits we couldn't send while the local hub was down
-                            # to upstream, then set this to our live.  When there are multiple hubs,
-                            # a lot can happen between sync's with a local_hub.
-                            live_content = resp.content
-                            for p in edit_stack
-                                live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
-                            @diffsync_server.live = live_content
+                            #
+                            # TODO: apply lost changes!!
+                            #
+                            @set_content(resp.content)
 
-                            # Forget our downstream clients -- they will get
-                            # reconnect messages, and keep going fine, eventually.
-                            @diffsync_clients = {}
+                            codemirror_sessions.by_path[@project_id + @path] = @
+                            codemirror_sessions.by_uuid[@session_uuid] = @
 
                             cb()
 
@@ -2602,7 +2596,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # Return a CodeMirrorSession object corresponding to the given session_uuid or path.
     get_codemirror_session: (opts) =>
         opts = defaults opts,
-            session_uuid : undefined   # give at least one of the session uuid or filename
+            session_uuid : undefined   # give at least one of the session uuid or path
             project_id   : undefined
             path         : undefined
             cb           : required    # cb(err, session)
@@ -2616,26 +2610,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if session?
                 opts.cb(false, session)
                 return
+        if not (opts.path? and opts.project_id?)
+            opts.cb("reconnect")  # will send path next time
+            return
+
         # Create a new session object.
-        @call
-            mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, project_id:opts.project_id, path:opts.path)
-            cb   : (err, resp) =>
-                # winston.debug("new codemirror session: local_hub --> hub: #{err}, #{misc.to_json(resp)}")
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    session = new CodeMirrorSession
-                        local_hub    : @
-                        project_id   : opts.project_id
-                        session_uuid : resp.session_uuid
-                        path         : resp.path
-                        content      : resp.content
-                        chat         : resp.chat
-                    codemirror_sessions.by_uuid[resp.session_uuid] = session
-                    codemirror_sessions.by_path[opts.project_id + resp.path] = session
-                    opts.cb(false, session)
+        new CodeMirrorSession
+            local_hub   : @
+            project_id  : opts.project_id
+            path        : opts.path
+            cb          : opts.cb
 
     #########################################
     # Sage sessions -- TODO!
