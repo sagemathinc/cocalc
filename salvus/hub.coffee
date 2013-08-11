@@ -1939,54 +1939,49 @@ class CodeMirrorSession
         @project_id   = opts.project_id
         @path         = opts.path
 
+        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect')
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
         @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
 
         # The downstream clients of this hub
         @diffsync_clients = {}
 
-        @reconnect (err) =>
+        @connect (err) =>
             if err
                 opts.cb(err)
             else
                 opts.cb(false, @)
 
-    reconnect: (cb) =>
-        misc.retry_until_success
-            start_delay : 1000
-            max_delay   : 15000
-            factor      : 1.5
-            cb          : cb
-            f           : (cb) =>
-                delete codemirror_sessions.by_path[@project_id + @path]
-                delete codemirror_sessions.by_uuid[@session_uuid]
-                delete @_sync_lock
-                @local_hub.call
-                    mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
-                    cb   : (err, resp) =>
-                        winston.debug("local_hub --> hub: (reconnect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
-                        if err
-                            cb?(err)
-                        else if resp.event == 'error'
-                            cb?(resp.error)
-                        else
-                            @session_uuid = resp.session_uuid
-                            @chat         = resp.chat
-                            codemirror_sessions.by_uuid[@session_uuid] = @
+    _connect: (cb) =>
+        delete codemirror_sessions.by_path[@project_id + @path]
+        delete codemirror_sessions.by_uuid[@session_uuid]
+        delete @_sync_lock
+        @local_hub.call
+            mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
+            cb   : (err, resp) =>
+                winston.debug("local_hub --> hub: (connect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
+                if err
+                    cb?(err)
+                else if resp.event == 'error'
+                    cb?(resp.error)
+                else
+                    @session_uuid = resp.session_uuid
+                    @chat         = resp.chat
+                    codemirror_sessions.by_uuid[@session_uuid] = @
 
-                            # Reconnect to the upstream (local_hub) server
-                            @diffsync_server = new diffsync.DiffSync(doc:resp.content)
-                            @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
+                    # Reconnect to the upstream (local_hub) server
+                    @diffsync_server = new diffsync.DiffSync(doc:resp.content)
+                    @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
 
-                            #
-                            # TODO: apply lost changes!!
-                            #
-                            @set_content(resp.content)
+                    #
+                    # TODO: apply lost changes!!
+                    #
+                    @set_content(resp.content)
 
-                            codemirror_sessions.by_path[@project_id + @path] = @
-                            codemirror_sessions.by_uuid[@session_uuid] = @
+                    codemirror_sessions.by_path[@project_id + @path] = @
+                    codemirror_sessions.by_uuid[@session_uuid] = @
 
-                            cb()
+                    cb()
 
     set_content: (content) =>
         @diffsync_server.live = content
@@ -2109,9 +2104,14 @@ class CodeMirrorSession
                     # one client (and upstream) at a time.
                     cb(err)
                 else  # all other errors should reconnect first.
-                    winston.debug("sync: reconnecting...")
-                    @reconnect () =>
-                        cb(err)
+                    winston.debug("sync: trying once to reconnect...")
+                    @_connect (err) =>
+                        if err
+                            winston.debug("sync: restarting local hub...")
+                            @local_hub.restart (err) =>
+                                cb(true)
+                        else
+                            cb(true)  # successful connect, but we still need to return error so sync happens
             else
                 winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
                 if before != @diffsync_server.live
@@ -2218,11 +2218,13 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     opts = defaults opts,
         port         : required
         secret_token : required
+        timeout      : 10
         cb           : required
 
     socket = misc_node.connect_to_locked_socket
         port  : opts.port
         token : opts.secret_token
+        timeout : opts.timeout
         cb    : (err) =>
             if err
                 opts.cb(err)
@@ -2263,9 +2265,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
         @_multi_response = {}
-        @local_hub_socket  (err,socket) =>
+        @local_hub_socket  (err) =>
             if err
-                cb("Unable to start and connect to local hub #{@address} -- #{err}")
+                @restart (err) =>
+                    if err
+                        cb("Unable to start and connect to local hub #{@address} -- #{err}")
+                    else
+                        @local_hub_socket (err) =>
+                            cb(err, @)
             else
                 cb(false, @)
 
@@ -2294,6 +2301,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
                         cb(err)
+                # MUST be here, since _restart_lock prevents _exec_on_local_hub!
                 @_restart_lock = true
         ], (err) =>
             winston.debug("local_hub restart: #{err}")
@@ -2396,9 +2404,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # Get a new socket connection to the local_hub; this socket will have been
     # authenticated via the secret_token, and enhanced to be able to
     # send/receive json and blob messages.
-    new_socket: (cb, retries) =>     # cb(err, socket)
-        if not retries?
-            retries = 2
+    new_socket: (cb) =>     # cb(err, socket)
         @open   (err, port, secret_token) =>
             if err
                 cb(err); return
@@ -2409,11 +2415,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if not err
                         cb(err, socket)
                     else
-                        if retries == 0
-                            cb(err)
-                        else
-                            delete @_status  # forget port and secret token.
-                            @new_socket(cb, retries - 1)
+                        delete @_status  # forget port and secret token.
+                        cb(err)
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
@@ -2502,7 +2505,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         ], (err) =>
             if err
                 winston.debug("Error getting a socket -- (declaring total disaster) -- #{err}")
-
                 # This @_socket.destroy() below is VERY important, since just deleting the socket might not send this,
                 # and the local_hub -- if the connection were still good -- would have two connections
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
@@ -2512,7 +2514,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             else if socket?
                 @_sockets[opts.session_uuid] = socket
                 socket.history = undefined
-            opts.cb(err, socket)
+                opts.cb(false, socket)
         )
 
     # Connect the client with a console session, possibly creating a session in the process.
@@ -2753,7 +2755,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             opts.command = "~#{@username}/.sagemathcloud/#{opts.command}"
 
         if @_restart_lock
-            cb("restarting..."); return
+            opts.cb("_restart_lock..."); return
 
         # ssh [user]@[host] [-p port] .sagemathcloud/[commmand]
         tm = misc.walltime()
@@ -2771,7 +2773,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         winston.debug("getting status of remote location")
         @_exec_on_local_hub
             command : "status"
-            timeout  : 15
+            timeout  : 10
             cb      : (err, out) =>
                 if out?.stdout?
                     status = misc.from_json(out.stdout)
