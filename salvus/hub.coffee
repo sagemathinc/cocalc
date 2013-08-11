@@ -1893,13 +1893,14 @@ class CodeMirrorDiffSyncLocalHub
     recv_edits : (edit_stack, last_version_ack, cb) =>
         @write_mesg  'diffsync', {edit_stack: edit_stack, last_version_ack: last_version_ack}, (err, mesg) =>
             if err
-                cb(err)
-            else if mesg.event == 'error'
-                cb(mesg.error)
+                if mesg? and mesg
+                    cb(mesg)  # due to the diffsync protocol, mesg could be "retry" or a real message.
+                else
+                    cb(err)
             else
-                @cm_session.diffsync_server.recv_edits(mesg.edit_stack, mesg.last_version_ack, (err) =>
+                @cm_session.diffsync_server.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
                     @cm_session.set_content(@cm_session.diffsync_server.live)
-                    cb(err))
+                    cb(err)
 
     sync_ready: () =>
         @write_mesg('diffsync_ready')
@@ -1942,6 +1943,9 @@ class CodeMirrorSession
         @path         = opts.path
         @chat         = opts.chat
 
+        # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
+        @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
+
         # Our upstream server (the local hub)
         @diffsync_server = new diffsync.DiffSync(doc:opts.content)
         @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
@@ -1958,7 +1962,7 @@ class CodeMirrorSession
             f           : (cb) =>
                 delete codemirror_sessions.by_path[@project_id + @path]
                 delete codemirror_sessions.by_uuid[@session_uuid]
-                delete @_upstream_sync_lock
+                delete @_sync_lock
                 @local_hub.call
                     mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
                     cb   : (err, resp) =>
@@ -2047,7 +2051,7 @@ class CodeMirrorSession
         # generate new edits, and send those out so that the client
         # can complete the sync cycle.
 
-        if @_upstream_sync_lock? and @_upstream_sync_lock
+        if @_sync_lock
             client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
             return
 
@@ -2064,8 +2068,10 @@ class CodeMirrorSession
             setTimeout(f, 1000)
             return
 
+        @_sync_lock = true
         before = @diffsync_server.live
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
+            @_sync_lock = false
             if err
                 client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes from client (id=#{client.id}) -- #{err}")
                 return
@@ -2095,46 +2101,34 @@ class CodeMirrorSession
             if id != exclude_id
                 ds.remote.send_mesg(mesg)
 
-    sync: (cb, delay) =>
-
-        if not @_upstream_sync_lock_queue?
-            @_upstream_sync_lock_queue = []
-
-        @_upstream_sync_lock_queue.push(cb)
-
-        if @_upstream_sync_lock
-            return
-
-        @_upstream_sync_lock = true
+    _sync: (cb) =>    # cb(err)
+        winston.debug("codemirror session -- syncing with a local hub")
+        @_sync_lock = true
         before = @diffsync_server.live
-        #winston.debug("codemirror session sync -- BEFORE='#{before}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
         @diffsync_server.push_edits (err) =>
-            #winston.debug("codemirror session sync -- AFTER='#{@diffsync_server.live}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
-            @_upstream_sync_lock = false
+            @_sync_lock = false
             if err
-                winston.debug("codemirror session sync -- ERROR pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub -- #{err}")
-                if not delay?
-                    delay = 250
-                else
-                    delay = Math.min(15000, 1.3*delay)
-                f = () =>
-                    if err == 'retry'
-                        @sync(cb, delay)
-                    else
-                        @reconnect (err) =>
-                            @sync(cb, delay)
-                setTimeout(f, delay)
+                winston.debug("codemirror session local hub sync error -- #{err}")
+                if typeof(err) == 'string' and err.indexOf('retry') != -1
+                    winston.debug("sync: retrying...")
+                    # This is normal -- it's because the diffsync algorithm only allows sync with
+                    # one client (and upstream) at a time.
+                    cb(err)
+                else  # all other errors should reconnect first.
+                    winston.debug("sync: reconnecting...")
+                    @reconnect () =>
+                        cb(err)
             else
-                winston.debug("codemirror session sync -- pushed edits, thus completing cycle")
-                if @_upstream_sync_lock_queue?
-                    for cb in @_upstream_sync_lock_queue
-                       cb?()
-                    delete @_upstream_sync_lock_queue
+                winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
                 if before != @diffsync_server.live
-                    winston.debug("codemirror session sync -- there were changes.")
-                    # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
-                    for id, ds of @diffsync_clients
-                        ds.remote.sync_ready()
+                    @_tell_clients_to_sync()
+                cb()
+
+    _tell_clients_to_sync: () =>
+        winston.debug("codemirror session local hub sync -- there were changes; informing clients.")
+        # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
+        for id, ds of @diffsync_clients
+            ds.remote.sync_ready()
 
     # Add a new diffsync browser client.
     add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
@@ -2282,21 +2276,33 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @)
 
     restart: (cb) =>
+        winston.debug("restarting a local hub")
         if @_restart_lock
+            winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
             return
         async.series([
             (cb) =>
-                winston.debug("Push latest version of code to remote machine...")
+                winston.debug("local_hub restart: Killing all processes")
+                if @username.length != 8
+                    winston.debug("local_hub restart: skipping killall since this user #{@username} is clearly not a cloud.sagemath project :-)")
+                    cb()
+                else
+                    @killall(cb)
+            (cb) =>
+                winston.debug("local_hub restart: Push latest version of code to remote machine...")
                 @_push_local_hub_code(cb)
             (cb) =>
-                winston.debug("Restart the local services....")
-                @_exec_on_local_hub 'restart_smc', 30, (err, output) =>
-                    #winston.debug("result: #{err}, #{misc.to_json(output)}")
-                    cb(err)
+                winston.debug("local_hub restart: Restart the local services....")
+                @_exec_on_local_hub
+                    command : 'start_smc'
+                    timeout : 30
+                    cb      : (err, output) =>
+                        #winston.debug("result: #{err}, #{misc.to_json(output)}")
+                        cb(err)
                 @_restart_lock = true
         ], (err) =>
-            #winston.debug("project restart done -- #{err}")
+            winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
             cb(err)
         )
@@ -2703,7 +2709,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb(err)
             (cb) =>
                 if not @_status.installed
-                    @_exec_on_local_hub('build', 300, cb)
+                    @_exec_on_local_hub
+                        command : 'build'
+                        timeout : 360
+                        cb      : cb
                 else
                     cb()
             (cb) =>
@@ -2734,6 +2743,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @_status.local_port, @_status.secret_token)
         )
 
+
     _push_local_hub_code: (cb) =>
         winston.debug("pushing latest code to #{@address}")
         tm = misc.walltime()
@@ -2748,7 +2758,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 winston.debug("time to rsync latest code to #{@address}: #{misc.walltime(tm)} seconds -- #{err}")
                 cb(err, output)
 
-    _exec_on_local_hub: (command, timeout, cb) =>
+    _exec_on_local_hub: (opts) =>
+        opts = defaults opts,
+            command : required
+            timeout : 30
+            dot_sagemathcloud_path : true
+            cb      : required
+
+        if opts.dot_sagemathcloud_path
+            opts.command = "~#{@username}/.sagemathcloud/#{opts.command}"
+
         if @_restart_lock
             cb("restarting..."); return
 
@@ -2756,30 +2775,41 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         tm = misc.walltime()
         misc_node.execute_code
             command : "ssh"
-            args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', "~#{@username}/.sagemathcloud/#{command}"]
-            timeout : timeout
+            args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', opts.command]
+            timeout : opts.timeout
             bash    : false
             cb      : (err, output) =>
-                winston.debug("time to exec #{command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
-                cb(err, output)
+                winston.debug("time to exec #{opts.command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
+                opts.cb(err, output)
 
 
     _get_local_hub_status: (cb) =>
         winston.debug("getting status of remote location")
-        @_exec_on_local_hub "status", 15, (err, out) =>
-            if out?.stdout?
-                status = misc.from_json(out.stdout)
-            cb(err, status)
+        @_exec_on_local_hub
+            command : "status"
+            timeout  : 15
+            cb      : (err, out) =>
+                if out?.stdout?
+                    status = misc.from_json(out.stdout)
+                cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
         winston.debug("restarting local_hub daemons")
-        @_exec_on_local_hub "restart_smc", 30, (err, out) =>
-            cb(err)
+        @_exec_on_local_hub
+            command : "restart_smc"
+            timeout : 30
+            cb      : (err, out) =>
+                cb(err)
 
     killall: (cb) =>
         winston.debug("kill all processes running on this local hub (including the hub)")
-        @_exec_on_local_hub "killall -u #{@username}", 30, (err, out) =>
-            cb(err)
+        @_exec_on_local_hub
+            command : "killall -9 -u #{@username}"
+            dot_sagemathcloud_path : false
+            timeout : 30
+            cb      : (err, out) =>
+                # We explicitly ignore errors since killall kills self while at it.
+                cb()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status.local_hub and @_status.sage_server and @_status.console_server
@@ -2900,7 +2930,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
 _project_cache = {}
 new_project = (project_id, cb, delay) ->   # cb(err, project)
-    winston.debug("project request (project_id=#{project_id})")
+    #winston.debug("project request (project_id=#{project_id})")
     P = _project_cache[project_id]
     if P?
         if P == "instantiating"

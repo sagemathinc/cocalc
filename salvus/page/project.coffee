@@ -1949,19 +1949,30 @@ class ProjectPage
         # Restart local project server
         link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            link.find("i").addClass('icon-spin')
-            alert_message
-                type    : "info"
-                message : "Restarting project server.  This should take around 5 seconds..."
-                timeout : 4
-            salvus_client.restart_project_server
-                project_id : @project.project_id
-                cb         : () =>
+            async.series([
+                (cb) =>
+                    m = "Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
+                    bootbox.confirm m, (result) =>
+                        if result
+                            cb()
+                        else
+                            cb(true)
+                (cb) =>
+                    link.find("i").addClass('icon-spin')
+                    alert_message
+                        type    : "info"
+                        message : "Restarting project server..."
+                        timeout : 4
+                    salvus_client.restart_project_server
+                        project_id : @project.project_id
+                        cb         : cb
+                (cb) =>
                     link.find("i").removeClass('icon-spin')
                     alert_message
                         type    : "success"
                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
                         timeout : 2
+            ])
             return false
 
     init_snapshot_link: () =>
