@@ -1943,7 +1943,7 @@ class CodeMirrorSession
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
         @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
 
-        # The downstream clients of this hub
+        # The downstream (web browser) clients of this hub
         @diffsync_clients = {}
 
         codemirror_sessions.by_path[@project_id + @path] = @
@@ -1954,8 +1954,6 @@ class CodeMirrorSession
                 opts.cb(false, @)
 
     _connect: (cb) =>
-        # The downstream clients of this hub
-        @diffsync_clients = {}
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
@@ -1965,6 +1963,17 @@ class CodeMirrorSession
                 else if resp.event == 'error'
                     cb?(resp.error)
                 else
+
+                    if @session_uuid?
+                        # Send a broadcast message to all connected
+                        # clients informing them of the new session id.
+                        mesg = message.codemirror_bcast
+                            session_uuid : @session_uuid
+                            mesg         :
+                                event            : 'update_session_uuid'
+                                new_session_uuid : resp.session_uuid
+                        @broadcast_mesg_to_clients(mesg)
+
                     @session_uuid = resp.session_uuid
                     @chat         = resp.chat
 

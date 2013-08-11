@@ -202,8 +202,9 @@ class AbstractSynchronizedDoc extends EventEmitter
             @sync()
 
     __receive_broadcast: (mesg) =>
-        if mesg.session_uuid != @session_uuid
-            @_receive_broadcast?(mesg)   # define in derived class
+        if mesg.session_uuid == @session_uuid
+            if mesg.mesg.event == 'update_session_uuid'
+                @session_uuid = mesg.mesg.new_session_uuid
 
     __reconnect: () =>
         # The main websocket to the remote server died then came back, so we
@@ -298,7 +299,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
                     # applying missed patches to the new upstream version that we just got from the hub.
                     @_apply_patch_to_live(patch)
                 else
-                    # This initialiation is the first sync.
+                    # This initialiation is the first.
                     @_last_sync   = resp.content
 
                 @dsync_server = new DiffSyncHub(@)
@@ -321,9 +322,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_interval : 1000
             sync_interval   : 750   # never send sync messages up stream more often than this
 
-        @connect    = misc.retry_until_success_wrapper(f:@_connect)#,  logname:'connect')
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
+        @connect    = misc.retry_until_success_wrapper(f:@_connect)#  logname:'connect')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)# logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save) #logname:'save')
 
         @editor.save = @save
         @codemirror = @editor.codemirror
@@ -383,7 +384,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     err = resp.error
                 if err
                     cb(err); return
-
 
                 @session_uuid = resp.session_uuid
 
@@ -586,7 +586,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         m = message.codemirror_bcast
             session_uuid : @session_uuid
             mesg         : mesg
-            self         : self    #if true, then also send include this client to receive message
+            self         : self    #if true, then also include this client to receive message
         salvus_client.send(m)
 
     send_cursor_info_to_hub: () =>
@@ -601,13 +601,14 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @_waiting_to_send_cursor = setTimeout(@send_cursor_info_to_hub, @opts.cursor_interval)
 
     _receive_broadcast: (mesg) =>
-        if mesg.session_uuid != @session_uuid
-            return
-        switch mesg.mesg.event
-            when 'cursor'
-                @_receive_cursor(mesg)
-            when 'chat'
-                @_receive_chat(mesg)
+        if mesg.session_uuid == @session_uuid
+            switch mesg.mesg.event
+                when 'cursor'
+                    @_receive_cursor(mesg)
+                when 'chat'
+                    @_receive_chat(mesg)
+                when 'update_session_uuid'
+                    @session_uuid = mesg.mesg.new_session_uuid
 
     _receive_cursor: (mesg) =>
         # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
