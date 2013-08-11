@@ -1946,6 +1946,7 @@ class CodeMirrorSession
         # The downstream clients of this hub
         @diffsync_clients = {}
 
+        codemirror_sessions.by_path[@project_id + @path] = @
         @connect (err) =>
             if err
                 opts.cb(err)
@@ -1953,9 +1954,8 @@ class CodeMirrorSession
                 opts.cb(false, @)
 
     _connect: (cb) =>
-        delete codemirror_sessions.by_path[@project_id + @path]
-        delete codemirror_sessions.by_uuid[@session_uuid]
-        delete @_sync_lock
+        # The downstream clients of this hub
+        @diffsync_clients = {}
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
@@ -1967,10 +1967,23 @@ class CodeMirrorSession
                 else
                     @session_uuid = resp.session_uuid
                     @chat         = resp.chat
+
                     codemirror_sessions.by_uuid[@session_uuid] = @
+
+                    if @_last_sync?
+                        # We have sync'd before.
+                        patch = @diffsync_server._compute_edits(@_last_sync, @diffsync_server.live)
 
                     # Reconnect to the upstream (local_hub) server
                     @diffsync_server = new diffsync.DiffSync(doc:resp.content)
+
+                    if @_last_sync?
+                        # applying missed patches to the new upstream version that we just got from the hub.
+                        @_apply_patch_to_live(patch)
+                    else
+                        # This initialiation is the first.
+                        @_last_sync   = resp.content
+
                     @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
 
                     #
@@ -1978,10 +1991,12 @@ class CodeMirrorSession
                     #
                     @set_content(resp.content)
 
-                    codemirror_sessions.by_path[@project_id + @path] = @
-                    codemirror_sessions.by_uuid[@session_uuid] = @
-
                     cb()
+
+    _apply_patch_to_live: (patch) =>
+        @diffsync_server._apply_edits_to_live(patch)
+        for id, ds of @diffsync_clients
+            ds.live = @diffsync_server.live
 
     set_content: (content) =>
         @diffsync_server.live = content
@@ -2096,6 +2111,7 @@ class CodeMirrorSession
         before = @diffsync_server.live
         @diffsync_server.push_edits (err) =>
             @_sync_lock = false
+            after = @diffsync_server.live
             if err
                 winston.debug("codemirror session local hub sync error -- #{err}")
                 if typeof(err) == 'string' and err.indexOf('retry') != -1
@@ -2114,7 +2130,8 @@ class CodeMirrorSession
                             cb(true)  # successful connect, but we still need to return error so sync happens
             else
                 winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
-                if before != @diffsync_server.live
+                @_last_sync = after # what was the last successful sync with upstream.
+                if before != after
                     @_tell_clients_to_sync()
                 cb()
 
