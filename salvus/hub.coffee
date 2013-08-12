@@ -1956,8 +1956,8 @@ class CodeMirrorSession
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
-                winston.debug("local_hub --> hub: (connect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
                 if err
+                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}")
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
@@ -2117,20 +2117,17 @@ class CodeMirrorSession
             after = @diffsync_server.live
             if err
                 winston.debug("codemirror session local hub sync error -- #{err}")
-                if typeof(err) == 'string' and err.indexOf('retry') != -1
-                    winston.debug("sync: retrying...")
-                    # This is normal -- it's because the diffsync algorithm only allows sync with
-                    # one client (and upstream) at a time.
-                    cb(err)
-                else  # all other errors should reconnect first.
-                    winston.debug("sync: trying once to reconnect...")
-                    @_connect (err) =>
-                        if err
-                            winston.debug("sync: restarting local hub...")
-                            @local_hub.restart (err) =>
-                                cb(true)
-                        else
-                            cb(true)  # successful connect, but we still need to return error so sync happens
+                if typeof(err) == 'string'
+                    err = err.toLowerCase()
+                    if err.indexOf('retry') != -1
+                        winston.debug("sync: retrying...")
+                        # This is normal -- it's because the diffsync algorithm only allows sync with
+                        # one client (and upstream) at a time.
+                        cb(err); return
+                    if err.indexOf("unknown") != -1
+                        winston.debug("sync: reconnecting...")
+                        @_connect(cb); return
+                cb(err)
             else
                 winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
                 @_last_sync = after # what was the last successful sync with upstream.

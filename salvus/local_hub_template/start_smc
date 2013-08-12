@@ -17,9 +17,17 @@ cmd("local_hub start")
 cmd("console_server start  </dev/null >/dev/null 2>&1 &")
 cmd("sage_server    start  </dev/null >/dev/null 2>&1 &")
 
-# wait until "data/local_hub.port" gets created (up to 15 seconds)
+port_files = [".sagemathcloud/data/%s.port"%s for s in ['local_hub', 'console_server', 'sage_server']]
+
+def started():
+    for p in port_files:
+        if not os.path.exists(p):
+            return False
+    return True
+
+# wait (up to 15 seconds) until the port files get created
 i=0
-while not os.path.exists(".sagemathcloud/data/local_hub.port"):
+while not started():
     time.sleep(0.1)
     i += 1
     print i
