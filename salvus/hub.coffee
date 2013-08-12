@@ -1940,7 +1940,7 @@ class CodeMirrorSession
 
         @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect')
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
-        @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
+        @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
 
         # The downstream (web browser) clients of this hub
         @diffsync_clients = {}
@@ -2071,13 +2071,14 @@ class CodeMirrorSession
         @_sync_lock = true
         before = @diffsync_server.live
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
-            @_sync_lock = false
             if err
+                @_sync_lock = false
                 client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes from client (id=#{client.id}) -- #{err}")
                 return
 
             # Update master live document with result.
             @set_content(ds_client.live)
+            @_sync_lock = false
 
             # Send back our own edits to this client.
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
@@ -2113,9 +2114,12 @@ class CodeMirrorSession
         @_sync_lock = true
         before = @diffsync_server.live
         @diffsync_server.push_edits (err) =>
-            @_sync_lock = false
             after = @diffsync_server.live
+            @set_content(after)
             if err
+                # We do *NOT* remove the sync_lock in this branch; only do that after a successful sync, since
+                # otherwise clients think they have successfully sync'd with the hub, but when the hub resets,
+                # the clients end up doing the wrong thing. 
                 winston.debug("codemirror session local hub sync error -- #{err}")
                 if typeof(err) == 'string'
                     err = err.toLowerCase()
@@ -2124,12 +2128,17 @@ class CodeMirrorSession
                         # This is normal -- it's because the diffsync algorithm only allows sync with
                         # one client (and upstream) at a time.
                         cb(err); return
-                    if err.indexOf("unknown") != -1
+                    else if err.indexOf("unknown") != -1
                         winston.debug("sync: reconnecting...")
-                        @_connect(cb); return
+                        @_connect () =>
+                            cb(err); return # still an error even if connect works.
+                    else if err.indexOf("timed out") != -1
+                        @local_hub.restart () =>
+                            cb(err); return
                 cb(err)
             else
                 winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
+                @_sync_lock = false
                 @_last_sync = after # what was the last successful sync with upstream.
                 if before != after
                     @_tell_clients_to_sync()
