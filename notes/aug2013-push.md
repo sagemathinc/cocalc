@@ -1,43 +1,52 @@
-# Aug 9:
 
-- [x] (1:30?) address ssh-agent issues on my laptop
+- [ ] sync in the global hub is not optimally implemented, since there is no reason to every force the client to retry their sync if there is a connection to the global hub.  Instead of having one single shared locked state for the global hub version of the doc, could have lots.
 
-- [ ] (0:30+) +) fix this massive stability issue: " system.log:java.lang.OutOfMemoryError: unable to create new native thread ":
-
-Probable cause -- number of open files (the limit is low):
-
- $ ulimit -n
- 32768
-
-But that isn't low.  Hmmm.  At start of cassandra, but maybe it goes up a lot.
-
- lsof | wc -l
-
-They have recommended ulimit settings here <http://www.datastax.com/docs/1.1/troubleshooting/index>, but those exactly match what I have already, since I copied them from there!?  I'll increase nofile by a factor of 10 for next release for next release.
-
-The root cause seems to be leak TCP connections, due to a bad driver (or clients):
-
-This goes up *quickly*:
-
-salvus@cassandra1:~$ lsof |grep TCP|wc -l
-784
-salvus@cassandra1:~$ lsof |grep TCP|wc -l
-802
-
-At this rate, it will leak about 28000/day (!) and die in 2 days due to the current limit.  That's a problem. problem.
-Which clients are causing this leaking?
-
-I stopped the snap servers and the number went to 28 and stayed there.
-I restart them and things are crazy now.  
+     [ ] fix things so at least the global single shared state for sync docs actually 100% works.  Right now, something goes wrong if the local hub gets restarted and there are two clients.  Suddenly the second client stops syncing automatically.  Fix this first.
 
 
-- [ ] (0:30?) middle click to close browser tab.
+--> - [ ] file level chat is broken -- hub doesn't update @chat attribute...
+      FIX -- completely redo completely in the client to use sync string, as for project-level chat.
+
+
+- [ ] the string sync doc (e.g., the log) are *not* getting any diffsync_syncnow messages?
+
+     [ ] one-by-one, with testing, relax the global lock after working out exactly what syncs are necessary, and when.
+
+- [ ] WORRY: what about when local hub connection (or whatever) times out after 900 seconds.  What happens to client connections?
+Change 900 to 15 to test and debug!
+
+
+
+---
+--> new ideas/code
+
+     -  also, hub sync: on "suggest to clients to sync", should try  repeatedly (with exp. backoff) to *get* all connected clients to sync. until they do.
+
+WAY to CAUSE serious trouble:
+
+        ~/.sagemathcloud$ kill -STOP 19382
+        ~/.sagemathcloud$ ps ax |grep local_hub.js|grep Phd
+        19379 ?        Tsl    0:00 /mnt/home/PhdjQiOi/.sagemathcloud/data/local/bin/node /mnt/home/PhdjQiOi/.sagemathcloud/node_modules/start-stop-daemon/monitor.js /mnt/home/PhdjQiOi/.sagemathcloud/node_modules/local_hub.js
+        19382 ?        Tl     0:00 /mnt/home/PhdjQiOi/.sagemathcloud/data/local/bin/node /mnt/home/PhdjQiOi/.sagemathcloud/node_modules/local_hub.js run
+        ~/.sagemathcloud$ kill -CONT 19382
+
+        I need to give global and local hub sync the *full treatment* tomorrow.
+
+
+- [ ] (2:00?) rewrite sync in `local_hub.coffee` to use new ideas
+
+- [ ] (2:00?) project high availability -- keep thinking about this!
+
+- [ ] (0:45?) fix terminal on "not working"
 
 
 ---
 
-bugfix:
-- [ ] (1:30?) reconnect *must* cause all synchronized doc sessions to immediately sync.  NEED THIS.
+
+- [ ] (1:00?) move FAQ from github into cloud itself.
+
+- [ ] ((0:30?) add this to FAQ: https://mail.google.com/mail/u/0/?shva=1#inbox/1406489d11dac03e
+
 
 improve quality:
 - [ ] (1:00?) salvus.blob to send info without needing to create a file at all
@@ -55,7 +64,8 @@ update:
 
 - [ ] (1:30?) make it so clicking on a zip/tar/etc. file in the file browser extracts it instead of trying to open the underlying file in codemirror.
 
-- [ ] (1:30?) make a screencast illustrating migrating worksheets from sagenb.
+- [ ] (1:30?) make a screencast illustrating migrating worksheets from sagenb.:  harald says: "+1 same for: author latex documents, run sagetex, etc. ad ipython notebook tranformation:"
+
 
 - [ ] worksheet re-opening ing bug -- https://mail.google.com/mail/u/0/?shva=1#inbox/1405eea856c0d6f6
 
@@ -535,3 +545,129 @@ I've updated https://cloud.sagemath.com.
 1
 
 - [x] (1:30?) (0:58) nice pdf of tish database.
+
+
+
+---
+- [x] (1:30?) address ssh-agent issues on my laptop
+
+- [x] (1:15) fix this massive stability issue: " system.log:java.lang.OutOfMemoryError: unable to create new native thread ":
+
+Probable cause -- number of open files (the limit is low):
+
+ $ ulimit -n
+ 32768
+
+But that isn't low.  Hmmm.  At start of cassandra, but maybe it goes up a lot.
+
+ lsof | wc -l
+
+They have recommended ulimit settings here <http://www.datastax.com/docs/1.1/troubleshooting/index>, but those exactly match what I have already, since I copied them from there!?  I'll increase nofile by a factor of 10 for next release for next release.
+
+The root cause seems to be leak TCP connections, due to a bad driver (or clients):
+
+This goes up *quickly*:
+
+salvus@cassandra1:~$ lsof |grep TCP|wc -l
+784
+salvus@cassandra1:~$ lsof |grep TCP|wc -l
+802
+
+At this rate, it will leak about 28000/day (!) and die in 2 days due to the current limit.  That's a problem. problem.
+Which clients are causing this leaking?
+
+I stopped the snap servers and the number went to 28 and stayed there.
+I restart them and things are crazy now.
+
+---
+- [x] (3:00) test using round robbin load balancing, because source SUCKS, due to stunnel and vpn and how dns works.
+
+    upgrading coffeescript:
+
+        ssh cloud2 "cd salvus/salvus; . salvus-env; npm install coffee-script"
+
+    ssh cloud2 "cd salvus/salvus; git remote set-url origin git@github.com:williamstein/salvus.git"
+
+Sorted out: haproxy: reconfigure to use proper sticky sessions based on a random session cookie instead of ip hashing.  Also, reduce the server timeout check from 120s to 7s, so that when a hub goes down, the user quickly (e.g., within 20-30 seconds) completely recovers, connecting to another hub.  I've tested killing hubs, and this *fully works* now  :-)
+
+
+- [x] test HA of database: works if 1 or 2 nodes fail in exactly one datacenter.  Does *not* work if a node fails in *both* data centers.
+
+
+
+# Aug 9:
+
+---
+- [x] (0:30?) (0:10) middle click to close browser tab.
+
+x- [x] (1:30?) reconnect *must* cause all synchronized doc sessions to immediately sync.  NEED THIS:
+    - Make it so `salvus_client` emits an event on reconnect (maybe it does already)
+    - Make it so sync session listens to that event and calls connect() when it happens.
+    - SIMPLE.
+    - was just a few lines of code, but I got confused about the classes and method resolution.
+
+---
+August 10, 2013: 5pm - 11pm.
+
+- [x] fix that local hub on my laptop isn't stopping and restarting
+
+- [x] if `local_hub.js` is "kill -STOP" by user, then file editing sessions can't reconnect to hub itself anymore no matter what; only fix is restart the hub.
+      if localhub is just killed, e.g., by "killall -u `whoami`" or even just killing the localhub.js processs, then automatic restart works fine.  It's the
+      kill -STOP that is tricky.
+
+Steps to replicate:
+  - start two clients viewing a file
+  - restart project server
+  - then clients sort of sync, but not automatically anymore.
+
+ - [x] (0:22) Investigate sync issues
+  - re-enable debugging in the client to see if both clients are getting the "please sync now  sync now message"
+     Conclusion: the clients stop getting "sync now" messages on updates.
+  - reset the hub to how it was before (all locks, destroy all clients on reset) and repeat above.
+     This actually *works*... as long as we do something in both clients in order to force them
+     to reconnect.  They become whole new sessions and sync back/forth just fine.
+     If we don't force both to reconnect, then the one that didn't reconnect never knows to sync.
+     That make sense.  This is a solid foundation to build on.  Let's do it.  The goal is to make it
+     so we do not drop the client sessions and force them to reconnect when the
+
+-- > - [x] (0:50) hub sync: do not destroy client connections on reconnect.
+
+   - the reason this doesn't work (and also above doesn't, maybe) is because the sessionid changes.
+   - I wonder -- should I just make the session id an md5 hash of the file path and projectid?
+     This means I could no longer rely on knowledge of the sessionid for temporary authentication, or as an added level of security.
+   - Another option would be a message that tells clients that session id changed... but they might miss it and then that leads to trouble.
+   - Another possibility would be to make the session id stable in the hub, and have a different id between the hub and local hub.
+   - Broadcast message sounds good; if a client doesn't get that, they aren't connected, so it doesn't matter anyways!
+
+
+   - 1. broadcast message for codemirror sessions (and test)
+   - 2. broadcast message for sync strings (and test)
+
+Steps to replicate:
+  - start two clients viewing a file
+  - restart project server
+  - then clients sort of sync, but not automatically anymore.
+
+ - [x] (0:22) Investigate sync issues
+  - re-enable debugging in the client to see if both clients are getting the "please sync now  sync now message"
+     Conclusion: the clients stop getting "sync now" messages on updates.
+  - reset the hub to how it was before (all locks, destroy all clients on reset) and repeat above.
+     This actually *works*... as long as we do something in both clients in order to force them
+     to reconnect.  They become whole new sessions and sync back/forth just fine.
+     If we don't force both to reconnect, then the one that didn't reconnect never knows to sync.
+     That make sense.  This is a solid foundation to build on.  Let's do it.  The goal is to make it
+     so we do not drop the client sessions and force them to reconnect when the
+
+-- > - [x] (0:50) hub sync: do not destroy client connections on reconnect.
+
+   - the reason this doesn't work (and also above doesn't, maybe) is because the sessionid changes.
+   - I wonder -- should I just make the session id an md5 hash of the file path and projectid?
+     This means I could no longer rely on knowledge of the sessionid for temporary authentication, or as an added level of security.
+   - Another option would be a message that tells clients that session id changed... but they might miss it and then that leads to trouble.
+   - Another possibility would be to make the session id stable in the hub, and have a different id between the hub and local hub.
+   - Broadcast message sounds good; if a client doesn't get that, they aren't connected, so it doesn't matter anyways!
+
+
+   - 1. broadcast message for codemirror sessions (and test)
+   - 2. broadcast message for sync strings (and test)
+
