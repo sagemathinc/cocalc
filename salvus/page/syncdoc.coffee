@@ -44,6 +44,8 @@ output_template     = templates.find(".sagews-output")
 
 salvus_threejs = require("salvus_threejs")
 
+account = require('account')
+
 # Return true if there are currently unsynchronized changes, e.g., due to the network
 # connection being down, or cloud.sagemath not working, or a bug.
 exports.unsynced_docs = () ->
@@ -339,7 +341,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cb            : (err, chat_session) =>
                 if not err  # err actually can't happen, since we retry until success...
                     @chat_session = chat_session
-                    @write_chat_mesg("Opened this file.")
                     @init_chat()
 
         @on 'sync', () =>
@@ -534,9 +535,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @chat_session.on 'sync', @render_chat_log
         @render_chat_log()  # first time
         @init_chat_toggle()
+        @new_chat_indicator(false)
 
     write_chat_mesg: (content, cb) =>
-        @chat_session.live(@chat_session.live() + "\n" + content)
+        s = misc.to_json(new Date())
+        chat = misc.to_json
+            name : account.account_settings.fullname()
+            color: account.account_settings.account_id().slice(0,6)
+            date : s.slice(1, s.length-1)
+            mesg : {event:'chat', content:content}
+        @chat_session.live(@chat_session.live() + "\n" + chat)
         # save to disk after each message
         @chat_session.save(cb)
 
@@ -583,25 +591,31 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             elt.hide()
 
     render_chat_log: () =>
-        @element.find(".salvus-editor-codemirror-chat-output").text(@chat_session.live())
-        return
-
-        # TODO -- need to instead render (and have a pager)
-        @new_chat_indicator(true)
         output = @element.find(".salvus-editor-codemirror-chat-output")
-        date = new Date(mesg.date)
-        entry = templates.find(".salvus-chat-entry").clone()
-        output.append(entry)
-        header = entry.find(".salvus-chat-header")
-        if (not @_last_chat_name?) or @_last_chat_name != mesg.name or ((date.getTime() - @_last_chat_time) > 60000)
-            header.find(".salvus-chat-header-name").text(mesg.name).css(color:"#"+mesg.color)
-            header.find(".salvus-chat-header-date").attr('title', date.toISOString()).timeago()
-        else
-            header.hide()
-        @_last_chat_name = mesg.name
-        @_last_chat_time = new Date(mesg.date).getTime()
-        entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
+        output.empty()
+
+        for m in @chat_session.live().split('\n')
+            if $.trim(m) == ""
+                continue
+            try
+                mesg = JSON.parse(m)
+            catch
+                continue # skip
+            date = new Date(mesg.date)
+            entry = templates.find(".salvus-chat-entry").clone()
+            output.append(entry)
+            header = entry.find(".salvus-chat-header")
+            if (not last_chat_name?) or last_chat_name != mesg.name or ((date.getTime() - last_chat_time) > 60000)
+                header.find(".salvus-chat-header-name").text(mesg.name).css(color:"#"+mesg.color)
+                header.find(".salvus-chat-header-date").attr('title', date.toISOString()).timeago()
+            else
+                header.hide()
+            last_chat_name = mesg.name
+            last_chat_time = new Date(mesg.date).getTime()
+            entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
+
         output.scrollTop(output[0].scrollHeight)
+        @new_chat_indicator(true)
 
     send_broadcast_message: (mesg, self) ->
         m = message.codemirror_bcast

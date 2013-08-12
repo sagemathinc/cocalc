@@ -370,6 +370,8 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping',
                               'line_numbers', 'smart_indent', 'match_brackets', 'electric_chars']
 
 class AccountSettings
+    account_id: () ->
+        return account_id
     load_from_server: (cb) ->
         salvus_client.get_account_settings
             account_id : account_id
