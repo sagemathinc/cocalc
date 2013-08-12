@@ -287,7 +287,6 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 if err
                     cb?(err); return
                 @session_uuid = resp.session_uuid
-                @chat         = resp.chat
 
                 if @_last_sync?
                     # We have sync'd before.
@@ -327,12 +326,21 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @save       = misc.retry_until_success_wrapper(f:@_save) #logname:'save')
 
         @editor.save = @save
-        @codemirror = @editor.codemirror
-        @element    = @editor.element
-        @filename   = @editor.filename
+        @codemirror  = @editor.codemirror
+        @element     = @editor.element
+        @filename    = @editor.filename
 
         @init_cursorActivity_event()
-        @init_chat()
+
+        synchronized_string
+            project_id    : @editor.project_id
+            filename      : misc.meta_file(@filename, 'chat')
+            sync_interval : 1000
+            cb            : (err, chat_session) =>
+                if not err  # err actually can't happen, since we retry until success...
+                    @chat_session = chat_session
+                    @write_chat_mesg("Opened this file.")
+                    @init_chat()
 
         @on 'sync', () =>
             @ui_synced(true)
@@ -513,15 +521,24 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     init_chat: () =>
         chat = @element.find(".salvus-editor-codemirror-chat")
         input = chat.find(".salvus-editor-codemirror-chat-input")
+
+        # send chat message
         input.keydown (evt) =>
             if evt.which == 13 # enter
                 content = $.trim(input.val())
                 if content != ""
                     input.val("")
-                    @send_broadcast_message({event:'chat', content:content}, true)
+                    @write_chat_mesg(content)
                 return false
 
+        @chat_session.on 'sync', @render_chat_log
+        @render_chat_log()  # first time
         @init_chat_toggle()
+
+    write_chat_mesg: (content, cb) =>
+        @chat_session.live(@chat_session.live() + "\n" + content)
+        # save to disk after each message
+        @chat_session.save(cb)
 
     init_chat_toggle: () =>
         title = @element.find(".salvus-editor-chat-title")
@@ -530,7 +547,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @show_chat_window()
             else
                 @hide_chat_window()
-        @hide_chat_window()  #start hidden for now, until we have a way to save this.
+        @hide_chat_window()  #start hidden for now, until we have a way to save this state.
 
     show_chat_window: () =>
         # SHOW the chat window
@@ -565,7 +582,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         else
             elt.hide()
 
-    _receive_chat: (mesg) =>
+    render_chat_log: () =>
+        @element.find(".salvus-editor-codemirror-chat-output").text(@chat_session.live())
+        return
+
+        # TODO -- need to instead render (and have a pager)
         @new_chat_indicator(true)
         output = @element.find(".salvus-editor-codemirror-chat-output")
         date = new Date(mesg.date)
@@ -605,8 +626,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             switch mesg.mesg.event
                 when 'cursor'
                     @_receive_cursor(mesg)
-                when 'chat'
-                    @_receive_chat(mesg)
                 when 'update_session_uuid'
                     @session_uuid = mesg.mesg.new_session_uuid
 

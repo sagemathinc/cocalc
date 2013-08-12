@@ -1226,18 +1226,17 @@ class Client extends EventEmitter
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
-                        snapshot = session.get_snapshot()
-                        # We add the client, so it will gets messages
-                        # about changes to the document.
-                        session.add_client(@, snapshot)
-                        # Send parameters of session to client
-                        mesg = message.codemirror_session
-                            id           : mesg.id
-                            session_uuid : session.session_uuid
-                            path         : session.path
-                            chat         : session.chat
-                            content      : snapshot
-                        @push_to_client(mesg)
+                        session.get_snapshot (err, snapshot) =>
+                            # We add the client, so it will gets messages
+                            # about changes to the document.
+                            session.add_client(@, snapshot)
+                            # Send parameters of session to client
+                            mesg = message.codemirror_session
+                                id           : mesg.id
+                                session_uuid : session.session_uuid
+                                path         : session.path
+                                content      : snapshot
+                            @push_to_client(mesg)
 
     get_codemirror_session : (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
@@ -1975,7 +1974,6 @@ class CodeMirrorSession
                         @broadcast_mesg_to_clients(mesg)
 
                     @session_uuid = resp.session_uuid
-                    @chat         = resp.chat
 
                     codemirror_sessions.by_uuid[@session_uuid] = @
 
@@ -2013,7 +2011,7 @@ class CodeMirrorSession
             ds.live = content
 
     client_broadcast: (client, mesg) =>
-        # Broadcast message from some client reporting something (e.g., cursor position, chat, etc.)
+        # Broadcast message from some client reporting something (e.g., cursor position, etc.)
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
             return # something wrong -- just drop the message
@@ -2029,17 +2027,6 @@ class CodeMirrorSession
             # Use first 6 digits of uuid... one color per session, NOT per username.
             # TODO: this could be done client side in a way that respects their color scheme...?
             mesg.color = client.id.slice(0,6)
-
-        # If this is a chat message, also fill in the time and store it.
-        if mesg.mesg?.event == 'chat'
-            # This is weird, but it does do-JSON to a string t so that 'new Date(t)' works.
-            s = misc.to_json(new Date())
-            mesg.date = s.slice(1, s.length-1)
-            @chat.push   # what is saved is also defined in local_hub.coffee in save method of ChatRecorder.
-                name  : mesg.name
-                color : mesg.color
-                date  : mesg.date
-                mesg  : mesg.mesg
 
         # 2. Send fire-and-forget message on to the local_hub, which will forward this message
         # on to all the other hubs.
@@ -2106,8 +2093,15 @@ class CodeMirrorSession
                         if client.id != id
                             ds.remote.sync_ready()
 
-    get_snapshot: () =>
-        return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
+    get_snapshot: (cb) =>
+        if @diffsync_server?
+            cb(false, @diffsync_server.live)
+        else
+            @connect (err) =>
+                if err
+                    cb(err)
+                else
+                    cb(false, @diffsync_server.live)
 
     broadcast_mesg_to_clients: (mesg, exclude_id) =>
         for id, ds of @diffsync_clients
@@ -2639,7 +2633,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 opts.cb(false, session)
                 return
         if not (opts.path? and opts.project_id?)
-            opts.cb("reconnect")  # will send path next time
+            opts.cb("reconnect")  # caller should  send path when it tries next.
             return
 
         # Create a new session object.

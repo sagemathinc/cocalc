@@ -216,6 +216,14 @@ exports.path_split = (path) ->
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
 
+
+exports.meta_file = (path, ext) ->
+    p = exports.path_split(path)
+    path = p.head
+    if p.head != ''
+        path += '/'
+    return path + "." + p.tail + ".sage-" + ext
+
 exports.trunc = (s, max_length) ->
     if not s?
         return s
@@ -334,6 +342,7 @@ class RetryUntilSuccess
                 setTimeout(g, @opts.min_interval - w)
             else
                 g()
+
 
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).

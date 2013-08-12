@@ -238,7 +238,6 @@ message
     session_uuid : required
     path         : required    # absolute path
     content      : required
-    chat         : required
 
 # A list of edits that should be applied, along with the
 # last version of edits received before.
@@ -303,7 +302,7 @@ message
     session_uuid : required
 
 # Broadcast mesg to all clients connected to this session.
-# This is used for cursors and out-of-band chat.
+# This is used for cursors, updating session id's, etc.
 # client <--> hub <--> local_hub
 message
     event        : 'codemirror_bcast'
