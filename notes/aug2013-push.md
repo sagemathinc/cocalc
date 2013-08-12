@@ -1,20 +1,21 @@
 
-- [ ] sync in the global hub is not optimally implemented, since there is no reason to every force the client to retry their sync if there is a connection to the global hub.  Instead of having one single shared locked state for the global hub version of the doc, could have lots.
+- [x] sage worksheets are broken for some reason related to recent changes.  fix.
 
-     [ ] fix things so at least the global single shared state for sync docs actually 100% works.  Right now, something goes wrong if the local hub gets restarted and there are two clients.  Suddenly the second client stops syncing automatically.  Fix this first.
+- [x] (0:24) hub -- make sync in hub totally locked until done.
 
-
---> - [ ] file level chat is broken -- hub doesn't update @chat attribute...
-      FIX -- completely redo completely in the client to use sync string, as for project-level chat.
-
-
-- [ ] the string sync doc (e.g., the log) are *not* getting any diffsync_syncnow messages?
-
-     [ ] one-by-one, with testing, relax the global lock after working out exactly what syncs are necessary, and when.
+--> - [ ] make chat look good (nice formatting, etc.)
 
 - [ ] WORRY: what about when local hub connection (or whatever) times out after 900 seconds.  What happens to client connections?
 Change 900 to 15 to test and debug!
 
+
+
+- [ ] one-by-one, with testing, relax the global lock after working out exactly what syncs are necessary, and when.
+- [ ] sync in the global hub is not optimally implemented, since there is no reason to every force the client to retry their sync if there is 1a connection to the global hub.  Instead of having one single shared locked state for the global hub version of the doc, could have lots.
+
+
+
+- [ ] if ssh to remote fails, hub goes into a crazy spin; need to use my retry exponential backoff and stop after n tries!
 
 
 ---
@@ -670,4 +671,25 @@ Steps to replicate:
 
    - 1. broadcast message for codemirror sessions (and test)
    - 2. broadcast message for sync strings (and test)
+
+
+
+- [x] fix things so at least the global single shared state for sync docs actually 100% works.  Right now, something goes wrong if the local hub gets restarted and there are two clients.  Suddenly the second client stops syncing automatically.  Fix this first.
+
+
+- [x] file level chat is broken -- hub doesn't update @chat attribute...
+      FIX -- completely redo completely in the client to use sync string, as for project-level chat:
+
+xxx (0:19) - eliminate most code that involves chat
+!  - make client just open the chat session directly
+
+QUESTION: what if chat isn't used -- it seems ugly creating the file anyways; this clutters things up. hmm.
+NO matter what, the way to deal with this would be to do something new on the local hub to allow having
+a syncdoc session with no file until there is an actual edit... so I can worry about this later.
+Also, I think every time one opens a file that should result in message now (optionally filterable), so the file is never empty.
+  - write code so client renders messages on update.
+
+
+
+1
 
