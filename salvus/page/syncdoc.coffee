@@ -190,10 +190,12 @@ class AbstractSynchronizedDoc extends EventEmitter
     _add_listeners: () =>
         salvus_client.on 'codemirror_diffsync_ready', @__diffsync_ready
         salvus_client.on 'codemirror_bcast', @__receive_broadcast
+        salvus_client.on 'signed_in', @__reconnect
 
     _remove_listeners: () =>
         salvus_client.removeListener 'codemirror_diffsync_ready', @__diffsync_ready
         salvus_client.removeListener 'codemirror_bcast', @__receive_broadcast
+        salvus_client.removeListener 'signed_in', @__reconnect
 
     __diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
@@ -202,6 +204,12 @@ class AbstractSynchronizedDoc extends EventEmitter
     __receive_broadcast: (mesg) =>
         if mesg.session_uuid != @session_uuid
             @_receive_broadcast?(mesg)   # define in derived class
+
+    __reconnect: () =>
+        # The main websocket to the remote server died then came back, so we
+        # setup a new syncdoc session with the remote hub.  This will work fine,
+        # even if we connect to a different hub.
+        @connect (err) =>
 
     _apply_patch_to_live: (patch) =>
         @dsync_client._apply_edits_to_live(patch)
@@ -420,10 +428,19 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     _add_listeners: () =>
         salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.on 'codemirror_bcast', @_receive_broadcast
+        salvus_client.on 'signed_in', @__reconnect
+
 
     _remove_listeners: () =>
         salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
         salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
+        salvus_client.removeListener 'signed_in', @__reconnect
+
+    __reconnect: () =>
+        # The main websocket to the remote server died then came back, so we
+        # setup a new syncdoc session with the remote hub.  This will work fine,
+        # even if we connect to a different hub.
+        @connect (err) =>
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()

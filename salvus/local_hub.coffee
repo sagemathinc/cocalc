@@ -656,7 +656,7 @@ class CodeMirrorSession
 
         async.series([
             (cb) =>
-                # The upstream version of this document -- the *actual* file on disk.
+                # The *actual* file on disk.
                 @diffsync_fileserver = new DiffSyncFile_server @, (err, content) =>
                     if err
                         cb(err); return
@@ -1122,9 +1122,15 @@ class CodeMirrorSession
             write_mesg('error', {error:"client #{socket.id} not registered for synchronization."})
             return
 
+        if @_client_sync_lock # or Math.random() <= .5 # (for testing)
+            winston.debug("client_diffsync hit a sync lock -- send retry message back")
+            write_mesg('error', {error:"retry"})
+
+        @_client_sync_lock = true
         before = @content
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
             @set_content(ds_client.live)
+            @_client_sync_lock = false
             @process_new_content?()
             # Send back our own edits to the global hub.
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
