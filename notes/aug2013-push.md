@@ -1,5 +1,8 @@
----
-- [ ] new release
+- [x] fix bug in reporting error when %load'ing external file.
+        %load parse.sage
+        Traceback (most recent call last):
+        KeyError: '__tmp__0'
+
 
 - [ ] (1:00?) fix terminal on "not working"
 
@@ -34,11 +37,6 @@
 - [ ] (1:30?) make it so clicking on a zip/tar/etc. file in the file browser extracts it instead of trying to open the underlying file in codemirror.
 
 - [ ] (1:30?) make a screencast illustrating migrating worksheets from sagenb.:  harald says: "+1 same for: author latex documents, run sagetex, etc. ad ipython notebook tranformation:"
-
-- [ ] fix this bug --
-        %load parse.sage
-        Traceback (most recent call last):
-        KeyError: '__tmp__0'
 
 
 ---
@@ -724,4 +722,27 @@ Best regards,
 - [x] (0:30?) worksheet re-opening bug -- https://mail.google.com/mail/u/0/?shva=1#inbox/1405eea856c0d6f6
 
 It's the call to @editor.show().  Closing an open tab needs to completely remove the syncdoc, but clearly it doesn't.
+
+---
+- [x] new release:
+
+
+Hi,
+
+I've updated https://cloud.sagemath.com with the following fixes:
+
+ 1. Fix the "worksheets magically reappearing" bug that Harald Schilly reported.
+
+ 2. Fix remaining issues with middle click to open file in browser opens another browser tab (oops); also file download/rename/trash buttons were temporarily broken due to the middle click implementation.
+
+ 3. When opening a file, don't have chat open by default then suddenly close; looks crappy.
+
+ 4. Create new worksheet and name it with .sagews extension results in .sagews.sagew (similar with .term); also ban creation of certain file types
+
+ 5. Hub sync: the global hub wasn't reconnecting to local hub in one case, which could make doc unsyncable until timeout or hub restart.
+
+ 6. Client sync: fix a potentially *major* annoyance with save causing multiple syncs.
+
+
+ -- William
 

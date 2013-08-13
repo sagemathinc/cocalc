@@ -2473,8 +2473,9 @@ def load(*args, **kwds):
         exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':args, '__kwds':kwds}
         return salvus.namespace[t]
     finally:
-        del salvus.namespace[t]
-
+        try:
+            del salvus.namespace[t]
+        except: pass
 
 
 
