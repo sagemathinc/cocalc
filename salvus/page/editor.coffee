@@ -617,6 +617,7 @@ class exports.Editor
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
+                tab.editor().disconnect_from_session()
                 tab.close_editor()
 
             @resize_open_file_tabs()
@@ -897,10 +898,10 @@ class FileEditor extends EventEmitter
     _set: (content) =>
         throw("TODO: implement _set in derived class")
 
-    restore_cursor_position : () =>
+    restore_cursor_position: () =>
         # implement in a derived class if you need this
 
-    disconnect_from_session : (cb) =>
+    disconnect_from_session: (cb) =>
         # implement in a derived class if you need this
 
     local_storage: (key, value) =>
@@ -1088,6 +1089,10 @@ class CodeMirrorEditor extends FileEditor
 
         @init_change_event()
 
+    disconnect_from_session: (cb) =>
+        # implement in a derived class if you need this
+        @syncdoc?.disconnect_from_session()
+        cb?()
 
     action_key: (opts) =>
         # opts ignored by default; worksheets use them....
