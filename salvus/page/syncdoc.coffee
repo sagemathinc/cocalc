@@ -251,7 +251,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     _save: (cb) =>
         if not @dsync_client?
             cb("must be connected before saving"); return
-        @_sync (err) =>
+        @sync (err) =>
             if err
                 cb(err); return
             @call
