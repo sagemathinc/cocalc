@@ -2426,6 +2426,24 @@ class Markdown(object):
 md = Markdown()
 
 
+def load_html_resource(filename):
+    fl = filename.lower()
+    if fl.startswith('http://') or fl.startswith('https://'):
+        # remote url
+        url = fl
+    else:
+        # local file
+        url = salvus.file(filename, show=False)
+    ext = os.path.splitext(filename)[1][1:].lower()
+    if ext == "css":
+        salvus.javascript('''$.get("%s", function(css) { $('<style type=text/css></style>').html(css).appendTo("body")});'''%url)
+    elif ext == "html":
+        # TODO: opts.element should change to cell.element when more canonical (need to finish some code in syncdoc)!
+        salvus.javascript('opts.element.append($("<div>").load("%s"))'%url)
+    elif ext == "coffee":
+        salvus.javascript('$.ajax({url:"%s"}).done(function(data) { eval(CoffeeScript.compile(data)); })'%url)
+    elif ext == "js":
+        salvus.html('<script src="%s"></script>'%url)
 
 # Monkey-patched the load command
 def load(*args, **kwds):
@@ -2443,14 +2461,23 @@ def load(*args, **kwds):
 
     INPUT:
 
-        - args -- any number of input args that filenames with extension .sobj, .sage, .py, .pyx
+        - args -- any number of filename strings with any of the following extensions:
+
+             .sobj, .sage, .py, .pyx, .html, .css, .js, .coffee
 
         - ``verbose`` -- (default: True) load file over the network.
+
+    If you load and of the web types (.html, .css, .js, .coffee), they are loaded
+    into the web browser, not the Python process.
 
     In SageMathCloud you may also use load as a decorator, with filename separated
     by whitespace or commas::
 
         %load foo.sage  bar.py  a.pyx, b.pyx
+
+    Load HTML+CSS+JS::
+
+        %load foo.html foo.css foo.js
 
     """
     if len(args) == 1 and isinstance(args[0], (unicode,str)):
@@ -2469,8 +2496,20 @@ def load(*args, **kwds):
     while t+str(i) in salvus.namespace:
         i += 1
     t += str(i)
+
+    # First handle HTML related args -- these are all very oriented toward cloud.sagemath worksheets
+    html_extensions = set(['js','css','coffee','html'])
+    other_args = []
+    for arg in args:
+        i = arg.rfind('.')
+        if i != -1 and arg[i+1:] in html_extensions:
+            load_html_resource(arg)
+        else:
+            other_args.append(arg)
+
+    # now handle remaining non-web arguments.
     try:
-        exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':args, '__kwds':kwds}
+        exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':other_args, '__kwds':kwds}
         return salvus.namespace[t]
     finally:
         try:
