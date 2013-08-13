@@ -1266,8 +1266,8 @@ class ProjectPage
             file_link.mousedown(open)
 
             # Clicking on link -- open the file
-            t.mousedown(open)
-
+            # do not use t.mousedown here, since that breaks the download, etc., links.
+            t.click(open)
 
         if is_snapshot
 
