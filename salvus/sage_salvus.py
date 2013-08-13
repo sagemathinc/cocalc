@@ -2475,13 +2475,22 @@ def load(*args, **kwds):
 
         %load foo.sage  bar.py  a.pyx, b.pyx
 
-    Load HTML+CSS+JS::
+    The following are all valid ways to use load::
 
-        %load foo.html foo.css foo.js
-
+        %load a.html
+        %load a.css
+        %load a.js
+        %load a.coffee
+        %load a.css a.js a.coffee a.html
+        load('a.css', 'a.js', 'a.coffee', 'a.html')
+        load('a.css a.js a.coffee a.html')
+        load(['a.css', 'a.js', 'a.coffee', 'a.html'])
     """
-    if len(args) == 1 and isinstance(args[0], (unicode,str)):
-        args = tuple(args[0].replace(',',' ').split())
+    if len(args) == 1:
+        if isinstance(args[0], (unicode,str)):
+            args = tuple(args[0].replace(',',' ').split())
+        if isinstance(args[0], (list, tuple)):
+            args = args[0]
 
     if len(args) == 0 and len(kwds) == 1:
         # This supports
