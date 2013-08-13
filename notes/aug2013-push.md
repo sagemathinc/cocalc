@@ -1,74 +1,39 @@
+---
+- [ ] new release
 
-- [x] sage worksheets are broken for some reason related to recent changes.  fix.
+- [ ] (1:00?) fix terminal on "not working"
 
-- [x] (0:24) hub -- make sync in hub totally locked until done.
+- [ ] (2:00?) firefox terminal copy / paste
 
---> - [ ] make chat look good (nice formatting, etc.)
+- [ ] (1:00?) file rename gui seems broken...
 
-- [ ] WORRY: what about when local hub connection (or whatever) times out after 900 seconds.  What happens to client connections?
-Change 900 to 15 to test and debug!
+- [ ] the hub logs are all filled with messages like this:
+
+  local_hub --> hub: (connect) error -- true, _new_session: sage session denied connection: Error: connect ECONNREFUSED
 
 
-
-- [ ] one-by-one, with testing, relax the global lock after working out exactly what syncs are necessary, and when.
 - [ ] sync in the global hub is not optimally implemented, since there is no reason to every force the client to retry their sync if there is 1a connection to the global hub.  Instead of having one single shared locked state for the global hub version of the doc, could have lots.
-
-
 
 - [ ] if ssh to remote fails, hub goes into a crazy spin; need to use my retry exponential backoff and stop after n tries!
 
-
----
---> new ideas/code
-
-     -  also, hub sync: on "suggest to clients to sync", should try  repeatedly (with exp. backoff) to *get* all connected clients to sync. until they do.
-
-WAY to CAUSE serious trouble:
-
-        ~/.sagemathcloud$ kill -STOP 19382
-        ~/.sagemathcloud$ ps ax |grep local_hub.js|grep Phd
-        19379 ?        Tsl    0:00 /mnt/home/PhdjQiOi/.sagemathcloud/data/local/bin/node /mnt/home/PhdjQiOi/.sagemathcloud/node_modules/start-stop-daemon/monitor.js /mnt/home/PhdjQiOi/.sagemathcloud/node_modules/local_hub.js
-        19382 ?        Tl     0:00 /mnt/home/PhdjQiOi/.sagemathcloud/data/local/bin/node /mnt/home/PhdjQiOi/.sagemathcloud/node_modules/local_hub.js run
-        ~/.sagemathcloud$ kill -CONT 19382
-
-        I need to give global and local hub sync the *full treatment* tomorrow.
-
-
-- [ ] (2:00?) rewrite sync in `local_hub.coffee` to use new ideas
-
 - [ ] (2:00?) project high availability -- keep thinking about this!
-
-- [ ] (0:45?) fix terminal on "not working"
-
-
----
 
 
 - [ ] (1:00?) move FAQ from github into cloud itself.
 
 - [ ] ((0:30?) add this to FAQ: https://mail.google.com/mail/u/0/?shva=1#inbox/1406489d11dac03e
 
-
-improve quality:
 - [ ] (1:00?) salvus.blob to send info without needing to create a file at all
+
 - [ ] (1:00?) change salvus.javascript to send obj using salvus.blob and $.ajax.
 
-hard implement:
 - [ ] (1:30?) see misc project sws2sagews.py -- the DATA directory thing is not done
-
-update:
-- [ ] (0:30?) new release: ?
-       - change password of vm to salvus password
-       - add to ssh authorized_keys
 
 - [ ] Need to figure out how to use ssh passphrase, at some point.
 
 - [ ] (1:30?) make it so clicking on a zip/tar/etc. file in the file browser extracts it instead of trying to open the underlying file in codemirror.
 
 - [ ] (1:30?) make a screencast illustrating migrating worksheets from sagenb.:  harald says: "+1 same for: author latex documents, run sagetex, etc. ad ipython notebook tranformation:"
-
-
-- [ ] worksheet re-opening ing bug -- https://mail.google.com/mail/u/0/?shva=1#inbox/1405eea856c0d6f6
 
 - [ ] fix this bug --
         %load parse.sage
@@ -176,15 +141,6 @@ debug: codemirror session sync -- pushed edits, thus completing cycle
 - [ ] (2:00?) snap: UI for seeing nearest snapshot to a chat (just a link for now)
 
 - [ ] (1:30?) write code in hub that ensures local hubs are always pre-started up for projects that have been accessed in the last week (again, a ttl'd new db schema field would do this).
-
-- [ ] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off user:
-       - open a worksheet or file to edit
-       - restart local hub, but do NOT restart global hub
-       - re-open the same file
-       - look at the log in hub, and see an "infinite loop" of reconnect attempts.
-       THIS is very serious.  The user must refresh their browser to fix this.  BAD.  And wastes resources.
-
-- [ ] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.  I have no clear way to reproduce this.
 
 - [ ] (2:00?) ulimit individual projects -- on july 22 one VM became unusable due to running out of memory, etc.
 
@@ -692,4 +648,80 @@ Also, I think every time one opens a file that should result in message now (opt
 
 
 1
+
+
+- [x] sage worksheets are broken for some reason related to recent changes.  fix.
+
+- [x] (0:24) hub -- make sync in hub totally locked until done.
+
+- [x] make chat look good (nice formatting, etc.)
+
+
+
+- [x] (0:30?) (1:30) new release: ?
+       - change password of vm to salvus password
+       - add to ssh authorized_keys
+
+Dear Sagemath Cloud users,
+
+On Monday around 9am, I've updated https://cloud.sagemath.com with the following changes.
+
+1. I applied the latest security updates to virtual machines and reboot everything.
+
+2. I spent days significantly reworking the backend document synchronization code to be more robust.    I had improved the frontend code last week, but hadn't changed the backend code, which still had some significant issues (e.g., two users would see things get totally out of sync in certain cases).
+
+3. I rewrote the file-level chat to use its own synchronized editing session, so that when your connection gets dropped and later resumes, the chat is properly updated.
+
+4. Middle mouse click to open and close tabs in the background now works on Firefox (thanks Harald).
+
+Let me know if you run into any synchronization issues at all.
+
+Best regards,
+
+   William
+
+
+
+- [x] (0:30?) (1:30) new release: ?
+       - change password of vm to salvus password
+       - add to ssh authorized_keys
+
+Dear Sagemath Cloud users,
+
+On Monday around 9am, I've updated https://cloud.sagemath.com with the following changes.
+
+1. I applied the latest security updates to virtual machines and reboot everything.
+
+2. I spent days significantly reworking the backend document synchronization code to be more robust.    I had improved the frontend code last week, but hadn't changed the backend code, which still had some significant issues (e.g., two users would see things get totally out of sync in certain cases).
+
+3. I rewrote the file-level chat to use its own synchronized editing session, so that when your connection gets dropped and later resumes, the chat is properly updated.
+
+4. Middle mouse click to open and close tabs in the background now works on Firefox (thanks Harald).
+
+Let me know if you run into any synchronization issues at all.
+
+Best regards,
+
+   William
+
+- [x] (2:00?) project restart and hub diffsync sessions: this leads to a very BAD situation that will piss off user:
+       - open a worksheet or file to edit
+       - restart local hub, but do NOT restart global hub
+       - re-open the same file
+       - look at the log in hub, and see an "infinite loop" of reconnect attempts.
+       THIS is very serious.  The user must refresh their browser to fix this.  BAD.  And wastes resources.
+
+- [x] (2:00?) *TOP PRIORITY* sync is messed up:  when connection gets reset sometimes it never correctly *saves* again, which will result in MAJOR data loss --- because suddenly "Save" doesn't really work.  This is new and absolutely top priority.  This was entirely a problem with the local hub getting messed up, which is unusual.  I have no clear way to reproduce this.
+
+- [x] (0:22) client syncdoc: save and sync interfere doubling the last edit... sometimes.
+
+- [x] (0:30?) (0:15) create new worksheet and name it with .sagews extension results in .sagews.sagews; also ban creation of certain file types
+
+- [x] (0:15?) (0:08) don't have chat open by default then suddenly close; looks crappy
+
+- [x] (0:30?) (1:01) middle click to open file in browser opens another browser tab (oops); also file download/rename/trash buttons broken -- see https://mail.google.com/mail/u/0/?shva=1#inbox/140735b83b26ebb1
+
+- [x] (0:30?) worksheet re-opening bug -- https://mail.google.com/mail/u/0/?shva=1#inbox/1405eea856c0d6f6
+
+It's the call to @editor.show().  Closing an open tab needs to completely remove the syncdoc, but clearly it doesn't.
 
