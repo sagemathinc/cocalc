@@ -2119,7 +2119,7 @@ class CodeMirrorSession
             if err
                 # We do *NOT* remove the sync_lock in this branch; only do that after a successful sync, since
                 # otherwise clients think they have successfully sync'd with the hub, but when the hub resets,
-                # the clients end up doing the wrong thing. 
+                # the clients end up doing the wrong thing.
                 winston.debug("codemirror session local hub sync error -- #{err}")
                 if typeof(err) == 'string'
                     err = err.toLowerCase()
@@ -2128,7 +2128,7 @@ class CodeMirrorSession
                         # This is normal -- it's because the diffsync algorithm only allows sync with
                         # one client (and upstream) at a time.
                         cb(err); return
-                    else if err.indexOf("unknown") != -1
+                    else if err.indexOf("unknown") != -1 or err.indexOf('not registered') != -1
                         winston.debug("sync: reconnecting...")
                         @_connect () =>
                             cb(err); return # still an error even if connect works.
