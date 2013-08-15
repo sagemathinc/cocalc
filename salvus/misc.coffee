@@ -317,10 +317,8 @@ class RetryUntilSuccess
                 @_calling = false
                 if err? and err
                     if @opts.max_tries? and @attempts >= @opts.max_tries
-                        if @_cb_stack?
-                            for cb in @_cb_stack
-                                cb()
-                            delete @_cb_stack
+                        while @_cb_stack.length > 0
+                            @_cb_stack.pop()(err)
                         return
                     if not retry_delay?
                         retry_delay = @opts.start_delay
@@ -330,10 +328,8 @@ class RetryUntilSuccess
                         @call(undefined, retry_delay)
                     setTimeout(f, retry_delay)
                 else
-                    if @_cb_stack?
-                        for cb in @_cb_stack
-                            cb()
-                        delete @_cb_stack
+                    while @_cb_stack.length > 0
+                        @_cb_stack.pop()()
         if not @_last_call_time? or not @opts.min_interval?
             g()
         else
