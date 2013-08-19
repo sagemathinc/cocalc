@@ -2463,12 +2463,13 @@ def load(*args, **kwds):
 
         - args -- any number of filename strings with any of the following extensions:
 
-             .sobj, .sage, .py, .pyx, .html, .css, .js, .coffee
+             .sobj, .sage, .py, .pyx, .html, .css, .js, .coffee, .pdf
 
         - ``verbose`` -- (default: True) load file over the network.
 
     If you load and of the web types (.html, .css, .js, .coffee), they are loaded
-    into the web browser, not the Python process.
+    into the web browser DOM (or Javascript session), not the Python process.
+    If you load a pdf, it is displayed in the output of the worksheet.
 
     In SageMathCloud you may also use load as a decorator, with filename separated
     by whitespace or commas::
@@ -2651,6 +2652,10 @@ def show_3d_plot_using_threejs(p, **kwds):
     # TODO: what about garbage collection / memory leaks!?
 
 
+#######################################################
+# Monkey patching and deprecation --
+#######################################################
+
 # Monkey patch around a bug in Python's findsource that breaks deprecation in cloud worksheets.
 # This won't matter if we switch to not using exec, since then there will be a file behind
 # each block of code.  However, for now we have to do this.
@@ -2660,4 +2665,39 @@ def findsource(object):
     try: return _findsource(object)
     except: raise IOError('source code not available')  # as *claimed* by the Python docs!
 inspect.findsource = findsource
+
+
+
+#######################################################
+# Viewing pdf's
+#######################################################
+
+def show_pdf(filename, viewer="pdfjs", width=600, height=400, scale=1.4):
+    """
+    Display a PDF file from the filesystem in an output cell of a worksheet.
+
+    INPUT:
+
+    - filename
+    - viewer -- 'pdfjs' (default):  use the pdf.js pure HTML5 viewer, which doesn't require any plugins
+                (this works on more browser, but may be slower and uglier; works best on firefox)
+             -- 'plugin': use whatever plugin the browser has (if any)
+                (when this works, it will be fast and pretty, but is potentially less secure).
+    - width -- (default: 600) -- pixel width of viewer
+    - height -- (default: 400) -- pixel height of viewer
+    - scale -- (default: 1.4) -- zoom scale (only applies to pdfjs)
+    """
+    url = salvus.file(filename, show=False)
+    if viewer == 'plugin':
+        s = '<embed src="%s"  type="application/pdf" width="%s" height="%s">'%(url, width, height)
+        salvus.html(s)
+    else:
+        import uuid
+        id = 'a'+str(uuid.uuid4())
+        salvus.html('<div id="%s" style="background-color:white; width:%spx; height:%spx; cursor:pointer; overflow:auto;"></div>'%(id, width, height))
+        salvus.javascript('''
+            var lv = new PDFListView($("#%s")[0], {textLayerBuilder:TextLayerBuilder, annotationsLayerBuilder: AnnotationsLayerBuilder});
+            lv.setScale(%s);
+            lv.loadPdf("%s")'''%(
+            id, scale, url))
 
