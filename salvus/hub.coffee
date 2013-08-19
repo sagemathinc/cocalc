@@ -4292,8 +4292,8 @@ exports.send_email = send_email = (opts={}) ->
 # Blobs
 ########################################
 
-MAX_BLOB_SIZE = 10000000
-MAX_BLOB_SIZE_HUMAN = "10MB"
+MAX_BLOB_SIZE = 12000000
+MAX_BLOB_SIZE_HUMAN = "12MB"
 
 save_blob = (opts) ->
     opts = defaults opts,
