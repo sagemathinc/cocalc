@@ -1526,16 +1526,19 @@ class PDF_PreviewEmbed extends FileEditor
 
     focus: () =>
         @element.maxheight()
-        @output.height(@element.height())
+        @output.maxheight()
         @output.width(@element.width())
 
     update: (cb) =>
-        height = @element.height()
+        height = @output.height()
         if height == 0
             # not visible.
             return
         width = $(window).width()
-        console.log(height, width)
+
+        button = @element.find("a[href=#refresh]")
+        button.icon_spin(true)
+
         @_last_width = width
         @_last_height = height
         @output.height(height)
@@ -1546,6 +1549,7 @@ class PDF_PreviewEmbed extends FileEditor
             path       : @filename
             timeout    : 20
             cb         : (err, result) =>
+                button.icon_spin(false)
                 @spinner.spin(false).hide()
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
@@ -1607,14 +1611,19 @@ class LatexEditor extends FileEditor
             @latex_editor.focus()
             return false
 
-        @element.find("a[href=#png-preview]").click () =>
+        preview_button = @element.find("a[href=#png-preview]")
+        preview_button.click () =>
+            preview_button.icon_spin(true)
             @compile (err) =>
-                @preview.update()
+                @preview.update () =>
+                    preview_button.icon_spin(false)
             @show_page('png-preview')
             return false
 
         @element.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
+            @preview_embed.focus()
+            @preview_embed.show()
             return false
 
         @element.find("a[href=#latex]").click () =>
@@ -1677,6 +1686,8 @@ class LatexEditor extends FileEditor
         @_current_page = name
 
     run_latex: (cb) =>
+        button = @element.find("a[href=#latex]")
+        button.icon_spin(true)
         async.series([
             (cb) =>
                 @save(cb)
@@ -1691,6 +1702,7 @@ class LatexEditor extends FileEditor
                     timeout    : 10
                     err_on_exit : false
                     cb         : (err, output) =>
+                        button.icon_spin(false)
                         if err
                             alert_message(type:"error", message:err)
                             cb(err)
@@ -1710,11 +1722,14 @@ class LatexEditor extends FileEditor
         )
 
     download_pdf: () =>
+        button = @element.find("a[href=#pdf-download]")
+        button.icon_spin(true)
         # TODO: THIS replicates code in project.coffee
         salvus_client.read_file_from_project
             project_id : @editor.project_id
             path       : @filename.slice(0,@filename.length-3)+"pdf"
             cb         : (err, result) =>
+                button.icon_spin(false)
                 if err
                     alert_message(type:"error", message:"Error downloading PDF: #{err} -- #{misc.to_json(result)}")
                 else

@@ -2698,7 +2698,7 @@ def show_pdf(filename, viewer="plugin", width=1000, height=600, scale=1.6):
     """
     url = salvus.file(filename, show=False)
     if viewer == 'plugin':
-        s = '<embed src="%s"  type="application/pdf" width="%s" height="%s">'%(url, width, height)
+        s = '<object data="%s"  type="application/pdf" width="%s" height="%s"> alt: <p>If you do not have a PDF plugin for this browser, you can <a href="%s">download the PDF file.</a></p> </object>'%(url, width, height, url)
         salvus.html(s)
     else:
         import uuid

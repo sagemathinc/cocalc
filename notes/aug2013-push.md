@@ -6,9 +6,10 @@
    x - implement script for it.
    x - update button to pdf embed
    x - pdf display title
-    - add spinners to each button
-    - icons for each button
-    - embed --> object in sage_salvus.py
+   x - add spinners to each button
+   x - icons for each button
+   x - embed --> object in sage_salvus.py
+   x - pdf height is wrong, since can't see controls.
 
 - [ ] next release:
       - verify get new services file for cassandra
