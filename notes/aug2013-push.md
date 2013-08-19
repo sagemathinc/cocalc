@@ -1,42 +1,20 @@
-# Aug 17
+-----
+--> - [ ] write code for latex editor to support embed viewer as another option.
 
---> - [ ] scale up the pdf viewer:
+   x- add a button for embedded PDF view
+   x - add html view for embedded PDF view
+   x - implement script for it.
+    - update button to pdf embed
+    - add spinners to each button
+    - icons for each button
 
-Ideas for how to scale pdf viewer:
-
-   - backend png generation is very fast -- 14 pages per *second*; even for my 140 page book with mazur, it takes 10 seconds, which isn't too bad.
-
-   - pdf.js https://github.com/mozilla/pdf.js massively kicks the ass of anything I've done.  It works on iPad.
-     It can easily display rh.pdf.  It has color and hyperlinks!
-
-One plan
-   - 0. up the file size limit to 10MB (done).
-   - 1. just use the generic viewer plugin viewer by default, with side-by-side an option:
-           <embed src="/blobs/rh.pdf?uuid=d03021a5-4cf8-4b09-ac2c-90c415ac9365"  type="application/pdf" width="500" height="375">
-   - 2. have an option to fall back to png's
-   - 3. later, have an option to use pdf.js directly integrated not as a plugin at some point in the future.
-
-However, the problem with the above is there is no hope to do forward and reverse search, which are killer features.
-With pdf.js, at least those are *possible*.  And that is HUGE.   Also, it may be possible to annotate pdf output with
-latex errors, which is also huge.
-
-Let's go with full on pdf.js, using that demo the guy posted.
-
-This look very promising as a base for how to embed pdf.js:
-
-    https://github.com/jviereck/pdfListView
-
-newer version of same here:
-
-    https://github.com/jpallen/pdfListView
-
-
-
----
 - [ ] next release:
-      - include fix for better pdf viewer
-      - include fix for download up to 10MB files!
-      - upgrade haproxy (?)
+      - verify get new services file for cassandra
+      - test embed viewer is working.
+
+
+- [ ] a release at some point
+      - upgrade haproxy in edge nodes
 
 
 - [ ] maybe the mouse down versus middle click changes I made make it so clicking on a directory double selects, which looks stupid.
@@ -88,7 +66,7 @@ Ideas:
 
 - [ ] (1:00?) doing "salvus.file(filename)" yields a link
       pdf/database.pdf (this temporary link expires in a minute)
-      but it's not a minute anymore -- the default is a day, or may depend on size -- use the info in the object itself...
+      but it's not a minute anymore -- the default is a day, or may depend on size -- use the info in the object itself..
 
 - [ ] (1:00?) fix terminal on "not working"
 
@@ -876,4 +854,37 @@ I've updated https://cloud.sagemath.com as follows:
 
 
  -- William
+
+
+
+--> - [x] work on ideas for scaling up the pdf viewer (part 1)
+
+Ideas for how to scale pdf viewer:
+
+   - backend png generation is very fast -- 14 pages per *second*; even for my 140 page book with mazur, it takes 10 seconds, which isn't too bad.
+
+   - pdf.js https://github.com/mozilla/pdf.js massively kicks the ass of anything I've done.  It works on iPad.
+     It can easily display rh.pdf.  It has color and hyperlinks!
+
+One plan
+   - 0. up the file size limit to 10MB (done).
+   - 1. just use the generic viewer plugin viewer by default, with side-by-side an option:
+           <embed src="/blobs/rh.pdf?uuid=d03021a5-4cf8-4b09-ac2c-90c415ac9365"  type="application/pdf" width="500" height="375">
+   - 2. have an option to fall back to png's
+   - 3. later, have an option to use pdf.js directly integrated not as a plugin at some point in the future.
+
+However, the problem with the above is there is no hope to do forward and reverse search, which are killer features.
+With pdf.js, at least those are *possible*.  And that is HUGE.   Also, it may be possible to annotate pdf output with
+latex errors, which is also huge.
+
+Let's go with full on pdf.js, using that demo the guy posted.
+
+This look very promising as a base for how to embed pdf.js:
+
+    https://github.com/jviereck/pdfListView
+
+newer version of same here:
+
+    https://github.com/jpallen/pdfListView
+
 
