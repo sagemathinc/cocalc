@@ -18,9 +18,9 @@ cloud4   {'hostname':'storm-web4',       'vcpus':1, 'ram':4, 'base':'salvus-2013
 cloud4   {'hostname':'storm-compute4a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'home:8'}
 
 
-[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'}
+[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_max_message_length_in_mb':'100', 'thrift_framed_transport_size_in_mb':'99'}
 # N=4; [i * (2**127 / N) for i in range(N)]
-storm-cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256, 'thrift_framed_transport_size_in_mb':128, 'thrift_max_message_length_in_mb':150, 'read_request_timeout_in_ms':30000, 'write_request_timeout_in_ms':30000, 'request_timeout_in_ms':30000, 'start_native_transport':True}
+storm-cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 storm-cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}
 storm-cassandra3    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
 storm-cassandra4    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}

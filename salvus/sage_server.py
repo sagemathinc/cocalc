@@ -578,6 +578,9 @@ class Salvus(object):
         self._conn.send_json(message.output(html=unicode(html), id=self._id, done=done, once=once))
         return self
 
+    def pdf(self, filename, **kwds):
+        sage_salvus.show_pdf(filename, **kwds)
+
     def tex(self, obj, display=False, done=False, once=None):
         """
         Display obj nicely using TeX rendering.
@@ -841,6 +844,7 @@ class Salvus(object):
     def typeset_mode(self, on=True):
         sage_salvus.typeset_mode(on)
 
+Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
 
 def execute(conn, id, code, data, preparse, message_queue):
 

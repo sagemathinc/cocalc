@@ -1191,8 +1191,9 @@ class Client extends EventEmitter
             if err
                 return
             project.call
-                mesg : mesg
-                cb   : (err, resp) =>
+                mesg    : mesg
+                timeout : mesg.timeout
+                cb      : (err, resp) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
@@ -2451,7 +2452,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         opts = defaults opts,
             mesg    : required
             timeout : 10
-            multi_response : false   # timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
+            multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
             cb      : undefined
 
         if not opts.mesg.id?
@@ -2465,11 +2466,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if opts.multi_response
                 @_multi_response[opts.mesg.id] = opts.cb
             else
-                socket.recv_mesg type:'json', id:opts.mesg.id, timeout:opts.timeout, cb:(mesg) =>
-                    if mesg.event == 'error'
-                        opts.cb(true, mesg.error)
-                    else
-                        opts.cb(false, mesg)
+                socket.recv_mesg
+                    type    : 'json'
+                    id      : opts.mesg.id
+                    timeout : opts.timeout
+                    cb      : (mesg) =>
+                        if mesg.event == 'error'
+                            opts.cb(true, mesg.error)
+                        else
+                            opts.cb(false, mesg)
 
     ####################################################
     # Session management
@@ -4287,8 +4292,8 @@ exports.send_email = send_email = (opts={}) ->
 # Blobs
 ########################################
 
-MAX_BLOB_SIZE = 5000000
-MAX_BLOB_SIZE_HUMAN = "5MB"
+MAX_BLOB_SIZE = 12000000
+MAX_BLOB_SIZE_HUMAN = "12MB"
 
 save_blob = (opts) ->
     opts = defaults opts,

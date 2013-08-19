@@ -1390,6 +1390,7 @@ class PDF_Preview extends FileEditor
         @output.height(@element.height())
         @output.width(@element.width())
         @spinner.show().spin(true)
+        timeout = 30
         tmp_dir @editor.project_id, @path, (err, tmp) =>
             if err
                 @spinner.hide().spin(false)
@@ -1409,11 +1410,11 @@ class PDF_Preview extends FileEditor
                               "-sDEVICE=pngmono",
                               "-sOutputFile=#{tmp}/%d.png", "-r#{density}", @file]
 
-                timeout    : 20
+                timeout    : timeout
                 err_on_exit: false
                 cb         : (err, output) =>
                     if err
-                        alert_message(type:"error", message:err)
+                        alert_message(type:"error", message:"Error rendering PDF: #{misc.to_json(output)}, #{err}")
                         remove_tmp_dir(@editor.project_id, @path, tmp)
                         cb?(err)
                     else
@@ -1434,6 +1435,7 @@ class PDF_Preview extends FileEditor
                                 salvus_client.read_file_from_project
                                     project_id : @editor.project_id
                                     path       : arguments.callee.png_file
+                                    timeout    : timeout
                                     cb         : (err, result) =>
                                         if err
                                             cb(err)
