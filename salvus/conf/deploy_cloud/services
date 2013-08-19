@@ -18,7 +18,7 @@ cloud4   {'hostname':'web4',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvu
 cloud4   {'hostname':'compute4a',  'vcpus':8, 'ram':24, 'vnc':9001, 'base':'salvus-2013-08-15-0901', 'disk':'home:1024'}
 
 
-[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'}
+[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_max_message_length_in_mb':'100', 'thrift_framed_transport_size_in_mb':'99'}
 # N=4; [i * (2**127 / N) for i in range(N)]
 cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}

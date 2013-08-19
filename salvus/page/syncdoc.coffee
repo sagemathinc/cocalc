@@ -327,10 +327,15 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)# logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save) #logname:'save')
 
+        @filename    = @editor.filename
         @editor.save = @save
         @codemirror  = @editor.codemirror
+        if misc.filename_extension(@filename) == "sagews"
+            @editor._set("Loading and connecting to Sage session...  (if this fails, try restarting your Worksheet server in settings)")
+        else
+            @editor._set("Loading...")
+        @codemirror.setOption('readOnly', true)
         @element     = @editor.element
-        @filename    = @editor.filename
 
         @init_cursorActivity_event()
 
@@ -353,12 +358,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             else
                 @ui_synced(false)
                 @editor.init_autosave()
-                first_sync = () =>
-                    @sync (err) =>
-                        if err
-                            setTimeout(first_sync, 1000)
-                first_sync()
-
+                @sync()
                 @codemirror.on 'change', (instance, changeObj) =>
                     #console.log("change #{misc.to_json(changeObj)}")
                     if changeObj.origin?
@@ -398,20 +398,22 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
                 if @_last_sync?
                     # We have sync'd before.
+                    synced_before = true
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
                 else
+                    # This initialiation is the first sync.
+                    @_last_sync   = DiffSyncDoc(string:resp.content)
+                    synced_before = false
+                    @codemirror.setOption('readOnly', false)
                     @editor._set(resp.content)
                     @codemirror.clearHistory()  # so undo history doesn't start with "empty document"
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
 
-                if @_last_sync?
+                if synced_before
                     # applying missed patches to the new upstream version that we just got from the hub.
                     @_apply_patch_to_live(patch)
                     @emit 'sync'
-                else
-                    # This initialiation is the first sync.
-                    @_last_sync   = DiffSyncDoc(string:resp.content)
 
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)

@@ -71,6 +71,14 @@ Editor for files in a project
     color:#555;
 }
 
+.salvus-editor-pdf-title {
+    margin-left:3em;
+    margin-right: 5em;
+    font-size: 10pt;
+    font-weight: bold;
+    color:#555;
+}
+
 .salvus-editor-codemirror-cursor {
     position: absolute;
     width:15em;
@@ -134,6 +142,9 @@ Editor for files in a project
     /* width:95%; */
     box-shadow: 5px 5px 5px 5px #888;
 }
+
+
+
 
 .salvus-editor-search-openfiles-input {
     width:100%;
@@ -288,6 +299,22 @@ Editor for files in a project
 .sagews-output-interact {
 }
 
+.salvus-editor-image-container {
+    overflow: auto;
+    margin:1em;
+    background-color:#fff;
+    border:1px solid #aaa;
+    /* width:95%; */
+    box-shadow: 5px 5px 5px 5px #888;
+}
+
+.salvus-editor-image-title {
+    margin-left:3em;
+    margin-right: 5em;
+    font-size: 10pt;
+    font-weight: bold;
+    color:#555;
+}
 
 
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */

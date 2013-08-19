@@ -1,8 +1,70 @@
-- [x] fix bug in reporting error when %load'ing external file.
-        %load parse.sage
-        Traceback (most recent call last):
-        KeyError: '__tmp__0'
+-----
+- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
 
+- [x] look into the "one big png" idea...  TOTAL DISASTER; easily ate all my RAM.
+
+- [ ] image viewer refresh button; trivial,  might as well
+
+- [ ] next release:
+      - verify get new services file for cassandra
+      - test embed viewer is working.
+
+
+- [ ] a release at some point
+      - upgrade haproxy in edge nodes
+
+
+- [ ] maybe the mouse down versus middle click changes I made make it so clicking on a directory double selects, which looks stupid.
+
+- [ ] edit worksheet, don't save, do rename, do loose everything! --> properly implement file rename
+
+- [ ] file listing pager -- see Johan's request: https://mail.google.com/mail/u/0/?shva=1#inbox/14084ff6be8769cf
+
+- [ ] publicly accessible projects (?)
+
+- [ ] write another help section on something
+
+- [ ] user database
+
+
+---
+Ideas:
+
+- [ ] use http://www.bootstrap-switch.org/ to provide a toggle of this style when viewing images: max-width: 100%;
+
+- [ ] the Recent display is coming up empty again often.
+
+- [ ] overwriting uploaded files: https://mail.google.com/mail/u/0/?shva=1#starred/14085f02020549a8
+
+- [ ] popup on *new* chat message; indicator of unseen chats.
+
+- [ ] test ipad + chrome + external keyboard: https://mail.google.com/mail/u/0/?shva=1#starred/14080562e3a0b444
+
+
+- [ ] put an x in top right of search box for projects.
+
+- [ ] database for all users?
+
+- [ ] +1 what other people do or comments in logs...  it just seems to be an instinct to have this :-)
+
+- [ ] add search box to project log (and also to
+
+- [ ] do not allow opening files over 1mb without a stern warning
+
+- [ ] editing rst files is totally broken!
+
+- [ ] teaching / course management system....
+
+- [ ] bug in find in cloud.sagemath code editor (codemirror?):
+       search for "incorretly" in the raw file version of http://trac.sagemath.org/attachment/ticket/15013/trac_15013_logic_docstrings.patch
+
+- [ ] change snap/bup usage to not cross filesystem boundaries (?), so won't back up encfs-mounted directories.
+
+- [ ] Add to FAQ how to use encfs and that these aren't snapshoted, and that terminal i/o isn't recorded.
+
+- [ ] (1:00?) doing "salvus.file(filename)" yields a link
+      pdf/database.pdf (this temporary link expires in a minute)
+      but it's not a minute anymore -- the default is a day, or may depend on size -- use the info in the object itself..
 
 - [ ] (1:00?) fix terminal on "not working"
 
@@ -79,7 +141,7 @@
 
 - [ ] (2:00?) ui improvement suggestions from Nathan Carter:
 
-        If you're thinking about those dialog boxes, I'll add two other less important design observations:
+5        If you're thinking about those dialog boxes, I'll add two other less important design observations:
                 1. Pressing enter doesn't submit the form.
                 2. Clicking the submit button doesn't give any immediate visible feedback that you did so (e.g., grey out the Sign In button), so if it takes a few seconds to get anywhere, you wonder if you really clicked it, and sometimes click again.
 
@@ -348,7 +410,7 @@ debug: codemirror session sync -- pushed edits, thus completing cycle
 - [ ] (1:00?) %load on a file with a syntax error gives a useless error message
 - [ ] (1:00?) mobile worksheets: change how new cell insert acts to be actually usable!
 
-- [ ] (2:00?) trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.  The google drive download setup looks nice; they make a temporary zip of the files, then email you a link -- maybe I could do that. (Of course, their's is frickin' broken due to a redirect loop on chrome.)e
+- [ ] (2:00?) trying to download a large file (even 5MB!) can lead to disaster, e.g., rh.pdf from books project.  The google drive download setup looks nice; they make a temporary zip of the files, then email you a link -- maybe I could do that. (Of course, their's is frickin' broken due to a redirect loop on chrome.)
 
 
 - [ ] (1:30?) converting the large cassandra12.pdf to png's to display in browser silently fails; probably a timeout (?)
@@ -746,3 +808,91 @@ I've updated https://cloud.sagemath.com with the following fixes:
 
  -- William
 
+
+- [x] fix bug in reporting error when %load'ing external file.
+        %load parse.sage
+        Traceback (most recent call last):
+        KeyError: '__tmp__0'
+1
+
+- [x] open new file and start typing -- when network slow, first 2-3 characters get removed; this is probably because there was typing before *any* sync, so need to somehow take that into account.  This will be in connect -- set the first to initial  doc instead of undefined.
+
+- [x] new release:
+       x - update salvus repo and version.
+       x - change password of vm
+       x- install encfs (and add to build.py)
+       x- install lua
+       x --> - upgrade to sage-5.11 released.
+       - write script to automate install of optional packages
+
+
+Hello,
+
+I've updated https://cloud.sagemath.com as follows:
+
+  - Upgraded to sage 5.11, which was just released today (and I patched it to use the new prettier unicode banner.)
+
+  - You can still use sage-5.10 on the command line if you want by typing "sage-5.10".
+    If you make "~/bin/sage" a symlink to /usr/local/bin/sage-5.10, then sage-5.10
+    would get used in worksheets.  I plan to keep all past versions of Sage around.
+
+  - Installed lua and encfs.
+
+  - Fix a few remaining synchronization issues (where the first few characters you type as the document first syncs would vanish).
+
+  - Fix a race condition that made it so latex'ing .tex files often failed.
+
+  - Added a section about latex to the help page.
+
+  - Improve the load command (and %load mode) in Sage worksheets to support .html, .css, .js, and .coffee files.
+
+  - Fix a huge bug where load("foo.sage") would give a nonsense error message when foo.sage had an error in it.
+
+  - Closed worksheets re-appearing and some remaining middle click issues.
+
+
+ -- William
+
+
+
+--> - [x] work on ideas for scaling up the pdf viewer (part 1)
+
+Ideas for how to scale pdf viewer:
+
+   - backend png generation is very fast -- 14 pages per *second*; even for my 140 page book with mazur, it takes 10 seconds, which isn't too bad.
+
+   - pdf.js https://github.com/mozilla/pdf.js massively kicks the ass of anything I've done.  It works on iPad.
+     It can easily display rh.pdf.  It has color and hyperlinks!
+
+One plan
+   - 0. up the file size limit to 10MB (done).
+   - 1. just use the generic viewer plugin viewer by default, with side-by-side an option:
+           <embed src="/blobs/rh.pdf?uuid=d03021a5-4cf8-4b09-ac2c-90c415ac9365"  type="application/pdf" width="500" height="375">
+   - 2. have an option to fall back to png's
+   - 3. later, have an option to use pdf.js directly integrated not as a plugin at some point in the future.
+
+However, the problem with the above is there is no hope to do forward and reverse search, which are killer features.
+With pdf.js, at least those are *possible*.  And that is HUGE.   Also, it may be possible to annotate pdf output with
+latex errors, which is also huge.
+
+Let's go with full on pdf.js, using that demo the guy posted.
+
+This look very promising as a base for how to embed pdf.js:
+
+    https://github.com/jviereck/pdfListView
+
+newer version of same here:
+
+    https://github.com/jpallen/pdfListView
+
+
+- [x] write code for latex editor to support embed viewer as another option.
+   x- add a button for embedded PDF view
+   x - add html view for embedded PDF view
+   x - implement script for it.
+   x - update button to pdf embed
+   x - pdf display title
+   x - add spinners to each button
+   x - icons for each button
+   x - embed --> object in sage_salvus.py
+   x - pdf height is wrong, since can't see controls.

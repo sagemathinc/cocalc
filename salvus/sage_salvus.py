@@ -2463,12 +2463,15 @@ def load(*args, **kwds):
 
         - args -- any number of filename strings with any of the following extensions:
 
-             .sobj, .sage, .py, .pyx, .html, .css, .js, .coffee
+             .sobj, .sage, .py, .pyx, .html, .css, .js, .coffee, .pdf
 
         - ``verbose`` -- (default: True) load file over the network.
 
     If you load and of the web types (.html, .css, .js, .coffee), they are loaded
-    into the web browser, not the Python process.
+    into the web browser DOM (or Javascript session), not the Python process.
+
+    If you load a pdf, it is displayed in the output of the worksheet.  The extra
+    options are passed to salvus.pdf -- see the docstring for that.
 
     In SageMathCloud you may also use load as a decorator, with filename separated
     by whitespace or commas::
@@ -2511,19 +2514,26 @@ def load(*args, **kwds):
     other_args = []
     for arg in args:
         i = arg.rfind('.')
-        if i != -1 and arg[i+1:] in html_extensions:
+        if i != -1 and arg[i+1:].lower() in html_extensions:
             load_html_resource(arg)
+        elif i != -1 and arg[i+1:].lower() == 'pdf':
+            show_pdf(arg, **kwds)
         else:
             other_args.append(arg)
 
+    # pdf?
+    for arg in args:
+        i = arg.find('.')
+
     # now handle remaining non-web arguments.
-    try:
-        exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':other_args, '__kwds':kwds}
-        return salvus.namespace[t]
-    finally:
+    if len(other_args) > 0:
         try:
-            del salvus.namespace[t]
-        except: pass
+            exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':other_args, '__kwds':kwds}
+            return salvus.namespace[t]
+        finally:
+            try:
+                del salvus.namespace[t]
+            except: pass
 
 
 
@@ -2651,6 +2661,10 @@ def show_3d_plot_using_threejs(p, **kwds):
     # TODO: what about garbage collection / memory leaks!?
 
 
+#######################################################
+# Monkey patching and deprecation --
+#######################################################
+
 # Monkey patch around a bug in Python's findsource that breaks deprecation in cloud worksheets.
 # This won't matter if we switch to not using exec, since then there will be a file behind
 # each block of code.  However, for now we have to do this.
@@ -2660,4 +2674,58 @@ def findsource(object):
     try: return _findsource(object)
     except: raise IOError('source code not available')  # as *claimed* by the Python docs!
 inspect.findsource = findsource
+
+
+
+#######################################################
+# Viewing pdf's
+#######################################################
+
+def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
+    """
+    Display a PDF file from the filesystem in an output cell of a worksheet.
+
+    INPUT:
+
+    - filename
+    - viewer -- 'object' (default): use html object tag, which uses the browser plugin, or
+                provides a download link in case the browser can't display pdf's.
+              -- 'pdfjs' (experimental):  use the pdf.js pure HTML5 viewer, which doesn't require any plugins
+                (this works on more browser, but may be slower and uglier)
+    - width -- (default: 1000) -- pixel width of viewer
+    - height -- (default: 600) -- pixel height of viewer
+    - scale  -- (default: 1.6) -- zoom scale (only applies to pdfjs)
+    """
+    url = salvus.file(filename, show=False)
+    if viewer == 'object':
+        s = '<object data="%s"  type="application/pdf" width="%s" height="%s"> Your browser doesn\'t support embedded PDF\'s, but you can <a href="%s">download %s</a></p> </object>'%(url, width, height, url, filename)
+        salvus.html(s)
+    elif viewer == 'pdfjs':
+        import uuid
+        id = 'a'+str(uuid.uuid4())
+        salvus.html('<div id="%s" style="background-color:white; width:%spx; height:%spx; cursor:pointer; overflow:auto;"></div>'%(id, width, height))
+        salvus.html("""
+    <!-- pdf.js-based embedded javascript PDF viewer -->
+    <!-- File from the PDF.JS Library -->
+    <script type="text/javascript" src="pdfListView/external/compatibility.js"></script>
+    <script type="text/javascript" src="pdfListView/external/pdf.js"></script>
+
+    <!-- to disable webworkers: swap these below -->
+    <!-- <script type="text/javascript">PDFJS.disableWorker = true;</script> -->
+    <script type="text/javascript">PDFJS.workerSrc = 'pdfListView/external/pdf.js';</script>
+
+    <link rel="stylesheet" href="pdfListView/src/TextLayer.css">
+    <script src="pdfListView/src/TextLayerBuilder.js"></script>
+    <link rel="stylesheet" href="pdfListView/src/AnnotationsLayer.css">
+    <script src="pdfListView/src/AnnotationsLayerBuilder.js"></script>
+    <script src="pdfListView/src/PdfListView.js"></script>
+    """)
+
+        salvus.javascript('''
+            var lv = new PDFListView($("#%s")[0], {textLayerBuilder:TextLayerBuilder, annotationsLayerBuilder: AnnotationsLayerBuilder});
+            lv.setScale(%s);
+            lv.loadPdf("%s")'''%(
+            id, scale, url))
+    else:
+        raise RuntimeError("viewer must be 'object' or 'pdfjs'")
 

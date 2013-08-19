@@ -115,6 +115,7 @@ easy_install pip
 
         +--------------------------------------------------------------------+
         | Sage Version 5.10.beta5, Release Date: 2013-05-26                  |
+        | Enhanced for the Sagemath Cloud                                    |
         | Type "help()" for help.                                            |
         +--------------------------------------------------------------------+
 
@@ -145,6 +146,14 @@ easy_install pip
 
    sudo cp /usr/local/sage/current/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
 
+
+# Fix permissions, just in case!
+
+  chmod -R a+r /usr/local/sage/sage-5.11
+
+# Run sage one lst time
+
+  ./sage
 
 """
 

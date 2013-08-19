@@ -560,7 +560,7 @@ class exports.Editor
             when 'latex'
                 editor = new LatexEditor(@, filename, content, extra_opts)
             when 'pdf'
-                editor = new PDF_Preview(@, filename, content, extra_opts)
+                editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -1048,7 +1048,7 @@ class CodeMirrorEditor extends FileEditor
                 lineWrapping    : opts.line_wrapping
                 readOnly        : opts.read_only
                 extraKeys       : extraKeys
-                cursorScrollMargin : 100
+                cursorScrollMargin : 40
 
             if opts.bindings? and opts.bindings != "standard"
                 options.keyMap = opts.bindings
@@ -1389,7 +1389,12 @@ class PDF_Preview extends FileEditor
     update: (cb) =>
         @output.height(@element.height())
         @output.width(@element.width())
+        density = @element.width()/4  # smaller denom = slower = clearer
+        if density == 0
+            # not visible, so no point.
+            return
         @spinner.show().spin(true)
+        timeout = 30
         tmp_dir @editor.project_id, @path, (err, tmp) =>
             if err
                 @spinner.hide().spin(false)
@@ -1397,10 +1402,6 @@ class PDF_Preview extends FileEditor
                 cb?(err)
                 return
             # Update the PNG's which provide a preview of the PDF
-            density = @element.width()/4  # smaller denom = slower = clearer
-            if density == 0
-                # not visible, so no point.
-                return
             salvus_client.exec
                 project_id : @editor.project_id
                 path       : @path
@@ -1408,12 +1409,11 @@ class PDF_Preview extends FileEditor
                 args       : ["-dBATCH", "-dNOPAUSE",
                               "-sDEVICE=pngmono",
                               "-sOutputFile=#{tmp}/%d.png", "-r#{density}", @file]
-
-                timeout    : 20
+                timeout    : timeout
                 err_on_exit: false
                 cb         : (err, output) =>
                     if err
-                        alert_message(type:"error", message:err)
+                        alert_message(type:"error", message:"Error rendering PDF: #{misc.to_json(output)}, #{err}; PDF preview currently doesn't scale to large documents.")
                         remove_tmp_dir(@editor.project_id, @path, tmp)
                         cb?(err)
                     else
@@ -1434,6 +1434,7 @@ class PDF_Preview extends FileEditor
                                 salvus_client.read_file_from_project
                                     project_id : @editor.project_id
                                     path       : arguments.callee.png_file
+                                    timeout    : timeout
                                     cb         : (err, result) =>
                                         if err
                                             cb(err)
@@ -1446,7 +1447,7 @@ class PDF_Preview extends FileEditor
                             f.page_number = parseInt(page_number)
                             tasks.push(f)
 
-                        async.parallel tasks, (err) =>
+                        async.series tasks, (err) =>
                             remove_tmp_dir(@editor.project_id, @path, tmp)
                             if err
                                 alert_message(type:"error", message:"Error downloading png preview -- #{err}")
@@ -1500,6 +1501,72 @@ class PDF_Preview extends FileEditor
     hide: () =>
         @element.hide()
 
+class PDF_PreviewEmbed extends FileEditor
+    constructor: (@editor, @filename, contents, opts) ->
+        @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
+        @element.find(".salvus-editor-pdf-title").text(@filename)
+
+        @spinner = @element.find(".salvus-editor-pdf-preview-embed-spinner")
+
+        s = path_split(@filename)
+        @path = s.head
+        if @path == ''
+            @path = './'
+        @file = s.tail
+
+        @element.maxheight()
+        @output = @element.find(".salvus-editor-pdf-preview-embed-page")
+        @update()
+        @output.focus()
+
+        @element.find("a[href=#refresh]").click () =>
+            @update()
+            return false
+
+    focus: () =>
+        @element.maxheight()
+        @output.maxheight()
+        @output.width(@element.width())
+
+    update: (cb) =>
+        height = @output.height()
+        if height == 0
+            # not visible.
+            return
+        width = $(window).width()
+
+        button = @element.find("a[href=#refresh]")
+        button.icon_spin(true)
+
+        @_last_width = width
+        @_last_height = height
+        @output.height(height)
+        @output.width(width)
+        @spinner.show().spin(true)
+        salvus_client.read_file_from_project
+            project_id : @editor.project_id
+            path       : @filename
+            timeout    : 20
+            cb         : (err, result) =>
+                button.icon_spin(false)
+                @spinner.spin(false).hide()
+                if err or not result.url?
+                    alert_message(type:"error", message:"unable to get pdf -- #{err}")
+                else
+                    @output.html("<object data='#{result.url##page=3}' type='application/pdf' width='#{width}' height='#{height}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
+
+    show: () =>
+        @element.show()
+        width = $(window).width()
+        height = @element.height()
+        @element.width(width)
+        if @_last_width != width or @_last_height != height
+            @update()
+        @focus()
+
+    hide: () =>
+        @element.hide()
+
 
 class LatexEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -1520,17 +1587,19 @@ class LatexEditor extends FileEditor
         @_path = v.head
         @_target = v.tail
 
-        # initialize the preview
+        # initialize the previews
         n = @filename.length
+
         @preview = new PDF_Preview(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
-        @element.find(".salvus-editor-latex-preview").append(@preview.element)
+        @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
+
+        @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
+        @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
 
         # initalize the log
         @log = @element.find(".salvus-editor-latex-log")
 
         @_init_buttons()
-
-        @preview.update()
 
     _init_buttons: () =>
 
@@ -1541,21 +1610,28 @@ class LatexEditor extends FileEditor
             @latex_editor.focus()
             return false
 
-        @element.find("a[href=#preview]").click () =>
-            @compile_and_update()
-            @show_page('preview')
+        preview_button = @element.find("a[href=#png-preview]")
+        preview_button.click () =>
+            preview_button.icon_spin(true)
+            @compile (err) =>
+                @preview.update () =>
+                    preview_button.icon_spin(false)
+            @show_page('png-preview')
             return false
 
-        #@element.find("a[href=#log]").click () =>
-            #@show_page('log')
+        @element.find("a[href=#pdf-preview]").click () =>
+            @show_page('pdf-preview')
+            @preview_embed.focus()
+            @preview_embed.show()
             return false
 
         @element.find("a[href=#latex]").click () =>
-            @show_page('log')
-            @compile_and_update()
+            @show_page('log', @element.maxheight())
+            @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
+            @compile()
             return false
 
-        @element.find("a[href=#pdf]").click () =>
+        @element.find("a[href=#pdf-download]").click () =>
             @download_pdf()
             return false
 
@@ -1565,7 +1641,7 @@ class LatexEditor extends FileEditor
     save: (cb) =>
         @latex_editor.save(cb)
 
-    compile_and_update: (cb) =>
+    compile: (cb) =>
         async.series([
             (cb) =>
                 @editor.save(@filename, cb)
@@ -1576,9 +1652,6 @@ class LatexEditor extends FileEditor
                         cb(err)
                     else
                         @run_latex(cb)
-
-            (cb) =>
-                @preview.update(cb)
         ], (err) -> cb?(err))
 
     _get: () =>
@@ -1600,7 +1673,7 @@ class LatexEditor extends FileEditor
     show_page: (name) =>
         if name == @_current_page
             return
-        for n in ['latex_editor', 'preview', 'log']
+        for n in ['latex_editor', 'png-preview', 'pdf-preview', 'log']
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
             if n == name
@@ -1612,6 +1685,8 @@ class LatexEditor extends FileEditor
         @_current_page = name
 
     run_latex: (cb) =>
+        button = @element.find("a[href=#latex]")
+        button.icon_spin(true)
         async.series([
             (cb) =>
                 @save(cb)
@@ -1626,6 +1701,7 @@ class LatexEditor extends FileEditor
                     timeout    : 10
                     err_on_exit : false
                     cb         : (err, output) =>
+                        button.icon_spin(false)
                         if err
                             alert_message(type:"error", message:err)
                             cb(err)
@@ -1645,11 +1721,14 @@ class LatexEditor extends FileEditor
         )
 
     download_pdf: () =>
+        button = @element.find("a[href=#pdf-download]")
+        button.icon_spin(true)
         # TODO: THIS replicates code in project.coffee
         salvus_client.read_file_from_project
             project_id : @editor.project_id
             path       : @filename.slice(0,@filename.length-3)+"pdf"
             cb         : (err, result) =>
+                button.icon_spin(false)
                 if err
                     alert_message(type:"error", message:"Error downloading PDF: #{err} -- #{misc.to_json(result)}")
                 else
@@ -1908,21 +1987,40 @@ class Worksheet extends FileEditor
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts,{}
-        @element = $("<img>")
+        @element = templates.find(".salvus-editor-image").clone()
+        @element.find(".salvus-editor-image-title").text(@filename)
+
+        refresh = @element.find("a[href=#refresh]")
+        refresh.click () =>
+            refresh.icon_spin(true)
+            @update (err) =>
+                refresh.icon_spin(false)
+            return false
+
         if url?
-            @element.attr('src', url)
+            @element.find("img").attr('src', url)
         else
-            salvus_client.read_file_from_project
-                project_id : @editor.project_id
-                timeout    : 30
-                path       : @filename
-                cb         : (err, mesg) =>
-                    if err
-                        alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
-                    else if mesg.event == 'error'
-                        alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
-                    else
-                        @element.attr('src', mesg.url)
+            @update()
+
+    update: (cb) =>
+        salvus_client.read_file_from_project
+            project_id : @editor.project_id
+            timeout    : 30
+            path       : @filename
+            cb         : (err, mesg) =>
+                if err
+                    alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
+                    cb?(err)
+                else if mesg.event == 'error'
+                    alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
+                    cb?(mesg.event)
+                else
+                    @element.find("img").attr('src', mesg.url)
+                    cb?()
+
+    focus: () =>
+        @element.maxheight()
+        @element.find(".salvus-editor-image-container").maxheight()
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

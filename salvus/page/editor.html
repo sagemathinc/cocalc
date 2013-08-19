@@ -176,26 +176,45 @@ Editor for files in a project
     <!-- Template for the codemirror text editor other user cursors -->
     <div class="salvus-editor-codemirror-cursor"><span class="salvus-editor-codemirror-cursor-label"></span><div class="salvus-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
 
-    <!-- Templates for the PDF previewer -->
+    <!-- Image viewer -->
+    <div class="salvus-editor-image">
+        <a class="btn" href="#refresh"><i class="icon-refresh"></i>  Refresh</a>
+        <div class="salvus-editor-image-title pull-right"> The title </div>
+        <div class="salvus-editor-image-container"><img></div>
+    </div>
 
+
+    <!-- Templates for the png-based PDF previewer -->
     <div class="salvus-editor-pdf-preview">
         <div class="salvus-editor-pdf-preview-spinner hide"></div>
         <div class="salvus-editor-pdf-preview-page">
         </div>
     </div>
 
+    <!-- Templates for the embedded PDF previewer -->
+    <div class="salvus-editor-pdf-preview-embed">
+        <div class="salvus-editor-pdf-preview-embed-spinner hide"></div>
+        <a class="btn" href="#refresh"><i class="icon-refresh"></i>  Refresh</a>
+        <div class="salvus-editor-pdf-title pull-right"> The title </div>
+        <div class="salvus-editor-pdf-preview-embed-page">
+        </div>
+    </div>
+
     <!-- Template for the LaTeX editor -->
     <div class="salvus-editor-latex">
         <div class="btn-group salvus-editor-latex-buttons pull-right">
-            <a href="#latex_editor" class="btn btn-primary"> Edit</a>
-            <a href="#preview" class="btn"><i class="icon-refresh"></i> Preview</a>
-            <!--<a href="#log" class="btn">Log</a>-->
-            <a href="#latex" class="btn"> LaTeX</a>
-            <a href="#pdf" class="btn  btn-success"><i class="icon-download-alt"></i> PDF</a>
+            <a href="#latex_editor" class="btn btn-primary"><i class="icon-file-text"></i> Edit</a>
+            <a href="#png-preview" class="btn"><i class="icon-picture"></i> Preview</a>
+            <a href="#latex" class="btn"><i class="icon-bolt"></i> LaTeX</a>
+            <a href="#pdf-preview" class="btn"><i class="icon-eye-open"></i> View PDF</a>
+            <a href="#pdf-download" class="btn  succcess  "><i class="icon-download-alt"></i> Download</a>
         </div>
         <div class="salvus-editor-latex-latex_editor">
         </div>
-        <div class="salvus-editor-latex-preview hide">
+        <div class="salvus-editor-latex-pdf-preview hide">
+
+        </div>
+        <div class="salvus-editor-latex-png-preview hide">
         </div>
         <div class="salvus-editor-latex-log hide">
             <textarea rows=20 cols=100 readonly style="width:100%; background-color:#fff;"></textarea>
