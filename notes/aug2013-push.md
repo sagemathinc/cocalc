@@ -4,9 +4,11 @@
    x- add a button for embedded PDF view
    x - add html view for embedded PDF view
    x - implement script for it.
-    - update button to pdf embed
+   x - update button to pdf embed
+   x - pdf display title
     - add spinners to each button
     - icons for each button
+    - embed --> object in sage_salvus.py
 
 - [ ] next release:
       - verify get new services file for cassandra

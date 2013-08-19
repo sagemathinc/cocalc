@@ -1414,7 +1414,7 @@ class PDF_Preview extends FileEditor
                 err_on_exit: false
                 cb         : (err, output) =>
                     if err
-                        alert_message(type:"error", message:"Error rendering PDF: #{misc.to_json(output)}, #{err}")
+                        alert_message(type:"error", message:"Error rendering PDF: #{misc.to_json(output)}, #{err}; PDF preview currently doesn't scale to large documents.")
                         remove_tmp_dir(@editor.project_id, @path, tmp)
                         cb?(err)
                     else
@@ -1505,6 +1505,8 @@ class PDF_Preview extends FileEditor
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
+        @element.find(".salvus-editor-pdf-title").text(@filename)
+
         @spinner = @element.find(".salvus-editor-pdf-preview-embed-spinner")
 
         s = path_split(@filename)
@@ -1518,6 +1520,10 @@ class PDF_PreviewEmbed extends FileEditor
         @update()
         @output.focus()
 
+        @element.find("a[href=#refresh]").click () =>
+            @update()
+            return false
+
     focus: () =>
         @element.maxheight()
         @output.height(@element.height())
@@ -1525,7 +1531,11 @@ class PDF_PreviewEmbed extends FileEditor
 
     update: (cb) =>
         height = @element.height()
+        if height == 0
+            # not visible.
+            return
         width = $(window).width()
+        console.log(height, width)
         @_last_width = width
         @_last_height = height
         @output.height(height)
