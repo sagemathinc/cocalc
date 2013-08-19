@@ -1426,7 +1426,7 @@ class Services(object):
         def hub_is_working(ip):
              try:
                  t = time.time()
-                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=5).read()
+                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
                  print "ping: %s"%ip, time.time() - t, "   status: ", s
                  return True
              except:
@@ -1461,8 +1461,9 @@ class Services(object):
 
             # Next check that there is at least 1 snap server -- and making this check also confirms that 
             # cassandra is up and working.
-            status = cassandra_snap_status()
-            if status:
+            if 0:
+             status = cassandra_snap_status()
+             if status:
                 print status
                 self.restart("cassandra", wait=True)
                 self.restart("snap", wait=False, parallel=True)
