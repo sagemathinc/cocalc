@@ -2469,7 +2469,9 @@ def load(*args, **kwds):
 
     If you load and of the web types (.html, .css, .js, .coffee), they are loaded
     into the web browser DOM (or Javascript session), not the Python process.
-    If you load a pdf, it is displayed in the output of the worksheet.
+
+    If you load a pdf, it is displayed in the output of the worksheet.  The extra
+    options are passed to salvus.pdf -- see the docstring for that.
 
     In SageMathCloud you may also use load as a decorator, with filename separated
     by whitespace or commas::
@@ -2512,19 +2514,26 @@ def load(*args, **kwds):
     other_args = []
     for arg in args:
         i = arg.rfind('.')
-        if i != -1 and arg[i+1:] in html_extensions:
+        if i != -1 and arg[i+1:].lower() in html_extensions:
             load_html_resource(arg)
+        elif i != -1 and arg[i+1:].lower() == 'pdf':
+            show_pdf(arg, **kwds)
         else:
             other_args.append(arg)
 
+    # pdf?
+    for arg in args:
+        i = arg.find('.')
+
     # now handle remaining non-web arguments.
-    try:
-        exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':other_args, '__kwds':kwds}
-        return salvus.namespace[t]
-    finally:
+    if len(other_args) > 0:
         try:
-            del salvus.namespace[t]
-        except: pass
+            exec 'salvus.namespace["%s"] = sage.structure.sage_object.load(*__args, **__kwds)'%t in salvus.namespace, {'__args':other_args, '__kwds':kwds}
+            return salvus.namespace[t]
+        finally:
+            try:
+                del salvus.namespace[t]
+            except: pass
 
 
 
@@ -2672,7 +2681,7 @@ inspect.findsource = findsource
 # Viewing pdf's
 #######################################################
 
-def show_pdf(filename, viewer="pdfjs", width=600, height=400, scale=1.4):
+def show_pdf(filename, viewer="pdfjs", width=1000, height=600, scale=1.6):
     """
     Display a PDF file from the filesystem in an output cell of a worksheet.
 
@@ -2685,7 +2694,7 @@ def show_pdf(filename, viewer="pdfjs", width=600, height=400, scale=1.4):
                 (when this works, it will be fast and pretty, but is potentially less secure).
     - width -- (default: 600) -- pixel width of viewer
     - height -- (default: 400) -- pixel height of viewer
-    - scale -- (default: 1.4) -- zoom scale (only applies to pdfjs)
+    - scale -- (default: 2) -- zoom scale (only applies to pdfjs)
     """
     url = salvus.file(filename, show=False)
     if viewer == 'plugin':
