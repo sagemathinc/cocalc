@@ -1389,6 +1389,10 @@ class PDF_Preview extends FileEditor
     update: (cb) =>
         @output.height(@element.height())
         @output.width(@element.width())
+        density = @element.width()/4  # smaller denom = slower = clearer
+        if density == 0
+            # not visible, so no point.
+            return
         @spinner.show().spin(true)
         timeout = 30
         tmp_dir @editor.project_id, @path, (err, tmp) =>
@@ -1398,10 +1402,6 @@ class PDF_Preview extends FileEditor
                 cb?(err)
                 return
             # Update the PNG's which provide a preview of the PDF
-            density = @element.width()/4  # smaller denom = slower = clearer
-            if density == 0
-                # not visible, so no point.
-                return
             salvus_client.exec
                 project_id : @editor.project_id
                 path       : @path
@@ -1409,7 +1409,6 @@ class PDF_Preview extends FileEditor
                 args       : ["-dBATCH", "-dNOPAUSE",
                               "-sDEVICE=pngmono",
                               "-sOutputFile=#{tmp}/%d.png", "-r#{density}", @file]
-
                 timeout    : timeout
                 err_on_exit: false
                 cb         : (err, output) =>
@@ -1448,7 +1447,7 @@ class PDF_Preview extends FileEditor
                             f.page_number = parseInt(page_number)
                             tasks.push(f)
 
-                        async.parallel tasks, (err) =>
+                        async.series tasks, (err) =>
                             remove_tmp_dir(@editor.project_id, @path, tmp)
                             if err
                                 alert_message(type:"error", message:"Error downloading png preview -- #{err}")

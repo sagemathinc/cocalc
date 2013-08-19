@@ -1,15 +1,5 @@
 -----
---> - [ ] write code for latex editor to support embed viewer as another option.
-
-   x- add a button for embedded PDF view
-   x - add html view for embedded PDF view
-   x - implement script for it.
-   x - update button to pdf embed
-   x - pdf display title
-   x - add spinners to each button
-   x - icons for each button
-   x - embed --> object in sage_salvus.py
-   x - pdf height is wrong, since can't see controls.
+--> - [ ] fix png preview failing on large number of pages -- no reason for that.
 
 - [ ] next release:
       - verify get new services file for cassandra
@@ -891,3 +881,13 @@ newer version of same here:
     https://github.com/jpallen/pdfListView
 
 
+- [x] write code for latex editor to support embed viewer as another option.
+   x- add a button for embedded PDF view
+   x - add html view for embedded PDF view
+   x - implement script for it.
+   x - update button to pdf embed
+   x - pdf display title
+   x - add spinners to each button
+   x - icons for each button
+   x - embed --> object in sage_salvus.py
+   x - pdf height is wrong, since can't see controls.
