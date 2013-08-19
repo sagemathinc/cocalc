@@ -1,21 +1,21 @@
 # services
 
 [vm]
-cloud1   {'hostname':'storm-cassandra1', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-06-2059', 'disk':'cassandra:8'}
-cloud1   {'hostname':'storm-web1',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'snap:16'}
-cloud1   {'hostname':'storm-compute1a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'home:16', 'vnc':10001}
+cloud1   {'hostname':'storm-cassandra1', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-15-0901', 'disk':'cassandra:8'}
+cloud1   {'hostname':'storm-web1',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'snap:16'}
+cloud1   {'hostname':'storm-compute1a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'home:16', 'vnc':10001}
 
-cloud2   {'hostname':'storm-cassandra2', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-06-2059', 'disk':'cassandra:8'}
-cloud2   {'hostname':'storm-web2',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'snap:16'}
-cloud2   {'hostname':'storm-compute2a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'home:8'}
+cloud2   {'hostname':'storm-cassandra2', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-15-0901', 'disk':'cassandra:8'}
+cloud2   {'hostname':'storm-web2',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'snap:16'}
+cloud2   {'hostname':'storm-compute2a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'home:8'}
 
-cloud3   {'hostname':'storm-cassandra3', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-06-2059', 'disk':'cassandra:8'}
-cloud3   {'hostname':'storm-web3',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'snap:16'}
-cloud3   {'hostname':'storm-compute3a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'home:8'}
+cloud3   {'hostname':'storm-cassandra3', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-15-0901', 'disk':'cassandra:8'}
+cloud3   {'hostname':'storm-web3',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'snap:16'}
+cloud3   {'hostname':'storm-compute3a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'home:8'}
 
-cloud4   {'hostname':'storm-cassandra4', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-06-2059', 'disk':'cassandra:8'}
-cloud4   {'hostname':'storm-web4',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'snap:16'}
-cloud4   {'hostname':'storm-compute4a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-06-2059', 'disk':'home:8'}
+cloud4   {'hostname':'storm-cassandra4', 'vcpus':1, 'ram':6, 'base':'salvus-2013-08-15-0901', 'disk':'cassandra:8'}
+cloud4   {'hostname':'storm-web4',       'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'snap:16'}
+cloud4   {'hostname':'storm-compute4a',  'vcpus':1, 'ram':4, 'base':'salvus-2013-08-15-0901', 'disk':'home:8'}
 
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra'}
