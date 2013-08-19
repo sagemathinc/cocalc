@@ -1,5 +1,9 @@
 -----
---> - [ ] fix png preview failing on large number of pages -- no reason for that.
+- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
+
+- [x] look into the "one big png" idea...  TOTAL DISASTER; easily ate all my RAM.
+
+- [ ] image viewer refresh button; trivial,  might as well
 
 - [ ] next release:
       - verify get new services file for cassandra
@@ -26,6 +30,7 @@
 ---
 Ideas:
 
+- [ ] use http://www.bootstrap-switch.org/ to provide a toggle of this style when viewing images: max-width: 100%;
 
 - [ ] the Recent display is coming up empty again often.
 

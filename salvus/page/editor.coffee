@@ -1987,21 +1987,40 @@ class Worksheet extends FileEditor
 class Image extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts,{}
-        @element = $("<img>")
+        @element = templates.find(".salvus-editor-image").clone()
+        @element.find(".salvus-editor-image-title").text(@filename)
+
+        refresh = @element.find("a[href=#refresh]")
+        refresh.click () =>
+            refresh.icon_spin(true)
+            @update (err) =>
+                refresh.icon_spin(false)
+            return false
+
         if url?
-            @element.attr('src', url)
+            @element.find("img").attr('src', url)
         else
-            salvus_client.read_file_from_project
-                project_id : @editor.project_id
-                timeout    : 30
-                path       : @filename
-                cb         : (err, mesg) =>
-                    if err
-                        alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
-                    else if mesg.event == 'error'
-                        alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
-                    else
-                        @element.attr('src', mesg.url)
+            @update()
+
+    update: (cb) =>
+        salvus_client.read_file_from_project
+            project_id : @editor.project_id
+            timeout    : 30
+            path       : @filename
+            cb         : (err, mesg) =>
+                if err
+                    alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
+                    cb?(err)
+                else if mesg.event == 'error'
+                    alert_message(type:"error", message:"Error getting #{@filename} -- #{to_json(mesg.error)}")
+                    cb?(mesg.event)
+                else
+                    @element.find("img").attr('src', mesg.url)
+                    cb?()
+
+    focus: () =>
+        @element.maxheight()
+        @element.find(".salvus-editor-image-container").maxheight()
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
