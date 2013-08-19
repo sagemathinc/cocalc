@@ -1554,7 +1554,7 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data='#{result.url##page=3}' type='application/pdf' width='#{width}' height='#{height}'>alt: <p>If you don't have a PDF plugin for this browser, you can <a href='#{result.url}'>download the PDF file.</a></p></object>")
+                    @output.html("<object data='#{result.url##page=3}' type='application/pdf' width='#{width}' height='#{height}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
 
     show: () =>
         @element.show()

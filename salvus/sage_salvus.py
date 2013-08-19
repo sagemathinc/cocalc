@@ -2681,30 +2681,30 @@ inspect.findsource = findsource
 # Viewing pdf's
 #######################################################
 
-def show_pdf(filename, viewer="plugin", width=1000, height=600, scale=1.6):
+def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
     """
     Display a PDF file from the filesystem in an output cell of a worksheet.
 
     INPUT:
 
     - filename
-    - viewer -- 'plugin' (default): use whatever plugin the browser has (if any)
-                (when this works, it will be fast and pretty, but is potentially less secure).
+    - viewer -- 'object' (default): use html object tag, which uses the browser plugin, or
+                provides a download link in case the browser can't display pdf's.
               -- 'pdfjs' (experimental):  use the pdf.js pure HTML5 viewer, which doesn't require any plugins
-                (this works on more browser, but may be slower and uglier; works best on firefox)
-    - width -- (default: 600) -- pixel width of viewer
-    - height -- (default: 400) -- pixel height of viewer
-    - scale -- (default: 2) -- zoom scale (only applies to pdfjs)
+                (this works on more browser, but may be slower and uglier)
+    - width -- (default: 1000) -- pixel width of viewer
+    - height -- (default: 600) -- pixel height of viewer
+    - scale  -- (default: 1.6) -- zoom scale (only applies to pdfjs)
     """
     url = salvus.file(filename, show=False)
-    if viewer == 'plugin':
-        s = '<object data="%s"  type="application/pdf" width="%s" height="%s"> alt: <p>If you do not have a PDF plugin for this browser, you can <a href="%s">download the PDF file.</a></p> </object>'%(url, width, height, url)
+    if viewer == 'object':
+        s = '<object data="%s"  type="application/pdf" width="%s" height="%s"> Your browser doesn\'t support embedded PDF\'s, but you can <a href="%s">download %s</a></p> </object>'%(url, width, height, url, filename)
         salvus.html(s)
-    else:
+    elif viewer == 'pdfjs':
         import uuid
         id = 'a'+str(uuid.uuid4())
         salvus.html('<div id="%s" style="background-color:white; width:%spx; height:%spx; cursor:pointer; overflow:auto;"></div>'%(id, width, height))
-	salvus.html("""
+        salvus.html("""
     <!-- pdf.js-based embedded javascript PDF viewer -->
     <!-- File from the PDF.JS Library -->
     <script type="text/javascript" src="pdfListView/external/compatibility.js"></script>
@@ -2726,4 +2726,6 @@ def show_pdf(filename, viewer="plugin", width=1000, height=600, scale=1.6):
             lv.setScale(%s);
             lv.loadPdf("%s")'''%(
             id, scale, url))
+    else:
+        raise RuntimeError("viewer must be 'object' or 'pdfjs'")
 
