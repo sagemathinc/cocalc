@@ -2681,17 +2681,17 @@ inspect.findsource = findsource
 # Viewing pdf's
 #######################################################
 
-def show_pdf(filename, viewer="pdfjs", width=1000, height=600, scale=1.6):
+def show_pdf(filename, viewer="plugin", width=1000, height=600, scale=1.6):
     """
     Display a PDF file from the filesystem in an output cell of a worksheet.
 
     INPUT:
 
     - filename
-    - viewer -- 'pdfjs' (default):  use the pdf.js pure HTML5 viewer, which doesn't require any plugins
-                (this works on more browser, but may be slower and uglier; works best on firefox)
-             -- 'plugin': use whatever plugin the browser has (if any)
+    - viewer -- 'plugin' (default): use whatever plugin the browser has (if any)
                 (when this works, it will be fast and pretty, but is potentially less secure).
+              -- 'pdfjs' (experimental):  use the pdf.js pure HTML5 viewer, which doesn't require any plugins
+                (this works on more browser, but may be slower and uglier; works best on firefox)
     - width -- (default: 600) -- pixel width of viewer
     - height -- (default: 400) -- pixel height of viewer
     - scale -- (default: 2) -- zoom scale (only applies to pdfjs)
@@ -2704,6 +2704,23 @@ def show_pdf(filename, viewer="pdfjs", width=1000, height=600, scale=1.6):
         import uuid
         id = 'a'+str(uuid.uuid4())
         salvus.html('<div id="%s" style="background-color:white; width:%spx; height:%spx; cursor:pointer; overflow:auto;"></div>'%(id, width, height))
+	salvus.html("""
+    <!-- pdf.js-based embedded javascript PDF viewer -->
+    <!-- File from the PDF.JS Library -->
+    <script type="text/javascript" src="pdfListView/external/compatibility.js"></script>
+    <script type="text/javascript" src="pdfListView/external/pdf.js"></script>
+
+    <!-- to disable webworkers: swap these below -->
+    <!-- <script type="text/javascript">PDFJS.disableWorker = true;</script> -->
+    <script type="text/javascript">PDFJS.workerSrc = 'pdfListView/external/pdf.js';</script>
+
+    <link rel="stylesheet" href="pdfListView/src/TextLayer.css">
+    <script src="pdfListView/src/TextLayerBuilder.js"></script>
+    <link rel="stylesheet" href="pdfListView/src/AnnotationsLayer.css">
+    <script src="pdfListView/src/AnnotationsLayerBuilder.js"></script>
+    <script src="pdfListView/src/PdfListView.js"></script>
+    """)
+
         salvus.javascript('''
             var lv = new PDFListView($("#%s")[0], {textLayerBuilder:TextLayerBuilder, annotationsLayerBuilder: AnnotationsLayerBuilder});
             lv.setScale(%s);
