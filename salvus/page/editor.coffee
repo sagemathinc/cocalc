@@ -1389,7 +1389,9 @@ class PDF_Preview extends FileEditor
     update: (cb) =>
         @output.height(@element.height())
         @output.width(@element.width())
-        density = @element.width()/4  # smaller denom = slower = clearer
+        width = Math.max(Math.round(@output.width()*.7), 800)
+        width = Math.min(@output.width(), width)       
+        density = width/5  # smaller denom = slower = clearer
         if density == 0
             # not visible, so no point.
             return
@@ -1407,7 +1409,7 @@ class PDF_Preview extends FileEditor
                 path       : @path
                 command    : 'gs'
                 args       : ["-dBATCH", "-dNOPAUSE",
-                              "-sDEVICE=pngmono",
+                              "-sDEVICE=png256",
                               "-sOutputFile=#{tmp}/%d.png", "-r#{density}", @file]
                 timeout    : timeout
                 err_on_exit: false
@@ -1469,6 +1471,7 @@ class PDF_Preview extends FileEditor
                                             # This gives a sort of "2-up" effect.  But this makes things unreadable
                                             # on some screens :-(.
                                             #img.css('width':@output.width()/2-100)
+                                            img.css('width':width)
                                             @output.append(img)
                                     # Delete any remaining pages from before (if doc got shorter)
                                     for n in [len(pages)...children.length]
@@ -1646,12 +1649,7 @@ class LatexEditor extends FileEditor
             (cb) =>
                 @editor.save(@filename, cb)
             (cb) =>
-                @run_latex (err) =>
-                    # latex prefers to be run twice...
-                    if err
-                        cb(err)
-                    else
-                        @run_latex(cb)
+                @run_latex (cb)
         ], (err) -> cb?(err))
 
     _get: () =>
@@ -1727,6 +1725,7 @@ class LatexEditor extends FileEditor
         salvus_client.read_file_from_project
             project_id : @editor.project_id
             path       : @filename.slice(0,@filename.length-3)+"pdf"
+            timeout    : 45
             cb         : (err, result) =>
                 button.icon_spin(false)
                 if err

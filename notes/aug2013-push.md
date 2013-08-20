@@ -1,3 +1,43 @@
+x - download -- times out too quickly
+x - attempt to log currently visible page(s):
+     can do it using jquery selector a = $(), then a.offset().top   and a.height() and $(window).height().
+x  - test text overlay.
+
+  - when rendering png viewer, endow each page with a page number and md5
+  - write function "visible page numbers"; if nothing displayed yet, number=1.
+  - update will:
+      - (1s)   pdflatex
+           - (1.2s) pdftotext  (in parallel; then fill in to pages when it comes back).
+      - (0.8s) use gs to generate the png's for the visible pages (3 pages):
+           e.g.,  time gs -dBATCH -dNOPAUSE -sDEVICE=png256 -sOutputFile=png/%d.png -dFirstPage=51 -dLastPage=53  -r300 rh.pdf
+      - (0.004s) compute their md5sums
+      - (.3s) grab the *ones* that changed and display them.   (time depends on network and db here -- est .1s/each)
+      - (~9s) generate all png -- in parallel (divide into at least 2 ranges -- interval around current and everything else (?))
+      - compute their md5sums
+      - download only the ones that changed
+      - delete generated files
+      - remove pages that don't exist anymore
+      - fill in plain text for each page in extra info in the page dom object: div like this: "height:0px; top:30em; position:relative; opacity:0;"
+
+    And, be sure to cancel everything if another update is requested while the above is happening.
+  - forward search:
+      - icon at top
+      - create preview if never made before
+      - use diff/match/patch library to fuzzy search around cursor for text in the output and go to that page
+  - inverse search:
+      - shift click on a preview page
+      - use text there to fuzzy search in latex doc and display.
+      - estimate w/ heuristic where in page depending on location of click.
+  - errors:
+      - run latex
+      - log has lines like this:
+          ! Undefined control sequence.
+          l.222 \ladsijf
+        do some codemirror wizardy to show all errors in place in the editor.
+
+
+-----
+- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
 
 - [ ] UX idea -- if the mouse is *moving* don't refresh the directory listing!
 
