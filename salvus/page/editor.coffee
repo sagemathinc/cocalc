@@ -1646,12 +1646,7 @@ class LatexEditor extends FileEditor
             (cb) =>
                 @editor.save(@filename, cb)
             (cb) =>
-                @run_latex (err) =>
-                    # latex prefers to be run twice...
-                    if err
-                        cb(err)
-                    else
-                        @run_latex(cb)
+                @run_latex (cb)
         ], (err) -> cb?(err))
 
     _get: () =>
@@ -1727,6 +1722,7 @@ class LatexEditor extends FileEditor
         salvus_client.read_file_from_project
             project_id : @editor.project_id
             path       : @filename.slice(0,@filename.length-3)+"pdf"
+            timeout    : 45
             cb         : (err, result) =>
                 button.icon_spin(false)
                 if err

@@ -1,3 +1,8 @@
+
+- download -- times out too quickly
+- attempt to log currently visible page(s)
+
+
 -----
 - [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
 
