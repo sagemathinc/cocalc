@@ -1389,7 +1389,9 @@ class PDF_Preview extends FileEditor
     update: (cb) =>
         @output.height(@element.height())
         @output.width(@element.width())
-        density = @element.width()/4  # smaller denom = slower = clearer
+        width = Math.max(Math.round(@output.width()*.7), 800)
+        width = Math.min(@output.width(), width)       
+        density = width/5  # smaller denom = slower = clearer
         if density == 0
             # not visible, so no point.
             return
@@ -1407,7 +1409,7 @@ class PDF_Preview extends FileEditor
                 path       : @path
                 command    : 'gs'
                 args       : ["-dBATCH", "-dNOPAUSE",
-                              "-sDEVICE=pngmono",
+                              "-sDEVICE=png256",
                               "-sOutputFile=#{tmp}/%d.png", "-r#{density}", @file]
                 timeout    : timeout
                 err_on_exit: false
@@ -1469,6 +1471,7 @@ class PDF_Preview extends FileEditor
                                             # This gives a sort of "2-up" effect.  But this makes things unreadable
                                             # on some screens :-(.
                                             #img.css('width':@output.width()/2-100)
+                                            img.css('width':width)
                                             @output.append(img)
                                     # Delete any remaining pages from before (if doc got shorter)
                                     for n in [len(pages)...children.length]
