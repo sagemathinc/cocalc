@@ -86,7 +86,6 @@ OK, the way to do this is:
 Interesting fact: changing one page of the file often only changes *that* png -- all others are identical; and with
 tex even a new para can easily be local (due to chapters, etc).  I tested this with md5's on rh.
 
-<<<<<<< HEAD
 - [ ] why does log list this twice:
 debug: opts = {"project_id":"54949eee-57da-4bd7-bb43-c2602b429f9a","account_id":"25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5"}
 debug: local_hub --> global_hub: received a blob with uuid d24f0b9f-fd24-49d4-8dc1-d579142b818c
@@ -96,8 +95,6 @@ debug: converting object of length 7898552 to hex
 debug: converted, now storing
 
 - [ ] image viewer refresh button; trivial,  might as well
-=======
->>>>>>> a2a59296e028ef20766dee6a77b48b22b04c864a
 
 - [ ] next release:
      - apt get install calibre (and add to build.py)

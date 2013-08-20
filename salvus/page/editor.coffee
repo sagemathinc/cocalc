@@ -1359,7 +1359,7 @@ remove_tmp_dir = (project_id, path, tmp_dir, cb) ->
 
 
 # Class that wraps "a remote latex doc with PDF preview":
-class LatexDocument
+class PDFLatexDocument
     constructor: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1445,8 +1445,9 @@ class LatexDocument
             first_page : 1
             last_page  : undefined  # defaults to @num_pages, unless 0 in which case 99999
             cb         : undefined  # cb(err, [array of page numbers of pages that changed])
-            device     : '256'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'
-            resolution : '300'      # 'number' or 'number1xnumber2'
+            device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'
+            resolution : '100'      # 'number' or 'number1xnumber2'
+            downscale  : 2 
 
         if not opts.last_page?
             opts.last_page = @num_pages
@@ -1469,6 +1470,7 @@ class LatexDocument
                                "-r#{opts.resolution}",
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
+                               "-dDownScaleFactor=#{opts.downscale}",
                                @filename_pdf]
                 console.log(args)
                 @_exec
@@ -1492,10 +1494,11 @@ class LatexDocument
                             console.log("v = ", v)
                             if v.length > 1
                                 try
-                                    n = parseInt(v[2].split('.')[0])
+                                    filename = v[2]
+                                    n = parseInt(filename.split('.')[0]) + opts.first_page - 1
                                     console.log(@page(n), v[0])
                                     if @page(n).sha1 != v[0]
-                                        sha1_changed.push( page_number:n, sha1:v[0] )
+                                        sha1_changed.push( page_number:n, sha1:v[0], filename:filename )
                                 catch e
                                     console.log("sha1sum: error parsing line=#{line}")
                         cb()
@@ -1508,7 +1511,7 @@ class LatexDocument
                     n = obj.page_number
                     salvus_client.read_file_from_project
                         project_id : @project_id
-                        path       : "#{@path}/#{tmp}/#{n}.png"
+                        path       : "#{@path}/#{tmp}/#{obj.filename}"
                         timeout    : 5  # a single page shouldn't take long
                         cb         : (err, result) =>
                             console.log(result)
@@ -1527,154 +1530,141 @@ class LatexDocument
             opts.cb?(err, changed_pages)
         )
 
-exports.LatexDocument = LatexDocument        
+# FOR debugging only
+exports.PDFLatexDocument = PDFLatexDocument        
         
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
+        @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename)
+                                     
+        @window_size = opts.window_size
+        if not @window_size?
+            @window_size = 2
+        @width_percent = 70
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
-
-        @page_number = 1
-
-
         s = path_split(@filename)
         @path = s.head
         if @path == ''
             @path = './'
         @file = s.tail
-
-        #@element.find("a[href=#prev]").click(@prev_page)
-        #@element.find("a[href=#next]").click(@next_page)
-        #@element.find("a[href=#zoom-in]").click(@zoom_in)
-        #@element.find("a[href=#zoom-out]").click(@zoom_out)
-
         @element.maxheight()
-        @output = @element.find(".salvus-editor-pdf-preview-page")
-        @update()
-        @output.focus()
-
+        @last_page = 0        
+        @output = @element.find(".salvus-editor-pdf-preview-page")        
+        
+        timeout = undefined
+        @output.on 'scroll', () =>
+            clearTimeout(timeout)
+            f = () =>
+                @update()
+            timeout = setTimeout(f, 500)
+        
     focus: () =>
         @element.maxheight()
         @output.height(@element.height())
         @output.width(@element.width())
+        
+    current_page: () =>
+        for _page in @output.children()
+            page = $(_page)
+            offset = page.offset()
+            console.log(offset, page)
+            if offset.top > 0
+                n = page.data('number')
+                if n > 1
+                    n -= 1
+                return n
+        if page?
+            return page.data('number')
+        else
+            return 1
 
-    update: (cb) =>
-        @output.height(@element.height())
-        @output.width(@element.width())
-        width = Math.max(Math.round(@output.width()*.7), 800)
-        width = Math.min(@output.width(), width)
-        density = width/5  # smaller denom = slower = clearer
-        if density == 0
-            # not visible, so no point.
+    update: (opts={}) =>
+        opts = defaults opts,
+            window_size : @window_size
+            cb          : undefined
+        console.log("update #{opts.window_size}")
+        if @_updating
+            opts.cb?("updating already")
             return
+        if not @_done_before
+            opts.window_size = 999
+        @_done_before = true
+            
+        @_updating = true
+        @output.maxheight()
+        @output.width(@element.width())
+        n = @current_page()
         @spinner.show().spin(true)
-        timeout = 30
-        tmp_dir @editor.project_id, @path, (err, tmp) =>
-            if err
-                @spinner.hide().spin(false)
-                alert_message(type:"error", message:err)
-                cb?(err)
-                return
-            # Update the PNG's which provide a preview of the PDF
-            salvus_client.exec
-                project_id : @editor.project_id
-                path       : @path
-                command    : 'gs'
-                args       : ["-dBATCH", "-dNOPAUSE",
-                              "-sDEVICE=png256",
-                              "-sOutputFile=#{tmp}/%d.png", "-r#{density}", @file]
-                timeout    : timeout
-                err_on_exit: false
-                cb         : (err, output) =>
-                    if err
-                        alert_message(type:"error", message:"Error rendering PDF: #{misc.to_json(output)}, #{err}; PDF preview currently doesn't scale to large documents.")
-                        remove_tmp_dir(@editor.project_id, @path, tmp)
-                        cb?(err)
-                    else
-                        i = output.stdout.indexOf("Page")
-                        s = output.stdout.slice(i)
-                        pages = {}
-                        tasks = []
-                        while s.length>4
-                            i = s.indexOf('\n')
-                            if i == -1
-                                break
-                            page_number = s.slice(5,i)
-                            s = s.slice(i+1)
-
-                            png_file = @path + "/#{tmp}/" + page_number + '.png'
-                            f = (cb) =>
-                                num  = arguments.callee.page_number
-                                salvus_client.read_file_from_project
-                                    project_id : @editor.project_id
-                                    path       : arguments.callee.png_file
-                                    timeout    : timeout
-                                    cb         : (err, result) =>
-                                        if err
-                                            cb(err)
-                                        else
-                                            if result.url?
-                                                pages[num] = result.url
-                                            cb()
-
-                            f.png_file = png_file
-                            f.page_number = parseInt(page_number)
-                            tasks.push(f)
-
-                        async.series tasks, (err) =>
-                            remove_tmp_dir(@editor.project_id, @path, tmp)
-                            if err
-                                alert_message(type:"error", message:"Error downloading png preview -- #{err}")
-                                @spinner.spin(false).hide()
-                                cb?(err)
-                            else
-                                if len(pages) == 0
-                                    @output.html('')
-                                else
-                                    children = @output.children()
-                                    # We replace existing pages if possible, which nicely avoids all nasty scrolling issues/crap.
-                                    for n in [0...len(pages)]
-                                        url = pages[n+1]
-                                        if n < children.length
-                                            $(children[n]).attr('src', url)
-                                        else
-                                            img = template_pdf_preview_image.clone()
-                                            img.attr('src', url)
-                                            # This gives a sort of "2-up" effect.  But this makes things unreadable
-                                            # on some screens :-(.
-                                            #img.css('width':@output.width()/2-100)
-                                            img.css('width':width)
-                                            @output.append(img)
-                                    # Delete any remaining pages from before (if doc got shorter)
-                                    for n in [len(pages)...children.length]
-                                        $(children[n]).remove()
-                                @spinner.spin(false).hide()
-                                cb?()
-
-    next_page: () =>
-        @page_number += 1   # TODO: !what if last page?
-        @update()
-
-    prev_page: () =>
-        if @page_number >= 2
-            @page_number -= 1
-            @update()
-
-    zoom_out: () =>
-        if @density >= 75
-            @density -= 25
-            @update()
-
-    zoom_in: () =>
-        @density += 25
-        @update()
-
+        first_page = Math.max(1, n - opts.window_size)
+        last_page  = n + opts.window_size
+        @pdflatex.update_pngs
+            first_page : first_page
+            last_page  : last_page
+            cb : (err, changed_pages) =>
+                if err
+                    @_updating = false
+                    opts.cb?(err)
+                else
+                    f = (n, cb) =>
+                        @_update_page(n, cb)
+                    async.map changed_pages, f, (err) => 
+                        @spinner.spin(false).hide()
+                        @_updating = false
+                        opts.cb?(err)
+                        return
+                        ###
+                        for pg in @output.children()
+                            page = $(pg)
+                            m = page.data('number')
+                            if m < first_page or m > last_page
+                                #  free mem used by pages not visible, to save RAM.
+                                console.log('freeing ', m)                                
+                                img = page.find('img')
+                                src = img.attr('src')
+                                if src
+                                    img.remove()
+                                    dumped = $("<img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'>")
+                                    dumped.data('dumped', src)
+                                    page.append(dumped)
+                            else if m not in changed_pages
+                                # refetch page from server
+                                # src =                                 
+                        ###
+                        
+                        
+    # update page n based on currently computed data.
+    _update_page: (n, cb) =>    
+        p = @pdflatex.page(n)
+        url = p.png_url
+        console.log('update: ', n, url)
+        if not url?
+            # todo: delete page and all following it from DOM
+            for m in [n .. @last_page]
+                @output.remove(".salvus-editor-pdf-preview-page-#{m}")
+            if @last_page >= n
+                @last_page = n-1
+        else
+            # update page
+            page = @output.find(".salvus-editor-pdf-preview-page-#{n}")
+            if page.length == 0
+                # create
+                for m in [@last_page+1 .. n]
+                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    page.data("number", m)                    
+                    @output.append(page)
+                @last_page = n
+            page.find("img").attr('src', url).css('width':"#{@width_percent}%")
+        cb()
+        
+            
     show: () =>
         @element.show()
         @focus()
 
     hide: () =>
         @element.hide()
+        
 
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
@@ -1765,7 +1755,7 @@ class LatexEditor extends FileEditor
         # initialize the previews
         n = @filename.length
 
-        @preview = new PDF_Preview(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
+        @preview = new PDF_Preview(@editor, @filename, undefined, {})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
 
         @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
@@ -1787,11 +1777,8 @@ class LatexEditor extends FileEditor
 
         preview_button = @element.find("a[href=#png-preview]")
         preview_button.click () =>
-            preview_button.icon_spin(true)
-            @compile (err) =>
-                @preview.update () =>
-                    preview_button.icon_spin(false)
             @show_page('png-preview')
+            @preview.update()
             return false
 
         @element.find("a[href=#pdf-preview]").click () =>
