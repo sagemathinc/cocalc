@@ -1,14 +1,35 @@
------
-- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
 
-- [x] look into the "one big png" idea...  TOTAL DISASTER; easily ate all my RAM.
+- [ ] UX idea -- if the mouse is *moving* don't refresh the directory listing!
 
-- [ ] image viewer refresh button; trivial,  might as well
+- [ ] latex editor -- restrict page range for previews:
+
+        #!/bin/bash
+        # this function uses 3 arguments:
+        #     $1 is the first page of the range to extract
+        #     $2 is the last page of the range to extract
+        #     $3 is the input file
+        #     output file will be named "inputfile_pXX-pYY.pdf"
+        gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -dFirstPage=${1} -dLastPage=${2} -sOutputFile=${3%.pdf}-pages.pdf ${3} 2>/dev/null
+
+Observation: at a density of 100, I can put the entire 140 page book into a single png that is 1MB (using convert -append).
+
+OK, the way to do this is:
+  (1) have a *very* low rez display of the entire document, exactly as now, but much lower res.
+  (2) when a page is *visible* we download a higher res version.... and then a higher color one.
+  (3) running the gs on a range of pages is fine and scales.
+  (4) can do in parallel by breaking based on range.
+  (5) forward search/inverse search -- USE pdftotext (in apt-get install calibre) to convert entire file to text separated by pages.
+      then uses fuzzy search to go back and forth at the *page* level.
+      Also, make fulltext search (at page level) possible by overlaying invisible text.
+
+Interesting fact: changing one page of the file often only changes *that* png -- all others are identical; and with
+tex even a new para can easily be local (due to chapters, etc).  I tested this with md5's on rh.
+
 
 - [ ] next release:
-      - verify get new services file for cassandra
-      - test embed viewer is working.
+     - apt get install calibre (and add to build.py)
 
+- [ ] upgrade  to  bootstrap 3
 
 - [ ] a release at some point
       - upgrade haproxy in edge nodes
@@ -896,3 +917,37 @@ newer version of same here:
    x - icons for each button
    x - embed --> object in sage_salvus.py
    x - pdf height is wrong, since can't see controls.
+
+----
+- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
+
+- [x] look into the "one big png" idea...  TOTAL DISASTER; easily ate all my RAM.
+
+- [x] image viewer refresh button; trivial,  might as well
+
+- [x] next release:
+      - verify get new services file for cassandra
+      - test embed viewer is working.
+
+Hi,
+
+I've updated https://cloud.sagemath.com just now with the following changes (I didn't reboot
+the VM's running projects):
+
+  - Increased the maximum file download size from 5MB to 12MB
+
+  - Clicking on a pdf file in the file manager uses the browser's builtin PDF viewer.
+
+  - When editing tex file, you can now view them either with the png-based previewer (which
+    keeps position across updates) or with your browser's builting pdf viewer.  Also, the
+    png-based viewer now actually works with large tex files (though it is slow), e.g., a
+    7.5MB 140 page book with many embedded images works.
+
+  - There's now a refresh button and scroll bars in the image viewer.
+
+  - In worksheets, I added a function "salvus.pdf" to display a PDF embedded as the output
+    of a command.  You can choose to use either your browser's builtin viewer or
+    the pdf.js library, which will get loaded dynamically on first use.  You have to
+    restart your project server (and worksheet server) to see this feature.
+
+Williamf
