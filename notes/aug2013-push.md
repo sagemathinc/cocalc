@@ -2,17 +2,44 @@
 x - download -- times out too quickly
 x - attempt to log currently visible page(s):
      can do it using jquery selector a = $(), then a.offset().top   and a.height() and $(window).height().
-x  - test text overlay.
+x - test text overlay.
 
-  - when rendering png viewer, endow each page with a page number and md5  
+
+## Implementation
+
+  - page html template: with spot for plain text, page number, sha1sum,
+  - coffeescript data structure for the collection of known pages
+  - class that wraps "a remote latex/pdf doc" and has methods:
+       - pdflatex: updates number of pages, latex log, text of all pages (async, as it comes back)
+       - run custom command on file (e.g., bibtex)
+       - update given *range* of pages:
+            - generates png's remotely (with given resolution params)
+            - sets rm -rf time bomb
+            - computes and fills in sha1
+       - get url of preview of a given page
+       - get text of a given page
+       - get error log (in parsed form by page number)
+
+DEBUG time: 
+
+  doc = new (require('editor').LatexDocument)({project_id:'e3d1ea55-b76f-484f-91b2-0062498ffc07', filename_tex:'rh/rh/rh.tex'})
+
+
+## Design: pdf *synchronization* not "download and view"
+
+  - when rendering png viewer, endow each page with a page number and sha1sum
   - write function "visible page numbers"; if nothing displayed yet, number=1.
   - update will:
       - (1s)   pdflatex
            - (1.2s) pdftotext  (in parallel; then fill in to pages when it comes back).
       - (0.8s) use gs to generate the png's for the visible pages (3 pages):
            e.g.,  time gs -dBATCH -dNOPAUSE -sDEVICE=png256 -sOutputFile=png/%d.png -dFirstPage=51 -dLastPage=53  -r300 rh.pdf
+           (self destruct: always launch a 30min time-delayed "rm -rf" on tmp dir?)
       - (0.004s) compute their md5sums
       - (.3s) grab the *ones* that changed and display them.   (time depends on network and db here -- est .1s/each)
+
+           Try the above before doing the following -- if it is fast enough, maybe we just do it on scroll?!
+
       - (~9s) generate all png -- in parallel (divide into at least 2 ranges -- interval around current and everything else (?))
       - compute their md5sums
       - download only the ones that changed
@@ -41,6 +68,14 @@ x  - test text overlay.
 - [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
 
 - [x] look into the "one big png" idea...  TOTAL DISASTER; easily ate all my RAM.
+
+- [ ] why does log list this twice:
+debug: opts = {"project_id":"54949eee-57da-4bd7-bb43-c2602b429f9a","account_id":"25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5"}
+debug: local_hub --> global_hub: received a blob with uuid d24f0b9f-fd24-49d4-8dc1-d579142b818c
+debug: converting object of length 7898552 to hex
+debug: converted, now storing
+debug: converting object of length 7898552 to hex
+debug: converted, now storing
 
 - [ ] image viewer refresh button; trivial,  might as well
 

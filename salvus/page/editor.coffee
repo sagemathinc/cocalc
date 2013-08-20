@@ -1357,6 +1357,178 @@ remove_tmp_dir = (project_id, path, tmp_dir, cb) ->
         cb         : (err, output) =>
             cb?(err)
 
+
+# Class that wraps "a remote latex doc with PDF preview":
+class LatexDocument
+    constructor: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            filename   : required
+        @project_id = opts.project_id
+        @filename   = opts.filename
+        
+        @_pages     = {}
+        @num_pages  = 0
+        @latex_log  = ''
+        s = path_split(@filename)
+        @path = s.head
+        if @path == ''
+            @path = './'
+        @filename_tex = s.tail            
+        @filename_pdf = @filename_tex.slice(0, @filename_tex.length-3) + 'pdf'
+
+    page: (n) =>
+        if not @_pages[n]?
+            console.log("making page #{n}")
+            @_pages[n] = {}
+        return @_pages[n]
+
+    _exec: (opts) =>
+        opts = defaults opts,
+            path        : @path
+            project_id  : @project_id
+            command     : required
+            args        : []
+            timeout     : 30
+            err_on_exit : false
+            bash        : false
+            cb          : required
+        salvus_client.exec(opts)
+
+    # runs pdflatex; updates number of pages, latex log, parsed error log
+    update_pdf: (cb) =>
+        @_exec
+            command : 'pdflatex'
+            args    : ['-interaction=nonstopmode', @filename_tex]
+            timeout : 15
+            cb      : (err, output) =>
+                @latex_log = output.stdout + '\n\n' + output.stderr
+                @_parse_latex_log(@latex_log)
+                cb?(err)
+
+    _parse_latex_log: (log) =>
+        # todo -- parse through text file of log putting the errors in the corresponding @pages dict.
+
+        # number of pages:  "Output written on rh.pdf (135 pages, 7899064 bytes)."
+        i = log.indexOf("Output written")
+        if i != -1
+            i = log.indexOf("(", i)
+            if i != -1
+                j = log.indexOf(" pages", i)
+                try
+                    @num_pages = parseInt(log.slice(i+1,j))
+                catch e
+                    console.log("BUG parsing number of pages")
+
+    # runs pdftotext; updates plain text of each page.
+    update_text: (cb) =>
+        @_exec
+            command : "pdftotext"   # part of the "calibre" ubuntu package
+            args    : [@filename_pdf, '-']
+            cb      : (err, output) =>
+                if not err
+                    @_parse_text(output.stdout)
+                cb?(err)
+
+    _parse_text: (text) =>
+        # todo -- parse through the text file putting the pages in the correspondings @pages dict.
+        # for now... for debugging.
+        @_text = text
+
+    # Updates png previews for a given range of pages.
+    # This computes png's on backend, and fills in the sha1 hashes of @pages.
+    # If any sha1 hash changes from what was already there, it gets temporary
+    # url for that file.
+    # It assumes the pdf files is there already, and doesn't run pdflatex.
+    update_pngs: (opts={}) =>
+        opts = defaults opts,
+            first_page : 1
+            last_page  : undefined  # defaults to @num_pages, unless 0 in which case 99999
+            cb         : undefined  # cb(err, [array of page numbers of pages that changed])
+            device     : '256'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'
+            resolution : '300'      # 'number' or 'number1xnumber2'
+
+        if not opts.last_page?
+            opts.last_page = @num_pages
+            if opts.last_page == 0
+                opts.last_page = 99999
+
+        tmp = undefined
+        sha1_changed = []
+        changed_pages = []
+        async.series([
+            (cb) =>
+                tmp_dir @project_id, @path, (err, _tmp) =>
+                    tmp = _tmp
+                    console.log("tmp dir = ", tmp)
+                    cb(err)
+            (cb) =>
+                args = ['-dBATCH', '-dNOPAUSE',
+                               "-sDEVICE=png#{opts.device}",
+                               "-sOutputFile=#{tmp}/%d.png",
+                               "-r#{opts.resolution}",
+                               "-dFirstPage=#{opts.first_page}",
+                               "-dLastPage=#{opts.last_page}",
+                               @filename_pdf]
+                console.log(args)
+                @_exec
+                    command : 'gs'
+                    args    : args
+                    err_on_exit : true
+                    cb      : cb
+            # get the new sha1 hashes
+            (cb) =>
+                @_exec
+                    command : "sha1sum *.png"
+                    bash    : true
+                    path    : "#{@path}/#{tmp}"
+                    cb      : (err, output) =>
+                        if err
+                            cb(err); return
+                        console.log(output.stdout.split('\n'))
+                        
+                        for line in output.stdout.split('\n')
+                            v = line.split(' ')
+                            console.log("v = ", v)
+                            if v.length > 1
+                                try
+                                    n = parseInt(v[2].split('.')[0])
+                                    console.log(@page(n), v[0])
+                                    if @page(n).sha1 != v[0]
+                                        sha1_changed.push( page_number:n, sha1:v[0] )
+                                catch e
+                                    console.log("sha1sum: error parsing line=#{line}")
+                        cb()
+                        
+            # get the png's whose sha1s changed
+            (cb) =>
+                console.log("sha1_changed = ", sha1_changed)
+                update = (obj, cb) =>
+                    console.log("obj = ", obj)
+                    n = obj.page_number
+                    salvus_client.read_file_from_project
+                        project_id : @project_id
+                        path       : "#{@path}/#{tmp}/#{n}.png"
+                        timeout    : 5  # a single page shouldn't take long
+                        cb         : (err, result) =>
+                            console.log(result)
+                            if err
+                                cb(err)
+                            else if not result.url?
+                                cb("no url in result for a page")
+                            else
+                                p = @page(n)
+                                p.sha1 = obj.sha1
+                                p.png_url = result.url
+                                changed_pages.push(n)
+                                cb()
+                async.map(sha1_changed, update, cb)
+        ], (err) =>
+            opts.cb?(err, changed_pages)
+        )
+
+exports.LatexDocument = LatexDocument        
+        
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
         @element = templates.find(".salvus-editor-pdf-preview").clone()
@@ -1390,7 +1562,7 @@ class PDF_Preview extends FileEditor
         @output.height(@element.height())
         @output.width(@element.width())
         width = Math.max(Math.round(@output.width()*.7), 800)
-        width = Math.min(@output.width(), width)       
+        width = Math.min(@output.width(), width)
         density = width/5  # smaller denom = slower = clearer
         if density == 0
             # not visible, so no point.
