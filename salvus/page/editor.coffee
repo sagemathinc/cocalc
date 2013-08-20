@@ -1364,8 +1364,11 @@ class PDFLatexDocument
         opts = defaults opts,
             project_id : required
             filename   : required
+            image_type : 'png'  # 'png' or 'jpg'
+            
         @project_id = opts.project_id
         @filename   = opts.filename
+        @image_type = opts.image_type
         
         @_pages     = {}
         @num_pages  = 0
@@ -1435,19 +1438,20 @@ class PDFLatexDocument
         # for now... for debugging.
         @_text = text
 
-    # Updates png previews for a given range of pages.
-    # This computes png's on backend, and fills in the sha1 hashes of @pages.
+    # Updates previews for a given range of pages.
+    # This computes images on backend, and fills in the sha1 hashes of @pages.
     # If any sha1 hash changes from what was already there, it gets temporary
     # url for that file.
     # It assumes the pdf files is there already, and doesn't run pdflatex.
-    update_pngs: (opts={}) =>
+    update_images: (opts={}) =>
         opts = defaults opts,
             first_page : 1
             last_page  : undefined  # defaults to @num_pages, unless 0 in which case 99999
             cb         : undefined  # cb(err, [array of page numbers of pages that changed])
-            device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'
-            resolution : '100'      # 'number' or 'number1xnumber2'
-            downscale  : 2 
+            resolution : '50'      # 'number' or 'number1xnumber2'
+            device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'  (ignored if image_type='jpg')
+            png_downscale  : 2      # ignored if image type is jpg
+            jpeg_quality   : 75     # jpg only -- scale of 1 to 100  
 
         if not opts.last_page?
             opts.last_page = @num_pages
@@ -1464,7 +1468,8 @@ class PDFLatexDocument
                     console.log("tmp dir = ", tmp)
                     cb(err)
             (cb) =>
-                args = ['-dBATCH', '-dNOPAUSE',
+                if @image_type == "png"
+                    args = ['-dBATCH', '-dNOPAUSE',
                                "-sDEVICE=png#{opts.device}",
                                "-sOutputFile=#{tmp}/%d.png",
                                "-r#{opts.resolution}",
@@ -1472,6 +1477,18 @@ class PDFLatexDocument
                                "-dLastPage=#{opts.last_page}",
                                "-dDownScaleFactor=#{opts.downscale}",
                                @filename_pdf]
+                else if @image_type == "jpg"
+                    args = ['-dBATCH', '-dNOPAUSE',
+                                '-sDEVICE=jpeg',
+                               "-sOutputFile=#{tmp}/%d.jpg",
+                               "-r#{opts.resolution}",
+                               "-dFirstPage=#{opts.first_page}",
+                               "-dLastPage=#{opts.last_page}",
+                               "-dJPEGQ=#{opts.jpeg_quality}",
+                               @filename_pdf] 
+                else
+                    cb("unknown image type #{@image_type}")
+                    return
                 console.log(args)
                 @_exec
                     command : 'gs'
@@ -1481,7 +1498,7 @@ class PDFLatexDocument
             # get the new sha1 hashes
             (cb) =>
                 @_exec
-                    command : "sha1sum *.png"
+                    command : "sha1sum *.png *.jpg"
                     bash    : true
                     path    : "#{@path}/#{tmp}"
                     cb      : (err, output) =>
@@ -1503,7 +1520,7 @@ class PDFLatexDocument
                                     console.log("sha1sum: error parsing line=#{line}")
                         cb()
                         
-            # get the png's whose sha1s changed
+            # get the images whose sha1's changed
             (cb) =>
                 console.log("sha1_changed = ", sha1_changed)
                 update = (obj, cb) =>
@@ -1522,10 +1539,10 @@ class PDFLatexDocument
                             else
                                 p = @page(n)
                                 p.sha1 = obj.sha1
-                                p.png_url = result.url
+                                p.url = result.url
                                 changed_pages.push(n)
                                 cb()
-                async.map(sha1_changed, update, cb)
+                async.mapSeries(sha1_changed, update, cb)
         ], (err) =>
             opts.cb?(err, changed_pages)
         )
@@ -1535,11 +1552,12 @@ exports.PDFLatexDocument = PDFLatexDocument
         
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
-        @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename)
+        @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"jpg")
                                      
         @window_size = opts.window_size
         if not @window_size?
-            @window_size = 2
+            @window_size = 10
+            
         @width_percent = 70
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
@@ -1595,17 +1613,19 @@ class PDF_Preview extends FileEditor
         @output.maxheight()
         @output.width(@element.width())
         n = @current_page()
-        @spinner.show().spin(true)
         first_page = Math.max(1, n - opts.window_size)
         last_page  = n + opts.window_size
-        @pdflatex.update_pngs
+        @pdflatex.update_images
             first_page : first_page
             last_page  : last_page
             cb : (err, changed_pages) =>
                 if err
                     @_updating = false
                     opts.cb?(err)
+                else if changed_pages.length == 0
+                    opts.cb?()
                 else
+                    @spinner.show().spin(true)
                     f = (n, cb) =>
                         @_update_page(n, cb)
                     async.map changed_pages, f, (err) => 
@@ -1613,30 +1633,11 @@ class PDF_Preview extends FileEditor
                         @_updating = false
                         opts.cb?(err)
                         return
-                        ###
-                        for pg in @output.children()
-                            page = $(pg)
-                            m = page.data('number')
-                            if m < first_page or m > last_page
-                                #  free mem used by pages not visible, to save RAM.
-                                console.log('freeing ', m)                                
-                                img = page.find('img')
-                                src = img.attr('src')
-                                if src
-                                    img.remove()
-                                    dumped = $("<img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'>")
-                                    dumped.data('dumped', src)
-                                    page.append(dumped)
-                            else if m not in changed_pages
-                                # refetch page from server
-                                # src =                                 
-                        ###
-                        
                         
     # update page n based on currently computed data.
     _update_page: (n, cb) =>    
         p = @pdflatex.page(n)
-        url = p.png_url
+        url = p.url
         console.log('update: ', n, url)
         if not url?
             # todo: delete page and all following it from DOM
@@ -1777,8 +1778,11 @@ class LatexEditor extends FileEditor
 
         preview_button = @element.find("a[href=#png-preview]")
         preview_button.click () =>
+            preview_button.icon_spin(true)
             @show_page('png-preview')
-            @preview.update()
+            @preview.update
+                cb: () =>
+                    preview_button.icon_spin(false)
             return false
 
         @element.find("a[href=#pdf-preview]").click () =>
