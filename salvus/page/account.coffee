@@ -626,6 +626,17 @@ close_change_password = () ->
     change_password.modal('hide').find('input').val('')
     change_password.find(".account-error-text").hide()
 
+change_passwd_keyup = (elt) ->
+    elt = $("#account-change_password-new_password-retype")
+    if elt.val() != $("#account-change_password-new_password").val()
+        elt.css('background-color':'rgb(255, 220, 218);')
+    else
+        elt.css('background-color':'#ffffff')
+
+$("#account-change_password-new_password-retype").keyup(change_passwd_keyup)
+$("#account-change_password-new_password").keyup(change_passwd_keyup)
+
+
 change_password.find(".close").click((event) -> close_change_password())
 $("#account-change_password-button-cancel").click((event)->close_change_password())
 change_password.on("shown", () -> $("#account-change_password-old_password").focus())
@@ -635,6 +646,9 @@ $("a[href=#account-change_password]").click (event) ->
     return false
 
 $("#account-change_password-button-submit").click (event) ->
+    if $("#account-change_password-new_password-retype").val() != $("#account-change_password-new_password").val()
+        bootbox.alert("New passwords don't match.")
+        return
     salvus_client.change_password
         email_address : account_settings.settings.email_address
         old_password  : $("#account-change_password-old_password").val()
