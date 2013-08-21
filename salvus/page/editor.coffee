@@ -646,9 +646,8 @@ class exports.Editor
 
         link_bar.append(link)
         @resize_open_file_tabs()
-
-    resize_open_file_tabs: () =>
-        # Make a list of the tabs after the search menu.
+        
+    open_file_tabs: () =>
         x = []
         file_tabs = false
         for a in @project_page.container.find(".project-pages").children()
@@ -658,6 +657,15 @@ class exports.Editor
                 continue
             else if file_tabs and t.hasClass("salvus-editor-filename-pill")
                 x.push(t)
+        return x
+    
+    close_all_open_files: () =>
+        for filename, tab of @tabs
+            tab.close_editor()
+
+    resize_open_file_tabs: () =>
+        # Make a list of the tabs after the search menu.
+        x = @open_file_tabs()
         if x.length == 0
             return
 
@@ -1582,7 +1590,11 @@ class PDF_Preview extends FileEditor
                 @update cb:(err) =>
                     if err
                         @_needs_update = true
-        setInterval(f, 1000)
+        @_f = setInterval(f, 1000)
+        
+    remove: () =>
+        clearInterval(@_f)
+        @element.remove()
         
     focus: () =>
         @element.maxheight()
@@ -1642,16 +1654,21 @@ class PDF_Preview extends FileEditor
                 @_updating = false
                 opts.cb?(err)
             else
-                async.parallel([
-                    (cb) =>
-                        f({first_page : 1, last_page:n-hq_window-1, resolution:'150', device:'gray', png_downscale:1}, cb)
-                    (cb) =>
-                        f({first_page : n+hq_window+1, last_page:99999, resolution:'150', device:'gray', png_downscale:1}, cb)
-                ], (err) =>
+                g = (obj, cb) =>
+                    f({first_page:obj[0], last_page:obj[1], resolution:'150', device:'gray', png_downscale:1}, cb)
+                
+                k1 = Math.round((1 + n-hq_window-1)/2)
+                v = [[1, k1], [k1+1, n-hq_window-1]]
+                if @pdflatex.num_pages
+                    k2 = Math.round((n+hq_window+1 + @pdflatex.num_pages)/2)
+                    v.push([n+hq_window+1,k2])
+                    v.push([k2,@pdflatex.num_pages])
+                else
+                    v.push([n+hq_window+1,999999])  
+                async.map v, g, (err) =>
                     @spinner.spin(false).hide()
                     @_updating = false
                     opts.cb?(err)
-                )
                 
                     
     # update page n based on currently computed data.
@@ -1785,6 +1802,11 @@ class LatexEditor extends FileEditor
         @log = @element.find(".salvus-editor-latex-log")
 
         @_init_buttons()
+        
+    remove: () =>
+        @element.remove()
+        @preview.remove()
+        @preview_embed.remove()
 
     _init_buttons: () =>
 

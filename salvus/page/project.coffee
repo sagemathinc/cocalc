@@ -127,6 +127,7 @@ class ProjectPage
             label : @project.project_id
             icon  : 'icon-edit'
             onclose : () =>
+                @editor?.close_all_open_files()
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
             onshow: () =>
