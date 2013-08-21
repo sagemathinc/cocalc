@@ -12,10 +12,24 @@
        - get url of preview of a given page
        - get text of a given page
        - get error log (in parsed form by page number)
+       
+       
+       
 
 DEBUG time: 
 
   doc = new (require('editor').LatexDocument)({project_id:'e3d1ea55-b76f-484f-91b2-0062498ffc07', filename_tex:'rh/rh/rh.tex'})
+  
+  
+----
+
+   - change css of current page on update.
+   - make it so current prev, next, page is very high quality, but all others are low
+   
+
+
+
+---
 
 
 ## Design: pdf *synchronization* not "download and view"

@@ -1450,13 +1450,21 @@ class PDFLatexDocument
             cb         : undefined  # cb(err, [array of page numbers of pages that changed])
             resolution : '50'      # 'number' or 'number1xnumber2'
             device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'  (ignored if image_type='jpg')
-            png_downscale  : 2      # ignored if image type is jpg
-            jpeg_quality   : 75     # jpg only -- scale of 1 to 100  
+            png_downscale : 2      # ignored if image type is jpg
+            jpeg_quality  : 75     # jpg only -- scale of 1 to 100  
 
         if not opts.last_page?
             opts.last_page = @num_pages
             if opts.last_page == 0
                 opts.last_page = 99999
+                
+        if opts.first_page <= 0
+            opts.first_page = 1
+                
+        if opts.last_page < opts.first_page
+            # easy peasy
+            opts.cb?(false,[])
+            return
 
         tmp = undefined
         sha1_changed = []
@@ -1469,19 +1477,19 @@ class PDFLatexDocument
                     cb(err)
             (cb) =>
                 if @image_type == "png"
-                    args = ['-dBATCH', '-dNOPAUSE',
+                    args = ["-r#{opts.resolution}",
+                               '-dBATCH', '-dNOPAUSE',
                                "-sDEVICE=png#{opts.device}",
-                               "-sOutputFile=#{tmp}/%d.png",
-                               "-r#{opts.resolution}",
+                               "-sOutputFile=#{tmp}/%d.png",                               
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
-                               "-dDownScaleFactor=#{opts.downscale}",
+                               "-dDownScaleFactor=#{opts.png_downscale}",
                                @filename_pdf]
                 else if @image_type == "jpg"
-                    args = ['-dBATCH', '-dNOPAUSE',
-                                '-sDEVICE=jpeg',
-                               "-sOutputFile=#{tmp}/%d.jpg",
-                               "-r#{opts.resolution}",
+                    args = ["-r#{opts.resolution}",
+                               '-dBATCH', '-dNOPAUSE',
+                               '-sDEVICE=jpeg',
+                               "-sOutputFile=#{tmp}/%d.jpg",                               
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
                                "-dJPEGQ=#{opts.jpeg_quality}",
@@ -1489,12 +1497,16 @@ class PDFLatexDocument
                 else
                     cb("unknown image type #{@image_type}")
                     return
-                console.log(args)
+                
+                console.log('gs ' + args.join(" "))
                 @_exec
                     command : 'gs'
                     args    : args
                     err_on_exit : true
-                    cb      : cb
+                    cb      : (err, output) ->
+                        console.log(err, output)
+                        cb(err)
+                    
             # get the new sha1 hashes
             (cb) =>
                 @_exec
@@ -1544,6 +1556,7 @@ class PDFLatexDocument
                                 cb()
                 async.mapSeries(sha1_changed, update, cb)
         ], (err) =>
+            remove_tmp_dir(@project_id, @path, tmp_dir)
             opts.cb?(err, changed_pages)
         )
 
@@ -1552,13 +1565,13 @@ exports.PDFLatexDocument = PDFLatexDocument
         
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
-        @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"jpg")
+        @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"png")
                                      
         @window_size = opts.window_size
         if not @window_size?
             @window_size = 10
             
-        @width_percent = 70
+        @width_percent = 90
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
         s = path_split(@filename)
@@ -1575,7 +1588,16 @@ class PDF_Preview extends FileEditor
             clearTimeout(timeout)
             f = () =>
                 @update()
-            timeout = setTimeout(f, 500)
+            timeout = setTimeout(f, 1000)
+        timeout2 = undefined
+        
+        @output.on 'scroll', () =>
+            clearTimeout(timeout2)
+            f = () =>
+                @update (err) =>
+                    if err
+                        setTimeout((() => @update()), 10000)
+            timeout2 = setTimeout(f, 10000)
         
     focus: () =>
         @element.maxheight()
@@ -1586,7 +1608,6 @@ class PDF_Preview extends FileEditor
         for _page in @output.children()
             page = $(_page)
             offset = page.offset()
-            console.log(offset, page)
             if offset.top > 0
                 n = page.data('number')
                 if n > 1
@@ -1603,42 +1624,55 @@ class PDF_Preview extends FileEditor
             cb          : undefined
         console.log("update #{opts.window_size}")
         if @_updating
+            console.log("already updating...")
             opts.cb?("updating already")
             return
         if not @_done_before
             opts.window_size = 999
-        @_done_before = true
             
         @_updating = true
         @output.maxheight()
         @output.width(@element.width())
+        
         n = @current_page()
+        @output.children().removeClass('salvus-editor-pdf-preview-page-current')
+        @output.find(".salvus-editor-pdf-preview-page-#{n}").addClass('salvus-editor-pdf-preview-page-current')
+        
         first_page = Math.max(1, n - opts.window_size)
         last_page  = n + opts.window_size
-        @pdflatex.update_images
-            first_page : first_page
-            last_page  : last_page
-            cb : (err, changed_pages) =>
+        
+        f = (opts, cb) =>
+        
+            opts.cb = (err, changed_pages) =>                
                 if err
-                    @_updating = false
-                    opts.cb?(err)
+                    cb(err)
                 else if changed_pages.length == 0
-                    opts.cb?()
+                    cb()
                 else
-                    @spinner.show().spin(true)
-                    f = (n, cb) =>
+                    g = (n, cb) =>
                         @_update_page(n, cb)
-                    async.map changed_pages, f, (err) => 
-                        @spinner.spin(false).hide()
-                        @_updating = false
-                        opts.cb?(err)
-                        return
-                        
+                    async.map(changed_pages, g, cb)
+                    
+            @pdflatex.update_images(opts)
+                    
+        hq_window = 2
+        async.parallel([
+            (cb) =>
+                f({first_page : n-hq_window, last_page  : n+hq_window, resolution:'450', device:'16m', png_downscale:2}, cb)
+            (cb) =>
+                f({first_page : first_page, last_page:n-hq_window-1, resolution:'150', device:'gray', png_downscale:1}, cb)
+            (cb) =>
+                f({first_page : n+hq_window+1, last_page:last_page, resolution:'150', device:'gray', png_downscale:1}, cb)
+        ], (err) =>
+            @_updating = false        
+            opts.cb?(err)
+        )
+                
+                    
     # update page n based on currently computed data.
     _update_page: (n, cb) =>    
         p = @pdflatex.page(n)
         url = p.url
-        console.log('update: ', n, url)
         if not url?
             # todo: delete page and all following it from DOM
             for m in [n .. @last_page]
@@ -1780,9 +1814,10 @@ class LatexEditor extends FileEditor
         preview_button.click () =>
             preview_button.icon_spin(true)
             @show_page('png-preview')
-            @preview.update
-                cb: () =>
-                    preview_button.icon_spin(false)
+            @preview.pdflatex.update_pdf () =>            
+                @preview.update
+                    cb: () =>
+                        preview_button.icon_spin(false)
             return false
 
         @element.find("a[href=#pdf-preview]").click () =>

@@ -135,6 +135,10 @@ Editor for files in a project
     overflow-y:scroll;
 }
 
+.salvus-editor-pdf-preview-page-current {
+    border: 1px solid red;
+}
+
 .salvus-editor-pdf-preview-image {
     margin:1em;
     background-color:#fff;
