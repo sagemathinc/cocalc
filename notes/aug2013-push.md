@@ -1,76 +1,3 @@
-## Implementation
-
-  - page html template: with spot for plain text, page number, sha1sum,
-  - coffeescript data structure for the collection of known pages
-  - class that wraps "a remote latex/pdf doc" and has methods:
-       - pdflatex: updates number of pages, latex log, text of all pages (async, as it comes back)
-       - run custom command on file (e.g., bibtex)
-       - update given *range* of pages:
-            - generates png's remotely (with given resolution params)
-            - sets rm -rf time bomb
-            - computes and fills in sha1
-       - get url of preview of a given page
-       - get text of a given page
-       - get error log (in parsed form by page number)
-
-
-
-
-DEBUG time:
-
-  doc = new (require('editor').LatexDocument)({project_id:'e3d1ea55-b76f-484f-91b2-0062498ffc07', filename_tex:'rh/rh/rh.tex'})
-
-
-----
-
- x - change css of current page on update.
- x - make it so current prev, next, page is very high quality, but all others are low
-
- x - pdflatex -- remove tmp path and put in /tmp
- x - divide preview work into four instead of 2
- --> - add text so search works
-
-
----
-
-
-## Design: pdf *synchronization* not "download and view"
-
-  - when rendering png viewer, endow each page with a page number and sha1sum
-  - write function "visible page numbers"; if nothing displayed yet, number=1.
-  - update will:
-      - (1s)   pdflatex
-           - (1.2s) pdftotext  (in parallel; then fill in to pages when it comes back).
-      - (0.8s) use gs to generate the png's for the visible pages (3 pages):
-           e.g.,  time gs -dBATCH -dNOPAUSE -sDEVICE=png256 -sOutputFile=png/%d.png -dFirstPage=51 -dLastPage=53  -r300 rh.pdf
-           (self destruct: always launch a 30min time-delayed "rm -rf" on tmp dir?)
-      - (0.004s) compute their md5sums
-      - (.3s) grab the *ones* that changed and display them.   (time depends on network and db here -- est .1s/each)
-
-           Try the above before doing the following -- if it is fast enough, maybe we just do it on scroll?!
-
-      - (~9s) generate all png -- in parallel (divide into at least 2 ranges -- interval around current and everything else (?))
-      - compute their md5sums
-      - download only the ones that changed
-      - delete generated files
-      - remove pages that don't exist anymore
-      - fill in plain text for each page in extra info in the page dom object: div like this: "height:0px; top:30em; position:relative; opacity:0;"
-
-    And, be sure to cancel everything if another update is requested while the above is happening.
-  - forward search:
-      - icon at top
-      - create preview if never made before
-      - use diff/match/patch library to fuzzy search around cursor for text in the output and go to that page
-  - inverse search:
-      - shift click on a preview page
-      - use text there to fuzzy search in latex doc and display.
-      - estimate w/ heuristic where in page depending on location of click.
-  - errors:
-      - run latex
-      - log has lines like this:
-          ! Undefined control sequence.
-          l.222 \ladsijf
-        do some codemirror wizardy to show all errors in place in the editor.
 
 
 -----
@@ -80,29 +7,6 @@ debug: hub --> client (client=653426d1-2ccc-4027-b1b3-da44eb3119ed): {"event":"e
 
 - [ ] UX idea -- if the mouse is *moving* don't refresh the directory listing!
 
-- [ ] latex editor -- restrict page range for previews:
-
-        #!/bin/bash
-        # this function uses 3 arguments:
-        #     $1 is the first page of the range to extract
-        #     $2 is the last page of the range to extract
-        #     $3 is the input file
-        #     output file will be named "inputfile_pXX-pYY.pdf"
-        gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -dFirstPage=${1} -dLastPage=${2} -sOutputFile=${3%.pdf}-pages.pdf ${3} 2>/dev/null
-
-Observation: at a density of 100, I can put the entire 140 page book into a single png that is 1MB (using convert -append).
-
-OK, the way to do this is:
-  (1) have a *very* low rez display of the entire document, exactly as now, but much lower res.
-  (2) when a page is *visible* we download a higher res version.... and then a higher color one.
-  (3) running the gs on a range of pages is fine and scales.
-  (4) can do in parallel by breaking based on range.
-  (5) forward search/inverse search -- USE pdftotext (in apt-get install calibre) to convert entire file to text separated by pages.
-      then uses fuzzy search to go back and forth at the *page* level.
-      Also, make fulltext search (at page level) possible by overlaying invisible text.
-
-Interesting fact: changing one page of the file often only changes *that* png -- all others are identical; and with
-tex even a new para can easily be local (due to chapters, etc).  I tested this with md5's on rh.
 
 - [ ] why does log list this twice:
 debug: opts = {"project_id":"54949eee-57da-4bd7-bb43-c2602b429f9a","account_id":"25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5"}
@@ -113,9 +17,6 @@ debug: converting object of length 7898552 to hex
 debug: converted, now storing
 
 - [ ] image viewer refresh button; trivial,  might as well
-
-- [ ] next release:
-     - apt get install calibre (and add to build.py)
 
 - [ ] upgrade  to  bootstrap 3
 
@@ -1047,3 +948,106 @@ Williamf
 
 - [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
 
+- [x] next release:
+     - apt get install calibre (and add to build.py)
+
+
+## Implementation
+
+  - page html template: with spot for plain text, page number, sha1sum,
+  - coffeescript data structure for the collection of known pages
+  - class that wraps "a remote latex/pdf doc" and has methods:
+       - pdflatex: updates number of pages, latex log, text of all pages (async, as it comes back)
+       - run custom command on file (e.g., bibtex)
+       - update given *range* of pages:
+            - generates png's remotely (with given resolution params)
+            - sets rm -rf time bomb
+            - computes and fills in sha1
+       - get url of preview of a given page
+       - get text of a given page
+       - get error log (in parsed form by page number)
+
+
+
+
+DEBUG time:
+
+  doc = new (require('editor').LatexDocument)({project_id:'e3d1ea55-b76f-484f-91b2-0062498ffc07', filename_tex:'rh/rh/rh.tex'})
+
+
+----
+
+ x - change css of current page on update.
+ x - make it so current prev, next, page is very high quality, but all others are low
+
+ x - pdflatex -- remove tmp path and put in /tmp
+ x - divide preview work into four instead of 2
+ --> - add text so search works
+
+
+---
+
+
+## Design: pdf *synchronization* not "download and view"
+
+  - when rendering png viewer, endow each page with a page number and sha1sum
+  - write function "visible page numbers"; if nothing displayed yet, number=1.
+  - update will:
+      - (1s)   pdflatex
+           - (1.2s) pdftotext  (in parallel; then fill in to pages when it comes back).
+      - (0.8s) use gs to generate the png's for the visible pages (3 pages):
+           e.g.,  time gs -dBATCH -dNOPAUSE -sDEVICE=png256 -sOutputFile=png/%d.png -dFirstPage=51 -dLastPage=53  -r300 rh.pdf
+           (self destruct: always launch a 30min time-delayed "rm -rf" on tmp dir?)
+      - (0.004s) compute their md5sums
+      - (.3s) grab the *ones* that changed and display them.   (time depends on network and db here -- est .1s/each)
+
+           Try the above before doing the following -- if it is fast enough, maybe we just do it on scroll?!
+
+      - (~9s) generate all png -- in parallel (divide into at least 2 ranges -- interval around current and everything else (?))
+      - compute their md5sums
+      - download only the ones that changed
+      - delete generated files
+      - remove pages that don't exist anymore
+      - fill in plain text for each page in extra info in the page dom object: div like this: "height:0px; top:30em; position:relative; opacity:0;"
+
+    And, be sure to cancel everything if another update is requested while the above is happening.
+  - forward search:
+      - icon at top
+      - create preview if never made before
+      - use diff/match/patch library to fuzzy search around cursor for text in the output and go to that page
+  - inverse search:
+      - shift click on a preview page
+      - use text there to fuzzy search in latex doc and display.
+      - estimate w/ heuristic where in page depending on location of click.
+  - errors:
+      - run latex
+      - log has lines like this:
+          ! Undefined control sequence.
+          l.222 \ladsijf
+        do some codemirror wizardy to show all errors in place in the editor.
+
+
+
+- [ ] latex editor -- restrict page range for previews:
+
+        #!/bin/bash
+        # this function uses 3 arguments:
+        #     $1 is the first page of the range to extract
+        #     $2 is the last page of the range to extract
+        #     $3 is the input file
+        #     output file will be named "inputfile_pXX-pYY.pdf"
+        gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -dFirstPage=${1} -dLastPage=${2} -sOutputFile=${3%.pdf}-pages.pdf ${3} 2>/dev/null
+
+Observation: at a density of 100, I can put the entire 140 page book into a single png that is 1MB (using convert -append).
+
+OK, the way to do this is:
+  (1) have a *very* low rez display of the entire document, exactly as now, but much lower res.
+  (2) when a page is *visible* we download a higher res version.... and then a higher color one.
+  (3) running the gs on a range of pages is fine and scales.
+  (4) can do in parallel by breaking based on range.
+  (5) forward search/inverse search -- USE pdftotext (in apt-get install calibre) to convert entire file to text separated by pages.
+      then uses fuzzy search to go back and forth at the *page* level.
+      Also, make fulltext search (at page level) possible by overlaying invisible text.
+
+Interesting fact: changing one page of the file often only changes *that* png -- all others are identical; and with
+tex even a new para can easily be local (due to chapters, etc).  I tested this with md5's on rh.
