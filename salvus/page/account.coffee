@@ -89,9 +89,9 @@ $("#account-settings-tab").find("form").click((event) -> return false)
 #############
 $("#account-settings-autosave-slider").slider
     animate : true
-    min     : 0
+    min     : 10
     max     : 300
-    step    : 15
+    step    : 10
     value   : 30
     change  : (event, ui) ->
         $("#account-settings-autosave").val(ui.value)
@@ -113,6 +113,10 @@ $("#account-settings-autosave").keyup () ->
     # Verify that input makes sense
 
     # Move slider as best we can
+    if s <= 10
+        s = 10
+    if s >= 300
+        s = 300
     $("#account-settings-autosave-slider").slider('value', s)
 
     # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
