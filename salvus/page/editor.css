@@ -135,10 +135,6 @@ Editor for files in a project
     overflow-y:scroll;
 }
 
-.salvus-editor-pdf-preview-page-current {
-    border: 1px solid red;
-}
-
 .salvus-editor-pdf-preview-image {
     margin:1em;
     background-color:#fff;
@@ -147,7 +143,11 @@ Editor for files in a project
     box-shadow: 5px 5px 5px 5px #888;
 }
 
-
+.salvus-editor-pdf-preview-spinner {
+    position:absolute;
+    left:10em;
+    top:10em;
+}
 
 
 .salvus-editor-search-openfiles-input {

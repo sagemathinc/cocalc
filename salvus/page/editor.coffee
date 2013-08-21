@@ -530,7 +530,6 @@ class exports.Editor
             filename    : required
             content     : undefined
             extra_opts  : required
-        #console.log('create_editor: ', opts)
 
         if editor_name == 'codemirror'
             if filename.slice(filename.length-7) == '.sagews'
@@ -1239,7 +1238,6 @@ class CodeMirrorEditor extends FileEditor
 
     show: () =>
         if not (@element? and @codemirror?)
-            #console.log('skipping show because things not defined yet.')
             return
 
         if @syncdoc?
@@ -1382,7 +1380,6 @@ class PDFLatexDocument
 
     page: (n) =>
         if not @_pages[n]?
-            console.log("making page #{n}")
             @_pages[n] = {}
         return @_pages[n]
 
@@ -1473,7 +1470,6 @@ class PDFLatexDocument
             (cb) =>
                 tmp_dir @project_id, @path, (err, _tmp) =>
                     tmp = _tmp
-                    console.log("tmp dir = ", tmp)
                     cb(err)
             (cb) =>
                 if @image_type == "png"
@@ -1498,13 +1494,12 @@ class PDFLatexDocument
                     cb("unknown image type #{@image_type}")
                     return
                 
-                console.log('gs ' + args.join(" "))
+                #console.log('gs ' + args.join(" "))
                 @_exec
                     command : 'gs'
                     args    : args
                     err_on_exit : true
                     cb      : (err, output) ->
-                        console.log(err, output)
                         cb(err)
                     
             # get the new sha1 hashes
@@ -1516,16 +1511,12 @@ class PDFLatexDocument
                     cb      : (err, output) =>
                         if err
                             cb(err); return
-                        console.log(output.stdout.split('\n'))
-                        
                         for line in output.stdout.split('\n')
                             v = line.split(' ')
-                            console.log("v = ", v)
                             if v.length > 1
                                 try
                                     filename = v[2]
                                     n = parseInt(filename.split('.')[0]) + opts.first_page - 1
-                                    console.log(@page(n), v[0])
                                     if @page(n).sha1 != v[0]
                                         sha1_changed.push( page_number:n, sha1:v[0], filename:filename )
                                 catch e
@@ -1534,16 +1525,14 @@ class PDFLatexDocument
                         
             # get the images whose sha1's changed
             (cb) =>
-                console.log("sha1_changed = ", sha1_changed)
+                #console.log("sha1_changed = ", sha1_changed)
                 update = (obj, cb) =>
-                    console.log("obj = ", obj)
                     n = obj.page_number
                     salvus_client.read_file_from_project
                         project_id : @project_id
                         path       : "#{@path}/#{tmp}/#{obj.filename}"
                         timeout    : 5  # a single page shouldn't take long
                         cb         : (err, result) =>
-                            console.log(result)
                             if err
                                 cb(err)
                             else if not result.url?
@@ -1566,11 +1555,8 @@ exports.PDFLatexDocument = PDFLatexDocument
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
         @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"png")
-                                     
-        @window_size = opts.window_size
-        if not @window_size?
-            @window_size = 10
-            
+
+        @_updating = false
         @width_percent = 90
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
@@ -1581,23 +1567,19 @@ class PDF_Preview extends FileEditor
         @file = s.tail
         @element.maxheight()
         @last_page = 0        
-        @output = @element.find(".salvus-editor-pdf-preview-page")        
+        @output = @element.find(".salvus-editor-pdf-preview-page")   
         
+        @_needs_update = true
         timeout = undefined
         @output.on 'scroll', () =>
-            clearTimeout(timeout)
-            f = () =>
-                @update()
-            timeout = setTimeout(f, 1000)
-        timeout2 = undefined
-        
-        @output.on 'scroll', () =>
-            clearTimeout(timeout2)
-            f = () =>
-                @update (err) =>
+            @_needs_update = true
+        f = () =>
+            if @_needs_update
+                @_needs_update = false
+                @update cb:(err) =>
                     if err
-                        setTimeout((() => @update()), 10000)
-            timeout2 = setTimeout(f, 10000)
+                        @_needs_update = true
+        setInterval(f, 1000)
         
     focus: () =>
         @element.maxheight()
@@ -1620,26 +1602,19 @@ class PDF_Preview extends FileEditor
 
     update: (opts={}) =>
         opts = defaults opts,
-            window_size : @window_size
+            window_size : 1
             cb          : undefined
-        console.log("update #{opts.window_size}")
-        if @_updating
-            console.log("already updating...")
-            opts.cb?("updating already")
-            return
-        if not @_done_before
-            opts.window_size = 999
             
+        if @_updating
+            opts.cb?("already updating")  # don't change string
+            return
+            
+        @spinner.show().spin(true)
         @_updating = true
         @output.maxheight()
         @output.width(@element.width())
         
         n = @current_page()
-        @output.children().removeClass('salvus-editor-pdf-preview-page-current')
-        @output.find(".salvus-editor-pdf-preview-page-#{n}").addClass('salvus-editor-pdf-preview-page-current')
-        
-        first_page = Math.max(1, n - opts.window_size)
-        last_page  = n + opts.window_size
         
         f = (opts, cb) =>
         
@@ -1652,21 +1627,28 @@ class PDF_Preview extends FileEditor
                     g = (n, cb) =>
                         @_update_page(n, cb)
                     async.map(changed_pages, g, cb)
-                    
             @pdflatex.update_images(opts)
-                    
-        hq_window = 2
-        async.parallel([
-            (cb) =>
-                f({first_page : n-hq_window, last_page  : n+hq_window, resolution:'450', device:'16m', png_downscale:2}, cb)
-            (cb) =>
-                f({first_page : first_page, last_page:n-hq_window-1, resolution:'150', device:'gray', png_downscale:1}, cb)
-            (cb) =>
-                f({first_page : n+hq_window+1, last_page:last_page, resolution:'150', device:'gray', png_downscale:1}, cb)
-        ], (err) =>
-            @_updating = false        
-            opts.cb?(err)
-        )
+                            
+        hq_window = opts.window_size
+        if n == 1
+            hq_window *= 2
+
+        f {first_page : n-hq_window, last_page  : n+hq_window, resolution:'600', device:'16m', png_downscale:3}, (err) =>
+            if err
+                @spinner.spin(false).hide()
+                @_updating = false
+                opts.cb?(err)
+            else
+                async.parallel([
+                    (cb) =>
+                        f({first_page : 1, last_page:n-hq_window-1, resolution:'150', device:'gray', png_downscale:1}, cb)
+                    (cb) =>
+                        f({first_page : n+hq_window+1, last_page:99999, resolution:'150', device:'gray', png_downscale:1}, cb)
+                ], (err) =>
+                    @spinner.spin(false).hide()
+                    @_updating = false
+                    opts.cb?(err)
+                )
                 
                     
     # update page n based on currently computed data.
@@ -1812,12 +1794,15 @@ class LatexEditor extends FileEditor
 
         preview_button = @element.find("a[href=#png-preview]")
         preview_button.click () =>
-            preview_button.icon_spin(true)
-            @show_page('png-preview')
-            @preview.pdflatex.update_pdf () =>            
-                @preview.update
-                    cb: () =>
-                        preview_button.icon_spin(false)
+            @editor.save @filename, (err) => 
+                if err
+                    return
+                preview_button.icon_spin(true)            
+                @show_page('png-preview')
+                @preview.pdflatex.update_pdf () =>            
+                    @preview.update
+                        cb: (err) =>
+                            preview_button.icon_spin(false)
             return false
 
         @element.find("a[href=#pdf-preview]").click () =>
@@ -1964,13 +1949,11 @@ class Terminal extends FileEditor
                     @connect_to_server()
 
     connect_to_server: (cb) =>
-        #console.log("connect_to_server")
         mesg =
             timeout    : 30  # just for making the connection; not the timeout of the session itself!
             type       : 'console'
             project_id : @editor.project_id
             cb : (err, session) =>
-                #console.log(err, session)
                 if err
                     alert_message(type:'error', message:err)
                     cb?(err)
@@ -1987,11 +1970,9 @@ class Terminal extends FileEditor
         path = misc.path_split(@filename).head
         mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path}
         if @opts.session_uuid?
-            #console.log("Connecting to an existing session.")
             mesg.session_uuid = @opts.session_uuid
             salvus_client.connect_to_session(mesg)
         else
-            #console.log("Opening a new session at #{path}")
             salvus_client.new_session(mesg)
 
         # TODO
