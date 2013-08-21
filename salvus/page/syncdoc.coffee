@@ -97,7 +97,7 @@ class DiffSyncDoc
                 s = @string()
                 x = diffsync.dmp.patch_apply(p, s)
                 new_value = x[0]
-    
+
                 next_pos = (val, pos) ->
                     # This functions answers the question:
                     # If you were to insert the string val at the CodeMirror position pos
@@ -108,7 +108,7 @@ class DiffSyncDoc
                         return {line:pos.line, ch:pos.ch+val.length}
                     else
                         return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
-    
+
                 pos = {line:0, ch:0}  # start at the beginning
                 diff = diffsync.dmp.diff_main(s, new_value)
                 for chunk in diff
@@ -212,7 +212,10 @@ class AbstractSynchronizedDoc extends EventEmitter
     __receive_broadcast: (mesg) =>
         if mesg.session_uuid == @session_uuid
             if mesg.mesg.event == 'update_session_uuid'
-                @session_uuid = mesg.mesg.new_session_uuid
+                # This just doesn't work yet -- not really implemented in the hub -- so we force
+                # a full reconnect, which is safe.
+                #@session_uuid = mesg.mesg.new_session_uuid
+                @connect()
 
     __reconnect: () =>
         # The main websocket to the remote server died then came back, so we
@@ -649,7 +652,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 when 'cursor'
                     @_receive_cursor(mesg)
                 when 'update_session_uuid'
-                    @session_uuid = mesg.mesg.new_session_uuid
+                    # This just doesn't work yet -- not really implemented in the hub -- so we force
+                    # a full reconnect, which is safe.
+
+                    #@session_uuid = mesg.mesg.new_session_uuid
+                    @connect()
 
     _receive_cursor: (mesg) =>
         # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really

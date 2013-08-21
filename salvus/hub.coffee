@@ -1935,6 +1935,8 @@ class CodeMirrorSession
             path         : required
             cb           : required
 
+        console.log("creating a CodeMirrorSession: #{opts.project_id}, #{opts.path}")
+
         @local_hub    = opts.local_hub
         @project_id   = opts.project_id
         @path         = opts.path
@@ -1984,6 +1986,7 @@ class CodeMirrorSession
 
                     # Reconnect to the upstream (local_hub) server
                     @diffsync_server = new diffsync.DiffSync(doc:resp.content)
+                    @set_content(resp.content)
 
                     if @_last_sync?
                         # applying missed patches to the new upstream version that we just got from the hub.
@@ -1993,13 +1996,7 @@ class CodeMirrorSession
                         @_last_sync   = resp.content
 
                     @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
-
-                    #
-                    # TODO: apply lost changes!!
-                    #
-                    @set_content(resp.content)
-
-                    cb()
+                    @sync(cb)
 
     _apply_patch_to_live: (patch) =>
         @diffsync_server._apply_edits_to_live(patch)
@@ -2111,17 +2108,17 @@ class CodeMirrorSession
                 ds.remote.send_mesg(mesg)
 
     _sync: (cb) =>    # cb(err)
-        winston.debug("codemirror session -- syncing with a local hub")
+        winston.debug("codemirror session -- syncing with local hub")
         @_sync_lock = true
         before = @diffsync_server.live
         @diffsync_server.push_edits (err) =>
             after = @diffsync_server.live
-            @set_content(after)
             if err
+                @set_content(before)
                 # We do *NOT* remove the sync_lock in this branch; only do that after a successful sync, since
                 # otherwise clients think they have successfully sync'd with the hub, but when the hub resets,
                 # the clients end up doing the wrong thing.
-                winston.debug("codemirror session local hub sync error -- #{err}")
+                winston.debug("codemirror session local hub sync error -- #{err}; #{before != after}")
                 if typeof(err) == 'string'
                     err = err.toLowerCase()
                     if err.indexOf('retry') != -1
@@ -2131,13 +2128,14 @@ class CodeMirrorSession
                         cb(err); return
                     else if err.indexOf("unknown") != -1 or err.indexOf('not registered') != -1
                         winston.debug("sync: reconnecting...")
-                        @_connect () =>
+                        @connect () =>
                             cb(err); return # still an error even if connect works.
                     else if err.indexOf("timed out") != -1
                         @local_hub.restart () =>
                             cb(err); return
                 cb(err)
             else
+                @set_content(after)
                 winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
                 @_sync_lock = false
                 @_last_sync = after # what was the last successful sync with upstream.

@@ -137,6 +137,11 @@ debug: converted, now storing
 ---
 Ideas:
 
+- [ ] in syncdoc:
+                    # TODO -- this will work when the hub
+                    # makes each client session work independently instead of locking them all together...
+                    #@session_uuid = mesg.mesg.new_session_uuid
+
 - [ ] use http://www.bootstrap-switch.org/ to provide a toggle of this style when viewing images: max-width: 100%;
 
 - [ ] the Recent display is coming up empty again often.
