@@ -23,10 +23,10 @@ DEBUG time:
   
 ----
 
-   - change css of current page on update.
-   - make it so current prev, next, page is very high quality, but all others are low
+ x - change css of current page on update.
+ x - make it so current prev, next, page is very high quality, but all others are low
    
-
+ - add text so search works
 
 
 ---

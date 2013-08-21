@@ -196,8 +196,8 @@ Editor for files in a project
     <!-- Templates for the embedded PDF previewer: just uses the built-in renderer; can't cope with file updates, inverse search, etc. -->
     <div class="salvus-editor-pdf-preview-embed">
         <div class="salvus-editor-pdf-preview-embed-spinner hide"></div>
-        <a class="btn" href="#refresh"><i class="icon-refresh"></i>  Refresh</a>
-        <div class="salvus-editor-pdf-title pull-right"> The title </div>
+        <a class="btn" href="#refresh"><i class="icon-refresh"></i><span class="big-only"> Refresh</span></a>
+        <div class="salvus-editor-pdf-title pull-right big-only"> The title </div>
         <div class="salvus-editor-pdf-preview-embed-page">
         </div>
     </div>
@@ -205,11 +205,11 @@ Editor for files in a project
     <!-- Template for the LaTeX editor -->
     <div class="salvus-editor-latex">
         <div class="btn-group salvus-editor-latex-buttons pull-right">
-            <a href="#latex_editor" class="btn btn-primary"><i class="icon-file-text"></i> Edit</a>
-            <a href="#png-preview" class="btn"><i class="icon-picture"></i> Preview</a>
-            <a href="#latex" class="btn"><i class="icon-bolt"></i> LaTeX</a>
-            <a href="#pdf-preview" class="btn"><i class="icon-eye-open"></i> View PDF</a>
-            <a href="#pdf-download" class="btn  succcess  "><i class="icon-download-alt"></i> Download</a>
+            <a href="#latex_editor" class="btn btn-primary"><i class="icon-file-text"></i> File</a>
+            <a href="#png-preview" class="btn"><i class="icon-picture"></i><span class="big-only"> Preview</span></a>
+            <a href="#latex" class="btn"><i class="icon-bolt"></i><span class="big-only"> Run LaTeX</span></a>
+            <a href="#pdf-preview" class="btn"><i class="icon-eye-open"></i><span class="big-only"> View PDF</span></a>
+            <a href="#pdf-download" class="btn  succcess  "><i class="icon-download-alt"></i><span class="big-only"> Download PDF</span></a>
         </div>
         <div class="salvus-editor-latex-latex_editor">
         </div>
@@ -219,7 +219,8 @@ Editor for files in a project
         <div class="salvus-editor-latex-png-preview hide">
         </div>
         <div class="salvus-editor-latex-log hide">
-            <textarea rows=20 cols=100 readonly style="width:100%; background-color:#fff;"></textarea>
+            <textarea rows=20 cols=100 class="well boxsizingBorder" readonly
+                      style="background-color: #eee; width:100%;"></textarea>
         </div>
     </div>
 

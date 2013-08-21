@@ -1402,9 +1402,12 @@ class PDFLatexDocument
             args    : ['-interaction=nonstopmode', @filename_tex]
             timeout : 15
             cb      : (err, output) =>
-                @latex_log = output.stdout + '\n\n' + output.stderr
-                @_parse_latex_log(@latex_log)
-                cb?(err)
+                if err
+                    cb?(err)
+                else
+                    @latex_log = output.stdout + '\n\n' + output.stderr
+                    @_parse_latex_log(@latex_log)
+                    cb?(false, @latex_log)
 
     _parse_latex_log: (log) =>
         # todo -- parse through text file of log putting the errors in the corresponding @pages dict.
@@ -1868,38 +1871,20 @@ class LatexEditor extends FileEditor
     run_latex: (cb) =>
         button = @element.find("a[href=#latex]")
         button.icon_spin(true)
-        async.series([
-            (cb) =>
-                @save(cb)
-            (cb) =>
-                # NOTE: a lot of filenames aren't really allowed with latex, which sucks. See
-                #    http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames
-                salvus_client.exec
-                    project_id : @editor.project_id
-                    path       : @_path
-                    command    : 'pdflatex'
-                    args       : ['-interaction=nonstopmode', @_target]
-                    timeout    : 10
-                    err_on_exit : false
-                    cb         : (err, output) =>
-                        button.icon_spin(false)
-                        if err
-                            alert_message(type:"error", message:err)
-                            cb(err)
-                        else
-                            if output.stdout.indexOf("I can't find file") != -1
-                                @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
-                            else
-                                @log.find("div").empty()
-
-                            @log.find("textarea").text(output.stdout + '\n\n' + output.stderr)
-                            # Scroll to the bottom of the textarea
-                            f = @log.find('textarea')
-                            f.scrollTop(f[0].scrollHeight)
-                            cb()
-        ], (err) =>
-            cb?(err)
-        )
+        @log.find("textarea").text("Running latex...")
+        @preview.pdflatex.update_pdf (err, log) =>  
+            button.icon_spin(false)
+            if err
+                log = err
+            if log.indexOf("I can't find file") != -1
+                @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
+            else
+                @log.find("div").empty()
+            @log.find("textarea").text(log)
+            # Scroll to the bottom of the textarea
+            f = @log.find('textarea')
+            f.scrollTop(f[0].scrollHeight)
+            cb()            
 
     download_pdf: () =>
         button = @element.find("a[href=#pdf-download]")
