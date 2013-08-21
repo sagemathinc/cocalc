@@ -12,23 +12,23 @@
        - get url of preview of a given page
        - get text of a given page
        - get error log (in parsed form by page number)
-       
-       
-       
 
-DEBUG time: 
+
+
+
+DEBUG time:
 
   doc = new (require('editor').LatexDocument)({project_id:'e3d1ea55-b76f-484f-91b2-0062498ffc07', filename_tex:'rh/rh/rh.tex'})
-  
-  
+
+
 ----
 
  x - change css of current page on update.
  x - make it so current prev, next, page is very high quality, but all others are low
-   
+
  x - pdflatex -- remove tmp path and put in /tmp
- --> - divide preview work into four instead of 2
- - add text so search works
+ x - divide preview work into four instead of 2
+ --> - add text so search works
 
 
 ---
@@ -74,7 +74,9 @@ DEBUG time:
 
 
 -----
-- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
+- [ ] client doesn't do anything sensible in response to this from hub:
+debug: hub --> client (client=653426d1-2ccc-4027-b1b3-da44eb3119ed): {"event":"error","id":"2bd05e47-887b-4681-a390-e9fe9133c4af","error":"user must be signed in before accessing projects"}
+
 
 - [ ] UX idea -- if the mouse is *moving* don't refresh the directory listing!
 
@@ -1042,3 +1044,6 @@ the VM's running projects):
     restart your project server (and worksheet server) to see this feature.
 
 Williamf
+
+- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
+

@@ -646,7 +646,7 @@ class exports.Editor
 
         link_bar.append(link)
         @resize_open_file_tabs()
-        
+
     open_file_tabs: () =>
         x = []
         file_tabs = false
@@ -658,7 +658,7 @@ class exports.Editor
             else if file_tabs and t.hasClass("salvus-editor-filename-pill")
                 x.push(t)
         return x
-    
+
     close_all_open_files: () =>
         for filename, tab of @tabs
             tab.close_editor()
@@ -1371,11 +1371,11 @@ class PDFLatexDocument
             project_id : required
             filename   : required
             image_type : 'png'  # 'png' or 'jpg'
-            
+
         @project_id = opts.project_id
         @filename   = opts.filename
         @image_type = opts.image_type
-        
+
         @_pages     = {}
         @num_pages  = 0
         @latex_log  = ''
@@ -1383,7 +1383,7 @@ class PDFLatexDocument
         @path = s.head
         if @path == ''
             @path = './'
-        @filename_tex = s.tail            
+        @filename_tex = s.tail
         @filename_pdf = @filename_tex.slice(0, @filename_tex.length-3) + 'pdf'
 
     page: (n) =>
@@ -1445,6 +1445,10 @@ class PDFLatexDocument
         # todo -- parse through the text file putting the pages in the correspondings @pages dict.
         # for now... for debugging.
         @_text = text
+        n = 1
+        for t in text.split('\x0c')  # split on form feed
+            @page(n).text = t
+            n += 1
 
     # Updates previews for a given range of pages.
     # This computes images on backend, and fills in the sha1 hashes of @pages.
@@ -1459,16 +1463,16 @@ class PDFLatexDocument
             resolution : '50'      # 'number' or 'number1xnumber2'
             device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'  (ignored if image_type='jpg')
             png_downscale : 2      # ignored if image type is jpg
-            jpeg_quality  : 75     # jpg only -- scale of 1 to 100  
+            jpeg_quality  : 75     # jpg only -- scale of 1 to 100
 
         if not opts.last_page?
             opts.last_page = @num_pages
             if opts.last_page == 0
                 opts.last_page = 99999
-                
+
         if opts.first_page <= 0
             opts.first_page = 1
-                
+
         if opts.last_page < opts.first_page
             # easy peasy
             opts.cb?(false,[])
@@ -1487,7 +1491,7 @@ class PDFLatexDocument
                     args = ["-r#{opts.resolution}",
                                '-dBATCH', '-dNOPAUSE',
                                "-sDEVICE=png#{opts.device}",
-                               "-sOutputFile=#{tmp}/%d.png",                               
+                               "-sOutputFile=#{tmp}/%d.png",
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
                                "-dDownScaleFactor=#{opts.png_downscale}",
@@ -1496,15 +1500,15 @@ class PDFLatexDocument
                     args = ["-r#{opts.resolution}",
                                '-dBATCH', '-dNOPAUSE',
                                '-sDEVICE=jpeg',
-                               "-sOutputFile=#{tmp}/%d.jpg",                               
+                               "-sOutputFile=#{tmp}/%d.jpg",
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
                                "-dJPEGQ=#{opts.jpeg_quality}",
-                               @filename_pdf] 
+                               @filename_pdf]
                 else
                     cb("unknown image type #{@image_type}")
                     return
-                
+
                 #console.log('gs ' + args.join(" "))
                 @_exec
                     command : 'gs'
@@ -1512,7 +1516,7 @@ class PDFLatexDocument
                     err_on_exit : true
                     cb      : (err, output) ->
                         cb(err)
-                    
+
             # get the new sha1 hashes
             (cb) =>
                 @_exec
@@ -1533,7 +1537,7 @@ class PDFLatexDocument
                                 catch e
                                     console.log("sha1sum: error parsing line=#{line}")
                         cb()
-                        
+
             # get the images whose sha1's changed
             (cb) =>
                 #console.log("sha1_changed = ", sha1_changed)
@@ -1561,8 +1565,8 @@ class PDFLatexDocument
         )
 
 # FOR debugging only
-exports.PDFLatexDocument = PDFLatexDocument        
-        
+exports.PDFLatexDocument = PDFLatexDocument
+
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
         @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"png")
@@ -1577,9 +1581,9 @@ class PDF_Preview extends FileEditor
             @path = './'
         @file = s.tail
         @element.maxheight()
-        @last_page = 0        
-        @output = @element.find(".salvus-editor-pdf-preview-page")   
-        
+        @last_page = 0
+        @output = @element.find(".salvus-editor-pdf-preview-page")
+
         @_needs_update = true
         timeout = undefined
         @output.on 'scroll', () =>
@@ -1591,16 +1595,16 @@ class PDF_Preview extends FileEditor
                     if err
                         @_needs_update = true
         @_f = setInterval(f, 1000)
-        
+
     remove: () =>
         clearInterval(@_f)
         @element.remove()
-        
+
     focus: () =>
         @element.maxheight()
         @output.height(@element.height())
         @output.width(@element.width())
-        
+
     current_page: () =>
         for _page in @output.children()
             page = $(_page)
@@ -1619,21 +1623,27 @@ class PDF_Preview extends FileEditor
         opts = defaults opts,
             window_size : 1
             cb          : undefined
-            
+
         if @_updating
             opts.cb?("already updating")  # don't change string
             return
-            
+
         @spinner.show().spin(true)
         @_updating = true
+
         @output.maxheight()
         @output.width(@element.width())
-        
+
+        # we do this in parallel to any image updating below -- it takes about a second for a 100 page file...
+        @pdflatex.update_text (err) =>
+            #if not err
+
+
         n = @current_page()
-        
+
         f = (opts, cb) =>
-        
-            opts.cb = (err, changed_pages) =>                
+
+            opts.cb = (err, changed_pages) =>
                 if err
                     cb(err)
                 else if changed_pages.length == 0
@@ -1643,7 +1653,7 @@ class PDF_Preview extends FileEditor
                         @_update_page(n, cb)
                     async.map(changed_pages, g, cb)
             @pdflatex.update_images(opts)
-                            
+
         hq_window = opts.window_size
         if n == 1
             hq_window *= 2
@@ -1656,7 +1666,7 @@ class PDF_Preview extends FileEditor
             else
                 g = (obj, cb) =>
                     f({first_page:obj[0], last_page:obj[1], resolution:'150', device:'gray', png_downscale:1}, cb)
-                
+
                 k1 = Math.round((1 + n-hq_window-1)/2)
                 v = [[1, k1], [k1+1, n-hq_window-1]]
                 if @pdflatex.num_pages
@@ -1664,15 +1674,15 @@ class PDF_Preview extends FileEditor
                     v.push([n+hq_window+1,k2])
                     v.push([k2,@pdflatex.num_pages])
                 else
-                    v.push([n+hq_window+1,999999])  
+                    v.push([n+hq_window+1,999999])
                 async.map v, g, (err) =>
                     @spinner.spin(false).hide()
                     @_updating = false
                     opts.cb?(err)
-                
-                    
+
+
     # update page n based on currently computed data.
-    _update_page: (n, cb) =>    
+    _update_page: (n, cb) =>
         p = @pdflatex.page(n)
         url = p.url
         if not url?
@@ -1687,21 +1697,22 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
-                    page.data("number", m)                    
+                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div style='text-align:left;margin-left: 1em; margin-right: 1em; color:#8a8a8a;' class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    page.data("number", m)
                     @output.append(page)
                 @last_page = n
             page.find("img").attr('src', url).css('width':"#{@width_percent}%")
+            page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
-        
-            
+
+
     show: () =>
         @element.show()
         @focus()
 
     hide: () =>
         @element.hide()
-        
+
 
 class PDF_PreviewEmbed extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
@@ -1802,7 +1813,7 @@ class LatexEditor extends FileEditor
         @log = @element.find(".salvus-editor-latex-log")
 
         @_init_buttons()
-        
+
     remove: () =>
         @element.remove()
         @preview.remove()
@@ -1819,12 +1830,12 @@ class LatexEditor extends FileEditor
 
         preview_button = @element.find("a[href=#png-preview]")
         preview_button.click () =>
-            @editor.save @filename, (err) => 
+            @editor.save @filename, (err) =>
                 if err
                     return
-                preview_button.icon_spin(true)            
+                preview_button.icon_spin(true)
                 @show_page('png-preview')
-                @preview.pdflatex.update_pdf () =>            
+                @preview.pdflatex.update_pdf () =>
                     @preview.update
                         cb: (err) =>
                             preview_button.icon_spin(false)
@@ -1894,7 +1905,7 @@ class LatexEditor extends FileEditor
         button = @element.find("a[href=#latex]")
         button.icon_spin(true)
         @log.find("textarea").text("Running latex...")
-        @preview.pdflatex.update_pdf (err, log) =>  
+        @preview.pdflatex.update_pdf (err, log) =>
             button.icon_spin(false)
             if err
                 log = err
@@ -1906,7 +1917,7 @@ class LatexEditor extends FileEditor
             # Scroll to the bottom of the textarea
             f = @log.find('textarea')
             f.scrollTop(f[0].scrollHeight)
-            cb()            
+            cb()
 
     download_pdf: () =>
         button = @element.find("a[href=#pdf-download]")

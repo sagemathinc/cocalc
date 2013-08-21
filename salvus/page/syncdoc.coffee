@@ -21,8 +21,6 @@ their 900 clients in parallel.
 
 ###
 
-
-
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
