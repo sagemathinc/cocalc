@@ -26,6 +26,8 @@ DEBUG time:
  x - change css of current page on update.
  x - make it so current prev, next, page is very high quality, but all others are low
    
+ x - pdflatex -- remove tmp path and put in /tmp
+ - divide preview work into four instead of 2
  - add text so search works
 
 

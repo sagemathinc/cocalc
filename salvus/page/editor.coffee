@@ -1471,8 +1471,8 @@ class PDFLatexDocument
         changed_pages = []
         async.series([
             (cb) =>
-                tmp_dir @project_id, @path, (err, _tmp) =>
-                    tmp = _tmp
+                tmp_dir @project_id, "/tmp", (err, _tmp) =>
+                    tmp = "/tmp/#{_tmp}"
                     cb(err)
             (cb) =>
                 if @image_type == "png"
@@ -1510,7 +1510,7 @@ class PDFLatexDocument
                 @_exec
                     command : "sha1sum *.png *.jpg"
                     bash    : true
-                    path    : "#{@path}/#{tmp}"
+                    path    : tmp
                     cb      : (err, output) =>
                         if err
                             cb(err); return
@@ -1533,7 +1533,7 @@ class PDFLatexDocument
                     n = obj.page_number
                     salvus_client.read_file_from_project
                         project_id : @project_id
-                        path       : "#{@path}/#{tmp}/#{obj.filename}"
+                        path       : "#{tmp}/#{obj.filename}"
                         timeout    : 5  # a single page shouldn't take long
                         cb         : (err, result) =>
                             if err
@@ -1548,7 +1548,7 @@ class PDFLatexDocument
                                 cb()
                 async.mapSeries(sha1_changed, update, cb)
         ], (err) =>
-            remove_tmp_dir(@project_id, @path, tmp_dir)
+            remove_tmp_dir(@project_id, "/", tmp)
             opts.cb?(err, changed_pages)
         )
 
