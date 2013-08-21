@@ -194,9 +194,23 @@ $("a[href=#link-terms]").click (event) ->
     $("#link-terms").modal('show')
     return false
 
-$("#create_account-button").click((event) ->
+passwd_keyup = (elt) ->
+    elt = $("#create_account-retype_password")
+    if elt.val() != $("#create_account-password").val()
+        elt.css('background-color':'rgb(255, 220, 218);')
+    else
+        elt.css('background-color':'#ffffff')
 
-    _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
+$("#create_account-retype_password").keyup(passwd_keyup)
+$("#create_account-password").keyup(passwd_keyup)
+
+
+
+$("#create_account-button").click (event) ->
+
+    if $("#create_account-retype_password").val() != $("#create_account-password").val()
+        bootbox.alert("Passwords don't match.")
+        return false
 
     destroy_create_account_tooltips()
 
@@ -224,6 +238,7 @@ $("#create_account-button").click((event) ->
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                     ).popover("show").focus( () -> $(@).popover("destroy"))
             when "signed_in"
+                _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
                 alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
                 signed_in(mesg)
             else
@@ -231,7 +246,8 @@ $("#create_account-button").click((event) ->
                 alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
     salvus_client.create_account(opts)
-)
+    return false
+
 
 
 # Enhance HTML element to display feedback about a choice of password
