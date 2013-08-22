@@ -939,7 +939,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             j -= 1
         k = n - (m - (j + 1))
         if k > 0
+            cursor = cm.getCursor()
             cm.replaceRange(Array(k+1).join('\n'), {ch:0, line:m} )
+            cm.setCursor(cursor)
 
     process_sage_updates: (start) =>
         #console.log("processing Sage updates")
