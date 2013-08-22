@@ -1,4 +1,8 @@
+- [x] (0:10) last line auto-adjust bug (Grout, https://mail.google.com/mail/u/0/?shva=1#search/cloud/140a533bb78f748b)
 
+--> - [ ] insert new cell should put cursor in that cell.
+
+- [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
 
 -----
 - [ ] client doesn't do anything sensible in response to this from hub:
@@ -18,7 +22,7 @@ debug: converted, now storing
 
 - [ ] image viewer refresh button; trivial,  might as well
 
-- [ ] upgrade  to  bootstrap 3
+- [ ] upgrade  to  bootstrap 3: see <http://code.divshot.com/bootstrap3_upgrader/>
 
 - [ ] a release at some point
       - upgrade haproxy in edge nodes

@@ -1470,7 +1470,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @set_cell_flagstring(marker, s)
 
     insert_new_cell: (line) =>
-        @codemirror.replaceRange('\n', {line:line, ch:0})
+        pos = {line:line, ch:0}
+        @codemirror.replaceRange('\n', pos)
+        @codemirror.focus()
+        @codemirror.setCursor(pos)
         @cell_start_marker(line)
         @process_sage_updates()
 
