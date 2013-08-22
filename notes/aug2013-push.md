@@ -1,8 +1,16 @@
 - [x] (0:10) last line auto-adjust bug (Grout, https://mail.google.com/mail/u/0/?shva=1#search/cloud/140a533bb78f748b)
 
---> - [ ] insert new cell should put cursor in that cell.
+- [x] (0:11) insert new cell should put cursor in that cell.
+
+- [ ] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
 
 - [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
+
+- [ ] shift-enter a selection should add no new cells
+
+- [ ] alter enter selection shouldn't delete it -- execute
+
+- [ ] 
 
 -----
 - [ ] client doesn't do anything sensible in response to this from hub:

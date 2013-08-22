@@ -1476,6 +1476,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @codemirror.setCursor(pos)
         @cell_start_marker(line)
         @process_sage_updates()
+        @sync()
 
     cell_start_marker: (line) =>
         cm = @codemirror
