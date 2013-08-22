@@ -2,6 +2,16 @@
 
 - [x] (0:11) insert new cell should put cursor in that cell.
 
+- [x] insert cell wasn't sync'ing.
+
+- [x] make a sync fix
+
+- [x] (1:14) get rid of pdflatex spinner -- just annoying; parallelize more
+
+- [ ] pdflatex preview: only update non-view pages when text changes!?
+
+- [ ] current line plugin.
+
 - [ ] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
 
 - [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
@@ -10,7 +20,7 @@
 
 - [ ] alter enter selection shouldn't delete it -- execute
 
-- [ ] 
+- [ ] use the "update now" style notification when websocket drops / restores (?)
 
 -----
 - [ ] client doesn't do anything sensible in response to this from hub:
