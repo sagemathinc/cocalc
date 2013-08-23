@@ -1,9 +1,26 @@
 
+- MAJOR ISSUE: if a bunch of restart project attempts happen, then the hub doing the restarting renders
+  that entire project un-restartable, since it is too impatient (e.g., 10 second timeout).  FIX THIS and restart
+  all the hubs.
+
+- add field text for account creation.
+
+Issues to fix with latex editing:
+
+- [ ] the spinner is unberable; just get rid of it ?
+- [ ] sometimes it doesn't come up at first and scrollbar is on left -- size issue?
+- [ ] side-by-side would be very useful...
+- [ ] make pdf itself wider (?) -- have a button
+
+
+
+
 
 -----
 - [ ] client doesn't do anything sensible in response to this from hub:
 debug: hub --> client (client=653426d1-2ccc-4027-b1b3-da44eb3119ed): {"event":"error","id":"2bd05e47-887b-4681-a390-e9fe9133c4af","error":"user must be signed in before accessing projects"}
 
+- [ ] UX: progress bars!  http://ricostacruz.com/nprogress/   -- should even have worksheet salvus. api!
 
 - [ ] UX idea -- if the mouse is *moving* don't refresh the directory listing!
 
