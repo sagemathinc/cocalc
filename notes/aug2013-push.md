@@ -1,4 +1,16 @@
 
+- [ ] change latex editing to be side-by-side.
+
+- [ ] jpg's are way smaller than png -- investigate (but no downscaling, so ?)
+
+- [ ] terminal -- make "refresh" button reconnect... to see how robust (?)
+
+
+
+
+---
+
+
 - MAJOR ISSUE: if a bunch of restart project attempts happen, then the hub doing the restarting renders
   that entire project un-restartable, since it is too impatient (e.g., 10 second timeout).  FIX THIS and restart
   all the hubs.
@@ -15,22 +27,8 @@ Issues to fix with latex editing:
 
 
 
-- [x] (0:10) last line auto-adjust bug (Grout, https://mail.google.com/mail/u/0/?shva=1#search/cloud/140a533bb78f748b)
 
-- [x] (0:11) insert new cell should put cursor in that cell.
 
-- [x] insert cell wasn't sync'ing.
-
-- [x] make a sync fix
-
-- [x] (1:14) get rid of pdflatex spinner -- just annoying; parallelize more
-
-- [x] current line plugin.
-
-- [x] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
-
-- [x] shift-enter a *selection* should add no new cells
-- [x] alter enter selection shouldn't delete it -- execute
 
 - [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
 
@@ -1088,3 +1086,51 @@ OK, the way to do this is:
 
 Interesting fact: changing one page of the file often only changes *that* png -- all others are identical; and with
 tex even a new para can easily be local (due to chapters, etc).  I tested this with md5's on rh.
+
+
+
+- [x] (0:10) last line auto-adjust bug (Grout, https://mail.google.com/mail/u/0/?shva=1#search/cloud/140a533bb78f748b)
+
+- [x] (0:11) insert new cell should put cursor in that cell.
+
+- [x] insert cell wasn't sync'ing.
+
+- [x] make a sync fix
+
+- [x] (1:14) get rid of pdflatex spinner -- just annoying; parallelize more
+
+- [x] current line plugin.
+
+- [x] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
+
+- [x] shift-enter a *selection* should add no new cells
+- [x] alter enter selection shouldn't delete it -- execute
+
+- [x1] new release
+
+Hi,
+
+I've made a few client-side improvements https://cloud.sagemath.com:
+
+  - Fix the last-line autoadjust bug in worksheets that Jason Grout pointed out recently.
+
+  - When inserting a new cell, the cursor gets placed in *that* cell.
+
+  - Right after inserting a new cell, sync with the server.
+
+  - Further optimization to the LaTeX Preview mode.
+
+  - It is sometimes hard to see the cursor, so now the *current line is highlighted*.
+    Don't worry, I put a lot of time into ensuring that this highlighting works
+    well no matter what color scheme you're using! This is currently not
+    configurable, but will be.
+
+  - In worksheets, Shift+Enter on a selection doesn't insert a bunch of cells at the bottom
+    anymore; so now you can do "select all, shift-enter" to re-evaluate all cells.
+
+  - On mobile, insert new cell requires confirmation, since it is easy to hit by accident.
+
+  - Disable zoom on mobile, which makes worksheets much more usable now.
+
+William
+
