@@ -149,6 +149,14 @@ Editor for files in a project
     top:10em;
 }
 
+.salvus-editor-pdf-preview-text {
+    border-top: 1px solid black;
+    text-align: left;
+    margin-left: 1em;
+    margin-right: 1em;
+    padding-top: 1em;
+    color: #8a8a8a;
+}
 
 .salvus-editor-search-openfiles-input {
     width:100%;
@@ -329,4 +337,10 @@ li {
 code {
     font-size: inherit;
 }
+
+
+
+
+
+
 

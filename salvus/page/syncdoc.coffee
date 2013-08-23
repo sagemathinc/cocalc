@@ -33,6 +33,7 @@ message  = require('message')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
+{IS_MOBILE} = require("feature")
 
 async = require('async')
 
@@ -939,7 +940,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             j -= 1
         k = n - (m - (j + 1))
         if k > 0
+            cursor = cm.getCursor()
             cm.replaceRange(Array(k+1).join('\n'), {ch:0, line:m} )
+            cm.setCursor(cursor)
 
     process_sage_updates: (start) =>
         #console.log("processing Sage updates")
@@ -1213,7 +1216,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
             width : @cm_lines().width() + 'px'
 
         input.click () =>
-            @insert_new_cell(mark.find().from.line)
+            f = () =>
+                @insert_new_cell(mark.find().from.line)
+            if IS_MOBILE
+                # It is way too easy to accidentally click on the insert new cell line on mobile.
+                bootbox.confirm "Create new cell?", (result) =>
+                    if result
+                        f()
+                    else # what the user really wants...
+                        cm.focus()
+                        cm.setCursor({line:mark.find().from.line+1, ch:0})
+            else
+                f()
+            return false
 
         opts =
             shared         : false
@@ -1320,11 +1335,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             delete_output : false  # if true; delete all the the output in the range
             cm      : @codemirror
-
         if opts.pos?
             pos = opts.pos
         else
             if opts.cm.somethingSelected() and not opts.split
+                opts.advance = false
                 start = opts.cm.getCursor('start').line
                 end   = opts.cm.getCursor('end').line
                 # Expand both ends of the selection to contain cell containing cursor
@@ -1338,7 +1353,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                 # For each line in the range, check if it is the beginning of a cell; if so do the action on it.
                 for line in [start..end]  # include end
-                    if opts.cm.getLine(line)[0] == MARKERS.cell
+                    x = opts.cm.getLine(line)
+                    if x? and x[0] == MARKERS.cell
                         opts.pos = {line:line, ch:0}
                         @action(opts)
 
@@ -1468,9 +1484,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @set_cell_flagstring(marker, s)
 
     insert_new_cell: (line) =>
-        @codemirror.replaceRange('\n', {line:line, ch:0})
+        pos = {line:line, ch:0}
+        @codemirror.replaceRange('\n', pos)
+        @codemirror.focus()
+        @codemirror.setCursor(pos)
         @cell_start_marker(line)
         @process_sage_updates()
+        @sync()
 
     cell_start_marker: (line) =>
         cm = @codemirror

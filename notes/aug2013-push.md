@@ -15,6 +15,26 @@ Issues to fix with latex editing:
 
 
 
+- [x] (0:10) last line auto-adjust bug (Grout, https://mail.google.com/mail/u/0/?shva=1#search/cloud/140a533bb78f748b)
+
+- [x] (0:11) insert new cell should put cursor in that cell.
+
+- [x] insert cell wasn't sync'ing.
+
+- [x] make a sync fix
+
+- [x] (1:14) get rid of pdflatex spinner -- just annoying; parallelize more
+
+- [x] current line plugin.
+
+- [x] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
+
+- [x] shift-enter a *selection* should add no new cells
+- [x] alter enter selection shouldn't delete it -- execute
+
+- [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
+
+- [ ] use the "update now" style notification when websocket drops / restores (?)
 
 -----
 - [ ] client doesn't do anything sensible in response to this from hub:
@@ -35,7 +55,7 @@ debug: converted, now storing
 
 - [ ] image viewer refresh button; trivial,  might as well
 
-- [ ] upgrade  to  bootstrap 3
+- [ ] upgrade  to  bootstrap 3: see <http://code.divshot.com/bootstrap3_upgrader/>
 
 - [ ] a release at some point
       - upgrade haproxy in edge nodes

@@ -972,6 +972,7 @@ class CodeMirrorEditor extends FileEditor
             undo_depth        : editor_settings.undo_depth
             match_brackets    : editor_settings.match_brackets
             line_wrapping     : editor_settings.line_wrapping
+            style_active_line : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
             bindings          : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
             theme             : editor_settings.theme
 
@@ -1054,6 +1055,7 @@ class CodeMirrorEditor extends FileEditor
                 matchBrackets   : opts.match_brackets
                 lineWrapping    : opts.line_wrapping
                 readOnly        : opts.read_only
+                styleActiveLine : opts.style_active_line
                 extraKeys       : extraKeys
                 cursorScrollMargin : 40
 
@@ -1244,6 +1246,16 @@ class CodeMirrorEditor extends FileEditor
             # todo -- would be better to center rather than a magic "5".
             @codemirror.scrollIntoView({line:pos.line-5, ch:0})
 
+    _style_active_line: (rgb) =>
+        v = (parseInt(x) for x in rgb.slice(4,rgb.length-1).split(','))
+        amount = @opts.style_active_line
+        for i in [0..2]
+            if v[i] >= 128
+                v[i] -= amount
+            else
+                v[i] += amount
+        $("body").append("<style type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
+
     show: () =>
         if not (@element? and @codemirror?)
             return
@@ -1253,6 +1265,9 @@ class CodeMirrorEditor extends FileEditor
 
         @element.show()
         @codemirror.refresh()
+
+        if @opts.style_active_line
+            @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
 
         if @_split_view
             @codemirror1.refresh()
@@ -1287,6 +1302,7 @@ class CodeMirrorEditor extends FileEditor
         else
             v = [@codemirror]
             ht = cm_height
+
         for cm in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':ht)
@@ -1405,6 +1421,7 @@ class PDFLatexDocument
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (cb) =>
+        @pdf_updated = true
         @_exec
             command : 'pdflatex'
             args    : ['-interaction=nonstopmode', @filename_tex]
@@ -1570,7 +1587,6 @@ exports.PDFLatexDocument = PDFLatexDocument
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
         @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"png")
-
         @_updating = false
         @width_percent = 90
         @element = templates.find(".salvus-editor-pdf-preview").clone()
@@ -1583,13 +1599,16 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
-
         @_needs_update = true
+
+    watch_scroll: () =>
+        if @_f?
+            clearInterval(@_f)
         timeout = undefined
         @output.on 'scroll', () =>
             @_needs_update = true
         f = () =>
-            if @_needs_update
+            if @_needs_update and @element.is(':visible')
                 @_needs_update = false
                 @update cb:(err) =>
                     if err
@@ -1597,7 +1616,8 @@ class PDF_Preview extends FileEditor
         @_f = setInterval(f, 1000)
 
     remove: () =>
-        clearInterval(@_f)
+        if @_f?
+            clearInterval(@_f)
         @element.remove()
 
     focus: () =>
@@ -1621,23 +1641,23 @@ class PDF_Preview extends FileEditor
 
     update: (opts={}) =>
         opts = defaults opts,
-            window_size : 1
+            window_size : 4
             cb          : undefined
 
         if @_updating
             opts.cb?("already updating")  # don't change string
             return
 
-        @spinner.show().spin(true)
+        #@spinner.show().spin(true)
         @_updating = true
 
         @output.maxheight()
-        @output.width(@element.width())
+        if @element.width()
+            @output.width(@element.width())
 
         # we do this in parallel to any image updating below -- it takes about a second for a 100 page file...
         @pdflatex.update_text (err) =>
             #if not err
-
 
         n = @current_page()
 
@@ -1658,17 +1678,25 @@ class PDF_Preview extends FileEditor
         if n == 1
             hq_window *= 2
 
-        f {first_page : n-hq_window, last_page  : n+hq_window, resolution:'600', device:'16m', png_downscale:3}, (err) =>
+        f {first_page : n, last_page  : n+1, resolution:'600', device:'16m', png_downscale:4}, (err) =>
             if err
-                @spinner.spin(false).hide()
+                #@spinner.spin(false).hide()
                 @_updating = false
                 opts.cb?(err)
-            else
+            else if not @pdflatex.pdf_updated? or @pdflatex.pdf_updated
+                @pdflatex.pdf_updated = false
                 g = (obj, cb) =>
-                    f({first_page:obj[0], last_page:obj[1], resolution:'150', device:'gray', png_downscale:1}, cb)
+                    if obj[2]
+                        f({first_page:obj[0], last_page:obj[1], resolution:'300', device:'16m', png_downscale:3}, cb)
+                    else
+                        f({first_page:obj[0], last_page:obj[1], resolution:'150', device:'gray', png_downscale:1}, cb)
+                v = []
+                v.push([n-hq_window, n-1, true])
+                v.push([n+2, n+hq_window, true])
 
                 k1 = Math.round((1 + n-hq_window-1)/2)
-                v = [[1, k1], [k1+1, n-hq_window-1]]
+                v.push([1, k1])
+                v.push([k1+1, n-hq_window-1])
                 if @pdflatex.num_pages
                     k2 = Math.round((n+hq_window+1 + @pdflatex.num_pages)/2)
                     v.push([n+hq_window+1,k2])
@@ -1676,9 +1704,16 @@ class PDF_Preview extends FileEditor
                 else
                     v.push([n+hq_window+1,999999])
                 async.map v, g, (err) =>
-                    @spinner.spin(false).hide()
+                    #@spinner.spin(false).hide()
                     @_updating = false
-                    opts.cb?(err)
+
+                    # If first time, start watching for scroll movements to update.
+                    if not @_f?
+                        @watch_scroll()
+                    opts.cb?()
+            else
+                @_updating = false
+                opts.cb?()
 
 
     # update page n based on currently computed data.
@@ -1697,7 +1732,7 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div style='text-align:left;margin-left: 1em; margin-right: 1em; color:#8a8a8a;' class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
                     page.data("number", m)
                     @output.append(page)
                 @last_page = n

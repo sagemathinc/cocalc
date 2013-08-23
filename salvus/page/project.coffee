@@ -959,6 +959,10 @@ class ProjectPage
             create_file('sagews')
             return false
 
+        @new_file_tab.find("a[href=#new-latex]").click () =>
+            create_file('tex')
+            return false
+
         BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws', 'ipynb']
 
         create_file = (ext) =>
