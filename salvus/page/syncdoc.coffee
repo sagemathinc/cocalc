@@ -1335,11 +1335,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             delete_output : false  # if true; delete all the the output in the range
             cm      : @codemirror
-
         if opts.pos?
             pos = opts.pos
         else
             if opts.cm.somethingSelected() and not opts.split
+                opts.advance = false
                 start = opts.cm.getCursor('start').line
                 end   = opts.cm.getCursor('end').line
                 # Expand both ends of the selection to contain cell containing cursor
@@ -1353,7 +1353,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                 # For each line in the range, check if it is the beginning of a cell; if so do the action on it.
                 for line in [start..end]  # include end
-                    if opts.cm.getLine(line)[0] == MARKERS.cell
+                    x = opts.cm.getLine(line)
+                    if x? and x[0] == MARKERS.cell
                         opts.pos = {line:line, ch:0}
                         @action(opts)
 

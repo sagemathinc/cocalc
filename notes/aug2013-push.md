@@ -11,13 +11,12 @@
 
 - [x] current line plugin.
 
---> - [ ] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
+- [x] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
+
+- [x] shift-enter a *selection* should add no new cells
+- [x] alter enter selection shouldn't delete it -- execute
 
 - [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
-
-- [ ] shift-enter a selection should add no new cells
-
-- [ ] alter enter selection shouldn't delete it -- execute
 
 - [ ] use the "update now" style notification when websocket drops / restores (?)
 
