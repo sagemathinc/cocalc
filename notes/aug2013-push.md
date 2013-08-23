@@ -1,3 +1,4 @@
+
 - [x] (0:10) last line auto-adjust bug (Grout, https://mail.google.com/mail/u/0/?shva=1#search/cloud/140a533bb78f748b)
 
 - [x] (0:11) insert new cell should put cursor in that cell.
@@ -8,11 +9,9 @@
 
 - [x] (1:14) get rid of pdflatex spinner -- just annoying; parallelize more
 
-- [ ] pdflatex preview: only update non-view pages when text changes!?
+- [x] current line plugin.
 
-- [ ] current line plugin.
-
-- [ ] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
+--> - [ ] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
 
 - [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
 
