@@ -972,6 +972,7 @@ class CodeMirrorEditor extends FileEditor
             undo_depth        : editor_settings.undo_depth
             match_brackets    : editor_settings.match_brackets
             line_wrapping     : editor_settings.line_wrapping
+            style_active_line : 15    # editor_settings.style_active_line  # (a number between 0 and 127)
             bindings          : editor_settings.bindings  # 'standard', 'vim', or 'emacs'
             theme             : editor_settings.theme
 
@@ -1054,6 +1055,7 @@ class CodeMirrorEditor extends FileEditor
                 matchBrackets   : opts.match_brackets
                 lineWrapping    : opts.line_wrapping
                 readOnly        : opts.read_only
+                styleActiveLine : opts.style_active_line
                 extraKeys       : extraKeys
                 cursorScrollMargin : 40
 
@@ -1244,6 +1246,16 @@ class CodeMirrorEditor extends FileEditor
             # todo -- would be better to center rather than a magic "5".
             @codemirror.scrollIntoView({line:pos.line-5, ch:0})
 
+    _style_active_line: (rgb) =>
+        v = (parseInt(x) for x in rgb.slice(4,rgb.length-1).split(','))
+        amount = @opts.style_active_line
+        for i in [0..2]
+            if v[i] >= 128
+                v[i] -= amount
+            else
+                v[i] += amount
+        $("body").append("<style type=text/css>.CodeMirror-activeline{background:rgb(#{v[0]},#{v[1]},#{v[2]});}</style>")
+
     show: () =>
         if not (@element? and @codemirror?)
             return
@@ -1253,6 +1265,9 @@ class CodeMirrorEditor extends FileEditor
 
         @element.show()
         @codemirror.refresh()
+
+        if @opts.style_active_line
+            @_style_active_line($(@codemirror.getWrapperElement()).css('background-color'))
 
         if @_split_view
             @codemirror1.refresh()
@@ -1287,6 +1302,7 @@ class CodeMirrorEditor extends FileEditor
         else
             v = [@codemirror]
             ht = cm_height
+
         for cm in v
             scroller = $(cm.getScrollerElement())
             scroller.css('height':ht)
