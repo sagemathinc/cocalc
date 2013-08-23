@@ -33,6 +33,7 @@ message  = require('message')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
+{IS_MOBILE} = require("feature")
 
 async = require('async')
 
@@ -1215,7 +1216,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
             width : @cm_lines().width() + 'px'
 
         input.click () =>
-            @insert_new_cell(mark.find().from.line)
+            f = () =>
+                @insert_new_cell(mark.find().from.line)
+            if IS_MOBILE
+                # It is way too easy to accidentally click on the insert new cell line on mobile.
+                bootbox.confirm "Create new cell?", (result) =>
+                    if result
+                        f()
+                    else # what the user really wants...
+                        cm.focus()
+                        cm.setCursor({line:mark.find().from.line+1, ch:0})
+            else
+                f()
+            return false
 
         opts =
             shared         : false
