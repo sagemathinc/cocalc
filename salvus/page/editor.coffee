@@ -1865,27 +1865,22 @@ class LatexEditor extends FileEditor
 
     _init_buttons: () =>
 
-        @element.find(".salvus-editor-latex-buttons").draggable()
+        buttons = @element.find(".salvus-editor-latex-buttons").show()
+        buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
-        @element.find("a[href=#latex_editor]").click () =>
-            @show_page('latex_editor')
-            @latex_editor.focus()
-            return false
-
-
-        @element.find("a[href=#pdf-preview]").click () =>
+        buttons.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
             @preview_embed.show()
             return false
 
-        @element.find("a[href=#latex]").click () =>
+        buttons.find("a[href=#latex]").click () =>
             @show_page('log', @element.maxheight())
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
             @compile()
             return false
 
-        @element.find("a[href=#pdf-download]").click () =>
+        buttons.find("a[href=#pdf-download]").click () =>
             @download_pdf()
             return false
 

@@ -3,13 +3,16 @@
    x- make editor half width
    x- render immediately on load
    x- make chat toggle appear by moving pdf preview down
+   x- latex editor: move floating bar to be part of editing bar
+    - toggle chat force correct resize
+    - buttons (two directions) to sync .tex and preview (forward/inverse *sync* instead of search).
     - show latex log in same place as preview (and don't *run* tex then -- just run tex on save).
     - show actual pdf in same place as preview
-    - move floating bar to be part of editing bar
-    - toggle chat force resize
-    - config: customize latex command line
-    - config: customize margin chop percentage
-    - buttons (two directions) to sync .tex and preview (forward/inverse *sync* instead of search).
+    - get rid of "File" button
+    - config: customize latex command line: put at top of the output of latex log.
+    - config: run tex on save or on clicking latex button (?)
+    - config: customize margin chop percentage.
+    - config: swap editor/other stuff sides.
 
 
 
