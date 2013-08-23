@@ -139,8 +139,11 @@ Editor for files in a project
     margin:1em;
     background-color:#fff;
     border:1px solid #aaa;
-    /* width:95%; */
     box-shadow: 5px 5px 5px 5px #888;
+    max-width: 140%;
+    width:140%;
+    margin-left: -20%;
+
 }
 
 .salvus-editor-pdf-preview-spinner {

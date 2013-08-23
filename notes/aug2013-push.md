@@ -1,5 +1,15 @@
 
-- [ ] change latex editing to be side-by-side.
+- [ ] change latex editing to be side-by-side:
+   x- make editor half width
+    - render immediately on load
+    - show latex log in same place as preview
+    - show actual pdf in same place as preview
+    - move floating bar to be part of editing bar
+    - make chat toggle appear by moving pdf preview down
+    - config: customize latex command line
+    - config: customize margin chop percentage
+    - buttons (two directions) to sync .tex and preview (forward/inverse *sync* instead of search).
+
 
 - [ ] jpg's are way smaller than png -- investigate (but no downscaling, so ?)
 
