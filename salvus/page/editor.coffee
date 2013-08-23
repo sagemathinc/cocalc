@@ -1301,7 +1301,7 @@ class CodeMirrorEditor extends FileEditor
             width = $(window).width()
 
         if @opts.geometry? and @opts.geometry == 'left half'
-            @empty_space = {start: width/2, end:width-chat_width}
+            @empty_space = {start: width/2, end:width-chat_width, top:top+button_bar_height}
             width = width/2
 
         if @_split_view
@@ -1925,10 +1925,12 @@ class LatexEditor extends FileEditor
         if e?
             es = @latex_editor.empty_space
             if es?
-                e.offset(left : es.start)
+                e.offset(left : es.start, top : es.top)
                 e.width(es.end-es.start)
                 e.show()
-
+            if not @_show_before?
+                @update_preview()
+                @_show_before = true
 
     focus: () =>
         @latex_editor?.focus()
