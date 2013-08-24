@@ -1,11 +1,24 @@
+- [ ] password reset script
 
 - [ ] change latex editing to be side-by-side.
 
-- [ ] jpg's are way smaller than png -- investigate (but no downscaling, so ?)
+- [ ] closed tabs keep re-appearing very confusingly!!!!
+
+- [ ] jpg's are way smaller than png -- investigate (but no downscaling, looks crap, so ?)
 
 - [ ] terminal -- make "refresh" button reconnect... to see how robust (?)
 
+- [ ] terminal [...] burst mode is still LAME.
 
+- [ ] next release:
+        npm install read
+
+
+- [ ] large number of files in a directory page
+
+- [ ] user ability to reset all "remember me" cookies
+
+- [ ] keyboard shortcut to cycle through open tabs
 
 
 ---

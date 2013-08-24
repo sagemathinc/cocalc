@@ -1,2 +1,6 @@
 #!/usr/bin/env bash
+
+# NOTE: to reset a password, type
+#     ./hub start --passwd wstein@gmail.com
+
 node node_modules/hub.js $@
