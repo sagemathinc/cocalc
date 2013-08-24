@@ -436,7 +436,7 @@ class Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl              = 30*24*3600     # 30 days
+        ttl              = 24*3600 * 30     # 30 days
 
         @remember_me_db.set
             key   : @hash_session_id
@@ -3336,6 +3336,51 @@ exports.password_hash = password_hash = (password) ->
         iterations : HASH_ITERATIONS   # This blocks the server for about 10 milliseconds...
     )
 
+reset_password = (email_address, cb) ->
+    read = require('read')
+    passwd0 = passwd1 = undefined
+    account_id = undefined
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            database.get_account
+                email_address : email_address
+                columns       : ['account_id']
+                cb            : (err, data) ->
+                    if err
+                        cb(err)
+                    else
+                        account_id = data.account_id
+                        cb()
+        (cb) ->
+            read {prompt:'Password: ', silent:true}, (err, passwd) ->
+                passwd0 = passwd; cb(err)
+        (cb) ->
+            read {prompt:'Retype password: ', silent:true}, (err, passwd) ->
+                if err
+                    cb(err)
+                else
+                    passwd1 = passwd
+                    if passwd1 != passwd0
+                        cb("Passwords do not match.")
+                    else
+                        cb()
+        (cb) ->
+            database.change_password
+                account_id    : account_id
+                password_hash : password_hash(passwd0)
+                cb            : cb
+
+    ], (err) ->
+        if err
+            winston.debug("Error -- #{err}")
+        else
+            winston.debug("Password changed for #{email_address}")
+        cb?()
+    )
+
+
 # Password checking.  opts.cb(false, true) if the
 # password is correct, opts.cb(true) on error (e.g., loading from
 # database), and opts.cb(false, false) if password is wrong.  You must
@@ -4637,6 +4682,20 @@ clean_up_on_shutdown = () ->
 
 
 #############################################
+# Connect to database
+#############################################
+connect_to_database = (cb) ->
+    if database? # already did this
+        cb(); return
+    new cass.Salvus
+        hosts    : program.database_nodes.split(',')
+        keyspace : program.keyspace
+        cb       : (err, _db) ->
+            database = _db
+            cb(err)
+
+
+#############################################
 # Start everything running
 #############################################
 exports.start_server = start_server = () ->
@@ -4646,21 +4705,19 @@ exports.start_server = start_server = () ->
     hosts = program.database_nodes.split(',')
 
     # Once we connect to the database, start serving.
+    connect_to_database (err) ->
+        if err
+            winston.debug("Failed to connect to database!")
+            return
 
-    new cass.Salvus
-        hosts    : hosts
-        keyspace : program.keyspace
-        cb       : (err, _db) ->
-            database = _db
+        # start updating stats cache every minute (on every hub)
+        update_server_stats(); setInterval(update_server_stats, 60*1000)
+        register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            # start updating stats cache every minute (on every hub)
-            update_server_stats(); setInterval(update_server_stats, 60*1000)
-            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
-
-            init_sockjs_server()
-            init_stateless_exec()
-            http_server.listen(program.port, program.host)
-            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+        init_sockjs_server()
+        init_stateless_exec()
+        http_server.listen(program.port, program.host)
+        winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments
@@ -4673,9 +4730,12 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
+    .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .parse(process.argv)
+console.log(1)
 
 if program._name == 'hub.js'
+    console.log(2)
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
@@ -4683,4 +4743,9 @@ if program._name == 'hub.js'
         winston.debug(new Error().stack)
         winston.debug("BUG ****************************************************************************")
 
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    if program.passwd
+        console.log("Resetting password")
+        reset_password program.passwd, (err) -> process.exit()
+    else
+        console.log("Running web server")
+        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)

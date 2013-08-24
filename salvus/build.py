@@ -181,7 +181,7 @@ NODE_MODULES = [
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
-    'moment', 'underscore'
+    'moment', 'underscore', 'read'
     ]
 
 PYTHON_PACKAGES = [
