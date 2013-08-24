@@ -13,7 +13,7 @@
     - config: run tex on save or on clicking latex button (?)
     - config: customize margin chop percentage.
     - config: swap editor/other stuff sides.
-
+    - custom way to search in the pdf file 
 
 
 

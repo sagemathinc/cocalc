@@ -118,7 +118,7 @@ Editor for files in a project
 }
 
 .salvus-editor-latex-png-preview {
-    padding-top:2px;   
+    padding-top:2px;
 }
 
 .salvus-editor-pdf-preview {
@@ -138,9 +138,9 @@ Editor for files in a project
     background-color:#fff;
     border:1px solid #aaa;
     box-shadow: 5px 5px 5px 5px #888;
-    max-width: 140%;
-    width:140%;
-    margin-left: -20%;
+    max-width: 160%;
+    width:160%;
+    margin-left: -30%;
 
 }
 

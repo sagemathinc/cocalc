@@ -1686,7 +1686,7 @@ class PDF_Preview extends FileEditor
         if n == 1
             hq_window *= 2
 
-        f {first_page : n, last_page  : n+1, resolution:'600', device:'16m', png_downscale:4}, (err) =>
+        f {first_page : n, last_page  : n+1, resolution:'600', device:'16m', png_downscale:3}, (err) =>
             if err
                 #@spinner.spin(false).hide()
                 @_updating = false
