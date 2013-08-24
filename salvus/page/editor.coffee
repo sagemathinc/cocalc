@@ -960,6 +960,7 @@ class CodeMirrorEditor extends FileEditor
 
         opts = @opts = defaults opts,
             mode              : required
+            geometry          : undefined  # (default=full screen);
             read_only         : false
             delete_trailing_whitespace : editor_settings.strip_trailing_whitespace  # delete on save
             allow_javascript_eval : true  # if false, the one use of eval isn't allowed.
@@ -1291,10 +1292,17 @@ class CodeMirrorEditor extends FileEditor
         @element.height(elem_height).show()
         @element.show()
 
-        if @_chat_is_hidden? and not @_chat_is_hidden
-            width = $(window).width() - @element.find(".salvus-editor-codemirror-chat-column").width()
+        chat = @_chat_is_hidden? and not @_chat_is_hidden
+        if chat
+            chat_width =  @element.find(".salvus-editor-codemirror-chat-column").width()
+            width = $(window).width() - chat_width
         else
+            chat_width = 0
             width = $(window).width()
+
+        if @opts.geometry? and @opts.geometry == 'left half'
+            @empty_space = {start: width/2, end:width-chat_width, top:top+button_bar_height}
+            width = width/2
 
         if @_split_view
             v = [@codemirror, @codemirror1]
@@ -1736,7 +1744,7 @@ class PDF_Preview extends FileEditor
                     page.data("number", m)
                     @output.append(page)
                 @last_page = n
-            page.find("img").attr('src', url).css('width':"#{@width_percent}%")
+            page.find("img").attr('src', url)#.css('width':"#{@width_percent}%")
             page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
 
@@ -1823,6 +1831,7 @@ class LatexEditor extends FileEditor
         #     * preview -- display the images (page forward/backward/resolution)
         #     * log -- log of latex command
         opts.mode = 'stex'
+        opts.geometry = 'left half'
 
         @_current_page = 'latex_editor'
         @element = templates.find(".salvus-editor-latex").clone()
@@ -1856,39 +1865,22 @@ class LatexEditor extends FileEditor
 
     _init_buttons: () =>
 
-        @element.find(".salvus-editor-latex-buttons").draggable()
+        buttons = @element.find(".salvus-editor-latex-buttons").show()
+        buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
-        @element.find("a[href=#latex_editor]").click () =>
-            @show_page('latex_editor')
-            @latex_editor.focus()
-            return false
-
-        preview_button = @element.find("a[href=#png-preview]")
-        preview_button.click () =>
-            @editor.save @filename, (err) =>
-                if err
-                    return
-                preview_button.icon_spin(true)
-                @show_page('png-preview')
-                @preview.pdflatex.update_pdf () =>
-                    @preview.update
-                        cb: (err) =>
-                            preview_button.icon_spin(false)
-            return false
-
-        @element.find("a[href=#pdf-preview]").click () =>
+        buttons.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
             @preview_embed.show()
             return false
 
-        @element.find("a[href=#latex]").click () =>
+        buttons.find("a[href=#latex]").click () =>
             @show_page('log', @element.maxheight())
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
             @compile()
             return false
 
-        @element.find("a[href=#pdf-download]").click () =>
+        buttons.find("a[href=#pdf-download]").click () =>
             @download_pdf()
             return false
 
@@ -1896,7 +1888,16 @@ class LatexEditor extends FileEditor
         @latex_editor.click_save_button()
 
     save: (cb) =>
-        @latex_editor.save(cb)
+        @latex_editor.save (err) =>
+            cb?(err)
+            if not err
+                @update_preview()
+
+    update_preview: (cb) =>
+        @preview.pdflatex.update_pdf () =>
+            @preview.update
+                cb: (err) =>
+                    cb?(err)
 
     compile: (cb) =>
         async.series([
@@ -1915,6 +1916,16 @@ class LatexEditor extends FileEditor
     show: () =>
         @element?.show()
         @latex_editor?.show()
+        e = @element?.find(".salvus-editor-latex-png-preview")
+        if e?
+            es = @latex_editor.empty_space
+            if es?
+                e.offset(left : es.start, top : es.top)
+                e.width(es.end-es.start)
+                e.show()
+            if not @_show_before?
+                @update_preview()
+                @_show_before = true
 
     focus: () =>
         @latex_editor?.focus()
