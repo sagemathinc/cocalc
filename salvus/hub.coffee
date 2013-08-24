@@ -3336,7 +3336,7 @@ exports.password_hash = password_hash = (password) ->
         iterations : HASH_ITERATIONS   # This blocks the server for about 10 milliseconds...
     )
 
-reset_password = (email_address) ->
+reset_password = (email_address, cb) ->
     read = require('read')
     passwd0 = passwd1 = undefined
     account_id = undefined
@@ -3376,7 +3376,8 @@ reset_password = (email_address) ->
         if err
             winston.debug("Error -- #{err}")
         else
-            winston.debug("Password changed for #{username}")
+            winston.debug("Password changed for #{email_address}")
+        cb?()
     )
 
 
@@ -4731,8 +4732,10 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .parse(process.argv)
+console.log(1)
 
 if program._name == 'hub.js'
+    console.log(2)
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
@@ -4741,8 +4744,8 @@ if program._name == 'hub.js'
         winston.debug("BUG ****************************************************************************")
 
     if program.passwd
-        console.log("Reseting password")
-        reset_password(program.passwd)
+        console.log("Resetting password")
+        reset_password program.passwd, (err) -> process.exit()
     else
         console.log("Running web server")
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
