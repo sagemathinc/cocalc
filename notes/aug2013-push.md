@@ -16,9 +16,9 @@
          x- pdf preview -- still need to pass in position.
          x- png preview is too delayed
 
-    - implement forward search
     - implement inverse search
-    
+    - implement forward search
+
     - config: customize latex command line -- put at top of the output of latex log.
     - config: persist custom latex command -- ideas: could be a chat message; search on startup.
     - config: customize margin chop percentage, i.e., zoom.
@@ -33,6 +33,8 @@
 
 
 ---
+
+- [ ] codemirror editors -- split line VERTICALLY -- would be super, super useful.
 
 - [ ] file/folder icons -- https://mail.google.com/mail/u/0/?shva=1#inbox/140b3393cd9b3f68
 
