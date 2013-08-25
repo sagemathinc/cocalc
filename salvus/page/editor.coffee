@@ -1294,10 +1294,8 @@ class CodeMirrorEditor extends FileEditor
 
         chat = @_chat_is_hidden? and not @_chat_is_hidden
         if chat
-            chat_width =  @element.find(".salvus-editor-codemirror-chat-column").width()
-            width = $(window).width() - chat_width
+            width = @element.find(".salvus-editor-codemirror-chat-column").offset().left
         else
-            chat_width = 0
             width = $(window).width()
 
         if @opts.geometry? and @opts.geometry == 'left half'
@@ -1320,10 +1318,16 @@ class CodeMirrorEditor extends FileEditor
                 width  : width
             cm.refresh()
 
-        chat = @element.find(".salvus-editor-codemirror-chat")
-        chat.height(cm_height)
-        chat.width(0)
-        output = chat.find(".salvus-editor-codemirror-chat-output")
+        if chat
+            chat_elt = @element.find(".salvus-editor-codemirror-chat")
+            chat_elt.height(cm_height)
+
+            chat_output = chat_elt.find(".salvus-editor-codemirror-chat-output")
+
+            chat_input = chat_elt.find(".salvus-editor-codemirror-chat-input")
+            chat_input_top = $(window).height()-chat_input.height() - 15
+            chat_input.offset({top:chat_input_top})
+            chat_output.height(chat_input_top - top - 41)
 
         @emit 'show', ht
 
@@ -1753,9 +1757,27 @@ class PDF_Preview extends FileEditor
             page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
 
+    show: (geometry={}) =>
+        geometry = defaults geometry,
+            left   : undefined
+            top    : undefined
+            width  : $(window).width()
+            height : undefined
 
-    show: () =>
         @element.show()
+
+        if geometry.height?
+            @element.height(geometry.height)
+        else
+            @element.maxheight()
+            geometry.height = @element.height()
+
+        @element.width(geometry.width)
+
+        @element.offset
+            left : geometry.left
+            top  : geometry.top
+
         @focus()
 
     hide: () =>
@@ -1796,9 +1818,7 @@ class PDF_PreviewEmbed extends FileEditor
         @_last_width = width
         @_last_height = height
 
-        console.log(@element.offset(), @output.offset())
         output_height = height - ( @output.offset().top - @element.offset().top)
-        console.log(output_height)
         @output.height(output_height)
         @output.width(width)
 

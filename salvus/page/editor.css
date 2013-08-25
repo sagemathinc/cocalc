@@ -122,13 +122,10 @@ Editor for files in a project
 }
 
 .salvus-editor-pdf-preview {
-    border: 2px solid #888;
 }
 
 .salvus-editor-pdf-preview-page {
-    border: 2px solid #888;
     background-color:#eee;
-    border: 3px solid #aaa;
     overflow-x:hidden;
     overflow-y:scroll;
 }
@@ -177,13 +174,13 @@ Editor for files in a project
     position: fixed;
     background-color: white;
     right: 0px;
-    width:25%;
+    width: 35ex;
 }
 
 .salvus-editor-codemirror-chat {
     margin:0px;
     padding:0px;
-    width:100%;
+    width:35ex;
     border: 2px solid #9a9;
     border-radius: 5px;
 }
@@ -200,22 +197,20 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-chat-output {
-    padding:2%;
+    padding:1ex;
     margin:0ex;
     width:100%;
-    height:76%;
     position: absolute;
     overflow-y:auto;
     overflow-x:hidden;
     overflow-wrap: break-word;
-    background-color:#fafafa;
+    background-color:#eee;
 }
 
 .salvus-editor-codemirror-chat-input {
     padding:2%;
     margin:0px;
-    top:80%;
-    height:16%;
+    height:5em;
     width:100%;
     position : absolute;
 }
