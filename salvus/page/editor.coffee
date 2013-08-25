@@ -1917,6 +1917,17 @@ class LatexEditor extends FileEditor
         buttons = @element.find(".salvus-editor-latex-buttons").show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
+        buttons.find("a[href=#forward-search]").click () =>
+            @show_page('png-preview')
+            @forward_search()
+            return false
+
+        buttons.find("a[href=#inverse-search]").click () =>
+            @show_page('png-preview')
+            @inverse_search()
+            return false
+
+
         buttons.find("a[href=#png-preview]").click () =>
             @show_page('png-preview')
             @preview.focus()
@@ -1984,11 +1995,15 @@ class LatexEditor extends FileEditor
             if n == name
                 e.show()
                 es = @latex_editor.empty_space
-                page.show(left : es.start, top:es.top+3, width:es.end-es.start)
+                g  = left : es.start, top:es.top+3, width:es.end-es.start
+                if n != 'log'
+                    page.show(g)
+                else
+                    page.offset({left:g.left, top:g.top}).width(g.width)
+
                 button.addClass('btn-primary')
             else
                 e.hide()
-                #page.hide()
                 button.removeClass('btn-primary')
         @_current_page = name
 
@@ -2026,6 +2041,12 @@ class LatexEditor extends FileEditor
                     url = result.url + "&download"
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                     setTimeout((() -> iframe.remove()), 1000)
+
+    inverse_search: () =>
+        console.log("inverse search")
+
+    forward_search: () =>
+        console.log("forward search -- not implemented")
 
 
 
