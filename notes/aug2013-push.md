@@ -9,23 +9,27 @@
    x- show actual pdf in same place as preview
    x- get rid of "File" button
    x- make preview get displayed at beginning (with button selected)
---> - make log display correctly
-    - "rendering preview for the first time..."
+   x - make log display correctly
+   x- "rendering preview for the first time..."
+   x- resize/show needs to update even the current thing.
+    - toggle chat force correct resize
     - config: customize latex command line: put at top of the output of latex log.
     - config: run tex on save or on clicking latex button (?)
     - config: customize margin chop percentage.
     - config: swap editor/other stuff sides.
     - config: preview resolution
     - config: jpg versus png
-    - mobile layout.
+    - mobile layout (esp buttons)
     - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
     - custom way to search in the pdf file
     - make the split screen position user-movable
-    - toggle chat force correct resize
-
+    - pdf embed: only update on resize
+    - pdf embed: doesn't display initially
 
 
 ---
+
+- [ ] file/folder icons -- https://mail.google.com/mail/u/0/?shva=1#inbox/140b3393cd9b3f68
 
 - [ ] closed tabs keep re-appearing very confusingly!!!!
 

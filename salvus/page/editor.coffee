@@ -1607,6 +1607,8 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
+        @output.text("Loading preview...")
+        @_first_output = true
         @_needs_update = true
 
     watch_scroll: () =>
@@ -1742,6 +1744,9 @@ class PDF_Preview extends FileEditor
                 for m in [@last_page+1 .. n]
                     page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
                     page.data("number", m)
+                    if @_first_output
+                        @output.empty()
+                        @_first_output = false
                     @output.append(page)
                 @last_page = n
             page.find("img").attr('src', url)#.css('width':"#{@width_percent}%")
@@ -1901,18 +1906,10 @@ class LatexEditor extends FileEditor
                 @update_preview()
 
     update_preview: (cb) =>
-        @preview.pdflatex.update_pdf () =>
+        @run_latex () =>
             @preview.update
                 cb: (err) =>
                     cb?(err)
-
-    compile: (cb) =>
-        async.series([
-            (cb) =>
-                @editor.save(@filename, cb)
-            (cb) =>
-                @run_latex (cb)
-        ], (err) -> cb?(err))
 
     _get: () =>
         return @latex_editor._get()
@@ -1927,6 +1924,7 @@ class LatexEditor extends FileEditor
             @show_page('png-preview')
             @update_preview()
             @_show_before = true
+        @show_page()
 
     focus: () =>
         @latex_editor?.focus()
@@ -1935,17 +1933,19 @@ class LatexEditor extends FileEditor
         return @latex_editor?.has_unsaved_changes(val)
 
     show_page: (name) =>
-        if name == @_current_page
-            return
+        if not name?
+            name = @_current_page
+        if not name?
+            name = 'png-preview'
         for n in ['png-preview', 'pdf-preview', 'log']
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
             if n == name
                 es = @latex_editor.empty_space
                 if es?
-                    e.offset(left : es.start, top : 30)
-                    e.width(es.end-es.start)
                     e.show()
+                    e.offset(left : es.start, top : es.top+3)
+                    e.width(es.end-es.start)
                 button.addClass('btn-primary')
             else
                 e.hide()
@@ -1953,7 +1953,7 @@ class LatexEditor extends FileEditor
         @_current_page = name
 
     run_latex: (cb) =>
-        button = @element.find("a[href=#latex]")
+        button = @element.find("a[href=#log]")
         button.icon_spin(true)
         @log.find("textarea").text("Running latex...")
         @preview.pdflatex.update_pdf (err, log) =>
