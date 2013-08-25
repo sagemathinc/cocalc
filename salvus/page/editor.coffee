@@ -1758,7 +1758,7 @@ class PDF_Preview extends FileEditor
 
 
 class PDF_PreviewEmbed extends FileEditor
-    constructor: (@editor, @filename, contents, opts) ->
+    constructor: (@editor, @filename, contents, @opts) ->
         @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
         @element.find(".salvus-editor-pdf-title").text(@filename)
 
@@ -1789,7 +1789,7 @@ class PDF_PreviewEmbed extends FileEditor
         if height == 0
             # not visible.
             return
-        width = $(window).width()
+        width = @element.width()
 
         button = @element.find("a[href=#refresh]")
         button.icon_spin(true)
@@ -1815,6 +1815,8 @@ class PDF_PreviewEmbed extends FileEditor
         @element.show()
         width = $(window).width()
         height = @element.height()
+        if @opts.geometry? and @opts.geometry == 'right half'
+            width = width/2
         @element.width(width)
         if @_last_width != width or @_last_height != height
             @update()
@@ -1833,7 +1835,7 @@ class LatexEditor extends FileEditor
         opts.mode = 'stex'
         opts.geometry = 'left half'
 
-        @_current_page = 'latex_editor'
+        @_current_page = 'png-preview'
         @element = templates.find(".salvus-editor-latex").clone()
 
         # initialize the latex_editor
@@ -1850,7 +1852,7 @@ class LatexEditor extends FileEditor
         @preview = new PDF_Preview(@editor, @filename, undefined, {})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
 
-        @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
+        @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {geometry:'right half'})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
 
         # initalize the log
@@ -1868,16 +1870,22 @@ class LatexEditor extends FileEditor
         buttons = @element.find(".salvus-editor-latex-buttons").show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
+        buttons.find("a[href=#png-preview]").click () =>
+            @show_page('png-preview')
+            @preview.focus()
+            @preview.show()
+            @update_preview()
+            return false
+
         buttons.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
             @preview_embed.show()
             return false
 
-        buttons.find("a[href=#latex]").click () =>
-            @show_page('log', @element.maxheight())
+        buttons.find("a[href=#log]").click () =>
+            @show_page('log')
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
-            @compile()
             return false
 
         buttons.find("a[href=#pdf-download]").click () =>
@@ -1916,16 +1924,10 @@ class LatexEditor extends FileEditor
     show: () =>
         @element?.show()
         @latex_editor?.show()
-        e = @element?.find(".salvus-editor-latex-png-preview")
-        if e?
-            es = @latex_editor.empty_space
-            if es?
-                e.offset(left : es.start, top : es.top)
-                e.width(es.end-es.start)
-                e.show()
-            if not @_show_before?
-                @update_preview()
-                @_show_before = true
+        if not @_show_before?
+            @show_page('png-preview')
+            @update_preview()
+            @_show_before = true
 
     focus: () =>
         @latex_editor?.focus()
@@ -1936,11 +1938,15 @@ class LatexEditor extends FileEditor
     show_page: (name) =>
         if name == @_current_page
             return
-        for n in ['latex_editor', 'png-preview', 'pdf-preview', 'log']
+        for n in ['png-preview', 'pdf-preview', 'log']
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
             if n == name
-                e.show()
+                es = @latex_editor.empty_space
+                if es?
+                    e.offset(left : es.start, top : 30)
+                    e.width(es.end-es.start)
+                    e.show()
                 button.addClass('btn-primary')
             else
                 e.hide()

@@ -1,28 +1,32 @@
-- [ ] password reset script
+- [x] password reset script
 
 - [ ] change latex editing to be side-by-side:
    x- make editor half width
    x- render immediately on load
    x- make chat toggle appear by moving pdf preview down
    x- latex editor: move floating bar to be part of editing bar
-    - toggle chat force correct resize
-    - buttons (two directions) to sync .tex and preview (forward/inverse *sync* instead of search).
-    - show latex log in same place as preview (and don't *run* tex then -- just run tex on save).
-    - show actual pdf in same place as preview
-    - get rid of "File" button
+   x- show latex log in same place as preview (and don't *run* tex then -- just run tex on save).
+   x- show actual pdf in same place as preview
+   x- get rid of "File" button
+    --> - make preview get displayed at beginning (with button selected)
+    - make log display correctly
     - config: customize latex command line: put at top of the output of latex log.
     - config: run tex on save or on clicking latex button (?)
     - config: customize margin chop percentage.
     - config: swap editor/other stuff sides.
-    - custom way to search in the pdf file 
+    - config: preview resolution
+    - config: jpg versus png
+    - mobile layout.
+    - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
+    - custom way to search in the pdf file
+    - make the split screen position user-movable
+    - toggle chat force correct resize
 
 
 
 ---
 
 - [ ] closed tabs keep re-appearing very confusingly!!!!
-
-- [ ] jpg's are way smaller than png -- investigate (but no downscaling, looks crap, so ?)
 
 - [ ] terminal -- make "refresh" button reconnect... to see how robust (?)
 
@@ -31,13 +35,20 @@
 - [ ] next release:
         npm install read
 
-
 - [ ] large number of files in a directory page
 
 - [ ] user ability to reset all "remember me" cookies
 
 - [ ] keyboard shortcut to cycle through open tabs
 
+
+- [ ] Sublime cursor movement "get unlost" -- http://aspirecode.com/sublime-text-jump-back-jump-forward/
+        - add forward/back buttons to left of "Files"
+        - add project-level variable that is:
+              - an array of objects {filename:'...', pos:?},
+              - a pointer into array
+        - events (show?) will add things to array,
+        - clicking back button
 
 ---
 
