@@ -13,6 +13,8 @@
    x- "rendering preview for the first time..."
    x- resize/show needs to update even the current thing.
     - toggle chat force correct resize
+         - pdf preview -- still need to pass in position.
+         - png preview is too delayed
     - config: customize latex command line: put at top of the output of latex log.
     - config: run tex on save or on clicking latex button (?)
     - config: customize margin chop percentage.

@@ -1301,7 +1301,7 @@ class CodeMirrorEditor extends FileEditor
             width = $(window).width()
 
         if @opts.geometry? and @opts.geometry == 'left half'
-            @empty_space = {start: width/2, end:width-chat_width, top:top+button_bar_height}
+            @empty_space = {start: width/2, end:width, top:top+button_bar_height}
             width = width/2
 
         if @_split_view
@@ -1775,22 +1775,16 @@ class PDF_PreviewEmbed extends FileEditor
             @path = './'
         @file = s.tail
 
-        @element.maxheight()
         @output = @element.find(".salvus-editor-pdf-preview-embed-page")
-        @update()
-        @output.focus()
 
         @element.find("a[href=#refresh]").click () =>
             @update()
             return false
 
     focus: () =>
-        @element.maxheight()
-        @output.maxheight()
-        @output.width(@element.width())
 
     update: (cb) =>
-        height = @output.height()
+        height = @element.height()
         if height == 0
             # not visible.
             return
@@ -1801,8 +1795,13 @@ class PDF_PreviewEmbed extends FileEditor
 
         @_last_width = width
         @_last_height = height
-        @output.height(height)
+
+        console.log(@element.offset(), @output.offset())
+        output_height = height - ( @output.offset().top - @element.offset().top)
+        console.log(output_height)
+        @output.height(output_height)
         @output.width(width)
+
         @spinner.show().spin(true)
         salvus_client.read_file_from_project
             project_id : @editor.project_id
@@ -1814,17 +1813,32 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data='#{result.url##page=3}' type='application/pdf' width='#{width}' height='#{height}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
+                    @output.html("<object data='#{result.url}' type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
 
-    show: () =>
+    show: (geometry={}) =>
+        geometry = defaults geometry,
+            left   : undefined
+            top    : undefined
+            width  : $(window).width()
+            height : undefined
+
         @element.show()
-        width = $(window).width()
-        height = @element.height()
-        if @opts.geometry? and @opts.geometry == 'right half'
-            width = width/2
-        @element.width(width)
-        if @_last_width != width or @_last_height != height
+
+        if geometry.height?
+            @element.height(geometry.height)
+        else
+            @element.maxheight()
+            geometry.height = @element.height()
+
+        @element.width(geometry.width)
+
+        @element.offset
+            left : geometry.left
+            top  : geometry.top
+
+        if @_last_width != geometry.width or @_last_height != geometry.height
             @update()
+
         @focus()
 
     hide: () =>
@@ -1842,9 +1856,15 @@ class LatexEditor extends FileEditor
 
         @element = templates.find(".salvus-editor-latex").clone()
 
+        @_pages = {}
+
         # initialize the latex_editor
         @latex_editor = codemirror_session_editor(@editor, filename, opts)
+        @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
+
+        @latex_editor.on 'show', () => @show_page()
+
 
         v = path_split(@filename)
         @_path = v.head
@@ -1855,12 +1875,15 @@ class LatexEditor extends FileEditor
 
         @preview = new PDF_Preview(@editor, @filename, undefined, {})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
+        @_pages['png-preview'] = @preview
 
-        @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {geometry:'right half'})
+        @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
+        @_pages['pdf-preview'] = @preview_embed
 
         # initalize the log
         @log = @element.find(".salvus-editor-latex-log")
+        @_pages['log'] = @log
 
         @_init_buttons()
 
@@ -1877,14 +1900,12 @@ class LatexEditor extends FileEditor
         buttons.find("a[href=#png-preview]").click () =>
             @show_page('png-preview')
             @preview.focus()
-            @preview.show()
             @update_preview()
             return false
 
         buttons.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
-            @preview_embed.show()
             return false
 
         buttons.find("a[href=#log]").click () =>
@@ -1924,7 +1945,6 @@ class LatexEditor extends FileEditor
             @show_page('png-preview')
             @update_preview()
             @_show_before = true
-        @show_page()
 
     focus: () =>
         @latex_editor?.focus()
@@ -1938,17 +1958,17 @@ class LatexEditor extends FileEditor
         if not name?
             name = 'png-preview'
         for n in ['png-preview', 'pdf-preview', 'log']
+            page = @_pages[n]
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
             if n == name
+                e.show()
                 es = @latex_editor.empty_space
-                if es?
-                    e.show()
-                    e.offset(left : es.start, top : es.top+3)
-                    e.width(es.end-es.start)
+                page.show(left : es.start, top:es.top+3, width:es.end-es.start)
                 button.addClass('btn-primary')
             else
                 e.hide()
+                #page.hide()
                 button.removeClass('btn-primary')
         @_current_page = name
 
