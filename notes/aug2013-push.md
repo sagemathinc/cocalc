@@ -16,8 +16,14 @@
          x- pdf preview -- still need to pass in position.
          x- png preview is too delayed
 
-    - implement inverse search
+   x- implement inverse search
+   x- inverse search: work even for low-rez preview by putting resolution in img data.
+   x- open correct file when inverse search points to a different file
+
     - implement forward search
+
+    - get rid of use of pdftotext -- but leave in code that makes it possible.
+    - bar between cm editor and preview
 
     - config: customize latex command line -- put at top of the output of latex log.
     - config: persist custom latex command -- ideas: could be a chat message; search on startup.
@@ -30,6 +36,7 @@
     - make the split screen position user-movable
     - pdf embed: only update on resize
     - pdf embed: doesn't display initially
+    - way to select *which* opened file to use when editing a multi-file latex doc...
 
 
 ---

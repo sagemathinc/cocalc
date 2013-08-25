@@ -57,6 +57,8 @@ codemirror_associations =
     sql    : 'mysql'
     txt    : 'text'
     tex    : 'stex'
+    bib    : 'stex'
+    bbl    : 'stex'
     xml    : 'xml'
     yaml   : 'yaml'
     ''     : 'text'
@@ -228,10 +230,6 @@ local_storage = exports.local_storage = (project_id, filename, key, value) ->
             return obj
 
 templates = $("#salvus-editor-templates")
-
-# This image tag below is technically invalid, since src isn't set; but that is done before we
-# put it in the DOM.
-template_pdf_preview_image = $('<img alt="PDF preview" class="salvus-editor-pdf-preview-image img-rounded">')
 
 class exports.Editor
     constructor: (opts) ->
@@ -1453,6 +1451,19 @@ class PDFLatexDocument
                 s = output.stdout
                 i = s.indexOf('Input')
                 input = s.slice(i+6, s.indexOf('\n',i+1))
+
+                # normalize path to be relative to project home
+                j = input.indexOf('/./')
+                if j != -1
+                    fname = input.slice(j+3)
+                else
+                    j = input.indexOf('/../')
+                    fname = input.slice(j+1)
+                if @path != './'
+                    input = @path + '/' + fname
+                else
+                    input = fname
+
                 i = s.indexOf('Line')
                 line = parseInt(s.slice(i+5, s.indexOf('\n',i+1)))
                 opts.cb(false, {input:input, line:line-1})   # make line 0-based
@@ -1515,10 +1526,14 @@ class PDFLatexDocument
             first_page : 1
             last_page  : undefined  # defaults to @num_pages, unless 0 in which case 99999
             cb         : undefined  # cb(err, [array of page numbers of pages that changed])
-            resolution : '50'      # 'number' or 'number1xnumber2'
+            resolution : 50         # number
             device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'  (ignored if image_type='jpg')
-            png_downscale : 2      # ignored if image type is jpg
-            jpeg_quality  : 75     # jpg only -- scale of 1 to 100
+            png_downscale : 2       # ignored if image type is jpg
+            jpeg_quality  : 75      # jpg only -- scale of 1 to 100
+
+        res = opts.resolution
+        if @image_type == 'png'
+            res /= opts.png_downscale
 
         if not opts.last_page?
             opts.last_page = @num_pages
@@ -1611,6 +1626,7 @@ class PDFLatexDocument
                                 p = @page(n)
                                 p.sha1 = obj.sha1
                                 p.url = result.url
+                                p.resolution = res
                                 changed_pages.push(n)
                                 cb()
                 async.mapSeries(sha1_changed, update, cb)
@@ -1638,7 +1654,7 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
-        @output.text("Loading preview...")
+        @output.text("Generating preview...")
         @_first_output = true
         @_needs_update = true
 
@@ -1760,8 +1776,9 @@ class PDF_Preview extends FileEditor
 
     # update page n based on currently computed data.
     _update_page: (n, cb) =>
-        p = @pdflatex.page(n)
-        url = p.url
+        p          = @pdflatex.page(n)
+        url        = p.url
+        resolution = p.resolution
         if not url?
             # todo: delete page and all following it from DOM
             for m in [n .. @last_page]
@@ -1784,21 +1801,19 @@ class PDF_Preview extends FileEditor
                         offset = $(e.target).offset()
                         x = e.pageX - offset.left
                         y = e.pageY - offset.top
-                        console.log(pg, x, y)
                         img = pg.find("img")
                         nH = img[0].naturalHeight
                         nW = img[0].naturalWidth
                         y *= nH/img.height()
                         x *= nW/img.width()
-
-                        that.emit 'click', {n:n, x:x, y:y}
+                        that.emit 'click', {n:n, x:x, y:y, resolution:img.data('resolution')}
 
                     if @_first_output
                         @output.empty()
                         @_first_output = false
                     @output.append(page)
                 @last_page = n
-            page.find("img").attr('src', url)#.css('width':"#{@width_percent}%")
+            page.find("img").attr('src', url).data('resolution', resolution)
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
 
@@ -1930,7 +1945,6 @@ class LatexEditor extends FileEditor
 
         @latex_editor.on 'show', () => @show_page()
 
-
         v = path_split(@filename)
         @_path = v.head
         @_target = v.tail
@@ -1941,19 +1955,19 @@ class LatexEditor extends FileEditor
         @preview = new PDF_Preview(@editor, @filename, undefined, {resolution:200})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
-        @preview.on 'click', (pos) =>
-            @preview.pdflatex.inverse_search
-                n : pos.n
-                x : pos.x
-                y : pos.y
-                resolution : @preview.opts.resolution
-                cb : (err, res) =>
-                    if err
-                        # TODO -- make error message better!
-                        alert_message(type:"error", message:"Inverse search error -- #{err}")
+        @preview.on 'click', (opts) =>
+            opts.cb = (err, res) =>
+                if err
+                    # TODO -- make error message better!
+                    alert_message(type:"error", message:"Inverse search error -- #{err}")
+                else
+                    if res.input != @filename
+                        @editor.open res.input, (err, fname) =>
+                            @editor.display_tab(path:fname)
                     else
                         @latex_editor.codemirror.setCursor({line:res.line,ch:0})
                         @latex_editor.codemirror.focus()
+            @preview.pdflatex.inverse_search(opts)
 
 
         @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
