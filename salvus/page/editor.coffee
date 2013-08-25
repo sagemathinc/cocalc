@@ -1427,6 +1427,8 @@ class PDFLatexDocument
             err_on_exit : false
             bash        : false
             cb          : required
+        #console.log(opts.path)
+        #console.log(opts.command + ' ' + opts.args.join(' '))
         salvus_client.exec(opts)
 
     inverse_search: (opts) =>
@@ -1443,14 +1445,16 @@ class PDFLatexDocument
         @_exec
             command : 'synctex'
             args    : ['edit', '-o', "#{opts.n}:#{x}:#{y}:#{@filename_pdf}"]
+            path    : @path
+            timeout : 7
             cb      : (err, output) =>
                 if err
                     opts.cb(err); return
                 if output.stderr
                     opts.cb(output.stderr); return
                 s = output.stdout
-                i = s.indexOf('Input')
-                input = s.slice(i+6, s.indexOf('\n',i+1))
+                i = s.indexOf('\nInput:')
+                input = s.slice(i+8, s.indexOf('\n',i+3))
 
                 # normalize path to be relative to project home
                 j = input.indexOf('/./')
@@ -1467,6 +1471,30 @@ class PDFLatexDocument
                 i = s.indexOf('Line')
                 line = parseInt(s.slice(i+5, s.indexOf('\n',i+1)))
                 opts.cb(false, {input:input, line:line-1})   # make line 0-based
+
+    forward_search: (opts) =>
+        opts = defaults opts,
+            n  : required
+            cb : required   # cb(err, {page:?, x:?, y:?})    x,y are in terms of 72dpi pdf units
+
+        @_exec
+            command : 'synctex'
+            args    : ['view', '-i', "#{opts.n}:0:#{@filename_tex}", '-o', @filename_pdf]
+            path    : @path
+            cb      : (err, output) =>
+                if err
+                    opts.cb(err); return
+                if output.stderr
+                    opts.cb(output.stderr); return
+                s = output.stdout
+                console.log(s)
+                i = s.indexOf('\nPage:')
+                n = s.slice(i+6, s.indexOf('\n',i+3))
+                i = s.indexOf('\nx:')
+                x = parseInt(s.slice(i+3, s.indexOf('\n',i+3)))
+                i = s.indexOf('\ny:')
+                y = parseInt(s.slice(i+3, s.indexOf('\n',i+3)))
+                opts.cb(false, {n:n, x:x, y:y})
 
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (cb) =>
@@ -1792,7 +1820,8 @@ class PDF_Preview extends FileEditor
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    #page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
                     page.data("number", m)
 
                     page.click (e) ->
@@ -1826,19 +1855,22 @@ class PDF_Preview extends FileEditor
 
         @element.show()
 
-        if geometry.height?
-            @element.height(geometry.height)
-        else
-            @element.maxheight()
-            geometry.height = @element.height()
+        f = () =>
+            @element.width(geometry.width)
+            @element.offset
+                left : geometry.left
+                top  : geometry.top
 
-        @element.width(geometry.width)
+            if geometry.height?
+                @element.height(geometry.height)
+            else
+                @element.maxheight()
+                geometry.height = @element.height()
 
-        @element.offset
-            left : geometry.left
-            top  : geometry.top
-
-        @focus()
+            @focus()
+        # We wait a tick for the element to appear before positioning it, otherwise it
+        # can randomly get messed up.
+        setTimeout(f, 1)
 
     hide: () =>
         @element.hide()
@@ -1955,20 +1987,7 @@ class LatexEditor extends FileEditor
         @preview = new PDF_Preview(@editor, @filename, undefined, {resolution:200})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
-        @preview.on 'click', (opts) =>
-            opts.cb = (err, res) =>
-                if err
-                    # TODO -- make error message better!
-                    alert_message(type:"error", message:"Inverse search error -- #{err}")
-                else
-                    if res.input != @filename
-                        @editor.open res.input, (err, fname) =>
-                            @editor.display_tab(path:fname)
-                    else
-                        @latex_editor.codemirror.setCursor({line:res.line,ch:0})
-                        @latex_editor.codemirror.focus()
-            @preview.pdflatex.inverse_search(opts)
-
+        @preview.on 'click', (opts) => @_inverse_search(opts)
 
         @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
@@ -2115,21 +2134,31 @@ class LatexEditor extends FileEditor
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                     setTimeout((() -> iframe.remove()), 1000)
 
-    inverse_search: () =>
-        console.log("inverse search")
-        {number, offset} = @preview.current_page()
-        console.log("current page = ", number, offset)
-        pdf = @preview.pdflatex.page(number).text
-        console.log("text = ", text)
-        dmp = require('diffsync').dmp
-        cm = @latex_editor.codemirror
-        tex = cm.getValue()
-        i = dmp.match_main(tex, pdf.slice(0,20), 0)
-        console.log(i)
+    _inverse_search: (opts) =>
+        opts.cb = (err, res) =>
+            if err
+                # TODO -- make error message better!
+                alert_message(type:"error", message:"Inverse search error -- #{err}")
+            else
+                if res.input != @filename
+                    @editor.open res.input, (err, fname) =>
+                        @editor.display_tab(path:fname)
+                else
+                    @latex_editor.codemirror_with_last_focus.setCursor({line:res.line,ch:0})
+                    @latex_editor.codemirror_with_last_focus.focus()
+        @preview.pdflatex.inverse_search(opts)
 
+    inverse_search: () =>
+        {number} = @preview.current_page()
+        y = @element.height()/2
+        @_inverse_search({n:number, x:0, y:y, resolution:@preview.pdflatex.page(number).resolution})
 
     forward_search: () =>
-        console.log("forward search -- not implemented")
+        n = @latex_editor.codemirror_with_last_focus.getCursor().line
+        @preview.pdflatex.forward_search
+            n  : n
+            cb : (err, result) =>
+                console.log(err, result)
 
 
 

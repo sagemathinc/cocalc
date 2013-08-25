@@ -19,8 +19,13 @@
    x- implement inverse search
    x- inverse search: work even for low-rez preview by putting resolution in img data.
    x- open correct file when inverse search points to a different file
+   x- inverse search button
 
     - implement forward search
+      x (make sure works for not root directory)
+      x (make sure works for split pane)
+
+    - bug where pdf preview is too tall.
 
     - get rid of use of pdftotext -- but leave in code that makes it possible.
     - bar between cm editor and preview
