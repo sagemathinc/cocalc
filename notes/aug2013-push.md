@@ -8,8 +8,9 @@
    x- show latex log in same place as preview (and don't *run* tex then -- just run tex on save).
    x- show actual pdf in same place as preview
    x- get rid of "File" button
-    --> - make preview get displayed at beginning (with button selected)
-    - make log display correctly
+   x- make preview get displayed at beginning (with button selected)
+--> - make log display correctly
+    - "rendering preview for the first time..."
     - config: customize latex command line: put at top of the output of latex log.
     - config: run tex on save or on clicking latex button (?)
     - config: customize margin chop percentage.

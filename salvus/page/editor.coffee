@@ -1835,7 +1835,6 @@ class LatexEditor extends FileEditor
         opts.mode = 'stex'
         opts.geometry = 'left half'
 
-        @_current_page = 'png-preview'
         @element = templates.find(".salvus-editor-latex").clone()
 
         # initialize the latex_editor
