@@ -2169,6 +2169,32 @@ class LatexEditor extends FileEditor
             @download_pdf()
             return false
 
+        @element.find("a[href=#preview-resolution]").click () =>
+            @set_resolution()
+            return false
+
+    set_resolution: (res) =>
+        if not res?
+            bootbox.prompt "Change preview resolution from #{@get_resolution()} dpi to...", (result) =>
+                if result
+                    @set_resolution(result)
+        else
+            console.log('setting res to #{res}')
+            try
+                res = parseInt(res)
+                if res < 150
+                    res = 150
+                else if res > 600
+                    res = 600
+                @preview.opts.resolution = res
+                @preview.update()
+            catch e
+                alert_message(type:"error", message:"Invalid resolution #{res}")
+
+    get_resolution: () =>
+        return @preview.opts.resolution
+
+
     click_save_button: () =>
         @latex_editor.click_save_button()
 

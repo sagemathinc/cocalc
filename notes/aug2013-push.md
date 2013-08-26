@@ -30,26 +30,27 @@
    x- bug where pdf preview is too tall.
 
    x- preview zoom
+    x- integrate pdf download with embedded preview
+
+   x- config: preview resolution (just a quick and easy version)
 
     - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
-
-    - CONFIG: put a single JSON object comment at bottom of file; have another page/tab that gives the settings.
     - config: customize latex command line
 
-    - config: swap editor/other stuff sides.
-    - config: preview resolution
+    - CONFIG: put a single JSON object comment at bottom of file; have another page/tab that gives the settings.
+
     - config: jpg versus png
     - config: automatic forward<-->inverse search
 
-    - sagetex should "just work"terminal
+    - sagetex should "just work"
     - get rid of use of pdftotext -- but leave in code that makes it possible.
     - bar between cm editor and preview (?)
 
-    - way to select *which* opened file to use when editing a multi-file latex doc...
     - mobile layout (esp buttons)
-    - integrate pdf download with embedded preview
     - MAJOB BUG: in syncdoc, render_chat_log: hits an infinite loop for the chat in sample2e.tex!
 
+    - way to select *which* opened file to use when editing a multi-file latex doc...
+    - config: swap editor/other stuff sides.
 ---
 
 - [ ] case where sync fails (?): sends changes, doesn't get response, but in fact response went through.
