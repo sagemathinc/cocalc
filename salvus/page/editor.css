@@ -126,7 +126,7 @@ Editor for files in a project
 
 .salvus-editor-pdf-preview-page {
     background-color:#eee;
-    overflow-x:hidden;
+    overflow-x:scroll;
     overflow-y:scroll;
 }
 
@@ -137,8 +137,7 @@ Editor for files in a project
     box-shadow: 5px 5px 5px 5px #888;
     max-width: 160%;
     width:160%;
-    margin-left: -30%;
-
+    margin-left: -32%;
 }
 
 .salvus-editor-pdf-preview-spinner {
@@ -161,6 +160,13 @@ Editor for files in a project
     padding-bottom: 3em;
     opacity : .3;
     background-color:yellow;
+}
+
+.salvus-editor-pdf-preview-buttons {
+    position: absolute;
+    margin-right: 1em;
+    right: 0;
+    font-size: 11pt;
 }
 
 

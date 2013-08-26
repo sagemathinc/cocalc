@@ -1,3 +1,4 @@
+
 <!--
 Editor for files in a project
 -->
@@ -147,12 +148,10 @@ Editor for files in a project
 
                 <span class="salvus-editor-latex-buttons hide">
                     <span class="btn-group">
-                            <a href="#forward-search" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
+                       <a href="#forward-search" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
                                title="Forward search (Alt+Enter)"><i class="icon-mail-forward"></i> Forward</a>
-                       < <a href="#inverse-search" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
+                       <a href="#inverse-search" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
                            title="Inverse search (Double or Ctrl+Click)"><i class="icon-mail-reply"></i> Inverse</a>
-                        <a href="#pdf-download" class="btn btn-small"  data-toggle="tooltip" data-placement="top"
-                            title="Download final rendered PDF"><i class="icon-download-alt"></i> PDF</a>
                     </span>
                     <span class="btn-group">
                         <a href="#png-preview" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
@@ -161,8 +160,6 @@ Editor for files in a project
                             title="Show latex compilation log."><i class="icon-bolt"></i> Latex</a>
                         <a href="#pdf-preview" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
                             title="Show final rendered PDF"><i class="icon-eye-open"></i> PDF</a>
-                        <a href="#latex-settings" class="btn btn-small"  data-toggle="tooltip" data-placement="top"
-                            title="Configure settings"><i class="icon-wrench"></i> Settings</a>
                     </span>
                 </span>
 
@@ -217,6 +214,15 @@ Editor for files in a project
     <div class="salvus-editor-pdf-preview">
         <div class="salvus-editor-pdf-preview-spinner hide"></div>
         <div class="salvus-editor-pdf-preview-highlight hide"></div>
+        <span class="salvus-editor-pdf-preview-buttons">
+            <span class="btn-group">
+                <a href="#zoom-preview-out" class='btn btn-small'><i class="icon-zoom-out"></i></a>
+                <a href="#zoom-preview-in" class='btn btn-small'><i class="icon-zoom-in"></i></a>
+                <a href="#zoom-preview-fullpage" class='btn btn-small'><i class="icon-collapse-alt"></i></a>
+                <a href="#zoom-preview-width" class='btn btn-small'><i class="icon-expand-alt"></i></a>
+                <a href="#pdf-download" class="btn btn-small"><i class="icon-download-alt"></i></a>
+            </span>
+        </span>
         <div class="salvus-editor-pdf-preview-page">
         </div>
     </div>
@@ -243,6 +249,9 @@ Editor for files in a project
         <div class="salvus-editor-latex-log hide">
             <textarea rows=20 cols=100 class="well boxsizingBorder" readonly
                       style="background-color: #eee; width:100%;">You have not run LaTeX yet.</textarea>
+        </div>
+        <div class="salvus-editor-latex-settings hide">
+            <h1>Settings</h1>
         </div>
     </div>
 

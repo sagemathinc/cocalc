@@ -601,6 +601,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             elt.hide()
 
     render_chat_log: () =>
+        return
         output = @element.find(".salvus-editor-codemirror-chat-output")
         output.empty()
 

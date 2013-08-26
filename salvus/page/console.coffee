@@ -60,7 +60,7 @@ focused_console = undefined
 client_keydown = (ev) ->
     focused_console?.client_keydown(ev)
 
-
+    
 class Console extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,

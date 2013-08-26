@@ -1683,9 +1683,41 @@ class PDF_Preview extends FileEditor
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
         @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
-        @output.text("Generating preview...")
+        @output.text("Loading preview...")
         @_first_output = true
         @_needs_update = true
+
+    zoom: (opts) =>
+        opts = defaults opts,
+            delta : undefined
+            width : undefined
+
+        images = @output.find("img")
+        if images.length == 0
+            console.log('do nothing')
+            return # nothing to do
+
+        if opts.delta?
+            max_width = images.css('max-width')
+            max_width = parseInt(max_width.slice(0, max_width.length-1))
+            max_width += opts.delta
+        else if opts.width?
+            max_width = opts.width
+
+        if max_width?
+            n = @current_page().number
+            console.log("page = ", n)
+            margin_left = "#{-(max_width-100)/2}%"
+            max_width = "#{max_width}%"
+            self._margin_left = margin_left
+            self._max_width = max_width
+            images.css
+                'max-width'   : max_width
+                width         : max_width
+                'margin-left' : margin_left
+            @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
+
+
 
     watch_scroll: () =>
         if @_f?
@@ -1864,6 +1896,12 @@ class PDF_Preview extends FileEditor
 
                     page.dblclick(f)
 
+                    if self._margin_left?
+                        # A zoom was set via the zoom command -- maintain it.
+                        page.find("img").css
+                            'max-width'   : self._max_width
+                            width         : self._max_width
+                            'margin-left' : self._margin_left
 
                     if @_first_output
                         @output.empty()
@@ -2015,11 +2053,13 @@ class LatexEditor extends FileEditor
         # initialize the previews
         n = @filename.length
 
+        # The pdf preview.
         @preview = new PDF_Preview(@editor, @filename, undefined, {resolution:200})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
         @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
+        # Embedded pdf page (not really a "preview" -- it's the real thing).
         @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
         @_pages['pdf-preview'] = @preview_embed
@@ -2030,13 +2070,16 @@ class LatexEditor extends FileEditor
 
         @_init_buttons()
 
-        @preview.output.on 'scroll', @_passive_inverse_search
-        cm0 = @latex_editor.codemirror
-        cm1 = @latex_editor.codemirror1
-        cm0.on 'cursorActivity', @_passive_forward_search
-        cm1.on 'cursorActivity', @_passive_forward_search
-        cm0.on 'change', @_pause_passive_search
-        cm1.on 'change', @_pause_passive_search
+        # This synchronizes the editor and png preview -- it's kind of disturbing.
+        # If people request it, make it a non-default option...
+        if false
+            @preview.output.on 'scroll', @_passive_inverse_search
+            cm0 = @latex_editor.codemirror
+            cm1 = @latex_editor.codemirror1
+            cm0.on 'cursorActivity', @_passive_forward_search
+            cm1.on 'cursorActivity', @_passive_forward_search
+            cm0.on 'change', @_pause_passive_search
+            cm1.on 'change', @_pause_passive_search
 
     _pause_passive_search: (cb) =>
         @_passive_forward_search_disabled = true
@@ -2079,34 +2122,50 @@ class LatexEditor extends FileEditor
         buttons = @element.find(".salvus-editor-latex-buttons").show()
         buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
-        buttons.find("a[href=#forward-search]").click () =>
+        @element.find("a[href=#forward-search]").click () =>
             @show_page('png-preview')
             @forward_search(active:true)
             return false
 
-        buttons.find("a[href=#inverse-search]").click () =>
+        @element.find("a[href=#inverse-search]").click () =>
             @show_page('png-preview')
             @inverse_search(active:true)
             return false
 
-
-        buttons.find("a[href=#png-preview]").click () =>
+        @element.find("a[href=#png-preview]").click () =>
             @show_page('png-preview')
             @preview.focus()
             @update_preview()
             return false
 
-        buttons.find("a[href=#pdf-preview]").click () =>
+        @element.find("a[href=#zoom-preview-out]").click () =>
+            @preview.zoom(delta:-5)
+            return false
+
+        @element.find("a[href=#zoom-preview-in]").click () =>
+            @preview.zoom(delta:5)
+            return false
+
+        @element.find("a[href=#zoom-preview-fullpage]").click () =>
+            @preview.zoom(width:100)
+            return false
+
+        @element.find("a[href=#zoom-preview-width]").click () =>
+            @preview.zoom(width:160)
+            return false
+
+
+        @element.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
             return false
 
-        buttons.find("a[href=#log]").click () =>
+        @element.find("a[href=#log]").click () =>
             @show_page('log')
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
             return false
 
-        buttons.find("a[href=#pdf-download]").click () =>
+        @element.find("a[href=#pdf-download]").click () =>
             @download_pdf()
             return false
 

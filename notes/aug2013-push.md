@@ -29,26 +29,33 @@
    x- inverse search: line should go to middle of editor.
    x- bug where pdf preview is too tall.
 
-    - get rid of use of pdftotext -- but leave in code that makes it possible.
-    - bar between cm editor and preview (?)
+   x- preview zoom
+
     - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
 
-CONFIG: put a single JSON object comment at bottom of file; have another page/tab that gives the settings.
+    - CONFIG: put a single JSON object comment at bottom of file; have another page/tab that gives the settings.
+    - config: customize latex command line
 
-    - config: customize latex command line -- put at top of the output of latex log.
-    - config: persist custom latex command -- ideas: could be a chat message; search on startup.
-    - config: customize margin chop percentage, i.e., zoom.
     - config: swap editor/other stuff sides.
     - config: preview resolution
     - config: jpg versus png
     - config: automatic forward<-->inverse search
-    - mobile layout (esp buttons)
-    - get rid of anything about displaying text in output.
-    
+
+    - sagetex should "just work"terminal
+    - get rid of use of pdftotext -- but leave in code that makes it possible.
+    - bar between cm editor and preview (?)
 
     - way to select *which* opened file to use when editing a multi-file latex doc...
+    - mobile layout (esp buttons)
+    - integrate pdf download with embedded preview
+    - MAJOB BUG: in syncdoc, render_chat_log: hits an infinite loop for the chat in sample2e.tex!
 
 ---
+
+- [ ] case where sync fails (?): sends changes, doesn't get response, but in fact response went through.
+
+- [ ] add to help page --  The asynchronous server code is all node.js (written in coffeescript).    Python is used for sage and also overall control/management of the distributed system.  The databases is Cassandra.  We use  bup for distributed de-depuplicated snapshots.  The vpn is tinc.  The virtual machines use kvm.  The client-side code is coffeescript plus dozens of third-party libraries such as CodeMirror.
+
 
 - [ ] codemirror editors -- split line VERTICALLY -- would be super, super useful.
 
