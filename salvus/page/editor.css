@@ -156,6 +156,14 @@ Editor for files in a project
     color: #8a8a8a;
 }
 
+.salvus-editor-pdf-preview-highlight {
+    margin-bottom: -3em;
+    padding-bottom: 3em;
+    opacity : .3;
+    background-color:yellow;
+}
+
+
 .salvus-editor-search-openfiles-input {
     width:100%;
 }

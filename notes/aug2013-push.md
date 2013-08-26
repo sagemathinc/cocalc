@@ -42,7 +42,7 @@
     - pdf embed: only update on resize
     - pdf embed: doesn't display initially
     - way to select *which* opened file to use when editing a multi-file latex doc...
-
+    - get rid of anything about displaying text in output.
 
 ---
 

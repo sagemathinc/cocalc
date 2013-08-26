@@ -1487,7 +1487,6 @@ class PDFLatexDocument
                 if output.stderr
                     opts.cb(output.stderr); return
                 s = output.stdout
-                console.log(s)
                 i = s.indexOf('\nPage:')
                 n = s.slice(i+6, s.indexOf('\n',i+3))
                 i = s.indexOf('\nx:')
@@ -1682,6 +1681,7 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
+        @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
         @output.text("Generating preview...")
         @_first_output = true
         @_needs_update = true
@@ -1699,6 +1699,21 @@ class PDF_Preview extends FileEditor
                     if err
                         @_needs_update = true
         @_f = setInterval(f, 1000)
+
+    scroll_into_view: (opts) =>
+        opts = defaults opts,
+            n              : required   # page
+            y              : 0          # y-coordinate on page
+            highlight_line : true
+        pg = @pdflatex.page(opts.n)
+        t = @output.offset().top
+        @output.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
+        top = (pg.element.offset().top + opts.y) - $(window).height() / 2
+        @output.scrollTop(top)
+        if opts.highlight_line
+            # highlight location of interest
+            @highlight.show().offset(top:$(window).height()/2)
+            @highlight.fadeOut(3000)
 
     remove: () =>
         if @_f?
@@ -1841,6 +1856,8 @@ class PDF_Preview extends FileEditor
                         @output.empty()
                         @_first_output = false
                     @output.append(page)
+                    @pdflatex.page(m).element = page
+
                 @last_page = n
             page.find("img").attr('src', url).data('resolution', resolution)
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
@@ -2154,11 +2171,27 @@ class LatexEditor extends FileEditor
         @_inverse_search({n:number, x:0, y:y, resolution:@preview.pdflatex.page(number).resolution})
 
     forward_search: () =>
-        n = @latex_editor.codemirror_with_last_focus.getCursor().line
+        n = @latex_editor.codemirror_with_last_focus.getCursor().line + 1
         @preview.pdflatex.forward_search
             n  : n
             cb : (err, result) =>
                 console.log(err, result)
+                if err
+                    alert_message(type:"error", message:err)
+                else
+                    y = result.y
+                    pg = @preview.pdflatex.page(result.n)
+                    res = pg.resolution
+                    img = pg.element.find("img")
+                    nH = img[0].naturalHeight
+                    if not res?
+                        y = 0
+                    else
+                        y *= res / 72 * img.height() / nH
+                    @preview.scroll_into_view
+                        n              : result.n
+                        y              : y
+                        highlight_line : true
 
 
 
