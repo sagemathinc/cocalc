@@ -1001,6 +1001,7 @@ class CodeMirrorEditor extends FileEditor
 
         extraKeys =
             "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
+            "Cmd-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
             "Ctrl-Enter"   : (editor)   => @action_key(execute: true, advance:true, split:true)
             "Ctrl-;"       : (editor)   => @action_key(split:true, execute:false, advance:false)
             "Cmd-;"        : (editor)   => @action_key(split:true, execute:false, advance:false)
@@ -1434,8 +1435,8 @@ class PDFLatexDocument
     inverse_search: (opts) =>
         opts = defaults opts,
             n          : required   # page number
-            x          : required   # x coordinate in png image coords (as reported by click EventEmitter)...
-            y          : required   # y coordinate in png image coords
+            x          : required   # x coordinate in unscaled png image coords (as reported by click EventEmitter)...
+            y          : required   # y coordinate in unscaled png image coords
             resolution : required   # resolution used in ghostscript
             cb         : required   # cb(err, {input:'file.tex', line:?})
 
@@ -1700,6 +1701,10 @@ class PDF_Preview extends FileEditor
                         @_needs_update = true
         @_f = setInterval(f, 1000)
 
+    highlight_middle: () =>
+        @highlight.show().offset(top:$(window).height()/2)
+        @highlight.fadeOut(3000)
+
     scroll_into_view: (opts) =>
         opts = defaults opts,
             n              : required   # page
@@ -1712,8 +1717,7 @@ class PDF_Preview extends FileEditor
         @output.scrollTop(top)
         if opts.highlight_line
             # highlight location of interest
-            @highlight.show().offset(top:$(window).height()/2)
-            @highlight.fadeOut(3000)
+            @highlight_middle()
 
     remove: () =>
         if @_f?
@@ -2026,8 +2030,44 @@ class LatexEditor extends FileEditor
 
         @_init_buttons()
 
+        @preview.output.on 'scroll', @_passive_inverse_search
+        cm0 = @latex_editor.codemirror
+        cm1 = @latex_editor.codemirror1
+        cm0.on 'cursorActivity', @_passive_forward_search
+        cm1.on 'cursorActivity', @_passive_forward_search
+        cm0.on 'change', @_pause_passive_search
+        cm1.on 'change', @_pause_passive_search
+
+    _pause_passive_search: (cb) =>
+        @_passive_forward_search_disabled = true
+        @_passive_inverse_search_disabled = true
+        f = () =>
+            @_passive_inverse_search_disabled = false
+            @_passive_forward_search_disabled = false
+
+        setTimeout(f, 3000)
+
+
+    _passive_inverse_search: (cb) =>
+        if @_passive_inverse_search_disabled
+            cb?(); return
+        @_pause_passive_search()
+        @inverse_search
+            active : false
+            cb     : (err) =>
+                cb?()
+
+    _passive_forward_search: (cb) =>
+        if @_passive_forward_search_disabled
+            cb?(); return
+        @forward_search
+            active : false
+            cb     : (err) =>
+                @_pause_passive_search()
+                cb?()
+
     action_key: () =>
-        @forward_search()
+        @forward_search(active:true)
 
     remove: () =>
         @element.remove()
@@ -2041,12 +2081,12 @@ class LatexEditor extends FileEditor
 
         buttons.find("a[href=#forward-search]").click () =>
             @show_page('png-preview')
-            @forward_search()
+            @forward_search(active:true)
             return false
 
         buttons.find("a[href=#inverse-search]").click () =>
             @show_page('png-preview')
-            @inverse_search()
+            @inverse_search(active:true)
             return false
 
 
@@ -2165,32 +2205,55 @@ class LatexEditor extends FileEditor
                     setTimeout((() -> iframe.remove()), 1000)
 
     _inverse_search: (opts) =>
+        active = opts.active  # whether user actively clicked, in which case we may open a new file -- otherwise don't open anything.
+        delete opts.active
+        cb = opts.cb
         opts.cb = (err, res) =>
             if err
-                # TODO -- make error message better!
-                alert_message(type:"error", message:"Inverse search error -- #{err}")
+                if active
+                    alert_message(type:"error", message: "Inverse search error -- #{err}")
             else
                 if res.input != @filename
-                    @editor.open res.input, (err, fname) =>
-                        @editor.display_tab(path:fname)
+                    if active
+                        @editor.open res.input, (err, fname) =>
+                            @editor.display_tab(path:fname)
                 else
-                    @latex_editor.codemirror_with_last_focus.setCursor({line:res.line,ch:0})
-                    @latex_editor.codemirror_with_last_focus.focus()
+                    cm = @latex_editor.codemirror_with_last_focus
+                    pos = {line:res.line, ch:0}
+                    cm.setCursor(pos)
+                    info = cm.getScrollInfo()
+                    cm.scrollIntoView(pos, info.clientHeight/2)
+                    cm.focus()
+            cb?()
+
         @preview.pdflatex.inverse_search(opts)
 
-    inverse_search: () =>
-        {number} = @preview.current_page()
-        y = @element.height()/2
-        @_inverse_search({n:number, x:0, y:y, resolution:@preview.pdflatex.page(number).resolution})
+    inverse_search: (opts={}) =>
+        opts = defaults opts,
+            active : required
+            cb     : undefined
+        number = @preview.current_page().number
+        elt    = @preview.pdflatex.page(number).element
+        output = @preview.output
+        nH     = elt.find("img")[0].naturalHeight
+        y      = (output.height()/2 + output.offset().top - elt.offset().top) * nH / elt.height()
+        @_inverse_search({n:number, x:0, y:y, resolution:@preview.pdflatex.page(number).resolution, cb:opts.cb})
 
-    forward_search: () =>
-        n = @latex_editor.codemirror_with_last_focus.getCursor().line + 1
+    forward_search: (opts={}) =>
+        opts = defaults opts,
+            active : true
+            cb     : undefined
+        cm = @latex_editor.codemirror_with_last_focus
+        if not cm?
+            opts.cb?()
+            return
+        n = cm.getCursor().line + 1
         @preview.pdflatex.forward_search
             n  : n
             cb : (err, result) =>
-                console.log(err, result)
                 if err
-                    alert_message(type:"error", message:err)
+                    if opts.active
+                        alert_message(type:"error", message:err)
                 else
                     y = result.y
                     pg = @preview.pdflatex.page(result.n)
@@ -2205,6 +2268,7 @@ class LatexEditor extends FileEditor
                         n              : result.n
                         y              : y
                         highlight_line : true
+                opts.cb?(err)
 
 
 

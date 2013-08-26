@@ -25,18 +25,15 @@
       x (make sure works for not root directory)
       x (make sure works for split pane)
 
-    - keyboard shortcuts for each thing:
-        - forward search
-        - inverse search
-        - show latex log
-
-    - inverse search: line should go to middle of editor.
-    - ux: make it clear which pane is currently focused.
-
-    - bug where pdf preview is too tall.
+   x- keyboard shortcuts for forward search
+   x- inverse search: line should go to middle of editor.
+   x- bug where pdf preview is too tall.
 
     - get rid of use of pdftotext -- but leave in code that makes it possible.
-    - bar between cm editor and preview
+    - bar between cm editor and preview (?)
+    - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
+
+CONFIG: put a single JSON object comment at bottom of file; have another page/tab that gives the settings.
 
     - config: customize latex command line -- put at top of the output of latex log.
     - config: persist custom latex command -- ideas: could be a chat message; search on startup.
@@ -44,13 +41,12 @@
     - config: swap editor/other stuff sides.
     - config: preview resolution
     - config: jpg versus png
+    - config: automatic forward<-->inverse search
     - mobile layout (esp buttons)
-    - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
-    - make the split screen position user-movable
-    - pdf embed: only update on resize
-    - pdf embed: doesn't display initially
-    - way to select *which* opened file to use when editing a multi-file latex doc...
     - get rid of anything about displaying text in output.
+    
+
+    - way to select *which* opened file to use when editing a multi-file latex doc...
 
 ---
 
