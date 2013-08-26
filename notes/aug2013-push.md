@@ -21,9 +21,17 @@
    x- open correct file when inverse search points to a different file
    x- inverse search button
 
-    - implement forward search
+   x- implement forward search
       x (make sure works for not root directory)
       x (make sure works for split pane)
+
+    - keyboard shortcuts for each thing:
+        - forward search
+        - inverse search
+        - show latex log
+
+    - inverse search: line should go to middle of editor.
+    - ux: make it clear which pane is currently focused.
 
     - bug where pdf preview is too tall.
 

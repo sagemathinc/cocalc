@@ -1839,7 +1839,7 @@ class PDF_Preview extends FileEditor
                     page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
                     page.data("number", m)
 
-                    page.click (e) ->
+                    f = (e) ->
                         pg = $(e.delegateTarget)
                         n  = pg.data('number')
                         offset = $(e.target).offset()
@@ -1850,7 +1850,16 @@ class PDF_Preview extends FileEditor
                         nW = img[0].naturalWidth
                         y *= nH/img.height()
                         x *= nW/img.width()
-                        that.emit 'click', {n:n, x:x, y:y, resolution:img.data('resolution')}
+                        that.emit 'shift-click', {n:n, x:x, y:y, resolution:img.data('resolution')}
+                        return false
+
+                    page.click (e) ->
+                        if e.shiftKey or e.ctrlKey
+                            f(e)
+                        return false
+
+                    page.dblclick(f)
+
 
                     if @_first_output
                         @output.empty()
@@ -1991,6 +2000,7 @@ class LatexEditor extends FileEditor
         @latex_editor = codemirror_session_editor(@editor, filename, opts)
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
+        @latex_editor.action_key = @action_key
 
         @latex_editor.on 'show', () => @show_page()
 
@@ -2004,7 +2014,7 @@ class LatexEditor extends FileEditor
         @preview = new PDF_Preview(@editor, @filename, undefined, {resolution:200})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
         @_pages['png-preview'] = @preview
-        @preview.on 'click', (opts) => @_inverse_search(opts)
+        @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
         @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
@@ -2015,6 +2025,9 @@ class LatexEditor extends FileEditor
         @_pages['log'] = @log
 
         @_init_buttons()
+
+    action_key: () =>
+        @forward_search()
 
     remove: () =>
         @element.remove()
