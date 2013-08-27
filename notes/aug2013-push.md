@@ -34,15 +34,16 @@
 
    x- config: preview resolution (just a quick and easy version)
 
+   x- config: customize latex command line --
+
+-->     - save custom latex command line in tex file
+    - save last zoom used in tex file
+    - sagetex should "just work" -- change update_pdf
+
+
     - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
-    - config: customize latex command line
+    - ?? config: automatic forward<-->inverse search  ??
 
-    - CONFIG: put a single JSON object comment at bottom of file; have another page/tab that gives the settings.
-
-    - config: jpg versus png
-    - config: automatic forward<-->inverse search
-
-    - sagetex should "just work"
     - get rid of use of pdftotext -- but leave in code that makes it possible.
     - bar between cm editor and preview (?)
 

@@ -1496,20 +1496,33 @@ class PDFLatexDocument
                 y = parseInt(s.slice(i+3, s.indexOf('\n',i+3)))
                 opts.cb(false, {n:n, x:x, y:y})
 
+    default_tex_command: () =>
+        a = "pdflatex -synctex=1 "
+        if @filename_tex.indexOf(' ') != -1
+            a += "'#{@filename_tex}'"
+        else
+            a += @filename_tex
+        return a
+
     # runs pdflatex; updates number of pages, latex log, parsed error log
-    update_pdf: (cb) =>
+    update_pdf: (opts={}) =>
+        opts = defaults opts,
+            command : undefined
+            cb      : undefined
         @pdf_updated = true
+        if not opts.command?
+            opts.command = @default_tex_command()
         @_exec
-            command : 'pdflatex'
-            args    : ['-synctex=1', '-interaction=nonstopmode', @filename_tex]
-            timeout : 15
+            command : opts.command + " < /dev/null 2</dev/null"
+            bash    : true
+            timeout : 20
             cb      : (err, output) =>
                 if err
-                    cb?(err)
+                    opts.cb?(err)
                 else
                     @latex_log = output.stdout + '\n\n' + output.stderr
                     @_parse_latex_log(@latex_log)
-                    cb?(false, @latex_log)
+                    opts.cb?(false, @latex_log)
 
     _parse_latex_log: (log) =>
         # todo -- parse through text file of log putting the errors in the corresponding @pages dict.
@@ -2067,6 +2080,11 @@ class LatexEditor extends FileEditor
         # initalize the log
         @log = @element.find(".salvus-editor-latex-log")
         @_pages['log'] = @log
+        input = @log.find("input")
+        input.keyup (e) =>
+            if e.keyCode == 13
+                @_latex_command = input.val()
+                @save()
 
         @_init_buttons()
 
@@ -2205,10 +2223,12 @@ class LatexEditor extends FileEditor
                 @update_preview()
 
     update_preview: (cb) =>
-        @run_latex () =>
-            @preview.update
-                cb: (err) =>
-                    cb?(err)
+        @run_latex
+            command : @_latex_command
+            cb      : () =>
+                @preview.update
+                    cb: (err) =>
+                        cb?(err)
 
     _get: () =>
         return @latex_editor._get()
@@ -2254,23 +2274,31 @@ class LatexEditor extends FileEditor
                 button.removeClass('btn-primary')
         @_current_page = name
 
-    run_latex: (cb) =>
+    run_latex: (opts={}) =>
+        opts = defaults opts,
+            command : undefined
+            cb      : undefined
         button = @element.find("a[href=#log]")
         button.icon_spin(true)
-        @log.find("textarea").text("Running latex...")
-        @preview.pdflatex.update_pdf (err, log) =>
-            button.icon_spin(false)
-            if err
-                log = err
-            if log.indexOf("I can't find file") != -1
-                @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
-            else
-                @log.find("div").empty()
-            @log.find("textarea").text(log)
-            # Scroll to the bottom of the textarea
-            f = @log.find('textarea')
-            f.scrollTop(f[0].scrollHeight)
-            cb()
+        @log.find("textarea").text("...")
+        if not opts.command?
+            opts.command = @preview.pdflatex.default_tex_command()
+        @log.find("input").val(opts.command)
+        @preview.pdflatex.update_pdf
+            command : opts.command
+            cb      : (err, log) =>
+                button.icon_spin(false)
+                if err
+                    log = err
+                if log.indexOf("I can't find file") != -1
+                    @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
+                else
+                    @log.find("div").empty()
+                @log.find("textarea").text(log)
+                # Scroll to the bottom of the textarea
+                f = @log.find('textarea')
+                f.scrollTop(f[0].scrollHeight)
+                opts.cb?()
 
     download_pdf: () =>
         button = @element.find("a[href=#pdf-download]")
