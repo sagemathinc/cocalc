@@ -128,6 +128,7 @@ Editor for files in a project
     background-color:#eee;
     overflow-x:hidden;
     overflow-y:scroll;
+    border-left:2px solid #ddd;
 }
 
 .salvus-editor-pdf-preview-image {

@@ -1410,8 +1410,9 @@ class PDFLatexDocument
         @path = s.head
         if @path == ''
             @path = './'
-        @filename_tex = s.tail
-        @filename_pdf = @filename_tex.slice(0, @filename_tex.length-3) + 'pdf'
+        @filename_tex  = s.tail
+        @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
+        @filename_pdf  =  @base_filename + '.pdf'
 
     page: (n) =>
         if not @_pages[n]?
@@ -1497,7 +1498,7 @@ class PDFLatexDocument
                 opts.cb(false, {n:n, x:x, y:y})
 
     default_tex_command: () =>
-        a = "pdflatex -synctex=1 "
+        a = "pdflatex -synctex=1 -interact=nonstopmode "
         if @filename_tex.indexOf(' ') != -1
             a += "'#{@filename_tex}'"
         else
@@ -1507,22 +1508,115 @@ class PDFLatexDocument
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
         opts = defaults opts,
-            command : undefined
-            cb      : undefined
+            status        : undefined  # status(start:'latex' or 'sage' or 'bibtex'), status(start:'latex', 'log':'output of thing running...')
+            latex_command : undefined
+            cb            : undefined
         @pdf_updated = true
-        if not opts.command?
-            opts.command = @default_tex_command()
+        if not opts.latex_command?
+            opts.latex_command = @default_tex_command()
+        @_need_to_run = {}
+        log = ''
+        status = opts.status
+        async.series([
+            (cb) =>
+                 status?(start:'latex')
+                 @_run_latex opts.latex_command, (err, _log) =>
+                     log += _log
+                     status?(end:'latex', log:_log)
+                     cb(err)
+            (cb) =>
+                 if @_need_to_run.sage
+                     status?(start:'sage')
+                     @_run_sage @_need_to_run.sage, (err, _log) =>
+                         log += _log
+                         status?(end:'sage', log:_log)
+                         cb(err)
+                 else
+                     cb()
+            (cb) =>
+                 if @_need_to_run.bibtex
+                     status?(start:'bibtex')
+                     @_run_bibtex (err, _log) =>
+                         status?(end:'bibtex', log:_log)
+                         log += _log
+                         cb(err)
+                 else
+                     cb()
+            (cb) =>
+                 if @_need_to_run.latex
+                     status?(start:'latex')
+                     @_run_latex opts.latex_command, (err, _log) =>
+                          log += _log
+                          status?(end:'latex', log:_log)
+                          cb(err)
+                 else
+                     cb()
+            (cb) =>
+                 if @_need_to_run.latex
+                     status?(start:'latex')
+                     @_run_latex opts.latex_command, (err, _log) =>
+                          log += _log
+                          status?(end:'latex', log:_log)
+                          cb(err)
+                 else
+                     cb()
+        ], (err) =>
+            opts.cb?(err, log))
+
+    _run_latex: (command, cb) =>
         @_exec
-            command : opts.command + " < /dev/null 2</dev/null"
+            command : command + " < /dev/null 2</dev/null"
             bash    : true
             timeout : 20
             cb      : (err, output) =>
                 if err
-                    opts.cb?(err)
+                    cb?(err)
                 else
-                    @latex_log = output.stdout + '\n\n' + output.stderr
-                    @_parse_latex_log(@latex_log)
-                    opts.cb?(false, @latex_log)
+                    log = output.stdout + '\n\n' + output.stderr
+                    if log.indexOf('Rerun to get cross-references right') != -1
+                        @_need_to_run.latex = true
+
+                    run_sage_on = '\nRun Sage on'
+                    i = log.indexOf(run_sage_on)
+                    if i != -1
+                        j = log.indexOf(', and then run LaTeX', i)
+                        if j != -1
+                            @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim()
+
+                    i = log.indexOf("No file #{@base_filename}.bbl.")
+                    if i != -1
+                        @_need_to_run.bibtex = true
+                    else
+                        console.log(log)
+
+                    cb?(false, log)
+
+    _run_sage: (target, cb) =>
+        @_exec
+            command : 'sage'
+            args    : [target]
+            timeout : 45
+            cb      : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    @_need_to_run.latex = true
+                    cb?(false, log)
+
+    _run_bibtex: (cb) =>
+        @_exec
+            command : 'bibtex'
+            args    : [@base_filename]
+            timeout : 10
+            cb      : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    @_need_to_run.latex = true
+                    cb?(false, log)
+
 
     _parse_latex_log: (log) =>
         # todo -- parse through text file of log putting the errors in the corresponding @pages dict.
@@ -1548,6 +1642,13 @@ class PDFLatexDocument
                 if not err
                     @_parse_text(output.stdout)
                 cb?(err)
+
+    trash_aux_files: (cb) =>
+        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'pdf', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
+        @_exec
+            command : "rm"
+            args    : (@base_filename + "." + ext for ext in EXT)
+            cb      : cb
 
     _parse_text: (text) =>
         # todo -- parse through the text file putting the pages in the correspondings @pages dict.
@@ -1925,7 +2026,6 @@ class PDF_Preview extends FileEditor
             img.attr('src', url).data('resolution', resolution)
 
             if @zoom_width?
-                console.log("zooming image")
                 max_width = @zoom_width
                 margin_left = "#{-(max_width-100)/2}%"
                 max_width = "#{max_width}%"
@@ -2066,6 +2166,8 @@ class LatexEditor extends FileEditor
         @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
+        @element.find(".salvus-editor-latex-buttons").show()
+
 
         @latex_editor.on 'show', () =>
             @show_page()
@@ -2094,14 +2196,12 @@ class LatexEditor extends FileEditor
 
         # initalize the log
         @log = @element.find(".salvus-editor-latex-log")
+        @log.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @_pages['log'] = @log
         @log_input = @log.find("input")
-        @_latex_commands = []
         @log_input.keyup (e) =>
             if e.keyCode == 13
                 latex_command = @log_input.val()
-                @_latex_commands.push(latex_command)
-                @log.find("a[href=#latex-command-undo]").removeClass("disabled")
                 @set_conf(latex_command: latex_command)
                 @save()
 
@@ -2145,15 +2245,17 @@ class LatexEditor extends FileEditor
         cm  = @latex_editor.codemirror
         doc = cm.getValue()
         i = doc.indexOf('%sagemathcloud=')
-        m = cm.lineCount()-1
+        line = '%sagemathcloud=' + misc.to_json(conf)
         if i != -1
-            # find the line
-            for n in [0..cm.lineCount()-1]
+            # find the line m where it is already
+            for n in [0..cm.doc.lastLine()]
                 z = cm.getLine(n)
                 if z.indexOf('%sagemathcloud=') != -1
                     m = n
                     break
-        cm.setLine(m, '%sagemathcloud=' + misc.to_json(conf))
+            cm.setLine(m, line)
+        else
+            cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
 
 
     _pause_passive_search: (cb) =>
@@ -2193,9 +2295,7 @@ class LatexEditor extends FileEditor
         @preview_embed.remove()
 
     _init_buttons: () =>
-
-        buttons = @element.find(".salvus-editor-latex-buttons").show()
-        buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
 
         @element.find("a[href=#forward-search]").click () =>
             @show_page('png-preview')
@@ -2210,7 +2310,6 @@ class LatexEditor extends FileEditor
         @element.find("a[href=#png-preview]").click () =>
             @show_page('png-preview')
             @preview.focus()
-            @update_preview()
             return false
 
         @element.find("a[href=#zoom-preview-out]").click () =>
@@ -2242,6 +2341,8 @@ class LatexEditor extends FileEditor
         @element.find("a[href=#log]").click () =>
             @show_page('log')
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
+            t = @log.find("textarea")
+            t.scrollTop(t[0].scrollHeight)
             return false
 
         @element.find("a[href=#pdf-download]").click () =>
@@ -2253,12 +2354,16 @@ class LatexEditor extends FileEditor
             return false
 
         @element.find("a[href=#latex-command-undo]").click () =>
-            command = @_latex_commands.pop()
-            if not command?
-                command = @preview.pdflatex.default_tex_command()
-                @log.find("a[href=#latex-command-undo]").addClass("disabled")
-            @log_input.val(command)
+            @log_input.val(@preview.pdflatex.default_tex_command())
             return false
+
+        trash_aux_button = @element.find("a[href=#latex-trash-aux]")
+        trash_aux_button.click () =>
+            trash_aux_button.icon_spin(true)
+            @preview.pdflatex.trash_aux_files () =>
+                trash_aux_button.icon_spin(false)
+            return false
+
 
     set_resolution: (res) =>
         if not res?
@@ -2335,7 +2440,9 @@ class LatexEditor extends FileEditor
                     page.show(g)
                 else
                     page.offset({left:g.left, top:g.top}).width(g.width)
-                    @log_input.val(@load_conf().latex_command)
+                    c = @load_conf().latex_command
+                    if c
+                        @log_input.val(c)
 
                 button.addClass('btn-primary')
             else
@@ -2349,24 +2456,28 @@ class LatexEditor extends FileEditor
             cb      : undefined
         button = @element.find("a[href=#log]")
         button.icon_spin(true)
-        @log.find("textarea").text("...")
+        log_output = @log.find("textarea")
+        log_output.text("")
         if not opts.command?
             opts.command = @preview.pdflatex.default_tex_command()
         @log_input.val(opts.command)
+
+        build_status = button.find("span")
+        status = (mesg) =>
+            if mesg.start
+                build_status.text(' - ' + mesg.start)
+                log_output.text(log_output.text() + '\n\n-----------------------------------------------------\nRunning ' + mesg.start + '...\n\n\n\n')
+            else
+                build_status.text('')
+                log_output.text(log_output.text() + '\n' + mesg.log + '\n')
+            # Scroll to the bottom of the textarea
+            log_output.scrollTop(log_output[0].scrollHeight)
+
         @preview.pdflatex.update_pdf
-            command : opts.command
-            cb      : (err, log) =>
+            status        : status
+            latex_command : opts.command
+            cb            : (err, log) =>
                 button.icon_spin(false)
-                if err
-                    log = err
-                if log.indexOf("I can't find file") != -1
-                    @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
-                else
-                    @log.find("div").empty()
-                @log.find("textarea").text(log)
-                # Scroll to the bottom of the textarea
-                f = @log.find('textarea')
-                f.scrollTop(f[0].scrollHeight)
                 opts.cb?()
 
     download_pdf: () =>

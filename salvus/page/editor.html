@@ -156,10 +156,11 @@ Editor for files in a project
                     <span class="btn-group">
                         <a href="#png-preview" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
                             title="Show preview"><i class="icon-building"></i> Preview</a>
-                        <a href="#log" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
-                            title="Show latex compilation log."><i class="icon-bolt"></i> Latex</a>
                         <a href="#pdf-preview" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
                             title="Show final rendered PDF"><i class="icon-eye-open"></i> PDF</a>
+                        <a href="#log" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
+                            title="Show compilation log (save causes recompile)"><i class="icon-bolt"></i> Build
+                            <span></span></a>
                     </span>
                 </span>
 
@@ -248,8 +249,9 @@ Editor for files in a project
         <div class="salvus-editor-latex-png-preview hide">
         </div>
         <div class="salvus-editor-latex-log hide">
-            <a href="#latex-command-undo" class="btn  pull-right disabled" style="margin-right:1ex"><i class="icon-undo"></i></a>
-            <input  style="width:90%" type="text">
+            <a href="#latex-trash-aux" class="btn  pull-right" style="margin-right:1ex"  data-toggle="tooltip" data-placement="left" title="Delete auxiliary build files."><i class="icon-trash"></i></a>
+            <a href="#latex-command-undo" class="btn  pull-right" style="margin-right:1ex; margin-left:1ex" data-toggle="tooltip" data-placement="left" title="Reset build command."><i class="icon-remove-circle"></i></a>
+            <input  style="width:80%" type="text">
             <br>
             <textarea rows=20 cols=100 class="well boxsizingBorder" readonly style="width:100%;">You have not run LaTeX yet.</textarea>
         </div>

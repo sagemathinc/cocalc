@@ -41,17 +41,23 @@
     x- save custom latex command line in tex file
     x- save last zoom used in tex file
 
-    - sagetex should "just work" -- change update_pdf
-    - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
+    x- sagetex should "just work" -- change update_pdf
+
 
     x- get rid of use of pdftotext -- but leave in code that makes it possible.
-    - bar between cm editor and preview (?)
 
-    - mobile layout (esp buttons)
-    - MAJOB BUG: in syncdoc, render_chat_log: hits an infinite loop for the chat in sample2e.tex!
+    x - bibtex should "just work"
 
-    - way to select *which* opened file to use when editing a multi-file latex doc...
-    - config: swap editor/other stuff sides.
+    - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
+      including bibtex errors, etc.
+      and maybe markup the log better?
+
+    x- bar between cm editor and preview (?)
+
+    - FIX ALL BUGS:
+       - mobile layout (esp buttons)
+       - MAJOR BUG: in syncdoc, render_chat_log: hits an infinite loop for the chat in sample2e.tex!
+
 ---
 
 - [ ] case where sync fails (?): sends changes, doesn't get response, but in fact response went through.
