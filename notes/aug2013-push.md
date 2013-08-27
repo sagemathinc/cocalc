@@ -36,16 +36,15 @@
 
    x- config: customize latex command line --
 
-    - custom latex -- reset button.
-    - save custom latex command line in tex file
-    - save last zoom used in tex file
+    x- custom latex -- reset button.
+
+    x- save custom latex command line in tex file
+    x- save last zoom used in tex file
+
     - sagetex should "just work" -- change update_pdf
-
-
     - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
-    - ?? config: automatic forward<-->inverse search  ??
 
-    - get rid of use of pdftotext -- but leave in code that makes it possible.
+    x- get rid of use of pdftotext -- but leave in code that makes it possible.
     - bar between cm editor and preview (?)
 
     - mobile layout (esp buttons)

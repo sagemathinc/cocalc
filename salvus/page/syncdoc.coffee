@@ -429,6 +429,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @_add_listeners()
                 @editor.save_button.addClass('disabled')   # TODO: start with no unsaved changes -- not tech. correct!!
 
+                @emit 'connect'    # successful connection
+
                 cb()
 
     ui_loading: () =>

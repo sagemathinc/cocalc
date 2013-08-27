@@ -1539,6 +1539,7 @@ class PDFLatexDocument
                     console.log("BUG parsing number of pages")
 
     # runs pdftotext; updates plain text of each page.
+    # (not used right now, since we are using synctex instead...)
     update_text: (cb) =>
         @_exec
             command : "pdftotext"   # part of the "calibre" ubuntu package
@@ -1684,7 +1685,6 @@ class PDF_Preview extends FileEditor
         @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"png")
         @opts = opts
         @_updating = false
-        @width_percent = 90
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
         s = path_split(@filename)
@@ -1718,12 +1718,10 @@ class PDF_Preview extends FileEditor
             max_width = opts.width
 
         if max_width?
+            @zoom_width = max_width
             n = @current_page().number
-            console.log("page = ", n)
             margin_left = "#{-(max_width-100)/2}%"
             max_width = "#{max_width}%"
-            self._margin_left = margin_left
-            self._max_width = max_width
             images.css
                 'max-width'   : max_width
                 width         : max_width
@@ -1805,8 +1803,8 @@ class PDF_Preview extends FileEditor
         if @element.width()
             @output.width(@element.width())
 
-        # we do this in parallel to any image updating below -- it takes about a second for a 100 page file...
-        @pdflatex.update_text (err) =>
+        # we do text conversion in parallel to any image updating below -- it takes about a second for a 100 page file...
+        # @pdflatex.update_text (err) =>
             #if not err
 
         n = @current_page().number
@@ -1923,7 +1921,19 @@ class PDF_Preview extends FileEditor
                     @pdflatex.page(m).element = page
 
                 @last_page = n
-            page.find("img").attr('src', url).data('resolution', resolution)
+            img =  page.find("img")
+            img.attr('src', url).data('resolution', resolution)
+
+            if @zoom_width?
+                console.log("zooming image")
+                max_width = @zoom_width
+                margin_left = "#{-(max_width-100)/2}%"
+                max_width = "#{max_width}%"
+                img.css
+                    'max-width'   : max_width
+                    width         : max_width
+                    'margin-left' : margin_left
+
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
 
@@ -2057,7 +2067,12 @@ class LatexEditor extends FileEditor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
         @latex_editor.action_key = @action_key
 
-        @latex_editor.on 'show', () => @show_page()
+        @latex_editor.on 'show', () =>
+            @show_page()
+
+        @latex_editor.syncdoc.on 'connect', () =>
+            @preview.zoom_width = @load_conf().zoom_width
+            @update_preview()
 
         v = path_split(@filename)
         @_path = v.head
@@ -2084,9 +2099,10 @@ class LatexEditor extends FileEditor
         @_latex_commands = []
         @log_input.keyup (e) =>
             if e.keyCode == 13
-                @_latex_command = @log_input.val()
-                @_latex_commands.push(@_latex_command)
+                latex_command = @log_input.val()
+                @_latex_commands.push(latex_command)
                 @log.find("a[href=#latex-command-undo]").removeClass("disabled")
+                @set_conf(latex_command: latex_command)
                 @save()
 
         @_init_buttons()
@@ -2101,6 +2117,44 @@ class LatexEditor extends FileEditor
             cm1.on 'cursorActivity', @_passive_forward_search
             cm0.on 'change', @_pause_passive_search
             cm1.on 'change', @_pause_passive_search
+
+    set_conf: (obj) =>
+        conf = @load_conf()
+        for k, v of obj
+            conf[k] = v
+        @save_conf(conf)
+
+    load_conf: () =>
+        doc = @latex_editor.codemirror.getValue()
+        i = doc.indexOf("%sagemathcloud=")
+        if i == -1
+            return {}
+
+        j = doc.indexOf('=',i)
+        k = doc.indexOf('\n',i)
+        if k == -1
+            k = doc.length
+        try
+            conf = misc.from_json(doc.slice(j+1,k))
+        catch
+            conf = {}
+
+        return conf
+
+    save_conf: (conf) =>
+        cm  = @latex_editor.codemirror
+        doc = cm.getValue()
+        i = doc.indexOf('%sagemathcloud=')
+        m = cm.lineCount()-1
+        if i != -1
+            # find the line
+            for n in [0..cm.lineCount()-1]
+                z = cm.getLine(n)
+                if z.indexOf('%sagemathcloud=') != -1
+                    m = n
+                    break
+        cm.setLine(m, '%sagemathcloud=' + misc.to_json(conf))
+
 
     _pause_passive_search: (cb) =>
         @_passive_forward_search_disabled = true
@@ -2161,18 +2215,22 @@ class LatexEditor extends FileEditor
 
         @element.find("a[href=#zoom-preview-out]").click () =>
             @preview.zoom(delta:-5)
+            @set_conf(zoom_width:@preview.zoom_width)
             return false
 
         @element.find("a[href=#zoom-preview-in]").click () =>
             @preview.zoom(delta:5)
+            @set_conf(zoom_width:@preview.zoom_width)
             return false
 
         @element.find("a[href=#zoom-preview-fullpage]").click () =>
             @preview.zoom(width:100)
+            @set_conf(zoom_width:@preview.zoom_width)
             return false
 
         @element.find("a[href=#zoom-preview-width]").click () =>
             @preview.zoom(width:160)
+            @set_conf(zoom_width:@preview.zoom_width)
             return false
 
 
@@ -2235,7 +2293,7 @@ class LatexEditor extends FileEditor
 
     update_preview: (cb) =>
         @run_latex
-            command : @_latex_command
+            command : @load_conf().latex_command
             cb      : () =>
                 @preview.update
                     cb: (err) =>
@@ -2252,7 +2310,6 @@ class LatexEditor extends FileEditor
         @latex_editor?.show()
         if not @_show_before?
             @show_page('png-preview')
-            @update_preview()
             @_show_before = true
 
     focus: () =>
@@ -2278,6 +2335,7 @@ class LatexEditor extends FileEditor
                     page.show(g)
                 else
                     page.offset({left:g.left, top:g.top}).width(g.width)
+                    @log_input.val(@load_conf().latex_command)
 
                 button.addClass('btn-primary')
             else
@@ -2294,7 +2352,7 @@ class LatexEditor extends FileEditor
         @log.find("textarea").text("...")
         if not opts.command?
             opts.command = @preview.pdflatex.default_tex_command()
-        @log.find("input").val(opts.command)
+        @log_input.val(opts.command)
         @preview.pdflatex.update_pdf
             command : opts.command
             cb      : (err, log) =>
