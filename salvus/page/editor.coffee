@@ -1098,6 +1098,17 @@ class CodeMirrorEditor extends FileEditor
 
         @init_change_event()
 
+    set_cursor_center_focus: (pos) =>
+        cm = @codemirror_with_last_focus
+        if not cm?
+            cm = @codemirror
+        if not cm?
+            return
+        cm.setCursor(pos)
+        info = cm.getScrollInfo()
+        cm.scrollIntoView(pos, info.clientHeight/2)
+        cm.focus()
+
     disconnect_from_session: (cb) =>
         # implement in a derived class if you need this
         @syncdoc?.disconnect_from_session()
@@ -1197,7 +1208,10 @@ class CodeMirrorEditor extends FileEditor
                     line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
                 else
                     line = parseInt(result)-1
-                cm.setCursor({line:line, ch:0})
+                pos = {line:line, ch:0}
+                cm.setCursor(pos)
+                info = cm.getScrollInfo()
+                cm.scrollIntoView(pos, info.clientHeight/2)
             setTimeout(focus, 100)
 
     init_close_button: () =>
@@ -1242,9 +1256,7 @@ class CodeMirrorEditor extends FileEditor
     restore_cursor_position: () =>
         pos = @local_storage("cursor")
         if pos?
-            @codemirror.setCursor(pos)
-            # todo -- would be better to center rather than a magic "5".
-            @codemirror.scrollIntoView({line:pos.line-5, ch:0})
+            @set_cursor_center_focus(pos)
 
     _style_active_line: (rgb) =>
         v = (parseInt(x) for x in rgb.slice(4,rgb.length-1).split(','))
@@ -1848,9 +1860,11 @@ class PDF_Preview extends FileEditor
                         @_needs_update = true
         @_f = setInterval(f, 1000)
 
-    highlight_middle: () =>
+    highlight_middle: (fade_time) =>
+        if not fade_time?
+            fade_time = 5000
         @highlight.show().offset(top:$(window).height()/2)
-        @highlight.fadeOut(3000)
+        @highlight.stop().animate(opacity:.3).fadeOut(fade_time)
 
     scroll_into_view: (opts) =>
         opts = defaults opts,
@@ -2209,8 +2223,7 @@ class LatexEditor extends FileEditor
 
         @errors = @element.find(".salvus-editor-latex-errors")
         @_pages['errors'] = @errors
-        @_error_message_templates =
-
+        @_error_message_template = @element.find(".salvus-editor-latex-mesg-template")
 
         @_init_buttons()
 
@@ -2294,6 +2307,7 @@ class LatexEditor extends FileEditor
                 cb?()
 
     action_key: () =>
+        @show_page('png-preview')
         @forward_search(active:true)
 
     remove: () =>
@@ -2353,12 +2367,12 @@ class LatexEditor extends FileEditor
             t.scrollTop(t[0].scrollHeight)
             return false
 
-        @element.find("a[href=#latex-errors]").click () =>
+        @element.find("a[href=#errors]").click () =>
             @show_page('errors')
             return false
 
-        @number_of_errors = @element.find("a[href=#latex-errors]").find(".salvus-latex-errors-counter")
-        @number_of_warnings = @element.find("a[href=#latex-errors]").find(".salvus-latex-warnings-counter")
+        @number_of_errors = @element.find("a[href=#errors]").find(".salvus-latex-errors-counter")
+        @number_of_warnings = @element.find("a[href=#errors]").find(".salvus-latex-warnings-counter")
 
         @element.find("a[href=#pdf-download]").click () =>
             @download_pdf()
@@ -2369,7 +2383,9 @@ class LatexEditor extends FileEditor
             return false
 
         @element.find("a[href=#latex-command-undo]").click () =>
-            @log_input.val(@preview.pdflatex.default_tex_command())
+            c = @preview.pdflatex.default_tex_command()
+            @log_input.val(c)
+            @set_conf(latex_command: c)
             return false
 
         trash_aux_button = @element.find("a[href=#latex-trash-aux]")
@@ -2468,9 +2484,15 @@ class LatexEditor extends FileEditor
     show_page: (name) =>
         if not name?
             name = @_current_page
+        @_current_page = name
         if not name?
             name = 'png-preview'
-        for n in ['png-preview', 'pdf-preview', 'log', 'errors']
+
+        pages = ['png-preview', 'pdf-preview', 'log', 'errors']
+        for n in pages
+            @element.find(".salvus-editor-latex-#{n}").hide()
+
+        for n in pages
             page = @_pages[n]
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
@@ -2478,7 +2500,6 @@ class LatexEditor extends FileEditor
                 e.show()
                 es = @latex_editor.empty_space
                 g  = left : es.start, top:es.top+3, width:es.end-es.start-3
-                console.log("g = ", g)
                 if n not in ['log', 'errors']
                     page.show(g)
                 else
@@ -2488,11 +2509,11 @@ class LatexEditor extends FileEditor
                         c = @load_conf().latex_command
                         if c
                             @log_input.val(c)
+                    else if n == 'errors'
+                        @render_error_page()
                 button.addClass('btn-primary')
             else
-                e.hide()
                 button.removeClass('btn-primary')
-        @_current_page = name
 
     run_latex: (opts={}) =>
         opts = defaults opts,
@@ -2532,12 +2553,25 @@ class LatexEditor extends FileEditor
         if not log?
             return
         p = (new LatexParser(log)).parse()
-        console.log(p)
-        @number_of_errors.text(p.errors.length)
-        @number_of_warnings.text(p.warnings.length + p.typesetting.length)
+
+        if p.errors.length
+            @number_of_errors.text(p.errors.length)
+            @element.find("a[href=#errors]").addClass("btn-danger")
+        else
+            @number_of_errors.text('')
+            @element.find("a[href=#errors]").removeClass("btn-danger")
+
+        k = p.warnings.length + p.typesetting.length
+        if k
+            @number_of_warnings.text("(#{k})")
+        else
+            @number_of_warnings.text('')
+
+        if @_current_page != 'errors'
+            return
 
         elt = @errors.find(".salvus-latex-errors")
-        if p.errors.lenght == 0
+        if p.errors.length == 0
             elt.html("None")
         else
             elt.html("")
@@ -2553,17 +2587,83 @@ class LatexEditor extends FileEditor
                 elt.append(@render_error_message(mesg))
 
         elt = @errors.find(".salvus-latex-typesetting")
-        if p.warnings.length == 0
+        if p.typesetting.length == 0
             elt.html("None")
         else
             elt.html("")
             for mesg in p.typesetting
                 elt.append(@render_error_message(mesg))
 
+    _show_error_in_file: (mesg, cb) =>
+        file = mesg.file
+        if not file
+            alert_message(type:"error", "No way to open unknown file.")
+            cb?()
+            return
+        if not mesg.line
+            if mesg.page
+                @_inverse_search
+                    n : mesg.page
+                    active : false
+                    x : 50
+                    y : 50
+                    resolution:200
+                    cb: cb
+            else
+                alert_message(type:"error", "Unknown location in '#{file}'.")
+                cb?()
+                return
+        else
+            if @preview.pdflatex.filename_tex == file
+                @latex_editor.set_cursor_center_focus({line:mesg.line-1, ch:0})
+            else
+                @editor.open file, (err, fname) =>
+                    if not err
+                        @editor.display_tab(path:fname)
+                        # TODO: need to set position, right?
+                        # also, as in _inverse_search -- maybe this should be opened *inside* the latex editor...
+            cb?()
+
+    _show_error_in_preview: (mesg) =>
+        if @preview.pdflatex.filename_tex == mesg.file
+            @_show_error_in_file mesg, () =>
+                @show_page('png-preview')
+                @forward_search(active:true)
 
     render_error_message: (mesg) =>
-        elt = @_error_message_templates[mesg.level].clone()
-        elt.
+
+        if not mesg.line
+            r = mesg.raw
+            i = r.lastIndexOf('[')
+            j = i+1
+            while j < r.length and r[j] >= '0' and r[j] <= '9'
+                j += 1
+            mesg.page = r.slice(i+1,j)
+
+        if mesg.file.slice(0,2) == './'
+            mesg.file = mesg.file.slice(2)
+
+        elt = @_error_message_template.clone().show()
+        elt.find("a:first").click () =>
+            @_show_error_in_file(mesg)
+            return false
+        elt.find("a:last").click () =>
+            @_show_error_in_preview(mesg)
+            return false
+
+        elt.addClass("salvus-editor-latex-mesg-template-#{mesg.level}")
+        if mesg.line
+            elt.find(".salvus-latex-mesg-line").text("line #{mesg.line}").data('line', mesg.line)
+        if mesg.page
+            elt.find(".salvus-latex-mesg-page").text("page #{mesg.page}").data('page', mesg.page)
+        if mesg.file
+            elt.find(".salvus-latex-mesg-file").text(" of #{mesg.file}").data('file', mesg.file)
+        if mesg.message
+            elt.find(".salvus-latex-mesg-message").text(mesg.message)
+        if mesg.content
+            elt.find(".salvus-latex-mesg-content").show().text(mesg.content)
+        return elt
+
 
     download_pdf: () =>
         button = @element.find("a[href=#pdf-download]")
@@ -2594,14 +2694,11 @@ class LatexEditor extends FileEditor
                 if res.input != @filename
                     if active
                         @editor.open res.input, (err, fname) =>
-                            @editor.display_tab(path:fname)
+                            if not err
+                                @editor.display_tab(path:fname)
+                                # TODO: need to set position, right?
                 else
-                    cm = @latex_editor.codemirror_with_last_focus
-                    pos = {line:res.line, ch:0}
-                    cm.setCursor(pos)
-                    info = cm.getScrollInfo()
-                    cm.scrollIntoView(pos, info.clientHeight/2)
-                    cm.focus()
+                    @latex_editor.set_cursor_center_focus({line:res.line, ch:0})
             cb?()
 
         @preview.pdflatex.inverse_search(opts)
@@ -2636,7 +2733,10 @@ class LatexEditor extends FileEditor
                     y = result.y
                     pg = @preview.pdflatex.page(result.n)
                     res = pg.resolution
-                    img = pg.element.find("img")
+                    img = pg.element?.find("img")
+                    if not img?
+                        opts.cb?("Page #{result.n} not yet loaded.")
+                        return
                     nH = img[0].naturalHeight
                     if not res?
                         y = 0

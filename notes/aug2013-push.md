@@ -53,16 +53,16 @@
     x- button to force run bibtex
     x- button to force run sagetex
 
-    - show error messages in place where they occur, if possible (e.g., in the same file); otherwise, at least nicer browser...
-      including bibtex errors, etc.
-      and maybe markup the log better?
+    x- show error messages in a nicer browser...
+       including bibtex errors, etc. and maybe markup the log better?
 
-    - pdf embed -- fullscreen presentation mode.
+    x- error, open other file to right location
 
     - FIX ALL BUGS:
        - mobile layout (esp buttons)
        - MAJOR BUG: in syncdoc, render_chat_log: hits an infinite loop for the chat in sample2e.tex!
        - hub restart local hub too aggressively
+       - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
 
 ---
 

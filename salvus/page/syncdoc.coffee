@@ -695,9 +695,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_data.pos = pos
 
         # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:16000)
+        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
         # Then fade the cursor out (a non-active cursor is a waste of space).
-        cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
+        cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
 

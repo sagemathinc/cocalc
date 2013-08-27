@@ -156,8 +156,8 @@ Editor for files in a project
                     <span class="btn-group">
                         <a href="#png-preview" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
                             title="Show preview"><i class="icon-building"></i> Preview</a>
-                        <a href="#latex-errors" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
-                           title="Show errors and warnings"><i class="icon-bug"></i> Errors <span class="salvus-latex-errors-counter">0</span> (<span class="salvus-latex-warnings-counter">0</span>)</a>
+                        <a href="#errors" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
+                           title="Show errors and warnings"><i class="icon-bug"></i> Issues <span class="salvus-latex-errors-counter"></span> <span class="salvus-latex-warnings-counter"></span></a>
                         <a href="#pdf-preview" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
                             title="Show final rendered PDF"><i class="icon-eye-open"></i> PDF</a>
                         <a href="#log" class="btn btn-small "  data-toggle="tooltip" data-placement="top"
@@ -251,18 +251,35 @@ Editor for files in a project
         <div class="salvus-editor-latex-png-preview hide">
         </div>
         <div class="salvus-editor-latex-errors well hide">
-            <h1>Errors</h1>
+            <h3>Errors</h3>
             <div class="salvus-latex-errors">
             </div>
-            <h1>Warnings</h1>
-            <div class="salvus-latex-warnings">
-            </div>
-            <h1>Typesetting Issues</h1>
+            <h3>Typesetting Issues</h3>
             <div class="salvus-latex-typesetting">
+            </div>
+            <h3>Other Warnings</h3>
+            <div class="salvus-latex-warnings">
             </div>
 
         </div>
-        <div class="salvus-editor-latex-log hide">
+
+        <!-- error/warning message templates -->
+
+        <div class="salvus-editor-latex-mesg-template well hide">
+            <a class='btn' style="max-width:80%">
+                <i class="icon-mail-reply"></i>
+                <span class="salvus-latex-mesg-line"></span>
+                <span class="salvus-latex-mesg-page"></span>
+                <span class="salvus-latex-mesg-file"></span>
+                <span class="salvus-latex-mesg-message"></span>
+            </a>
+            <a class='btn pull-right'>
+                <i class="icon-mail-forward"></i>
+            </a>
+            <pre class="salvus-latex-mesg-content lighten hide"></pre>
+        </div>
+
+         <div class="salvus-editor-latex-log hide">
             <span class="btn-group pull-right" style="margin-right:1ex; margin-left:1ex">
                 <a href="#latex-latex" class="btn btn-small" data-toggle="tooltip" data-placement="left" title="Run Latex"><i class="icon-bolt"></i> Latex</a>
                 <a href="#latex-bibtex" class="btn btn-small" data-toggle="tooltip" data-placement="left" title="Run Bibtex"><i class="icon-bolt"></i> Bibtex</a>
@@ -272,7 +289,7 @@ Editor for files in a project
             </span>
             <input  style="width:50%" type="text">
             <br>
-            <textarea rows=20 cols=100 class="well boxsizingBorder" readonly style="width:100%;">You have not run LaTeX yet.</textarea>
+            <textarea rows=20 cols=100 class="well boxsizingBorder" readonly style="width:100%;background-color:white;">You have not run LaTeX yet.</textarea>
         </div>
         <div class="salvus-editor-latex-settings hide">
             <h1>Settings</h1>

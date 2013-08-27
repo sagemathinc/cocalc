@@ -130,7 +130,33 @@ Editor for files in a project
 }
 
 .salvus-latex-warnings-counter {
-     color:#880;
+     color:#FDB600;
+}
+
+.salvus-editor-latex-mesg-template {
+    overflow-x: auto;
+    background: white;
+    margin-right: 2em;
+}
+
+.salvus-editor-latex-mesg-template-error {
+    border : 2px solid #a00;
+}
+.salvus-editor-latex-mesg-template-warning {
+    border : 2px solid ##FDB600;
+}
+.salvus-editor-latex-mesg-template-typesetting {
+    border : 2px solid ##FDB600;
+}
+
+.salvus-latex-mesg-message {
+    font-size: 13pt;
+    margin-left: 1em;
+}
+
+.salvus-latex-mesg-content {
+    font-size: 9pt;
+    margin: 5px;
 }
 
 .salvus-editor-pdf-preview {
