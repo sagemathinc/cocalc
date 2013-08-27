@@ -1564,6 +1564,8 @@ class PDFLatexDocument
             opts.cb?(err, log))
 
     _run_latex: (command, cb) =>
+        if not command?
+            command = @default_tex_command()
         @_exec
             command : command + " < /dev/null 2</dev/null"
             bash    : true
@@ -1592,6 +1594,8 @@ class PDFLatexDocument
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
+        if not target?
+            target = @base_filename + '.sagetex.sage'
         @_exec
             command : 'sage'
             args    : [target]
@@ -2310,6 +2314,7 @@ class LatexEditor extends FileEditor
         @element.find("a[href=#png-preview]").click () =>
             @show_page('png-preview')
             @preview.focus()
+            @save()
             return false
 
         @element.find("a[href=#zoom-preview-out]").click () =>
@@ -2362,6 +2367,33 @@ class LatexEditor extends FileEditor
             trash_aux_button.icon_spin(true)
             @preview.pdflatex.trash_aux_files () =>
                 trash_aux_button.icon_spin(false)
+            return false
+
+        run_sage = @element.find("a[href=#latex-sage]")
+        run_sage.click () =>
+            @log.find("textarea").text("Running Sage...")
+            run_sage.icon_spin(true)
+            @preview.pdflatex._run_sage undefined, (err, log) =>
+                run_sage.icon_spin(false)
+                @log.find("textarea").text(log)
+            return false
+
+        run_latex = @element.find("a[href=#latex-latex]")
+        run_latex.click () =>
+            @log.find("textarea").text("Running Latex...")
+            run_latex.icon_spin(true)
+            @preview.pdflatex._run_latex @load_conf().latex_command, (err, log) =>
+                run_latex.icon_spin(false)
+                @log.find("textarea").text(log)
+            return false
+
+        run_bibtex = @element.find("a[href=#latex-bibtex]")
+        run_bibtex.click () =>
+            @log.find("textarea").text("Running Bibtex...")
+            run_bibtex.icon_spin(true)
+            @preview.pdflatex._run_bibtex (err, log) =>
+                run_bibtex.icon_spin(false)
+                @log.find("textarea").text(log)
             return false
 
 
@@ -2435,7 +2467,7 @@ class LatexEditor extends FileEditor
             if n == name
                 e.show()
                 es = @latex_editor.empty_space
-                g  = left : es.start, top:es.top+3, width:es.end-es.start
+                g  = left : es.start, top:es.top+3, width:es.end-es.start-3
                 if n != 'log'
                     page.show(g)
                 else

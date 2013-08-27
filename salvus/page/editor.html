@@ -249,9 +249,14 @@ Editor for files in a project
         <div class="salvus-editor-latex-png-preview hide">
         </div>
         <div class="salvus-editor-latex-log hide">
-            <a href="#latex-trash-aux" class="btn  pull-right" style="margin-right:1ex"  data-toggle="tooltip" data-placement="left" title="Delete auxiliary build files."><i class="icon-trash"></i></a>
-            <a href="#latex-command-undo" class="btn  pull-right" style="margin-right:1ex; margin-left:1ex" data-toggle="tooltip" data-placement="left" title="Reset build command."><i class="icon-remove-circle"></i></a>
-            <input  style="width:80%" type="text">
+            <span class="btn-group pull-right" style="margin-right:1ex; margin-left:1ex">
+                <a href="#latex-latex" class="btn btn-small" data-toggle="tooltip" data-placement="left" title="Run Latex"><i class="icon-bolt"></i> Latex</a>
+                <a href="#latex-bibtex" class="btn btn-small" data-toggle="tooltip" data-placement="left" title="Run Bibtex"><i class="icon-bolt"></i> Bibtex</a>
+                <a href="#latex-sage" class="btn btn-small "  data-toggle="tooltip" data-placement="left" title="Run Sagetex."><i class="icon-bolt"></i> Sage</a>
+                <a href="#latex-trash-aux" class="btn btn-small "  data-toggle="tooltip" data-placement="left" title="Delete auxiliary build files."><i class="icon-trash"></i></a>
+                <a href="#latex-command-undo" class="btn btn-small"  data-toggle="tooltip" data-placement="left" title="Reset build command."><i class="icon-remove-circle"></i></a>
+            </span>
+            <input  style="width:50%" type="text">
             <br>
             <textarea rows=20 cols=100 class="well boxsizingBorder" readonly style="width:100%;">You have not run LaTeX yet.</textarea>
         </div>
