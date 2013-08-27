@@ -2080,10 +2080,13 @@ class LatexEditor extends FileEditor
         # initalize the log
         @log = @element.find(".salvus-editor-latex-log")
         @_pages['log'] = @log
-        input = @log.find("input")
-        input.keyup (e) =>
+        @log_input = @log.find("input")
+        @_latex_commands = []
+        @log_input.keyup (e) =>
             if e.keyCode == 13
-                @_latex_command = input.val()
+                @_latex_command = @log_input.val()
+                @_latex_commands.push(@_latex_command)
+                @log.find("a[href=#latex-command-undo]").removeClass("disabled")
                 @save()
 
         @_init_buttons()
@@ -2189,6 +2192,14 @@ class LatexEditor extends FileEditor
 
         @element.find("a[href=#preview-resolution]").click () =>
             @set_resolution()
+            return false
+
+        @element.find("a[href=#latex-command-undo]").click () =>
+            command = @_latex_commands.pop()
+            if not command?
+                command = @preview.pdflatex.default_tex_command()
+                @log.find("a[href=#latex-command-undo]").addClass("disabled")
+            @log_input.val(command)
             return false
 
     set_resolution: (res) =>

@@ -36,7 +36,8 @@
 
    x- config: customize latex command line --
 
--->     - save custom latex command line in tex file
+    - custom latex -- reset button.
+    - save custom latex command line in tex file
     - save last zoom used in tex file
     - sagetex should "just work" -- change update_pdf
 
