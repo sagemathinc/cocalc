@@ -1508,7 +1508,7 @@ class PDFLatexDocument
     # runs pdflatex; updates number of pages, latex log, parsed error log
     update_pdf: (opts={}) =>
         opts = defaults opts,
-            status        : undefined  # status(start:'latex' or 'sage' or 'bibtex'), status(start:'latex', 'log':'output of thing running...')
+            status        : undefined  # status(start:'latex' or 'sage' or 'bibtex'), status(end:'latex', 'log':'output of thing running...')
             latex_command : undefined
             cb            : undefined
         @pdf_updated = true
@@ -1588,9 +1588,8 @@ class PDFLatexDocument
                     i = log.indexOf("No file #{@base_filename}.bbl.")
                     if i != -1
                         @_need_to_run.bibtex = true
-                    else
-                        console.log(log)
 
+                    @last_latex_log = log
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
@@ -2172,7 +2171,6 @@ class LatexEditor extends FileEditor
         @latex_editor.action_key = @action_key
         @element.find(".salvus-editor-latex-buttons").show()
 
-
         @latex_editor.on 'show', () =>
             @show_page()
 
@@ -2208,6 +2206,11 @@ class LatexEditor extends FileEditor
                 latex_command = @log_input.val()
                 @set_conf(latex_command: latex_command)
                 @save()
+
+        @errors = @element.find(".salvus-editor-latex-errors")
+        @_pages['errors'] = @errors
+        @_error_message_templates =
+
 
         @_init_buttons()
 
@@ -2350,6 +2353,13 @@ class LatexEditor extends FileEditor
             t.scrollTop(t[0].scrollHeight)
             return false
 
+        @element.find("a[href=#latex-errors]").click () =>
+            @show_page('errors')
+            return false
+
+        @number_of_errors = @element.find("a[href=#latex-errors]").find(".salvus-latex-errors-counter")
+        @number_of_warnings = @element.find("a[href=#latex-errors]").find(".salvus-latex-warnings-counter")
+
         @element.find("a[href=#pdf-download]").click () =>
             @download_pdf()
             return false
@@ -2460,7 +2470,7 @@ class LatexEditor extends FileEditor
             name = @_current_page
         if not name?
             name = 'png-preview'
-        for n in ['png-preview', 'pdf-preview', 'log']
+        for n in ['png-preview', 'pdf-preview', 'log', 'errors']
             page = @_pages[n]
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
@@ -2468,14 +2478,16 @@ class LatexEditor extends FileEditor
                 e.show()
                 es = @latex_editor.empty_space
                 g  = left : es.start, top:es.top+3, width:es.end-es.start-3
-                if n != 'log'
+                console.log("g = ", g)
+                if n not in ['log', 'errors']
                     page.show(g)
                 else
                     page.offset({left:g.left, top:g.top}).width(g.width)
-                    c = @load_conf().latex_command
-                    if c
-                        @log_input.val(c)
-
+                    page.maxheight()
+                    if n == 'log'
+                        c = @load_conf().latex_command
+                        if c
+                            @log_input.val(c)
                 button.addClass('btn-primary')
             else
                 e.hide()
@@ -2500,6 +2512,8 @@ class LatexEditor extends FileEditor
                 build_status.text(' - ' + mesg.start)
                 log_output.text(log_output.text() + '\n\n-----------------------------------------------------\nRunning ' + mesg.start + '...\n\n\n\n')
             else
+                if mesg.end == 'latex'
+                    @render_error_page()
                 build_status.text('')
                 log_output.text(log_output.text() + '\n' + mesg.log + '\n')
             # Scroll to the bottom of the textarea
@@ -2511,6 +2525,45 @@ class LatexEditor extends FileEditor
             cb            : (err, log) =>
                 button.icon_spin(false)
                 opts.cb?()
+
+
+    render_error_page: () =>
+        log = @preview.pdflatex.last_latex_log
+        if not log?
+            return
+        p = (new LatexParser(log)).parse()
+        console.log(p)
+        @number_of_errors.text(p.errors.length)
+        @number_of_warnings.text(p.warnings.length + p.typesetting.length)
+
+        elt = @errors.find(".salvus-latex-errors")
+        if p.errors.lenght == 0
+            elt.html("None")
+        else
+            elt.html("")
+            for mesg in p.errors
+                elt.append(@render_error_message(mesg))
+
+        elt = @errors.find(".salvus-latex-warnings")
+        if p.warnings.length == 0
+            elt.html("None")
+        else
+            elt.html("")
+            for mesg in p.warnings
+                elt.append(@render_error_message(mesg))
+
+        elt = @errors.find(".salvus-latex-typesetting")
+        if p.warnings.length == 0
+            elt.html("None")
+        else
+            elt.html("")
+            for mesg in p.typesetting
+                elt.append(@render_error_message(mesg))
+
+
+    render_error_message: (mesg) =>
+        elt = @_error_message_templates[mesg.level].clone()
+        elt.
 
     download_pdf: () =>
         button = @element.find("a[href=#pdf-download]")

@@ -57,10 +57,12 @@
       including bibtex errors, etc.
       and maybe markup the log better?
 
+    - pdf embed -- fullscreen presentation mode.
 
     - FIX ALL BUGS:
        - mobile layout (esp buttons)
        - MAJOR BUG: in syncdoc, render_chat_log: hits an infinite loop for the chat in sample2e.tex!
+       - hub restart local hub too aggressively
 
 ---
 

@@ -26,7 +26,7 @@ Editor for files in a project
 
 
 .salvus-editor-tab-filename {
-    overflow-x: hidden;
+    overflow: hidden;
     display: block;
     white-space: nowrap;
     /* font-size: 10pt; */
@@ -119,6 +119,18 @@ Editor for files in a project
 
 .salvus-editor-latex-png-preview {
     padding-top:2px;
+}
+
+.salvus-editor-latex-errors {
+    overflow-y: scroll;
+}
+
+.salvus-latex-errors-counter {
+     color:#a00;
+}
+
+.salvus-latex-warnings-counter {
+     color:#880;
 }
 
 .salvus-editor-pdf-preview {
