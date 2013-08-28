@@ -57,6 +57,8 @@ codemirror_associations =
     sql    : 'mysql'
     txt    : 'text'
     tex    : 'stex'
+    bib    : 'stex'
+    bbl    : 'stex'
     xml    : 'xml'
     yaml   : 'yaml'
     ''     : 'text'
@@ -228,10 +230,6 @@ local_storage = exports.local_storage = (project_id, filename, key, value) ->
             return obj
 
 templates = $("#salvus-editor-templates")
-
-# This image tag below is technically invalid, since src isn't set; but that is done before we
-# put it in the DOM.
-template_pdf_preview_image = $('<img alt="PDF preview" class="salvus-editor-pdf-preview-image img-rounded">')
 
 class exports.Editor
     constructor: (opts) ->
@@ -1003,6 +1001,7 @@ class CodeMirrorEditor extends FileEditor
 
         extraKeys =
             "Alt-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
+            "Cmd-Enter"    : (editor)   => @action_key(execute: true, advance:false, split:false)
             "Ctrl-Enter"   : (editor)   => @action_key(execute: true, advance:true, split:true)
             "Ctrl-;"       : (editor)   => @action_key(split:true, execute:false, advance:false)
             "Cmd-;"        : (editor)   => @action_key(split:true, execute:false, advance:false)
@@ -1098,6 +1097,17 @@ class CodeMirrorEditor extends FileEditor
         @_split_view = false
 
         @init_change_event()
+
+    set_cursor_center_focus: (pos) =>
+        cm = @codemirror_with_last_focus
+        if not cm?
+            cm = @codemirror
+        if not cm?
+            return
+        cm.setCursor(pos)
+        info = cm.getScrollInfo()
+        cm.scrollIntoView(pos, info.clientHeight/2)
+        cm.focus()
 
     disconnect_from_session: (cb) =>
         # implement in a derived class if you need this
@@ -1198,7 +1208,10 @@ class CodeMirrorEditor extends FileEditor
                     line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
                 else
                     line = parseInt(result)-1
-                cm.setCursor({line:line, ch:0})
+                pos = {line:line, ch:0}
+                cm.setCursor(pos)
+                info = cm.getScrollInfo()
+                cm.scrollIntoView(pos, info.clientHeight/2)
             setTimeout(focus, 100)
 
     init_close_button: () =>
@@ -1212,15 +1225,14 @@ class CodeMirrorEditor extends FileEditor
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
-            show_save = () =>
-                @save_button.find('span').text("Saving...")
-                @save_button.find(".spinner").show()
-            spin = setTimeout(show_save, 250)
+            changed = false
+            f = () -> changed = true
+            @codemirror.on 'change', f
+            @save_button.icon_spin(start:true, delay:1000)
             @editor.save @filename, (err) =>
-                clearTimeout(spin)
-                @save_button.find(".spinner").hide()
-                @save_button.find('span').text('Save')
-                if not err
+                @codemirror.off(f)
+                @save_button.icon_spin(false)
+                if not err and not changed
                     @save_button.addClass('disabled')
                     @has_unsaved_changes(false)
         return false
@@ -1243,9 +1255,7 @@ class CodeMirrorEditor extends FileEditor
     restore_cursor_position: () =>
         pos = @local_storage("cursor")
         if pos?
-            @codemirror.setCursor(pos)
-            # todo -- would be better to center rather than a magic "5".
-            @codemirror.scrollIntoView({line:pos.line-5, ch:0})
+            @set_cursor_center_focus(pos)
 
     _style_active_line: (rgb) =>
         v = (parseInt(x) for x in rgb.slice(4,rgb.length-1).split(','))
@@ -1294,14 +1304,12 @@ class CodeMirrorEditor extends FileEditor
 
         chat = @_chat_is_hidden? and not @_chat_is_hidden
         if chat
-            chat_width =  @element.find(".salvus-editor-codemirror-chat-column").width()
-            width = $(window).width() - chat_width
+            width = @element.find(".salvus-editor-codemirror-chat-column").offset().left
         else
-            chat_width = 0
             width = $(window).width()
 
         if @opts.geometry? and @opts.geometry == 'left half'
-            @empty_space = {start: width/2, end:width-chat_width, top:top+button_bar_height}
+            @empty_space = {start: width/2, end:width, top:top+button_bar_height}
             width = width/2
 
         if @_split_view
@@ -1320,10 +1328,16 @@ class CodeMirrorEditor extends FileEditor
                 width  : width
             cm.refresh()
 
-        chat = @element.find(".salvus-editor-codemirror-chat")
-        chat.height(cm_height)
-        chat.width(0)
-        output = chat.find(".salvus-editor-codemirror-chat-output")
+        if chat
+            chat_elt = @element.find(".salvus-editor-codemirror-chat")
+            chat_elt.height(cm_height)
+
+            chat_output = chat_elt.find(".salvus-editor-codemirror-chat-output")
+
+            chat_input = chat_elt.find(".salvus-editor-codemirror-chat-input")
+            chat_input_top = $(window).height()-chat_input.height() - 15
+            chat_input.offset({top:chat_input_top})
+            chat_output.height(chat_input_top - top - 41)
 
         @emit 'show', ht
 
@@ -1407,8 +1421,9 @@ class PDFLatexDocument
         @path = s.head
         if @path == ''
             @path = './'
-        @filename_tex = s.tail
-        @filename_pdf = @filename_tex.slice(0, @filename_tex.length-3) + 'pdf'
+        @filename_tex  = s.tail
+        @base_filename = @filename_tex.slice(0, @filename_tex.length-4)
+        @filename_pdf  =  @base_filename + '.pdf'
 
     page: (n) =>
         if not @_pages[n]?
@@ -1425,22 +1440,197 @@ class PDFLatexDocument
             err_on_exit : false
             bash        : false
             cb          : required
+        #console.log(opts.path)
+        #console.log(opts.command + ' ' + opts.args.join(' '))
         salvus_client.exec(opts)
 
-    # runs pdflatex; updates number of pages, latex log, parsed error log
-    update_pdf: (cb) =>
-        @pdf_updated = true
+    inverse_search: (opts) =>
+        opts = defaults opts,
+            n          : required   # page number
+            x          : required   # x coordinate in unscaled png image coords (as reported by click EventEmitter)...
+            y          : required   # y coordinate in unscaled png image coords
+            resolution : required   # resolution used in ghostscript
+            cb         : required   # cb(err, {input:'file.tex', line:?})
+
+        scale = opts.resolution / 72
+        x = opts.x / scale
+        y = opts.y / scale
         @_exec
-            command : 'pdflatex'
-            args    : ['-interaction=nonstopmode', @filename_tex]
-            timeout : 15
+            command : 'synctex'
+            args    : ['edit', '-o', "#{opts.n}:#{x}:#{y}:#{@filename_pdf}"]
+            path    : @path
+            timeout : 7
+            cb      : (err, output) =>
+                if err
+                    opts.cb(err); return
+                if output.stderr
+                    opts.cb(output.stderr); return
+                s = output.stdout
+                i = s.indexOf('\nInput:')
+                input = s.slice(i+8, s.indexOf('\n',i+3))
+
+                # normalize path to be relative to project home
+                j = input.indexOf('/./')
+                if j != -1
+                    fname = input.slice(j+3)
+                else
+                    j = input.indexOf('/../')
+                    fname = input.slice(j+1)
+                if @path != './'
+                    input = @path + '/' + fname
+                else
+                    input = fname
+
+                i = s.indexOf('Line')
+                line = parseInt(s.slice(i+5, s.indexOf('\n',i+1)))
+                opts.cb(false, {input:input, line:line-1})   # make line 0-based
+
+    forward_search: (opts) =>
+        opts = defaults opts,
+            n  : required
+            cb : required   # cb(err, {page:?, x:?, y:?})    x,y are in terms of 72dpi pdf units
+
+        @_exec
+            command : 'synctex'
+            args    : ['view', '-i', "#{opts.n}:0:#{@filename_tex}", '-o', @filename_pdf]
+            path    : @path
+            cb      : (err, output) =>
+                if err
+                    opts.cb(err); return
+                if output.stderr
+                    opts.cb(output.stderr); return
+                s = output.stdout
+                i = s.indexOf('\nPage:')
+                n = s.slice(i+6, s.indexOf('\n',i+3))
+                i = s.indexOf('\nx:')
+                x = parseInt(s.slice(i+3, s.indexOf('\n',i+3)))
+                i = s.indexOf('\ny:')
+                y = parseInt(s.slice(i+3, s.indexOf('\n',i+3)))
+                opts.cb(false, {n:n, x:x, y:y})
+
+    default_tex_command: () =>
+        a = "pdflatex -synctex=1 -interact=nonstopmode "
+        if @filename_tex.indexOf(' ') != -1
+            a += "'#{@filename_tex}'"
+        else
+            a += @filename_tex
+        return a
+
+    # runs pdflatex; updates number of pages, latex log, parsed error log
+    update_pdf: (opts={}) =>
+        opts = defaults opts,
+            status        : undefined  # status(start:'latex' or 'sage' or 'bibtex'), status(end:'latex', 'log':'output of thing running...')
+            latex_command : undefined
+            cb            : undefined
+        @pdf_updated = true
+        if not opts.latex_command?
+            opts.latex_command = @default_tex_command()
+        @_need_to_run = {}
+        log = ''
+        status = opts.status
+        async.series([
+            (cb) =>
+                 status?(start:'latex')
+                 @_run_latex opts.latex_command, (err, _log) =>
+                     log += _log
+                     status?(end:'latex', log:_log)
+                     cb(err)
+            (cb) =>
+                 if @_need_to_run.sage
+                     status?(start:'sage')
+                     @_run_sage @_need_to_run.sage, (err, _log) =>
+                         log += _log
+                         status?(end:'sage', log:_log)
+                         cb(err)
+                 else
+                     cb()
+            (cb) =>
+                 if @_need_to_run.bibtex
+                     status?(start:'bibtex')
+                     @_run_bibtex (err, _log) =>
+                         status?(end:'bibtex', log:_log)
+                         log += _log
+                         cb(err)
+                 else
+                     cb()
+            (cb) =>
+                 if @_need_to_run.latex
+                     status?(start:'latex')
+                     @_run_latex opts.latex_command, (err, _log) =>
+                          log += _log
+                          status?(end:'latex', log:_log)
+                          cb(err)
+                 else
+                     cb()
+            (cb) =>
+                 if @_need_to_run.latex
+                     status?(start:'latex')
+                     @_run_latex opts.latex_command, (err, _log) =>
+                          log += _log
+                          status?(end:'latex', log:_log)
+                          cb(err)
+                 else
+                     cb()
+        ], (err) =>
+            opts.cb?(err, log))
+
+    _run_latex: (command, cb) =>
+        if not command?
+            command = @default_tex_command()
+        @_exec
+            command : command + " < /dev/null 2</dev/null"
+            bash    : true
+            timeout : 20
             cb      : (err, output) =>
                 if err
                     cb?(err)
                 else
-                    @latex_log = output.stdout + '\n\n' + output.stderr
-                    @_parse_latex_log(@latex_log)
-                    cb?(false, @latex_log)
+                    log = output.stdout + '\n\n' + output.stderr
+                    if log.indexOf('Rerun to get cross-references right') != -1
+                        @_need_to_run.latex = true
+
+                    run_sage_on = '\nRun Sage on'
+                    i = log.indexOf(run_sage_on)
+                    if i != -1
+                        j = log.indexOf(', and then run LaTeX', i)
+                        if j != -1
+                            @_need_to_run.sage = log.slice(i + run_sage_on.length, j).trim()
+
+                    i = log.indexOf("No file #{@base_filename}.bbl.")
+                    if i != -1
+                        @_need_to_run.bibtex = true
+
+                    @last_latex_log = log
+                    cb?(false, log)
+
+    _run_sage: (target, cb) =>
+        if not target?
+            target = @base_filename + '.sagetex.sage'
+        @_exec
+            command : 'sage'
+            args    : [target]
+            timeout : 45
+            cb      : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    @_need_to_run.latex = true
+                    cb?(false, log)
+
+    _run_bibtex: (cb) =>
+        @_exec
+            command : 'bibtex'
+            args    : [@base_filename]
+            timeout : 10
+            cb      : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    log = output.stdout + '\n\n' + output.stderr
+                    @_need_to_run.latex = true
+                    cb?(false, log)
+
 
     _parse_latex_log: (log) =>
         # todo -- parse through text file of log putting the errors in the corresponding @pages dict.
@@ -1457,6 +1647,7 @@ class PDFLatexDocument
                     console.log("BUG parsing number of pages")
 
     # runs pdftotext; updates plain text of each page.
+    # (not used right now, since we are using synctex instead...)
     update_text: (cb) =>
         @_exec
             command : "pdftotext"   # part of the "calibre" ubuntu package
@@ -1465,6 +1656,13 @@ class PDFLatexDocument
                 if not err
                     @_parse_text(output.stdout)
                 cb?(err)
+
+    trash_aux_files: (cb) =>
+        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'pdf', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
+        @_exec
+            command : "rm"
+            args    : (@base_filename + "." + ext for ext in EXT)
+            cb      : cb
 
     _parse_text: (text) =>
         # todo -- parse through the text file putting the pages in the correspondings @pages dict.
@@ -1485,10 +1683,14 @@ class PDFLatexDocument
             first_page : 1
             last_page  : undefined  # defaults to @num_pages, unless 0 in which case 99999
             cb         : undefined  # cb(err, [array of page numbers of pages that changed])
-            resolution : '50'      # 'number' or 'number1xnumber2'
+            resolution : 50         # number
             device     : '16m'      # one of '16', '16m', '256', '48', 'alpha', 'gray', 'mono'  (ignored if image_type='jpg')
-            png_downscale : 2      # ignored if image type is jpg
-            jpeg_quality  : 75     # jpg only -- scale of 1 to 100
+            png_downscale : 2       # ignored if image type is jpg
+            jpeg_quality  : 75      # jpg only -- scale of 1 to 100
+
+        res = opts.resolution
+        if @image_type == 'png'
+            res /= opts.png_downscale
 
         if not opts.last_page?
             opts.last_page = @num_pages
@@ -1581,6 +1783,7 @@ class PDFLatexDocument
                                 p = @page(n)
                                 p.sha1 = obj.sha1
                                 p.url = result.url
+                                p.resolution = res
                                 changed_pages.push(n)
                                 cb()
                 async.mapSeries(sha1_changed, update, cb)
@@ -1595,8 +1798,8 @@ exports.PDFLatexDocument = PDFLatexDocument
 class PDF_Preview extends FileEditor
     constructor: (@editor, @filename, contents, opts) ->
         @pdflatex = new PDFLatexDocument(project_id:@editor.project_id, filename:@filename, image_type:"png")
+        @opts = opts
         @_updating = false
-        @width_percent = 90
         @element = templates.find(".salvus-editor-pdf-preview").clone()
         @spinner = @element.find(".salvus-editor-pdf-preview-spinner")
         s = path_split(@filename)
@@ -1607,7 +1810,40 @@ class PDF_Preview extends FileEditor
         @element.maxheight()
         @last_page = 0
         @output = @element.find(".salvus-editor-pdf-preview-page")
+        @highlight = @element.find(".salvus-editor-pdf-preview-highlight").hide()
+        @output.text("Loading preview...")
+        @_first_output = true
         @_needs_update = true
+
+    zoom: (opts) =>
+        opts = defaults opts,
+            delta : undefined
+            width : undefined
+
+        images = @output.find("img")
+        if images.length == 0
+            console.log('do nothing')
+            return # nothing to do
+
+        if opts.delta?
+            max_width = images.css('max-width')
+            max_width = parseInt(max_width.slice(0, max_width.length-1))
+            max_width += opts.delta
+        else if opts.width?
+            max_width = opts.width
+
+        if max_width?
+            @zoom_width = max_width
+            n = @current_page().number
+            margin_left = "#{-(max_width-100)/2}%"
+            max_width = "#{max_width}%"
+            images.css
+                'max-width'   : max_width
+                width         : max_width
+                'margin-left' : margin_left
+            @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
+
+
 
     watch_scroll: () =>
         if @_f?
@@ -1623,6 +1859,26 @@ class PDF_Preview extends FileEditor
                         @_needs_update = true
         @_f = setInterval(f, 1000)
 
+    highlight_middle: (fade_time) =>
+        if not fade_time?
+            fade_time = 5000
+        @highlight.show().offset(top:$(window).height()/2)
+        @highlight.stop().animate(opacity:.3).fadeOut(fade_time)
+
+    scroll_into_view: (opts) =>
+        opts = defaults opts,
+            n              : required   # page
+            y              : 0          # y-coordinate on page
+            highlight_line : true
+        pg = @pdflatex.page(opts.n)
+        t = @output.offset().top
+        @output.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
+        top = (pg.element.offset().top + opts.y) - $(window).height() / 2
+        @output.scrollTop(top)
+        if opts.highlight_line
+            # highlight location of interest
+            @highlight_middle()
+
     remove: () =>
         if @_f?
             clearInterval(@_f)
@@ -1634,18 +1890,19 @@ class PDF_Preview extends FileEditor
         @output.width(@element.width())
 
     current_page: () =>
+        tp = @output.offset().top
         for _page in @output.children()
             page = $(_page)
             offset = page.offset()
-            if offset.top > 0
+            if offset.top > tp
                 n = page.data('number')
                 if n > 1
                     n -= 1
-                return n
+                return {number:n, offset:offset.top}
         if page?
-            return page.data('number')
+            return {number:page.data('number')}
         else
-            return 1
+            return {number:1}
 
     update: (opts={}) =>
         opts = defaults opts,
@@ -1663,11 +1920,11 @@ class PDF_Preview extends FileEditor
         if @element.width()
             @output.width(@element.width())
 
-        # we do this in parallel to any image updating below -- it takes about a second for a 100 page file...
-        @pdflatex.update_text (err) =>
+        # we do text conversion in parallel to any image updating below -- it takes about a second for a 100 page file...
+        # @pdflatex.update_text (err) =>
             #if not err
 
-        n = @current_page()
+        n = @current_page().number
 
         f = (opts, cb) =>
 
@@ -1686,7 +1943,7 @@ class PDF_Preview extends FileEditor
         if n == 1
             hq_window *= 2
 
-        f {first_page : n, last_page  : n+1, resolution:'600', device:'16m', png_downscale:4}, (err) =>
+        f {first_page : n, last_page  : n+1, resolution:@opts.resolution*3, device:'16m', png_downscale:3}, (err) =>
             if err
                 #@spinner.spin(false).hide()
                 @_updating = false
@@ -1726,8 +1983,9 @@ class PDF_Preview extends FileEditor
 
     # update page n based on currently computed data.
     _update_page: (n, cb) =>
-        p = @pdflatex.page(n)
-        url = p.url
+        p          = @pdflatex.page(n)
+        url        = p.url
+        resolution = p.resolution
         if not url?
             # todo: delete page and all following it from DOM
             for m in [n .. @last_page]
@@ -1736,29 +1994,97 @@ class PDF_Preview extends FileEditor
                 @last_page = n-1
         else
             # update page
+            that = @
             page = @output.find(".salvus-editor-pdf-preview-page-#{n}")
             if page.length == 0
                 # create
                 for m in [@last_page+1 .. n]
-                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    #page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><div class='salvus-editor-pdf-preview-text'></div><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
+                    page = $("<div style='text-align:center;' class='salvus-editor-pdf-preview-page-#{m}'><img alt='Page #{m}' class='salvus-editor-pdf-preview-image img-rounded'><br></div>")
                     page.data("number", m)
+
+                    f = (e) ->
+                        pg = $(e.delegateTarget)
+                        n  = pg.data('number')
+                        offset = $(e.target).offset()
+                        x = e.pageX - offset.left
+                        y = e.pageY - offset.top
+                        img = pg.find("img")
+                        nH = img[0].naturalHeight
+                        nW = img[0].naturalWidth
+                        y *= nH/img.height()
+                        x *= nW/img.width()
+                        that.emit 'shift-click', {n:n, x:x, y:y, resolution:img.data('resolution')}
+                        return false
+
+                    page.click (e) ->
+                        if e.shiftKey or e.ctrlKey
+                            f(e)
+                        return false
+
+                    page.dblclick(f)
+
+                    if self._margin_left?
+                        # A zoom was set via the zoom command -- maintain it.
+                        page.find("img").css
+                            'max-width'   : self._max_width
+                            width         : self._max_width
+                            'margin-left' : self._margin_left
+
+                    if @_first_output
+                        @output.empty()
+                        @_first_output = false
                     @output.append(page)
+                    @pdflatex.page(m).element = page
+
                 @last_page = n
-            page.find("img").attr('src', url)#.css('width':"#{@width_percent}%")
-            page.find(".salvus-editor-pdf-preview-text").text(p.text)
+            img =  page.find("img")
+            img.attr('src', url).data('resolution', resolution)
+
+            if @zoom_width?
+                max_width = @zoom_width
+                margin_left = "#{-(max_width-100)/2}%"
+                max_width = "#{max_width}%"
+                img.css
+                    'max-width'   : max_width
+                    width         : max_width
+                    'margin-left' : margin_left
+
+            #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
 
+    show: (geometry={}) =>
+        geometry = defaults geometry,
+            left   : undefined
+            top    : undefined
+            width  : $(window).width()
+            height : undefined
 
-    show: () =>
         @element.show()
-        @focus()
+
+        f = () =>
+            @element.width(geometry.width)
+            @element.offset
+                left : geometry.left
+                top  : geometry.top
+
+            if geometry.height?
+                @element.height(geometry.height)
+            else
+                @element.maxheight()
+                geometry.height = @element.height()
+
+            @focus()
+        # We wait a tick for the element to appear before positioning it, otherwise it
+        # can randomly get messed up.
+        setTimeout(f, 1)
 
     hide: () =>
         @element.hide()
 
 
 class PDF_PreviewEmbed extends FileEditor
-    constructor: (@editor, @filename, contents, opts) ->
+    constructor: (@editor, @filename, contents, @opts) ->
         @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
         @element.find(".salvus-editor-pdf-title").text(@filename)
 
@@ -1770,34 +2096,31 @@ class PDF_PreviewEmbed extends FileEditor
             @path = './'
         @file = s.tail
 
-        @element.maxheight()
         @output = @element.find(".salvus-editor-pdf-preview-embed-page")
-        @update()
-        @output.focus()
 
         @element.find("a[href=#refresh]").click () =>
             @update()
             return false
 
     focus: () =>
-        @element.maxheight()
-        @output.maxheight()
-        @output.width(@element.width())
 
     update: (cb) =>
-        height = @output.height()
+        height = @element.height()
         if height == 0
             # not visible.
             return
-        width = $(window).width()
+        width = @element.width()
 
         button = @element.find("a[href=#refresh]")
         button.icon_spin(true)
 
         @_last_width = width
         @_last_height = height
-        @output.height(height)
+
+        output_height = height - ( @output.offset().top - @element.offset().top)
+        @output.height(output_height)
         @output.width(width)
+
         @spinner.show().spin(true)
         salvus_client.read_file_from_project
             project_id : @editor.project_id
@@ -1809,15 +2132,32 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data='#{result.url##page=3}' type='application/pdf' width='#{width}' height='#{height}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
+                    @output.html("<object data='#{result.url}' type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
 
-    show: () =>
+    show: (geometry={}) =>
+        geometry = defaults geometry,
+            left   : undefined
+            top    : undefined
+            width  : $(window).width()
+            height : undefined
+
         @element.show()
-        width = $(window).width()
-        height = @element.height()
-        @element.width(width)
-        if @_last_width != width or @_last_height != height
+
+        if geometry.height?
+            @element.height(geometry.height)
+        else
+            @element.maxheight()
+            geometry.height = @element.height()
+
+        @element.width(geometry.width)
+
+        @element.offset
+            left : geometry.left
+            top  : geometry.top
+
+        if @_last_width != geometry.width or @_last_height != geometry.height
             @update()
+
         @focus()
 
     hide: () =>
@@ -1833,12 +2173,23 @@ class LatexEditor extends FileEditor
         opts.mode = 'stex'
         opts.geometry = 'left half'
 
-        @_current_page = 'latex_editor'
         @element = templates.find(".salvus-editor-latex").clone()
+
+        @_pages = {}
 
         # initialize the latex_editor
         @latex_editor = codemirror_session_editor(@editor, filename, opts)
+        @_pages['latex_editor'] = @latex_editor
         @element.find(".salvus-editor-latex-latex_editor").append(@latex_editor.element)
+        @latex_editor.action_key = @action_key
+        @element.find(".salvus-editor-latex-buttons").show()
+
+        @latex_editor.on 'show', () =>
+            @show_page()
+
+        @latex_editor.syncdoc.on 'connect', () =>
+            @preview.zoom_width = @load_conf().zoom_width
+            @update_preview()
 
         v = path_split(@filename)
         @_path = v.head
@@ -1847,16 +2198,118 @@ class LatexEditor extends FileEditor
         # initialize the previews
         n = @filename.length
 
-        @preview = new PDF_Preview(@editor, @filename, undefined, {})
+        # The pdf preview.
+        @preview = new PDF_Preview(@editor, @filename, undefined, {resolution:200})
         @element.find(".salvus-editor-latex-png-preview").append(@preview.element)
+        @_pages['png-preview'] = @preview
+        @preview.on 'shift-click', (opts) => @_inverse_search(opts)
 
+        # Embedded pdf page (not really a "preview" -- it's the real thing).
         @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
+        @preview_embed.element.find(".salvus-editor-pdf-title").hide()
+        @preview_embed.element.find("a[href=#refresh]").hide()
+        @_pages['pdf-preview'] = @preview_embed
 
         # initalize the log
         @log = @element.find(".salvus-editor-latex-log")
+        @log.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @_pages['log'] = @log
+        @log_input = @log.find("input")
+        @log_input.keyup (e) =>
+            if e.keyCode == 13
+                latex_command = @log_input.val()
+                @set_conf(latex_command: latex_command)
+                @save()
+
+        @errors = @element.find(".salvus-editor-latex-errors")
+        @_pages['errors'] = @errors
+        @_error_message_template = @element.find(".salvus-editor-latex-mesg-template")
 
         @_init_buttons()
+
+        # This synchronizes the editor and png preview -- it's kind of disturbing.
+        # If people request it, make it a non-default option...
+        if false
+            @preview.output.on 'scroll', @_passive_inverse_search
+            cm0 = @latex_editor.codemirror
+            cm1 = @latex_editor.codemirror1
+            cm0.on 'cursorActivity', @_passive_forward_search
+            cm1.on 'cursorActivity', @_passive_forward_search
+            cm0.on 'change', @_pause_passive_search
+            cm1.on 'change', @_pause_passive_search
+
+    set_conf: (obj) =>
+        conf = @load_conf()
+        for k, v of obj
+            conf[k] = v
+        @save_conf(conf)
+
+    load_conf: () =>
+        doc = @latex_editor.codemirror.getValue()
+        i = doc.indexOf("%sagemathcloud=")
+        if i == -1
+            return {}
+
+        j = doc.indexOf('=',i)
+        k = doc.indexOf('\n',i)
+        if k == -1
+            k = doc.length
+        try
+            conf = misc.from_json(doc.slice(j+1,k))
+        catch
+            conf = {}
+
+        return conf
+
+    save_conf: (conf) =>
+        cm  = @latex_editor.codemirror
+        doc = cm.getValue()
+        i = doc.indexOf('%sagemathcloud=')
+        line = '%sagemathcloud=' + misc.to_json(conf)
+        if i != -1
+            # find the line m where it is already
+            for n in [0..cm.doc.lastLine()]
+                z = cm.getLine(n)
+                if z.indexOf('%sagemathcloud=') != -1
+                    m = n
+                    break
+            cm.setLine(m, line)
+        else
+            cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
+
+
+    _pause_passive_search: (cb) =>
+        @_passive_forward_search_disabled = true
+        @_passive_inverse_search_disabled = true
+        f = () =>
+            @_passive_inverse_search_disabled = false
+            @_passive_forward_search_disabled = false
+
+        setTimeout(f, 3000)
+
+
+    _passive_inverse_search: (cb) =>
+        if @_passive_inverse_search_disabled
+            cb?(); return
+        @_pause_passive_search()
+        @inverse_search
+            active : false
+            cb     : (err) =>
+                cb?()
+
+    _passive_forward_search: (cb) =>
+        if @_passive_forward_search_disabled
+            cb?(); return
+        @forward_search
+            active : false
+            cb     : (err) =>
+                @_pause_passive_search()
+                cb?()
+
+    action_key: () =>
+        @show_page('png-preview')
+        @forward_search(active:true)
 
     remove: () =>
         @element.remove()
@@ -1864,25 +2317,135 @@ class LatexEditor extends FileEditor
         @preview_embed.remove()
 
     _init_buttons: () =>
+        @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
 
-        buttons = @element.find(".salvus-editor-latex-buttons").show()
-        buttons.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @element.find("a[href=#forward-search]").click () =>
+            @show_page('png-preview')
+            @forward_search(active:true)
+            return false
 
-        buttons.find("a[href=#pdf-preview]").click () =>
+        @element.find("a[href=#inverse-search]").click () =>
+            @show_page('png-preview')
+            @inverse_search(active:true)
+            return false
+
+        @element.find("a[href=#png-preview]").click () =>
+            @show_page('png-preview')
+            @preview.focus()
+            @save()
+            return false
+
+        @element.find("a[href=#zoom-preview-out]").click () =>
+            @preview.zoom(delta:-5)
+            @set_conf(zoom_width:@preview.zoom_width)
+            return false
+
+        @element.find("a[href=#zoom-preview-in]").click () =>
+            @preview.zoom(delta:5)
+            @set_conf(zoom_width:@preview.zoom_width)
+            return false
+
+        @element.find("a[href=#zoom-preview-fullpage]").click () =>
+            @preview.zoom(width:100)
+            @set_conf(zoom_width:@preview.zoom_width)
+            return false
+
+        @element.find("a[href=#zoom-preview-width]").click () =>
+            @preview.zoom(width:160)
+            @set_conf(zoom_width:@preview.zoom_width)
+            return false
+
+
+        @element.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
-            @preview_embed.show()
+            @preview_embed.update()
             return false
 
-        buttons.find("a[href=#latex]").click () =>
-            @show_page('log', @element.maxheight())
+        @element.find("a[href=#log]").click () =>
+            @show_page('log')
             @element.find(".salvus-editor-latex-log").find("textarea").maxheight()
-            @compile()
+            t = @log.find("textarea")
+            t.scrollTop(t[0].scrollHeight)
             return false
 
-        buttons.find("a[href=#pdf-download]").click () =>
+        @element.find("a[href=#errors]").click () =>
+            @show_page('errors')
+            return false
+
+        @number_of_errors = @element.find("a[href=#errors]").find(".salvus-latex-errors-counter")
+        @number_of_warnings = @element.find("a[href=#errors]").find(".salvus-latex-warnings-counter")
+
+        @element.find("a[href=#pdf-download]").click () =>
             @download_pdf()
             return false
+
+        @element.find("a[href=#preview-resolution]").click () =>
+            @set_resolution()
+            return false
+
+        @element.find("a[href=#latex-command-undo]").click () =>
+            c = @preview.pdflatex.default_tex_command()
+            @log_input.val(c)
+            @set_conf(latex_command: c)
+            return false
+
+        trash_aux_button = @element.find("a[href=#latex-trash-aux]")
+        trash_aux_button.click () =>
+            trash_aux_button.icon_spin(true)
+            @preview.pdflatex.trash_aux_files () =>
+                trash_aux_button.icon_spin(false)
+            return false
+
+        run_sage = @element.find("a[href=#latex-sage]")
+        run_sage.click () =>
+            @log.find("textarea").text("Running Sage...")
+            run_sage.icon_spin(true)
+            @preview.pdflatex._run_sage undefined, (err, log) =>
+                run_sage.icon_spin(false)
+                @log.find("textarea").text(log)
+            return false
+
+        run_latex = @element.find("a[href=#latex-latex]")
+        run_latex.click () =>
+            @log.find("textarea").text("Running Latex...")
+            run_latex.icon_spin(true)
+            @preview.pdflatex._run_latex @load_conf().latex_command, (err, log) =>
+                run_latex.icon_spin(false)
+                @log.find("textarea").text(log)
+            return false
+
+        run_bibtex = @element.find("a[href=#latex-bibtex]")
+        run_bibtex.click () =>
+            @log.find("textarea").text("Running Bibtex...")
+            run_bibtex.icon_spin(true)
+            @preview.pdflatex._run_bibtex (err, log) =>
+                run_bibtex.icon_spin(false)
+                @log.find("textarea").text(log)
+            return false
+
+
+    set_resolution: (res) =>
+        if not res?
+            bootbox.prompt "Change preview resolution from #{@get_resolution()} dpi to...", (result) =>
+                if result
+                    @set_resolution(result)
+        else
+            console.log('setting res to #{res}')
+            try
+                res = parseInt(res)
+                if res < 150
+                    res = 150
+                else if res > 600
+                    res = 600
+                @preview.opts.resolution = res
+                @preview.update()
+            catch e
+                alert_message(type:"error", message:"Invalid resolution #{res}")
+
+    get_resolution: () =>
+        return @preview.opts.resolution
+
 
     click_save_button: () =>
         @latex_editor.click_save_button()
@@ -1891,21 +2454,18 @@ class LatexEditor extends FileEditor
         @latex_editor.save (err) =>
             cb?(err)
             if not err
-                @update_preview()
+                @update_preview () =>
+                    if @_current_page == 'pdf-preview'
+                        @preview_embed.update()
+
 
     update_preview: (cb) =>
-        @preview.pdflatex.update_pdf () =>
-            @preview.update
-                cb: (err) =>
-                    cb?(err)
-
-    compile: (cb) =>
-        async.series([
-            (cb) =>
-                @editor.save(@filename, cb)
-            (cb) =>
-                @run_latex (cb)
-        ], (err) -> cb?(err))
+        @run_latex
+            command : @load_conf().latex_command
+            cb      : () =>
+                @preview.update
+                    cb: (err) =>
+                        cb?(err)
 
     _get: () =>
         return @latex_editor._get()
@@ -1916,16 +2476,9 @@ class LatexEditor extends FileEditor
     show: () =>
         @element?.show()
         @latex_editor?.show()
-        e = @element?.find(".salvus-editor-latex-png-preview")
-        if e?
-            es = @latex_editor.empty_space
-            if es?
-                e.offset(left : es.start, top : es.top)
-                e.width(es.end-es.start)
-                e.show()
-            if not @_show_before?
-                @update_preview()
-                @_show_before = true
+        if not @_show_before?
+            @show_page('png-preview')
+            @_show_before = true
 
     focus: () =>
         @latex_editor?.focus()
@@ -1934,36 +2487,188 @@ class LatexEditor extends FileEditor
         return @latex_editor?.has_unsaved_changes(val)
 
     show_page: (name) =>
-        if name == @_current_page
-            return
-        for n in ['latex_editor', 'png-preview', 'pdf-preview', 'log']
+        if not name?
+            name = @_current_page
+        @_current_page = name
+        if not name?
+            name = 'png-preview'
+
+        pages = ['png-preview', 'pdf-preview', 'log', 'errors']
+        for n in pages
+            @element.find(".salvus-editor-latex-#{n}").hide()
+
+        for n in pages
+            page = @_pages[n]
             e = @element.find(".salvus-editor-latex-#{n}")
             button = @element.find("a[href=#" + n + "]")
             if n == name
                 e.show()
+                es = @latex_editor.empty_space
+                g  = left : es.start, top:es.top+3, width:es.end-es.start-3
+                if n not in ['log', 'errors']
+                    page.show(g)
+                else
+                    page.offset({left:g.left, top:g.top}).width(g.width)
+                    page.maxheight()
+                    if n == 'log'
+                        c = @load_conf().latex_command
+                        if c
+                            @log_input.val(c)
+                    else if n == 'errors'
+                        @render_error_page()
                 button.addClass('btn-primary')
             else
-                e.hide()
                 button.removeClass('btn-primary')
-        @_current_page = name
 
-    run_latex: (cb) =>
-        button = @element.find("a[href=#latex]")
+    run_latex: (opts={}) =>
+        opts = defaults opts,
+            command : undefined
+            cb      : undefined
+        button = @element.find("a[href=#log]")
         button.icon_spin(true)
-        @log.find("textarea").text("Running latex...")
-        @preview.pdflatex.update_pdf (err, log) =>
-            button.icon_spin(false)
-            if err
-                log = err
-            if log.indexOf("I can't find file") != -1
-                @log.find("div").html("<b><i>WARNING:</i> Many filenames aren't allowed with latex! See <a href='http://tex.stackexchange.com/questions/53644/what-are-the-allowed-characters-in-filenames' target='_blank'> this discussion.</b>")
+        log_output = @log.find("textarea")
+        log_output.text("")
+        if not opts.command?
+            opts.command = @preview.pdflatex.default_tex_command()
+        @log_input.val(opts.command)
+
+        build_status = button.find(".salvus-latex-build-status")
+        status = (mesg) =>
+            if mesg.start
+                build_status.text(' - ' + mesg.start)
+                log_output.text(log_output.text() + '\n\n-----------------------------------------------------\nRunning ' + mesg.start + '...\n\n\n\n')
             else
-                @log.find("div").empty()
-            @log.find("textarea").text(log)
+                if mesg.end == 'latex'
+                    @render_error_page()
+                build_status.text('')
+                log_output.text(log_output.text() + '\n' + mesg.log + '\n')
             # Scroll to the bottom of the textarea
-            f = @log.find('textarea')
-            f.scrollTop(f[0].scrollHeight)
-            cb()
+            log_output.scrollTop(log_output[0].scrollHeight)
+
+        @preview.pdflatex.update_pdf
+            status        : status
+            latex_command : opts.command
+            cb            : (err, log) =>
+                button.icon_spin(false)
+                opts.cb?()
+
+
+    render_error_page: () =>
+        log = @preview.pdflatex.last_latex_log
+        if not log?
+            return
+        p = (new LatexParser(log)).parse()
+
+        if p.errors.length
+            @number_of_errors.text(p.errors.length)
+            @element.find("a[href=#errors]").addClass("btn-danger")
+        else
+            @number_of_errors.text('')
+            @element.find("a[href=#errors]").removeClass("btn-danger")
+
+        k = p.warnings.length + p.typesetting.length
+        if k
+            @number_of_warnings.text("(#{k})")
+        else
+            @number_of_warnings.text('')
+
+        if @_current_page != 'errors'
+            return
+
+        elt = @errors.find(".salvus-latex-errors")
+        if p.errors.length == 0
+            elt.html("None")
+        else
+            elt.html("")
+            for mesg in p.errors
+                elt.append(@render_error_message(mesg))
+
+        elt = @errors.find(".salvus-latex-warnings")
+        if p.warnings.length == 0
+            elt.html("None")
+        else
+            elt.html("")
+            for mesg in p.warnings
+                elt.append(@render_error_message(mesg))
+
+        elt = @errors.find(".salvus-latex-typesetting")
+        if p.typesetting.length == 0
+            elt.html("None")
+        else
+            elt.html("")
+            for mesg in p.typesetting
+                elt.append(@render_error_message(mesg))
+
+    _show_error_in_file: (mesg, cb) =>
+        file = mesg.file
+        if not file
+            alert_message(type:"error", "No way to open unknown file.")
+            cb?()
+            return
+        if not mesg.line
+            if mesg.page
+                @_inverse_search
+                    n : mesg.page
+                    active : false
+                    x : 50
+                    y : 50
+                    resolution:200
+                    cb: cb
+            else
+                alert_message(type:"error", "Unknown location in '#{file}'.")
+                cb?()
+                return
+        else
+            if @preview.pdflatex.filename_tex == file
+                @latex_editor.set_cursor_center_focus({line:mesg.line-1, ch:0})
+            else
+                @editor.open file, (err, fname) =>
+                    if not err
+                        @editor.display_tab(path:fname)
+                        # TODO: need to set position, right?
+                        # also, as in _inverse_search -- maybe this should be opened *inside* the latex editor...
+            cb?()
+
+    _show_error_in_preview: (mesg) =>
+        if @preview.pdflatex.filename_tex == mesg.file
+            @_show_error_in_file mesg, () =>
+                @show_page('png-preview')
+                @forward_search(active:true)
+
+    render_error_message: (mesg) =>
+
+        if not mesg.line
+            r = mesg.raw
+            i = r.lastIndexOf('[')
+            j = i+1
+            while j < r.length and r[j] >= '0' and r[j] <= '9'
+                j += 1
+            mesg.page = r.slice(i+1,j)
+
+        if mesg.file.slice(0,2) == './'
+            mesg.file = mesg.file.slice(2)
+
+        elt = @_error_message_template.clone().show()
+        elt.find("a:first").click () =>
+            @_show_error_in_file(mesg)
+            return false
+        elt.find("a:last").click () =>
+            @_show_error_in_preview(mesg)
+            return false
+
+        elt.addClass("salvus-editor-latex-mesg-template-#{mesg.level}")
+        if mesg.line
+            elt.find(".salvus-latex-mesg-line").text("line #{mesg.line}").data('line', mesg.line)
+        if mesg.page
+            elt.find(".salvus-latex-mesg-page").text("page #{mesg.page}").data('page', mesg.page)
+        if mesg.file
+            elt.find(".salvus-latex-mesg-file").text(" of #{mesg.file}").data('file', mesg.file)
+        if mesg.message
+            elt.find(".salvus-latex-mesg-message").text(mesg.message)
+        if mesg.content
+            elt.find(".salvus-latex-mesg-content").show().text(mesg.content)
+        return elt
+
 
     download_pdf: () =>
         button = @element.find("a[href=#pdf-download]")
@@ -1981,6 +2686,72 @@ class LatexEditor extends FileEditor
                     url = result.url + "&download"
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
                     setTimeout((() -> iframe.remove()), 1000)
+
+    _inverse_search: (opts) =>
+        active = opts.active  # whether user actively clicked, in which case we may open a new file -- otherwise don't open anything.
+        delete opts.active
+        cb = opts.cb
+        opts.cb = (err, res) =>
+            if err
+                if active
+                    alert_message(type:"error", message: "Inverse search error -- #{err}")
+            else
+                if res.input != @filename
+                    if active
+                        @editor.open res.input, (err, fname) =>
+                            if not err
+                                @editor.display_tab(path:fname)
+                                # TODO: need to set position, right?
+                else
+                    @latex_editor.set_cursor_center_focus({line:res.line, ch:0})
+            cb?()
+
+        @preview.pdflatex.inverse_search(opts)
+
+    inverse_search: (opts={}) =>
+        opts = defaults opts,
+            active : required
+            cb     : undefined
+        number = @preview.current_page().number
+        elt    = @preview.pdflatex.page(number).element
+        output = @preview.output
+        nH     = elt.find("img")[0].naturalHeight
+        y      = (output.height()/2 + output.offset().top - elt.offset().top) * nH / elt.height()
+        @_inverse_search({n:number, x:0, y:y, resolution:@preview.pdflatex.page(number).resolution, cb:opts.cb})
+
+    forward_search: (opts={}) =>
+        opts = defaults opts,
+            active : true
+            cb     : undefined
+        cm = @latex_editor.codemirror_with_last_focus
+        if not cm?
+            opts.cb?()
+            return
+        n = cm.getCursor().line + 1
+        @preview.pdflatex.forward_search
+            n  : n
+            cb : (err, result) =>
+                if err
+                    if opts.active
+                        alert_message(type:"error", message:err)
+                else
+                    y = result.y
+                    pg = @preview.pdflatex.page(result.n)
+                    res = pg.resolution
+                    img = pg.element?.find("img")
+                    if not img?
+                        opts.cb?("Page #{result.n} not yet loaded.")
+                        return
+                    nH = img[0].naturalHeight
+                    if not res?
+                        y = 0
+                    else
+                        y *= res / 72 * img.height() / nH
+                    @preview.scroll_into_view
+                        n              : result.n
+                        y              : y
+                        highlight_line : true
+                opts.cb?(err)
 
 
 

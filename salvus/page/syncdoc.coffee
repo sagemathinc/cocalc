@@ -429,6 +429,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @_add_listeners()
                 @editor.save_button.addClass('disabled')   # TODO: start with no unsaved changes -- not tech. correct!!
 
+                @emit 'connect'    # successful connection
+
                 cb()
 
     ui_loading: () =>
@@ -543,6 +545,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 return false
 
         @chat_session.on 'sync', @render_chat_log
+
         @render_chat_log()  # first time
         @init_chat_toggle()
         @new_chat_indicator(false)
@@ -576,10 +579,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @element.find(".salvus-editor-codemirror-chat-column").show()
         # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
         # if you want to try to make this resizable
-        output = @element.find(".salvus-editor-codemirror-chat-output")
-        output.scrollTop(output[0].scrollHeight)
         @new_chat_indicator(false)
         @editor.show()  # updates editor width
+        @render_chat_log()
 
     hide_chat_window: () =>
         # HIDE the chat window
@@ -591,20 +593,56 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.show()  # update size/display of editor (especially the width)
 
     new_chat_indicator: (new_chats) =>
-        # Show a new chat indicator of the chat window is closed.
-        # if new_chats, indicate that there are new chats
-        # if new_chats, don't indicate new chats.
+        # Show a new chat indicatorif new_chats=true
+        # if new_chats=true, indicate that there are new chats
+        # if new_chats=false, don't indicate new chats.
         elt = @element.find(".salvus-editor-chat-new-chats")
-        if new_chats and @editor._chat_is_hidden
+        elt2 = @element.find(".salvus-editor-chat-no-new-chats")
+        if new_chats
             elt.show()
+            elt2.hide()
         else
             elt.hide()
+            elt2.show()
 
     render_chat_log: () =>
+        messages = @chat_session.live()
+        if not @_last_size?
+            @_last_size = messages.length
+
+        if @_last_size != messages.length
+            @new_chat_indicator(true)
+            @_last_size = messages.length
+            if not @editor._chat_is_hidden
+                f = () =>
+                    @new_chat_indicator(false)
+                setTimeout(f, 3000)
+
+        if @editor._chat_is_hidden
+            # For this right here, we need to use the database to determine if user has seen all chats.
+            # But that is a nontrivial project to implement, so save for later.   For now, just start
+            # assuming user has seen them.
+
+            # done -- no need to render anything.
+            return
+
         output = @element.find(".salvus-editor-codemirror-chat-output")
         output.empty()
 
-        for m in @chat_session.live().split('\n')
+        messages = messages.split('\n')
+
+        if not @_max_chat_length?
+            @_max_chat_length = 100
+
+        if messages.length > @_max_chat_length
+            output.append($("<a style='cursor:pointer'>(#{messages.length - @_max_chat_length} chats omited)</a><br>"))
+            output.find("a:first").click (e) =>
+                @_max_chat_length += 100
+                @render_chat_log()
+                output.scrollTop(0)
+            messages = messages.slice(messages.length - @_max_chat_length)
+
+        for m in messages
             if $.trim(m) == ""
                 continue
             try
@@ -625,7 +663,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
 
         output.scrollTop(output[0].scrollHeight)
-        @new_chat_indicator(true)
 
     send_broadcast_message: (mesg, self) ->
         m = message.codemirror_bcast
@@ -692,29 +729,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_data.pos = pos
 
         # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:16000)
+        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
         # Then fade the cursor out (a non-active cursor is a waste of space).
-        cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
+        cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
-
-    click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            # Only show the spin/saving indicator *after* a short delay, in case we can't save super-quickly.
-            show_save = () =>
-                @save_button.find('span').text("Saving...")
-                @save_button.find(".spinner").show()
-            spin = setTimeout(show_save, 250)
-            @save (err) =>
-                clearTimeout(spin)
-                @save_button.find(".spinner").hide()
-                @save_button.find('span').text('Save')
-                if not err
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
-                else
-                    alert_message(type:"error", message:"Error saving '#{@filename}' to disk -- #{err}")
-        return false
 
     _save: (cb) =>
         if @editor.opts.delete_trailing_whitespace
