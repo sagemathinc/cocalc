@@ -1,88 +1,14 @@
-
-
 - no way to paste from android to codemirror.
 
 - android: cursor totally off.
 
-- [x] change latex editing to be side-by-side:
-   x- make editor half width
-   x- render immediately on load
-   x- make chat toggle appear by moving pdf preview down
-   x- latex editor: move floating bar to be part of editing bar
-   x- show latex log in same place as preview (and don't *run* tex then -- just run tex on save).
-   x- show actual pdf in same place as preview
-   x- get rid of "File" button
-   x- make preview get displayed at beginning (with button selected)
-   x - make log display correctly
-   x- "rendering preview for the first time..."
-   x- resize/show needs to update even the current thing.
-   x- toggle chat force correct resize
-         x- pdf preview -- still need to pass in position.
-         x- png preview is too delayed
-
-   x- implement inverse search
-   x- inverse search: work even for low-rez preview by putting resolution in img data.
-   x- open correct file when inverse search points to a different file
-   x- inverse search button
-
-   x- implement forward search
-      x (make sure works for not root directory)
-      x (make sure works for split pane)
-
-   x- keyboard shortcuts for forward search
-   x- inverse search: line should go to middle of editor.
-   x- bug where pdf preview is too tall.
-
-   x- preview zoom
-    x- integrate pdf download with embedded preview
-
-   x- config: preview resolution (just a quick and easy version)
-
-   x- config: customize latex command line --
-
-    x- custom latex -- reset button.
-
-    x- save custom latex command line in tex file
-    x- save last zoom used in tex file
-
-    x- sagetex should "just work" -- change update_pdf
-
-
-    x- get rid of use of pdftotext -- but leave in code that makes it possible.
-
-    x - bibtex should "just work"
-
-    x- bar between cm editor and preview (?)
-
-    x- button to force run bibtex
-    x- button to force run sagetex
-
-    x- show error messages in a nicer browser...
-       including bibtex errors, etc. and maybe markup the log better?
-
-    x- error, open other file to right location
-
-    - FIX ALL BUGS:
-       x - mobile layout (esp buttons)
-       x - MAJOR BUG: in syncdoc, render_chat_log: deosn't scale !
-       x- hub restart local hub too aggressively
-
-       x - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
-
-    - new release
-
----
-
-<<<<<<< HEAD
 - [ ] make monitor do cloud.restart("snap") if number of snap servers drops.
 
 - [ ] closed tabs keep re-appearing very confusingly!!!!
-=======
+
 - [ ] the case where sync fails (?): sends changes, doesn't get response, but in fact response went through.
 
 - [ ] add to help page --  The asynchronous server code is all node.js (written in coffeescript).    Python is used for sage and also overall control/management of the distributed system.  The databases is Cassandra.  We use  bup for distributed de-depuplicated snapshots.  The vpn is tinc.  The virtual machines use kvm.  The client-side code is coffeescript plus dozens of third-party libraries such as CodeMirror.
-
->>>>>>> 099e29d9031cc81eaa986215f6a1874b10c30a93
 
 - [ ] codemirror editors -- split line VERTICALLY -- would be super, super useful.
 
@@ -1239,4 +1165,72 @@ I've made a few client-side improvements https://cloud.sagemath.com:
   - Disable zoom on mobile, which makes worksheets much more usable now.
 
 William
+
+
+- [x] change latex editing to be side-by-side:
+   x- make editor half width
+   x- render immediately on load
+   x- make chat toggle appear by moving pdf preview down
+   x- latex editor: move floating bar to be part of editing bar
+   x- show latex log in same place as preview (and don't *run* tex then -- just run tex on save).
+   x- show actual pdf in same place as preview
+   x- get rid of "File" button
+   x- make preview get displayed at beginning (with button selected)
+   x - make log display correctly
+   x- "rendering preview for the first time..."
+   x- resize/show needs to update even the current thing.
+   x- toggle chat force correct resize
+         x- pdf preview -- still need to pass in position.
+         x- png preview is too delayed
+
+   x- implement inverse search
+   x- inverse search: work even for low-rez preview by putting resolution in img data.
+   x- open correct file when inverse search points to a different file
+   x- inverse search button
+
+   x- implement forward search
+      x (make sure works for not root directory)
+      x (make sure works for split pane)
+
+   x- keyboard shortcuts for forward search
+   x- inverse search: line should go to middle of editor.
+   x- bug where pdf preview is too tall.
+
+   x- preview zoom
+    x- integrate pdf download with embedded preview
+
+   x- config: preview resolution (just a quick and easy version)
+
+   x- config: customize latex command line --
+
+    x- custom latex -- reset button.
+
+    x- save custom latex command line in tex file
+    x- save last zoom used in tex file
+
+    x- sagetex should "just work" -- change update_pdf
+
+
+    x- get rid of use of pdftotext -- but leave in code that makes it possible.
+
+    x - bibtex should "just work"
+
+    x- bar between cm editor and preview (?)
+
+    x- button to force run bibtex
+    x- button to force run sagetex
+
+    x- show error messages in a nicer browser...
+       including bibtex errors, etc. and maybe markup the log better?
+
+    x- error, open other file to right location
+
+    - FIX ALL BUGS:
+       x - mobile layout (esp buttons)
+       x - MAJOR BUG: in syncdoc, render_chat_log: deosn't scale !
+       x- hub restart local hub too aggressively
+
+       x - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
+
+    - new release
 
