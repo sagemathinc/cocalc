@@ -1,4 +1,10 @@
-- [ ] password reset script
+- [x] password reset script
+
+
+- no way to paste from android to codemirror.
+
+- android: cursor totally off.
+
 
 - [ ] change latex editing to be side-by-side:
    x- make editor half width
@@ -19,6 +25,8 @@
 
 
 ---
+
+- [ ] make monitor do cloud.restart("snap") if number of snap servers drops.
 
 - [ ] closed tabs keep re-appearing very confusingly!!!!
 
