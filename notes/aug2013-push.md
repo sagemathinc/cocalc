@@ -1,6 +1,6 @@
 - [x] password reset script
 
-- [ ] change latex editing to be side-by-side:
+- [x] change latex editing to be side-by-side:
    x- make editor half width
    x- render immediately on load
    x- make chat toggle appear by moving pdf preview down
@@ -62,13 +62,14 @@
        x - mobile layout (esp buttons)
        x - MAJOR BUG: in syncdoc, render_chat_log: deosn't scale !
        - hub restart local hub too aggressively
-       --> - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
+
+       x - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
 
     - new release
 
 ---
 
-- [ ] case where sync fails (?): sends changes, doesn't get response, but in fact response went through.
+- [ ] the case where sync fails (?): sends changes, doesn't get response, but in fact response went through.
 
 - [ ] add to help page --  The asynchronous server code is all node.js (written in coffeescript).    Python is used for sage and also overall control/management of the distributed system.  The databases is Cassandra.  We use  bup for distributed de-depuplicated snapshots.  The vpn is tinc.  The virtual machines use kvm.  The client-side code is coffeescript plus dozens of third-party libraries such as CodeMirror.
 

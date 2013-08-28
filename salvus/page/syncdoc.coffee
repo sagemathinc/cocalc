@@ -617,7 +617,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 f = () =>
                     @new_chat_indicator(false)
                 setTimeout(f, 3000)
-                
+
         if @editor._chat_is_hidden
             # For this right here, we need to use the database to determine if user has seen all chats.
             # But that is a nontrivial project to implement, so save for later.   For now, just start
@@ -734,24 +734,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
-
-    click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            # Only show the spin/saving indicator *after* a short delay, in case we can't save super-quickly.
-            show_save = () =>
-                @save_button.find('span').text("Saving...")
-                @save_button.find(".spinner").show()
-            spin = setTimeout(show_save, 250)
-            @save (err) =>
-                clearTimeout(spin)
-                @save_button.find(".spinner").hide()
-                @save_button.find('span').text('Save')
-                if not err
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
-                else
-                    alert_message(type:"error", message:"Error saving '#{@filename}' to disk -- #{err}")
-        return false
 
     _save: (cb) =>
         if @editor.opts.delete_trailing_whitespace

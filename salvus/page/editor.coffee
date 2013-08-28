@@ -1225,15 +1225,14 @@ class CodeMirrorEditor extends FileEditor
 
     click_save_button: () =>
         if not @save_button.hasClass('disabled')
-            show_save = () =>
-                @save_button.find('span').text("Saving...")
-                @save_button.find(".spinner").show()
-            spin = setTimeout(show_save, 250)
+            changed = false
+            f = () -> changed = true
+            @codemirror.on 'change', f
+            @save_button.icon_spin(start:true, delay:1000)
             @editor.save @filename, (err) =>
-                clearTimeout(spin)
-                @save_button.find(".spinner").hide()
-                @save_button.find('span').text('Save')
-                if not err
+                @codemirror.off(f)
+                @save_button.icon_spin(false)
+                if not err and not changed
                     @save_button.addClass('disabled')
                     @has_unsaved_changes(false)
         return false
@@ -2533,7 +2532,7 @@ class LatexEditor extends FileEditor
             opts.command = @preview.pdflatex.default_tex_command()
         @log_input.val(opts.command)
 
-        build_status = button.find("span")
+        build_status = button.find(".salvus-latex-build-status")
         status = (mesg) =>
             if mesg.start
                 build_status.text(' - ' + mesg.start)
