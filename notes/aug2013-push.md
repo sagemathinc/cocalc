@@ -59,12 +59,10 @@
     x- error, open other file to right location
 
     - FIX ALL BUGS:
-
-       - mobile layout (esp buttons)
-
-       - MAJOR BUG: in syncdoc, render_chat_log: hits an infinite loop for the chat in sample2e.tex!
+       x - mobile layout (esp buttons)
+       x - MAJOR BUG: in syncdoc, render_chat_log: deosn't scale !
        - hub restart local hub too aggressively
-       - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
+       --> - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
 
     - new release
 

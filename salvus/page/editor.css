@@ -252,7 +252,7 @@ Editor for files in a project
 .salvus-editor-codemirror-chat-output {
     padding:1ex;
     margin:0ex;
-    width:100%;
+    width:93%;
     position: absolute;
     overflow-y:auto;
     overflow-x:hidden;
