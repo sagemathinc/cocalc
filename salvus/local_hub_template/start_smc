@@ -13,7 +13,7 @@ cmd("cd $HOME/.sagemathcloud && ./make_coffee")
 
 cmd("local_hub start")
 
-# we redirect to /dev/null to detach file descripts so remote ssh terminates without waiting for these. 
+# we redirect to /dev/null to detach file descripts so remote ssh terminates without waiting for these.
 cmd("console_server start  </dev/null >/dev/null 2>&1 &")
 
 # For now we do NOT background the sage server, since we run into serious problems if a session is requested, but the server isn't started.
@@ -36,3 +36,5 @@ while not started():
     if i >= 150:
         sys.stderr.write("Error allocating network port\n")
         sys.exit(1)
+
+

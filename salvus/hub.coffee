@@ -2307,6 +2307,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
             return
+        @_restart_lock = true
         async.series([
             (cb) =>
                 winston.debug("local_hub restart: Killing all processes")
@@ -2317,12 +2318,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @killall(cb)
             (cb) =>
                 winston.debug("local_hub restart: Push latest version of code to remote machine...")
-                @_push_local_hub_code(cb)
+                @_push_local_hub_code (err) =>
+                    if err
+                        winston.debug("local hub code push -- failed #{err}")
+                        winston.debug("proceeding anyways, since it's critical that the user have access.")
+                    cb()
             (cb) =>
                 winston.debug("local_hub restart: Restart the local services....")
+                @_restart_lock = false # so we can call @_exec_on_local_hub
                 @_exec_on_local_hub
                     command : 'start_smc'
-                    timeout : 30
+                    timeout : 45
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
                         cb(err)
@@ -2766,7 +2772,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             command : "rsync"
             args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
                        'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
-            timeout : 30
+            timeout : 60
             bash    : false
             path    : SALVUS_HOME
             cb      : (err, output) =>
@@ -2817,7 +2823,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err)
 
     killall: (cb) =>
-        winston.debug("kill all processes running on this local hub (including the hub)")
+        winston.debug("kill all processes running on this local hub (including the local hub itself)")
         @_exec_on_local_hub
             command : "killall -9 -u #{@username}"
             dot_sagemathcloud_path : false
