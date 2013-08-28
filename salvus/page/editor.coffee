@@ -2208,6 +2208,8 @@ class LatexEditor extends FileEditor
         # Embedded pdf page (not really a "preview" -- it's the real thing).
         @preview_embed = new PDF_PreviewEmbed(@editor, @filename.slice(0,n-3)+"pdf", undefined, {})
         @element.find(".salvus-editor-latex-pdf-preview").append(@preview_embed.element)
+        @preview_embed.element.find(".salvus-editor-pdf-title").hide()
+        @preview_embed.element.find("a[href=#refresh]").hide()
         @_pages['pdf-preview'] = @preview_embed
 
         # initalize the log
@@ -2316,7 +2318,7 @@ class LatexEditor extends FileEditor
         @preview_embed.remove()
 
     _init_buttons: () =>
-        @element.find("a").tooltip(delay:{ show: 500, hide: 100 })
+        @element.find("a").tooltip(delay:{ show: 500, hide: 100 } )
 
         @element.find("a[href=#forward-search]").click () =>
             @show_page('png-preview')
@@ -2358,6 +2360,7 @@ class LatexEditor extends FileEditor
         @element.find("a[href=#pdf-preview]").click () =>
             @show_page('pdf-preview')
             @preview_embed.focus()
+            @preview_embed.update()
             return false
 
         @element.find("a[href=#log]").click () =>
@@ -2452,7 +2455,10 @@ class LatexEditor extends FileEditor
         @latex_editor.save (err) =>
             cb?(err)
             if not err
-                @update_preview()
+                @update_preview () =>
+                    if @_current_page == 'pdf-preview'
+                        @preview_embed.update()
+
 
     update_preview: (cb) =>
         @run_latex
