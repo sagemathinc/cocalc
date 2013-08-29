@@ -3751,7 +3751,7 @@ create_account = (client, mesg) ->
             else
                 cb()
 
-        # make sure this ip address hasn't requested more than 100
+        # make sure this ip address hasn't requested more than 5000
         # accounts in the last 6 hours (just to avoid really nasty
         # evils, but still allow for demo registration behind a wifi
         # router -- say)
@@ -3766,7 +3766,7 @@ create_account = (client, mesg) ->
                     if not value?
                         ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
                         cb()
-                    else if value < 100
+                    else if value < 5000
                         ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
                         cb()
                     else # bad situation
