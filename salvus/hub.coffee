@@ -266,21 +266,53 @@ init_http_server = () ->
 
 httpProxy = require('http-proxy')
 
-
-# TODO -- should probably have a separate proxy_port option.
-init_http_proxy_server = () =>
-    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
-    httpProxy.createServer(8888, '10.1.4.4').listen(program.port+1, program.host)
-
 init_http_proxy_server0 = () =>
-    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
-    proxy_server = httpProxy.createServer(8888, '10.1.4.4')
+    httpProxy.createServer(8888, '10.2.1.4').listen(program.proxy_port, program.host)
 
-    proxy_server.listen(program.port+1, program.host)
 
-    proxy_server.on 'upgrade', (req, socket, head) ->
-        winston.debug("Proxy server upgrade!!")
-        proxy_server.proxy.proxyWebSocketRequest(req, socket, head)
+init_http_proxy_server1 = () =>
+
+    http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+        proxy.proxyRequest req, res, {host:'10.1.4.4', port:8888}
+
+
+    http_proxy_server.listen(program.proxy_port, program.host)
+
+    http_proxy_server.on 'upgrade', (req, socket, head) ->
+        http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, {host:'10.1.4.4', port:8888})
+
+init_http_proxy_server = () =>
+
+    target = (url, cb) ->
+        v          = url.split('/')
+        project_id = v[2]
+        port       = parseInt(v[3])
+        database.get_project_location
+            project_id : project_id
+            cb         : (err, location) ->
+                #winston.debug("DATABASE location response: #{err}, #{misc.to_json(location)}")
+                if err
+                    cb(err)
+                else
+                    cb(err, {host:location.host, port:port})
+
+    http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+        buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+        target req.url, (err, location) ->
+            if err
+                res.writeHead(404)
+                res.end()
+            else
+                proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
+
+    http_proxy_server.listen(program.proxy_port, program.host)
+
+    http_proxy_server.on 'upgrade', (req, socket, head) ->
+        target req.url, (err, location) ->
+            if err
+                winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
+            else
+                http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
 
 
 #############################################################
@@ -4755,6 +4787,7 @@ exports.start_server = start_server = () ->
 #############################################
 program.usage('[start/stop/restart/status] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('-p, --proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
