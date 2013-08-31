@@ -1467,7 +1467,7 @@ class PDFLatexDocument
                     opts.cb(output.stderr); return
                 s = output.stdout
                 i = s.indexOf('\nInput:')
-                input = s.slice(i+8, s.indexOf('\n',i+3))
+                input = s.slice(i+7, s.indexOf('\n',i+3))
 
                 # normalize path to be relative to project home
                 j = input.indexOf('/./')
@@ -1475,7 +1475,10 @@ class PDFLatexDocument
                     fname = input.slice(j+3)
                 else
                     j = input.indexOf('/../')
-                    fname = input.slice(j+1)
+                    if j != -1
+                        fname = input.slice(j+1)
+                    else
+                        fname = input
                 if @path != './'
                     input = @path + '/' + fname
                 else
@@ -2431,7 +2434,6 @@ class LatexEditor extends FileEditor
                 if result
                     @set_resolution(result)
         else
-            console.log('setting res to #{res}')
             try
                 res = parseInt(res)
                 if res < 150

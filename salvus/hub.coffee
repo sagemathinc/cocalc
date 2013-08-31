@@ -37,19 +37,18 @@ REGISTER_INTERVAL_S = 30   # every 30 seconds
 # node.js -- builtin libraries
 net     = require 'net'
 assert  = require('assert')
-http    = require 'http'
-url     = require 'url'
-fs      = require 'fs'
-{EventEmitter} = require 'events'
+http    = require('http')
+url     = require('url')
+fs      = require('fs')
+{EventEmitter} = require('events')
 
-_       = require 'underscore'
-
+_       = require('underscore')
 mime    = require('mime')
 
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
-{defaults, required} = require 'misc'
+{defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
@@ -60,7 +59,7 @@ salvus_version = require('salvus_version')
 
 snap = require("snap")
 
-misc_node = require 'misc_node'
+misc_node = require('misc_node')
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -137,6 +136,8 @@ init_http_server = () ->
                 res.end('')
             when "alive"
                 res.end('')
+            when "proxy"
+                res.end("testing the proxy server -- #{pathname}")
             when "stats"
                 server_stats (err, stats) ->
                     if err
@@ -257,6 +258,29 @@ init_http_server = () ->
     )
 
     http_server.on('close', clean_up_on_shutdown)
+
+
+###
+# HTTP Proxy Server, which passes requests directly onto http servers running on project vm's
+###
+
+httpProxy = require('http-proxy')
+
+
+# TODO -- should probably have a separate proxy_port option.
+init_http_proxy_server = () =>
+    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
+    httpProxy.createServer(8888, '10.1.4.4').listen(program.port+1, program.host)
+
+init_http_proxy_server0 = () =>
+    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
+    proxy_server = httpProxy.createServer(8888, '10.1.4.4')
+
+    proxy_server.listen(program.port+1, program.host)
+
+    proxy_server.on 'upgrade', (req, socket, head) ->
+        winston.debug("Proxy server upgrade!!")
+        proxy_server.proxy.proxyWebSocketRequest(req, socket, head)
 
 
 #############################################################
@@ -3432,10 +3456,10 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #
 # Anti-DOS cracking throttling policy:
 #
-#   * POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
-#   * POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
-#   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
-#   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+#   * POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
+#   * POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
+#   * POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
+#   * POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
 #############################################################################
 sign_in = (client, mesg) =>
     #winston.debug("sign_in")
@@ -3452,7 +3476,7 @@ sign_in = (client, mesg) =>
 
     signed_in_mesg = null
     async.series([
-        # POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
+        # POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_email_address"
@@ -3461,11 +3485,11 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 3
-                        sign_in_error("A given email address is allowed at most 3 failed login attempts per minute. Please wait.")
+                    if count > 5
+                        sign_in_error("A given email address is allowed at most 5 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
-        # POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
+        # POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_email_address"
@@ -3474,12 +3498,12 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 10
-                        sign_in_error("A given email address is allowed at most 10 failed login attempts per hour. Please wait.")
+                    if count > 100
+                        sign_in_error("A given email address is allowed at most 100 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
 
-        # POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
+        # POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
@@ -3488,12 +3512,12 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 10
-                        sign_in_error("A given ip address is allowed at most 10 failed login attempts per minute. Please wait.")
+                    if count > 100
+                        sign_in_error("A given ip address is allowed at most 100 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
 
-        # POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+        # POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
@@ -3502,8 +3526,8 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 25
-                        sign_in_error("A given ip address is allowed at most 25 failed login attempts per hour. Please wait.")
+                    if count > 250
+                        sign_in_error("A given ip address is allowed at most 250 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
 
@@ -4707,6 +4731,7 @@ connect_to_database = (cb) ->
 exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
+    init_http_proxy_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
 
