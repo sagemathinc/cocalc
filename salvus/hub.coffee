@@ -37,19 +37,18 @@ REGISTER_INTERVAL_S = 30   # every 30 seconds
 # node.js -- builtin libraries
 net     = require 'net'
 assert  = require('assert')
-http    = require 'http'
-url     = require 'url'
-fs      = require 'fs'
-{EventEmitter} = require 'events'
+http    = require('http')
+url     = require('url')
+fs      = require('fs')
+{EventEmitter} = require('events')
 
-_       = require 'underscore'
-
+_       = require('underscore')
 mime    = require('mime')
 
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
-{defaults, required} = require 'misc'
+{defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
@@ -60,7 +59,7 @@ salvus_version = require('salvus_version')
 
 snap = require("snap")
 
-misc_node = require 'misc_node'
+misc_node = require('misc_node')
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -137,6 +136,8 @@ init_http_server = () ->
                 res.end('')
             when "alive"
                 res.end('')
+            when "proxy"
+                res.end("testing the proxy server -- #{pathname}")
             when "stats"
                 server_stats (err, stats) ->
                     if err
@@ -257,6 +258,29 @@ init_http_server = () ->
     )
 
     http_server.on('close', clean_up_on_shutdown)
+
+
+###
+# HTTP Proxy Server, which passes requests directly onto http servers running on project vm's
+###
+
+httpProxy = require('http-proxy')
+
+
+# TODO -- should probably have a separate proxy_port option.
+init_http_proxy_server = () =>
+    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
+    httpProxy.createServer(8888, '10.1.4.4').listen(program.port+1, program.host)
+
+init_http_proxy_server0 = () =>
+    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
+    proxy_server = httpProxy.createServer(8888, '10.1.4.4')
+
+    proxy_server.listen(program.port+1, program.host)
+
+    proxy_server.on 'upgrade', (req, socket, head) ->
+        winston.debug("Proxy server upgrade!!")
+        proxy_server.proxy.proxyWebSocketRequest(req, socket, head)
 
 
 #############################################################
@@ -3751,7 +3775,7 @@ create_account = (client, mesg) ->
             else
                 cb()
 
-        # make sure this ip address hasn't requested more than 100
+        # make sure this ip address hasn't requested more than 5000
         # accounts in the last 6 hours (just to avoid really nasty
         # evils, but still allow for demo registration behind a wifi
         # router -- say)
@@ -3766,7 +3790,7 @@ create_account = (client, mesg) ->
                     if not value?
                         ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
                         cb()
-                    else if value < 100
+                    else if value < 5000
                         ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
                         cb()
                     else # bad situation
@@ -4707,6 +4731,7 @@ connect_to_database = (cb) ->
 exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
+    init_http_proxy_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
 
