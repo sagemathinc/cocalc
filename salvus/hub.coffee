@@ -271,12 +271,12 @@ init_http_server = () ->
 httpProxy = require('http-proxy')
 
 init_http_proxy_server = () =>
-    remember_me_check_for_write_access_to_project = (opts) ->
+
+    _remember_me_check_for_write_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
-            remember_me : undefined
+            remember_me : required
             cb          : required    # cb(err, has_access)
-
         account_id = undefined
         has_write_access = false
         async.series([
@@ -304,6 +304,38 @@ init_http_proxy_server = () =>
         ], (err) ->
             opts.cb(err, has_write_access)
         )
+
+    _remember_me_cache = {}
+    remember_me_check_for_write_access_to_project = (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            remember_me : required
+            cb          : required    # cb(err, has_access)
+        key = opts.project_id + opts.remember_me
+        has_write_access = _remember_me_cache[key]
+        if has_write_access?
+            opts.cb(false, has_write_access)
+            return
+        # get the answer, cache it, return answer
+        _remember_me_check_for_write_access_to_project
+            project_id  : opts.project_id
+            remember_me : opts.remember_me
+            cb          : (err, has_write_access) ->
+                # if cache gets huge for some *weird* reason (should never happen under normal conditions) just reset it to avoid any possibility of DOS-->RAM crash attach
+                if misc.len(_remember_me_cache) >= 100000
+                    _remember_me_cache = {}
+
+                _remember_me_cache[key] = has_write_access
+                # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                # but also if the user is suddenly granted permission to the project, this should be
+                # reflected within a few seconds.
+                f = () ->
+                    delete _remember_me_cache[key]
+                if has_write_access
+                    setTimeout(f, 1000*60*5)   # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                else
+                    setTimeout(f, 1000*15)      # not having write access lasts 15 seconds
+                opts.cb(err, has_write_access)
 
     _target_cache = {}
     target = (remember_me, url, cb) ->
@@ -344,12 +376,15 @@ init_http_proxy_server = () =>
             )
 
     http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+        if req.url == "/alive"
+            res.end('')
+            return
+
         buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get('remember_me')
 
-        winston.debug("remember_me cookie = #{remember_me}")
         if not remember_me?
             res.writeHead(500, {'Content-Type':'text/html'})
             res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> and enable 'remember me' at the sign in screen, then refresh this page.")
