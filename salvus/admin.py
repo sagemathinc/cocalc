@@ -56,8 +56,8 @@ whoami = os.environ['USER']
 HAPROXY_PORT = 8000
 NGINX_PORT   = 8080
 
-HUB_PORT = 5000
-HUB_TCP_PORT = 5001
+HUB_PORT       = 5000
+HUB_PROXY_PORT = 5001
 
 CASSANDRA_CLIENT_PORT = 9160
 CASSANDRA_INTERNODE_PORTS = [7000, 7001]
@@ -489,7 +489,7 @@ frontend unsecured *:$port
 # Hub
 ####################
 class Hub(Process):
-    def __init__(self, id=0, host='', port=HUB_PORT, tcp_port=HUB_TCP_PORT,
+    def __init__(self, id=0, host='', port=HUB_PORT, proxy_port=HUB_PROXY_PORT,
                  monitor_database=None, keyspace='salvus', debug=False,
                  logfile=None, pidfile=None):
         self._port = port
@@ -505,7 +505,7 @@ class Hub(Process):
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd = [os.path.join(PWD, 'hub'), 'start',
                                       '--port', port,
-                                      '--tcp_port', tcp_port,
+                                      '--proxy_port', proxy_port,
                                       '--keyspace', keyspace,
                                       '--host', host,
                                       '--database_nodes', monitor_database,
@@ -1408,16 +1408,16 @@ class Services(object):
         Monitor the hub and database, and restart they go bad.
 
            - Like any node application, the hub could go which sometimes goes into an infinite loop
-             due to a bug.  This would cause it to stop responding to HTTP requests.  
+             due to a bug.  This would cause it to stop responding to HTTP requests.
              If this happens for 5 seconds, we restart the hub and make a note in the database.
 
            - Cassandra 1.2.4 keeps crashing (about once a day) on me, with an out of memory error, despite
              the host vm having 48GB swap and at least 16GB RAM.  This must be a bug.  In any case,
              any event that results in cassandra dieing, shound then have it get restarted and
              logged. Also, the snap servers don't recover gracefully when the database dies, so
-             we restart them too (unfortunately this can leave stale locks around, which mess up backups 
+             we restart them too (unfortunately this can leave stale locks around, which mess up backups
              in progress for 15-30 minutes, at least until I make locking more sophisticated).
-             
+
         """
         self._hosts.password()
         # Get IP addresses of hubs
@@ -1459,7 +1459,7 @@ class Services(object):
                      except:
                          print "Unable to record log message in database"
 
-            # Next check that there is at least 1 snap server -- and making this check also confirms that 
+            # Next check that there is at least 1 snap server -- and making this check also confirms that
             # cassandra is up and working.
             status = cassandra_snap_status()
             if status:
