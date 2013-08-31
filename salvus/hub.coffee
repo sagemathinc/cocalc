@@ -340,8 +340,9 @@ init_http_proxy_server = () =>
     _target_cache = {}
     target = (remember_me, url, cb) ->
         v          = url.split('/')
-        project_id = v[2]
+        project_id = v[1]
         port       = parseInt(v[3])
+        winston.debug("project_id=#{project_id}, port=#{port}, v=#{misc.to_json(v)}")
         loc        = undefined
         async.series([
             (cb) ->
