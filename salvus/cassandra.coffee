@@ -1143,7 +1143,7 @@ class exports.Salvus extends exports.Cassandra
             cb      : opts.cb
 
     # TODO: REWRITE THE function below (and others) to use get_project_data above.
-    get_project_location: (opts) ->
+    _get_project_location: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
@@ -1165,6 +1165,33 @@ class exports.Salvus extends exports.Cassandra
                     if not location
                         location = undefined
                     opts.cb(false, location)
+
+    # Caching wrapper around _get_project_location
+    # Right now projects *can't* move, so caching their location makes a lot of sense.
+    get_project_location: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            allow_cache : true   # if false, will always get location from database; client can use this to first try cached version and if fails, use
+            cb          : required
+        if not @_project_location_cache?
+            @_project_location_cache = {'array':[], 'obj':{}}
+        if opts.allow_cache
+            location = @_project_location_cache.obj[opts.project_id]
+            if location?
+                opts.cb(false, location)
+                return
+        @_get_project_location
+            project_id : opts.project_id
+            cb         : (err, location) =>
+                if err
+                    opts.cb(err)
+                else
+                    @_project_location_cache.obj[opts.project_id] = location
+                    @_project_location_cache.array.push(opts.project_id)
+                    while @_project_location_cache.array.length > 1 # TODO!!!! make bigger -- this is just for testing.
+                        delete @_project_location_cache.obj[@_project_location_cache.array.shift()]
+                    opts.cb(false, location)
+
 
     set_project_location: (opts) ->
         opts = defaults opts,

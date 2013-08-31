@@ -438,6 +438,7 @@ class Haproxy(Process):
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
                  nginx_servers=None,   # list of ip addresses
                  hub_servers=None, # list of ip addresses
+                 proxy_servers=None, # list of ip addresses
                  monitor_database=None,
                  conf_file='conf/haproxy.conf'):
 
@@ -451,8 +452,13 @@ class Haproxy(Process):
 
         if hub_servers:
             t = Template('server hub$n $ip:$port cookie server$ip check maxconn $maxconn')
-            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port',HUB_PORT), maxconn=x.get('maxconn',10000)) for
+            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(hub_servers)]))
+
+        if proxy_servers:
+            t = Template('server proxy$n $ip:$port cookie server$ip check maxconn $maxconn')
+            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PROXY_PORT), maxconn=x.get('maxconn',10000)) for
+                                                     n, x in enumerate(proxy_servers)]))
 
         if insecure_redirect_port:
             insecure_redirect = Template(
@@ -464,11 +470,12 @@ frontend unsecured *:$port
             insecure_redirect=''
 
         conf = Template(open(conf_file).read()).substitute(
-            accept_proxy_port=accept_proxy_port,
-            insecure_testing_bind='bind *:%s'%insecure_testing_port if insecure_testing_port else '',
-            nginx_servers=nginx_servers,
-            hub_servers=hub_servers,
-            insecure_redirect=insecure_redirect
+            accept_proxy_port     = accept_proxy_port,
+            insecure_testing_bind = 'bind *:%s'%insecure_testing_port if insecure_testing_port else '',
+            nginx_servers         = nginx_servers,
+            hub_servers           = hub_servers,
+            proxy_servers         = proxy_servers,
+            insecure_redirect     = insecure_redirect
             )
 
         haproxy_conf = 'haproxy-%s.conf'%id
@@ -1167,11 +1174,17 @@ class Services(object):
                              for h, o in self._options['nginx']]
             hub_servers = [{'ip':h,'port':o.get('port',HUB_PORT), 'maxconn':10000}
                               for h, o in self._options['hub']]
+            # NOTE: right now we assume that the proxy servers are running on exactly the same machine as the hub,
+            # since they are implemented as part of the same process (though, listening on a different ports).
+            proxy_servers = [{'ip':h,'port':o.get('port',HUB_PROXY_PORT), 'maxconn':10000}
+                              for h, o in self._options['hub']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:
                     o['nginx_servers'] = nginx_servers
                 if 'hub_servers' not in o:
                     o['hub_servers'] = hub_servers
+                if 'proxy_servers' not in o:
+                    o['proxy_servers'] = proxy_servers
 
         # HUB options
         if 'hub' in self._options:
