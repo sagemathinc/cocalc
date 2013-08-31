@@ -235,6 +235,7 @@ CREATE TABLE projects (
 );
 
 CREATE INDEX ON projects(snapshots_disabled);
+CREATE INDEX ON projects(account_id);
 
 CREATE TABLE project_users (
      project_id       uuid,
@@ -244,6 +245,8 @@ CREATE TABLE project_users (
      PRIMARY KEY (project_id, account_id)
 );
 
+/* Example: update project_users set mode='collaborator', state='accepted' where project_id=06ec6722-7ecd-410d-b5da-cdb9bfa09a51 and account_id=25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5 ;
+*/
 /* Table of persistent blobs attached to a project. */
 CREATE TABLE project_blobs (
      blob_id     uuid,
