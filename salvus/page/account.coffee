@@ -89,9 +89,9 @@ $("#account-settings-tab").find("form").click((event) -> return false)
 #############
 $("#account-settings-autosave-slider").slider
     animate : true
-    min     : 0
+    min     : 10
     max     : 300
-    step    : 15
+    step    : 10
     value   : 30
     change  : (event, ui) ->
         $("#account-settings-autosave").val(ui.value)
@@ -113,6 +113,10 @@ $("#account-settings-autosave").keyup () ->
     # Verify that input makes sense
 
     # Move slider as best we can
+    if s <= 10
+        s = 10
+    if s >= 300
+        s = 300
     $("#account-settings-autosave-slider").slider('value', s)
 
     # Set the form to whatever value we got via normalizing above (moving the slider changes the form value)
@@ -194,9 +198,23 @@ $("a[href=#link-terms]").click (event) ->
     $("#link-terms").modal('show')
     return false
 
-$("#create_account-button").click((event) ->
+passwd_keyup = (elt) ->
+    elt = $("#create_account-retype_password")
+    if elt.val() != $("#create_account-password").val()
+        elt.css('background-color':'rgb(255, 220, 218);')
+    else
+        elt.css('background-color':'#ffffff')
 
-    _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
+$("#create_account-retype_password").keyup(passwd_keyup)
+$("#create_account-password").keyup(passwd_keyup)
+
+
+
+$("#create_account-button").click (event) ->
+
+    if $("#create_account-retype_password").val() != $("#create_account-password").val()
+        bootbox.alert("Passwords don't match.")
+        return false
 
     destroy_create_account_tooltips()
 
@@ -224,6 +242,7 @@ $("#create_account-button").click((event) ->
                         template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'  # using template -- see https://github.com/twitter/bootstrap/pull/2332
                     ).popover("show").focus( () -> $(@).popover("destroy"))
             when "signed_in"
+                _gaq.push(['_trackEvent', 'account', 'create_account'])  # custom google analytic event -- user created an account
                 alert_message(type:"success", message: "Account created!  You are now signed in as #{mesg.first_name} #{mesg.last_name}.")
                 signed_in(mesg)
             else
@@ -231,7 +250,8 @@ $("#create_account-button").click((event) ->
                 alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
     salvus_client.create_account(opts)
-)
+    return false
+
 
 
 # Enhance HTML element to display feedback about a choice of password
@@ -610,6 +630,17 @@ close_change_password = () ->
     change_password.modal('hide').find('input').val('')
     change_password.find(".account-error-text").hide()
 
+change_passwd_keyup = (elt) ->
+    elt = $("#account-change_password-new_password-retype")
+    if elt.val() != $("#account-change_password-new_password").val()
+        elt.css('background-color':'rgb(255, 220, 218);')
+    else
+        elt.css('background-color':'#ffffff')
+
+$("#account-change_password-new_password-retype").keyup(change_passwd_keyup)
+$("#account-change_password-new_password").keyup(change_passwd_keyup)
+
+
 change_password.find(".close").click((event) -> close_change_password())
 $("#account-change_password-button-cancel").click((event)->close_change_password())
 change_password.on("shown", () -> $("#account-change_password-old_password").focus())
@@ -619,6 +650,9 @@ $("a[href=#account-change_password]").click (event) ->
     return false
 
 $("#account-change_password-button-submit").click (event) ->
+    if $("#account-change_password-new_password-retype").val() != $("#account-change_password-new_password").val()
+        bootbox.alert("New passwords don't match.")
+        return
     salvus_client.change_password
         email_address : account_settings.settings.email_address
         old_password  : $("#account-change_password-old_password").val()

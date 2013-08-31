@@ -39,7 +39,7 @@ Before building, do:
 
    2. Install critical packages:
 
-         sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml
+         sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre
 
 # old java times...
          sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc
@@ -49,7 +49,7 @@ Before building, do:
 
    3. Additional packages (mainly for users, not building).
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell
 
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor
@@ -181,7 +181,7 @@ NODE_MODULES = [
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
-    'moment', 'underscore'
+    'moment', 'underscore', 'read'
     ]
 
 PYTHON_PACKAGES = [
@@ -253,10 +253,21 @@ def build_python():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
+#
+# About the node version.
+#   The node-http-proxy library (as of Aug 30, 2013) is completely broken for websocket proxying with Node v0.10.x, etc.
+#   so we use node-0.8.25, but with a patch (which I had to modify/backport!) to node-v.0.8.25.
+#   *Also* pty.js resizing doesn't work with node-v.0.10.x either (as of a few months ago at least), so we use the older
+#   version of node in local_hub_template.py.
+#   So... take care when upgrading to a new node version eventually.  Test that that the proxy stuff is fixed.
+#   Watch this url: https://github.com/nodejitsu/node-http-proxy/issues/444
+#   Here's a test that the hex conversion is good (this should be fast): buf = Buffer(0x1000000); a=buf.toString('hex');b=0;
+
 def build_node():
     log.info('building node'); start = time.time()
     try:
         path = extract_package('node')
+        cmd('patch -p1 < %s/node-patch-backported-to-fix-hex-issue.patch'%PATCHES, path)
         cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)

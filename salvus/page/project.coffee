@@ -127,6 +127,7 @@ class ProjectPage
             label : @project.project_id
             icon  : 'icon-edit'
             onclose : () =>
+                @editor?.close_all_open_files()
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
             onshow: () =>
@@ -956,6 +957,10 @@ class ProjectPage
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
             create_file('sagews')
+            return false
+
+        @new_file_tab.find("a[href=#new-latex]").click () =>
+            create_file('tex')
             return false
 
         BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws', 'ipynb']

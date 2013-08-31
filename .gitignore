@@ -33,3 +33,5 @@ salvus/scripts/skel/.sagemathcloud
 salvus/src/*cassandra*
 .*backup
 .*swp
+
+.*sage-chat

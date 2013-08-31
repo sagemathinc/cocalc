@@ -1,14 +1,91 @@
------
-- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
+- no way to paste from android to codemirror.
 
-- [x] look into the "one big png" idea...  TOTAL DISASTER; easily ate all my RAM.
+- android: cursor totally off.
+
+- [ ] make monitor do cloud.restart("snap") if number of snap servers drops.
+
+- [ ] closed tabs keep re-appearing very confusingly!!!!
+
+- [ ] the case where sync fails (?): sends changes, doesn't get response, but in fact response went through.
+
+- [ ] add to help page --  The asynchronous server code is all node.js (written in coffeescript).    Python is used for sage and also overall control/management of the distributed system.  The databases is Cassandra.  We use  bup for distributed de-depuplicated snapshots.  The vpn is tinc.  The virtual machines use kvm.  The client-side code is coffeescript plus dozens of third-party libraries such as CodeMirror.
+
+- [ ] codemirror editors -- split line VERTICALLY -- would be super, super useful.
+
+- [ ] file/folder icons -- https://mail.google.com/mail/u/0/?shva=1#inbox/140b3393cd9b3f68
+
+- [ ] order chat by time -- https://mail.google.com/mail/u/0/?shva=1#inbox/140b32b9493bfdc9
+
+- [ ] closed tabs keep re-appearing very confusingly!!!!
+
+- [ ] terminal -- make "refresh" button reconnect... to see how robust (?)
+
+- [ ] terminal [...] burst mode is still LAME.
+
+- [ ] next release:
+        npm install read
+
+- [ ] large number of files in a directory page
+
+- [ ] user ability to reset all "remember me" cookies
+
+- [ ] keyboard shortcut to cycle through open tabs
+
+
+- [ ] Sublime cursor movement "get unlost" -- http://aspirecode.com/sublime-text-jump-back-jump-forward/
+        - add forward/back buttons to left of "Files"
+        - add project-level variable that is:
+              - an array of objects {filename:'...', pos:?},
+              - a pointer into array
+        - events (show?) will add things to array,
+        - clicking back button
+
+---
+
+
+- MAJOR ISSUE: if a bunch of restart project attempts happen, then the hub doing the restarting renders
+  that entire project un-restartable, since it is too impatient (e.g., 10 second timeout).  FIX THIS and restart
+  all the hubs.
+
+- add field text for account creation.
+
+Issues to fix with latex editing:
+
+- [ ] the spinner is unberable; just get rid of it ?
+- [ ] sometimes it doesn't come up at first and scrollbar is on left -- size issue?
+- [ ] side-by-side would be very useful...
+- [ ] make pdf itself wider (?) -- have a button
+
+
+
+
+
+
+
+- [ ] do not send broadcast when my cursor moves as a result of somebody else's actions.
+
+- [ ] use the "update now" style notification when websocket drops / restores (?)
+
+-----
+- [ ] client doesn't do anything sensible in response to this from hub:
+debug: hub --> client (client=653426d1-2ccc-4027-b1b3-da44eb3119ed): {"event":"error","id":"2bd05e47-887b-4681-a390-e9fe9133c4af","error":"user must be signed in before accessing projects"}
+
+- [ ] UX: progress bars!  http://ricostacruz.com/nprogress/   -- should even have worksheet salvus. api!
+
+- [ ] UX idea -- if the mouse is *moving* don't refresh the directory listing!
+
+
+- [ ] why does log list this twice:
+debug: opts = {"project_id":"54949eee-57da-4bd7-bb43-c2602b429f9a","account_id":"25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5"}
+debug: local_hub --> global_hub: received a blob with uuid d24f0b9f-fd24-49d4-8dc1-d579142b818c
+debug: converting object of length 7898552 to hex
+debug: converted, now storing
+debug: converting object of length 7898552 to hex
+debug: converted, now storing
 
 - [ ] image viewer refresh button; trivial,  might as well
 
-- [ ] next release:
-      - verify get new services file for cassandra
-      - test embed viewer is working.
-
+- [ ] upgrade  to  bootstrap 3: see <http://code.divshot.com/bootstrap3_upgrader/>
 
 - [ ] a release at some point
       - upgrade haproxy in edge nodes
@@ -29,6 +106,11 @@
 
 ---
 Ideas:
+
+- [ ] in syncdoc:
+                    # TODO -- this will work when the hub
+                    # makes each client session work independently instead of locking them all together...
+                    #@session_uuid = mesg.mesg.new_session_uuid
 
 - [ ] use http://www.bootstrap-switch.org/ to provide a toggle of this style when viewing images: max-width: 100%;
 
@@ -896,3 +978,259 @@ newer version of same here:
    x - icons for each button
    x - embed --> object in sage_salvus.py
    x - pdf height is wrong, since can't see controls.
+
+----
+- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
+
+- [x] look into the "one big png" idea...  TOTAL DISASTER; easily ate all my RAM.
+
+- [x] image viewer refresh button; trivial,  might as well
+
+- [x] next release:
+      - verify get new services file for cassandra
+      - test embed viewer is working.
+
+Hi,
+
+I've updated https://cloud.sagemath.com just now with the following changes (I didn't reboot
+the VM's running projects):
+
+  - Increased the maximum file download size from 5MB to 12MB
+
+  - Clicking on a pdf file in the file manager uses the browser's builtin PDF viewer.
+
+  - When editing tex file, you can now view them either with the png-based previewer (which
+    keeps position across updates) or with your browser's builting pdf viewer.  Also, the
+    png-based viewer now actually works with large tex files (though it is slow), e.g., a
+    7.5MB 140 page book with many embedded images works.
+
+  - There's now a refresh button and scroll bars in the image viewer.
+
+  - In worksheets, I added a function "salvus.pdf" to display a PDF embedded as the output
+    of a command.  You can choose to use either your browser's builtin viewer or
+    the pdf.js library, which will get loaded dynamically on first use.  You have to
+    restart your project server (and worksheet server) to see this feature.
+
+Williamf
+
+- [x] (0:10) fix png preview failing on large number of pages -- no reason for that.
+
+- [x] next release:
+     - apt get install calibre (and add to build.py)
+
+
+## Implementation
+
+  - page html template: with spot for plain text, page number, sha1sum,
+  - coffeescript data structure for the collection of known pages
+  - class that wraps "a remote latex/pdf doc" and has methods:
+       - pdflatex: updates number of pages, latex log, text of all pages (async, as it comes back)
+       - run custom command on file (e.g., bibtex)
+       - update given *range* of pages:
+            - generates png's remotely (with given resolution params)
+            - sets rm -rf time bomb
+            - computes and fills in sha1
+       - get url of preview of a given page
+       - get text of a given page
+       - get error log (in parsed form by page number)
+
+
+
+
+DEBUG time:
+
+  doc = new (require('editor').LatexDocument)({project_id:'e3d1ea55-b76f-484f-91b2-0062498ffc07', filename_tex:'rh/rh/rh.tex'})
+
+
+----
+
+ x - change css of current page on update.
+ x - make it so current prev, next, page is very high quality, but all others are low
+
+ x - pdflatex -- remove tmp path and put in /tmp
+ x - divide preview work into four instead of 2
+ --> - add text so search works
+
+
+---
+
+
+## Design: pdf *synchronization* not "download and view"
+
+  - when rendering png viewer, endow each page with a page number and sha1sum
+  - write function "visible page numbers"; if nothing displayed yet, number=1.
+  - update will:
+      - (1s)   pdflatex
+           - (1.2s) pdftotext  (in parallel; then fill in to pages when it comes back).
+      - (0.8s) use gs to generate the png's for the visible pages (3 pages):
+           e.g.,  time gs -dBATCH -dNOPAUSE -sDEVICE=png256 -sOutputFile=png/%d.png -dFirstPage=51 -dLastPage=53  -r300 rh.pdf
+           (self destruct: always launch a 30min time-delayed "rm -rf" on tmp dir?)
+      - (0.004s) compute their md5sums
+      - (.3s) grab the *ones* that changed and display them.   (time depends on network and db here -- est .1s/each)
+
+           Try the above before doing the following -- if it is fast enough, maybe we just do it on scroll?!
+
+      - (~9s) generate all png -- in parallel (divide into at least 2 ranges -- interval around current and everything else (?))
+      - compute their md5sums
+      - download only the ones that changed
+      - delete generated files
+      - remove pages that don't exist anymore
+      - fill in plain text for each page in extra info in the page dom object: div like this: "height:0px; top:30em; position:relative; opacity:0;"
+
+    And, be sure to cancel everything if another update is requested while the above is happening.
+  - forward search:
+      - icon at top
+      - create preview if never made before
+      - use diff/match/patch library to fuzzy search around cursor for text in the output and go to that page
+  - inverse search:
+      - shift click on a preview page
+      - use text there to fuzzy search in latex doc and display.
+      - estimate w/ heuristic where in page depending on location of click.
+  - errors:
+      - run latex
+      - log has lines like this:
+          ! Undefined control sequence.
+          l.222 \ladsijf
+        do some codemirror wizardy to show all errors in place in the editor.
+
+
+
+- [ ] latex editor -- restrict page range for previews:
+
+        #!/bin/bash
+        # this function uses 3 arguments:
+        #     $1 is the first page of the range to extract
+        #     $2 is the last page of the range to extract
+        #     $3 is the input file
+        #     output file will be named "inputfile_pXX-pYY.pdf"
+        gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -dSAFER -dFirstPage=${1} -dLastPage=${2} -sOutputFile=${3%.pdf}-pages.pdf ${3} 2>/dev/null
+
+Observation: at a density of 100, I can put the entire 140 page book into a single png that is 1MB (using convert -append).
+
+OK, the way to do this is:
+  (1) have a *very* low rez display of the entire document, exactly as now, but much lower res.
+  (2) when a page is *visible* we download a higher res version.... and then a higher color one.
+  (3) running the gs on a range of pages is fine and scales.
+  (4) can do in parallel by breaking based on range.
+  (5) forward search/inverse search -- USE pdftotext (in apt-get install calibre) to convert entire file to text separated by pages.
+      then uses fuzzy search to go back and forth at the *page* level.
+      Also, make fulltext search (at page level) possible by overlaying invisible text.
+
+Interesting fact: changing one page of the file often only changes *that* png -- all others are identical; and with
+tex even a new para can easily be local (due to chapters, etc).  I tested this with md5's on rh.
+
+
+
+- [x] (0:10) last line auto-adjust bug (Grout, https://mail.google.com/mail/u/0/?shva=1#search/cloud/140a533bb78f748b)
+
+- [x] (0:11) insert new cell should put cursor in that cell.
+
+- [x] insert cell wasn't sync'ing.
+
+- [x] make a sync fix
+
+- [x] (1:14) get rid of pdflatex spinner -- just annoying; parallelize more
+
+- [x] current line plugin.
+
+- [x] on mobile, if you click "insert a cell bar", confirm before inserting -- otherwise put cursor in appropriate place.
+
+- [x] shift-enter a *selection* should add no new cells
+- [x] alter enter selection shouldn't delete it -- execute
+
+- [x1] new release
+
+Hi,
+
+I've made a few client-side improvements https://cloud.sagemath.com:
+
+  - Fix the last-line autoadjust bug in worksheets that Jason Grout pointed out recently.
+
+  - When inserting a new cell, the cursor gets placed in *that* cell.
+
+  - Right after inserting a new cell, sync with the server.
+
+  - Further optimization to the LaTeX Preview mode.
+
+  - It is sometimes hard to see the cursor, so now the *current line is highlighted*.
+    Don't worry, I put a lot of time into ensuring that this highlighting works
+    well no matter what color scheme you're using! This is currently not
+    configurable, but will be.
+
+  - In worksheets, Shift+Enter on a selection doesn't insert a bunch of cells at the bottom
+    anymore; so now you can do "select all, shift-enter" to re-evaluate all cells.
+
+  - On mobile, insert new cell requires confirmation, since it is easy to hit by accident.
+
+  - Disable zoom on mobile, which makes worksheets much more usable now.
+
+William
+
+
+- [x] change latex editing to be side-by-side:
+   x- make editor half width
+   x- render immediately on load
+   x- make chat toggle appear by moving pdf preview down
+   x- latex editor: move floating bar to be part of editing bar
+   x- show latex log in same place as preview (and don't *run* tex then -- just run tex on save).
+   x- show actual pdf in same place as preview
+   x- get rid of "File" button
+   x- make preview get displayed at beginning (with button selected)
+   x - make log display correctly
+   x- "rendering preview for the first time..."
+   x- resize/show needs to update even the current thing.
+   x- toggle chat force correct resize
+         x- pdf preview -- still need to pass in position.
+         x- png preview is too delayed
+
+   x- implement inverse search
+   x- inverse search: work even for low-rez preview by putting resolution in img data.
+   x- open correct file when inverse search points to a different file
+   x- inverse search button
+
+   x- implement forward search
+      x (make sure works for not root directory)
+      x (make sure works for split pane)
+
+   x- keyboard shortcuts for forward search
+   x- inverse search: line should go to middle of editor.
+   x- bug where pdf preview is too tall.
+
+   x- preview zoom
+    x- integrate pdf download with embedded preview
+
+   x- config: preview resolution (just a quick and easy version)
+
+   x- config: customize latex command line --
+
+    x- custom latex -- reset button.
+
+    x- save custom latex command line in tex file
+    x- save last zoom used in tex file
+
+    x- sagetex should "just work" -- change update_pdf
+
+
+    x- get rid of use of pdftotext -- but leave in code that makes it possible.
+
+    x - bibtex should "just work"
+
+    x- bar between cm editor and preview (?)
+
+    x- button to force run bibtex
+    x- button to force run sagetex
+
+    x- show error messages in a nicer browser...
+       including bibtex errors, etc. and maybe markup the log better?
+
+    x- error, open other file to right location
+
+    - FIX ALL BUGS:
+       x - mobile layout (esp buttons)
+       x - MAJOR BUG: in syncdoc, render_chat_log: deosn't scale !
+       x- hub restart local hub too aggressively
+
+       x - save and sync: HUGE BUG -- if anything changes between start/stop of save, then don't mark it disabled!! this could easily make people loose work.
+
+    - new release
+

@@ -10,6 +10,8 @@
         <div class="modal-body offset1">
             <div class="hide account-error-text" id="account-forgot_password-error-email_address"></div>
             <input class="span4 offset1" type="email" placeholder="Email address" id="account-forgot_password-email_address">
+            <hr>
+            Not working?  Email me at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.
         </div>
         <div class="modal-footer">
             <button class="btn btn-primary" data-dismiss="modal" id="account-forgot_password-button-submit">Send email</button>
@@ -90,6 +92,8 @@ I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
             <input class="span4" type="text" placeholder="Last name (everyone can see this)" id="create_account-last_name"><br class="big-only">
             <input class="span4" type="email" placeholder="Email (this is private)" id="create_account-email_address"><br class="big-only">
             <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password">
+            <input class="span4" type="password" placeholder="Retype password" id="create_account-retype_password">
+
             <label class="checkbox">
                 <input type="checkbox" id="create_account-agreed_to_terms">
                 I agree to the <a href="#link-terms">Sagemath Cloud Terms</a>
@@ -541,6 +545,11 @@ I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
         <label>
             <b class="big-only">New password</b>
             <input class="span4 offset1 salvus-password-meter" type="password" placeholder="New password" id="account-change_password-new_password">
+        </label>
+        <br>
+        <label>
+            <b class="big-only">Retype password</b>
+            <input class="span4 offset1" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
         </label>
     </div>
     <div class="modal-footer">

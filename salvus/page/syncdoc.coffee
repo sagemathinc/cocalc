@@ -21,8 +21,6 @@ their 900 clients in parallel.
 
 ###
 
-
-
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
@@ -35,6 +33,7 @@ message  = require('message')
 {salvus_client} = require('salvus_client')
 {alert_message} = require('alerts')
 
+{IS_MOBILE} = require("feature")
 
 async = require('async')
 
@@ -92,43 +91,49 @@ class DiffSyncDoc
             @opts.string = diffsync.dmp.patch_apply(p, @string())[0]
         else
             cm = @opts.cm
-            s = @string()
-            x = diffsync.dmp.patch_apply(p, s)
-            new_value = x[0]
+            cm.setOption('readOnly', true)
+            try
+                s = @string()
+                x = diffsync.dmp.patch_apply(p, s)
+                new_value = x[0]
 
-            next_pos = (val, pos) ->
-                # This functions answers the question:
-                # If you were to insert the string val at the CodeMirror position pos
-                # in a codemirror document, at what position (in codemirror) would
-                # the inserted string end at?
-                number_of_newlines = (val.match(/\n/g)||[]).length
-                if number_of_newlines == 0
-                    return {line:pos.line, ch:pos.ch+val.length}
-                else
-                    return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
+                next_pos = (val, pos) ->
+                    # This functions answers the question:
+                    # If you were to insert the string val at the CodeMirror position pos
+                    # in a codemirror document, at what position (in codemirror) would
+                    # the inserted string end at?
+                    number_of_newlines = (val.match(/\n/g)||[]).length
+                    if number_of_newlines == 0
+                        return {line:pos.line, ch:pos.ch+val.length}
+                    else
+                        return {line:pos.line+number_of_newlines, ch:(val.length - val.lastIndexOf('\n')-1)}
 
-            pos = {line:0, ch:0}  # start at the beginning
-            diff = diffsync.dmp.diff_main(s, new_value)
-            for chunk in diff
-                #console.log(chunk)
-                op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
-                val = chunk[1] # the actual text to leave same, delete, or add
-                pos1 = next_pos(val, pos)
-                switch op
-                    when 0 # stay the same
-                        # Move our pos pointer to the next position
-                        pos = pos1
-                        #console.log("skipping to ", pos1)
-                    when -1 # delete
-                        # Delete until where val ends; don't change pos pointer.
-                        cm.replaceRange("", pos, pos1)
-                        #console.log("deleting from ", pos, " to ", pos1)
-                    when +1 # insert
-                        # Insert the new text right here.
-                        cm.replaceRange(val, pos)
-                        #console.log("inserted new text at ", pos)
-                        # Move our pointer to just beyond the text we just inserted.
-                        pos = pos1
+                pos = {line:0, ch:0}  # start at the beginning
+                diff = diffsync.dmp.diff_main(s, new_value)
+                for chunk in diff
+                    #console.log(chunk)
+                    op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
+                    val = chunk[1] # the actual text to leave same, delete, or add
+                    pos1 = next_pos(val, pos)
+                    switch op
+                        when 0 # stay the same
+                            # Move our pos pointer to the next position
+                            pos = pos1
+                            #console.log("skipping to ", pos1)
+                        when -1 # delete
+                            # Delete until where val ends; don't change pos pointer.
+                            cm.replaceRange("", pos, pos1)
+                            #console.log("deleting from ", pos, " to ", pos1)
+                        when +1 # insert
+                            # Insert the new text right here.
+                            cm.replaceRange(val, pos)
+                            #console.log("inserted new text at ", pos)
+                            # Move our pointer to just beyond the text we just inserted.
+                            pos = pos1
+            catch e
+                console.log("BUG in patch_in_place")
+            cm.setOption('readOnly', false)
+
 
 
 codemirror_diffsync_client = (cm_session, content) ->
@@ -179,9 +184,9 @@ class AbstractSynchronizedDoc extends EventEmitter
         @project_id = @opts.project_id
         @filename   = @opts.filename
 
-        @connect    = misc.retry_until_success_wrapper(f:@_connect) #, logname:'connect')
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval) #, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save) #, logname:'save')
+        @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
 
         @connect (err) =>
             opts.cb(err, @)
@@ -206,7 +211,10 @@ class AbstractSynchronizedDoc extends EventEmitter
     __receive_broadcast: (mesg) =>
         if mesg.session_uuid == @session_uuid
             if mesg.mesg.event == 'update_session_uuid'
-                @session_uuid = mesg.mesg.new_session_uuid
+                # This just doesn't work yet -- not really implemented in the hub -- so we force
+                # a full reconnect, which is safe.
+                #@session_uuid = mesg.mesg.new_session_uuid
+                @connect()
 
     __reconnect: () =>
         # The main websocket to the remote server died then came back, so we
@@ -323,9 +331,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_interval : 1000
             sync_interval   : 750   # never send sync messages up stream more often than this
 
-        @connect    = misc.retry_until_success_wrapper(f:@_connect)#  logname:'connect')
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)# logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save) #logname:'save')
+        @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
+        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
+        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
 
         @filename    = @editor.filename
         @editor.save = @save
@@ -420,6 +428,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
                 @editor.save_button.addClass('disabled')   # TODO: start with no unsaved changes -- not tech. correct!!
+
+                @emit 'connect'    # successful connection
 
                 cb()
 
@@ -535,6 +545,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 return false
 
         @chat_session.on 'sync', @render_chat_log
+
         @render_chat_log()  # first time
         @init_chat_toggle()
         @new_chat_indicator(false)
@@ -568,10 +579,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @element.find(".salvus-editor-codemirror-chat-column").show()
         # see http://stackoverflow.com/questions/4819518/jquery-ui-resizable-does-not-support-position-fixed-any-recommendations
         # if you want to try to make this resizable
-        output = @element.find(".salvus-editor-codemirror-chat-output")
-        output.scrollTop(output[0].scrollHeight)
         @new_chat_indicator(false)
         @editor.show()  # updates editor width
+        @render_chat_log()
 
     hide_chat_window: () =>
         # HIDE the chat window
@@ -583,20 +593,56 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @editor.show()  # update size/display of editor (especially the width)
 
     new_chat_indicator: (new_chats) =>
-        # Show a new chat indicator of the chat window is closed.
-        # if new_chats, indicate that there are new chats
-        # if new_chats, don't indicate new chats.
+        # Show a new chat indicatorif new_chats=true
+        # if new_chats=true, indicate that there are new chats
+        # if new_chats=false, don't indicate new chats.
         elt = @element.find(".salvus-editor-chat-new-chats")
-        if new_chats and @editor._chat_is_hidden
+        elt2 = @element.find(".salvus-editor-chat-no-new-chats")
+        if new_chats
             elt.show()
+            elt2.hide()
         else
             elt.hide()
+            elt2.show()
 
     render_chat_log: () =>
+        messages = @chat_session.live()
+        if not @_last_size?
+            @_last_size = messages.length
+
+        if @_last_size != messages.length
+            @new_chat_indicator(true)
+            @_last_size = messages.length
+            if not @editor._chat_is_hidden
+                f = () =>
+                    @new_chat_indicator(false)
+                setTimeout(f, 3000)
+
+        if @editor._chat_is_hidden
+            # For this right here, we need to use the database to determine if user has seen all chats.
+            # But that is a nontrivial project to implement, so save for later.   For now, just start
+            # assuming user has seen them.
+
+            # done -- no need to render anything.
+            return
+
         output = @element.find(".salvus-editor-codemirror-chat-output")
         output.empty()
 
-        for m in @chat_session.live().split('\n')
+        messages = messages.split('\n')
+
+        if not @_max_chat_length?
+            @_max_chat_length = 100
+
+        if messages.length > @_max_chat_length
+            output.append($("<a style='cursor:pointer'>(#{messages.length - @_max_chat_length} chats omited)</a><br>"))
+            output.find("a:first").click (e) =>
+                @_max_chat_length += 100
+                @render_chat_log()
+                output.scrollTop(0)
+            messages = messages.slice(messages.length - @_max_chat_length)
+
+        for m in messages
             if $.trim(m) == ""
                 continue
             try
@@ -617,7 +663,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             entry.find(".salvus-chat-entry-content").text(mesg.mesg.content).mathjax()
 
         output.scrollTop(output[0].scrollHeight)
-        @new_chat_indicator(true)
 
     send_broadcast_message: (mesg, self) ->
         m = message.codemirror_bcast
@@ -643,7 +688,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 when 'cursor'
                     @_receive_cursor(mesg)
                 when 'update_session_uuid'
-                    @session_uuid = mesg.mesg.new_session_uuid
+                    # This just doesn't work yet -- not really implemented in the hub -- so we force
+                    # a full reconnect, which is safe.
+
+                    #@session_uuid = mesg.mesg.new_session_uuid
+                    @connect()
 
     _receive_cursor: (mesg) =>
         # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
@@ -680,29 +729,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_data.pos = pos
 
         # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:100).fadeOut(duration:16000)
+        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
         # Then fade the cursor out (a non-active cursor is a waste of space).
-        cursor_data.cursor.stop().show().animate(opacity:100).fadeOut(duration:60000)
+        cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
-
-    click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            # Only show the spin/saving indicator *after* a short delay, in case we can't save super-quickly.
-            show_save = () =>
-                @save_button.find('span').text("Saving...")
-                @save_button.find(".spinner").show()
-            spin = setTimeout(show_save, 250)
-            @save (err) =>
-                clearTimeout(spin)
-                @save_button.find(".spinner").hide()
-                @save_button.find('span').text('Save')
-                if not err
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
-                else
-                    alert_message(type:"error", message:"Error saving '#{@filename}' to disk -- #{err}")
-        return false
 
     _save: (cb) =>
         if @editor.opts.delete_trailing_whitespace
@@ -778,8 +809,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 # since we just canceled the change.
                 @remove_cell_flags_from_changeObj(changeObj, ACTION_FLAGS)
                 @_apply_changeObj(changeObj)
-                @sync()
-                @process_sage_updates()
+                @sync () =>
+                    @process_sage_updates()
 
     init_worksheet_buttons: () =>
         buttons = @element.find(".salvus-editor-codemirror-worksheet-buttons")
@@ -928,7 +959,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
             j -= 1
         k = n - (m - (j + 1))
         if k > 0
+            cursor = cm.getCursor()
             cm.replaceRange(Array(k+1).join('\n'), {ch:0, line:m} )
+            cm.setCursor(cursor)
 
     process_sage_updates: (start) =>
         #console.log("processing Sage updates")
@@ -1202,7 +1235,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
             width : @cm_lines().width() + 'px'
 
         input.click () =>
-            @insert_new_cell(mark.find().from.line)
+            f = () =>
+                @insert_new_cell(mark.find().from.line)
+            if IS_MOBILE
+                # It is way too easy to accidentally click on the insert new cell line on mobile.
+                bootbox.confirm "Create new cell?", (result) =>
+                    if result
+                        f()
+                    else # what the user really wants...
+                        cm.focus()
+                        cm.setCursor({line:mark.find().from.line+1, ch:0})
+            else
+                f()
+            return false
 
         opts =
             shared         : false
@@ -1309,11 +1354,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             delete_output : false  # if true; delete all the the output in the range
             cm      : @codemirror
-
         if opts.pos?
             pos = opts.pos
         else
             if opts.cm.somethingSelected() and not opts.split
+                opts.advance = false
                 start = opts.cm.getCursor('start').line
                 end   = opts.cm.getCursor('end').line
                 # Expand both ends of the selection to contain cell containing cursor
@@ -1327,7 +1372,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
                 # For each line in the range, check if it is the beginning of a cell; if so do the action on it.
                 for line in [start..end]  # include end
-                    if opts.cm.getLine(line)[0] == MARKERS.cell
+                    x = opts.cm.getLine(line)
+                    if x? and x[0] == MARKERS.cell
                         opts.pos = {line:line, ch:0}
                         @action(opts)
 
@@ -1457,9 +1503,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @set_cell_flagstring(marker, s)
 
     insert_new_cell: (line) =>
-        @codemirror.replaceRange('\n', {line:line, ch:0})
+        pos = {line:line, ch:0}
+        @codemirror.replaceRange('\n', pos)
+        @codemirror.focus()
+        @codemirror.setCursor(pos)
         @cell_start_marker(line)
         @process_sage_updates()
+        @sync()
 
     cell_start_marker: (line) =>
         cm = @codemirror

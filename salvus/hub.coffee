@@ -37,19 +37,18 @@ REGISTER_INTERVAL_S = 30   # every 30 seconds
 # node.js -- builtin libraries
 net     = require 'net'
 assert  = require('assert')
-http    = require 'http'
-url     = require 'url'
-fs      = require 'fs'
-{EventEmitter} = require 'events'
+http    = require('http')
+url     = require('url')
+fs      = require('fs')
+{EventEmitter} = require('events')
 
-_       = require 'underscore'
-
+_       = require('underscore')
 mime    = require('mime')
 
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
-{defaults, required} = require 'misc'
+{defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
@@ -60,7 +59,7 @@ salvus_version = require('salvus_version')
 
 snap = require("snap")
 
-misc_node = require 'misc_node'
+misc_node = require('misc_node')
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -137,6 +136,8 @@ init_http_server = () ->
                 res.end('')
             when "alive"
                 res.end('')
+            when "proxy"
+                res.end("testing the proxy server -- #{pathname}")
             when "stats"
                 server_stats (err, stats) ->
                     if err
@@ -257,6 +258,29 @@ init_http_server = () ->
     )
 
     http_server.on('close', clean_up_on_shutdown)
+
+
+###
+# HTTP Proxy Server, which passes requests directly onto http servers running on project vm's
+###
+
+httpProxy = require('http-proxy')
+
+
+# TODO -- should probably have a separate proxy_port option.
+init_http_proxy_server = () =>
+    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
+    httpProxy.createServer(8888, '10.1.4.4').listen(program.port+1, program.host)
+
+init_http_proxy_server0 = () =>
+    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
+    proxy_server = httpProxy.createServer(8888, '10.1.4.4')
+
+    proxy_server.listen(program.port+1, program.host)
+
+    proxy_server.on 'upgrade', (req, socket, head) ->
+        winston.debug("Proxy server upgrade!!")
+        proxy_server.proxy.proxyWebSocketRequest(req, socket, head)
 
 
 #############################################################
@@ -436,7 +460,7 @@ class Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl              = 30*24*3600     # 30 days
+        ttl              = 24*3600 * 30     # 30 days
 
         @remember_me_db.set
             key   : @hash_session_id
@@ -1935,6 +1959,8 @@ class CodeMirrorSession
             path         : required
             cb           : required
 
+        console.log("creating a CodeMirrorSession: #{opts.project_id}, #{opts.path}")
+
         @local_hub    = opts.local_hub
         @project_id   = opts.project_id
         @path         = opts.path
@@ -1984,6 +2010,7 @@ class CodeMirrorSession
 
                     # Reconnect to the upstream (local_hub) server
                     @diffsync_server = new diffsync.DiffSync(doc:resp.content)
+                    @set_content(resp.content)
 
                     if @_last_sync?
                         # applying missed patches to the new upstream version that we just got from the hub.
@@ -1993,13 +2020,7 @@ class CodeMirrorSession
                         @_last_sync   = resp.content
 
                     @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
-
-                    #
-                    # TODO: apply lost changes!!
-                    #
-                    @set_content(resp.content)
-
-                    cb()
+                    @sync(cb)
 
     _apply_patch_to_live: (patch) =>
         @diffsync_server._apply_edits_to_live(patch)
@@ -2111,17 +2132,17 @@ class CodeMirrorSession
                 ds.remote.send_mesg(mesg)
 
     _sync: (cb) =>    # cb(err)
-        winston.debug("codemirror session -- syncing with a local hub")
+        winston.debug("codemirror session -- syncing with local hub")
         @_sync_lock = true
         before = @diffsync_server.live
         @diffsync_server.push_edits (err) =>
             after = @diffsync_server.live
-            @set_content(after)
             if err
+                @set_content(before)
                 # We do *NOT* remove the sync_lock in this branch; only do that after a successful sync, since
                 # otherwise clients think they have successfully sync'd with the hub, but when the hub resets,
                 # the clients end up doing the wrong thing.
-                winston.debug("codemirror session local hub sync error -- #{err}")
+                winston.debug("codemirror session local hub sync error -- #{err}; #{before != after}")
                 if typeof(err) == 'string'
                     err = err.toLowerCase()
                     if err.indexOf('retry') != -1
@@ -2131,13 +2152,14 @@ class CodeMirrorSession
                         cb(err); return
                     else if err.indexOf("unknown") != -1 or err.indexOf('not registered') != -1
                         winston.debug("sync: reconnecting...")
-                        @_connect () =>
+                        @connect () =>
                             cb(err); return # still an error even if connect works.
                     else if err.indexOf("timed out") != -1
                         @local_hub.restart () =>
                             cb(err); return
                 cb(err)
             else
+                @set_content(after)
                 winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
                 @_sync_lock = false
                 @_last_sync = after # what was the last successful sync with upstream.
@@ -2309,6 +2331,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
             return
+        @_restart_lock = true
         async.series([
             (cb) =>
                 winston.debug("local_hub restart: Killing all processes")
@@ -2319,12 +2342,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @killall(cb)
             (cb) =>
                 winston.debug("local_hub restart: Push latest version of code to remote machine...")
-                @_push_local_hub_code(cb)
+                @_push_local_hub_code (err) =>
+                    if err
+                        winston.debug("local hub code push -- failed #{err}")
+                        winston.debug("proceeding anyways, since it's critical that the user have access.")
+                    cb()
             (cb) =>
                 winston.debug("local_hub restart: Restart the local services....")
+                @_restart_lock = false # so we can call @_exec_on_local_hub
                 @_exec_on_local_hub
                     command : 'start_smc'
-                    timeout : 30
+                    timeout : 45
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
                         cb(err)
@@ -2768,7 +2796,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             command : "rsync"
             args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
                        'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
-            timeout : 30
+            timeout : 60
             bash    : false
             path    : SALVUS_HOME
             cb      : (err, output) =>
@@ -2819,7 +2847,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err)
 
     killall: (cb) =>
-        winston.debug("kill all processes running on this local hub (including the hub)")
+        winston.debug("kill all processes running on this local hub (including the local hub itself)")
         @_exec_on_local_hub
             command : "killall -9 -u #{@username}"
             dot_sagemathcloud_path : false
@@ -3338,6 +3366,51 @@ exports.password_hash = password_hash = (password) ->
         iterations : HASH_ITERATIONS   # This blocks the server for about 10 milliseconds...
     )
 
+reset_password = (email_address, cb) ->
+    read = require('read')
+    passwd0 = passwd1 = undefined
+    account_id = undefined
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            database.get_account
+                email_address : email_address
+                columns       : ['account_id']
+                cb            : (err, data) ->
+                    if err
+                        cb(err)
+                    else
+                        account_id = data.account_id
+                        cb()
+        (cb) ->
+            read {prompt:'Password: ', silent:true}, (err, passwd) ->
+                passwd0 = passwd; cb(err)
+        (cb) ->
+            read {prompt:'Retype password: ', silent:true}, (err, passwd) ->
+                if err
+                    cb(err)
+                else
+                    passwd1 = passwd
+                    if passwd1 != passwd0
+                        cb("Passwords do not match.")
+                    else
+                        cb()
+        (cb) ->
+            database.change_password
+                account_id    : account_id
+                password_hash : password_hash(passwd0)
+                cb            : cb
+
+    ], (err) ->
+        if err
+            winston.debug("Error -- #{err}")
+        else
+            winston.debug("Password changed for #{email_address}")
+        cb?()
+    )
+
+
 # Password checking.  opts.cb(false, true) if the
 # password is correct, opts.cb(true) on error (e.g., loading from
 # database), and opts.cb(false, false) if password is wrong.  You must
@@ -3383,10 +3456,10 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #
 # Anti-DOS cracking throttling policy:
 #
-#   * POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
-#   * POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
-#   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
-#   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+#   * POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
+#   * POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
+#   * POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
+#   * POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
 #############################################################################
 sign_in = (client, mesg) =>
     #winston.debug("sign_in")
@@ -3403,7 +3476,7 @@ sign_in = (client, mesg) =>
 
     signed_in_mesg = null
     async.series([
-        # POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
+        # POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_email_address"
@@ -3412,11 +3485,11 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 3
-                        sign_in_error("A given email address is allowed at most 3 failed login attempts per minute. Please wait.")
+                    if count > 5
+                        sign_in_error("A given email address is allowed at most 5 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
-        # POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
+        # POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_email_address"
@@ -3425,12 +3498,12 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 10
-                        sign_in_error("A given email address is allowed at most 10 failed login attempts per hour. Please wait.")
+                    if count > 100
+                        sign_in_error("A given email address is allowed at most 100 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
 
-        # POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
+        # POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
@@ -3439,12 +3512,12 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 10
-                        sign_in_error("A given ip address is allowed at most 10 failed login attempts per minute. Please wait.")
+                    if count > 100
+                        sign_in_error("A given ip address is allowed at most 100 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
 
-        # POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+        # POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
@@ -3453,8 +3526,8 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 25
-                        sign_in_error("A given ip address is allowed at most 25 failed login attempts per hour. Please wait.")
+                    if count > 250
+                        sign_in_error("A given ip address is allowed at most 250 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
 
@@ -3702,7 +3775,7 @@ create_account = (client, mesg) ->
             else
                 cb()
 
-        # make sure this ip address hasn't requested more than 100
+        # make sure this ip address hasn't requested more than 5000
         # accounts in the last 6 hours (just to avoid really nasty
         # evils, but still allow for demo registration behind a wifi
         # router -- say)
@@ -3717,7 +3790,7 @@ create_account = (client, mesg) ->
                     if not value?
                         ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
                         cb()
-                    else if value < 100
+                    else if value < 5000
                         ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
                         cb()
                     else # bad situation
@@ -4639,30 +4712,43 @@ clean_up_on_shutdown = () ->
 
 
 #############################################
+# Connect to database
+#############################################
+connect_to_database = (cb) ->
+    if database? # already did this
+        cb(); return
+    new cass.Salvus
+        hosts    : program.database_nodes.split(',')
+        keyspace : program.keyspace
+        cb       : (err, _db) ->
+            database = _db
+            cb(err)
+
+
+#############################################
 # Start everything running
 #############################################
 exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
+    init_http_proxy_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
 
     # Once we connect to the database, start serving.
+    connect_to_database (err) ->
+        if err
+            winston.debug("Failed to connect to database!")
+            return
 
-    new cass.Salvus
-        hosts    : hosts
-        keyspace : program.keyspace
-        cb       : (err, _db) ->
-            database = _db
+        # start updating stats cache every minute (on every hub)
+        update_server_stats(); setInterval(update_server_stats, 60*1000)
+        register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            # start updating stats cache every minute (on every hub)
-            update_server_stats(); setInterval(update_server_stats, 60*1000)
-            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
-
-            init_sockjs_server()
-            init_stateless_exec()
-            http_server.listen(program.port, program.host)
-            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+        init_sockjs_server()
+        init_stateless_exec()
+        http_server.listen(program.port, program.host)
+        winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments
@@ -4675,9 +4761,12 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
+    .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .parse(process.argv)
+console.log(1)
 
 if program._name == 'hub.js'
+    console.log(2)
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
         winston.debug("BUG ****************************************************************************")
@@ -4685,4 +4774,9 @@ if program._name == 'hub.js'
         winston.debug(new Error().stack)
         winston.debug("BUG ****************************************************************************")
 
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    if program.passwd
+        console.log("Resetting password")
+        reset_password program.passwd, (err) -> process.exit()
+    else
+        console.log("Running web server")
+        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
