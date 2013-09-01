@@ -1338,7 +1338,11 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn,
-            commands = []
+            commands = (['ufw allow proto tcp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin'] +  # allow access from hub/admin
+                        ['ufw allow proto udp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin'] +
+                        ['ufw deny proto tcp to any port 1025:65535'] +          # deny access to user ports (except from hub) - CRITICAL so users
+                        ['ufw deny proto udp to any port 1025:65535'])           # can safely open a server on localhost
+
             # We don't need/want to firewall the compute machines
             #commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
             #            ['allow proto tcp from %s to any port %s'%(ip, y[1]) for ip in self._hosts['hub admin'] for y in COMPUTE_SERVER_PORTS.iteritems()]+
