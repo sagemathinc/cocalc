@@ -1,8 +1,378 @@
-- no way to paste from android to codemirror.
+- [ ] next release:
+     (do these, but also need to put in build.py)
+       - UMASK 022!!!
+       - ./build.py --build_node
+       - delete node_modules and reinstall all of them.
+       - install ipython-1.0.0 into system-wide sage
+            cd /usr/local/sage/current/
+            ./sage -sh
+            wget https://pypi.python.org/packages/source/i/ipython/ipython-1.0.0.tar.gz
+            tar xvf ipython-1.0.0.tar.gz
+            cd ipython-1.0.0
+            python setup.py install
+            cd ..
+            easy_install tornado
 
-- android: cursor totally off.
+       - upgrade pyzmq in system wide sage
+            pip install --upgrade pyzmq
+         (actually I ended up deleting it from site-packages and reinstalling with umask 022)
+
+       - worry about jason's patches to ipython for sage (?)
+       - install tornado into system-wide sage and add to build.py!; be sure to umask 022 first!
+             umask 022
+             pip install tornado
+       - install cmake -- requested by Ondrej Certik.
+       - apt-get install spell
+         (could be a problem; it worked on some vm's but not others when I just tried...)
+       - upgrade to octave 3.6:
+          apt-add-repository ppa:dr-graef/octave-3.6.precise
+          apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
+          # note, there are a ton of octave-* packages; should also install those?
+       - upgrade tex:
+          apt-add-repository ppa:texlive-backports/ppa
+          apt-get update; apt-get dist-upgrade
+
+
+- [ ] ipython notebooks and port forwarding...
+
+   - idea 1: use a range of haproxy forwards somehow, and an iframe?
+     test this with storm:
+         1 -- make a single haproxy forward that makes
+                 https://cloud.sagemath.com/ipython
+              forward to 10.1.2.4:8888
+         2 -- test and see what happens. -- may need to configure ipython specially somehow...
+
+This is viable.  The real challenge, is can I make it so haproxy sends
+
+    https://cloud.sagemath.com/ipython/hostname/port/
+
+to
+
+    https://hostname:port/ipython/hostname/port/
+
+Now if I can figure out how to use haproxy to map a pattern like this (for any url and any port)
+
+    https://cloud.sagemath.com/forward/10.1.4.4/8888/
+
+to
+
+    10.1.4.4:8888/forward/10.1.4.4/8888/
+
+
+then we'll be able to do it!  The app will find a port, then generate a url like above, then tell
+the user to connect to it.
+
+Something like this could also solve the problem of efficiently downloading static files from deployed projects...
+by adding a static webserver to `local_hub`.  And this would be very, very fast and scalable, not touching
+the hub.
+
+Idea:
+
+I could statically include all of these in the haproxy conf:
+
+    https://cloud.sagemath.com/forward-10.1.1.4
+    https://cloud.sagemath.com/forward-10.1.2.4
+    https://cloud.sagemath.com/forward-10.1.3.4
+    https://cloud.sagemath.com/forward-10.1.4.4
+
+and on each of the hosts, e.g., on 10.1.1.4 we have a single nodejs or nginx (?) server that
+forwards stuff on... based on the url.
+
+It seems that "every backend server must be explicitly defined in HAProxy configuration" (according to http://serverfault.com/questions/291703/dynamic-backends-with-haproxy); if true, the only pure haproxy solution is to just generate a big file on startup, with maybe 1000 allowed ports on each VM.  That would work, as long as it doesn't make haproxy slow.
+
+I could also directly forward /forward/ to the nginx servers, and maybe they can do the appropriate stuff?
+Let's look.
+
+The only way to do this right is with nginx.  This post asks exactly my question http://serverfault.com/questions/498071/mapping-url-params-to-servers-dynamically-in-haproxy?rq=1  and says "I guess what I'm looking for is the ability to specify a dynamic URL as a backend rather than a server clause, which is the kind of thing you can do in nginx's proxy_pass directive - so I'm looking for an haproxy equivalent.".
+
+So, no matter how hard, I will do this right, which means using nginx.
+
+I'm definitely going to figure this out using nginx.
+
+http://serverfault.com/questions/291703/dynamic-backends-with-haproxy?rq=1
+
+OK, the next step is to try to setup a single hard-coded nginx to do what needs to be done.
+
+The haproxy conf that did work was:
+
+        acl is_ipython path_beg /ipython
+        use_backend ipython if is_ipython
+    backend ipython
+        server server1 10.1.4.4:8888 maxconn 1024
+
+Thoughts:
+
+   - I will likely have to load balance the port forwarding work amongst all the nginx servers, with auto fail-over
+     in case of problems.
+
+
+
+Maybe I should use the localhub port forward instead of directly
+connecting to VM?      For files could be slower but will work no matter what even for remote accounts not on the VPN.  That's very important.  Maybe it is a critical.
+
+Even with  ipython *not* using VPN is probably a good idea.
+.. Due to longterm flexibility.
+This means I could preallocate up to n ports statically.
+
+It is way more complicated though... :-( .?
+
+Wait I'm going to do this proxying completely using... node.js?!
+
+
+
+ A battle-hardened proxy server:
+
+   https://github.com/nodejitsu/node-http-proxy
+
+Plan:
+
+  [ ] Add to local hub that it also opens an HTTP server on localhost (in addition to the TCP server it already opens)
+  [ ] Forward two ports instead of one to a global hub
+  [ ] serve static files (but require a secret token as a cookie or something?)
+  [ ] proxy traffic meant for some local port (e.g., an ipython server).
+
+
+Problem: At the end of the day, it would be optimal if somehow
+
+   https://cloud.sagemath.com/proxy/project-id/port/
+
+gets mapped to the given port on the machine hosting that project.  With that one thing,
+much could be accomplished by users...
+
+Ways to do this:
+
+Haproxy only: impossible
+
+Nginx: impossible because the project-id --> machine mapping is in the database, so nginx doesn't know it.
+
+Node.js hub http server: possible.  I could just add something to hub.coffee itself, so when the url
+
+    /proxy/project-id/port
+
+comes in, it looks up (with caching!) the project-id --> host mapping, then forwards the traffic on.
+This will work even if/when projects dynamically move around between hosts, or host ip's change.
+Hmm, but the port is random, so this isn't so good.  Better would be:
+
+   /proxy/uuid
+
+where the hub assigns the uuid in response to some client request.  This would be completely stable over time
+and provide some security, since one must know the uuid to access the resource from outside.
+But this is complicated because something has to allocate the uuid, and someone services need to register.
+I don't like it.  Or rather, I don't like requiring it.  There's no reason that we couldn't have a way to
+optionally register
+
+   /proxy/resource-id
+
+and a table resource-id --> project-id:port.  This would make it possible to have a stable url
+for a services, even when the port changes (or even the project).
+
+Task:
+
+  [x] make it so haproxy sends /proxy/ requests to a hub (trivial):
+
+       add this to conf/haproxy.conf (will have to modify admin.py and param the backend_proxy servers...
+
+    acl is_proxy path_beg /proxy/
+    use_backend proxy if is_proxy
+
+backend proxy
+    balance roundrobin
+    cookie SERVERID insert nocache
+    option httpclose
+    option forwardfor
+    timeout server 7s
+    option httpchk /alive
+    #proxy_servers
+    server hub0 10.2.2.3:5001 cookie server10.2.2.3 check maxconn 10000
+
+
+--  [ ] make it so the hub handles /proxy requests using the node-http-proxy library
+        - call a function to map /proxy/project-id/port to hostname:port
+        - proxy it.
+
+
+    npm install http-proxy
+
+This can be written in a way that will work eventually via port forwarding of a remote server via ssh, but also just
+directly connecting over the vpn, and that will make no difference anywhere else.   And we want both for speed.
+
+Let's do this on storm, forcing myself to work remotely over cloud -- eat thy dogfood.
+
+
+    https://128.95.242.135:8443/proxy/4cff8798-41d0-4d9b-b516-ba106ba89c57/8888/
+
+This works for http!  W00t.  However, it doesn't work for websockets, yet.
+
+
+Shit -- it turns out that websockets proxying is completely and totally broken with node 0.10.x + node-http-proxy :-(
+
+    https://github.com/nodejitsu/node-http-proxy/issues/444#issuecomment-22607207
+
+So, my options are either to not use node or to use an older node.  Hmmm.
+I'm going to try node-0.9.12.  I don't remember a compelling reason to upgrade....
+I did have an issue with the toHex (?) conversion taking massive memory when writing
+to the DB; I wonder what node version that was in.
+
+     Here was that issue:  https://github.com/joyent/node/issues/4700
+
+Maybe it was fixed in 0.9.9.... so I'll
+
+
+ [x] build 0.9.12
+ [x] test this:
+  buf = Buffer(0x1000000); a=buf.toString('hex');b=0;
+ [ ] if it works, try proxying again...
+Broken.  This is because 0.9.x series is unstable.  So, the only option is last 0.8.x and backport the hex conversion patch. Let's try this.
+
+ [x] Build http://nodejs.org/dist/v0.8.25/node-v0.8.25.tar.gz
+ [x] test proxying  -- it works!!!
+
+ [x] test hex conversion--> it is shit.
+
+ [x] try to backport if hex conversion broken;
+     the patch applies but evidently has dependencies, since build fails.
+ Options: try harder to backport or run two node version and two node processes...
+  Backport... succeeded!
+ [x] test proxying again...
+
+ [x] if that works, do a generic implementation in hub
+
+
+ [x] cache the project location/port pair in the hub (since it's highly unlikely one changes at not the other):
+    - cache needs to have a bounded size (10000)
+
+
+ [x] proxy: authentication-- right now the port is proxied to *anybody*.  It would make far more sense to respect
+     something in the settings of the project, if possible.
+     For now, require the user to be logged in and have write access to the project in order to access that port.
+     This is way trickier to implement, and of course means people aren't going to run general web services from
+     cloud... but maybe that is a for-pay feature.
+     Can I do this?
+     Maybe it just means checking for the remember me cookie?
+     Let's try, since this is *very* important.
+     Implemented, and it works.  And of course this makes tons of sense.  It's also very cool in a way in that it makes it
+     safe for anybody to just open up a completely insecure server... and it also restricts all services people host to
+     cloud-users-only... which is something I *need* in order to grow my user base (and maybe also to make lawyers happy?!).
+     Anybody using any service I host has agreed to the terms.
+
+ [x] proxy: authentication -- add caching
+
+ [x] make haproxy configuration generic/parameterized
+
+ [x] make haproxy use alive checks and cookie.
+
+ [x] rename since it is *only* an http proxy -- I could have other kinds of proxies later.
+
+    https://cloud.sagemath.com/http/project_id/port   ?
+
+or it could be
+
+    https://cloud.sagemath.com/project_id/port/8888
+
+    https://cloud.sagemath.com/project_id/tree/live/path/to/file
+
+or
+
+    https://cloud.sagemath.com/username/projectname/port/8888
+
+This is only if this is parseable by haproxy.  This is very important.
+
+How about:
+
+    https://cloud.sagemath.com/70a37ef3-4c3f-4bda-a81b-34b894c89701/port/8888
+
+
+And visiting this would open this project:
+
+    https://cloud.sagemath.com/70a37ef3-4c3f-4bda-a81b-34b894c89701/
+
+
+
+ [ ] more firewall'ing of the vm's on which user stuff runs.
+     basically don't allow vm's to connect to ports on the vm's above 1024.  only
+     allow connections from hub.
+
+
+
+ [ ] Button in UI to run/manage an ipython server... or maybe make this part of `local_hub` startup?
+
+ [ ] mathjax load issue -- "Failed to retrieve MathJax from ... " -- installing something "from IPython.external import mathjax; mathjax.install_mathjax()" into the ipython in sage fixes this.
+       -    start ipython and type -- WAIT, this doesn't work because it is user-specific?
+                   from IPython.external import mathjax; mathjax.install_mathjax()
+       - we need to figure out the right way to start ipython that points at our nginx install of ipython.
+
+
+- [x] consider https://github.com/dotcloud/hipache (suggested on google+)
+     --> no, it uses redis.
+
+----
+
+- [ ] use pkill instead of killall!!!!!!!
+
+- [ ] middle/ctrl-click on project should open project in background tab.
+
+- [ ] get rid of `remember_me` checkbox *and* delete the `remember_me` cookie  whenever the user *explicitly* logs out.
+
+- [ ] Josh Swanson's amazingly useful list of bugs -- https://mail.google.com/mail/u/0/?shva=1#search/josh/140c924d56bc80ce and also appended to and discussed at https://mail.google.com/mail/u/0/?shva=1#inbox/140cfdf29908115b
+
+- [ ] .tex file appearing in the root directory -- https://mail.google.com/mail/u/0/?shva=1#inbox/140c6f31cfb5a9d2
+
+- [ ] password reset bug --  https://mail.google.com/mail/u/0/?shva=1#inbox/140d0e2e20381ba1
+
+- [ ] how to display plots in R? -- https://mail.google.com/mail/u/0/?shva=1#inbox/140c9b84390ca622
+
+- [ ] sometimes files don't download; same with png page's -- I'm guessing this is the database wrote lag, which can be fixed by a client retry and/or caching in RAM in the hub the object for a minute (to avoid hitting db anyways, which would be a huge win!).
+Nginx static file server could also address this nicely.
+
+- [ ] how to display plots from octave? -- https://mail.google.com/mail/u/0/?shva=1#inbox/140caa1b991553a8
+
+- [ ] using "+ New" on a file that is too large... just shows an error of "true"; note useful -- and might as well increase the timeout a lot and show status, etc.
+
+- [ ] sweave support: https://mail.google.com/mail/u/0/?shva=1#inbox/140cb0fa4e8a2a38
+
+- [ ] tons of swap (?)
+
+- [ ] control-shift-o should show the last of files/recent/new used -- https://mail.google.com/mail/u/0/?shva=1#inbox/13f8df6166275c26
+
+- [ ] latex editor -- would it be possible to have like the okular browse tool in the preview, so I can scroll by holding the mouse? -- see https://mail.google.com/mail/u/0/?shva=1#inbox/140c5c52cb423c6b
+
+- [ ] > The automatic opening of the "recent" tab starts to annoy me … maybe I'm not
+> alone with that observation? -- Harald;
+Yes, that doesn't seem to be fixed after all.   I've seen it again too.   It must be another code path besides the one I fixed  before.
+
+- [ ] latex bug -- sometimes pages come up blank due to not prop. to db yet -- fix is probably to just reget them -- https://mail.google.com/mail/u/0/?shva=1#inbox/140c5c52cb423c6b
+
+- [ ] latex spell checking: just run through detex, then spell, then highlight all mispelled words.
+      provide a way to add ok words to a dictionary (?)
+
+
+- [ ] update the help page with modern latex instructions.
+
+- [ ] update interact with dynamic control location: https://mail.google.com/mail/u/0/?shva=1#inbox/140be247be8fac38
+
+- [ ] dropbox sync
+
+- [ ] There is currently no way to turn off the live preview.  That is a feature I'll add in a future version, and it shouldn't be hard to add it. Sorry about this regression.
+
+- [ ] account creation -- when start requesting and get back error, need to tell user!!!  especially too many requests from ip; more generally just fix things so the ip address is right.
+
+- [ ] latex editor bug -- removed pages at end don't get deleted.
+
+- [ ] latex editor bug: need to allow horizontal scroll -- $(".salvus-editor-pdf-preview-page").css({"overflow-x":"scroll"}); harald says "scroll down here: http://api.jquery.com/scrollLeft/ there is some html in a fixed div with x offset. i hope that helps ;) (maybe there are other solutions, i'm not sure.)"
+
+- [ ] latex editor feature ideas: get coords; also mag glass -- https://mail.google.com/mail/u/0/?shva=1#inbox/140c5c52cb423c6b
+
+- [ ] latex editor idea -- can estimate time to run latex, etc., from the time it took last time, and show progress bars.
+
+- [ ] pin cursor in editor to another user -- https://mail.google.com/mail/u/0/?shva=1#inbox/140c601e58bc61f0
+
+- [ ] snap servers: sometimes they drop forever... why!
 
 - [ ] make monitor do cloud.restart("snap") if number of snap servers drops.
+
+- [ ] no way to paste from android to codemirror.
+
+- [ ] android: cursor totally off sometimes
 
 - [ ] closed tabs keep re-appearing very confusingly!!!!
 
@@ -21,9 +391,6 @@
 - [ ] terminal -- make "refresh" button reconnect... to see how robust (?)
 
 - [ ] terminal [...] burst mode is still LAME.
-
-- [ ] next release:
-        npm install read
 
 - [ ] large number of files in a directory page
 
@@ -1234,3 +1601,5 @@ William
 
     - new release
 
+- [x] next release:
+        npm install read

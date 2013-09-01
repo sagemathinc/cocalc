@@ -11,6 +11,10 @@
 #
 #         make_coffee && echo "require('hub').start_server()" | coffee
 #
+# or even this is fine:
+#
+#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace salvus --host 10.2.2.3 --database_nodes 10.2.1.2,10.2.2.2,10.2.3.2,10.2.4.2
+#
 ##############################################################################
 
 SALVUS_HOME=process.cwd()
@@ -266,21 +270,145 @@ init_http_server = () ->
 
 httpProxy = require('http-proxy')
 
-
-# TODO -- should probably have a separate proxy_port option.
 init_http_proxy_server = () =>
-    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
-    httpProxy.createServer(8888, '10.1.4.4').listen(program.port+1, program.host)
 
-init_http_proxy_server0 = () =>
-    #httpProxy.createServer(program.port, program.host).listen(program.port+1, program.host)
-    proxy_server = httpProxy.createServer(8888, '10.1.4.4')
+    _remember_me_check_for_write_access_to_project = (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            remember_me : required
+            cb          : required    # cb(err, has_access)
+        account_id = undefined
+        has_write_access = false
+        async.series([
+            (cb) ->
+                x    = opts.remember_me.split('$')
+                database.key_value_store(name: 'remember_me').get
+                    key : generate_hash(x[0], x[1], x[2], x[3])
+                    cb  : (err, signed_in_mesg) =>
+                        if err
+                            cb('unable to get remember_me cookie from db -- cookie invalid'); return
+                        account_id = signed_in_mesg.account_id
+                        cb()
+            (cb) ->
+                user_has_write_access_to_project
+                    project_id : opts.project_id
+                    account_id : account_id
+                    cb         : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            cb("User does not have write access to project.")
+                        else
+                            has_write_access = true
+                            cb()
+        ], (err) ->
+            opts.cb(err, has_write_access)
+        )
 
-    proxy_server.listen(program.port+1, program.host)
+    _remember_me_cache = {}
+    remember_me_check_for_write_access_to_project = (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            remember_me : required
+            cb          : required    # cb(err, has_access)
+        key = opts.project_id + opts.remember_me
+        has_write_access = _remember_me_cache[key]
+        if has_write_access?
+            opts.cb(false, has_write_access)
+            return
+        # get the answer, cache it, return answer
+        _remember_me_check_for_write_access_to_project
+            project_id  : opts.project_id
+            remember_me : opts.remember_me
+            cb          : (err, has_write_access) ->
+                # if cache gets huge for some *weird* reason (should never happen under normal conditions) just reset it to avoid any possibility of DOS-->RAM crash attach
+                if misc.len(_remember_me_cache) >= 100000
+                    _remember_me_cache = {}
 
-    proxy_server.on 'upgrade', (req, socket, head) ->
-        winston.debug("Proxy server upgrade!!")
-        proxy_server.proxy.proxyWebSocketRequest(req, socket, head)
+                _remember_me_cache[key] = has_write_access
+                # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                # but also if the user is suddenly granted permission to the project, this should be
+                # reflected within a few seconds.
+                f = () ->
+                    delete _remember_me_cache[key]
+                if has_write_access
+                    setTimeout(f, 1000*60*5)   # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                else
+                    setTimeout(f, 1000*15)      # not having write access lasts 15 seconds
+                opts.cb(err, has_write_access)
+
+    _target_cache = {}
+    target = (remember_me, url, cb) ->
+        v          = url.split('/')
+        project_id = v[1]
+        port       = parseInt(v[3])
+        winston.debug("project_id=#{project_id}, port=#{port}, v=#{misc.to_json(v)}")
+        loc        = undefined
+        async.series([
+            (cb) ->
+                if not remember_me?
+                    # remember_me = undefined means "allow"; this is used for the websocket upgrade.
+                    cb(); return
+
+                remember_me_check_for_write_access_to_project
+                    project_id  : project_id
+                    remember_me : remember_me
+                    cb          : (err, has_access) ->
+                        if err
+                            cb(err)
+                        else if not has_access
+                            cb("user does not have write access to this project")
+                        else
+                            cb()
+
+            (cb) ->
+                database.get_project_location
+                    project_id  : project_id
+                    allow_cache : true
+                    cb          : (err, location) ->
+                        if err
+                            cb(err)
+                        else
+                            loc = {host:location.host, port:port}
+                            cb()
+            ], (err) ->
+                cb(err, loc)
+
+            )
+
+    http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+        if req.url == "/alive"
+            res.end('')
+            return
+
+        buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+
+        cookies = new Cookies(req, res)
+        remember_me = cookies.get('remember_me')
+
+        if not remember_me?
+            res.writeHead(500, {'Content-Type':'text/html'})
+            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> and enable 'remember me' at the sign in screen, then refresh this page.")
+            return
+
+        target remember_me, req.url, (err, location) ->
+            if err
+                res.writeHead(500, {'Content-Type':'text/html'})
+                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
+            else
+                proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
+
+    http_proxy_server.listen(program.proxy_port, program.host)
+
+    http_proxy_server.on 'upgrade', (req, socket, head) ->
+        target undefined, req.url, (err, location) ->
+            if err
+                winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
+            else
+                http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
+
+
+
 
 
 #############################################################
@@ -1728,6 +1856,7 @@ move_project_to_longterm_storage = (opts) ->
             winston.debug("move_project_to_longterm_storage -- getting location of #{opts.project_id}")
             database.get_project_location
                 project_id : opts.project_id
+                allow_cache : false   # no point in using a cache here
                 cb         : (err, _location) =>
                     location = _location
                     if err
@@ -3006,9 +3135,10 @@ new_project = (project_id, cb, delay) ->   # cb(err, project)
 
 get_project_location = (opts) ->
     opts = defaults opts,
-        project_id : required
-        cb         : undefined       # cb(err, location)
-        attempts   : 50
+        project_id  : required
+        allow_cache : false
+        cb          : undefined       # cb(err, location)
+        attempts    : 50
     winston.debug
     if not attempts?
         attempts = 50
@@ -3019,8 +3149,9 @@ get_project_location = (opts) ->
     async.series([
         (cb) ->
             database.get_project_location
-                project_id : opts.project_id
-                cb         : (err, _location) =>
+                project_id  : opts.project_id
+                allow_cache : opts.allow_cache
+                cb          : (err, _location) =>
                     location = _location
                     if err
                         cb(err)
@@ -3034,9 +3165,10 @@ get_project_location = (opts) ->
                             winston.debug("get_project_location -- try again in 10 seconds (attempts=#{attempts}).")
                             f = () ->
                                 get_project_location
-                                    project_id : opts.project_id
-                                    cb         : opts.cb
-                                    attempts   : opts.attempts-1
+                                    project_id  : opts.project_id
+                                    allow_cache : opts.allow_cache
+                                    cb          : opts.cb
+                                    attempts    : opts.attempts-1
                             setTimeout(f, 10000)
                             error = false
                             cb(true)
@@ -3077,8 +3209,9 @@ get_project_location = (opts) ->
             # to not return "deploying".  In this case, we instead return where that deploy
             # is, and delete the account we just made.
             database.get_project_location
-                project_id : opts.project_id
-                cb         : (err, loc) ->
+                project_id  : opts.project_id
+                allow_cache : false
+                cb          : (err, loc) ->
                     if err
                         cb(err); return
                     if loc == "deploying"
@@ -3122,8 +3255,9 @@ class Project
             (cb) =>
                 winston.debug("Getting project #{@project_id} location.")
                 get_project_location
-                    project_id : @project_id
-                    cb         : (err, location) =>
+                    project_id  : @project_id
+                    allow_cache : false
+                    cb          : (err, location) =>
                         @location = location
                         winston.debug("Location of project #{@project_id} is #{misc.to_json(@location)}")
                         cb(err)
@@ -4753,8 +4887,9 @@ exports.start_server = start_server = () ->
 #############################################
 # Process command line arguments
 #############################################
-program.usage('[start/stop/restart/status] [options]')
+program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('-p, --proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
@@ -4763,16 +4898,15 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .parse(process.argv)
-console.log(1)
 
 if program._name == 'hub.js'
-    console.log(2)
     # run as a server/daemon (otherwise, is being imported as a library)
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(new Error().stack)
-        winston.debug("BUG ****************************************************************************")
+    if program.rawArgs[1] in ['start', 'restart']
+        process.addListener "uncaughtException", (err) ->
+            winston.debug("BUG ****************************************************************************")
+            winston.debug("Uncaught exception: " + err)
+            winston.debug(new Error().stack)
+            winston.debug("BUG ****************************************************************************")
 
     if program.passwd
         console.log("Resetting password")
