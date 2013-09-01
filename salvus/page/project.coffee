@@ -127,6 +127,7 @@ class ProjectPage
             label : @project.project_id
             icon  : 'icon-edit'
             onclose : () =>
+                @editor?.close_all_open_files()
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
             onshow: () =>
@@ -518,7 +519,7 @@ class ProjectPage
                         # the find part
                         filename = line
                         r = search_result.clone()
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                        r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
                             that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey)  )
                         r.find("span").addClass('lighten').text('(filename)')
                     else
@@ -531,7 +532,7 @@ class ProjectPage
                             context = context.slice(i+2,context.length-1)
                         r = search_result.clone()
                         r.find("span").text(context)
-                        r.find("a").text(filename).data(filename: path_prefix + filename).click (e) ->
+                        r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
                             that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
 
                     search_output.append(r)
@@ -941,11 +942,11 @@ class ProjectPage
             s = $.trim(@new_file_tab.find(".project-new-file-path").text() + name)
             if ext?
                 if misc.filename_extension(s) != ext
-                    s += ext
+                    s += '.' + ext
             return s
 
         @new_file_tab.find("a[href=#new-terminal]").click () =>
-            p = path('.term')
+            p = path('term')
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
@@ -955,21 +956,22 @@ class ProjectPage
             return false
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
-            create_file('.sagews')
+            create_file('sagews')
             return false
 
-        @new_file_tab.find("a[href=#old-worksheet]").click () =>
-            p = path('.sage-worksheet')
-            if p.length == 0
-                @new_file_tab_input.focus()
-                return false
-            @display_tab("project-editor")
-            tab = @editor.create_tab(filename:p, content:"")
-            @editor.display_tab(path:p)
+        @new_file_tab.find("a[href=#new-latex]").click () =>
+            create_file('tex')
             return false
+
+        BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws', 'ipynb']
 
         create_file = (ext) =>
             p = path(ext)
+            ext = misc.filename_extension(p)
+            if ext in BANNED_FILE_TYPES
+                alert_message(type:"error", message:"Creation of #{ext} files not supported.", timeout:3)
+                return false
+
             if p.length == 0
                 @new_file_tab_input.focus()
                 return false
@@ -1266,11 +1268,11 @@ class ProjectPage
         if not is_snapshot or isdir
             # Opening a file
             file_link = t.find("a[href=#open-file]")
-            file_link.click open
+            file_link.mousedown(open)
 
             # Clicking on link -- open the file
-            t.click open
-
+            # do not use t.mousedown here, since that breaks the download, etc., links.
+            t.click(open)
 
         if is_snapshot
 
@@ -1653,13 +1655,14 @@ class ProjectPage
                     elt = template.find(".project-activity-open_project").clone()
                 when 'open'
                     elt = template.find(".project-activity-open").clone()
-                    elt.find(".project-activity-open-filename").text(entry.filename).click (e) ->
+                    f = (e) ->
                         filename = $(@).text()
                         if filename == ".sagemathcloud.log"
                             alert_message(type:"error", message:"Edit .sagemathcloud.log via the terminal (this is safe).")
                         else
                             that.open_file(path:filename, foreground: not(e.which==2 or e.ctrlKey))
                         return false
+                    elt.find(".project-activity-open-filename").text(entry.filename).mousedown(f)
                     elt.find(".project-activity-open-type").text(entry.type)
                 else
                     elt = template.find(".project-activity-other").clone()
@@ -1949,19 +1952,30 @@ class ProjectPage
         # Restart local project server
         link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            link.find("i").addClass('icon-spin')
-            alert_message
-                type    : "info"
-                message : "Restarting project server.  This should take around 5 seconds..."
-                timeout : 4
-            salvus_client.restart_project_server
-                project_id : @project.project_id
-                cb         : () =>
+            async.series([
+                (cb) =>
+                    m = "Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
+                    bootbox.confirm m, (result) =>
+                        if result
+                            cb()
+                        else
+                            cb(true)
+                (cb) =>
+                    link.find("i").addClass('icon-spin')
+                    alert_message
+                        type    : "info"
+                        message : "Restarting project server..."
+                        timeout : 4
+                    salvus_client.restart_project_server
+                        project_id : @project.project_id
+                        cb         : cb
+                (cb) =>
                     link.find("i").removeClass('icon-spin')
                     alert_message
                         type    : "success"
                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
                         timeout : 2
+            ])
             return false
 
     init_snapshot_link: () =>

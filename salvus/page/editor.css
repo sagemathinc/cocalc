@@ -26,7 +26,7 @@ Editor for files in a project
 
 
 .salvus-editor-tab-filename {
-    overflow-x: hidden;
+    overflow: hidden;
     display: block;
     white-space: nowrap;
     /* font-size: 10pt; */
@@ -64,6 +64,14 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-filename {
+    margin-left:3em;
+    margin-right: 5em;
+    font-size: 10pt;
+    font-weight: bold;
+    color:#555;
+}
+
+.salvus-editor-pdf-title {
     margin-left:3em;
     margin-right: 5em;
     font-size: 10pt;
@@ -109,31 +117,97 @@ Editor for files in a project
     color:#bbb;
 }
 
-.salvus-editor-latex-buttons {
-    z-index      : 1000;
-    margin-right : 80px;
-    box-shadow   : 6px 6px 6px #aaa;
+.salvus-editor-latex-png-preview {
+    padding-top:2px;
+}
+
+.salvus-editor-latex-errors {
+    overflow-y: scroll;
+}
+
+.salvus-latex-errors-counter {
+     color:#a00;
+}
+
+.salvus-latex-warnings-counter {
+     color:#FDB600;
+}
+
+.salvus-editor-latex-mesg-template {
+    overflow-x: auto;
+    background: white;
+    margin-right: 2em;
+}
+
+.salvus-editor-latex-mesg-template-error {
+    border : 2px solid #a00;
+}
+.salvus-editor-latex-mesg-template-warning {
+    border : 2px solid ##FDB600;
+}
+.salvus-editor-latex-mesg-template-typesetting {
+    border : 2px solid ##FDB600;
+}
+
+.salvus-latex-mesg-message {
+    font-size: 13pt;
+    margin-left: 1em;
+}
+
+.salvus-latex-mesg-content {
+    font-size: 9pt;
+    margin: 5px;
 }
 
 .salvus-editor-pdf-preview {
-    border: 2px solid #888;
 }
 
 .salvus-editor-pdf-preview-page {
-    border: 2px solid #888;
     background-color:#eee;
-    border: 3px solid #aaa;
     overflow-x:hidden;
     overflow-y:scroll;
+    border-left:2px solid #ddd;
 }
 
 .salvus-editor-pdf-preview-image {
     margin:1em;
     background-color:#fff;
     border:1px solid #aaa;
-    /* width:95%; */
     box-shadow: 5px 5px 5px 5px #888;
+    max-width: 160%;
+    width:160%;
+    margin-left: -30%;
 }
+
+.salvus-editor-pdf-preview-spinner {
+    position:absolute;
+    left:2em;
+    top:10em;
+}
+
+.salvus-editor-pdf-preview-text {
+    border-top: 1px solid black;
+    text-align: left;
+    margin-left: 1em;
+    margin-right: 1em;
+    padding-top: 1em;
+    color: #8a8a8a;
+}
+
+.salvus-editor-pdf-preview-highlight {
+    margin-bottom: -3em;
+    padding-bottom: 3em;
+    opacity : .3;
+    background-color:yellow;
+}
+
+.salvus-editor-pdf-preview-buttons {
+    position: absolute;
+    margin-right: 1em;
+    right: 0;
+    font-size: 11pt;
+}
+
 
 .salvus-editor-search-openfiles-input {
     width:100%;
@@ -153,13 +227,13 @@ Editor for files in a project
     position: fixed;
     background-color: white;
     right: 0px;
-    width:25%;
+    width: 35ex;
 }
 
 .salvus-editor-codemirror-chat {
     margin:0px;
     padding:0px;
-    width:100%;
+    width:35ex;
     border: 2px solid #9a9;
     border-radius: 5px;
 }
@@ -176,22 +250,20 @@ Editor for files in a project
 }
 
 .salvus-editor-codemirror-chat-output {
-    padding:2%;
+    padding:1ex;
     margin:0ex;
-    width:100%;
-    height:76%;
+    width:93%;
     position: absolute;
     overflow-y:auto;
     overflow-x:hidden;
     overflow-wrap: break-word;
-    background-color:#fafafa;
+    background-color:#eee;
 }
 
 .salvus-editor-codemirror-chat-input {
     padding:2%;
     margin:0px;
-    top:80%;
-    height:16%;
+    height:5em;
     width:100%;
     position : absolute;
 }
@@ -288,6 +360,22 @@ Editor for files in a project
 .sagews-output-interact {
 }
 
+.salvus-editor-image-container {
+    overflow: auto;
+    margin:1em;
+    background-color:#fff;
+    border:1px solid #aaa;
+    /* width:95%; */
+    box-shadow: 5px 5px 5px 5px #888;
+}
+
+.salvus-editor-image-title {
+    margin-left:3em;
+    margin-right: 5em;
+    font-size: 10pt;
+    font-weight: bold;
+    color:#555;
+}
 
 
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */
@@ -298,4 +386,10 @@ li {
 code {
     font-size: inherit;
 }
+
+
+
+
+
+
 

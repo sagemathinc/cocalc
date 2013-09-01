@@ -127,7 +127,10 @@ class DiffSync
                 cb(err); return
 
             if not snapshot?
-                cb("snapshot computed in push_edits is undefined")
+                cb("snapshot computed in push_edits is undefined"); return
+
+            if not @remote?
+                cb("@remote in push_edits is undefined"); return
 
             edits = {edits:@_compute_edits(@shadow, snapshot)}
 

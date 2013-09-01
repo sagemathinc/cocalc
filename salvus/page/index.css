@@ -132,3 +132,11 @@ body { padding-top:41px; }
 .CodeMirror-wrap {
   line-height: normal;
 }
+
+
+/* see http://stackoverflow.com/questions/271067/how-can-i-make-a-textarea-100-width-without-overflowing-when-padding-is-present */
+.boxsizingBorder {
+    -webkit-box-sizing: border-box;
+       -moz-box-sizing: border-box;
+            box-sizing: border-box;
+}

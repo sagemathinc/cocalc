@@ -163,6 +163,29 @@ $.fn.maxheight = (opts) ->
     this
 
 
+$.fn.icon_spin = (start) ->
+    if typeof start == "object"
+        {start,delay} = defaults start,
+            start : true
+            delay : 0
+    else
+        delay = 0
+    @each () ->
+        elt = $(this)
+        if start
+            f = () ->
+                if elt.find("i.icon-spinner").length == 0
+                    elt.append("<i class='icon-spin icon-spinner' style='margin-left:1em'> </i>")
+            if delay
+                elt.data('icon-spin', setTimeout(f, delay))
+            else
+                f()
+        else
+            t = elt.data('icon-spin')
+            if t?
+                clearTimeout(t)
+            elt.find("i.icon-spinner").remove()
+
 
 
 ####################################

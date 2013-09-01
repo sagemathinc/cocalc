@@ -415,7 +415,7 @@ sage_sessions = new SageSessions()
 class DiffSyncFile_server extends diffsync.DiffSync
     constructor:(@cm_session, cb)  ->
         @path = @cm_session.path
-        @_backup_file = meta_file(@path, 'backup')
+        @_backup_file = misc.meta_file(@path, 'backup')
         # check for need to save a backup every this many milliseconds
         @_autosave = setInterval(@write_backup, 10000)
 
@@ -599,50 +599,6 @@ class CodeMirrorDiffSyncHub
     sync_ready: () =>
         @write_mesg('diffsync_ready')
 
-meta_file = (path, ext) ->
-    p = misc.path_split(path)
-    path = p.head
-    if p.head != ''
-        path += '/'
-    return path + "." + p.tail + ".sage-" + ext
-
-class ChatRecorder
-    constructor: (path, cb) ->
-        @path = meta_file(path, 'chat')
-        winston.debug("ChatRecorder '#{@path}'")
-        @log = []
-        fs.readFile @path, (err, data) =>
-            if err
-                cb(false, @)  #ok -- just start new log
-            else
-                # Take the lines that parse
-                for line in data.toString().split('\n')
-                    if line.length > 0
-                        try
-                            @log.push(misc.from_json(line))
-                        catch e
-                            # do nothing -- no worries.
-                cb(false, @)
-
-    save: (mesg) =>  # WARNING: this deletes the session_uuid!
-        m =   # what is saved is also defined in local_hub.coffee in client_broadcast.
-            name  : mesg.name
-            color : mesg.color
-            date  : mesg.date
-            mesg  : mesg.mesg
-        @log.push(m)
-        @_save_to_file(m)
-
-    _save_to_file: (mesg) =>
-        if @_appending_to_file? and @_appending_to_file
-            # Try again in 500ms....
-            setTimeout( (() => @_save_to_file(mesg)), 500)
-            return
-
-        @_appending_to_file = true
-        fs.appendFile @path, JSON.stringify(mesg)+'\n', () =>
-            @_appending_to_file = false
-
 
 class CodeMirrorSession
     constructor: (mesg, cb) ->
@@ -656,19 +612,12 @@ class CodeMirrorSession
 
         async.series([
             (cb) =>
-                # The upstream version of this document -- the *actual* file on disk.
+                # The *actual* file on disk.
                 @diffsync_fileserver = new DiffSyncFile_server @, (err, content) =>
                     if err
                         cb(err); return
                     @content = content
                     @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
-                    cb()
-            (cb) =>
-                # Create chatroom recorder.
-                new ChatRecorder @path, (err, obj) =>
-                    if err
-                        cb(err); return
-                    @chat_recorder = obj
                     cb()
             (cb) =>
                 # If this is a sagews file, create corresponding sage session.
@@ -1065,10 +1014,6 @@ class CodeMirrorSession
 
     ##############################
 
-
-    chat_log: () =>
-        return @chat_recorder.log
-
     kill: () =>
         # Put any cleanup here...
         winston.debug("Killing session #{@session_uuid}")
@@ -1103,10 +1048,6 @@ class CodeMirrorSession
                 winston.debug("BROADCAST: sending message from hub with socket.id=#{socket.id} to hub with socket.id = #{id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
-        # If this is a chat message, save it.
-        if mesg?.mesg.event == 'chat'
-            @chat_recorder.save(mesg)
-
     client_diffsync: (socket, mesg) =>
         @is_active = true
 
@@ -1122,9 +1063,15 @@ class CodeMirrorSession
             write_mesg('error', {error:"client #{socket.id} not registered for synchronization."})
             return
 
+        if @_client_sync_lock # or Math.random() <= .5 # (for testing)
+            winston.debug("client_diffsync hit a sync lock -- send retry message back")
+            write_mesg('error', {error:"retry"})
+
+        @_client_sync_lock = true
         before = @content
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
             @set_content(ds_client.live)
+            @_client_sync_lock = false
             @process_new_content?()
             # Send back our own edits to the global hub.
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
@@ -1214,7 +1161,6 @@ class CodeMirrorSessions
                 session_uuid : session.session_uuid
                 path         : session.path
                 content      : session.content
-                chat         : session.chat_log()
 
         if mesg.session_uuid?
             session = @_sessions.by_uuid[mesg.session_uuid]

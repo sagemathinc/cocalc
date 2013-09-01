@@ -216,6 +216,14 @@ exports.path_split = (path) ->
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
 
+
+exports.meta_file = (path, ext) ->
+    p = exports.path_split(path)
+    path = p.head
+    if p.head != ''
+        path += '/'
+    return path + "." + p.tail + ".sage-" + ext
+
 exports.trunc = (s, max_length) ->
     if not s?
         return s
@@ -309,10 +317,8 @@ class RetryUntilSuccess
                 @_calling = false
                 if err? and err
                     if @opts.max_tries? and @attempts >= @opts.max_tries
-                        if @_cb_stack?
-                            for cb in @_cb_stack
-                                cb()
-                            delete @_cb_stack
+                        while @_cb_stack.length > 0
+                            @_cb_stack.pop()(err)
                         return
                     if not retry_delay?
                         retry_delay = @opts.start_delay
@@ -322,10 +328,8 @@ class RetryUntilSuccess
                         @call(undefined, retry_delay)
                     setTimeout(f, retry_delay)
                 else
-                    if @_cb_stack?
-                        for cb in @_cb_stack
-                            cb()
-                        delete @_cb_stack
+                    while @_cb_stack.length > 0
+                        @_cb_stack.pop()()
         if not @_last_call_time? or not @opts.min_interval?
             g()
         else
@@ -334,6 +338,7 @@ class RetryUntilSuccess
                 setTimeout(g, @opts.min_interval - w)
             else
                 g()
+
 
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).

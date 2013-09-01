@@ -75,7 +75,7 @@
                 <li class="super-menu project-pages-button"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon icon-plus-sign"> </i> New</a></li>
 
                 <!-- Project activities  -->
-                <li class="super-menu project-pages-button"><a data-target="project-activity" data-toggle="tooltip" data-placement="right" title="What happening with this project"><i class="project-control-icon icon-list"> </i> Log</a></li>
+                <li class="super-menu project-pages-button"><a data-target="project-activity" data-toggle="tooltip" data-placement="right" title="Log of project activity and central chat"><i class="project-control-icon icon-list"> </i> Log</a></li>
 
                 <!-- Project settings -->
                 <li class="super-menu project-pages-button "><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon icon-wrench"> </i> <span class="not-big">Settings</span></a></li>
@@ -185,7 +185,8 @@
                                     <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
                                     <a class="btn btn-warning" href="#new-folder"><i class="icon-folder-close"></i> Folder</a>
                                     <a class="btn btn-info" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                                    <a class="btn btn-success" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                                    <a class="btn btn-info" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
+                                    <a class="btn btn-info" href="#new-latex"><i class="icon-superscript"></i> LaTeX</a>
                                     <!--<a class="btn btn-small" href="#old-worksheet"><i class="icon-file-alt"> </i> (Old Worksheet)</a>-->
                                 </span>
                             </div>
@@ -333,7 +334,7 @@
                                 <br>
                                 <div class="row-fluid">
                                     <div class="span8">
-                                        Restart this project server.  This will completely kill all terminal and worksheet sessions, and may help in case things are mysteriously not working.
+                                        Restart this project server.  This will completely kill everything running in this project, and may help in case things are mysteriously not working.
                                     </div>
                                     <div class="span4">
                                         <a href="#restart-project" class="btn btn-warning"
@@ -524,7 +525,7 @@
         </div>
 
         <div class="span" style="width:15em;">
-            <a href="#open-file"><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
+            <a class="salvus-no-middle-click" href="#open-file"><span class="salvus-no-middle-click project-file-name"></span><span class="salvus-no-middle-click  project-file-name-extension"></span></a>
         </div>
 
         <div class="span smallish" style="width:140px;">

@@ -3,7 +3,7 @@
 
     <title>Sagemath Cloud</title>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="target-densitydpi=device-dpi, width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="description" content="Sagemath Cloud">
     <meta name="author" content="William Stein">
 
@@ -44,6 +44,7 @@
     <script src="/codemirror/addon/edit/matchbrackets.js"></script>
     <script src="/codemirror/addon/fold/foldcode.js"></script>
     <script src="/codemirror/addon/mode/multiplex.js"></script>
+    <script src="/codemirror/addon/selection/active-line.js"></script>
 
     <script src="/codemirror/mode/clike/clike.js"></script>
     <script src="/codemirror/mode/clojure/clojure.js"></script>
@@ -197,6 +198,8 @@
     <script type="text/javascript" src="/jquery/plugins/dropzone/dropzone.js"></script>
     <link rel="stylesheet" href="/jquery/plugins/dropzone/css/dropzone.css">
 
+    <!-- LaTeX support -->
+    <script type="text/javascript" src="/latex/latex-log-parser.js"></script>
 
     <!-- The Salvus library and its Node.js dependencies -->
     <script type="text/javascript" src="/salvus.min.js"></script>
@@ -211,7 +214,6 @@
     <script src="threejs/OBJLoader.js"></script>
     <script src="threejs/TrackballControls.js"></script>
     <script src="threejs/Detector.js"></script>
-
 
     <!-- Salvus stylesheet -->
     <link href="index.css" rel="stylesheet">

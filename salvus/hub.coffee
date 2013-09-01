@@ -11,6 +11,10 @@
 #
 #         make_coffee && echo "require('hub').start_server()" | coffee
 #
+# or even this is fine:
+#
+#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace salvus --host 10.2.2.3 --database_nodes 10.2.1.2,10.2.2.2,10.2.3.2,10.2.4.2
+#
 ##############################################################################
 
 SALVUS_HOME=process.cwd()
@@ -37,19 +41,18 @@ REGISTER_INTERVAL_S = 30   # every 30 seconds
 # node.js -- builtin libraries
 net     = require 'net'
 assert  = require('assert')
-http    = require 'http'
-url     = require 'url'
-fs      = require 'fs'
-{EventEmitter} = require 'events'
+http    = require('http')
+url     = require('url')
+fs      = require('fs')
+{EventEmitter} = require('events')
 
-_       = require 'underscore'
-
+_       = require('underscore')
 mime    = require('mime')
 
 # salvus libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
-{defaults, required} = require 'misc'
+{defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
 cass    = require("cassandra")
 client_lib = require("client")
@@ -60,7 +63,7 @@ salvus_version = require('salvus_version')
 
 snap = require("snap")
 
-misc_node = require 'misc_node'
+misc_node = require('misc_node')
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str
@@ -137,6 +140,8 @@ init_http_server = () ->
                 res.end('')
             when "alive"
                 res.end('')
+            when "proxy"
+                res.end("testing the proxy server -- #{pathname}")
             when "stats"
                 server_stats (err, stats) ->
                     if err
@@ -257,6 +262,153 @@ init_http_server = () ->
     )
 
     http_server.on('close', clean_up_on_shutdown)
+
+
+###
+# HTTP Proxy Server, which passes requests directly onto http servers running on project vm's
+###
+
+httpProxy = require('http-proxy')
+
+init_http_proxy_server = () =>
+
+    _remember_me_check_for_write_access_to_project = (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            remember_me : required
+            cb          : required    # cb(err, has_access)
+        account_id = undefined
+        has_write_access = false
+        async.series([
+            (cb) ->
+                x    = opts.remember_me.split('$')
+                database.key_value_store(name: 'remember_me').get
+                    key : generate_hash(x[0], x[1], x[2], x[3])
+                    cb  : (err, signed_in_mesg) =>
+                        if err
+                            cb('unable to get remember_me cookie from db -- cookie invalid'); return
+                        account_id = signed_in_mesg.account_id
+                        cb()
+            (cb) ->
+                user_has_write_access_to_project
+                    project_id : opts.project_id
+                    account_id : account_id
+                    cb         : (err, result) =>
+                        if err
+                            cb(err)
+                        else if not result
+                            cb("User does not have write access to project.")
+                        else
+                            has_write_access = true
+                            cb()
+        ], (err) ->
+            opts.cb(err, has_write_access)
+        )
+
+    _remember_me_cache = {}
+    remember_me_check_for_write_access_to_project = (opts) ->
+        opts = defaults opts,
+            project_id  : required
+            remember_me : required
+            cb          : required    # cb(err, has_access)
+        key = opts.project_id + opts.remember_me
+        has_write_access = _remember_me_cache[key]
+        if has_write_access?
+            opts.cb(false, has_write_access)
+            return
+        # get the answer, cache it, return answer
+        _remember_me_check_for_write_access_to_project
+            project_id  : opts.project_id
+            remember_me : opts.remember_me
+            cb          : (err, has_write_access) ->
+                # if cache gets huge for some *weird* reason (should never happen under normal conditions) just reset it to avoid any possibility of DOS-->RAM crash attach
+                if misc.len(_remember_me_cache) >= 100000
+                    _remember_me_cache = {}
+
+                _remember_me_cache[key] = has_write_access
+                # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                # but also if the user is suddenly granted permission to the project, this should be
+                # reflected within a few seconds.
+                f = () ->
+                    delete _remember_me_cache[key]
+                if has_write_access
+                    setTimeout(f, 1000*60*5)   # write access lasts 5 minutes (i.e., if you revoke privs to a user they could still hit the port for 5 minutes)
+                else
+                    setTimeout(f, 1000*15)      # not having write access lasts 15 seconds
+                opts.cb(err, has_write_access)
+
+    _target_cache = {}
+    target = (remember_me, url, cb) ->
+        v          = url.split('/')
+        project_id = v[1]
+        port       = parseInt(v[3])
+        winston.debug("project_id=#{project_id}, port=#{port}, v=#{misc.to_json(v)}")
+        loc        = undefined
+        async.series([
+            (cb) ->
+                if not remember_me?
+                    # remember_me = undefined means "allow"; this is used for the websocket upgrade.
+                    cb(); return
+
+                remember_me_check_for_write_access_to_project
+                    project_id  : project_id
+                    remember_me : remember_me
+                    cb          : (err, has_access) ->
+                        if err
+                            cb(err)
+                        else if not has_access
+                            cb("user does not have write access to this project")
+                        else
+                            cb()
+
+            (cb) ->
+                database.get_project_location
+                    project_id  : project_id
+                    allow_cache : true
+                    cb          : (err, location) ->
+                        if err
+                            cb(err)
+                        else
+                            loc = {host:location.host, port:port}
+                            cb()
+            ], (err) ->
+                cb(err, loc)
+
+            )
+
+    http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+        if req.url == "/alive"
+            res.end('')
+            return
+
+        buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+
+        cookies = new Cookies(req, res)
+        remember_me = cookies.get('remember_me')
+
+        if not remember_me?
+            res.writeHead(500, {'Content-Type':'text/html'})
+            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> and enable 'remember me' at the sign in screen, then refresh this page.")
+            return
+
+        target remember_me, req.url, (err, location) ->
+            if err
+                res.writeHead(500, {'Content-Type':'text/html'})
+                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
+            else
+                proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
+
+    http_proxy_server.listen(program.proxy_port, program.host)
+
+    http_proxy_server.on 'upgrade', (req, socket, head) ->
+        target undefined, req.url, (err, location) ->
+            if err
+                winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
+            else
+                http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
+
+
+
 
 
 #############################################################
@@ -436,7 +588,7 @@ class Client extends EventEmitter
         signed_in_mesg   = message.signed_in(opts)
         session_id       = uuid.v4()
         @hash_session_id = password_hash(session_id)
-        ttl              = 30*24*3600     # 30 days
+        ttl              = 24*3600 * 30     # 30 days
 
         @remember_me_db.set
             key   : @hash_session_id
@@ -1191,8 +1343,9 @@ class Client extends EventEmitter
             if err
                 return
             project.call
-                mesg : mesg
-                cb   : (err, resp) =>
+                mesg    : mesg
+                timeout : mesg.timeout
+                cb      : (err, resp) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
@@ -1226,18 +1379,17 @@ class Client extends EventEmitter
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
-                        snapshot = session.get_snapshot()
-                        # We add the client, so it will gets messages
-                        # about changes to the document.
-                        session.add_client(@, snapshot)
-                        # Send parameters of session to client
-                        mesg = message.codemirror_session
-                            id           : mesg.id
-                            session_uuid : session.session_uuid
-                            path         : session.path
-                            chat         : session.chat
-                            content      : snapshot
-                        @push_to_client(mesg)
+                        session.get_snapshot (err, snapshot) =>
+                            # We add the client, so it will gets messages
+                            # about changes to the document.
+                            session.add_client(@, snapshot)
+                            # Send parameters of session to client
+                            mesg = message.codemirror_session
+                                id           : mesg.id
+                                session_uuid : session.session_uuid
+                                path         : session.path
+                                content      : snapshot
+                            @push_to_client(mesg)
 
     get_codemirror_session : (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
@@ -1704,6 +1856,7 @@ move_project_to_longterm_storage = (opts) ->
             winston.debug("move_project_to_longterm_storage -- getting location of #{opts.project_id}")
             database.get_project_location
                 project_id : opts.project_id
+                allow_cache : false   # no point in using a cache here
                 cb         : (err, _location) =>
                     location = _location
                     if err
@@ -1893,13 +2046,14 @@ class CodeMirrorDiffSyncLocalHub
     recv_edits : (edit_stack, last_version_ack, cb) =>
         @write_mesg  'diffsync', {edit_stack: edit_stack, last_version_ack: last_version_ack}, (err, mesg) =>
             if err
-                cb(err)
-            else if mesg.event == 'error'
-                cb(mesg.error)
+                if mesg? and mesg
+                    cb(mesg)  # due to the diffsync protocol, mesg could be "retry" or a real message.
+                else
+                    cb(err)
             else
-                @cm_session.diffsync_server.recv_edits(mesg.edit_stack, mesg.last_version_ack, (err) =>
+                @cm_session.diffsync_server.recv_edits mesg.edit_stack, mesg.last_version_ack, (err) =>
                     @cm_session.set_content(@cm_session.diffsync_server.live)
-                    cb(err))
+                    cb(err)
 
     sync_ready: () =>
         @write_mesg('diffsync_ready')
@@ -1931,64 +2085,76 @@ class CodeMirrorSession
         opts = defaults opts,
             local_hub    : required
             project_id   : required
-            session_uuid : required
             path         : required
-            content      : required
-            chat         : required
+            cb           : required
+
+        console.log("creating a CodeMirrorSession: #{opts.project_id}, #{opts.path}")
 
         @local_hub    = opts.local_hub
         @project_id   = opts.project_id
-        @session_uuid = opts.session_uuid
         @path         = opts.path
-        @chat         = opts.chat
 
-        # Our upstream server (the local hub)
-        @diffsync_server = new diffsync.DiffSync(doc:opts.content)
-        @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
+        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect')
+        # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
+        @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
 
-        # The downstream clients of this hub
+        # The downstream (web browser) clients of this hub
         @diffsync_clients = {}
 
-    reconnect: (cb) =>
-        misc.retry_until_success
-            start_delay : 1000
-            max_delay   : 15000
-            factor      : 1.5
-            cb          : cb
-            f           : (cb) =>
-                delete codemirror_sessions.by_path[@project_id + @path]
-                delete codemirror_sessions.by_uuid[@session_uuid]
-                delete @_upstream_sync_lock
-                @local_hub.call
-                    mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
-                    cb   : (err, resp) =>
-                        winston.debug("local_hub --> hub: (reconnect) #{misc.trunc(to_safe_str(resp),300)} -- #{misc.to_json(err)}")
-                        if err
-                            cb?(err)
-                        else if resp.event == 'error'
-                            cb?(resp.error)
-                        else
-                            @session_uuid = resp.session_uuid
-                            codemirror_sessions.by_uuid[@session_uuid] = @
+        codemirror_sessions.by_path[@project_id + @path] = @
+        @connect (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, @)
 
-                            # Reconnect to the upstream (local_hub) server, being careful to save our current edits.
-                            edit_stack = @diffsync_server.edit_stack
-                            @diffsync_server = new diffsync.DiffSync(doc:resp.content)
-                            @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
+    _connect: (cb) =>
+        @local_hub.call
+            mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
+            cb   : (err, resp) =>
+                if err
+                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}")
+                    cb?(err)
+                else if resp.event == 'error'
+                    cb?(resp.error)
+                else
 
-                            # Apply all of the edits we couldn't send while the local hub was down
-                            # to upstream, then set this to our live.  When there are multiple hubs,
-                            # a lot can happen between sync's with a local_hub.
-                            live_content = resp.content
-                            for p in edit_stack
-                                live_content =  diffsync.dmp.patch_apply(p.edits, live_content)[0]
-                            @diffsync_server.live = live_content
+                    if @session_uuid?
+                        # Send a broadcast message to all connected
+                        # clients informing them of the new session id.
+                        mesg = message.codemirror_bcast
+                            session_uuid : @session_uuid
+                            mesg         :
+                                event            : 'update_session_uuid'
+                                new_session_uuid : resp.session_uuid
+                        @broadcast_mesg_to_clients(mesg)
 
-                            # Forget our downstream clients -- they will get
-                            # reconnect messages, and keep going fine, eventually.
-                            @diffsync_clients = {}
+                    @session_uuid = resp.session_uuid
 
-                            cb()
+                    codemirror_sessions.by_uuid[@session_uuid] = @
+
+                    if @_last_sync?
+                        # We have sync'd before.
+                        patch = @diffsync_server._compute_edits(@_last_sync, @diffsync_server.live)
+
+                    # Reconnect to the upstream (local_hub) server
+                    @diffsync_server = new diffsync.DiffSync(doc:resp.content)
+                    @set_content(resp.content)
+
+                    if @_last_sync?
+                        # applying missed patches to the new upstream version that we just got from the hub.
+                        @_apply_patch_to_live(patch)
+                    else
+                        # This initialiation is the first.
+                        @_last_sync   = resp.content
+
+                    @diffsync_server.connect(new CodeMirrorDiffSyncLocalHub(@))
+                    @sync(cb)
+
+    _apply_patch_to_live: (patch) =>
+        @diffsync_server._apply_edits_to_live(patch)
+        for id, ds of @diffsync_clients
+            ds.live = @diffsync_server.live
 
     set_content: (content) =>
         @diffsync_server.live = content
@@ -1996,7 +2162,7 @@ class CodeMirrorSession
             ds.live = content
 
     client_broadcast: (client, mesg) =>
-        # Broadcast message from some client reporting something (e.g., cursor position, chat, etc.)
+        # Broadcast message from some client reporting something (e.g., cursor position, etc.)
         ds_client = @diffsync_clients[client.id]
         if not ds_client?
             return # something wrong -- just drop the message
@@ -2012,17 +2178,6 @@ class CodeMirrorSession
             # Use first 6 digits of uuid... one color per session, NOT per username.
             # TODO: this could be done client side in a way that respects their color scheme...?
             mesg.color = client.id.slice(0,6)
-
-        # If this is a chat message, also fill in the time and store it.
-        if mesg.mesg?.event == 'chat'
-            # This is weird, but it does do-JSON to a string t so that 'new Date(t)' works.
-            s = misc.to_json(new Date())
-            mesg.date = s.slice(1, s.length-1)
-            @chat.push   # what is saved is also defined in local_hub.coffee in save method of ChatRecorder.
-                name  : mesg.name
-                color : mesg.color
-                date  : mesg.date
-                mesg  : mesg.mesg
 
         # 2. Send fire-and-forget message on to the local_hub, which will forward this message
         # on to all the other hubs.
@@ -2047,7 +2202,7 @@ class CodeMirrorSession
         # generate new edits, and send those out so that the client
         # can complete the sync cycle.
 
-        if @_upstream_sync_lock? and @_upstream_sync_lock
+        if @_sync_lock
             client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
             return
 
@@ -2064,14 +2219,17 @@ class CodeMirrorSession
             setTimeout(f, 1000)
             return
 
+        @_sync_lock = true
         before = @diffsync_server.live
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
             if err
+                @_sync_lock = false
                 client.error_to_client(id:mesg.id, error:"CodeMirrorSession -- unable to push diffsync changes from client (id=#{client.id}) -- #{err}")
                 return
 
             # Update master live document with result.
             @set_content(ds_client.live)
+            @_sync_lock = false
 
             # Send back our own edits to this client.
             ds_client.remote.current_mesg_id = mesg.id  # used to tag the return message
@@ -2087,54 +2245,62 @@ class CodeMirrorSession
                         if client.id != id
                             ds.remote.sync_ready()
 
-    get_snapshot: () =>
-        return @diffsync_server.live  # TODO -- only ok now since is a string and not a reference...
+    get_snapshot: (cb) =>
+        if @diffsync_server?
+            cb(false, @diffsync_server.live)
+        else
+            @connect (err) =>
+                if err
+                    cb(err)
+                else
+                    cb(false, @diffsync_server.live)
 
     broadcast_mesg_to_clients: (mesg, exclude_id) =>
         for id, ds of @diffsync_clients
             if id != exclude_id
                 ds.remote.send_mesg(mesg)
 
-    sync: (cb, delay) =>
-
-        if not @_upstream_sync_lock_queue?
-            @_upstream_sync_lock_queue = []
-
-        @_upstream_sync_lock_queue.push(cb)
-
-        if @_upstream_sync_lock
-            return
-
-        @_upstream_sync_lock = true
+    _sync: (cb) =>    # cb(err)
+        winston.debug("codemirror session -- syncing with local hub")
+        @_sync_lock = true
         before = @diffsync_server.live
-        #winston.debug("codemirror session sync -- BEFORE='#{before}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
         @diffsync_server.push_edits (err) =>
-            #winston.debug("codemirror session sync -- AFTER='#{@diffsync_server.live}'; edit_stack='#{misc.to_json(@diffsync_server.edit_stack)}'")
-            @_upstream_sync_lock = false
+            after = @diffsync_server.live
             if err
-                winston.debug("codemirror session sync -- ERROR pushing codemirror changes to the local hub, so making a new persistent session connection to the local hub -- #{err}")
-                if not delay?
-                    delay = 250
-                else
-                    delay = Math.min(15000, 1.3*delay)
-                f = () =>
-                    if err == 'retry'
-                        @sync(cb, delay)
-                    else
-                        @reconnect (err) =>
-                            @sync(cb, delay)
-                setTimeout(f, delay)
+                @set_content(before)
+                # We do *NOT* remove the sync_lock in this branch; only do that after a successful sync, since
+                # otherwise clients think they have successfully sync'd with the hub, but when the hub resets,
+                # the clients end up doing the wrong thing.
+                winston.debug("codemirror session local hub sync error -- #{err}; #{before != after}")
+                if typeof(err) == 'string'
+                    err = err.toLowerCase()
+                    if err.indexOf('retry') != -1
+                        winston.debug("sync: retrying...")
+                        # This is normal -- it's because the diffsync algorithm only allows sync with
+                        # one client (and upstream) at a time.
+                        cb(err); return
+                    else if err.indexOf("unknown") != -1 or err.indexOf('not registered') != -1
+                        winston.debug("sync: reconnecting...")
+                        @connect () =>
+                            cb(err); return # still an error even if connect works.
+                    else if err.indexOf("timed out") != -1
+                        @local_hub.restart () =>
+                            cb(err); return
+                cb(err)
             else
-                winston.debug("codemirror session sync -- pushed edits, thus completing cycle")
-                if @_upstream_sync_lock_queue?
-                    for cb in @_upstream_sync_lock_queue
-                       cb?()
-                    delete @_upstream_sync_lock_queue
-                if before != @diffsync_server.live
-                    winston.debug("codemirror session sync -- there were changes.")
-                    # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
-                    for id, ds of @diffsync_clients
-                        ds.remote.sync_ready()
+                @set_content(after)
+                winston.debug("codemirror session local hub sync -- pushed edits, thus completing cycle")
+                @_sync_lock = false
+                @_last_sync = after # what was the last successful sync with upstream.
+                if before != after
+                    @_tell_clients_to_sync()
+                cb()
+
+    _tell_clients_to_sync: () =>
+        winston.debug("codemirror session local hub sync -- there were changes; informing clients.")
+        # Tell the clients that content has changed due to an upstream sync, so they may want to sync again.
+        for id, ds of @diffsync_clients
+            ds.remote.sync_ready()
 
     # Add a new diffsync browser client.
     add_client: (client, snapshot) =>  # snapshot = a snapshot of the document that client and server start with -- MUST BE THE SAME!
@@ -2230,11 +2396,13 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     opts = defaults opts,
         port         : required
         secret_token : required
+        timeout      : 10
         cb           : required
 
     socket = misc_node.connect_to_locked_socket
         port  : opts.port
         token : opts.secret_token
+        timeout : opts.timeout
         cb    : (err) =>
             if err
                 opts.cb(err)
@@ -2275,28 +2443,52 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
         @_multi_response = {}
-        @local_hub_socket  (err,socket) =>
+        @local_hub_socket  (err) =>
             if err
-                cb("Unable to start and connect to local hub #{@address} -- #{err}")
+                @restart (err) =>
+                    if err
+                        cb("Unable to start and connect to local hub #{@address} -- #{err}")
+                    else
+                        @local_hub_socket (err) =>
+                            cb(err, @)
             else
                 cb(false, @)
 
     restart: (cb) =>
+        winston.debug("restarting a local hub")
         if @_restart_lock
+            winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
             return
+        @_restart_lock = true
         async.series([
             (cb) =>
-                winston.debug("Push latest version of code to remote machine...")
-                @_push_local_hub_code(cb)
+                winston.debug("local_hub restart: Killing all processes")
+                if @username.length != 8
+                    winston.debug("local_hub restart: skipping killall since this user #{@username} is clearly not a cloud.sagemath project :-)")
+                    cb()
+                else
+                    @killall(cb)
             (cb) =>
-                winston.debug("Restart the local services....")
-                @_exec_on_local_hub 'restart_smc', 30, (err, output) =>
-                    #winston.debug("result: #{err}, #{misc.to_json(output)}")
-                    cb(err)
+                winston.debug("local_hub restart: Push latest version of code to remote machine...")
+                @_push_local_hub_code (err) =>
+                    if err
+                        winston.debug("local hub code push -- failed #{err}")
+                        winston.debug("proceeding anyways, since it's critical that the user have access.")
+                    cb()
+            (cb) =>
+                winston.debug("local_hub restart: Restart the local services....")
+                @_restart_lock = false # so we can call @_exec_on_local_hub
+                @_exec_on_local_hub
+                    command : 'start_smc'
+                    timeout : 45
+                    cb      : (err, output) =>
+                        #winston.debug("result: #{err}, #{misc.to_json(output)}")
+                        cb(err)
+                # MUST be here, since _restart_lock prevents _exec_on_local_hub!
                 @_restart_lock = true
         ], (err) =>
-            #winston.debug("project restart done -- #{err}")
+            winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
             cb(err)
         )
@@ -2396,9 +2588,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # Get a new socket connection to the local_hub; this socket will have been
     # authenticated via the secret_token, and enhanced to be able to
     # send/receive json and blob messages.
-    new_socket: (cb, retries) =>     # cb(err, socket)
-        if not retries?
-            retries = 2
+    new_socket: (cb) =>     # cb(err, socket)
         @open   (err, port, secret_token) =>
             if err
                 cb(err); return
@@ -2409,11 +2599,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     if not err
                         cb(err, socket)
                     else
-                        if retries == 0
-                            cb(err)
-                        else
-                            delete @_status  # forget port and secret token.
-                            @new_socket(cb, retries - 1)
+                        delete @_status  # forget port and secret token.
+                        cb(err)
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
@@ -2422,7 +2609,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         opts = defaults opts,
             mesg    : required
             timeout : 10
-            multi_response : false   # timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
+            multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
             cb      : undefined
 
         if not opts.mesg.id?
@@ -2436,11 +2623,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if opts.multi_response
                 @_multi_response[opts.mesg.id] = opts.cb
             else
-                socket.recv_mesg type:'json', id:opts.mesg.id, timeout:opts.timeout, cb:(mesg) =>
-                    if mesg.event == 'error'
-                        opts.cb(true, mesg.error)
-                    else
-                        opts.cb(false, mesg)
+                socket.recv_mesg
+                    type    : 'json'
+                    id      : opts.mesg.id
+                    timeout : opts.timeout
+                    cb      : (mesg) =>
+                        if mesg.event == 'error'
+                            opts.cb(true, mesg.error)
+                        else
+                            opts.cb(false, mesg)
 
     ####################################################
     # Session management
@@ -2502,7 +2693,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         ], (err) =>
             if err
                 winston.debug("Error getting a socket -- (declaring total disaster) -- #{err}")
-
                 # This @_socket.destroy() below is VERY important, since just deleting the socket might not send this,
                 # and the local_hub -- if the connection were still good -- would have two connections
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
@@ -2512,7 +2702,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             else if socket?
                 @_sockets[opts.session_uuid] = socket
                 socket.history = undefined
-            opts.cb(err, socket)
+                opts.cb(false, socket)
         )
 
     # Connect the client with a console session, possibly creating a session in the process.
@@ -2596,7 +2786,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # Return a CodeMirrorSession object corresponding to the given session_uuid or path.
     get_codemirror_session: (opts) =>
         opts = defaults opts,
-            session_uuid : undefined   # give at least one of the session uuid or filename
+            session_uuid : undefined   # give at least one of the session uuid or path
             project_id   : undefined
             path         : undefined
             cb           : required    # cb(err, session)
@@ -2610,26 +2800,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if session?
                 opts.cb(false, session)
                 return
+        if not (opts.path? and opts.project_id?)
+            opts.cb("reconnect")  # caller should  send path when it tries next.
+            return
+
         # Create a new session object.
-        @call
-            mesg : message.codemirror_get_session(session_uuid:opts.session_uuid, project_id:opts.project_id, path:opts.path)
-            cb   : (err, resp) =>
-                # winston.debug("new codemirror session: local_hub --> hub: #{err}, #{misc.to_json(resp)}")
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    session = new CodeMirrorSession
-                        local_hub    : @
-                        project_id   : opts.project_id
-                        session_uuid : resp.session_uuid
-                        path         : resp.path
-                        content      : resp.content
-                        chat         : resp.chat
-                    codemirror_sessions.by_uuid[resp.session_uuid] = session
-                    codemirror_sessions.by_path[opts.project_id + resp.path] = session
-                    opts.cb(false, session)
+        new CodeMirrorSession
+            local_hub   : @
+            project_id  : opts.project_id
+            path        : opts.path
+            cb          : opts.cb
 
     #########################################
     # Sage sessions -- TODO!
@@ -2703,7 +2883,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb(err)
             (cb) =>
                 if not @_status.installed
-                    @_exec_on_local_hub('build', 300, cb)
+                    @_exec_on_local_hub
+                        command : 'build'
+                        timeout : 360
+                        cb      : cb
                 else
                     cb()
             (cb) =>
@@ -2734,6 +2917,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @_status.local_port, @_status.secret_token)
         )
 
+
     _push_local_hub_code: (cb) =>
         winston.debug("pushing latest code to #{@address}")
         tm = misc.walltime()
@@ -2741,45 +2925,65 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             command : "rsync"
             args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
                        'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
-            timeout : 30
+            timeout : 60
             bash    : false
             path    : SALVUS_HOME
             cb      : (err, output) =>
                 winston.debug("time to rsync latest code to #{@address}: #{misc.walltime(tm)} seconds -- #{err}")
                 cb(err, output)
 
-    _exec_on_local_hub: (command, timeout, cb) =>
+    _exec_on_local_hub: (opts) =>
+        opts = defaults opts,
+            command : required
+            timeout : 30
+            dot_sagemathcloud_path : true
+            cb      : required
+
+        if opts.dot_sagemathcloud_path
+            opts.command = "~#{@username}/.sagemathcloud/#{opts.command}"
+
         if @_restart_lock
-            cb("restarting..."); return
+            opts.cb("_restart_lock..."); return
 
         # ssh [user]@[host] [-p port] .sagemathcloud/[commmand]
         tm = misc.walltime()
         misc_node.execute_code
             command : "ssh"
-            args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', "~#{@username}/.sagemathcloud/#{command}"]
-            timeout : timeout
+            args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', opts.command]
+            timeout : opts.timeout
             bash    : false
             cb      : (err, output) =>
-                winston.debug("time to exec #{command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
-                cb(err, output)
+                winston.debug("time to exec #{opts.command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
+                opts.cb(err, output)
 
 
     _get_local_hub_status: (cb) =>
         winston.debug("getting status of remote location")
-        @_exec_on_local_hub "status", 15, (err, out) =>
-            if out?.stdout?
-                status = misc.from_json(out.stdout)
-            cb(err, status)
+        @_exec_on_local_hub
+            command : "status"
+            timeout  : 10
+            cb      : (err, out) =>
+                if out?.stdout?
+                    status = misc.from_json(out.stdout)
+                cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
         winston.debug("restarting local_hub daemons")
-        @_exec_on_local_hub "restart_smc", 30, (err, out) =>
-            cb(err)
+        @_exec_on_local_hub
+            command : "restart_smc"
+            timeout : 30
+            cb      : (err, out) =>
+                cb(err)
 
     killall: (cb) =>
-        winston.debug("kill all processes running on this local hub (including the hub)")
-        @_exec_on_local_hub "killall -u #{@username}", 30, (err, out) =>
-            cb(err)
+        winston.debug("kill all processes running on this local hub (including the local hub itself)")
+        @_exec_on_local_hub
+            command : "killall -9 -u #{@username}"
+            dot_sagemathcloud_path : false
+            timeout : 30
+            cb      : (err, out) =>
+                # We explicitly ignore errors since killall kills self while at it.
+                cb()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status.local_hub and @_status.sage_server and @_status.console_server
@@ -2900,7 +3104,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
 _project_cache = {}
 new_project = (project_id, cb, delay) ->   # cb(err, project)
-    winston.debug("project request (project_id=#{project_id})")
+    #winston.debug("project request (project_id=#{project_id})")
     P = _project_cache[project_id]
     if P?
         if P == "instantiating"
@@ -2931,9 +3135,10 @@ new_project = (project_id, cb, delay) ->   # cb(err, project)
 
 get_project_location = (opts) ->
     opts = defaults opts,
-        project_id : required
-        cb         : undefined       # cb(err, location)
-        attempts   : 50
+        project_id  : required
+        allow_cache : false
+        cb          : undefined       # cb(err, location)
+        attempts    : 50
     winston.debug
     if not attempts?
         attempts = 50
@@ -2944,8 +3149,9 @@ get_project_location = (opts) ->
     async.series([
         (cb) ->
             database.get_project_location
-                project_id : opts.project_id
-                cb         : (err, _location) =>
+                project_id  : opts.project_id
+                allow_cache : opts.allow_cache
+                cb          : (err, _location) =>
                     location = _location
                     if err
                         cb(err)
@@ -2959,9 +3165,10 @@ get_project_location = (opts) ->
                             winston.debug("get_project_location -- try again in 10 seconds (attempts=#{attempts}).")
                             f = () ->
                                 get_project_location
-                                    project_id : opts.project_id
-                                    cb         : opts.cb
-                                    attempts   : opts.attempts-1
+                                    project_id  : opts.project_id
+                                    allow_cache : opts.allow_cache
+                                    cb          : opts.cb
+                                    attempts    : opts.attempts-1
                             setTimeout(f, 10000)
                             error = false
                             cb(true)
@@ -3002,8 +3209,9 @@ get_project_location = (opts) ->
             # to not return "deploying".  In this case, we instead return where that deploy
             # is, and delete the account we just made.
             database.get_project_location
-                project_id : opts.project_id
-                cb         : (err, loc) ->
+                project_id  : opts.project_id
+                allow_cache : false
+                cb          : (err, loc) ->
                     if err
                         cb(err); return
                     if loc == "deploying"
@@ -3047,8 +3255,9 @@ class Project
             (cb) =>
                 winston.debug("Getting project #{@project_id} location.")
                 get_project_location
-                    project_id : @project_id
-                    cb         : (err, location) =>
+                    project_id  : @project_id
+                    allow_cache : false
+                    cb          : (err, location) =>
                         @location = location
                         winston.debug("Location of project #{@project_id} is #{misc.to_json(@location)}")
                         cb(err)
@@ -3291,6 +3500,51 @@ exports.password_hash = password_hash = (password) ->
         iterations : HASH_ITERATIONS   # This blocks the server for about 10 milliseconds...
     )
 
+reset_password = (email_address, cb) ->
+    read = require('read')
+    passwd0 = passwd1 = undefined
+    account_id = undefined
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            database.get_account
+                email_address : email_address
+                columns       : ['account_id']
+                cb            : (err, data) ->
+                    if err
+                        cb(err)
+                    else
+                        account_id = data.account_id
+                        cb()
+        (cb) ->
+            read {prompt:'Password: ', silent:true}, (err, passwd) ->
+                passwd0 = passwd; cb(err)
+        (cb) ->
+            read {prompt:'Retype password: ', silent:true}, (err, passwd) ->
+                if err
+                    cb(err)
+                else
+                    passwd1 = passwd
+                    if passwd1 != passwd0
+                        cb("Passwords do not match.")
+                    else
+                        cb()
+        (cb) ->
+            database.change_password
+                account_id    : account_id
+                password_hash : password_hash(passwd0)
+                cb            : cb
+
+    ], (err) ->
+        if err
+            winston.debug("Error -- #{err}")
+        else
+            winston.debug("Password changed for #{email_address}")
+        cb?()
+    )
+
+
 # Password checking.  opts.cb(false, true) if the
 # password is correct, opts.cb(true) on error (e.g., loading from
 # database), and opts.cb(false, false) if password is wrong.  You must
@@ -3336,10 +3590,10 @@ password_crack_time = (password) -> Math.floor(zxcvbn.zxcvbn(password).crack_tim
 #
 # Anti-DOS cracking throttling policy:
 #
-#   * POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
-#   * POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
-#   * POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
-#   * POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+#   * POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
+#   * POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
+#   * POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
+#   * POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
 #############################################################################
 sign_in = (client, mesg) =>
     #winston.debug("sign_in")
@@ -3356,7 +3610,7 @@ sign_in = (client, mesg) =>
 
     signed_in_mesg = null
     async.series([
-        # POLICY 1: A given email address is allowed at most 3 failed login attempts per minute.
+        # POLICY 1: A given email address is allowed at most 5 failed login attempts per minute.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_email_address"
@@ -3365,11 +3619,11 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 3
-                        sign_in_error("A given email address is allowed at most 3 failed login attempts per minute. Please wait.")
+                    if count > 5
+                        sign_in_error("A given email address is allowed at most 5 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
-        # POLICY 2: A given email address is allowed at most 10 failed login attempts per hour.
+        # POLICY 2: A given email address is allowed at most 100 failed login attempts per hour.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_email_address"
@@ -3378,12 +3632,12 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 10
-                        sign_in_error("A given email address is allowed at most 10 failed login attempts per hour. Please wait.")
+                    if count > 100
+                        sign_in_error("A given email address is allowed at most 100 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
 
-        # POLICY 3: A given ip address is allowed at most 10 failed login attempts per minute.
+        # POLICY 3: A given ip address is allowed at most 100 failed login attempts per minute.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
@@ -3392,12 +3646,12 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 10
-                        sign_in_error("A given ip address is allowed at most 10 failed login attempts per minute. Please wait.")
+                    if count > 100
+                        sign_in_error("A given ip address is allowed at most 100 failed login attempts per minute. Please wait.")
                         cb(true); return
                     cb()
 
-        # POLICY 4: A given ip address is allowed at most 25 failed login attempts per hour.
+        # POLICY 4: A given ip address is allowed at most 250 failed login attempts per hour.
         (cb) ->
             database.count
                 table: "failed_sign_ins_by_ip_address"
@@ -3406,8 +3660,8 @@ sign_in = (client, mesg) =>
                     if error
                         sign_in_error(error)
                         cb(true); return
-                    if count > 25
-                        sign_in_error("A given ip address is allowed at most 25 failed login attempts per hour. Please wait.")
+                    if count > 250
+                        sign_in_error("A given ip address is allowed at most 250 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
 
@@ -3655,7 +3909,7 @@ create_account = (client, mesg) ->
             else
                 cb()
 
-        # make sure this ip address hasn't requested more than 100
+        # make sure this ip address hasn't requested more than 5000
         # accounts in the last 6 hours (just to avoid really nasty
         # evils, but still allow for demo registration behind a wifi
         # router -- say)
@@ -3670,7 +3924,7 @@ create_account = (client, mesg) ->
                     if not value?
                         ip_tracker.set(key: client.ip_address, value:1, ttl:6*3600)
                         cb()
-                    else if value < 100
+                    else if value < 5000
                         ip_tracker.set(key: client.ip_address, value:value+1, ttl:6*3600)
                         cb()
                     else # bad situation
@@ -4245,8 +4499,8 @@ exports.send_email = send_email = (opts={}) ->
 # Blobs
 ########################################
 
-MAX_BLOB_SIZE = 5000000
-MAX_BLOB_SIZE_HUMAN = "5MB"
+MAX_BLOB_SIZE = 12000000
+MAX_BLOB_SIZE_HUMAN = "12MB"
 
 save_blob = (opts) ->
     opts = defaults opts,
@@ -4592,50 +4846,71 @@ clean_up_on_shutdown = () ->
 
 
 #############################################
+# Connect to database
+#############################################
+connect_to_database = (cb) ->
+    if database? # already did this
+        cb(); return
+    new cass.Salvus
+        hosts    : program.database_nodes.split(',')
+        keyspace : program.keyspace
+        cb       : (err, _db) ->
+            database = _db
+            cb(err)
+
+
+#############################################
 # Start everything running
 #############################################
 exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
+    init_http_proxy_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
 
     # Once we connect to the database, start serving.
+    connect_to_database (err) ->
+        if err
+            winston.debug("Failed to connect to database!")
+            return
 
-    new cass.Salvus
-        hosts    : hosts
-        keyspace : program.keyspace
-        cb       : (err, _db) ->
-            database = _db
+        # start updating stats cache every minute (on every hub)
+        update_server_stats(); setInterval(update_server_stats, 60*1000)
+        register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-            # start updating stats cache every minute (on every hub)
-            update_server_stats(); setInterval(update_server_stats, 60*1000)
-            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
-
-            init_sockjs_server()
-            init_stateless_exec()
-            http_server.listen(program.port, program.host)
-            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+        init_sockjs_server()
+        init_stateless_exec()
+        http_server.listen(program.port, program.host)
+        winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments
 #############################################
-program.usage('[start/stop/restart/status] [options]')
+program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('-p, --proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
     .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
+    .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .parse(process.argv)
 
 if program._name == 'hub.js'
     # run as a server/daemon (otherwise, is being imported as a library)
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(new Error().stack)
-        winston.debug("BUG ****************************************************************************")
+    if program.rawArgs[1] in ['start', 'restart']
+        process.addListener "uncaughtException", (err) ->
+            winston.debug("BUG ****************************************************************************")
+            winston.debug("Uncaught exception: " + err)
+            winston.debug(new Error().stack)
+            winston.debug("BUG ****************************************************************************")
 
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    if program.passwd
+        console.log("Resetting password")
+        reset_password program.passwd, (err) -> process.exit()
+    else
+        console.log("Running web server")
+        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
