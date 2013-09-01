@@ -180,6 +180,9 @@ BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 PREFIX = os.path.abspath(os.path.join(DATA, 'local'))
 os.environ['PREFIX'] = PREFIX
 
+if 'MAKE' in os.environ:
+    del os.environ['MAKE']
+
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
