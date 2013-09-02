@@ -94,6 +94,11 @@ file_associations['term'] =
     icon   : 'icon-credit-card'
     opts   : {}
 
+file_associations['ipynb-server'] =
+    editor : 'ipynb-server'
+    icon   : 'icon-list-ul'
+    opts   : {}
+
 file_associations['sage-worksheet'] =
     editor : 'worksheet'
     icon   : 'icon-list-ul'
@@ -558,6 +563,8 @@ class exports.Editor
                 editor = new LatexEditor(@, filename, content, extra_opts)
             when 'pdf'
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
+            when 'ipynb-server'
+                editor = new IPythonNotebookServer(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -3036,6 +3043,55 @@ class Image extends FileEditor
     focus: () =>
         @element.maxheight()
         @element.find(".salvus-editor-image-container").maxheight()
+
+
+class IPythonNotebookServer extends FileEditor
+    constructor: (@editor, @filename, url, opts) ->
+        opts = @opts = defaults opts,{}
+        @element = templates.find(".salvus-ipython-notebook-server").clone()
+        @path = path_split(@filename).head
+
+        # This is where we put the dashboard
+        @dashboard = @element.find(".salvus-ipython-dashboard")
+
+        @start_server (err, url) =>
+            console.log("start server got back: ", err, url)
+            if err
+                # TODO: temporary
+                alert_message(type:"error", message:"Unable to start Ipython server -- #{url}")
+                return
+            @iframe = $("<iframe>").attr('src', url)
+            @dashboard.html('').append(@iframe)
+            @show()
+
+    start_server: (cb) =>  # cb(err, url)
+        # we simply try a random port and if it doesn't work, we try another one (not implemented yet!)
+        port = misc.randint(1025, 65535)
+        ip = "localhost" # TODO -- just for local dev for now
+        base = "/#{@editor.project_id}/port/#{port}/"
+        cmd = "exec ipython notebook --pylab=inline --matplotlib=inline --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=#{base} --NotebookApp.base_kernel_url=#{base} --ip=#{ip} --port=#{port} >out 2>err&"
+        console.log(cmd)
+        salvus_client.exec
+            project_id : @editor.project_id
+            path       : @path
+            command    : cmd
+            bash       : true
+            timeout    : 15
+            err_on_exit: true
+            cb         : (err, output) =>
+                console.log(err, output)
+                f = () ->
+                    cb(false, base)
+                # TODO -- we need to pull the url until it works, then return.
+                setTimeout(f, 1000)
+
+    stop_server: (cb) =>
+        # Stop server
+
+    show: () =>
+        @element.show()
+        @iframe?.attr('width',$(window).width()).maxheight()
+
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
