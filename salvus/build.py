@@ -189,6 +189,12 @@ BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 PREFIX = os.path.abspath(os.path.join(DATA, 'local'))
 os.environ['PREFIX'] = PREFIX
 
+if 'MAKE' in os.environ:
+    del os.environ['MAKE']
+
+# WARNING--as of Sept 1, 2013, start-stop-daemon's install is broken, even though no versions (and no dep versions) have changed,
+# due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs. 
+
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',

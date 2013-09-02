@@ -2978,7 +2978,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     killall: (cb) =>
         winston.debug("kill all processes running on this local hub (including the local hub itself)")
         @_exec_on_local_hub
-            command : "killall -9 -u #{@username}"
+            command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
             cb      : (err, out) =>
