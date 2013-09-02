@@ -150,7 +150,7 @@ easy_install pip
 
    http://wstein.org/home/wstein/tmp/trac-14713.patch
    http://trac.sagemath.org/raw-attachment/ticket/14810/trac_14810_ipython_0.13.2.patch
-   easy_install   
+   easy_install
 
 # Fix permissions, just in case!
 
@@ -182,6 +182,9 @@ os.environ['PREFIX'] = PREFIX
 
 if 'MAKE' in os.environ:
     del os.environ['MAKE']
+
+# WARNING--as of Sept 1, 2013, start-stop-daemon's install is broken, even though no versions (and no dep versions) have changed,
+# due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs. 
 
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
