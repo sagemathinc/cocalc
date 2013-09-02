@@ -1338,8 +1338,8 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn,
-            commands = (['allow proto tcp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin']]] +  # allow access from hub/admin
-                        ['allow proto udp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin']]] +
+            commands = (['allow proto tcp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin']] +  # allow access from hub/admin
+                        ['allow proto udp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin']] +
                         ['deny proto tcp to any port 1025:65535'] +          # deny access to user ports (except from hub) - CRITICAL so users
                         ['deny proto udp to any port 1025:65535'])           # can safely open a server on localhost
 
@@ -1393,6 +1393,8 @@ class Services(object):
             self.start('vm', parallel=True, wait=False)
         log.info(" ** Waiting for VM's to all finish starting")
         self.wait_until_up('all')
+        log.info(" ** Setting up compute VM's firewall")
+        self.compute_firewall('compute', 'start')
         log.info(" ** Starting cassandra databases.")
         self.start('cassandra', wait=True, parallel=True)
         for service in ['haproxy', 'nginx', 'hub', 'snap']:
