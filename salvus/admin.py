@@ -1338,10 +1338,15 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn,
-            commands = (['allow proto tcp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin']] +  # allow access from hub/admin
-                        ['allow proto udp from %s to any port 1:65000'%ip for ip in self._hosts['hub admin']] +
+            commands = (['allow proto tcp from %s to any port 1:65535'%ip for ip in self._hosts['hub admin']] +  # allow access from hub/admin
+                        ['allow proto udp from %s to any port 1:65535'%ip for ip in self._hosts['hub admin']] +
                         ['deny proto tcp to any port 1025:65535'] +          # deny access to user ports (except from hub) - CRITICAL so users
                         ['deny proto udp to any port 1025:65535'])           # can safely open a server on localhost
+
+            # drop incoming traffic within compute machines!  this is critical to make
+            # servers-with-passwords that users start listening on the vpn safe, such as ipython.
+            cmd = 'iptables -I INPUT --src %s -p tcp --dport 1025:65535 -j DROP'%(','.join(self._hosts.ip_addresses('compute')))
+            self._hosts(hostname, cmd, sudo=True, timeout=10, wait=False)
 
             # We don't need/want to firewall the compute machines
             #commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
@@ -1352,6 +1357,7 @@ class Services(object):
             return
         else:
             raise ValueError("unknown action '%s'"%action)
+
         return self._hosts.ufw(hostname, commands)
 
     def _all(self, callable, reverse=False):
