@@ -1,0 +1,80 @@
+#!/usr/bin/env python
+
+import json, os, random, sys, time
+
+print os.getpid()
+
+info = json.loads(open(os.path.join(os.environ['HOME'], '.sagemathcloud', 'info.json')).read())
+
+project_id = info['project_id']
+
+ip = info['location']['host']
+
+def random_port():
+    # get an available port; a race condition is possible, but very, very unlikely.
+    while True:
+        port = random.randint(1025,65536)
+        a = os.popen("netstat -ano|grep %s|grep LISTEN"%port).read()
+        if len(a) < 5:
+            return port
+
+def command():
+    port = random_port()
+    base = "/%s/port/%s/"%(project_id, port)
+    cmd = "ipython notebook --port-retries=0 --pylab=inline --matplotlib=inline --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
+    cmd += " " + ' '.join(sys.argv[1:])
+    return cmd, base, port
+
+if '--help' in ''.join(sys.argv):
+    os.system("ipython " + ' '.join(sys.argv))
+    sys.exit(0)
+
+daemon = False
+for i in range(1,len(sys.argv)):
+    if sys.argv[i].startswith('--daemon='):
+        daemon = sys.argv[i][9:]
+        del sys.argv[i]
+        break
+
+cmd, base, port = command()
+
+if daemon:
+
+    # The below approach to finding the PID is *HIDEOUS* and could in theory break.
+    # It is the only way I could come up with to do this without modifying source code of ipython :-(
+    # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
+
+    c = '%s 2>/dev/null >/dev/null &'%cmd
+    print c
+    os.system(c)
+
+    tries = 0
+    pid = 0
+    while not pid:
+        tries += 1
+        if tries >= 50:
+            print "Failed to find pid of subproc"
+            sys.exit(1)
+
+        c = "ps -u`whoami` -o pid,cmd|grep port=%s"%port
+        for s in os.popen(c).read().splitlines():
+            if '/ipython notebook' in s:
+                pid = int(s.split()[0])
+                break
+
+        if not pid:
+            time.sleep(.2)
+            continue
+
+    print "pid = ", pid
+    open(daemon, 'w').write(json.dumps({'base':base, 'port':port, 'pid':pid}))
+
+else:
+    print cmd + '\n\n'
+    print "*"*80 + '\n'
+    print "  The IPython Notebook server is running at \n"
+    print "      https://cloud.sagemath.com%s\n"%base
+    print "  All collaborators on this project may access the notebook at the"
+    print "  above SSL-encrypted URL, but nobody else can access it."
+    print '\n\n' + "*"*80 + '\n\n'
+    os.system(cmd + "  2>&1 | grep -v running ")
