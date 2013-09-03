@@ -3278,9 +3278,9 @@ class Project
             # have there (for various services).
             (cb) =>
                 @write_file
-                    path : ".sagemathcloud/project_id"
+                    path : ".sagemathcloud/info.json"
                     project_id : @project_id
-                    data       : @project_id
+                    data       : misc.to_json(project_id:@project_id, location:@location)
                     cb         : cb
         ], (err) => cb(err, @))
 
