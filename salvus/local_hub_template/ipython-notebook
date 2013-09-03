@@ -2,6 +2,14 @@
 
 import json, os, random, sys, time
 
+#### First a version check, which is critical due to base url bug(s).
+
+if os.popen('ipython --version').read().startswith('0.'):
+    print json.dumps({"error":"You *must* use IPython version at least 1.0.0, due to show stopper bugs in base_url in all previous versions."})
+    sys.exit(1)
+
+####
+
 info = json.loads(open(os.path.join(os.environ['HOME'], '.sagemathcloud', 'info.json')).read())
 
 project_id = info['project_id']
@@ -27,13 +35,10 @@ if '--help' in ''.join(sys.argv):
     os.system("ipython " + ' '.join(sys.argv))
     sys.exit(0)
 
-i = sys.argv.index('--daemon')
-if i != -1:
-    daemon = True
+daemon = '--daemon' in sys.argv
+if daemon:
+    i = sys.argv.index('--daemon')
     del sys.argv[i]
-else:
-    daemon = False
-
 
 cmd, base, port = command()
 
