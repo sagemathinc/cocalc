@@ -982,11 +982,16 @@ class ProjectPage
             if p[p.length-1] == '/'
                 create_folder()
                 return false
-            @ensure_file_exists
-                path : p
-                alert : true
-                cb : (err) =>
-                    if not err
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : "new-file"
+                timeout    : 10
+                args       : [p]
+                err_on_exit: true
+                cb         : (err, output) =>
+                    if err
+                        alert_message(type:"error", message:"#{output?.stdout} #{output?.stderr} #{err}")
+                    else
                         alert_message(type:"info", message:"Created new file '#{p}'")
                         @display_tab("project-editor")
                         tab = @editor.create_tab(filename:p, content:"")

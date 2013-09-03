@@ -22,7 +22,7 @@ def new_file(path):
 
     base, filename = os.path.split(path)
 
-    if not os.path.exists(base):
+    if base and not os.path.exists(base):
         os.makedirs(base)
 
     ext = os.path.splitext(path)[1]
