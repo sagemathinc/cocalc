@@ -963,7 +963,11 @@ class ProjectPage
             create_file('tex')
             return false
 
-        BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws', 'ipynb']
+        @new_file_tab.find("a[href=#new-ipython]").click () =>
+            create_file('ipynb')
+            return false
+
+        BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
 
         create_file = (ext) =>
             p = path(ext)

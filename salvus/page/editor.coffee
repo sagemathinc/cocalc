@@ -3050,18 +3050,11 @@ class Image extends FileEditor
 #**************************************************
 
 class IPythonNotebookServer
-    constructor: (@project_id, @filename, opts={}) ->
-        @opts = defaults opts,
-            sage : true
+    constructor: (@project_id, @filename) ->
         @path = path_split(@filename).head
 
     start_server: (cb) =>  # cb(err, base url)
-        if @opts.sage
-            ext = "--ext=sage.misc.sage_extension"
-        else
-            ext = ""
-
-        cmd = "ipython-notebook #{ext} --daemon"
+        cmd = "ipython-notebook --daemon"
         console.log(cmd)
         salvus_client.exec
             project_id : @project_id
@@ -3083,12 +3076,12 @@ class IPythonNotebookServer
                             return
                         $.get(base, (data) ->
                             if 'ECONNREFUSED' in data
-                                delay *= 1.3
+                                delay *= 1.2
                                 setTimeout(f, delay)
                             else
                                 cb(false, base)
                         ).fail(() ->
-                            delay *= 1.3
+                            delay *= 1.2
                             setTimeout(f, delay)
                         )
                     setTimeout(f, delay)
@@ -3121,10 +3114,30 @@ class IPythonNotebook extends FileEditor
             if err
                 alert_message(type:"error", message:"Unable to start Ipython server -- #{url}")
                 return
-            @iframe = $("<iframe>").attr('src', url + @file)
+            @iframe_uuid = misc.uuid()
+            @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', url + @file)
             @notebook.html('').append(@iframe)
-            @show()
             con.show().icon_spin(false).hide()
+            @show()
+
+            # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
+            # instead of messing up our embedded view.
+            attempts = 0
+            f = () =>
+                attempts += 1
+                if attempts >= 100
+                    # just give up -- this isn't at all critical; don't want to waste resources.
+                    return
+                @frame = window.frames[@iframe_uuid]
+                if not @frame? or not @frame.$?
+                    setTimeout(f, 100)
+                else
+                    a = @frame.$("#ipython_notebook").find("a")
+                    if a.length == 0
+                        setTimeout(f, 100)
+                    else
+                        a.attr('target', '_blank')
+            setTimeout(f, 100)
 
     show: () =>
         @element.show()
