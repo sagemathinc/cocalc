@@ -648,6 +648,7 @@ class exports.Editor
         #        setTimeout( (() -> ignore_clicks=false), 100)
 
         @tabs[filename].open_file_pill = link
+        @tabs[filename].close_tab = close_tab
 
         link_bar.append(link)
         @resize_open_file_tabs()
@@ -708,6 +709,7 @@ class exports.Editor
             tab.editor().remove()
 
         tab.link.remove()
+        tab.close_tab?()
         delete @tabs[filename]
         @update_counter()
 
@@ -3087,7 +3089,7 @@ class IPythonNotebookServer
 
     stop_server: (cb) =>
         if not @info?.pid?
-            cb(); return
+            cb?(); return
         salvus_client.exec
             project_id : @project_id
             path       : @path
@@ -3095,7 +3097,7 @@ class IPythonNotebookServer
             args       : ['stop']
             bash       : false
             timeout    : 15
-            cb         : cb
+            cb         : (err, output) => cb?(err)
 
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
@@ -3106,12 +3108,15 @@ class IPythonNotebook extends FileEditor
         @file = s.tail
         @server = new IPythonNotebookServer(@editor.project_id, @path)
 
+        @init_buttons()
+
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
 
         con = @element.find(".salvus-ipython-notebook-connecting")
         con.show().icon_spin(start:true)
         @server.start_server (err, url) =>
+            @url = url
             con.show().icon_spin(false).hide()
             if err
                 alert_message(type:"error", message:"Unable to start IPython server -- #{url}")
@@ -3140,6 +3145,26 @@ class IPythonNotebook extends FileEditor
                         a.attr('target', '_blank')
                         @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
             setTimeout(f, 100)
+
+    init_buttons: () =>
+        @element.find("a[href=#stop]").click () =>
+            bootbox.confirm "Stop the IPython Notebook server and save and close this file?", (result) =>
+                if result
+                    @save()
+                    f = () =>
+                        @server.stop_server
+                        @editor.close(@filename)
+                    setTimeout(f, 3000)  # should be long enough to get save message.
+            return false
+
+        @element.find("a[href=#info]").click () =>
+            t = "<h3>IPython Notebook Server serving notebooks in #{@path}</h3><hr>"
+            t += "Dashboard URL (accessible to project collaborators): <a target='_blank' href='https://cloud.sagemath.com#{@url}'>https://cloud.sagemath.com#{@url}</a><hr>"
+            bootbox.alert(t)
+            return false
+
+    save: () =>
+        # not implemented
 
     show: () =>
         @element.show()

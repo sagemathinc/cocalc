@@ -1,3 +1,19 @@
+
+
+        @server_switch = @element.find(".salvus-ipython-notebook-server-switch").bootstrapSwitch()
+
+        @server_switch.on 'switch-change', (e, data) =>
+            @server_switch.icon_spin(start:true)
+            if data.value
+                @server.start_server (err, url) =>
+                    @server_switch.icon_spin(false)
+            else
+                @server.start_server (err, url) =>
+                    @server_switch.icon_spin(false)
+
+
+
+
 @remove_cell_flags_from_text(changeObj.text)
 
 
