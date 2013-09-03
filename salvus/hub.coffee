@@ -2468,7 +2468,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     winston.debug("local_hub restart: skipping killall since this user #{@username} is clearly not a cloud.sagemath project :-)")
                     cb()
                 else
-                    @killall(cb)
+                    @_restart_lock = false
+                    @killall () =>
+                        @_restart_lock = true
+                        cb()                    
             (cb) =>
                 winston.debug("local_hub restart: Push latest version of code to remote machine...")
                 @_push_local_hub_code (err) =>
@@ -2976,12 +2979,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err)
 
     killall: (cb) =>
-        winston.debug("kill all processes running on this local hub (including the local hub itself)")
+        winston.debug("kill all processes running on a local hub (including the local hub itself)")
         @_exec_on_local_hub
             command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
             cb      : (err, out) =>
+                winston.debug("killall returned -- #{err}, #{misc.to_json(out)}")
                 # We explicitly ignore errors since killall kills self while at it.
                 cb()
 

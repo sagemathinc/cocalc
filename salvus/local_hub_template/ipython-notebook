@@ -1,14 +1,34 @@
 #!/usr/bin/env python
 
-import json, os, random, sys, time
+######################################################################
+# This is a daemon-ization script for the IPython notebook, for running
+# it under a specific URL behind a given proxy server.  It is probably
+# only of use directly in https://cloud.sagemath.com.
+#
+# Copyright (c) 2013, William Stein, All rights reserved.
+# 2-clause BSD:
+# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+# 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# The views and conclusions contained in the software and documentation are those of the authors and should not be interpreted as representing official policies, either expressed or implied, of the SageMath Project.
+######################################################################
 
-#### First a version check, which is critical due to base url bug(s).
 
-if os.popen('ipython --version').read().startswith('0.'):
-    print json.dumps({"error":"You *must* use IPython version at least 1.0.0, due to show stopper bugs in base_url in all previous versions."})
+import json, os, random, signal, sys, time
+
+# When run in Daemon mode, it stores info (e.g., pid, port) in this file, in addition to printing
+# to standard out.  This avoids starting a redundant copy of the daemon, if one is already running.
+DAEMON_FILE = ".ipython-deamon.json"
+
+if len(sys.argv) == 1:
+    print "Usage: %s [start/stop/run] normal ipython notebook options..."%sys.argv[0]
+    print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
     sys.exit(1)
 
-####
+mode = sys.argv[1]
+del sys.argv[1]
+
 
 info = json.loads(open(os.path.join(os.environ['HOME'], '.sagemathcloud', 'info.json')).read())
 
@@ -35,48 +55,83 @@ if '--help' in ''.join(sys.argv):
     os.system("ipython " + ' '.join(sys.argv))
     sys.exit(0)
 
-daemon = '--daemon' in sys.argv
-if daemon:
-    i = sys.argv.index('--daemon')
-    del sys.argv[i]
+def action():
+    cmd, base, port = command()
 
-cmd, base, port = command()
+    if mode == 'start':
 
-if daemon:
+        if os.path.exists(DAEMON_FILE):
+            try:
+                s = open(DAEMON_FILE).read()
+                info = json.loads(s)
+                try:
+                    os.kill(info['pid'],0)
+                    # process exists
+                    print s
+                    return
+                except OSError:
+                    # error if no process -- just pass through
+                    pass
+            except:
+                # status file corrupted, so ignore it, and
+                # just fall through to the below....
+                pass
 
-    # The below approach to finding the PID is *HIDEOUS* and could in theory break.
-    # It is the only way I could come up with to do this without modifying source code of ipython :-(
-    # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
+        #### First a version check, which is critical due to base url bug(s).
 
-    c = '%s 2>/dev/null >/dev/null &'%cmd
-    os.system(c)
-
-    tries = 0
-    pid = 0
-    while not pid:
-        tries += 1
-        if tries >= 50:
-            print json.dumps({"error":"Failed to find pid of subprocess."})
+        if os.popen('ipython --version').read().startswith('0.'):
+            print json.dumps({"error":"You *must* use IPython version at least 1.0.0, due to show stopper bugs in base_url in all previous versions."})
             sys.exit(1)
 
-        c = "ps -u`whoami` -o pid,cmd|grep port=%s"%port
-        for s in os.popen(c).read().splitlines():
-            if '/ipython notebook' in s:
-                pid = int(s.split()[0])
-                break
+        ####
 
-        if not pid:
-            time.sleep(.2)
-            continue
+        # The below approach to finding the PID is *HIDEOUS* and could in theory break.
+        # It is the only way I could come up with to do this without modifying source code of ipython :-(
+        # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
 
-    print json.dumps({'base':base, 'port':port, 'pid':pid})
+        c = '%s 2>/dev/null >/dev/null &'%cmd
+        os.system(c)
 
-else:
-    print cmd + '\n\n'
-    print "*"*80 + '\n'
-    print "  The IPython Notebook server is running at \n"
-    print "      https://cloud.sagemath.com%s\n"%base
-    print "  All collaborators on this project may access the notebook at the"
-    print "  above SSL-encrypted URL, but nobody else can access it."
-    print '\n\n' + "*"*80 + '\n\n'
-    os.system(cmd + "  2>&1 | grep -v running ")
+        tries = 0
+        pid = 0
+        while not pid:
+            tries += 1
+            if tries >= 50:
+                print json.dumps({"error":"Failed to find pid of subprocess."})
+                sys.exit(1)
+
+            c = "ps -u`whoami` -o pid,cmd|grep port=%s"%port
+            for s in os.popen(c).read().splitlines():
+                if '/ipython notebook' in s:
+                    pid = int(s.split()[0])
+                    break
+
+            if not pid:
+                time.sleep(.2)
+                continue
+
+        s = json.dumps({'base':base, 'port':port, 'pid':pid})
+        print s
+        open(DAEMON_FILE,'w').write(s)
+
+    elif mode == 'stop':
+        if os.path.exists(DAEMON_FILE):
+            info = json.loads(open(DAEMON_FILE).read())
+            # IPython server seems rock solid about responding to kill signals and properly cleaning up.
+            try:
+                os.kill(info['pid'], signal.SIGTERM)
+            except OSError:  # maybe already dead
+                pass
+            os.unlink(DAEMON_FILE)
+
+    elif mode == 'run':
+        print cmd + '\n\n'
+        print "*"*80 + '\n'
+        print "  The IPython Notebook server is running at \n"
+        print "      https://cloud.sagemath.com%s\n"%base
+        print "  All collaborators on this project may access the notebook at the"
+        print "  above SSL-encrypted URL, but nobody else can access it."
+        print '\n\n' + "*"*80 + '\n\n'
+        os.system(cmd + "  2>&1 | grep -v running ")
+
+action()

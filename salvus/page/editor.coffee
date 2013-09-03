@@ -3050,20 +3050,19 @@ class Image extends FileEditor
 #**************************************************
 
 class IPythonNotebookServer
-    constructor: (@project_id, @filename) ->
-        @path = path_split(@filename).head
+    constructor: (@project_id, @path) ->  # path = a directory where server serves files from
 
     start_server: (cb) =>  # cb(err, base url)
-        cmd = "ipython-notebook --daemon"
-        console.log(cmd)
         salvus_client.exec
             project_id : @project_id
             path       : @path
-            command    : cmd
-            bash       : true
+            command    : "ipython-notebook"
+            args       : ['start']
+            bash       : false
             timeout    : 15
             err_on_exit: true
             cb         : (err, output) =>
+                console.log(err, output)
                 if err
                     cb(err)
                 else
@@ -3092,8 +3091,10 @@ class IPythonNotebookServer
         salvus_client.exec
             project_id : @project_id
             path       : @path
-            command    : "kill"
-            args       : [@pid]
+            command    : "ipython-notebook"
+            args       : ['stop']
+            bash       : false
+            timeout    : 15
             cb         : cb
 
 class IPythonNotebook extends FileEditor
@@ -3103,7 +3104,7 @@ class IPythonNotebook extends FileEditor
         s = path_split(@filename)
         @path = s.head
         @file = s.tail
-        @server = new IPythonNotebookServer(@editor.project_id, @path + "/ipython.ipynb-server")
+        @server = new IPythonNotebookServer(@editor.project_id, @path)
 
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
@@ -3111,13 +3112,13 @@ class IPythonNotebook extends FileEditor
         con = @element.find(".salvus-ipython-notebook-connecting")
         con.show().icon_spin(start:true)
         @server.start_server (err, url) =>
+            con.show().icon_spin(false).hide()
             if err
-                alert_message(type:"error", message:"Unable to start Ipython server -- #{url}")
+                alert_message(type:"error", message:"Unable to start IPython server -- #{url}")
                 return
             @iframe_uuid = misc.uuid()
             @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', url + @file)
             @notebook.html('').append(@iframe)
-            con.show().icon_spin(false).hide()
             @show()
 
             # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
