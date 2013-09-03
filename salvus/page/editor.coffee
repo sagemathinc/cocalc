@@ -94,11 +94,6 @@ file_associations['term'] =
     icon   : 'icon-credit-card'
     opts   : {}
 
-file_associations['ipynb-server'] =
-    editor : 'ipynb-server'
-    icon   : 'icon-list-ul'
-    opts   : {}
-
 file_associations['ipynb'] =
     editor : 'ipynb'
     icon   : 'icon-list-ul'
@@ -568,8 +563,6 @@ class exports.Editor
                 editor = new LatexEditor(@, filename, content, extra_opts)
             when 'pdf'
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
-            when 'ipynb-server'
-                editor = new IPythonNotebookServerControl(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new IPythonNotebook(@, filename, content, extra_opts)
             else
@@ -3052,9 +3045,9 @@ class Image extends FileEditor
         @element.find(".salvus-editor-image-container").maxheight()
 
 
-###
+#**************************************************
 # IPython Support
-###
+#**************************************************
 
 class IPythonNotebookServer
     constructor: (@project_id, @filename, opts={}) ->
@@ -3110,38 +3103,11 @@ class IPythonNotebookServer
             args       : [@pid]
             cb         : cb
 
-
-class IPythonNotebookServerControl extends FileEditor
-    constructor: (@editor, @filename, url, opts) ->
-        opts = @opts = defaults opts,{}
-        @element = templates.find(".salvus-ipython-notebook-server").clone()
-        @element.find(".salvus-ipython-filename").text(@filename)
-        @path = path_split(@filename).head
-        @server = new IPythonNotebookServer(@editor.project_id, @filename)
-
-        # This is where we put the dashboard
-        @dashboard = @element.find(".salvus-ipython-dashboard")
-
-        @server.start_server (err, url) =>
-            console.log("start server -- got back: ", err, url)
-            if err
-                # TODO: temporary
-                alert_message(type:"error", message:"Unable to start Ipython server -- #{url}")
-                return
-            @iframe = $("<iframe>").attr('src', url)
-            @dashboard.html('').append(@iframe)
-            @show()
-
-    show: () =>
-        @element.show()
-        @iframe?.attr('width',$(window).width()).maxheight()
-
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts, {}
         @element = templates.find(".salvus-ipython-notebook").clone()
         s = path_split(@filename)
-        #@element.find(".salvus-ipython-filename").text(@filename)
         @path = s.head
         @file = s.tail
         @server = new IPythonNotebookServer(@editor.project_id, @path + "/ipython.ipynb-server")
@@ -3153,7 +3119,6 @@ class IPythonNotebook extends FileEditor
         con.show().icon_spin(start:true)
         @server.start_server (err, url) =>
             if err
-                # TODO: temporary
                 alert_message(type:"error", message:"Unable to start Ipython server -- #{url}")
                 return
             @iframe = $("<iframe>").attr('src', url + @file)
@@ -3165,6 +3130,9 @@ class IPythonNotebook extends FileEditor
         @element.show()
         @iframe?.attr('width',$(window).width()).maxheight()
 
+#**************************************************
+# other...
+#**************************************************
 
 
 class Spreadsheet extends FileEditor
