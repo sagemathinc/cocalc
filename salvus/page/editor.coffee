@@ -3137,11 +3137,13 @@ class IPythonNotebook extends FileEditor
                         setTimeout(f, 100)
                     else
                         a.attr('target', '_blank')
+                        @frame.$('<style type=text/css></style>').html("#notebook-container{width:98%}").appendTo(@frame.$("body"))
             setTimeout(f, 100)
 
     show: () =>
         @element.show()
-        @iframe?.attr('width',$(window).width()).maxheight()
+        w = $(window).width()
+        @iframe?.attr('width',w).maxheight()
 
 #**************************************************
 # other...
