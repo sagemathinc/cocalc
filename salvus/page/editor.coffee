@@ -3062,35 +3062,54 @@ class IPythonNotebookServer
             sage : true
         @path = path_split(@filename).head
 
-    start_server: (cb) =>  # cb(err, url)
-
-        # we simply try a random port and if it doesn't work, we try another one (not implemented yet!)
-        port = misc.randint(1025, 65535)
-        ip = "localhost" # TODO -- just for local dev for now
-        base = "/#{@project_id}/port/#{port}/"
+    start_server: (cb) =>  # cb(err, base url)
         if @opts.sage
             ext = "--ext=sage.misc.sage_extension"
         else
             ext = ""
 
-        cmd = "exec ipython notebook #{ext} --pylab=inline --matplotlib=inline --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=#{base} --NotebookApp.base_kernel_url=#{base} --ip=#{ip} --port=#{port} >out 2>err&"
+        cmd = "ipython-notebook #{ext} --daemon"
         console.log(cmd)
         salvus_client.exec
             project_id : @project_id
             path       : @path
-            command    : 
+            command    : cmd
             bash       : true
             timeout    : 15
             err_on_exit: true
             cb         : (err, output) =>
-                console.log(err, output)
-                f = () ->
-                    cb(false, base)
-                # TODO -- we need to pull the url until it works, then return.
-                setTimeout(f, 2000)
+                if err
+                    cb(err)
+                else
+                    delay = 100
+                    @info = misc.from_json(output.stdout)
+                    {base, pid, port} = @info
+                    f = () =>
+                        if delay >= 10000  # too many attempts
+                            cb("unable to connect to remote server")
+                            return
+                        $.get(base, (data) ->
+                            if 'ECONNREFUSED' in data
+                                delay *= 1.3
+                                setTimeout(f, delay)
+                            else
+                                cb(false, base)
+                        ).fail(() ->
+                            delay *= 1.3
+                            setTimeout(f, delay)
+                        )
+                    setTimeout(f, delay)
 
     stop_server: (cb) =>
-        # Stop server
+        if not @info?.pid?
+            cb(); return
+        salvus_client.exec
+            project_id : @project_id
+            path       : @path
+            command    : "kill"
+            args       : [@pid]
+            cb         : cb
+
 
 class IPythonNotebookServerControl extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
@@ -3130,8 +3149,9 @@ class IPythonNotebook extends FileEditor
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
 
+        con = @element.find(".salvus-ipython-notebook-connecting")
+        con.show().icon_spin(start:true)
         @server.start_server (err, url) =>
-            console.log("start server got back: ", err, url)
             if err
                 # TODO: temporary
                 alert_message(type:"error", message:"Unable to start Ipython server -- #{url}")
@@ -3139,6 +3159,7 @@ class IPythonNotebook extends FileEditor
             @iframe = $("<iframe>").attr('src', url + @file)
             @notebook.html('').append(@iframe)
             @show()
+            con.show().icon_spin(false).hide()
 
     show: () =>
         @element.show()

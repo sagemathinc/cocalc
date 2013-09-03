@@ -2,8 +2,6 @@
 
 import json, os, random, sys, time
 
-print os.getpid()
-
 info = json.loads(open(os.path.join(os.environ['HOME'], '.sagemathcloud', 'info.json')).read())
 
 project_id = info['project_id']
@@ -29,12 +27,13 @@ if '--help' in ''.join(sys.argv):
     os.system("ipython " + ' '.join(sys.argv))
     sys.exit(0)
 
-daemon = False
-for i in range(1,len(sys.argv)):
-    if sys.argv[i].startswith('--daemon='):
-        daemon = sys.argv[i][9:]
-        del sys.argv[i]
-        break
+i = sys.argv.index('--daemon')
+if i != -1:
+    daemon = True
+    del sys.argv[i]
+else:
+    daemon = False
+
 
 cmd, base, port = command()
 
@@ -45,7 +44,6 @@ if daemon:
     # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
 
     c = '%s 2>/dev/null >/dev/null &'%cmd
-    print c
     os.system(c)
 
     tries = 0
@@ -53,7 +51,7 @@ if daemon:
     while not pid:
         tries += 1
         if tries >= 50:
-            print "Failed to find pid of subproc"
+            print json.dumps({"error":"Failed to find pid of subprocess."})
             sys.exit(1)
 
         c = "ps -u`whoami` -o pid,cmd|grep port=%s"%port
@@ -66,8 +64,7 @@ if daemon:
             time.sleep(.2)
             continue
 
-    print "pid = ", pid
-    open(daemon, 'w').write(json.dumps({'base':base, 'port':port, 'pid':pid}))
+    print json.dumps({'base':base, 'port':port, 'pid':pid})
 
 else:
     print cmd + '\n\n'
