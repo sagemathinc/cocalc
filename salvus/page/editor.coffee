@@ -3137,7 +3137,7 @@ class IPythonNotebook extends FileEditor
                         setTimeout(f, 100)
                     else
                         a.attr('target', '_blank')
-                        @frame.$('<style type=text/css></style>').html("#notebook-container{width:98%}").appendTo(@frame.$("body"))
+                        @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
             setTimeout(f, 100)
 
     show: () =>
