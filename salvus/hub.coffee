@@ -3261,6 +3261,8 @@ class Project
                         @location = location
                         winston.debug("Location of project #{@project_id} is #{misc.to_json(@location)}")
                         cb(err)
+
+            # Get a connection to the local hub
             (cb) =>
                 new_local_hub
                     username : @location.username
@@ -3272,6 +3274,14 @@ class Project
                         else
                             @local_hub = hub
                             cb()
+            # Write the project id to the local hub unix account, since it is useful to
+            # have there (for various services).
+            (cb) =>
+                @write_file
+                    path : ".sagemathcloud/project_id"
+                    project_id : @project_id
+                    data       : @project_id
+                    cb         : cb
         ], (err) => cb(err, @))
 
     _fixpath: (obj) =>
