@@ -3127,7 +3127,7 @@ class IPythonNotebook extends FileEditor
             project_id : @editor.project_id
             filename   : @filename
             cb         : () =>
-                console.log('sync connected')
+
 
         @doc.on 'sync', @doc_sync
 
@@ -3172,12 +3172,10 @@ class IPythonNotebook extends FileEditor
                             if a.length == 0
                                 setTimeout(f, 100)
                             else
-                                console.log("HI!")
                                 a.attr('target', '_blank')
                                 @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
                                 @_save_checkpoint = @frame.IPython.notebook.save_checkpoint
-                                console.log(@_save_checkpoint)
-                                @frame.IPython.notebook.save_checkpoint = @save_checkpoint
+                                @frame.IPython.notebook.save_checkpoint = @save
                                 #try
                                 g = () =>
                                     @doc_sync()
@@ -3190,13 +3188,12 @@ class IPythonNotebook extends FileEditor
                     setTimeout(f, 100)
 
     autosync: () =>
-        console.log("autosync")
         if @frame.IPython.notebook.dirty
-            @save_checkpoint()
+            @save_button.removeClass('disabled')
+            @sync()
             @frame.IPython.notebook.dirty = false
 
-    save_checkpoint: () =>
-        console.log("save checkpoint!")
+    sync: () =>
         obj = @to_obj()
         v1 = misc.to_json(obj)
         @doc.live(v1)
@@ -3204,8 +3201,17 @@ class IPythonNotebook extends FileEditor
         @doc.sync () =>
             @save_button.icon_spin(false)
 
+    save: (cb) =>
+        obj = @to_obj()
+        v1 = misc.to_json(obj)
+        @doc.live(v1)
+        @save_button.icon_spin(start:true,delay:500)
+        @doc.save () =>
+            @save_button.icon_spin(false)
+            @save_button.addClass('disabled')
+            cb?()
+
     doc_sync: () =>
-        console.log("doc sync")
 
         v1 = @doc.live()
 
@@ -3227,15 +3233,15 @@ class IPythonNotebook extends FileEditor
                 return
 
     merge_objs: (obj1, obj2) =>  # may modify objs
-        console.log("obj1 = ", obj1)
-        console.log("obj2 = ", obj2)
+        #console.log("obj1 = ", obj1)
+        #console.log("obj2 = ", obj2)
         cells = obj1.worksheets[0].cells
 
         return obj1
 
     init_buttons: () =>
         @save_button = @element.find("a[href=#save]").click () =>
-            @save_checkpoint()
+            @save()
             return false
 
         @element.find("a[href=#info]").click () =>
@@ -3253,9 +3259,6 @@ class IPythonNotebook extends FileEditor
         @element.find("a[href=#json]").click () =>
             console.log(@to_obj())
 
-    save: () =>
-        @frame.IPython.notebook.save_checkpoint()
-
     to_obj: () =>
         nb = @frame.IPython.notebook
         obj = nb.toJSON()
@@ -3271,7 +3274,7 @@ class IPythonNotebook extends FileEditor
 
     focus: () =>
         # TODO
-        console.log("ipython notebook focus: todo")
+        # console.log("ipython notebook focus: todo")
 
 
     show: () =>
