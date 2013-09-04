@@ -5,6 +5,11 @@
 ##########################################################################
 #
 
+
+# true if s.startswith(c)
+exports.startswith = (s, c) ->
+    return s.indexOf(c) == 0
+
 exports.merge = (dest, objs ...) ->
     for obj in objs
         dest[k] = v for k, v of obj
