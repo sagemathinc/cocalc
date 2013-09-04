@@ -3381,8 +3381,14 @@ class IPythonNotebook extends FileEditor
 
     from_obj: (obj) =>
         nb = @frame.IPython.notebook
+        i = nb.get_selected_index()
+        console.log("cell = ", i)
+        st = nb.element.scrollTop()
+        console.log("st = ", st)
         nb.fromJSON(obj)
         nb.dirty = false
+        nb.element.scrollTop(st)
+        nb.select(i)
 
     focus: () =>
         # TODO
