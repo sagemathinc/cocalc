@@ -3240,12 +3240,17 @@ class IPythonNotebook extends FileEditor
                             @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
 
                             # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
-                            @frame.$("#menus").find("li:first").remove()
+                            for cmd in ['new', 'open', 'copy', 'rename']
+                                @frame.$("#" + cmd + "_notebook").remove()
+                            @frame.$("#kill_and_exit").remove()
+                            @frame.$("#save_checkpoint").remove()
+                            @frame.$("#restore_checkpoint").remove()
+                            @frame.$("#menus").find("li:first").find(".divider").remove()
 
                             @frame.$("#autosave_status").remove()
                             @frame.$("#checkpoint_status").remove()
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
-                            @_save_checkpoint = @frame.IPython.notebook.save_checkpoint
+                            @frame.IPython.notebook._save_checkpoint = @frame.IPython.notebook.save_checkpoint
                             @frame.IPython.notebook.save_checkpoint = @save
                             g = () =>
                                 @doc_sync()
@@ -3317,16 +3322,19 @@ class IPythonNotebook extends FileEditor
         bootbox.alert(t)
         return false
 
+    reload: () =>
+        @reload_button.icon_spin(true)
+        @save () =>
+            @initialize (err) =>
+                @reload_button.icon_spin(false)
+
     init_buttons: () =>
         @save_button = @element.find("a[href=#save]").click () =>
             @save()
             return false
 
-        @save_button = @element.find("a[href=#reload]").click () =>
-            @save_button.icon_spin(true)
-            @save () =>
-                @initialize (err) =>
-                    @save_button.icon_spin(false)
+        @reload_button = @element.find("a[href=#reload]").click () =>
+            @reload()
             return false
 
         @element.find("a[href=#json]").click () =>
