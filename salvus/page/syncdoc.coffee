@@ -236,6 +236,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     # "sync(cb)": keep trying to synchronize until success; then do cb()
     # _sync(cb) -- try once to sync; on any error cb(err).
     _sync: (cb) =>
+        @_presync?()
         snapshot = @live()
         @dsync_client.push_edits (err) =>
             if err

@@ -3145,7 +3145,44 @@ class IPythonNotebook extends FileEditor
             filename   : @filename
             cb         : () =>
 
-        @doc.on 'sync', @doc_sync
+
+                ###
+                @doc.live = (s) =>
+                    if not s?
+                        console.log("returning live")
+                        return misc.to_json(@to_obj())
+                    else
+                        try
+                            console.log("setting live")
+                            @from_obj(JSON.parse(s))
+                        catch e
+                            console.log("doc.live setting problem", e)
+                ###
+
+                #@doc.on 'sync', @doc_sync
+
+                @doc._presync = () =>
+                    console.log("about to sync")
+                    @doc.live(misc.to_json(@to_obj()))
+
+                apply_edits = @doc.dsync_client._apply_edits_to_live
+
+                @doc.dsync_client._apply_edits_to_live = (patch, cb) =>
+                    console.log("_apply_edits_to_live -- #{JSON.stringify(patch)}")
+                    obj = @to_obj()
+                    before = misc.to_json(obj)
+                    @doc.dsync_client.live = before
+                    apply_edits(patch)
+                    if @doc.dsync_client.live != before
+                        try
+                            @from_obj(JSON.parse(@doc.dsync_client.live))
+                        catch e
+                            @doc.dsync_client.live = before
+                            @from_obj(obj)
+                    else
+                        console.log("patch rejected")
+                    cb?()
+
 
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
@@ -3253,56 +3290,49 @@ class IPythonNotebook extends FileEditor
                             @frame.IPython.notebook._save_checkpoint = @frame.IPython.notebook.save_checkpoint
                             @frame.IPython.notebook.save_checkpoint = @save
                             g = () =>
-                                @doc_sync()
-                            setTimeout(g, 250)  # TODO --
+                                @set_live_from_syncdoc()
+                            setTimeout(g, 500)  # TODO --
                             setInterval(@autosync, 3000)
                             cb()
+
                 setTimeout(f, 100)
 
     autosync: () =>
         if @frame?.IPython?.notebook?.dirty
+            console.log("autosync")
             @save_button.removeClass('disabled')
             @sync()
             @frame.IPython.notebook.dirty = false
 
     sync: () =>
-        obj = @to_obj()
-        v1 = misc.to_json(obj)
-        @doc.live(v1)
+        #obj = @to_obj()
+        #v1 = misc.to_json(obj)
+        #@doc.live(v1)
         @save_button.icon_spin(start:true,delay:1000)
+        console.log("starting sync")
         @doc.sync () =>
+            console.log("did sync")
             @save_button.icon_spin(false)
 
     save: (cb) =>
-        obj = @to_obj()
-        v1 = misc.to_json(obj)
-        @doc.live(v1)
+        #obj = @to_obj()
+        #v1 = misc.to_json(obj)
+        #@doc.live(v1)
         @save_button.icon_spin(start:true,delay:500)
         @doc.save () =>
             @save_button.icon_spin(false)
             @save_button.addClass('disabled')
             cb?()
 
-    doc_sync: () =>
-
-        v1 = @doc.live()
-
-        obj2 = @to_obj()
-        v2 = misc.to_json(obj2)
-
-        if v1 != v2
+    set_live_from_syncdoc: () =>
+        obj = @to_obj()
+        before = misc.to_json(obj)
+        if @doc.dsync_client.live != before
             try
-                obj1 = JSON.parse(v1)
-                # valid ipython notebook json, now merging and setting
-                obj3 = @merge_objs(obj1, obj2)
-                @from_obj(obj3)
+                @from_obj(JSON.parse(@doc.dsync_client.live))
             catch e
-                console.log("invalid json or format corrupted, so resetting ", e)
-                @doc.live(v2)  # definitely good version
-                @doc.sync () =>
-                    @doc.live(v2)
-                    @doc.sync()
-                return
+                @doc.dsync_client.live = before
+                @from_obj(obj)  # just in case of corruption half way through.
 
     merge_objs: (obj1, obj2) =>  # may modify objs
         cells = obj1.worksheets[0].cells
