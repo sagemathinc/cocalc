@@ -3245,7 +3245,7 @@ class IPythonNotebook extends FileEditor
                 if err
                     cb(err); return
                 @iframe_uuid = misc.uuid()
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', @server.url + @notebook_id)
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.2').attr('src', @server.url + @notebook_id)
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -3253,12 +3253,13 @@ class IPythonNotebook extends FileEditor
                 # instead of messing up our embedded view.
                 attempts = 0
                 f = () =>
+                    console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
                     attempts += 1
                     if attempts >= 100
                         # just give up -- this isn't at all critical; don't want to waste resources.
                         return
                     @frame = window.frames[@iframe_uuid]
-                    if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook?
+                    if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
                         setTimeout(f, 100)
                     else
                         a = @frame.$("#ipython_notebook").find("a")
@@ -3289,10 +3290,10 @@ class IPythonNotebook extends FileEditor
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
                             @frame.IPython.notebook._save_checkpoint = @frame.IPython.notebook.save_checkpoint
                             @frame.IPython.notebook.save_checkpoint = @save
-                            g = () =>
-                                @set_live_from_syncdoc()
-                            setTimeout(g, 500)  # TODO --
-                            setInterval(@autosync, 3000)
+                            @set_live_from_syncdoc()
+                            @iframe.animate(opacity:1)
+
+                            setInterval(@autosync, 3000)  # TODO -- stop doing this when document closes!!!!
                             cb()
 
                 setTimeout(f, 100)
