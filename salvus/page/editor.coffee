@@ -3101,6 +3101,7 @@ wait_for_url_to_work = (opts) ->
             opts.cb("unable to connect to remote server")
             return
         $.get(opts.url, (data) ->
+            console.log(data.slice(0,100))
             if 'ECONNREFUSED' in data or '404: Not Found' in data
                 delay *= opts.factor
                 setTimeout(f, delay)
@@ -3164,7 +3165,7 @@ class IPythonNotebook extends FileEditor
                             # just give up -- this isn't at all critical; don't want to waste resources.
                             return
                         @frame = window.frames[@iframe_uuid]
-                        if not @frame? or not @frame.$? or not @frame.IPython.notebook?
+                        if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook?
                             setTimeout(f, 100)
                         else
                             a = @frame.$("#ipython_notebook").find("a")
@@ -3177,54 +3178,60 @@ class IPythonNotebook extends FileEditor
                                 @_save_checkpoint = @frame.IPython.notebook.save_checkpoint
                                 console.log(@_save_checkpoint)
                                 @frame.IPython.notebook.save_checkpoint = @save_checkpoint
+                                #try
+                                g = () =>
+                                    @doc_sync()
+                                setTimeout(g, 250)  # TODO --
+
+                                setInterval(@autosync, 3000)
+                                #catch e
+                                #    console.log("can't set initial version since json invalid -- #{@doc.live()}")
+
                     setTimeout(f, 100)
+
+    autosync: () =>
+        console.log("autosync")
+        if @frame.IPython.notebook.dirty
+            @save_checkpoint()
+            @frame.IPython.notebook.dirty = false
 
     save_checkpoint: () =>
         console.log("save checkpoint!")
         obj = @to_obj()
         v1 = misc.to_json(obj)
         @doc.live(v1)
-        @save_button.icon_spin(true)
-        @doc.save () =>
+        @save_button.icon_spin(start:true,delay:1000)
+        @doc.sync () =>
             @save_button.icon_spin(false)
-            return
-            ###
-            console.log("sync'd and got back.")
-            v2 = @doc.live()
-            if v1 != v2
-                console.log("new changes from afar!")
-                # here we would somehow merge the two objects obj and obj2
-                try
-                    @from_obj(misc.from_json(v2))
-                catch e
-                    console.log("invalid json, so resetting.")
-                    @doc.live(v1)
-                    @doc.save () =>
-                        @doc.save()
-            else
-                console.log("nothing new")
-            ###
 
     doc_sync: () =>
         console.log("doc sync")
+
         v1 = @doc.live()
-        obj = @to_obj()
-        v2 = misc.to_json(obj)
+
+        obj2 = @to_obj()
+        v2 = misc.to_json(obj2)
+
         if v1 != v2
-            # TODO -- here *we* would merge the objects defined by v1 and v2, then set live to that and sync it out...
             try
-                @from_obj(misc.from_json(v1))
+                obj1 = JSON.parse(v1)
+                # valid ipython notebook json, now merging and setting
+                obj3 = @merge_objs(obj1, obj2)
+                @from_obj(obj3)
             catch e
-                console.log("invalid json, so resetting ", e)
-                @from_obj(obj)
+                console.log("invalid json or format corrupted, so resetting ", e)
                 @doc.live(v2)  # definitely good version
                 @doc.sync () =>
                     @doc.live(v2)
                     @doc.sync()
+                return
 
+    merge_objs: (obj1, obj2) =>  # may modify objs
+        console.log("obj1 = ", obj1)
+        console.log("obj2 = ", obj2)
+        cells = obj1.worksheets[0].cells
 
-
-
+        return obj1
 
     init_buttons: () =>
         @save_button = @element.find("a[href=#save]").click () =>
@@ -3245,8 +3252,6 @@ class IPythonNotebook extends FileEditor
 
         @element.find("a[href=#json]").click () =>
             console.log(@to_obj())
-            @doc.sync () =>
-                console.log("live='#{@doc.live()}'")
 
     save: () =>
         @frame.IPython.notebook.save_checkpoint()
@@ -3254,15 +3259,19 @@ class IPythonNotebook extends FileEditor
     to_obj: () =>
         nb = @frame.IPython.notebook
         obj = nb.toJSON()
-        obj.metadata.name = nb.notebook_name
-        obj.nbformat = nb.nbformat
+        obj.metadata.name  = nb.notebook_name
+        obj.nbformat       = nb.nbformat
         obj.nbformat_minor = nb.nbformat_minor
         return obj
 
     from_obj: (obj) =>
         nb = @frame.IPython.notebook
         nb.fromJSON(obj)
+        nb.dirty = false
 
+    focus: () =>
+        # TODO
+        console.log("ipython notebook focus: todo")
 
 
     show: () =>
