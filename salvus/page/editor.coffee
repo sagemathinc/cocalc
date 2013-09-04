@@ -3064,28 +3064,15 @@ class IPythonNotebookServer
             timeout    : 15
             err_on_exit: true
             cb         : (err, output) =>
-                console.log(err, output)
                 if err
                     cb(err)
                 else
                     delay = 100
                     @info = misc.from_json(output.stdout)
                     {base, pid, port} = @info
-                    f = () =>
-                        if delay >= 10000  # too many attempts
-                            cb("unable to connect to remote server")
-                            return
-                        $.get(base, (data) ->
-                            if 'ECONNREFUSED' in data
-                                delay *= 1.2
-                                setTimeout(f, delay)
-                            else
-                                cb(false, base)
-                        ).fail(() ->
-                            delay *= 1.2
-                            setTimeout(f, delay)
-                        )
-                    setTimeout(f, delay)
+                    wait_for_url_to_work
+                        url : base
+                        cb  : (err) => cb(err, base)
 
     stop_server: (cb) =>
         if not @info?.pid?
@@ -3101,16 +3088,48 @@ class IPythonNotebookServer
                 console.log(err, output)
                 cb?(err)
 
+wait_for_url_to_work = (opts) ->
+    opts = defaults opts,
+        url           : required
+        initial_delay : 100
+        max_delay     : 15000     # once delay hits this, give up
+        factor        : 1.2       # for exponential backoff
+        cb            : required  # cb(err)
+    delay = opts.initial_delay
+    f = () =>
+        if delay >= opts.max_delay  # too many attempts
+            opts.cb("unable to connect to remote server")
+            return
+        $.get(opts.url, (data) ->
+            if 'ECONNREFUSED' in data or '404: Not Found' in data
+                delay *= opts.factor
+                setTimeout(f, delay)
+            else
+                opts.cb(false)
+        ).fail(() ->
+            delay *= 1.2
+            setTimeout(f, delay)
+        )
+    f()
+
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts, {}
         @element = templates.find(".salvus-ipython-notebook").clone()
+        @init_buttons()
         s = path_split(@filename)
         @path = s.head
         @file = s.tail
         @server = new IPythonNotebookServer(@editor.project_id, @path)
 
-        @init_buttons()
+        @doc = syncdoc.synchronized_string
+            project_id : @editor.project_id
+            filename   : @filename
+            cb         : () =>
+                console.log('sync connected')
+
+        @doc.on 'sync', @doc_sync
+
 
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
@@ -3119,36 +3138,98 @@ class IPythonNotebook extends FileEditor
         con.show().icon_spin(start:true)
         @server.start_server (err, url) =>
             @url = url
-            con.show().icon_spin(false).hide()
             if err
                 alert_message(type:"error", message:"Unable to start IPython server -- #{url}")
+                con.show().icon_spin(false).hide()
                 return
-            @iframe_uuid = misc.uuid()
-            @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', url + @file)
-            @notebook.html('').append(@iframe)
-            @show()
 
-            # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
-            # instead of messing up our embedded view.
-            attempts = 0
-            f = () =>
-                attempts += 1
-                if attempts >= 100
-                    # just give up -- this isn't at all critical; don't want to waste resources.
-                    return
-                @frame = window.frames[@iframe_uuid]
-                if not @frame? or not @frame.$?
+            wait_for_url_to_work
+                url : url
+                cb  : (err) =>
+                    con.show().icon_spin(false).hide()
+                    if err
+                        alert_message(type:"error", message:"Unable to connect to IPython server -- #{url}")
+                        return
+                    @iframe_uuid = misc.uuid()
+                    @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', url + @file)
+                    @notebook.html('').append(@iframe)
+                    @show()
+
+                    # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
+                    # instead of messing up our embedded view.
+                    attempts = 0
+                    f = () =>
+                        attempts += 1
+                        if attempts >= 100
+                            # just give up -- this isn't at all critical; don't want to waste resources.
+                            return
+                        @frame = window.frames[@iframe_uuid]
+                        if not @frame? or not @frame.$? or not @frame.IPython.notebook?
+                            setTimeout(f, 100)
+                        else
+                            a = @frame.$("#ipython_notebook").find("a")
+                            if a.length == 0
+                                setTimeout(f, 100)
+                            else
+                                console.log("HI!")
+                                a.attr('target', '_blank')
+                                @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+                                @_save_checkpoint = @frame.IPython.notebook.save_checkpoint
+                                console.log(@_save_checkpoint)
+                                @frame.IPython.notebook.save_checkpoint = @save_checkpoint
                     setTimeout(f, 100)
-                else
-                    a = @frame.$("#ipython_notebook").find("a")
-                    if a.length == 0
-                        setTimeout(f, 100)
-                    else
-                        a.attr('target', '_blank')
-                        @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
-            setTimeout(f, 100)
+
+    save_checkpoint: () =>
+        console.log("save checkpoint!")
+        obj = @to_obj()
+        v1 = misc.to_json(obj)
+        @doc.live(v1)
+        @save_button.icon_spin(true)
+        @doc.save () =>
+            @save_button.icon_spin(false)
+            return
+            ###
+            console.log("sync'd and got back.")
+            v2 = @doc.live()
+            if v1 != v2
+                console.log("new changes from afar!")
+                # here we would somehow merge the two objects obj and obj2
+                try
+                    @from_obj(misc.from_json(v2))
+                catch e
+                    console.log("invalid json, so resetting.")
+                    @doc.live(v1)
+                    @doc.save () =>
+                        @doc.save()
+            else
+                console.log("nothing new")
+            ###
+
+    doc_sync: () =>
+        console.log("doc sync")
+        v1 = @doc.live()
+        obj = @to_obj()
+        v2 = misc.to_json(obj)
+        if v1 != v2
+            # TODO -- here *we* would merge the objects defined by v1 and v2, then set live to that and sync it out...
+            try
+                @from_obj(misc.from_json(v1))
+            catch e
+                console.log("invalid json, so resetting ", e)
+                @from_obj(obj)
+                @doc.live(v2)  # definitely good version
+                @doc.sync () =>
+                    @doc.live(v2)
+                    @doc.sync()
+
+
+
+
 
     init_buttons: () =>
+        @save_button = @element.find("a[href=#save]").click () =>
+            @save_checkpoint()
+            return false
 
         @element.find("a[href=#info]").click () =>
             p = @path
@@ -3161,6 +3242,28 @@ class IPythonNotebook extends FileEditor
             t += "Type the command <pre>ipython-notebook</pre> in a terminal to find out how to run your own IPython notebook server with custom options. For example, use <pre>cd ~/#{@path}; ipython-notebook stop</pre> to stop this notebook server."
             bootbox.alert(t)
             return false
+
+        @element.find("a[href=#json]").click () =>
+            console.log(@to_obj())
+            @doc.sync () =>
+                console.log("live='#{@doc.live()}'")
+
+    save: () =>
+        @frame.IPython.notebook.save_checkpoint()
+
+    to_obj: () =>
+        nb = @frame.IPython.notebook
+        obj = nb.toJSON()
+        obj.metadata.name = nb.notebook_name
+        obj.nbformat = nb.nbformat
+        obj.nbformat_minor = nb.nbformat_minor
+        return obj
+
+    from_obj: (obj) =>
+        nb = @frame.IPython.notebook
+        nb.fromJSON(obj)
+
+
 
     show: () =>
         @element.show()
