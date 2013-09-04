@@ -3051,10 +3051,20 @@ class Image extends FileEditor
 # IPython Support
 #**************************************************
 
-class IPythonNotebookServer
-    constructor: (@project_id, @path) ->  # path = a directory where server serves files from
+ipython_notebook_server = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required   # directory from which the files are served
+        cb         : required   # cb(err, server)
 
-    start_server: (cb) =>  # cb(err, base url)
+    I = new IPythonNotebookServer(opts.project_id, opts.path)
+    I.start_server (err, base) =>
+        opts.cb(err, I)
+
+class IPythonNotebookServer  # call ipython_notebook_server above
+    constructor: (@project_id, @path) ->
+
+    start_server: (cb) =>
         salvus_client.exec
             project_id : @project_id
             path       : @path
@@ -3067,15 +3077,24 @@ class IPythonNotebookServer
                 if err
                     cb(err)
                 else
-                    delay = 100
-                    @info = misc.from_json(output.stdout)
-                    {base, pid, port} = @info
-                    wait_for_url_to_work
-                        url : base
-                        cb  : (err) => cb(err, base)
+                    info = misc.from_json(output.stdout)
+                    @url = info.base; @pid = info.pid; @port = info.port
+                    get_with_retry
+                        url : @url
+                        cb  : cb
+
+
+    notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
+        get_with_retry
+            url : @url + 'notebooks'
+            cb  : (err, data) =>
+                if not err
+                    cb(false, misc.from_json(data))
+                else
+                    cb(err)
 
     stop_server: (cb) =>
-        if not @info?.pid?
+        if not @pid?
             cb?(); return
         salvus_client.exec
             project_id : @project_id
@@ -3088,25 +3107,24 @@ class IPythonNotebookServer
                 console.log(err, output)
                 cb?(err)
 
-wait_for_url_to_work = (opts) ->
+get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
         initial_delay : 100
         max_delay     : 15000     # once delay hits this, give up
         factor        : 1.2       # for exponential backoff
-        cb            : required  # cb(err)
+        cb            : required  # cb(err, data)  # data = content of that url
     delay = opts.initial_delay
     f = () =>
         if delay >= opts.max_delay  # too many attempts
             opts.cb("unable to connect to remote server")
             return
         $.get(opts.url, (data) ->
-            console.log(data.slice(0,100))
-            if 'ECONNREFUSED' in data or '404: Not Found' in data
+            if 'ECONNREFUSED' in data
                 delay *= opts.factor
                 setTimeout(f, delay)
             else
-                opts.cb(false)
+                opts.cb(false, data)
         ).fail(() ->
             delay *= 1.2
             setTimeout(f, delay)
@@ -3121,71 +3139,99 @@ class IPythonNotebook extends FileEditor
         s = path_split(@filename)
         @path = s.head
         @file = s.tail
-        @server = new IPythonNotebookServer(@editor.project_id, @path)
 
         @doc = syncdoc.synchronized_string
             project_id : @editor.project_id
             filename   : @filename
             cb         : () =>
 
-
         @doc.on 'sync', @doc_sync
-
 
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
 
         con = @element.find(".salvus-ipython-notebook-connecting")
         con.show().icon_spin(start:true)
-        @server.start_server (err, url) =>
-            @url = url
+        @initialize (err) =>
             if err
-                alert_message(type:"error", message:"Unable to start IPython server -- #{url}")
-                con.show().icon_spin(false).hide()
-                return
+                alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
+            con.show().icon_spin(false).hide()
 
-            wait_for_url_to_work
-                url : url
-                cb  : (err) =>
-                    con.show().icon_spin(false).hide()
-                    if err
-                        alert_message(type:"error", message:"Unable to connect to IPython server -- #{url}")
+    get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
+        if not @server?
+            cb("cannot call get_ids until connected to the ipython notebook server."); return
+        @server.notebooks (err, notebooks) =>
+            if err
+                cb(err); return
+            console.log("hunting for '#{@file}' in #{misc.to_json(notebooks)}")
+            for n in notebooks
+                if n.name + '.ipynb' == @file
+                    @kernel_id = n.kernel_id  # will be null if kernel not yet started
+                    @notebook_id = n.notebook_id
+                    cb(); return
+            cb("no ipython notebook listed by server with name '#{@file}'")
+
+    initialize: (cb) =>
+        async.series([
+            (cb) =>
+                ipython_notebook_server
+                    project_id : @editor.project_id
+                    path       : @path
+                    cb         : (err, server) =>
+                        @server = server
+                        cb(err)
+            (cb) =>
+                @get_ids(cb)
+            (cb) =>
+                @_init_iframe(cb)
+        ], cb)
+
+
+    _init_iframe: (cb) =>
+        if not @notebook_id?
+            # assumes @notebook_id has been set
+            cb("Must first call get_ids"); return
+
+        if @frame?
+            # this should only be called once
+            cb("_init_iframe should only be called once"); return
+
+        get_with_retry
+            url : @server.url
+            cb  : (err) =>
+                if err
+                    cb(err); return
+                @iframe_uuid = misc.uuid()
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', @server.url + @notebook_id)
+                @notebook.html('').append(@iframe)
+                @show()
+
+                # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
+                # instead of messing up our embedded view.
+                attempts = 0
+                f = () =>
+                    attempts += 1
+                    if attempts >= 100
+                        # just give up -- this isn't at all critical; don't want to waste resources.
                         return
-                    @iframe_uuid = misc.uuid()
-                    @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', url + @file)
-                    @notebook.html('').append(@iframe)
-                    @show()
-
-                    # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
-                    # instead of messing up our embedded view.
-                    attempts = 0
-                    f = () =>
-                        attempts += 1
-                        if attempts >= 100
-                            # just give up -- this isn't at all critical; don't want to waste resources.
-                            return
-                        @frame = window.frames[@iframe_uuid]
-                        if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook?
+                    @frame = window.frames[@iframe_uuid]
+                    if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook?
+                        setTimeout(f, 100)
+                    else
+                        a = @frame.$("#ipython_notebook").find("a")
+                        if a.length == 0
                             setTimeout(f, 100)
                         else
-                            a = @frame.$("#ipython_notebook").find("a")
-                            if a.length == 0
-                                setTimeout(f, 100)
-                            else
-                                a.attr('target', '_blank')
-                                @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
-                                @_save_checkpoint = @frame.IPython.notebook.save_checkpoint
-                                @frame.IPython.notebook.save_checkpoint = @save
-                                #try
-                                g = () =>
-                                    @doc_sync()
-                                setTimeout(g, 250)  # TODO --
-
-                                setInterval(@autosync, 3000)
-                                #catch e
-                                #    console.log("can't set initial version since json invalid -- #{@doc.live()}")
-
-                    setTimeout(f, 100)
+                            a.attr('target', '_blank')
+                            @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+                            @_save_checkpoint = @frame.IPython.notebook.save_checkpoint
+                            @frame.IPython.notebook.save_checkpoint = @save
+                            g = () =>
+                                @doc_sync()
+                            setTimeout(g, 250)  # TODO --
+                            setInterval(@autosync, 3000)
+                            cb()
+                setTimeout(f, 100)
 
     autosync: () =>
         if @frame.IPython.notebook.dirty
