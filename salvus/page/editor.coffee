@@ -3075,13 +3075,13 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             err_on_exit: true
             cb         : (err, output) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
                     info = misc.from_json(output.stdout)
                     @url = info.base; @pid = info.pid; @port = info.port
                     get_with_retry
                         url : @url
-                        cb  : cb
+                        cb  : (err, data) => cb?(err)
 
 
     notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
@@ -3202,10 +3202,6 @@ class IPythonNotebook extends FileEditor
             # assumes @notebook_id has been set
             cb("Must first call get_ids"); return
 
-        if @frame?
-            # this should only be called once
-            cb("_init_iframe should only be called once"); return
-
         get_with_retry
             url : @server.url
             cb  : (err) =>
@@ -3236,6 +3232,16 @@ class IPythonNotebook extends FileEditor
                                 @info()
                                 return false
 
+                            # Replace the IPython Notebook logo, which is for some weird reason an ugly png, with proper HTML; this ensures the size
+                            # and color match everything else.
+                            a.html('<span style="font-size: 18pt;"><span style="color:black">IP</span>[<span style="color:black">y</span>]: Notebook</span>')
+
+                            # proper file rename with sync not supported yet (but will be -- TODO; needs to work with sync system)
+                            @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
+
+                            # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
+                            @frame.$("#menus").find("li:first").remove()
+
                             @frame.$("#autosave_status").remove()
                             @frame.$("#checkpoint_status").remove()
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
@@ -3249,7 +3255,7 @@ class IPythonNotebook extends FileEditor
                 setTimeout(f, 100)
 
     autosync: () =>
-        if @frame.IPython.notebook.dirty
+        if @frame?.IPython?.notebook?.dirty
             @save_button.removeClass('disabled')
             @sync()
             @frame.IPython.notebook.dirty = false
@@ -3299,10 +3305,13 @@ class IPythonNotebook extends FileEditor
 
     info: () =>
         t = "<h3>The IPython Notebook</h3>"
-        t += "<h4>(enhanced with Sagemath Cloud Sync)</h4>"
-        t += "<hr>You are editing this document using the <a href='http://ipython.org/notebook.html' target='_blank'>IPython Notebook</a> enhanced with realtime synchronization."
+        t += "<h4>Enhanced with Sagemath Cloud Sync</h4>"
+        t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
+        if @kernel_id?
+            t += "<h4>Connect to this IPython kernel in a terminal</h4>"
+            t += "<pre>ipython console --existing #{@kernel_id}</pre>"
         if @server.url?
-            t += "<br><hr><h4>Pure IPython Notebooks</h4>"
+            t += "<h4>Pure IPython Notebooks</h4>"
             t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
             t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
         bootbox.alert(t)
@@ -3313,28 +3322,11 @@ class IPythonNotebook extends FileEditor
             @save()
             return false
 
-        @element.find("a[href=#info]").click(@info)
-
-        @element.find("a[href=#terminal]").click () =>
-            if @kernel_id?
-                t = "Connect to this IPython kernel in a terminal by typing<br><br>"
-                t += "<pre>ipython console --existing #{@kernel_id}</pre>"
-            else
-                t = "IPython kernel id not yet known."
-            bootbox.alert(t)
-            return false
-
-
-        @element.find("a[href=#server-info]").click () =>
-            p = @path
-            if not p
-                p = "the project root directory"
-            else
-                p += "/"
-            t = "<h3>IPython Notebook Server daemon serving notebooks in #{p}</h3><hr>"
-            t += "Dashboard URL (accessible to project collaborators): <a target='_blank' href='https://cloud.sagemath.com#{@url}'>https://cloud.sagemath.com#{@url}</a><hr>"
-            t += "Type the command <pre>ipython-notebook</pre> in a terminal to find out how to run your own IPython notebook server with custom options. For example, use <pre>cd ~/#{@path}; ipython-notebook stop</pre> to stop this notebook server."
-            bootbox.alert(t)
+        @save_button = @element.find("a[href=#reload]").click () =>
+            @save_button.icon_spin(true)
+            @save () =>
+                @initialize (err) =>
+                    @save_button.icon_spin(false)
             return false
 
         @element.find("a[href=#json]").click () =>
