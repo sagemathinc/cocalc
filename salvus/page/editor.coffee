@@ -3232,7 +3232,12 @@ class IPythonNotebook extends FileEditor
                         if a.length == 0
                             setTimeout(f, 100)
                         else
-                            a.attr('target', '_blank')
+                            a.click () =>
+                                @info()
+                                return false
+
+                            @frame.$("#autosave_status").remove()
+                            @frame.$("#checkpoint_status").remove()
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
                             @_save_checkpoint = @frame.IPython.notebook.save_checkpoint
                             @frame.IPython.notebook.save_checkpoint = @save
@@ -3289,24 +3294,36 @@ class IPythonNotebook extends FileEditor
                 return
 
     merge_objs: (obj1, obj2) =>  # may modify objs
-        #console.log("obj1 = ", obj1)
-        #console.log("obj2 = ", obj2)
         cells = obj1.worksheets[0].cells
-
         return obj1
+
+    info: () =>
+        t = "<h3>The IPython Notebook</h3>"
+        t += "<h4>(enhanced with Sagemath Cloud Sync)</h4>"
+        t += "<hr>You are editing this document using the <a href='http://ipython.org/notebook.html' target='_blank'>IPython Notebook</a> enhanced with realtime synchronization."
+        if @server.url?
+            t += "<br><hr><h4>Pure IPython Notebooks</h4>"
+            t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
+            t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
+        bootbox.alert(t)
+        return false
 
     init_buttons: () =>
         @save_button = @element.find("a[href=#save]").click () =>
             @save()
             return false
 
-        @element.find("a[href=#info]").click () =>
-            t = "<h3>IPython Notebook with Sagemath Cloud Sync</h3><hr>"
+        @element.find("a[href=#info]").click(@info)
+
+        @element.find("a[href=#terminal]").click () =>
             if @kernel_id?
-                t += "You can connect to this same IPython session in a terminal by typing"
+                t = "Connect to this IPython kernel in a terminal by typing<br><br>"
                 t += "<pre>ipython console --existing #{@kernel_id}</pre>"
+            else
+                t = "IPython kernel id not yet known."
             bootbox.alert(t)
             return false
+
 
         @element.find("a[href=#server-info]").click () =>
             p = @path

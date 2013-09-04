@@ -1496,7 +1496,6 @@ class ProjectPage
             cb      : undefined     # cb(true or false, depending on error)
 
         {command, args} = transform_get_url(opts.url)
-        console.log(command, args)
 
         salvus_client.exec
             project_id : @project.project_id
@@ -1505,7 +1504,6 @@ class ProjectPage
             path       : opts.dest
             args       : args
             cb         : (err, result) =>
-                console.log(err, result)
                 if opts.alert
                     if err
                         alert_message(type:"error", message:err)
