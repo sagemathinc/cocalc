@@ -19,10 +19,10 @@ import json, os, random, signal, sys, time
 
 # When run in Daemon mode, it stores info (e.g., pid, port) in this file, in addition to printing
 # to standard out.  This avoids starting a redundant copy of the daemon, if one is already running.
-DAEMON_FILE = ".ipython-deamon.json"
+DAEMON_FILE = ".ipython-daemon.json"
 
 if len(sys.argv) == 1:
-    print "Usage: %s [start/stop/run] normal ipython notebook options..."%sys.argv[0]
+    print "Usage: %s [start/stop/status/run] normal ipython notebook options..."%sys.argv[0]
     print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
     sys.exit(1)
 
@@ -55,27 +55,44 @@ if '--help' in ''.join(sys.argv):
     os.system("ipython " + ' '.join(sys.argv))
     sys.exit(0)
 
+def is_daemon_running():
+    if not os.path.exists(DAEMON_FILE):
+        return False
+    try:
+        s = open(DAEMON_FILE).read()
+        info = json.loads(s)
+        try:
+            os.kill(info['pid'],0)
+            # process exists
+            return info
+        except OSError:
+            # error if no process
+            return False
+    except:
+        # status file corrupted, so ignore it, and
+        # just fall through to the below....
+        return False
+
+
 def action():
     cmd, base, port = command()
 
-    if mode == 'start':
+    if mode == 'status':
+        info = is_daemon_running()
+        if info:
+            info['status'] = 'running'
+            s = info
+        else:
+            s = {'status':'stopped'}
+        print json.dumps(s)
+        return
 
-        if os.path.exists(DAEMON_FILE):
-            try:
-                s = open(DAEMON_FILE).read()
-                info = json.loads(s)
-                try:
-                    os.kill(info['pid'],0)
-                    # process exists
-                    print s
-                    return
-                except OSError:
-                    # error if no process -- just pass through
-                    pass
-            except:
-                # status file corrupted, so ignore it, and
-                # just fall through to the below....
-                pass
+    elif mode == 'start':
+        info = is_daemon_running()
+        if info:
+            # already running -- nothing to do
+            print json.dumps(info)
+            return
 
         #### First a version check, which is critical due to base url bug(s).
 
@@ -115,14 +132,20 @@ def action():
         open(DAEMON_FILE,'w').write(s)
 
     elif mode == 'stop':
-        if os.path.exists(DAEMON_FILE):
-            info = json.loads(open(DAEMON_FILE).read())
-            # IPython server seems rock solid about responding to kill signals and properly cleaning up.
-            try:
-                os.kill(info['pid'], signal.SIGTERM)
-            except OSError:  # maybe already dead
-                pass
+        info = is_daemon_running()
+        if not info:
+            # not running -- nothing to do
+            return
+        # IPython server seems rock solid about responding to kill signals and properly cleaning up.
+        try:
+            os.kill(info['pid'], signal.SIGTERM)
+        except OSError:  # maybe already dead
+            pass
+        try:
             os.unlink(DAEMON_FILE)
+        except:
+            pass
+
 
     elif mode == 'run':
         print cmd + '\n\n'

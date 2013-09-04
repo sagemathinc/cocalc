@@ -3097,7 +3097,9 @@ class IPythonNotebookServer
             args       : ['stop']
             bash       : false
             timeout    : 15
-            cb         : (err, output) => cb?(err)
+            cb         : (err, output) =>
+                console.log(err, output)
+                cb?(err)
 
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
@@ -3147,24 +3149,18 @@ class IPythonNotebook extends FileEditor
             setTimeout(f, 100)
 
     init_buttons: () =>
-        @element.find("a[href=#stop]").click () =>
-            bootbox.confirm "Stop the IPython Notebook server and save and close this file?", (result) =>
-                if result
-                    @save()
-                    f = () =>
-                        @server.stop_server
-                        @editor.close(@filename)
-                    setTimeout(f, 3000)  # should be long enough to get save message.
-            return false
 
         @element.find("a[href=#info]").click () =>
-            t = "<h3>IPython Notebook Server serving notebooks in #{@path}</h3><hr>"
+            p = @path
+            if not p
+                p = "the project root directory"
+            else
+                p += "/"
+            t = "<h3>IPython Notebook Server daemon serving notebooks in #{p}</h3><hr>"
             t += "Dashboard URL (accessible to project collaborators): <a target='_blank' href='https://cloud.sagemath.com#{@url}'>https://cloud.sagemath.com#{@url}</a><hr>"
+            t += "Type the command <pre>ipython-notebook</pre> in a terminal to find out how to run your own IPython notebook server with custom options. For example, use <pre>cd ~/#{@path}; ipython-notebook stop</pre> to stop this notebook server."
             bootbox.alert(t)
             return false
-
-    save: () =>
-        # not implemented
 
     show: () =>
         @element.show()
