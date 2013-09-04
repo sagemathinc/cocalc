@@ -3163,7 +3163,6 @@ class IPythonNotebook extends FileEditor
         @server.notebooks (err, notebooks) =>
             if err
                 cb(err); return
-            console.log("hunting for '#{@file}' in #{misc.to_json(notebooks)}")
             for n in notebooks
                 if n.name + '.ipynb' == @file
                     @kernel_id = n.kernel_id  # will be null if kernel not yet started
@@ -3184,6 +3183,17 @@ class IPythonNotebook extends FileEditor
                 @get_ids(cb)
             (cb) =>
                 @_init_iframe(cb)
+            (cb) =>
+                # start polling until we get the kernel_id
+                attempts = 0
+                f = () =>
+                    attempts += 1
+                    if attempts < 20
+                        @get_ids () =>
+                            if not @kernel_id?
+                                setTimeout(f, 5000)
+                setTimeout(f, 1000)
+                cb()
         ], cb)
 
 
@@ -3291,6 +3301,14 @@ class IPythonNotebook extends FileEditor
             return false
 
         @element.find("a[href=#info]").click () =>
+            t = "<h3>IPython Notebook with Sagemath Cloud Sync</h3><hr>"
+            if @kernel_id?
+                t += "You can connect to this same IPython session in a terminal by typing"
+                t += "<pre>ipython console --existing #{@kernel_id}</pre>"
+            bootbox.alert(t)
+            return false
+
+        @element.find("a[href=#server-info]").click () =>
             p = @path
             if not p
                 p = "the project root directory"
