@@ -3166,7 +3166,6 @@ class IPythonNotebook extends FileEditor
                     @doc.live(misc.to_json(@to_obj()))
 
                 apply_edits = @doc.dsync_client._apply_edits_to_live
-
                 @doc.dsync_client._apply_edits_to_live = (patch, cb) =>
                     console.log("_apply_edits_to_live -- #{JSON.stringify(patch)}")
                     obj = @to_obj()
@@ -3177,10 +3176,12 @@ class IPythonNotebook extends FileEditor
                         try
                             @from_obj(JSON.parse(@doc.dsync_client.live))
                         catch e
+                            console.log("patch rejected", e)
                             @doc.dsync_client.live = before
                             @from_obj(obj)
-                    else
-                        console.log("patch rejected")
+                            # convince hub to reset.
+                            @doc.dsync_client.push_edits (err) =>
+                                console.log("attempted to reset.", err)
                     cb?()
 
 
@@ -3382,13 +3383,11 @@ class IPythonNotebook extends FileEditor
     from_obj: (obj) =>
         nb = @frame.IPython.notebook
         i = nb.get_selected_index()
-        console.log("cell = ", i)
         st = nb.element.scrollTop()
-        console.log("st = ", st)
         nb.fromJSON(obj)
         nb.dirty = false
-        nb.element.scrollTop(st)
         nb.select(i)
+        nb.element.scrollTop(st)
 
     focus: () =>
         # TODO
