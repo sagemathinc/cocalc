@@ -534,6 +534,8 @@ class exports.Editor
             content     : undefined
             extra_opts  : required
 
+        #console.log("create_editor", opts)
+
         if editor_name == 'codemirror'
             if filename.slice(filename.length-7) == '.sagews'
                 typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore
@@ -1360,6 +1362,7 @@ class CodeMirrorEditor extends FileEditor
                 @codemirror1.focus()
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
+    #console.log("codemirror_session_editor '#{filename}'")
     ext = filename_extension(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
@@ -3083,7 +3086,6 @@ class IPythonNotebookServer  # call ipython_notebook_server above
                         url : @url
                         cb  : (err, data) => cb?(err)
 
-
     notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
         get_with_retry
             url : @url + 'notebooks'
@@ -3104,15 +3106,18 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             bash       : false
             timeout    : 15
             cb         : (err, output) =>
-                console.log(err, output)
                 cb?(err)
 
+# Download a remote URL, possibly retrying repeatedly with exponetial backoff, only failing
+# if the delay until next retry hits max_delay.
+# If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
 get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
         initial_delay : 100
         max_delay     : 15000     # once delay hits this, give up
         factor        : 1.2       # for exponential backoff
+        bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url
     delay = opts.initial_delay
     f = () =>
@@ -3120,7 +3125,7 @@ get_with_retry = (opts) ->
             opts.cb("unable to connect to remote server")
             return
         $.get(opts.url, (data) ->
-            if 'ECONNREFUSED' in data
+            if data.indexOf(opts.bad_string) != -1
                 delay *= opts.factor
                 setTimeout(f, delay)
             else
@@ -3131,6 +3136,8 @@ get_with_retry = (opts) ->
         )
     f()
 
+# Embedded editor for editing IPython notebooks.  Enhanced with sync and integrated into the
+# overall cloud look.
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts, {}
@@ -3140,52 +3147,82 @@ class IPythonNotebook extends FileEditor
         @path = s.head
         @file = s.tail
 
-        @doc = syncdoc.synchronized_string
-            project_id : @editor.project_id
-            filename   : @filename
-            cb         : () =>
-                @doc._presync = () =>
-                    console.log("about to sync")
-                    @doc.live(misc.to_json(@to_obj()))
-
-                apply_edits = @doc.dsync_client._apply_edits_to_live
-                apply_edits2 = (patch, cb) =>
-                    console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
-                    obj = @to_obj()
-                    before = misc.to_json(obj)
-                    @doc.dsync_client.live = before
-                    apply_edits(patch)
-                    if @doc.dsync_client.live != before
-                        try
-                            obj2 = JSON.parse(@doc.dsync_client.live)
-                            @from_obj(obj2)
-                            console.log("edits should now be applied!")#, @doc.dsync_client.live)
-                        catch e
-                            console.log("patch rejected", e)
-                            @doc.dsync_client.live = before
-                            if obj2?
-                                # just in case state corrupted
-                                @from_obj(obj)
-                            console.log("do nothing for now and wait until things work.")
-                    cb?()
-
-                @doc.dsync_client._apply_edits_to_live = apply_edits2
-                @doc.on "connect", () =>
-                    console.log("connected so re-setting dsync client")
-                    apply_edits = @doc.dsync_client._apply_edits_to_live
-                    @doc.dsync_client._apply_edits_to_live = apply_edits2
-
-
+        if @path
+            @syncdoc_filename = @path + '/.' + @file + ".syncdoc"
+        else
+            @syncdoc_filename = '.' + @file + ".syncdoc"
 
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
-
         con = @element.find(".salvus-ipython-notebook-connecting")
         con.show().icon_spin(start:true)
-        @initialize (err) =>
-            if err
-                alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
-            con.show().icon_spin(false).hide()
+
+        @editor.project_page.ensure_file_exists
+            path : @syncdoc_filename
+            cb   : (err) =>
+                if err
+                    console.log("unable to create syncdoc file ", err)
+                    return
+                else
+                    @initialize (err) =>
+                        con.show().icon_spin(false).hide()
+                        if err
+                            alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
+                        else
+                            @_init_doc()
+
+
+    _init_doc: () =>
+        console.log("_init_doc")
+        @doc = syncdoc.synchronized_string
+            project_id : @editor.project_id
+            filename   : @syncdoc_filename
+            cb         : (err) =>
+                if err
+                    alert_message(type:"error", message:"Unable to connect to synchronized document server -- #{err}")
+                else
+                    @_config_doc()
+
+    _config_doc: () =>
+        console.log("_config_doc")
+        # todo -- should check if .ipynb file is newer... ?
+        if @doc.live() == ''
+            @doc.live(@to_doc())
+        else
+            @set_live_from_syncdoc()
+            @iframe.animate(opacity:1)
+
+        @doc._presync = () =>
+            console.log("about to sync")
+            @doc.live(@to_doc())
+
+        apply_edits = @doc.dsync_client._apply_edits_to_live
+
+        apply_edits2 = (patch, cb) =>
+            console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
+            before =  @to_doc()
+            @doc.dsync_client.live = before
+            apply_edits(patch)
+            if @doc.dsync_client.live != before
+                @from_doc(@doc.dsync_client.live)
+                console.log("edits should now be applied!")#, @doc.dsync_client.live)
+            cb?()
+
+        @doc.dsync_client._apply_edits_to_live = apply_edits2
+
+        @doc.on "connect", () =>
+            console.log("connected so re-setting dsync client")
+            apply_edits = @doc.dsync_client._apply_edits_to_live
+            @doc.dsync_client._apply_edits_to_live = apply_edits2
+
+        setInterval(@autosync, 1000)
+
+    remove: () =>
+        if @_sync_check_interval?
+            clearInterval(@_sync_check_interval)
+        @element.remove()
+        @doc?.disconnect_from_session()
+
 
     get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
         if not @server?
@@ -3274,19 +3311,21 @@ class IPythonNotebook extends FileEditor
                             for cmd in ['new', 'open', 'copy', 'rename']
                                 @frame.$("#" + cmd + "_notebook").remove()
                             @frame.$("#kill_and_exit").remove()
-                            @frame.$("#save_checkpoint").remove()
-                            @frame.$("#restore_checkpoint").remove()
+                            #@frame.$("#save_checkpoint").remove()
+                            #@frame.$("#restore_checkpoint").remove()
                             @frame.$("#menus").find("li:first").find(".divider").remove()
 
-                            @frame.$("#autosave_status").remove()
-                            @frame.$("#checkpoint_status").remove()
+                            #@frame.$("#autosave_status").remove()
+                            #@frame.$("#checkpoint_status").remove()
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
                             @frame.IPython.notebook._save_checkpoint = @frame.IPython.notebook.save_checkpoint
                             @frame.IPython.notebook.save_checkpoint = @save
-                            @set_live_from_syncdoc()
-                            @iframe.animate(opacity:1)
 
-                            setInterval(@autosync, 1000)  # TODO -- stop doing this when document closes!!!!
+                            # Ipython doesn't consider a load (e.g., snapshot restore) "dirty" (for obvious reasons!)
+                            @frame.IPython.notebook._load_notebook_success = @frame.IPython.notebook.load_notebook_success
+                            @frame.IPython.notebook.load_notebook_success = (data,status,xhr) =>
+                                @frame.IPython.notebook._load_notebook_success(data,status,xhr)
+                                @sync()
                             cb()
 
                 setTimeout(f, 100)
@@ -3304,20 +3343,16 @@ class IPythonNotebook extends FileEditor
 
     save: (cb) =>
         @save_button.icon_spin(start:true,delay:500)
+        @frame.IPython.notebook._save_checkpoint()
         @doc.save () =>
             @save_button.icon_spin(false)
             @save_button.addClass('disabled')
             cb?()
 
     set_live_from_syncdoc: () =>
-        obj = @to_obj()
-        before = misc.to_json(obj)
-        if @doc.dsync_client.live != before
-            try
-                @from_obj(JSON.parse(@doc.dsync_client.live))
-            catch e
-                @doc.dsync_client.live = before
-                @from_obj(obj)  # just in case of corruption half way through.
+        current = @to_doc()
+        if @doc.dsync_client.live != current
+            @from_doc(@doc.dsync_client.live)
 
     info: () =>
         t = "<h3>The IPython Notebook</h3>"
@@ -3356,15 +3391,33 @@ class IPythonNotebook extends FileEditor
 
         @element.find("a[href=#info]").click () => @info()
 
+    cells_that_changed: (obj1) =>
+        console.log("cells_that_changed: start"); t = misc.mswalltime()
+        obj0 = @to_obj()
+        console.log(obj0)
+        console.log(obj1)
+        cells0 = obj0.worksheets[0].cells
+        cells1 = obj1.worksheets[0].cells
+        v = []
+        for i in [0...Math.max(cells0.length, cells1.length)]
+            if JSON.stringify(cells0[i]) != JSON.stringify(cells1[i])
+                v.push(i)
+                console.log("these differ:\n'#{JSON.stringify(cells0[i])}'\n'#{JSON.stringify(cells1[i])}'")
+        console.log("cells_that_changed: #{JSON.stringify(v)}  -- ", misc.mswalltime(t))
+        return v
+
     to_obj: () =>
+        console.log("to_obj: start"); t = misc.mswalltime()
         nb = @frame.IPython.notebook
         obj = nb.toJSON()
         obj.metadata.name  = nb.notebook_name
         obj.nbformat       = nb.nbformat
         obj.nbformat_minor = nb.nbformat_minor
+        console.log("to_obj: done", misc.mswalltime(t))
         return obj
 
     from_obj: (obj) =>
+        console.log("from_obj: start"); t = misc.mswalltime()
         nb = @frame.IPython.notebook
         i = nb.get_selected_index()
         st = nb.element.scrollTop()
@@ -3372,6 +3425,35 @@ class IPythonNotebook extends FileEditor
         nb.dirty = false
         nb.select(i)
         nb.element.scrollTop(st)
+        console.log("from_obj: done", misc.mswalltime(t))
+
+    # Notebook Doc Format: line 0 is meta information in JSON; one line with the JSON of each cell for reset of file
+    to_doc: () =>
+        console.log("to_doc: start"); t = misc.mswalltime()
+        obj = @to_obj()
+        doc = misc.to_json({notebook_name:obj.metadata.name}) + '\n'
+        for cell in obj.worksheets[0].cells
+            doc += misc.to_json(cell) + '\n'
+        console.log("to_doc: done -- #{misc.mswalltime(t)}") #, '#{doc}'")
+        return doc
+
+    from_doc: (doc) =>
+        console.log("from_doc: start"); t = misc.mswalltime()
+        v = doc.split('\n')
+        nb = @frame.IPython.notebook
+        nb.metadata.name  = v[0].notebook_name
+        cells = []
+        for line in v.slice(1)
+            try
+                c = misc.from_json(line)
+                cells.push(c)
+            catch e
+                console.log("error de-jsoning '#{line}'", e)
+        obj = @to_obj()
+        obj.worksheets[0].cells = cells
+        @from_obj(obj)
+        console.log("from_doc: done", misc.mswalltime(t))
+
 
     focus: () =>
         # TODO

@@ -130,6 +130,7 @@ class ProjectPage
                 @editor?.close_all_open_files()
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
+                @project_log?.disconnect_from_session()
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
@@ -763,11 +764,6 @@ class ProjectPage
             opts.project_id = @project.project_id
             opts.title = @project.title
             save_project(opts)
-
-    close_project: (opts={}) =>
-        opts.title = @project.title
-        opts.project_id = @project.project_id
-        close_project(opts)
 
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project
@@ -1473,6 +1469,7 @@ class ProjectPage
                 else
                     @ensure_directory_exists(path:dir, alert:opts.alert, cb:cb)
             (cb) =>
+                #console.log("ensure_file_exists -- touching '#{opts.path}'")
                 salvus_client.exec
                     project_id : @project.project_id
                     command    : "touch"

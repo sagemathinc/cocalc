@@ -321,6 +321,14 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
                 cb?()
 
+    disconnect_from_session: (cb) =>
+        @_remove_listeners()
+        salvus_client.call
+            timeout : 10
+            message : message.codemirror_disconnect(session_uuid : @session_uuid)
+            cb      : cb
+
+
 
 synchronized_string = (opts) ->
     new SynchronizedString(opts)
@@ -475,6 +483,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         # store pref in localStorage to not auto-open this file next time
         @editor.local_storage('auto_open', false)
+
+        @chat_session.disconnect_from_session()
 
     execute_code: (opts) =>
         opts = defaults opts,

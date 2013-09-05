@@ -2113,7 +2113,7 @@ class CodeMirrorSession
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
                 if err
-                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}")
+                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}, trying to connect to #{@path} in #{@project_id}.")
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
