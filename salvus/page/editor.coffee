@@ -3171,7 +3171,7 @@ class IPythonNotebook extends FileEditor
                 @doc.dsync_client._apply_edits_to_live = apply_edits2
                 @doc.on "connect", () =>
                     console.log("connected so re-setting dsync client")
-                    apply_edits = @doc.dsync_client._apply_edits_to_live                
+                    apply_edits = @doc.dsync_client._apply_edits_to_live
                     @doc.dsync_client._apply_edits_to_live = apply_edits2
 
 
@@ -3292,16 +3292,13 @@ class IPythonNotebook extends FileEditor
 
     autosync: () =>
         if @frame?.IPython?.notebook?.dirty
-            console.log("autosync")
             @save_button.removeClass('disabled')
             @sync()
             @frame.IPython.notebook.dirty = false
 
     sync: () =>
         @save_button.icon_spin(start:true,delay:1000)
-        console.log("starting sync")
         @doc.sync () =>
-            console.log("did sync")
             @save_button.icon_spin(false)
 
     save: (cb) =>
@@ -3326,10 +3323,13 @@ class IPythonNotebook extends FileEditor
         t += "<h4>Enhanced with Sagemath Cloud Sync</h4>"
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
         if @kernel_id?
+            t += "<h4>Sage mode by pasting this into a cell</h4>"
+            t += "<pre>%load_ext sage.misc.sage_extension</pre>"
+        if @kernel_id?
             t += "<h4>Connect to this IPython kernel in a terminal</h4>"
             t += "<pre>ipython console --existing #{@kernel_id}</pre>"
         if @server.url?
-            t += "<h4>Pure IPython Notebooks</h4>"
+            t += "<h4>Pure IPython notebooks</h4>"
             t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
             t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
         bootbox.alert(t)
@@ -3352,6 +3352,8 @@ class IPythonNotebook extends FileEditor
 
         @element.find("a[href=#json]").click () =>
             console.log(@to_obj())
+
+        @element.find("a[href=#info]").click () => @info()
 
     to_obj: () =>
         nb = @frame.IPython.notebook
