@@ -287,6 +287,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
     _connect: (cb) =>
         @_remove_listeners()
         delete @session_uuid
+        console.log("getting new session... -- '#{@filename}'")
         @call
             timeout : 30     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session

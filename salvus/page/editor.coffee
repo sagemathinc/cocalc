@@ -3150,22 +3150,23 @@ class IPythonNotebook extends FileEditor
 
                 apply_edits = @doc.dsync_client._apply_edits_to_live
                 apply_edits2 = (patch, cb) =>
-                    console.log("_apply_edits_to_live -- #{JSON.stringify(patch)}")
+                    console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
                     obj = @to_obj()
                     before = misc.to_json(obj)
                     @doc.dsync_client.live = before
                     apply_edits(patch)
                     if @doc.dsync_client.live != before
                         try
-                            @from_obj(JSON.parse(@doc.dsync_client.live))
-                            console.log("edits should now be applied!", @doc.dsync_client.live)
+                            obj2 = JSON.parse(@doc.dsync_client.live)
+                            @from_obj(obj2)
+                            console.log("edits should now be applied!")#, @doc.dsync_client.live)
                         catch e
                             console.log("patch rejected", e)
                             @doc.dsync_client.live = before
-                            @from_obj(obj)
-                            # convince hub to reset.
-                            @doc.dsync_client.push_edits (err) =>
-                                console.log("attempted to reset.", err)
+                            if obj2?
+                                # just in case state corrupted
+                                @from_obj(obj)
+                            console.log("do nothing for now and wait until things work.")
                     cb?()
 
                 @doc.dsync_client._apply_edits_to_live = apply_edits2
