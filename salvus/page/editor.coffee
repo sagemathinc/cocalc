@@ -321,7 +321,7 @@ class exports.Editor
                 @remove_from_recent(filename)
                 v.push(filename)
             undo = @element.find("a[href=#undo-close-all-tabs]")
-            undo.stop().show().animate(opacity:100).fadeOut(duration:60000).click () =>
+            undo.stop().show().animate(opacity:1).fadeOut(duration:60000).click () =>
                 undo.hide()
                 for filename in v
                     if not @tabs[filename]?
@@ -3144,29 +3144,12 @@ class IPythonNotebook extends FileEditor
             project_id : @editor.project_id
             filename   : @filename
             cb         : () =>
-
-
-                ###
-                @doc.live = (s) =>
-                    if not s?
-                        console.log("returning live")
-                        return misc.to_json(@to_obj())
-                    else
-                        try
-                            console.log("setting live")
-                            @from_obj(JSON.parse(s))
-                        catch e
-                            console.log("doc.live setting problem", e)
-                ###
-
-                #@doc.on 'sync', @doc_sync
-
                 @doc._presync = () =>
                     console.log("about to sync")
                     @doc.live(misc.to_json(@to_obj()))
 
                 apply_edits = @doc.dsync_client._apply_edits_to_live
-                @doc.dsync_client._apply_edits_to_live = (patch, cb) =>
+                apply_edits2 = (patch, cb) =>
                     console.log("_apply_edits_to_live -- #{JSON.stringify(patch)}")
                     obj = @to_obj()
                     before = misc.to_json(obj)
@@ -3175,6 +3158,7 @@ class IPythonNotebook extends FileEditor
                     if @doc.dsync_client.live != before
                         try
                             @from_obj(JSON.parse(@doc.dsync_client.live))
+                            console.log("edits should now be applied!", @doc.dsync_client.live)
                         catch e
                             console.log("patch rejected", e)
                             @doc.dsync_client.live = before
@@ -3183,6 +3167,13 @@ class IPythonNotebook extends FileEditor
                             @doc.dsync_client.push_edits (err) =>
                                 console.log("attempted to reset.", err)
                     cb?()
+
+                @doc.dsync_client._apply_edits_to_live = apply_edits2
+                @doc.on "connect", () =>
+                    console.log("connected so re-setting dsync client")
+                    apply_edits = @doc.dsync_client._apply_edits_to_live                
+                    @doc.dsync_client._apply_edits_to_live = apply_edits2
+
 
 
         # This is where we put the page itself
@@ -3226,11 +3217,11 @@ class IPythonNotebook extends FileEditor
                 attempts = 0
                 f = () =>
                     attempts += 1
-                    if attempts < 20
+                    if attempts < 30
                         @get_ids () =>
                             if not @kernel_id?
-                                setTimeout(f, 5000)
-                setTimeout(f, 1000)
+                                setTimeout(f, 3000)
+                setTimeout(f, 250)
                 cb()
         ], cb)
 
@@ -3246,7 +3237,7 @@ class IPythonNotebook extends FileEditor
                 if err
                     cb(err); return
                 @iframe_uuid = misc.uuid()
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.2').attr('src', @server.url + @notebook_id)
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.1').attr('src', @server.url + @notebook_id)
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -3294,7 +3285,7 @@ class IPythonNotebook extends FileEditor
                             @set_live_from_syncdoc()
                             @iframe.animate(opacity:1)
 
-                            setInterval(@autosync, 3000)  # TODO -- stop doing this when document closes!!!!
+                            setInterval(@autosync, 1000)  # TODO -- stop doing this when document closes!!!!
                             cb()
 
                 setTimeout(f, 100)
@@ -3307,9 +3298,6 @@ class IPythonNotebook extends FileEditor
             @frame.IPython.notebook.dirty = false
 
     sync: () =>
-        #obj = @to_obj()
-        #v1 = misc.to_json(obj)
-        #@doc.live(v1)
         @save_button.icon_spin(start:true,delay:1000)
         console.log("starting sync")
         @doc.sync () =>
@@ -3317,9 +3305,6 @@ class IPythonNotebook extends FileEditor
             @save_button.icon_spin(false)
 
     save: (cb) =>
-        #obj = @to_obj()
-        #v1 = misc.to_json(obj)
-        #@doc.live(v1)
         @save_button.icon_spin(start:true,delay:500)
         @doc.save () =>
             @save_button.icon_spin(false)
@@ -3335,10 +3320,6 @@ class IPythonNotebook extends FileEditor
             catch e
                 @doc.dsync_client.live = before
                 @from_obj(obj)  # just in case of corruption half way through.
-
-    merge_objs: (obj1, obj2) =>  # may modify objs
-        cells = obj1.worksheets[0].cells
-        return obj1
 
     info: () =>
         t = "<h3>The IPython Notebook</h3>"

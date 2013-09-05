@@ -316,6 +316,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
+                @emit('connect')
 
                 cb?()
 
