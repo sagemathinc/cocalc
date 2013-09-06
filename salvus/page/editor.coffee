@@ -3175,7 +3175,7 @@ class IPythonNotebook extends FileEditor
 
 
     _init_doc: () =>
-        console.log("_init_doc")
+        #console.log("_init_doc")
         @doc = syncdoc.synchronized_string
             project_id : @editor.project_id
             filename   : @syncdoc_filename
@@ -3187,7 +3187,7 @@ class IPythonNotebook extends FileEditor
                     @_config_doc()
 
     _config_doc: () =>
-        console.log("_config_doc")
+        #console.log("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
         if @doc.live() == ''
             @doc.live(@to_doc())
@@ -3202,19 +3202,19 @@ class IPythonNotebook extends FileEditor
         apply_edits = @doc.dsync_client._apply_edits_to_live
 
         apply_edits2 = (patch, cb) =>
-            console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
+            #console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
             before =  @to_doc()
             @doc.dsync_client.live = before
             apply_edits(patch)
             if @doc.dsync_client.live != before
                 @from_doc(@doc.dsync_client.live)
-                console.log("edits should now be applied!")#, @doc.dsync_client.live)
+                #console.log("edits should now be applied!")#, @doc.dsync_client.live)
             cb?()
 
         @doc.dsync_client._apply_edits_to_live = apply_edits2
 
         @doc.on "connect", () =>
-            console.log("connected so re-setting dsync client")
+            #console.log("connected so re-setting dsync client")
             apply_edits = @doc.dsync_client._apply_edits_to_live
             @doc.dsync_client._apply_edits_to_live = apply_edits2
 
@@ -3293,7 +3293,7 @@ class IPythonNotebook extends FileEditor
                 # instead of messing up our embedded view.
                 attempts = 0
                 f = () =>
-                    console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
+                    #console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
                     attempts += 1
                     if attempts >= 100
                         # just give up -- this isn't at all critical; don't want to waste resources.
@@ -3400,57 +3400,46 @@ class IPythonNotebook extends FileEditor
             @reload()
             return false
 
-        @element.find("a[href=#json]").click () =>
-            console.log(@to_obj())
+        #@element.find("a[href=#json]").click () =>
+        #    console.log(@to_obj())
 
-        @element.find("a[href=#info]").click () => @info()
-
-    cells_that_changed: (obj1) =>
-        console.log("cells_that_changed: start"); t = misc.mswalltime()
-        obj0 = @to_obj()
-        console.log(obj0)
-        console.log(obj1)
-        cells0 = obj0.worksheets[0].cells
-        cells1 = obj1.worksheets[0].cells
-        v = []
-        for i in [0...Math.max(cells0.length, cells1.length)]
-            if JSON.stringify(cells0[i]) != JSON.stringify(cells1[i])
-                v.push(i)
-                console.log("these differ:\n'#{JSON.stringify(cells0[i])}'\n'#{JSON.stringify(cells1[i])}'")
-        console.log("cells_that_changed: #{JSON.stringify(v)}  -- ", misc.mswalltime(t))
-        return v
+        @element.find("a[href=#info]").click () =>
+            @info()
+            return false
 
     to_obj: () =>
-        console.log("to_obj: start"); t = misc.mswalltime()
+        #console.log("to_obj: start"); t = misc.mswalltime()
         obj = @nb.toJSON()
         obj.metadata.name  = @nb.notebook_name
         obj.nbformat       = @nb.nbformat
         obj.nbformat_minor = @nb.nbformat_minor
-        console.log("to_obj: done", misc.mswalltime(t))
+        #console.log("to_obj: done", misc.mswalltime(t))
         return obj
 
     from_obj: (obj) =>
-        console.log("from_obj: start"); t = misc.mswalltime()
+        #console.log("from_obj: start"); t = misc.mswalltime()
         i = @nb.get_selected_index()
         st = @nb.element.scrollTop()
         @nb.fromJSON(obj)
         @nb.dirty = false
         @nb.select(i)
         @nb.element.scrollTop(st)
-        console.log("from_obj: done", misc.mswalltime(t))
+        #console.log("from_obj: done", misc.mswalltime(t))
 
     # Notebook Doc Format: line 0 is meta information in JSON; one line with the JSON of each cell for reset of file
     to_doc: () =>
-        console.log("to_doc: start"); t = misc.mswalltime()
+        #console.log("to_doc: start"); t = misc.mswalltime()
         obj = @to_obj()
         doc = misc.to_json({notebook_name:obj.metadata.name})
         for cell in obj.worksheets[0].cells
             doc += '\n' + misc.to_json(cell)
-        console.log("to_doc: done", misc.mswalltime(t))
+        #console.log("to_doc: done", misc.mswalltime(t))
         return doc
 
+    ###
+    # simplistic version of modifying the notebook in place.  VERY slow when new cell added.
     from_doc0: (doc) =>
-        console.log("from_doc: start"); t = misc.mswalltime()
+        #console.log("from_doc: start"); t = misc.mswalltime()
         nb = @nb
         v = doc.split('\n')
         nb.metadata.name  = v[0].notebook_name
@@ -3465,6 +3454,7 @@ class IPythonNotebook extends FileEditor
         obj.worksheets[0].cells = cells
         @from_obj(obj)
         console.log("from_doc: done", misc.mswalltime(t))
+    ###
 
     delete_cell: (index) =>
         @nb.delete_cell(index)
@@ -3474,12 +3464,12 @@ class IPythonNotebook extends FileEditor
         new_cell.fromJSON(cell_data)
 
     set_cell: (index, cell_data) =>
-        console.log("set_cell: start"); t = misc.mswalltime()
+        #console.log("set_cell: start"); t = misc.mswalltime()
 
         cell = @nb.get_cell(index)
 
         if cell? and cell_data.cell_type == cell.cell_type
-            console.log("setting in place")
+            #console.log("setting in place")
 
             if cell.output_area?
                 # for some reason fromJSON doesn't clear the output (it should, imho), and the clear_output method
@@ -3489,7 +3479,9 @@ class IPythonNotebook extends FileEditor
                 cell.output_area = new @ipython.OutputArea(wrapper, true)
 
             cell.fromJSON(cell_data)
-            ###
+
+            ###  for debugging that we properly update a cell in place -- if this is wrong,
+            #    all hell breaks loose, and sync loops ensue.
             a = misc.to_json(cell_data)
             b = misc.to_json(cell.toJSON())
             if a != b
@@ -3502,12 +3494,14 @@ class IPythonNotebook extends FileEditor
             ###
 
         else
-            console.log("replacing")
+            #console.log("replacing")
             @nb.delete_cell(index)
             new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
             new_cell.fromJSON(cell_data)
-        console.log("set_cell: done", misc.mswalltime(t))
+        #console.log("set_cell: done", misc.mswalltime(t))
 
+    ###
+    # simplistic version of setting from doc; *very* slow on cell insert.
     from_doc0: (doc) =>
         console.log("goal='#{doc}'")
         console.log("live='#{@to_doc()}'")
@@ -3532,12 +3526,12 @@ class IPythonNotebook extends FileEditor
                     console.log("error de-jsoning '#{goal[i]}'", e)
 
         console.log("from_doc: done", misc.mswalltime(t))
+    ###
 
     from_doc: (doc) =>
         #console.log("goal='#{doc}'")
         #console.log("live='#{@to_doc()}'")
-
-        console.log("from_doc: start"); tm = misc.mswalltime()
+        #console.log("from_doc: start"); tm = misc.mswalltime()
         goal = doc.split('\n')
         live = @to_doc().split('\n')
         @nb.metadata.name  = goal[0].notebook_name
@@ -3558,7 +3552,7 @@ class IPythonNotebook extends FileEditor
             catch e
                 console.log("UNABLE to parse '#{s}' -- not changing this cell.")
 
-        console.log("diff=#{misc.to_json(diff)}")
+        #console.log("diff=#{misc.to_json(diff)}")
         i = 0
         while i < diff.length
             chunk = diff[i]
@@ -3574,7 +3568,7 @@ class IPythonNotebook extends FileEditor
                 # due to the overhead of creating codemirror instances (presumably).  (Also, there is a
                 # chance to maintain the cursor later.)
                 if i < diff.length - 1 and diff[i+1][0] == 1 and diff[i+1][1].length == val.length
-                    console.log("replace")
+                    #console.log("replace")
                     for x in diff[i+1][1]
                         obj = parse(string_mapping._to_string[x])
                         if obj?
@@ -3582,12 +3576,12 @@ class IPythonNotebook extends FileEditor
                         index += 1
                     i += 1 # skip over next chunk
                 else
-                    console.log("delete")
+                    #console.log("delete")
                     for j in [0...val.length]
                         @delete_cell(index)
             else if op == 1
                 # insert new cells
-                console.log("insert")
+                #console.log("insert")
                 for x in val
                     obj = parse(string_mapping._to_string[x])
                     if obj?
@@ -3597,13 +3591,12 @@ class IPythonNotebook extends FileEditor
                 console.log("BUG -- invalid diff!", diff)
             i += 1
 
-        console.log("from_doc: done", misc.mswalltime(tm))
-
-        if @to_doc() != doc
-            console.log("FAIL!")
-            console.log("goal='#{doc}'")
-            console.log("live='#{@to_doc()}'")
-            @from_doc0(doc)
+        #console.log("from_doc: done", misc.mswalltime(tm))
+        #if @to_doc() != doc
+        #    console.log("FAIL!")
+        #    console.log("goal='#{doc}'")
+        #    console.log("live='#{@to_doc()}'")
+        #    @from_doc0(doc)
 
     focus: () =>
         # TODO

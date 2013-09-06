@@ -113,7 +113,7 @@ class DiffSyncDoc
                 for chunk in diff
                     #console.log(chunk)
                     op  = chunk[0]  # 0 = stay same; -1 = delete; +1 = add
-                    val = chunk[1] # the actual text to leave same, delete, or add
+                    val = chunk[1]  # the actual text to leave same, delete, or add
                     pos1 = next_pos(val, pos)
                     switch op
                         when 0 # stay the same
@@ -287,7 +287,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
     _connect: (cb) =>
         @_remove_listeners()
         delete @session_uuid
-        console.log("getting new session... -- '#{@filename}'")
+        #console.log("getting new session... -- '#{@filename}'")
         @call
             timeout : 30     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
