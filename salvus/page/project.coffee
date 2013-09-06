@@ -1445,7 +1445,7 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : "mkdir"
-            timeout    : 5
+            timeout    : 15
             args       : ['-p', opts.path]
             cb         : (err, result) =>
                 if opts.alert
@@ -1473,7 +1473,7 @@ class ProjectPage
                 salvus_client.exec
                     project_id : @project.project_id
                     command    : "touch"
-                    timeout    : 5
+                    timeout    : 15
                     args       : [opts.path]
                     cb         : (err, result) =>
                         if opts.alert

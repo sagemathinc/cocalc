@@ -3140,7 +3140,8 @@ get_with_retry = (opts) ->
 # overall cloud look.
 class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
-        opts = @opts = defaults opts, {}
+        opts = @opts = defaults opts,
+            sync_interval : 500
         @element = templates.find(".salvus-ipython-notebook").clone()
         @init_buttons()
         s = path_split(@filename)
@@ -3177,6 +3178,7 @@ class IPythonNotebook extends FileEditor
         @doc = syncdoc.synchronized_string
             project_id : @editor.project_id
             filename   : @syncdoc_filename
+            sync_interval : @opts.sync_interval
             cb         : (err) =>
                 if err
                     alert_message(type:"error", message:"Unable to connect to synchronized document server -- #{err}")
@@ -3189,11 +3191,11 @@ class IPythonNotebook extends FileEditor
         if @doc.live() == ''
             @doc.live(@to_doc())
         else
+            @iframe.css('opacity',.4)
             @set_live_from_syncdoc()
-            @iframe.animate(opacity:1)
+        @iframe.animate(opacity:1)
 
         @doc._presync = () =>
-            console.log("about to sync")
             @doc.live(@to_doc())
 
         apply_edits = @doc.dsync_client._apply_edits_to_live
@@ -3215,7 +3217,14 @@ class IPythonNotebook extends FileEditor
             apply_edits = @doc.dsync_client._apply_edits_to_live
             @doc.dsync_client._apply_edits_to_live = apply_edits2
 
-        setInterval(@autosync, 1000)
+        # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
+        # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
+        # when the notebook is dirty.
+        # Also, note there are cases where IPython doesn't set the dirty flag
+        # even though the output has changed.   For example, if you type "123" in a cell, run, then
+        # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
+        # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
+        setInterval(@autosync, @opts.sync_interval)
 
     remove: () =>
         if @_sync_check_interval?
@@ -3296,6 +3305,9 @@ class IPythonNotebook extends FileEditor
                         if a.length == 0
                             setTimeout(f, 100)
                         else
+                            @ipython = @frame.IPython
+                            @nb = @ipython.notebook
+
                             a.click () =>
                                 @info()
                                 return false
@@ -3318,14 +3330,15 @@ class IPythonNotebook extends FileEditor
                             #@frame.$("#autosave_status").remove()
                             #@frame.$("#checkpoint_status").remove()
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
-                            @frame.IPython.notebook._save_checkpoint = @frame.IPython.notebook.save_checkpoint
-                            @frame.IPython.notebook.save_checkpoint = @save
+                            @nb._save_checkpoint = @nb.save_checkpoint
+                            @nb.save_checkpoint = @save
 
                             # Ipython doesn't consider a load (e.g., snapshot restore) "dirty" (for obvious reasons!)
-                            @frame.IPython.notebook._load_notebook_success = @frame.IPython.notebook.load_notebook_success
-                            @frame.IPython.notebook.load_notebook_success = (data,status,xhr) =>
-                                @frame.IPython.notebook._load_notebook_success(data,status,xhr)
+                            @nb._load_notebook_success = @nb.load_notebook_success
+                            @nb.load_notebook_success = (data,status,xhr) =>
+                                @nb._load_notebook_success(data,status,xhr)
                                 @sync()
+
                             cb()
 
                 setTimeout(f, 100)
@@ -3334,7 +3347,7 @@ class IPythonNotebook extends FileEditor
         if @frame?.IPython?.notebook?.dirty
             @save_button.removeClass('disabled')
             @sync()
-            @frame.IPython.notebook.dirty = false
+            @nb.dirty = false
 
     sync: () =>
         @save_button.icon_spin(start:true,delay:1000)
@@ -3343,7 +3356,7 @@ class IPythonNotebook extends FileEditor
 
     save: (cb) =>
         @save_button.icon_spin(start:true,delay:500)
-        @frame.IPython.notebook._save_checkpoint()
+        @nb._save_checkpoint?()
         @doc.save () =>
             @save_button.icon_spin(false)
             @save_button.addClass('disabled')
@@ -3408,39 +3421,37 @@ class IPythonNotebook extends FileEditor
 
     to_obj: () =>
         console.log("to_obj: start"); t = misc.mswalltime()
-        nb = @frame.IPython.notebook
-        obj = nb.toJSON()
-        obj.metadata.name  = nb.notebook_name
-        obj.nbformat       = nb.nbformat
-        obj.nbformat_minor = nb.nbformat_minor
+        obj = @nb.toJSON()
+        obj.metadata.name  = @nb.notebook_name
+        obj.nbformat       = @nb.nbformat
+        obj.nbformat_minor = @nb.nbformat_minor
         console.log("to_obj: done", misc.mswalltime(t))
         return obj
 
     from_obj: (obj) =>
         console.log("from_obj: start"); t = misc.mswalltime()
-        nb = @frame.IPython.notebook
-        i = nb.get_selected_index()
-        st = nb.element.scrollTop()
-        nb.fromJSON(obj)
-        nb.dirty = false
-        nb.select(i)
-        nb.element.scrollTop(st)
+        i = @nb.get_selected_index()
+        st = @nb.element.scrollTop()
+        @nb.fromJSON(obj)
+        @nb.dirty = false
+        @nb.select(i)
+        @nb.element.scrollTop(st)
         console.log("from_obj: done", misc.mswalltime(t))
 
     # Notebook Doc Format: line 0 is meta information in JSON; one line with the JSON of each cell for reset of file
     to_doc: () =>
         console.log("to_doc: start"); t = misc.mswalltime()
         obj = @to_obj()
-        doc = misc.to_json({notebook_name:obj.metadata.name}) + '\n'
+        doc = misc.to_json({notebook_name:obj.metadata.name})
         for cell in obj.worksheets[0].cells
-            doc += misc.to_json(cell) + '\n'
-        console.log("to_doc: done -- #{misc.mswalltime(t)}") #, '#{doc}'")
+            doc += '\n' + misc.to_json(cell)
+        console.log("to_doc: done", misc.mswalltime(t))
         return doc
 
-    from_doc: (doc) =>
+    from_doc0: (doc) =>
         console.log("from_doc: start"); t = misc.mswalltime()
+        nb = @nb
         v = doc.split('\n')
-        nb = @frame.IPython.notebook
         nb.metadata.name  = v[0].notebook_name
         cells = []
         for line in v.slice(1)
@@ -3454,6 +3465,65 @@ class IPythonNotebook extends FileEditor
         @from_obj(obj)
         console.log("from_doc: done", misc.mswalltime(t))
 
+    set_cell: (index, cell_data) =>
+        console.log("set_cell: start"); t = misc.mswalltime()
+
+        cell = @nb.get_cell(index)
+
+        if cell? and cell_data.cell_type == cell.cell_type
+            console.log("setting in place")
+
+            if cell.output_area?
+                # for some reason fromJSON doesn't clear the output (it should, imho), and the clear_output method
+                # on the output_area doesn't work as expected.
+                wrapper = cell.output_area.wrapper
+                wrapper.empty()
+                cell.output_area = new @ipython.OutputArea(wrapper, true)
+
+            cell.fromJSON(cell_data)
+            ###
+            a = misc.to_json(cell_data)
+            b = misc.to_json(cell.toJSON())
+            if a != b
+                console.log("didn't work:")
+                console.log(a)
+                console.log(b)
+                @nb.delete_cell(index)
+                new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+                new_cell.fromJSON(cell_data)
+            ###
+
+        else
+            console.log("replacing")
+            @nb.delete_cell(index)
+            new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+            new_cell.fromJSON(cell_data)
+        console.log("set_cell: done", misc.mswalltime(t))
+
+    from_doc: (doc) =>
+        #console.log("goal='#{doc}'")
+        #console.log("live='#{@to_doc()}'")
+
+        console.log("from_doc: start"); t = misc.mswalltime()
+        goal = doc.split('\n')
+        live = @to_doc().split('\n')
+
+        @nb.metadata.name  = goal[0].notebook_name
+
+        for i in [1...Math.max(goal.length, live.length)]
+            index = i-1
+            if i > goal.length
+                console.log("deleting cell #{index}")
+                @nb.delete_cell(index)
+            else if goal[i] != live[i]
+                console.log("replacing cell #{index}")
+                try
+                    cell_data = JSON.parse(goal[i])
+                    @set_cell(index, cell_data)
+                catch e
+                    console.log("error de-jsoning '#{goal[i]}'", e)
+
+        console.log("from_doc: done", misc.mswalltime(t))
 
     focus: () =>
         # TODO
