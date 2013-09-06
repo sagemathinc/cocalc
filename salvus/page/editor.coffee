@@ -124,7 +124,8 @@ file_associations['pdf'] =
 
 # Multiplex'd worksheet mode
 
-MARKERS = require('diffsync').MARKERS
+diffsync = require('diffsync')
+MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [
     ['coffeescript', 'coffeescript'],
@@ -3465,6 +3466,13 @@ class IPythonNotebook extends FileEditor
         @from_obj(obj)
         console.log("from_doc: done", misc.mswalltime(t))
 
+    delete_cell: (index) =>
+        @nb.delete_cell(index)
+
+    insert_cell: (index, cell_data) =>
+        new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+        new_cell.fromJSON(cell_data)
+
     set_cell: (index, cell_data) =>
         console.log("set_cell: start"); t = misc.mswalltime()
 
@@ -3500,9 +3508,9 @@ class IPythonNotebook extends FileEditor
             new_cell.fromJSON(cell_data)
         console.log("set_cell: done", misc.mswalltime(t))
 
-    from_doc: (doc) =>
-        #console.log("goal='#{doc}'")
-        #console.log("live='#{@to_doc()}'")
+    from_doc0: (doc) =>
+        console.log("goal='#{doc}'")
+        console.log("live='#{@to_doc()}'")
 
         console.log("from_doc: start"); t = misc.mswalltime()
         goal = doc.split('\n')
@@ -3512,7 +3520,7 @@ class IPythonNotebook extends FileEditor
 
         for i in [1...Math.max(goal.length, live.length)]
             index = i-1
-            if i > goal.length
+            if i >= goal.length
                 console.log("deleting cell #{index}")
                 @nb.delete_cell(index)
             else if goal[i] != live[i]
@@ -3524,6 +3532,78 @@ class IPythonNotebook extends FileEditor
                     console.log("error de-jsoning '#{goal[i]}'", e)
 
         console.log("from_doc: done", misc.mswalltime(t))
+
+    from_doc: (doc) =>
+        #console.log("goal='#{doc}'")
+        #console.log("live='#{@to_doc()}'")
+
+        console.log("from_doc: start"); tm = misc.mswalltime()
+        goal = doc.split('\n')
+        live = @to_doc().split('\n')
+        @nb.metadata.name  = goal[0].notebook_name
+
+        v0    = live.slice(1)
+        v1    = goal.slice(1)
+        string_mapping = new misc.StringCharMapping()
+        v0_string  = string_mapping.to_string(v0)
+        v1_string  = string_mapping.to_string(v1)
+        diff = diffsync.dmp.diff_main(v0_string, v1_string)
+
+        index = 0
+        i = 0
+
+        parse = (s) ->
+            try
+                return JSON.parse(s)
+            catch e
+                console.log("UNABLE to parse '#{s}' -- not changing this cell.")
+
+        console.log("diff=#{misc.to_json(diff)}")
+        i = 0
+        while i < diff.length
+            chunk = diff[i]
+            op    = chunk[0]  # -1 = delete, 0 = leave unchanged, 1 = insert
+            val   = chunk[1]
+            if op == 0
+                # skip over  cells
+                index += val.length
+            else if op == -1
+                # delete  cells:
+                # A common special case arises when one is editing a single cell, which gets represented
+                # here as deleting then inserting.  Replacing is far more efficient than delete and add,
+                # due to the overhead of creating codemirror instances (presumably).  (Also, there is a
+                # chance to maintain the cursor later.)
+                if i < diff.length - 1 and diff[i+1][0] == 1 and diff[i+1][1].length == val.length
+                    console.log("replace")
+                    for x in diff[i+1][1]
+                        obj = parse(string_mapping._to_string[x])
+                        if obj?
+                            @set_cell(index, obj)
+                        index += 1
+                    i += 1 # skip over next chunk
+                else
+                    console.log("delete")
+                    for j in [0...val.length]
+                        @delete_cell(index)
+            else if op == 1
+                # insert new cells
+                console.log("insert")
+                for x in val
+                    obj = parse(string_mapping._to_string[x])
+                    if obj?
+                        @insert_cell(index, obj)
+                    index += 1
+            else
+                console.log("BUG -- invalid diff!", diff)
+            i += 1
+
+        console.log("from_doc: done", misc.mswalltime(tm))
+
+        if @to_doc() != doc
+            console.log("FAIL!")
+            console.log("goal='#{doc}'")
+            console.log("live='#{@to_doc()}'")
+            @from_doc0(doc)
 
     focus: () =>
         # TODO
