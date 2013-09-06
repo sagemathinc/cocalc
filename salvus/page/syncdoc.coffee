@@ -195,26 +195,42 @@ class AbstractSynchronizedDoc extends EventEmitter
         throw "define _connect in derived class"
 
     _add_listeners: () =>
-        salvus_client.on 'codemirror_diffsync_ready', @__diffsync_ready
-        salvus_client.on 'codemirror_bcast', @__receive_broadcast
-        salvus_client.on 'signed_in', @__reconnect
+        # We *have* to wrapper all the listeners
+        @_listeners =
+            codemirror_diffsync_ready : ((mesg) => @__diffsync_ready(mesg))
+            codemirror_bcast          : ((mesg) => @__receive_broadcast(mesg))
+            signed_in                 : (()     => @__reconnect())
+        for e, f of @_listeners
+            salvus_client.on(e, f)
 
     _remove_listeners: () =>
-        salvus_client.removeListener 'codemirror_diffsync_ready', @__diffsync_ready
-        salvus_client.removeListener 'codemirror_bcast', @__receive_broadcast
-        salvus_client.removeListener 'signed_in', @__reconnect
+        for e, f of @_listeners
+            salvus_client.removeListener(e, f)
 
     __diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
             @sync()
 
+    send_broadcast_message: (mesg, self) =>
+        if @session_uuid?  # can't send until we have connected.
+            m = message.codemirror_bcast
+                session_uuid : @session_uuid
+                mesg         : mesg
+                self         : self    #if true, then also include this client to receive message
+            salvus_client.send(m)
+
     __receive_broadcast: (mesg) =>
         if mesg.session_uuid == @session_uuid
-            if mesg.mesg.event == 'update_session_uuid'
-                # This just doesn't work yet -- not really implemented in the hub -- so we force
-                # a full reconnect, which is safe.
-                #@session_uuid = mesg.mesg.new_session_uuid
-                @connect()
+            switch mesg.mesg.event
+                when 'update_session_uuid'
+                    # This just doesn't work yet -- not really implemented in the hub -- so we force
+                    # a full reconnect, which is safe.
+                    #@session_uuid = mesg.mesg.new_session_uuid
+                    @connect()
+                when 'cursor'
+                    @_receive_cursor(mesg)
+                else
+                    @_receive_broadcast?(mesg)  # can be define in derived class
 
     __reconnect: () =>
         # The main websocket to the remote server died then came back, so we
@@ -280,6 +296,27 @@ class AbstractSynchronizedDoc extends EventEmitter
         opts.message.session_uuid = @session_uuid
         salvus_client.call(opts)
 
+    broadcast_cursor_pos: (pos) =>
+        @send_broadcast_message({event:'cursor', pos:pos}, false)
+
+    _receive_cursor: (mesg) =>
+        # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
+        # annoying having a pointless indicator of another person.
+        key = mesg.color + mesg.name
+        if not @_last_cursor_pos?
+            @_last_cursor_pos = {}
+        else
+            pos = @_last_cursor_pos[key]
+            if pos? and JSON.stringify(pos) == JSON.stringify(mesg.mesg.pos)
+                return
+        # cursor moved.
+        @_last_cursor_pos[key] = mesg.mesg.pos   # record current position
+        @draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
+
+    draw_other_cursor: (pos, color, name) =>
+        # overload this in derived class
+
+
 
 class SynchronizedString extends AbstractSynchronizedDoc
     # "connect(cb)": Connect to the given server; will retry until it succeeds.
@@ -298,6 +335,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
                     err = resp.error
                 if err
                     cb?(err); return
+
                 @session_uuid = resp.session_uuid
 
                 if @_last_sync?
@@ -347,6 +385,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
 
         @filename    = @editor.filename
+
         @editor.save = @save
         @codemirror  = @editor.codemirror
         if misc.filename_extension(@filename) == "sagews"
@@ -457,17 +496,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     on_redo: (instance, changeObj) =>
         # do nothing in base class
 
-    _add_listeners: () =>
-        salvus_client.on 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.on 'codemirror_bcast', @_receive_broadcast
-        salvus_client.on 'signed_in', @__reconnect
-
-
-    _remove_listeners: () =>
-        salvus_client.removeListener 'codemirror_diffsync_ready', @_diffsync_ready
-        salvus_client.removeListener 'codemirror_bcast', @_receive_broadcast
-        salvus_client.removeListener 'signed_in', @__reconnect
-
     __reconnect: () =>
         # The main websocket to the remote server died then came back, so we
         # setup a new syncdoc session with the remote hub.  This will work fine,
@@ -516,12 +544,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 preparse     : opts.preparse
                 session_uuid : @session_uuid
             cb : opts.cb
-
-
-
-    _diffsync_ready: (mesg) =>
-        if mesg.session_uuid == @session_uuid
-            @sync()
 
     ui_synced: (synced) =>
         if synced
@@ -677,51 +699,20 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         output.scrollTop(output[0].scrollHeight)
 
-    send_broadcast_message: (mesg, self) ->
-        m = message.codemirror_bcast
-            session_uuid : @session_uuid
-            mesg         : mesg
-            self         : self    #if true, then also include this client to receive message
-        salvus_client.send(m)
-
     send_cursor_info_to_hub: () =>
         delete @_waiting_to_send_cursor
         if not @session_uuid # not yet connected to a session
             return
-        @send_broadcast_message({event:'cursor', pos:@codemirror.getCursor()})
+        @broadcast_cursor_pos(@codemirror.getCursor())
 
     send_cursor_info_to_hub_soon: () =>
         if @_waiting_to_send_cursor?
             return
         @_waiting_to_send_cursor = setTimeout(@send_cursor_info_to_hub, @opts.cursor_interval)
 
-    _receive_broadcast: (mesg) =>
-        if mesg.session_uuid == @session_uuid
-            switch mesg.mesg.event
-                when 'cursor'
-                    @_receive_cursor(mesg)
-                when 'update_session_uuid'
-                    # This just doesn't work yet -- not really implemented in the hub -- so we force
-                    # a full reconnect, which is safe.
-
-                    #@session_uuid = mesg.mesg.new_session_uuid
-                    @connect()
-
-    _receive_cursor: (mesg) =>
-        # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
-        # annoying having a pointless indicator of another person.
-        if not @_last_cursor_pos?
-            @_last_cursor_pos = {}
-        else
-            pos = @_last_cursor_pos[mesg.color]
-            if pos? and pos.line == mesg.mesg.pos.line and pos.ch == mesg.mesg.pos.ch
-                return
-        # cursor moved.
-        @_last_cursor_pos[mesg.color] = mesg.mesg.pos   # record current position
-        @_draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
 
     # Move the cursor with given color to the given pos.
-    _draw_other_cursor: (pos, color, name) =>
+    draw_other_cursor: (pos, color, name) =>
         if not @codemirror?
             return
         if not @_cursors?
@@ -960,7 +951,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if @_cm_lines?
             return @_cm_lines
         return @_cm_lines = @cm_wrapper().find(".CodeMirror-lines")
-
 
     pad_bottom_with_newlines: (n) =>
         cm = @codemirror
@@ -1463,10 +1453,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             setTimeout( (() => @sync()), 50 )
             setTimeout( (() => @sync()), 200 )
 
-
-    _diffsync_ready: (mesg) =>
-        if mesg.session_uuid == @session_uuid
-            @sync()
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.

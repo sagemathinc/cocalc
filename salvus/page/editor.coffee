@@ -3218,6 +3218,13 @@ class IPythonNotebook extends FileEditor
             apply_edits = @doc.dsync_client._apply_edits_to_live
             @doc.dsync_client._apply_edits_to_live = apply_edits2
 
+        # TODO: we should just create a clas that derives from SynchronizedString at this point.
+        @doc.draw_other_cursor = (pos, color, name) =>
+            console.log("draw other cursor: ", pos, color, name)
+
+        # TODO -- purely for easy debugging -- delete!!!!
+        window.t389 = @
+
         # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
         # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
         # when the notebook is dirty.
@@ -3227,12 +3234,15 @@ class IPythonNotebook extends FileEditor
         # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
         setInterval(@autosync, @opts.sync_interval)
 
+    broadcast_cursor_pos: () =>
+        index = @nb.get_selected_index()
+        @doc.broadcast_cursor_pos(index:index)
+
     remove: () =>
         if @_sync_check_interval?
             clearInterval(@_sync_check_interval)
         @element.remove()
         @doc?.disconnect_from_session()
-
 
     get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
         if not @server?
@@ -3601,7 +3611,6 @@ class IPythonNotebook extends FileEditor
     focus: () =>
         # TODO
         # console.log("ipython notebook focus: todo")
-
 
     show: () =>
         @element.show()
