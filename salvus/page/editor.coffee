@@ -3143,6 +3143,7 @@ class IPythonNotebook extends FileEditor
     constructor: (@editor, @filename, url, opts) ->
         opts = @opts = defaults opts,
             sync_interval : 500
+            cursor_interval : 2000
         @element = templates.find(".salvus-ipython-notebook").clone()
         @init_buttons()
         s = path_split(@filename)
@@ -3218,9 +3219,50 @@ class IPythonNotebook extends FileEditor
             apply_edits = @doc.dsync_client._apply_edits_to_live
             @doc.dsync_client._apply_edits_to_live = apply_edits2
 
-        # TODO: we should just create a clas that derives from SynchronizedString at this point.
+        # TODO: we should just create a class that derives from SynchronizedString at this point.
         @doc.draw_other_cursor = (pos, color, name) =>
-            console.log("draw other cursor: ", pos, color, name)
+            if not @_cursors?
+                @_cursors = {}
+            id = color + name
+            cursor_data = @_cursors[id]
+            if not cursor_data?
+                cursor = templates.find(".salvus-editor-codemirror-cursor").clone().show()
+                # craziness -- now move it into the iframe!
+                cursor = @frame.$("<div>").html(cursor.html())
+                cursor.css(position: 'absolute', width:'15em')
+                inside = cursor.find(".salvus-editor-codemirror-cursor-inside")
+                inside.css
+                    'background-color': color
+                    position : 'absolute'
+                    top : '-1.3em'
+                    left: '.5ex'
+                    height : '1.15em'
+                    width  : '.1ex'
+                    'border-left': '2px solid black'
+                    border  : '1px solid #aaa'
+                    opacity :'.7'
+
+                label = cursor.find(".salvus-editor-codemirror-cursor-label")
+                label.css
+                    color:'color'
+                    position:'absolute'
+                    top:'-2.9em'
+                    left:'1.5ex'
+                    'font-size':'8pt'
+                    'font-family':'serif'
+                label.text(name)
+                cursor_data = {cursor: cursor, pos:pos}
+                @_cursors[id] = cursor_data
+            else
+                cursor_data.pos = pos
+
+            # first fade the label out
+            cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
+            # Then fade the cursor out (a non-active cursor is a waste of space).
+            cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
+            @nb.get_cell(pos.index).code_mirror.addWidget(
+                      {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
+
 
         # TODO -- purely for easy debugging -- delete!!!!
         window.t389 = @
@@ -3233,10 +3275,16 @@ class IPythonNotebook extends FileEditor
         # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
         # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
         setInterval(@autosync, @opts.sync_interval)
+        setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
 
     broadcast_cursor_pos: () =>
         index = @nb.get_selected_index()
-        @doc.broadcast_cursor_pos(index:index)
+        cell  = @nb.get_cell(index)
+        pos   = cell.code_mirror.getCursor()
+        s = misc.to_json(pos)
+        if s != @_last_cursor_pos
+            @_last_cursor_pos = s
+            @doc.broadcast_cursor_pos(index:index, line:pos.line, ch:pos.ch)
 
     remove: () =>
         if @_sync_check_interval?
