@@ -3465,6 +3465,20 @@ class IPythonNotebook extends FileEditor
             @info()
             return false
 
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
+        @element.find("a[href=#execute]").click () =>
+            @nb.execute_selected_cell()
+            return false
+        @element.find("a[href=#interrupt]").click () =>
+            @nb.kernel.interrupt()
+            return false
+        @element.find("a[href=#tab]").click () =>
+            @nb.get_cell(@nb.get_selected_index()).completer.startCompletion()
+            return false
+
     to_obj: () =>
         #console.log("to_obj: start"); t = misc.mswalltime()
         obj = @nb.toJSON()
@@ -3662,6 +3676,10 @@ class IPythonNotebook extends FileEditor
 
     show: () =>
         @element.show()
+        top = @editor.editor_top_position()
+        @element.css(top:top)
+        if top == 0
+            @element.css('position':'fixed')
         w = $(window).width()
         @iframe?.attr('width',w).maxheight()
 
