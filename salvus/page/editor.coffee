@@ -3157,8 +3157,11 @@ class IPythonNotebook extends FileEditor
 
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
-        con = @element.find(".salvus-ipython-notebook-connecting")
-        con.show().icon_spin(start:true)
+        @con = @element.find(".salvus-ipython-notebook-connecting")
+        @setup()
+
+    setup: (cb) =>
+        @con.show().icon_spin(start:true)
         async.series([
             (cb) =>
                 salvus_client.exec
@@ -3197,9 +3200,10 @@ class IPythonNotebook extends FileEditor
                 @init_autosave()
                 cb()
         ], (err) =>
-            con.show().icon_spin(false).hide()
+            @con.show().icon_spin(false).hide()
             if err
                 alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
+            cb?(err)
         )
 
     _init_doc: () =>
@@ -3285,12 +3289,15 @@ class IPythonNotebook extends FileEditor
             else
                 cursor_data.pos = pos
 
-            # first fade the label out
-            cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
-            # Then fade the cursor out (a non-active cursor is a waste of space).
-            cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
-            @nb.get_cell(pos.index).code_mirror.addWidget(
-                      {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
+            try
+                # first fade the label out
+                cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
+                # Then fade the cursor out (a non-active cursor is a waste of space).
+                cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
+                @nb.get_cell(pos.index).code_mirror.addWidget(
+                          {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
+            catch e
+                console.log("warning: issue when drawing sync cursor", e)
 
         # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
         # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
@@ -3368,7 +3375,7 @@ class IPythonNotebook extends FileEditor
                 if err
                     cb(err); return
                 @iframe_uuid = misc.uuid()
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.1').attr('src', @server.url + @notebook_id)
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.3').attr('src', @server.url + @notebook_id)
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -3473,11 +3480,11 @@ class IPythonNotebook extends FileEditor
 
     reload: () =>
         @reload_button.icon_spin(true)
-        @save () =>
-            @initialize (err) =>
-                @reload_button.icon_spin(false)
+        @setup () =>
+            @reload_button.icon_spin(false)
 
     init_buttons: () =>
+        @element.find("a").tooltip()
         @save_button = @element.find("a[href=#save]").click () =>
             @save()
             return false
