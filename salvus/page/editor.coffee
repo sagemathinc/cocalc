@@ -3076,16 +3076,22 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             args       : ['start']
             bash       : false
             timeout    : 1
-            err_on_exit: true
+            err_on_exit: false
             cb         : (err, output) =>
                 if err
                     cb?(err)
                 else
-                    info = misc.from_json(output.stdout)
-                    @url = info.base; @pid = info.pid; @port = info.port
-                    get_with_retry
-                        url : @url
-                        cb  : (err, data) => cb?(err)
+                    try
+                        info = misc.from_json(output.stdout)
+                        if info.error?
+                            cb?(info.error)
+                        else
+                            @url = info.base; @pid = info.pid; @port = info.port
+                            get_with_retry
+                                url : @url
+                                cb  : (err, data) => cb?(err)
+                    catch e
+                        cb?(true)
 
     notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
         get_with_retry
@@ -3229,7 +3235,7 @@ class IPythonNotebook extends FileEditor
             @con.show().icon_spin(false).hide()
             @_setting_up = false
             if err
-                @status("failed to start (click reload to try again)...")
+                @status("failed to start -- #{err}")
                 cb?("Unable to start IPython server -- #{err}")
             else
                 cb?(err)
