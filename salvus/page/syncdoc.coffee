@@ -340,6 +340,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
                 if @_last_sync?
                     # We have sync'd before.
+                    @_presync?() # give syncstring chance to be updated by true live. 
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
 
                 @dsync_client = new diffsync.DiffSync(doc:resp.content)
@@ -347,15 +348,19 @@ class SynchronizedString extends AbstractSynchronizedDoc
                 if @_last_sync?
                     # applying missed patches to the new upstream version that we just got from the hub.
                     @_apply_patch_to_live(patch)
+                    reconnect = true
                 else
                     # This initialiation is the first.
                     @_last_sync   = resp.content
+                    reconnect = false
 
                 @dsync_server = new DiffSyncHub(@)
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
-                @emit('connect')
+
+                if reconnect
+                    @emit('reconnect')
 
                 cb?()
 
