@@ -3159,21 +3159,48 @@ class IPythonNotebook extends FileEditor
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
         con = @element.find(".salvus-ipython-notebook-connecting")
         con.show().icon_spin(start:true)
-
-        @editor.project_page.ensure_file_exists
-            path : @syncdoc_filename
-            cb   : (err) =>
-                if err
-                    console.log("unable to create syncdoc file ", err)
-                    return
-                else
-                    @initialize (err) =>
-                        con.show().icon_spin(false).hide()
-                        if err
-                            alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
+        async.series([
+            (cb) =>
+                salvus_client.exec
+                    project_id : @editor.project_id
+                    path       : @path
+                    command    : "ls"
+                    args       : ['-lt', "--time-style=+%s", @file, @syncdoc_filename]
+                    err_on_exit: false
+                    cb         : (err, output) =>
+                        if err?
+                            cb(err)
+                        else if output.stderr.indexOf('No such file or directory') != -1
+                            # nothing to do -- the syncdoc file doesn't even exist.
+                            cb()
                         else
-                            @_init_doc()
-
+                            # figure out the two times and see if the .ipynb file is at least 10 seconds (say)
+                            # newer than the syncdoc.
+                            #~$ ls -l --time-style=+%s .2013-09-06-080011.ipynb.syncdoc 2013-09-06-080011.ipynb
+                            #-rw-rw-r-- 1 ccnIX7aT ccnIX7aT 43560 1378514636 2013-09-06-080011.ipynb
+                            #-rw-rw-r-- 1 ccnIX7aT ccnIX7aT 41821 1378513328 .2013-09-06-080011.ipynb.syncdoc
+                            v = output.stdout.split('\n')
+                            a = {}
+                            a[v[0][6]] = parseInt(v[0][5])
+                            a[v[1][6]] = parseInt(v[1][5])
+                            if a[@file] >= a[@syncdoc_filename] + 10
+                                @_use_disk_file = true
+                            cb()
+            (cb) =>
+                @editor.project_page.ensure_file_exists
+                    path : @syncdoc_filename
+                    cb   : cb
+            (cb) =>
+                @initialize(cb)
+            (cb) =>
+                @_init_doc()
+                @init_autosave()
+                cb()
+        ], (err) =>
+            con.show().icon_spin(false).hide()
+            if err
+                alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
+        )
 
     _init_doc: () =>
         #console.log("_init_doc")
@@ -3185,6 +3212,8 @@ class IPythonNotebook extends FileEditor
                 if err
                     alert_message(type:"error", message:"Unable to connect to synchronized document server -- #{err}")
                 else
+                    if @_use_disk_file
+                        @doc.live('')
                     @_config_doc()
 
     _config_doc: () =>
@@ -3262,10 +3291,6 @@ class IPythonNotebook extends FileEditor
             cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
             @nb.get_cell(pos.index).code_mirror.addWidget(
                       {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
-
-
-        # TODO -- purely for easy debugging -- delete!!!!
-        window.t389 = @
 
         # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
         # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
@@ -3412,6 +3437,9 @@ class IPythonNotebook extends FileEditor
         @save_button.icon_spin(start:true,delay:1000)
         @doc.sync () =>
             @save_button.icon_spin(false)
+
+    has_unsaved_changes: () =>
+        return not @save_button.hasClass('disabled')
 
     save: (cb) =>
         @save_button.icon_spin(start:true,delay:500)
