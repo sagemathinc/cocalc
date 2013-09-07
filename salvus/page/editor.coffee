@@ -3161,7 +3161,14 @@ class IPythonNotebook extends FileEditor
         @setup()
 
     setup: (cb) =>
+
         @con.show().icon_spin(start:true)
+
+        # Delete all the cached cursors in the DOM
+        delete @_cursors
+        delete @nb
+        delete @frame
+
         async.series([
             (cb) =>
                 salvus_client.exec
@@ -3279,25 +3286,23 @@ class IPythonNotebook extends FileEditor
                 label.css
                     color:'color'
                     position:'absolute'
-                    top:'-2.9em'
+                    top:'-2.3em'
                     left:'1.5ex'
                     'font-size':'8pt'
                     'font-family':'serif'
+                    'z-index':10000
                 label.text(name)
                 cursor_data = {cursor: cursor, pos:pos}
                 @_cursors[id] = cursor_data
             else
                 cursor_data.pos = pos
 
-            try
-                # first fade the label out
-                cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
-                # Then fade the cursor out (a non-active cursor is a waste of space).
-                cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
-                @nb.get_cell(pos.index).code_mirror.addWidget(
-                          {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
-            catch e
-                console.log("warning: issue when drawing sync cursor", e)
+            # first fade the label out
+            cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
+            # Then fade the cursor out (a non-active cursor is a waste of space).
+            cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
+            @nb.get_cell(pos.index).code_mirror.addWidget(
+                      {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
 
         # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
         # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
