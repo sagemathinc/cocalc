@@ -3075,7 +3075,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             command    : "ipython-notebook"
             args       : ['start']
             bash       : false
-            timeout    : 15
+            timeout    : 1
             err_on_exit: true
             cb         : (err, output) =>
                 if err
@@ -3116,8 +3116,8 @@ get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
         initial_delay : 100
-        max_delay     : 15000     # once delay hits this, give up
-        factor        : 1.2       # for exponential backoff
+        max_delay     : 7000     # once delay hits this, give up
+        factor        : 1.2      # for exponential backoff
         bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url
     delay = opts.initial_delay
@@ -3145,6 +3145,7 @@ class IPythonNotebook extends FileEditor
             sync_interval : 500
             cursor_interval : 2000
         @element = templates.find(".salvus-ipython-notebook").clone()
+        @status_element = @element.find(".salvus-ipython-notebook-status-messages")
         @init_buttons()
         s = path_split(@filename)
         @path = s.head
@@ -3158,10 +3159,25 @@ class IPythonNotebook extends FileEditor
         # This is where we put the page itself
         @notebook = @element.find(".salvus-ipython-notebook-notebook")
         @con = @element.find(".salvus-ipython-notebook-connecting")
-        @setup()
+        @setup () =>
+            # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
+            # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
+            # when the notebook is dirty.
+            # Also, note there are cases where IPython doesn't set the dirty flag
+            # even though the output has changed.   For example, if you type "123" in a cell, run, then
+            # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
+            # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
+            @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
+            @_cursor_interval = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
+
+    status: (text) =>
+        if not text?
+            text = ""
+        @status_element.html(text)
 
     setup: (cb) =>
         if @_setting_up
+            cb?("already setting up")
             return  # already setting up
         @_setting_up = true
         @con.show().icon_spin(start:true)
@@ -3173,6 +3189,7 @@ class IPythonNotebook extends FileEditor
 
         async.series([
             (cb) =>
+                @status("determining newest ipynb file")
                 salvus_client.exec
                     project_id : @editor.project_id
                     path       : @path
@@ -3199,45 +3216,51 @@ class IPythonNotebook extends FileEditor
                                 @_use_disk_file = true
                             cb()
             (cb) =>
+                @status("ensuring syncdoc exists")
                 @editor.project_page.ensure_file_exists
                     path : @syncdoc_filename
                     cb   : cb
             (cb) =>
                 @initialize(cb)
             (cb) =>
-                @_init_doc()
                 @init_autosave()
-                cb()
+                @_init_doc(cb)
         ], (err) =>
             @con.show().icon_spin(false).hide()
-            if err
-                alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
             @_setting_up = false
-            cb?(err)
+            if err
+                @status("failed to start (click reload to try again)...")
+                cb?("Unable to start IPython server -- #{err}")
+            else
+                cb?(err)
         )
 
-    _init_doc: () =>
+    _init_doc: (cb) =>
         #console.log("_init_doc")
+        @status("connecting to sync session")
         @doc = syncdoc.synchronized_string
             project_id : @editor.project_id
             filename   : @syncdoc_filename
             sync_interval : @opts.sync_interval
             cb         : (err) =>
+                @status()
                 if err
-                    alert_message(type:"error", message:"Unable to connect to synchronized document server -- #{err}")
+                    cb?("Unable to connect to synchronized document server -- #{err}")
                 else
                     if @_use_disk_file
                         @doc.live('')
                     @_config_doc()
+                    cb?()
 
     _config_doc: () =>
         #console.log("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
+        @status("setting visible document to sync")
         if @doc.live() == ''
             @doc.live(@to_doc())
         else
-            @iframe.css('opacity',.4)
             @set_live_from_syncdoc()
+        console.log("DONE SETTING!")
         @iframe.animate(opacity:1)
 
         @doc._presync = () =>
@@ -3311,16 +3334,8 @@ class IPythonNotebook extends FileEditor
             cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
             @nb.get_cell(pos.index).code_mirror.addWidget(
                       {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
+        @status()
 
-        # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
-        # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
-        # when the notebook is dirty.
-        # Also, note there are cases where IPython doesn't set the dirty flag
-        # even though the output has changed.   For example, if you type "123" in a cell, run, then
-        # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
-        # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
-        setInterval(@autosync, @opts.sync_interval)
-        setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
 
     broadcast_cursor_pos: () =>
         if not @nb?
@@ -3337,13 +3352,19 @@ class IPythonNotebook extends FileEditor
     remove: () =>
         if @_sync_check_interval?
             clearInterval(@_sync_check_interval)
+        if @_cursor_interval?
+            clearInterval(@_cursor_interval)
+        if @_autosync_interval?
+            clearInterval(@_autosync_interval)
         @element.remove()
         @doc?.disconnect_from_session()
 
     get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
         if not @server?
             cb("cannot call get_ids until connected to the ipython notebook server."); return
+        @status("getting notebook and kernel id")
         @server.notebooks (err, notebooks) =>
+            @status()
             if err
                 cb(err); return
             for n in notebooks
@@ -3356,6 +3377,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
+                @status("getting or starting ipython server")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     path       : @path
@@ -3371,26 +3393,34 @@ class IPythonNotebook extends FileEditor
                 attempts = 0
                 f = () =>
                     attempts += 1
-                    if attempts < 30
+                    if attempts < 20
                         @get_ids () =>
                             if not @kernel_id?
-                                setTimeout(f, 3000)
+                                setTimeout(f,500)
+                            else
+                                cb()
+                    else
+                        cb("unable to get kernel id")
                 setTimeout(f, 250)
-                cb()
         ], cb)
 
 
     _init_iframe: (cb) =>
         if not @notebook_id?
             # assumes @notebook_id has been set
-            cb("Must first call get_ids"); return
+            cb("must first call get_ids"); return
 
+        @status("initializing iframe")
         get_with_retry
             url : @server.url
             cb  : (err) =>
                 if err
+                    @status()
                     cb(err); return
                 @iframe_uuid = misc.uuid()
+
+                @status("loading #{@server.url + @notebook_id}")
+
                 @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.3').attr('src', @server.url + @notebook_id)
                 @notebook.html('').append(@iframe)
                 @show()
@@ -3399,18 +3429,20 @@ class IPythonNotebook extends FileEditor
                 # instead of messing up our embedded view.
                 attempts = 0
                 f = () =>
-                    #console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
+                    console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
                     attempts += 1
-                    if attempts >= 100
-                        # just give up -- this isn't at all critical; don't want to waste resources.
+                    if attempts >= 40
+                        # just give up -- this isn't at all critical; don't want to waste resources
+                        @status()
+                        cb()
                         return
                     @frame = window.frames[@iframe_uuid]
                     if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
-                        setTimeout(f, 100)
+                        setTimeout(f, 250)
                     else
                         a = @frame.$("#ipython_notebook").find("a")
                         if a.length == 0
-                            setTimeout(f, 100)
+                            setTimeout(f, 250)
                         else
                             @ipython = @frame.IPython
                             @nb = @ipython.notebook
@@ -3446,6 +3478,7 @@ class IPythonNotebook extends FileEditor
                                 @nb._load_notebook_success(data,status,xhr)
                                 @sync()
 
+                            @status()
                             cb()
 
                 setTimeout(f, 100)
@@ -3514,8 +3547,12 @@ class IPythonNotebook extends FileEditor
         return false
 
     reload: () =>
+        if @_reloading
+            return
+        @_reloading = true
         @reload_button.icon_spin(true)
-        @setup () =>
+        @setup (ee) =>
+            @_reloading = false
             @reload_button.icon_spin(false)
 
     init_buttons: () =>

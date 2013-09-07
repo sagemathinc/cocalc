@@ -383,6 +383,10 @@ Editor for files in a project
     right    : 7px;
 }
 
+.salvus-ipython-notebook-status-messages {
+    font-size: 9px;
+}
+
 
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */
 li {
