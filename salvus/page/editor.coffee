@@ -3161,7 +3161,9 @@ class IPythonNotebook extends FileEditor
         @setup()
 
     setup: (cb) =>
-
+        if @_setting_up
+            return  # already setting up
+        @_setting_up = true
         @con.show().icon_spin(start:true)
 
         # Delete all the cached cursors in the DOM
@@ -3210,6 +3212,7 @@ class IPythonNotebook extends FileEditor
             @con.show().icon_spin(false).hide()
             if err
                 alert_message(type:"error", message:"Unable to start IPython server -- #{err}")
+            @_setting_up = false
             cb?(err)
         )
 
@@ -3238,6 +3241,9 @@ class IPythonNotebook extends FileEditor
         @iframe.animate(opacity:1)
 
         @doc._presync = () =>
+            if not @nb?
+                # no point -- reinitializing the notebook frame right now...
+                return
             @doc.live(@to_doc())
 
         apply_edits = @doc.dsync_client._apply_edits_to_live
@@ -3255,7 +3261,9 @@ class IPythonNotebook extends FileEditor
         @doc.dsync_client._apply_edits_to_live = apply_edits2
 
         @doc.on "connect", () =>
-            #console.log("connected so re-setting dsync client")
+            if not @doc.dsync_client?
+                # this could be an older connect emit that didn't get handled -- ignore.
+                return
             apply_edits = @doc.dsync_client._apply_edits_to_live
             @doc.dsync_client._apply_edits_to_live = apply_edits2
 
@@ -3315,6 +3323,9 @@ class IPythonNotebook extends FileEditor
         setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
 
     broadcast_cursor_pos: () =>
+        if not @nb?
+            # no point -- reloading or loading
+            return
         index = @nb.get_selected_index()
         cell  = @nb.get_cell(index)
         pos   = cell.code_mirror.getCursor()
@@ -3439,7 +3450,24 @@ class IPythonNotebook extends FileEditor
 
                 setTimeout(f, 100)
 
+    # although highly unlikely, this could happen if something else steals our port before we can restart...
+    check_for_moved_server: () =>
+        if @nb?.kernel?  # only try if nb is already loaded
+            if not @nb.kernel.shell_channel   # if backend is gone/replaced, then this would get set to null
+                ipython_notebook_server
+                    project_id : @editor.project_id
+                    path       : @path
+                    cb         : (err, server) =>
+                        if err
+                            # nothing to be done.
+                            return
+                        if server.url != @server.url
+                            # server moved!?
+                            @server = server
+                            @reload() # -- only thing we can do, really
+
     autosync: () =>
+        @check_for_moved_server()  # only bother if document being changed.
         if @frame?.IPython?.notebook?.dirty
             @save_button.removeClass('disabled')
             @sync()
@@ -3462,6 +3490,8 @@ class IPythonNotebook extends FileEditor
             cb?()
 
     set_live_from_syncdoc: () =>
+        if not @doc?.dsync_client?  # could be re-initializing
+            return
         current = @to_doc()
         if @doc.dsync_client.live != current
             @from_doc(@doc.dsync_client.live)
@@ -3516,7 +3546,7 @@ class IPythonNotebook extends FileEditor
             @nb.kernel.interrupt()
             return false
         @element.find("a[href=#tab]").click () =>
-            @nb.get_cell(@nb.get_selected_index()).completer.startCompletion()
+            @nb.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
 
     to_obj: () =>
