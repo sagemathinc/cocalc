@@ -2,6 +2,12 @@
 
 import os, sys
 
+if '--all' in sys.argv:
+    all = True
+    sys.argv.remove("--all")
+else:
+    all = False
+
 if len(sys.argv) == 2:
     out = sys.argv[1]
 else:
@@ -12,7 +18,7 @@ for src in os.listdir('.'):
     if src.endswith('.coffee'):
         name = src[:-7]
         target = '%s/%s.js'%(out, name)
-        if not os.path.exists(target) or os.stat(target).st_mtime < os.stat(src).st_mtime:
+        if all or (not os.path.exists(target) or os.stat(target).st_mtime < os.stat(src).st_mtime):
             v.append(src)
 
 if v:
