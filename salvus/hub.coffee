@@ -2471,7 +2471,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @_restart_lock = false
                     @killall () =>
                         @_restart_lock = true
-                        cb()                    
+                        cb()
             (cb) =>
                 winston.debug("local_hub restart: Push latest version of code to remote machine...")
                 @_push_local_hub_code (err) =>
@@ -4172,9 +4172,9 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 # can be used to reset the password for a certain account.
 #
 # Anti-use-salvus-to-spam/DOS throttling policies:
-#   * a given email address can be sent at most 2 password resets per hour
-#   * a given ip address can send at most 3 password reset request per minute
-#   * a given ip can send at most 25 per hour
+#   * a given email address can be sent at most 30 password resets per hour
+#   * a given ip address can send at most 100 password reset request per minute
+#   * a given ip can send at most 250 per hour
 #############################################################################
 forgot_password = (mesg, client_ip_address, push_to_client) ->
     if mesg.event != 'forgot_password'
@@ -4212,7 +4212,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     else
                         cb()
 
-        # POLICY 1: We limit the number of password resets that an email address can receive to at most 2 per hour
+        # POLICY 1: We limit the number of password resets that an email address can receive
         (cb) ->
             database.count
                 table   : "password_reset_attempts_by_email_address"
@@ -4221,13 +4221,13 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true); return
-                    if count >= 3
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Will not send more than 2 password resets to #{mesg.email_address} per hour."))
+                    if count >= 31
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Will not send more than 30 password resets to #{mesg.email_address} per hour."))
                         cb(true)
                         return
                     cb()
 
-        # POLICY 2: a given ip address can send at most 3 password reset request per minute
+        # POLICY 2: a given ip address can send at most 100 password reset request per minute
         (cb) ->
             database.count
                 table   : "password_reset_attempts_by_ip_address"
@@ -4236,13 +4236,13 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true); return
-                    if count >= 4
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset request from the ip address #{client_ip_address}."))
+                    if count >= 101
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset requests."))
                         cb(true); return
                     cb()
 
 
-        # POLICY 3: a given ip can send at most 25 per hour
+        # POLICY 3: a given ip can send at most 1000 per hour
         (cb) ->
             database.count
                 table : "password_reset_attempts_by_ip_address"
@@ -4251,8 +4251,8 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true); return
-                    if count >= 26
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"There have been too many password reset requests from #{client_ip_address}.  Wait an hour before sending any more password reset requests."))
+                    if count >= 1001
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"There have been too many password resets.  Wait an hour before sending any more password reset requests."))
                         cb(true); return
                     cb()
 

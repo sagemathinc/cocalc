@@ -204,7 +204,9 @@ NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
-    'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
+    'password-hash',
+    'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
+    'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
     'moment', 'underscore', 'read', 'http-proxy'
     ]
