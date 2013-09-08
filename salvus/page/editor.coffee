@@ -3260,7 +3260,7 @@ class IPythonNotebook extends FileEditor
             @doc.live(@to_doc())
         else
             @set_live_from_syncdoc()
-        console.log("DONE SETTING!")
+        #console.log("DONE SETTING!")
         @iframe.animate(opacity:1)
 
         @doc._presync = () =>
@@ -3429,7 +3429,7 @@ class IPythonNotebook extends FileEditor
                 # instead of messing up our embedded view.
                 attempts = 0
                 f = () =>
-                    console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
+                    #console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
                     attempts += 1
                     if attempts >= 40
                         # just give up -- this isn't at all critical; don't want to waste resources

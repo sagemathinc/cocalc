@@ -1616,8 +1616,9 @@ class ProjectPage
 
     project_activity: (mesg, delay) =>
         if @project_log?
+            #console.log("project_activity", mesg)
             mesg.fullname   = account.account_settings.fullname()
-            mesg.account_id = account.account_settings.account_id
+            mesg.account_id = account.account_settings.account_id()
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
             @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
