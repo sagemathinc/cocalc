@@ -153,7 +153,12 @@ easy_install pip
 
 # Copy over the newest SageTex, so it actually works (only do this with the default sage):
 
-   sudo cp /usr/local/sage/current/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+  sudo su
+  umask 022
+  cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/
+  texhash
+
+
 
 # Update to ipython 1.0.0
 
@@ -193,7 +198,7 @@ if 'MAKE' in os.environ:
     del os.environ['MAKE']
 
 # WARNING--as of Sept 1, 2013, start-stop-daemon's install is broken, even though no versions (and no dep versions) have changed,
-# due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs. 
+# due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs.
 
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
