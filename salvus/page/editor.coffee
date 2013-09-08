@@ -3076,16 +3076,22 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             args       : ['start']
             bash       : false
             timeout    : 1
-            err_on_exit: true
+            err_on_exit: false
             cb         : (err, output) =>
                 if err
                     cb?(err)
                 else
-                    info = misc.from_json(output.stdout)
-                    @url = info.base; @pid = info.pid; @port = info.port
-                    get_with_retry
-                        url : @url
-                        cb  : (err, data) => cb?(err)
+                    try
+                        info = misc.from_json(output.stdout)
+                        if info.error?
+                            cb?(info.error)
+                        else
+                            @url = info.base; @pid = info.pid; @port = info.port
+                            get_with_retry
+                                url : @url
+                                cb  : (err, data) => cb?(err)
+                    catch e
+                        cb?(true)
 
     notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
         get_with_retry
@@ -3229,10 +3235,11 @@ class IPythonNotebook extends FileEditor
             @con.show().icon_spin(false).hide()
             @_setting_up = false
             if err
-                @status("failed to start (click reload to try again)...")
+                @save_button.addClass("disabled")
+                @status("failed to start -- #{err}")
                 cb?("Unable to start IPython server -- #{err}")
             else
-                cb?(err)
+                cb?()
         )
 
     _init_doc: (cb) =>
@@ -3283,12 +3290,16 @@ class IPythonNotebook extends FileEditor
 
         @doc.dsync_client._apply_edits_to_live = apply_edits2
 
-        @doc.on "connect", () =>
+        @doc.on "reconnect", () =>
             if not @doc.dsync_client?
                 # this could be an older connect emit that didn't get handled -- ignore.
                 return
             apply_edits = @doc.dsync_client._apply_edits_to_live
             @doc.dsync_client._apply_edits_to_live = apply_edits2
+            # Update the live document with the edits that we missed when offline
+            @status("reconnect - updating live doc with missed edits")
+            @from_doc(@doc.dsync_client.live)
+            @status()
 
         # TODO: we should just create a class that derives from SynchronizedString at this point.
         @doc.draw_other_cursor = (pos, color, name) =>
@@ -3419,7 +3430,7 @@ class IPythonNotebook extends FileEditor
                     cb(err); return
                 @iframe_uuid = misc.uuid()
 
-                @status("loading #{@server.url + @notebook_id}")
+                @status("loading iframe")
 
                 @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.3').attr('src', @server.url + @notebook_id)
                 @notebook.html('').append(@iframe)
@@ -3515,6 +3526,8 @@ class IPythonNotebook extends FileEditor
         return not @save_button.hasClass('disabled')
 
     save: (cb) =>
+        if not @nb?
+            cb?(); return
         @save_button.icon_spin(start:true,delay:500)
         @nb._save_checkpoint?()
         @doc.save () =>
@@ -3551,7 +3564,7 @@ class IPythonNotebook extends FileEditor
             return
         @_reloading = true
         @reload_button.icon_spin(true)
-        @setup (ee) =>
+        @setup (e) =>
             @_reloading = false
             @reload_button.icon_spin(false)
 

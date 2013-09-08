@@ -257,7 +257,7 @@ CREATE INDEX ON project_blobs(project_id);
 
 /* Whenever a project is touched, we also add it to this table with a ttl. */
 CREATE TABLE recently_modified_projects (
-    ttl        varchar,   /* '5 minutes', '1 day', '1 week'  */
+    ttl        varchar,   /* 'short', 'day', 'week', 'month'  */
     project_id uuid,
     dummy      boolean,
     PRIMARY KEY(ttl, project_id)
