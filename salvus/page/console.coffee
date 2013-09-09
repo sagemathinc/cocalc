@@ -60,7 +60,7 @@ focused_console = undefined
 client_keydown = (ev) ->
     focused_console?.client_keydown(ev)
 
-    
+
 class Console extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
@@ -361,7 +361,6 @@ class Console extends EventEmitter
                 )
         else
             # TODO:  *leak!!* these should be deleted when the terminal is closed
-
             $(document).on 'mousedown', (e) =>
                 t = $(e.target)
                 if t.hasParent($(@terminal.element)).length > 0
@@ -657,7 +656,10 @@ class Console extends EventEmitter
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
     focus: () =>
+        if @is_focused
+            return
         focused_console = @
+        @is_focused = true
 
         $(@terminal.element).focus()
         if not @_character_height?
@@ -674,7 +676,6 @@ class Console extends EventEmitter
             @terminal.focus()
             @_focus_hidden_textarea()
 
-        @is_focused = true
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
