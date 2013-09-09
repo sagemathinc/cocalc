@@ -421,7 +421,7 @@ class Console extends EventEmitter
             return false
 
         @element.find("a[href=#paste]").click () =>
-            bootbox.alert("To copy, highlight text then press Control+C (or Command+C).  Press Control+V (or Command+V) to paste.  When no text is highlighted, Control+C sends the usual interrupt signal.")
+            bootbox.alert("To copy, highlight text then press ctrl+c (or command+c).  Press ctrl+v (or command+v) to paste.  When no text is highlighted, ctrl+c sends the usual interrupt signal.")
             return false
 
     _init_input_line: () =>
