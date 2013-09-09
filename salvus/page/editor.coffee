@@ -2841,6 +2841,10 @@ class Terminal extends FileEditor
         #@console?.terminate_session()
         @local_storage("auto_open", false)
 
+    remove: () =>
+        @element.salvus_console(false)
+        @element.remove()        
+
     show: () =>
         @element.show()
         if @console?
