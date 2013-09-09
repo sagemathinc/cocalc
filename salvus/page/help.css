@@ -6,3 +6,11 @@
     border-radius: 3px;
     box-shadow: 2px 2px 1px #bbb;
 }
+
+.salvus-help-list {
+    margin-top: .7ex;
+}
+
+.salvus-a {
+    color:#08c;
+}
