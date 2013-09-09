@@ -363,20 +363,20 @@ Terminal.bindKeys = function(client_keydown) {
   Terminal.keys_are_bound = true;
 
   on(document, 'keydown', function(ev) {
-      if (typeof Terminal.focus === "undefined") {
-          return;
-      }
-      /* TODO -- REFACTOR -- put all stuff like this in client of this library. */
+    if (typeof Terminal.focus === "undefined") {
+       return;
+    }
+
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
       return false;
     }
 
-    if ((ev.metaKey | (ev.shiftKey && ev.ctrlKey)) && ev.keyCode == 86) {  // paste
+    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 86) {  // paste
       return false;
     }
 
     if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
-	return false;
+	  return false;
     }
 
     /* term -- handle the keystroke via the xterm . */
@@ -385,19 +385,16 @@ Terminal.bindKeys = function(client_keydown) {
     }
   }, true);
 
-  on(document, 'keypress', function(ev) {
-      if (typeof Terminal.focus === "undefined") {
-          return;
-      }
+    on(document, 'keypress', function(ev) {
+        if (typeof Terminal.focus === "undefined") {
+            return;
+        }
 
-    if (ev.metaKey) {
-	return false;
-    }
+        if (typeof Terminal.focus === 'object') {
+            return Terminal.focus.keyPress(ev);
+        }
+    }, true);
 
-    if (typeof Terminal.focus === 'object') {
-      return Terminal.focus.keyPress(ev);
-    }
-  }, true);
 
 };
 
@@ -2289,7 +2286,9 @@ Terminal.prototype.setgCharset = function(g, charset) {
 Terminal.prototype.keyPress = function(ev) {
   var key;
 
-  cancel(ev);
+  /* Doing cancel here seems to server no purpose, *and* completely breaks
+     using Ctrl-c to copy on firefox. */
+  /* cancel(ev);*/
 
   if (ev.charCode) {
     key = ev.charCode;
