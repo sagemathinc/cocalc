@@ -100,6 +100,12 @@ export SAGE_ATLAS_LIB=/usr/lib/
 export MAKE="make -j20"
 make
 
+# Workaround bugs in Sage
+
+   - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
+     (just put f=filename in /usr/local/sage/sage-5.11/local/lib/python2.7/site-packages/pexpect.py)
+
+
 # Non-sage Python packages into Sage
 
 ./sage -sh
