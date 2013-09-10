@@ -184,22 +184,33 @@ class ConsoleSessions
                         console_socket.write(data)
 
                     session.amount_of_data = 0
-                    setInterval(( () -> session.amount_of_data = 0), 15)
-                    console_socket.on 'data', (data) ->
-                        if session.amount_of_data >  2*60*1500
-                            # we are getting a large burst of output at once
-                            # DISABLED -- (1) send control-c -- maybe it will help
-                            # console_socket.write(String.fromCharCode(3))
+                    session.last_data = misc.mswalltime()
 
-                            # (2) and ignore more data
-                            client_socket.write('[...]')
-                            return
+                    console_socket.on 'data', (data) ->
+
+                        # every 2 ms we reset the burst data watcher.
+                        tm = misc.mswalltime()
+                        if tm - session.last_data >= 2
+                            session.amount_of_data = 0
+                        session.last_data = tm
+
+                        if session.amount_of_data > 200000
+                            # We just got more than 200000 characters of output in <= 2 ms, so truncate it.
+                            # I had a control-c here, but it was EVIL (and useless), so do *not* enable this.
+                            #      console_socket.write(String.fromCharCode(3))
+                            # client_socket.write('[...]')
+                            data = '[...]'
 
                         session.history += data
                         session.amount_of_data += data.length
                         n = session.history.length
-                        if n > 150000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
-                            session.history = session.history.slice(100000)
+                        if n > 400000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
+                            session.history = session.history.slice(300000)
+
+                        # Never push more than 20000 characters at once to hub, since that could overwhelm...
+                        if data.length > 20000
+                            data = "[...]"+data.slice(data.length-20000)
+
                         client_socket.write(data)
 
                     @_sessions[mesg.session_uuid] = session

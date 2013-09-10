@@ -2761,21 +2761,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.client.push_data_to_client(channel, history)
                     console_socket.on 'data', (data) ->
                         opts.client.push_data_to_client(channel, data)
+
                         # Record in database that there was activity in this project.
                         # This is *way* too frequent -- a tmux session make it always on for no reason.
-                        # Maybe re-enable if I make bups not happen if no files change.
                         # database.touch_project(project_id:opts.project_id)
+
                 else
                     console_socket.history = ''
                     console_socket.on 'data', (data) ->
                         console_socket.history += data
                         n = console_socket.history.length
-                        if n > 150000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                            console_socket.history = console_socket.history.slice(100000)
+                        if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                            console_socket.history = console_socket.history.slice(300000)
 
-                        # Never push more than 5000 characters at once to client, since display is slow, etc.
-                        if data.length > 5000
-                            data = "[...]"+data.slice(data.length-5000)
+                        # Never push more than 20000 characters at once to client, since display is slow, etc.
+                        if data.length > 20000
+                            data = "[...]"+data.slice(data.length-20000)
 
                         opts.client.push_data_to_client(channel, data)
 
