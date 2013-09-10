@@ -2843,7 +2843,7 @@ class Terminal extends FileEditor
 
     remove: () =>
         @element.salvus_console(false)
-        @element.remove()        
+        @element.remove()
 
     show: () =>
         @element.show()
@@ -3079,7 +3079,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             command    : "ipython-notebook"
             args       : ['start']
             bash       : false
-            timeout    : 1
+            timeout    : 10
             err_on_exit: false
             cb         : (err, output) =>
                 if err
@@ -3205,6 +3205,7 @@ class IPythonNotebook extends FileEditor
                     path       : @path
                     command    : "ls"
                     args       : ['-lt', "--time-style=+%s", @file, @syncdoc_filename]
+                    timeout    : 10
                     err_on_exit: false
                     cb         : (err, output) =>
                         if err?
