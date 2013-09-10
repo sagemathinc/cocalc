@@ -2768,8 +2768,6 @@ class LatexEditor extends FileEditor
                         highlight_line : true
                 opts.cb?(err)
 
-
-
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @element = $("<div>").hide()
@@ -2841,6 +2839,10 @@ class Terminal extends FileEditor
         #@console?.terminate_session()
         @local_storage("auto_open", false)
 
+    remove: () =>
+        @element.salvus_console(false)
+        @element.remove()
+
     show: () =>
         @element.show()
         if @console?
@@ -2853,7 +2855,7 @@ class Terminal extends FileEditor
                 ht = Math.floor(ht/2)
             e.height(ht)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
-            @console.focus()
+            @console.focus(true)
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -3075,7 +3077,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             command    : "ipython-notebook"
             args       : ['start']
             bash       : false
-            timeout    : 1
+            timeout    : 10
             err_on_exit: false
             cb         : (err, output) =>
                 if err
@@ -3201,6 +3203,7 @@ class IPythonNotebook extends FileEditor
                     path       : @path
                     command    : "ls"
                     args       : ['-lt', "--time-style=+%s", @file, @syncdoc_filename]
+                    timeout    : 10
                     err_on_exit: false
                     cb         : (err, output) =>
                         if err?

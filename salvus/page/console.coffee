@@ -60,7 +60,7 @@ focused_console = undefined
 client_keydown = (ev) ->
     focused_console?.client_keydown(ev)
 
-    
+
 class Console extends EventEmitter
     constructor: (opts={}) ->
         @opts = defaults opts,
@@ -200,7 +200,6 @@ class Console extends EventEmitter
                 # TODO -- these are all basically bugs, I think...
                 # That said, try/catching them is better than having
                 # the whole terminal just be broken.
-
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
@@ -352,32 +351,41 @@ class Console extends EventEmitter
                 @mobile_target = @element.find(".salvus-console-for-mobile").show()
                 @mobile_target.css('width', ter.css('width'))
                 @mobile_target.css('height', ter.css('height'))
-                $(document).on('click', (e) =>
+                @_click = (e) =>
                     t = $(e.target)
                     if t[0]==@mobile_target[0] or t.hasParent($(@element)).length > 0
                         @focus()
                     else
                         @blur()
-                )
+                $(document).on 'click', @_click
         else
-            # TODO:  *leak!!* these should be deleted when the terminal is closed
-
-            $(document).on 'mousedown', (e) =>
+            @_mousedown = (e) =>
                 t = $(e.target)
                 if t.hasParent($(@terminal.element)).length > 0
                     @focus()
                 else
                     @blur()
+            $(document).on 'mousedown', @_mousedown
 
-            $(document).on 'mouseup', (e) =>
+            @_mouseup = (e) =>
                 t = $(e.target)
                 sel = window.getSelection().toString()
                 if t.hasParent($(@terminal.element)).length > 0 and sel.length == 0
                     @_focus_hidden_textarea()
+            $(document).on 'mouseup', @_mouseup
 
             $(@terminal.element).bind 'copy', (e) =>
                 # re-enable paste but only *after* the copy happens
                 setTimeout(@_focus_hidden_textarea, 10)
+
+    # call this when deleting the terminal (removing it from DOM, etc.)
+    remove: () =>
+        if @_mousedown?
+             $(document).off 'mousedown', @_mousedown
+        if @_mouseup?
+             $(document).off 'mouseup', @_mouseup
+        if @_click?
+             $(document).off 'click', @_click
 
     _focus_hidden_textarea: () =>
         t = @element.find(".salvus-console-textarea")
@@ -422,7 +430,7 @@ class Console extends EventEmitter
             return false
 
         @element.find("a[href=#paste]").click () =>
-            bootbox.alert("Press Control+Shift+V (or Command+V) to paste.  To copy, highlight text then press Control+C (or Command+C); when no text is highlighted, Control+C sends the usual interrupt.")
+            bootbox.alert("To copy, highlight text then press ctrl+c (or command+c).  Press ctrl+v (or command+v) to paste.  When no text is highlighted, ctrl+c sends the usual interrupt signal.")
             return false
 
     _init_input_line: () =>
@@ -656,8 +664,11 @@ class Console extends EventEmitter
             e.removeClass('salvus-console-focus').addClass('salvus-console-blur')
             e.find(".salvus-console-cursor-focus").removeClass("salvus-console-cursor-focus").addClass("salvus-console-cursor-blur")
 
-    focus: () =>
+    focus: (force) =>
+        if @is_focused and not force
+            return
         focused_console = @
+        @is_focused = true
 
         $(@terminal.element).focus()
         if not @_character_height?
@@ -674,7 +685,6 @@ class Console extends EventEmitter
             @terminal.focus()
             @_focus_hidden_textarea()
 
-        @is_focused = true
         $(@terminal.element).addClass('salvus-console-focus').removeClass('salvus-console-blur')
         editor = @terminal.editor
         if editor?
@@ -703,6 +713,16 @@ exports.Console = Console
 $.fn.extend
     salvus_console: (opts={}) ->
         @each () ->
-            opts0 = copy(opts)
-            opts0.element = this
-            $(this).data('console', new Console(opts0))
+            t = $(this)
+            if opts == false
+                # disable existing console
+                con = t.data('console')
+                if con?
+                    con.remove()
+                return t
+            else
+                opts0 = copy(opts)
+                opts0.element = this
+                return t.data('console', new Console(opts0))
+
+
