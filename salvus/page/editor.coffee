@@ -2768,8 +2768,6 @@ class LatexEditor extends FileEditor
                         highlight_line : true
                 opts.cb?(err)
 
-
-
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @element = $("<div>").hide()
@@ -2857,7 +2855,7 @@ class Terminal extends FileEditor
                 ht = Math.floor(ht/2)
             e.height(ht)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
-            @console.focus()
+            @console.focus(true)
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

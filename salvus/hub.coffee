@@ -490,7 +490,7 @@ class Client extends EventEmitter
 
     error_to_client: (opts) ->
         opts = defaults opts,
-            id    : required
+            id    : undefined
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
@@ -633,11 +633,23 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
+
+        # TODO: the two size things below should be specific messages (not generic error_to_client), and
+        # be sensibly handled by the client.
         if data.length >= MESG_QUEUE_MAX_SIZE_MB * 10000000
-            @error_to_client(id:mesg.id, error:"Messages are limited to #{MESG_QUEUE_MAX_SIZE_MB}MB.")
+            # We don't parse it, we don't look at it, we don't know it's id.  This shouldn't ever happen -- and probably would only
+            # happen because of a malicious attacker.  JSON parsing arbitrarily large strings would
+            # be very dangerous, and make crashing the server way too easy.
+            # We just respond with this error below.   The client should display to the user all id-less errors.
+            msg = "The server ignored a huge message since it exceeded the allowed size limit of #{MESG_QUEUE_MAX_SIZE_MB}MB.  Please report what caused this if you can."
+            winston.error(msg)
+            @error_to_client(error:msg)
+            return
 
         if data.length == 0
-            winston.error("EMPTY DATA MESSAGE -- ignoring!")
+            msg = "The server ignored a message since it was empty."
+            winston.error(msg)
+            @error_to_client(error:msg)
             return
 
         if not @_handle_data_queue?
@@ -645,8 +657,11 @@ class Client extends EventEmitter
 
         channel = data[0]
         h = @_data_handlers[channel]
+
         if not h?
             winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            # Tell the client that they had better reconnect.
+            @push_to_client( message.session_reconnect(data_channel : channel) )
             return
 
         # The rest of the function is basically the same as "h(data.slice(1))", except that

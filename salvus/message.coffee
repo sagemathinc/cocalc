@@ -55,7 +55,13 @@ message
                               # efficiently sending and receiving
                               # non-JSON data (except channel
                               # '\u0000', which is JSON).
-                            #
+
+# hub --> client
+message
+    event         : 'session_reconnect'
+    session_uuid  : undefined   # at least one of session_uuid or data_channel must be defined
+    data_channel  : undefined
+
 
 # client <--> hub <--> local_hub
 # info = {
