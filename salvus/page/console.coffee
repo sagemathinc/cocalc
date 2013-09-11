@@ -101,6 +101,7 @@ class Console extends EventEmitter
 
         # Create the DOM element that realizes this console, from an HTML template.
         @element = console_template.clone()
+        @textarea = @element.find(".salvus-console-textarea")
 
         # Record on the DOM element a reference to the console
         # instance, which is useful for client code.
@@ -234,6 +235,13 @@ class Console extends EventEmitter
                 when 188       # "control-shift-<"
                     @_decrease_font_size()
                     return false
+        if (ev.metaKey or ev.ctrlKey) and (ev.keyCode in [17, 91, 93, 223])  # command or control key (could be a paste coming)
+            # clear the hidden textarea pastebin, since otherwise the
+            # everything that the user typed before pasting appears
+            # in the paste, which is very, very bad.
+            # NOTE: we could do this on all keystrokes.  WE restrict as above merely for efficiency purposes.
+            # See http://stackoverflow.com/questions/3902635/how-does-one-capture-a-macs-command-key-via-javascript
+            @textarea.val('')
 
     _increase_font_size: () =>
         @opts.font.size += 1
@@ -281,7 +289,7 @@ class Console extends EventEmitter
     _init_codemirror: () ->
         that = @
         @terminal.custom_renderer = codemirror_renderer
-        t = @element.find(".salvus-console-textarea")
+        t = @textarea
         editor = @terminal.editor = CodeMirror.fromTextArea t[0],
             lineNumbers   : false
             lineWrapping  : false
@@ -388,8 +396,7 @@ class Console extends EventEmitter
              $(document).off 'click', @_click
 
     _focus_hidden_textarea: () =>
-        t = @element.find(".salvus-console-textarea")
-        t.focus()
+        @textarea.focus()
 
     _init_fullscreen: () =>
         fullscreen = @element.find("a[href=#fullscreen]")
@@ -527,7 +534,7 @@ class Console extends EventEmitter
         ###
 
     _init_paste_bin: () =>
-        pb = @element.find(".salvus-console-textarea")
+        pb = @textarea
 
         f = (evt) =>
             data = pb.val()
