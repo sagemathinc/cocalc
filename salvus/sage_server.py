@@ -369,6 +369,7 @@ class Salvus(object):
         self.data = data
         self.namespace = namespace
         self.message_queue = message_queue
+        self.code_decorators = [] # gets reset if there are code decorators
         namespace['salvus'] = self   # beware of circular ref?
         # Monkey patch in our "require" command.
         namespace['require'] = self.require
@@ -547,6 +548,10 @@ class Salvus(object):
             code_decorators = map(parsing.preparse_code, code_decorators)
 
         code_decorators = [eval(code_decorator, self.namespace) for code_decorator in code_decorators]
+
+        # The code itself may want to know exactly what code decorators are in effect.
+        # For example, r.eval can do extra things when being used as a decorator.
+        self.code_decorators = code_decorators
 
         for i, code_decorator in enumerate(code_decorators):
             # eval is for backward compatibility

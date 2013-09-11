@@ -17,12 +17,10 @@ import copy, os, sys
 
 salvus = None
 
-
 import json
 from uuid import uuid4
 def uuid():
     return str(uuid4())
-
 
 ##########################################################################
 # New function interact implementation
@@ -1707,6 +1705,54 @@ def sh(code):
     After that, the variable output contains the current directory
     """
     return script('/bin/bash')(code)
+
+# Monkey patch the R interpreter interface to support graphics, when
+# used as a decorator.
+
+import sage.interfaces.r
+def r_eval0(*args, **kwds):
+    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds)
+
+r_dev_on = False
+def r_eval(code, *args, **kwds):
+    """
+    Run a block of R code.
+
+    EXAMPLES::
+
+         sage: print r.eval("summary(c(1,2,3,111,2,3,2,3,2,5,4))")   # outputs a string
+         Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
+         1.00    2.00    3.00   12.55    3.50  111.00
+
+    In the notebook, you can put %r at the top of a cell, or type "%default_mode r" into
+    a cell to set the whole worksheet to r mode.
+
+    NOTE: Any plots drawn using the plot command should "just work", without having
+    to mess with special devices, etc.
+    """
+    # Only use special graphics support when using r as a cell decorator, since it has
+    # a 10ms penalty (factor of 10 slowdown) -- which doesn't matter for interactive work, but matters
+    # a lot if one had a loop with r.eval in it.
+    if sage.interfaces.r.r not in salvus.code_decorators:
+        return r_eval0(code, *args, **kwds)
+
+    global r_dev_on
+    if r_dev_on:
+        return r_eval0(code, *args, **kwds)
+    try:
+        r_dev_on = True
+        tmp = '/tmp/' + uuid() + '.png'
+        r_eval0("png(filename='%s')"%tmp)
+        s = r_eval0(code, *args, **kwds)
+        r_eval0('dev.off()')
+        return s
+    finally:
+        r_dev_on = False
+        if os.path.exists(tmp):
+            salvus.file(tmp, show=True)
+            os.unlink(tmp)
+
+sage.interfaces.r.r.eval = r_eval
 
 
 def prun(code):
