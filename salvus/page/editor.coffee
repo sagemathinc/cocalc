@@ -26,15 +26,16 @@ codemirror_associations =
     'c++'  : 'text/x-c++src'
     cpp    : 'text/x-c++src'
     cc     : 'text/x-c++src'
+    conf   : 'text/nginx'       # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
     ecl    : 'ecl'
-    f      : 'python'    # Ondrej Certik says Python modes sucks less than other modes, but it still sucks.
-    f90    : 'python'
-    f95    : 'python'
+    f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
+    f90    : 'text/x-fortran'
+    f95    : 'text/x-fortran'
     h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
     java   : 'text/x-java'
