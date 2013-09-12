@@ -930,6 +930,7 @@ class ProjectPage
         # Make it so clicking on each of the new file tab buttons does the right thing.
         @new_file_tab = @container.find(".project-new-file")
         @new_file_tab_input = @new_file_tab.find(".project-new-file-path-input")
+        @new_file_tab.find("a").tooltip()
 
         path = (ext) =>
             name = $.trim(@new_file_tab_input.val())
