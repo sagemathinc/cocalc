@@ -26,7 +26,7 @@ codemirror_associations =
     'c++'  : 'text/x-c++src'
     cpp    : 'text/x-c++src'
     cc     : 'text/x-c++src'
-    conf   : 'text/nginx'       # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
+    conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
     coffee : 'coffeescript'

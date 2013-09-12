@@ -385,11 +385,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_interval : 1000
             sync_interval   : 750   # never send sync messages up stream more often than this
 
+        @filename    = @editor.filename
+
         @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
-
-        @filename    = @editor.filename
 
         @editor.save = @save
         @codemirror  = @editor.codemirror
