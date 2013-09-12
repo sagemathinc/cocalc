@@ -137,3 +137,43 @@ mono*color12: #4D4D4D
 mono*color13: #747474
 mono*color14: #C4C4C4
 mono*color15: #DEDEDE
+
+! Raven light
+raven-light*background: #FAF0E6
+raven-light*foreground: #69717A
+raven-light*color0: #E7DFD5
+raven-light*color8: #8F98A1
+raven-light*color7: #5B636B
+raven-light*color15: #00020E
+raven-light*color1: #F46864
+raven-light*color9: #B42B33
+raven-light*color3: #AC9510
+raven-light*color11: #726000
+raven-light*color2: #00AE58
+raven-light*color10: #007525
+raven-light*color6: #00B0CC
+raven-light*color14: #007793
+raven-light*color4: #389BFF
+raven-light*color12: #0066CB
+raven-light*color5: #DC6DD2
+raven-light*color13: #A03398
+
+! Raven dark
+raven-dark*background: #32312E
+raven-dark*foreground: #A6A7AA
+raven-dark*color0:     #3F3E3B
+raven-dark*color8:     #7F7F83
+raven-dark*color7:     #B6B7BB
+raven-dark*color15:    #FEFFFF
+raven-dark*color1: #B36B65
+raven-dark*color9: #EFA29B
+raven-dark*color3: #8D7E45
+raven-dark*color11: #C7B679
+raven-dark*color2: #4F8C61
+raven-dark*color10: #86C596
+raven-dark*color6: #0E8E9A
+raven-dark*color14: #5EC7D4
+raven-dark*color4: #6181B8
+raven-dark*color12: #9AB9F3
+raven-dark*color5: #A46D9D
+raven-dark*color13: #DFA4D7
