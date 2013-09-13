@@ -190,26 +190,26 @@ class Console extends EventEmitter
 
         # Plug the remote session into the terminal.
 
-        # The user types in the terminal, so we send the text to the remote server.
-        # We wait until the first write completes before enabling this.
-        @first_response = true
+        # Output from the terminal to the remote pty: usually caused by the user typing,
+        # but can also be the result of a device attributes request, etc.
         @terminal.on 'data',  (data) =>
-            if @first_response
-                @first_response = false
-                if @scrollbar_nlines > 0  # reconnect
-                    return
-
             @session.write_data(data)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
 
+        @reset()
+        @resize_terminal()
+
         # The remote server sends data back to us to display:
-        @scrollbar_nlines = 0
-        @value = ''
         @session.on 'data',  (data) =>
             try
                 @terminal.write(data)
+                if @value == ""
+                    # On first write we ignore any queued terminal attributes responses that result.
+                    @terminal.queue = ''
+                    @resize()
+
                 @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
                 if @scrollbar_nlines < @terminal.ybase
@@ -222,12 +222,22 @@ class Console extends EventEmitter
                 # That said, try/catching them is better than having
                 # the whole terminal just be broken.
 
+        @session.on 'reconnect', () =>
+            @reset()
+
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
 
+    reset: () =>
+        # reset the terminal to clean; need to do this on connect or reconnect.
+        $(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
+        @value = ''
+        @scrollbar_nlines = 0
+        @terminal.reset()
+
+
     update_scrollbar: () =>
         while @scrollbar_nlines < @terminal.ybase
-            console.log("adding lines")
             @scrollbar.append($("<br>"))
             @scrollbar_nlines += 1
         @resize_scrollbar()
@@ -285,7 +295,7 @@ class Console extends EventEmitter
         $(@terminal.element).css('font-size':"#{@opts.font.size}px")
         delete @_character_height
         @element.find(".salvus-console-font-indicator-size").text(@opts.font.size)
-        @element.find(".salvus-console-font-indicator").stop().show().animate(opacity:100).fadeOut(duration:8000)
+        @element.find(".salvus-console-font-indicator").stop().show().animate(opacity:1).fadeOut(duration:8000)
         @resize()
 
     _init_font_make_default: () =>
@@ -632,6 +642,23 @@ class Console extends EventEmitter
             # (todo: could queue this up to send)
             return
 
+        @resize_terminal()
+
+        # Resize the remote PTY
+        resize_code = (cols, rows) ->
+            # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
+            # CSI Ps ; Ps ; Ps t
+            # CSI[4];[height];[width]t
+            return CSI + "4;#{rows};#{cols}t"
+        @session.write_data(resize_code(@opts.cols, @opts.rows))
+
+        @resize_scrollbar()
+
+
+        # Refresh depends on correct @opts being set!
+        @refresh()
+
+    resize_terminal: () =>
         # Determine size of container DOM.
         # Determine the width of a character using a little trick:
         c = $("<span style:'padding:0px;margin:0px;border:0px;'>X</span>").appendTo(@terminal.element)
@@ -663,22 +690,10 @@ class Console extends EventEmitter
         # Resize the renderer
         @terminal.resize(new_cols, new_rows)
 
-        # Resize the remote PTY
-        resize_code = (cols, rows) ->
-            # See http://invisible-island.net/xterm/ctlseqs/ctlseqs.txt
-            # CSI Ps ; Ps ; Ps t
-            # CSI[4];[height];[width]t
-            return CSI + "4;#{rows};#{cols}t"
-        @session.write_data(resize_code(new_cols, new_rows))
-
-        @resize_scrollbar()
-
         # Record new size
         @opts.cols = new_cols
         @opts.rows = new_rows
 
-        # Refresh depends on correct @opts being set!
-        @refresh()
 
     resize_scrollbar: () =>
         # render the scrollbar on the right

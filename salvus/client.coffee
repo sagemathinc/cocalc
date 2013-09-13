@@ -83,6 +83,7 @@ class Session extends EventEmitter
                             new_channel  : reply.data_channel
                             session      : @
                         @data_channel = reply.data_channel
+                        @emit("reconnect")
                         cb?()
                     else
                         cb?("bug in hub")

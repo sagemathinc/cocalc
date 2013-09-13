@@ -2807,9 +2807,9 @@ class Terminal extends FileEditor
                     alert_message(type:'error', message:err)
                     cb?(err)
                 else
-                    @console.set_session(session)
                     if @element.is(":visible")
-                        setTimeout(@show, 100)
+                        @show()
+                    @console.set_session(session)
                     salvus_client.write_text_file_to_project
                         project_id : @editor.project_id
                         path       : @filename

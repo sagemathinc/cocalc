@@ -2321,7 +2321,7 @@ Terminal.prototype.send = function(data) {
     setTimeout(function() {
       self.handler(self.queue);
       self.queue = '';
-    }, 1);
+    }, 50);  /* this was 1 but it causes trouble in some cases. */
   }
 
   this.queue += data;
