@@ -856,7 +856,6 @@ Terminal.prototype.destroy = function() {
 
 
 Terminal.prototype.refresh = function(start, end) {
-
   if (typeof this.custom_renderer !== "undefined" && this.custom_renderer !== null) {
       this.custom_renderer(start, end);
       return
@@ -1080,6 +1079,8 @@ Terminal.prototype.scrollDisp = function(disp) {
   } else if (this.ydisp < 0) {
     this.ydisp = 0;
   }
+
+    this.emit('scroll', this.ydisp, this.ybase);
 
   this.refresh(0, this.rows - 1);
 };

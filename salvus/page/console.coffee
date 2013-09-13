@@ -132,6 +132,16 @@ class Console extends EventEmitter
         # only has to be done once -- any further times are ignored.
         Terminal.bindKeys(client_keydown)
 
+        @scrollbar = @element.find(".salvus-console-scrollbar")
+
+        @scrollbar.scroll () =>
+            if @ignore_scroll
+                return
+            @set_term_to_scrollbar()
+
+        @terminal.on 'scroll', (top, rows) =>
+            @set_scrollbar_to_term()
+
         # this object (=@) is needed by the custom renderer, if it is used.
         @terminal.salvus_console = @
 
@@ -175,20 +185,14 @@ class Console extends EventEmitter
 
     set_session: (session) =>
         # Store the remote session, which is a connection to a HUB
-        # that is in turn connected to a console_server.
+        # that is in turn connected to a console_server:
         @session = session
 
         # Plug the remote session into the terminal.
 
         # The user types in the terminal, so we send the text to the remote server:
-        f = () =>
-            @terminal.on 'data',  (data) =>
-                @session.write_data(data)
-        # TODO: We put in a delay to avoid bursting resize/controldata back at the server in response
-        # when the server bursts the history back at us.  It would be better to coordinate this
-        # somehow, since on a slow network, this might not be enough time.  (The history is arbitrarily
-        # truncated to be small by the server, so this might be fine.)
-        setTimeout(f, 250)
+        @terminal.on 'data',  (data) =>
+            @session.write_data(data)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
@@ -197,6 +201,12 @@ class Console extends EventEmitter
         @session.on 'data',  (data) =>
             try
                 @terminal.write(data)
+                if @scrollbar_nlines < @terminal.ybase
+                    while @scrollbar_nlines < @terminal.ybase
+                        @scrollbar.append($("<br>"))
+                        @scrollbar_nlines += 1
+                @set_scrollbar_to_term()
+
             catch e
                 # TODO -- these are all basically bugs, I think...
                 # That said, try/catching them is better than having
@@ -587,6 +597,8 @@ class Console extends EventEmitter
             # nothing implemented
             return
         @terminal.refresh(0, @opts.rows-1)
+        @render_scrollbar()
+
 
     # Determine the current size (rows and columns) of the DOM
     # element for the editor, then resize the renderer and the
@@ -640,12 +652,45 @@ class Console extends EventEmitter
             return CSI + "4;#{rows};#{cols}t"
         @session.write_data(resize_code(new_cols, new_rows))
 
+        @render_scrollbar()
+
         # Record new size
         @opts.cols = new_cols
         @opts.rows = new_rows
 
         # Refresh depends on correct @opts being set!
         @refresh()
+
+    render_scrollbar: () =>
+        @scrollbar_nlines = 0
+        # render the scrollbar on the right
+        sb = @scrollbar
+        width = sb[0].offsetWidth - sb[0].clientWidth
+        if width == 0
+            return
+        elt = $(@terminal.element)
+        elt.width(@element.width() - width - 2)
+        sb.width(width+2)
+        sb.height(elt.height())
+
+    set_scrollbar_to_term: () =>
+        @ignore_scroll = true
+        @scrollbar.scrollTop(@scrollbar[0].scrollHeight * @terminal.ydisp / @terminal.ybase)
+        f = () =>
+            @ignore_scroll = false
+        setTimeout(f, 50)
+
+
+    set_term_to_scrollbar: () =>
+        ydisp = Math.ceil(@scrollbar.scrollTop() *  @terminal.ybase / @scrollbar[0].scrollHeight)
+        if ydisp <= 5
+            ydisp = 0
+        else
+            ydisp += 5
+        @terminal.ydisp = ydisp
+        @terminal.scrollDisp(0)
+
+
 
     console_is_open: () =>  # not chainable
         return @element.closest(document.documentElement).length > 0

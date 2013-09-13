@@ -100,6 +100,7 @@ message
     id            : undefined
     session_uuid  : required
     data_channel  : undefined  # used for certain types of sessions
+    history       : undefined  # used for console/terminal sessions
 
 
 # sage_server&console_server --> hub
