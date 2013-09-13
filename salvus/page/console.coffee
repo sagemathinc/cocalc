@@ -16,7 +16,7 @@ $.extend $.fn,
 
 {EventEmitter} = require('events')
 {alert_message} = require('alerts')
-{copy, filename_extension, required, defaults, to_json} = require('misc')
+{copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
 
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
@@ -194,11 +194,8 @@ class Console extends EventEmitter
         # We wait until the first write completes before enabling this.
         @first_response = true
         @terminal.on 'data',  (data) =>
-            console.log("CLIENT --> SERVER: '#{data}'")
             if @first_response
                 @first_response = false
-                console.log("scrollbar_nlines = ", @scrollbar_nlines)
-                console.log("@terminal.ybase = ", @terminal.ybase)
                 if @scrollbar_nlines > 0  # reconnect
                     return
 
@@ -209,17 +206,16 @@ class Console extends EventEmitter
 
         # The remote server sends data back to us to display:
         @scrollbar_nlines = 0
+        @value = ''
         @session.on 'data',  (data) =>
-            console.log("SERVER --> CLIENT: '#{data}'")
             try
-
                 @terminal.write(data)
+                @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 
                 if @scrollbar_nlines < @terminal.ybase
-                    while @scrollbar_nlines < @terminal.ybase
-                        @scrollbar.append($("<br>"))
-                        @scrollbar_nlines += 1
-                @set_scrollbar_to_term()
+                    @update_scrollbar()
+
+                setTimeout(@set_scrollbar_to_term, 10)
 
             catch e
                 # TODO -- these are all basically bugs, I think...
@@ -228,6 +224,14 @@ class Console extends EventEmitter
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
+
+    update_scrollbar: () =>
+        while @scrollbar_nlines < @terminal.ybase
+            console.log("adding lines")
+            @scrollbar.append($("<br>"))
+            @scrollbar_nlines += 1
+        @resize_scrollbar()
+
 
     #######################################################################
     # Private Methods
@@ -454,22 +458,19 @@ class Console extends EventEmitter
             return false
 
         @element.find("a[href=#refresh]").click () =>
-            #console.log("refresh")
             @resize()
-            #console.log("calling ", @opts.reconnect)
             @opts.reconnect?()
             return false
 
         @element.find("a[href=#paste]").click () =>
-            s = "To copy, highlight text then press ctrl+c (or command+c).  Press ctrl+v (or command+v) to paste.  When no text is highlighted, ctrl+c sends the usual interrupt signal.<textarea>#{@value()}</textarea>"
+            id = uuid()
+            s = "<h2>Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='width:97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
+            elt = $("##{id}")
+            elt.val(@value).scrollTop(elt[0].scrollHeight)
             return false
 
-    value: () =>
-        return @terminal.lines.join('\n')
-
     _init_input_line: () =>
-
         #if not IS_MOBILE
         #    @element.find(".salvus-console-mobile-input").hide()
         #    return
@@ -615,7 +616,7 @@ class Console extends EventEmitter
             # nothing implemented
             return
         @terminal.refresh(0, @opts.rows-1)
-        @render_scrollbar()
+        @resize_scrollbar()
 
 
     # Determine the current size (rows and columns) of the DOM
@@ -670,7 +671,7 @@ class Console extends EventEmitter
             return CSI + "4;#{rows};#{cols}t"
         @session.write_data(resize_code(new_cols, new_rows))
 
-        @render_scrollbar()
+        @resize_scrollbar()
 
         # Record new size
         @opts.cols = new_cols
@@ -679,8 +680,7 @@ class Console extends EventEmitter
         # Refresh depends on correct @opts being set!
         @refresh()
 
-    render_scrollbar: () =>
-        @scrollbar_nlines = 0
+    resize_scrollbar: () =>
         # render the scrollbar on the right
         sb = @scrollbar
         width = sb[0].offsetWidth - sb[0].clientWidth
@@ -692,7 +692,6 @@ class Console extends EventEmitter
         sb.height(elt.height())
 
     set_scrollbar_to_term: () =>
-        console.log("set_scrollbar_to_term: terminal.ydisp=#{@terminal.ydisp}, terminal.ybase=#{@terminal.ybase}, scrollHeight=#{@scrollbar[0].scrollHeight}")
         if @terminal.ybase == 0  # less than 1 page of text in buffer
             @scrollbar.hide()
             return
@@ -710,20 +709,9 @@ class Console extends EventEmitter
 
     set_term_to_scrollbar: () =>
         max_scrolltop = @scrollbar[0].scrollHeight - @scrollbar.height()
-
-        console.log("@scrollbar.scrollTop() = #{@scrollbar.scrollTop()}, max_scrolltop = #{max_scrolltop}")
         ydisp = Math.floor( @scrollbar.scrollTop() *  @terminal.ybase / max_scrolltop)
-
-        console.log("set_term_to_scrollbar: computed ydisp = #{ydisp}")
-        #if ydisp <= 5
-        #    ydisp = 0
-        #else
-        #    ydisp += 5
         @terminal.ydisp = ydisp
         @terminal.refresh(0, @terminal.rows-1)
-
-
-
 
     console_is_open: () =>  # not chainable
         return @element.closest(document.documentElement).length > 0
