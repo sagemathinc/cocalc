@@ -987,12 +987,24 @@ Terminal.prototype.refresh = function(start, end) {
       attr = data;
     }
 
+
+
+
     if (attr !== this.defAttr) {
       out += '</span>';
     }
 
     var a = this.children[y]
     if (a != null) {
+
+        /* Strip trailing &nbsp;'s, which helps massively with copy/paste. */
+        /* TODO: should do this with a regexp, but I couldn't easily think of one... */
+        i = out.length;
+        while(out.slice(i-6,i) === "&nbsp;") {
+            i -= 6;
+        }
+        out = out.slice(0,i);
+
         a.innerHTML = out;
     }
   }

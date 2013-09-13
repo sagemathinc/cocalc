@@ -4,7 +4,6 @@
 #
 ###########################################
 
-
 # Extend jQuery.fn with our new method
 $.extend $.fn,
   # Name of our method & one argument (the parent selector)
@@ -399,7 +398,7 @@ class Console extends EventEmitter
                 @mobile_target.css('height', ter.css('height'))
                 @_click = (e) =>
                     t = $(e.target)
-                    if t[0]==@mobile_target[0] or t.hasParent($(@element)).length > 0
+                    if t[0]==@mobile_target[0] or t.hasParent(@element).length > 0
                         @focus()
                     else
                         @blur()
@@ -407,7 +406,7 @@ class Console extends EventEmitter
         else
             @_mousedown = (e) =>
                 t = $(e.target)
-                if t.hasParent($(@terminal.element)).length > 0
+                if t.hasParent(@element).length > 0
                     @focus()
                 else
                     @blur()
@@ -416,7 +415,7 @@ class Console extends EventEmitter
             @_mouseup = (e) =>
                 t = $(e.target)
                 sel = window.getSelection().toString()
-                if t.hasParent($(@terminal.element)).length > 0 and sel.length == 0
+                if t.hasParent(@element).length > 0 and sel.length == 0
                     @_focus_hidden_textarea()
             $(document).on 'mouseup', @_mouseup
 
