@@ -190,17 +190,31 @@ class Console extends EventEmitter
 
         # Plug the remote session into the terminal.
 
-        # The user types in the terminal, so we send the text to the remote server:
+        # The user types in the terminal, so we send the text to the remote server.
+        # We wait until the first write completes before enabling this.
+        @first_response = true
         @terminal.on 'data',  (data) =>
+            console.log("CLIENT --> SERVER: '#{data}'")
+            if @first_response
+                @first_response = false
+                console.log("scrollbar_nlines = ", @scrollbar_nlines)
+                console.log("@terminal.ybase = ", @terminal.ybase)
+                if @scrollbar_nlines > 0  # reconnect
+                    return
+
             @session.write_data(data)
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
 
         # The remote server sends data back to us to display:
+        @scrollbar_nlines = 0
         @session.on 'data',  (data) =>
+            console.log("SERVER --> CLIENT: '#{data}'")
             try
+
                 @terminal.write(data)
+
                 if @scrollbar_nlines < @terminal.ybase
                     while @scrollbar_nlines < @terminal.ybase
                         @scrollbar.append($("<br>"))
@@ -447,8 +461,12 @@ class Console extends EventEmitter
             return false
 
         @element.find("a[href=#paste]").click () =>
-            bootbox.alert("To copy, highlight text then press ctrl+c (or command+c).  Press ctrl+v (or command+v) to paste.  When no text is highlighted, ctrl+c sends the usual interrupt signal.")
+            s = "To copy, highlight text then press ctrl+c (or command+c).  Press ctrl+v (or command+v) to paste.  When no text is highlighted, ctrl+c sends the usual interrupt signal.<textarea>#{@value()}</textarea>"
+            bootbox.alert(s)
             return false
+
+    value: () =>
+        return @terminal.lines.join('\n')
 
     _init_input_line: () =>
 
@@ -587,7 +605,7 @@ class Console extends EventEmitter
         for elt in [$(@terminal.element), @element]
             elt.css
                 position : 'relative'
-                top : 0
+                top : 0<br
                 width: "100%"
         @element.resizable('enable')
         @resize()
@@ -674,21 +692,36 @@ class Console extends EventEmitter
         sb.height(elt.height())
 
     set_scrollbar_to_term: () =>
+        console.log("set_scrollbar_to_term: terminal.ydisp=#{@terminal.ydisp}, terminal.ybase=#{@terminal.ybase}, scrollHeight=#{@scrollbar[0].scrollHeight}")
+        if @terminal.ybase == 0  # less than 1 page of text in buffer
+            @scrollbar.hide()
+            return
+        else
+            @scrollbar.show()
+
+        if @ignore_scroll
+            return
         @ignore_scroll = true
-        @scrollbar.scrollTop(@scrollbar[0].scrollHeight * @terminal.ydisp / @terminal.ybase)
         f = () =>
             @ignore_scroll = false
-        setTimeout(f, 50)
-
+        setTimeout(f, 100)
+        max_scrolltop = @scrollbar[0].scrollHeight - @scrollbar.height()
+        @scrollbar.scrollTop(max_scrolltop * @terminal.ydisp / @terminal.ybase)
 
     set_term_to_scrollbar: () =>
-        ydisp = Math.ceil(@scrollbar.scrollTop() *  @terminal.ybase / @scrollbar[0].scrollHeight)
-        if ydisp <= 5
-            ydisp = 0
-        else
-            ydisp += 5
+        max_scrolltop = @scrollbar[0].scrollHeight - @scrollbar.height()
+
+        console.log("@scrollbar.scrollTop() = #{@scrollbar.scrollTop()}, max_scrolltop = #{max_scrolltop}")
+        ydisp = Math.floor( @scrollbar.scrollTop() *  @terminal.ybase / max_scrolltop)
+
+        console.log("set_term_to_scrollbar: computed ydisp = #{ydisp}")
+        #if ydisp <= 5
+        #    ydisp = 0
+        #else
+        #    ydisp += 5
         @terminal.ydisp = ydisp
-        @terminal.scrollDisp(0)
+        @terminal.refresh(0, @terminal.rows-1)
+
 
 
 
