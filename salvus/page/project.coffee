@@ -1545,6 +1545,7 @@ class ProjectPage
 
     init_project_activity: () =>
         page = @container.find(".project-activity")
+        page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")
         LOG_FILE = '.sagemathcloud.log'
         async.series([
@@ -1603,6 +1604,7 @@ class ProjectPage
                 cb()
 
         ], (err) =>
+            page.find("h1").icon_spin(false)
             if err
                 # Just try again with exponential backoff  This can and does fail if say the project is first being initailized.
                 if not @_init_project_activity?
