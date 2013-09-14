@@ -49,10 +49,19 @@ Before building, do:
 
    3. Additional packages (mainly for users, not building).
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen
 
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor
+
+NOTE: With ubuntu 12.04 I do this:
+
+          apt-add-repository ppa:texlive-backports/ppa
+          apt-get update; apt-get dist-upgrade
+       - upgrade to octave 3.6:
+          apt-add-repository ppa:dr-graef/octave-3.6.precise
+          apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
+
 
    4. Ensure tmux is at least 1.8 and if not:
 
@@ -90,6 +99,12 @@ umask 022   # always do this so that the resulting build is usable without painf
 export SAGE_ATLAS_LIB=/usr/lib/
 export MAKE="make -j20"
 make
+
+# Workaround bugs in Sage
+
+   - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
+     (just put f=filename in /usr/local/sage/sage-5.11/local/lib/python2.7/site-packages/pexpect.py)
+
 
 # Non-sage Python packages into Sage
 
@@ -144,13 +159,18 @@ easy_install pip
 
 # Copy over the newest SageTex, so it actually works (only do this with the default sage):
 
-   sudo cp /usr/local/sage/current/local/share/texmf/tex/generic/sagetex/sagetex.sty /usr/share/texmf-texlive/tex/latex/sagetex/
+  sudo su
+  umask 022
+  cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/
+  texhash
+
+
 
 # Update to ipython 1.0.0
 
    http://wstein.org/home/wstein/tmp/trac-14713.patch
    http://trac.sagemath.org/raw-attachment/ticket/14810/trac_14810_ipython_0.13.2.patch
-   easy_install   
+   easy_install
 
 # Fix permissions, just in case!
 
@@ -180,11 +200,19 @@ BUILD  = os.path.abspath(os.path.join(DATA, 'build'))
 PREFIX = os.path.abspath(os.path.join(DATA, 'local'))
 os.environ['PREFIX'] = PREFIX
 
+if 'MAKE' in os.environ:
+    del os.environ['MAKE']
+
+# WARNING--as of Sept 1, 2013, start-stop-daemon's install is broken, even though no versions (and no dep versions) have changed,
+# due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs.
+
 NODE_MODULES = [
     'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
-    'password-hash', 'emailjs', 'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
+    'password-hash',
+    'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
+    'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
     'moment', 'underscore', 'read', 'http-proxy'
     ]

@@ -8,7 +8,7 @@
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
 {misc}          = require('misc')
-{project_page, close_project}  = require('project')
+{project_page}  = require('project')
 {human_readable_size} = require('misc_page')
 
 top_navbar.on "switch_to_page-projects", () ->

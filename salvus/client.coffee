@@ -78,8 +78,12 @@ class Session extends EventEmitter
                     when 'error'
                         cb?(reply.error)
                     when 'session_connected'
+                        @conn.change_data_channel
+                            prev_channel : @data_channel
+                            new_channel  : reply.data_channel
+                            session      : @
                         @data_channel = reply.data_channel
-                        @conn.register_data_handler(reply.data_channel, @handle_data)
+                        @emit("reconnect")
                         cb?()
                     else
                         cb?("bug in hub")
@@ -313,7 +317,7 @@ class exports.Connection extends EventEmitter
         @write_data(JSON_CHANNEL, misc.to_json(mesg))
 
     # Send raw data via certain channel to the hub server.
-    write_data: (channel, data) ->
+    write_data: (channel, data) =>
         try
             @_write(channel + data)
         catch err
@@ -342,6 +346,11 @@ class exports.Connection extends EventEmitter
             when "terminate_session"
                 session = @_sessions[mesg.session_uuid]
                 session?.emit("close")
+            when "session_reconnect"
+                if mesg.data_channel?
+                    @_sessions[mesg.data_channel]?.reconnect()
+                else if mesg.session_uuid?
+                    @_sessions[mesg.session_uuid]?.reconnect()
             when "pong"
                 @_last_pong = misc.walltime()
                 @emit("ping", @_last_pong - @_last_ping)
@@ -357,6 +366,11 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
                 @emit(mesg.event, mesg)
+            when "error"
+                # An error that isn't tagged with an id -- some sort of general problem.
+                if not mesg.id?
+                    console.log("WARNING: #{mesg.error}")
+                    return
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
         f = @call_callbacks[id]
@@ -368,8 +382,21 @@ class exports.Connection extends EventEmitter
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
 
+    change_data_channel: (opts) =>
+        opts = defaults opts,
+            prev_channel : required
+            new_channel  : required
+            session      : required
+        @unregister_data_handler(opts.prev_channel)
+        delete @_sessions[opts.prev_channel]
+        @_sessions[opts.new_channel] = opts.session
+        @register_data_handler(opts.new_channel, opts.session.handle_data)
+
     register_data_handler: (channel, h) ->
         @_data_handlers[channel] = h
+
+    unregister_data_handler: (channel) ->
+        delete @_data_handlers[channel]
 
     _handle_data: (channel, data) =>
         f = @_data_handlers[channel]
@@ -473,6 +500,8 @@ class exports.Connection extends EventEmitter
             else
                 opts.cb("Unknown session type: '#{opts.type}'")
         @_sessions[opts.session_uuid] = session
+        if opts.data_channel != JSON_CHANNEL
+            @_sessions[opts.data_channel] = session
         @register_data_handler(opts.data_channel, session.handle_data)
         opts.cb(false, session)
 

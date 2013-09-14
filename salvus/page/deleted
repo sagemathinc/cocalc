@@ -1,3 +1,28 @@
+<a href="#stop" class='btn btn-warning btn-small'> <i class="icon-stop"></i> Shutdown</a>
+
+        @element.find("a[href=#stop]").click () =>
+            bootbox.confirm "Stop the IPython Notebook server and close this file?  Unsaved worked in any open notebooks anywhere will be lost, and opened notebooks using this server will mysteriously stop working.", (result) =>
+                if result
+                    @server.stop_server()
+                    @editor.close(@filename)
+                    setTimeout(f, 3000)  # should be long enough to get save message.
+            return false
+
+
+        @server_switch = @element.find(".salvus-ipython-notebook-server-switch").bootstrapSwitch()
+
+        @server_switch.on 'switch-change', (e, data) =>
+            @server_switch.icon_spin(start:true)
+            if data.value
+                @server.start_server (err, url) =>
+                    @server_switch.icon_spin(false)
+            else
+                @server.start_server (err, url) =>
+                    @server_switch.icon_spin(false)
+
+
+
+
 @remove_cell_flags_from_text(changeObj.text)
 
 

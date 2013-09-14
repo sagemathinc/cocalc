@@ -517,6 +517,24 @@ testCM("bookmarkCursor", function(cm) {
   is(cm.cursorCoords(Pos(4, 1)).left > pos41.left, "single-char bug");
 }, {value: "foo\nbar\n\n\nx\ny"});
 
+testCM("multiBookmarkCursor", function(cm) {
+  if (phantom) return;
+  var ms = [], m;
+  function add(insertLeft) {
+    for (var i = 0; i < 3; ++i) {
+      var node = document.createElement("span");
+      node.innerHTML = "X";
+      ms.push(cm.setBookmark(Pos(0, 1), {widget: node, insertLeft: insertLeft}));
+    }
+  }
+  var base1 = cm.cursorCoords(Pos(0, 1)).left, base4 = cm.cursorCoords(Pos(0, 4)).left;
+  add(true);
+  eq(base1, cm.cursorCoords(Pos(0, 1)).left);
+  while (m = ms.pop()) m.clear();
+  add(false);
+  eq(base4, cm.cursorCoords(Pos(0, 1)).left);
+}, {value: "abcdefg"});
+
 testCM("getAllMarks", function(cm) {
   addDoc(cm, 10, 10);
   var m1 = cm.setBookmark(Pos(0, 2));
@@ -851,6 +869,17 @@ testCM("changedInlineWidget", function(cm) {
   var hScroll = byClassName(cm.getWrapperElement(), "CodeMirror-hscrollbar")[0];
   is(hScroll.scrollWidth > hScroll.clientWidth);
 }, {value: "hello there"});
+
+testCM("changedBookmark", function(cm) {
+  cm.setSize("10em");
+  var w = document.createElement("span");
+  w.innerHTML = "x";
+  var m = cm.setBookmark(Pos(0, 4), {widget: w});
+  w.innerHTML = "and now the widget is really really long all of a sudden and a scrollbar is needed";
+  m.changed();
+  var hScroll = byClassName(cm.getWrapperElement(), "CodeMirror-hscrollbar")[0];
+  is(hScroll.scrollWidth > hScroll.clientWidth);
+}, {value: "abcdefg"});
 
 testCM("inlineWidget", function(cm) {
   var w = cm.setBookmark(Pos(0, 2), {widget: document.createTextNode("uu")});

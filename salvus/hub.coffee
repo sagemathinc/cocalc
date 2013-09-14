@@ -462,7 +462,7 @@ class Client extends EventEmitter
                         key : hash
                         cb  : (error, signed_in_mesg) =>
                             if not error and signed_in_mesg?
-                                signed_in_mesg.hub = program.host
+                                signed_in_mesg.hub = program.host + ':' + program.port
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
@@ -490,7 +490,7 @@ class Client extends EventEmitter
 
     error_to_client: (opts) ->
         opts = defaults opts,
-            id    : required
+            id    : undefined
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
@@ -633,11 +633,23 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
+
+        # TODO: the two size things below should be specific messages (not generic error_to_client), and
+        # be sensibly handled by the client.
         if data.length >= MESG_QUEUE_MAX_SIZE_MB * 10000000
-            @error_to_client(id:mesg.id, error:"Messages are limited to #{MESG_QUEUE_MAX_SIZE_MB}MB.")
+            # We don't parse it, we don't look at it, we don't know it's id.  This shouldn't ever happen -- and probably would only
+            # happen because of a malicious attacker.  JSON parsing arbitrarily large strings would
+            # be very dangerous, and make crashing the server way too easy.
+            # We just respond with this error below.   The client should display to the user all id-less errors.
+            msg = "The server ignored a huge message since it exceeded the allowed size limit of #{MESG_QUEUE_MAX_SIZE_MB}MB.  Please report what caused this if you can."
+            winston.error(msg)
+            @error_to_client(error:msg)
+            return
 
         if data.length == 0
-            winston.error("EMPTY DATA MESSAGE -- ignoring!")
+            msg = "The server ignored a message since it was empty."
+            winston.error(msg)
+            @error_to_client(error:msg)
             return
 
         if not @_handle_data_queue?
@@ -645,8 +657,11 @@ class Client extends EventEmitter
 
         channel = data[0]
         h = @_data_handlers[channel]
+
         if not h?
             winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            # Tell the client that they had better reconnect.
+            @push_to_client( message.session_reconnect(data_channel : channel) )
             return
 
         # The rest of the function is basically the same as "h(data.slice(1))", except that
@@ -2113,7 +2128,7 @@ class CodeMirrorSession
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
                 if err
-                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}")
+                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}, trying to connect to #{@path} in #{@project_id}.")
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
@@ -2468,7 +2483,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     winston.debug("local_hub restart: skipping killall since this user #{@username} is clearly not a cloud.sagemath project :-)")
                     cb()
                 else
-                    @killall(cb)
+                    @_restart_lock = false
+                    @killall () =>
+                        @_restart_lock = true
+                        cb()
             (cb) =>
                 winston.debug("local_hub restart: Push latest version of code to remote machine...")
                 @_push_local_hub_code (err) =>
@@ -2758,21 +2776,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.client.push_data_to_client(channel, history)
                     console_socket.on 'data', (data) ->
                         opts.client.push_data_to_client(channel, data)
+
                         # Record in database that there was activity in this project.
                         # This is *way* too frequent -- a tmux session make it always on for no reason.
-                        # Maybe re-enable if I make bups not happen if no files change.
                         # database.touch_project(project_id:opts.project_id)
+
                 else
                     console_socket.history = ''
                     console_socket.on 'data', (data) ->
                         console_socket.history += data
                         n = console_socket.history.length
-                        if n > 150000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                            console_socket.history = console_socket.history.slice(100000)
+                        if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                            console_socket.history = console_socket.history.slice(300000)
 
-                        # Never push more than 5000 characters at once to client, since display is slow, etc.
-                        if data.length > 5000
-                            data = "[...]"+data.slice(data.length-5000)
+                        # Never push more than 20000 characters at once to client, since display is slow, etc.
+                        if data.length > 20000
+                            data = "[...]"+data.slice(data.length-20000)
 
                         opts.client.push_data_to_client(channel, data)
 
@@ -2976,12 +2995,13 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err)
 
     killall: (cb) =>
-        winston.debug("kill all processes running on this local hub (including the local hub itself)")
+        winston.debug("kill all processes running on a local hub (including the local hub itself)")
         @_exec_on_local_hub
-            command : "killall -9 -u #{@username}"
+            command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
             cb      : (err, out) =>
+                winston.debug("killall returned -- #{err}, #{misc.to_json(out)}")
                 # We explicitly ignore errors since killall kills self while at it.
                 cb()
 
@@ -3261,6 +3281,8 @@ class Project
                         @location = location
                         winston.debug("Location of project #{@project_id} is #{misc.to_json(@location)}")
                         cb(err)
+
+            # Get a connection to the local hub
             (cb) =>
                 new_local_hub
                     username : @location.username
@@ -3272,6 +3294,14 @@ class Project
                         else
                             @local_hub = hub
                             cb()
+            # Write the project id to the local hub unix account, since it is useful to
+            # have there (for various services).
+            (cb) =>
+                @write_file
+                    path : ".sagemathcloud/info.json"
+                    project_id : @project_id
+                    data       : misc.to_json(project_id:@project_id, location:@location)
+                    cb         : cb
         ], (err) => cb(err, @))
 
     _fixpath: (obj) =>
@@ -3696,7 +3726,7 @@ sign_in = (client, mesg) =>
                             last_name     : account.last_name
                             email_address : mesg.email_address
                             remember_me   : false
-                            hub           : program.host
+                            hub           : program.host + ':' + program.port
 
                         client.signed_in(signed_in_mesg)
                         client.push_to_client(signed_in_mesg)
@@ -3979,7 +4009,7 @@ create_account = (client, mesg) ->
                 first_name    : mesg.first_name
                 last_name     : mesg.last_name
                 email_address : mesg.email_address
-                hub           : program.host
+                hub           : program.host + ':' + program.port
             client.signed_in(mesg)
             client.push_to_client(mesg)
             cb()
@@ -4158,9 +4188,9 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 # can be used to reset the password for a certain account.
 #
 # Anti-use-salvus-to-spam/DOS throttling policies:
-#   * a given email address can be sent at most 2 password resets per hour
-#   * a given ip address can send at most 3 password reset request per minute
-#   * a given ip can send at most 25 per hour
+#   * a given email address can be sent at most 30 password resets per hour
+#   * a given ip address can send at most 100 password reset request per minute
+#   * a given ip can send at most 250 per hour
 #############################################################################
 forgot_password = (mesg, client_ip_address, push_to_client) ->
     if mesg.event != 'forgot_password'
@@ -4198,7 +4228,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     else
                         cb()
 
-        # POLICY 1: We limit the number of password resets that an email address can receive to at most 2 per hour
+        # POLICY 1: We limit the number of password resets that an email address can receive
         (cb) ->
             database.count
                 table   : "password_reset_attempts_by_email_address"
@@ -4207,13 +4237,13 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true); return
-                    if count >= 3
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Will not send more than 2 password resets to #{mesg.email_address} per hour."))
+                    if count >= 31
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Will not send more than 30 password resets to #{mesg.email_address} per hour."))
                         cb(true)
                         return
                     cb()
 
-        # POLICY 2: a given ip address can send at most 3 password reset request per minute
+        # POLICY 2: a given ip address can send at most 100 password reset request per minute
         (cb) ->
             database.count
                 table   : "password_reset_attempts_by_ip_address"
@@ -4222,13 +4252,13 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true); return
-                    if count >= 4
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset request from the ip address #{client_ip_address}."))
+                    if count >= 101
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset requests."))
                         cb(true); return
                     cb()
 
 
-        # POLICY 3: a given ip can send at most 25 per hour
+        # POLICY 3: a given ip can send at most 1000 per hour
         (cb) ->
             database.count
                 table : "password_reset_attempts_by_ip_address"
@@ -4237,8 +4267,8 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                     if error
                         push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
                         cb(true); return
-                    if count >= 26
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"There have been too many password reset requests from #{client_ip_address}.  Wait an hour before sending any more password reset requests."))
+                    if count >= 1001
+                        push_to_client(message.forgot_password_response(id:mesg.id, error:"There have been too many password resets.  Wait an hour before sending any more password reset requests."))
                         cb(true); return
                     cb()
 
@@ -4888,9 +4918,9 @@ exports.start_server = start_server = () ->
 # Process command line arguments
 #############################################
 program.usage('[start/stop/restart/status/nodaemon] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
-    .option('-p, --proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
-    .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
+    .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
+    .option('--log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
@@ -4899,7 +4929,8 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .parse(process.argv)
 
-if program._name == 'hub.js'
+console.log(program._name)
+if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
     if program.rawArgs[1] in ['start', 'restart']
         process.addListener "uncaughtException", (err) ->
@@ -4912,5 +4943,5 @@ if program._name == 'hub.js'
         console.log("Resetting password")
         reset_password program.passwd, (err) -> process.exit()
     else
-        console.log("Running web server")
+        console.log("Running web server; pidfile=#{program.pidfile}")
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)

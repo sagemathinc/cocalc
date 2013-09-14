@@ -56,32 +56,32 @@ Editor for files in a project
             <div class="salvus-editor-codemirror-button-container">
                 <span class="not-big">
                     <span class="btn-group">
-                        <a href="#close" class="btn "><i class="icon-collapse-top"></i>
+                        <a href="#close" class="btn btn-large "><i class="icon-collapse-top"></i> <span class="not-small">Files...</span>
                             <!--<span class="not-small">Close</span>--> </a>
-                        <a href="#save" class="btn  btn-success">
+                        <a href="#save" class="btn  btn-success btn-large">
                             <i class="icon-save"></i>
-                            <!--<span class="not-small">Save</span>-->
+                            <span class="not-small">Save</span>
                         </a>
-                        <a href="#goto-line" class='btn '><i class="icon-bolt"> </i> <span class="not-small">Line</span></a>
+                        <a href="#goto-line" class='btn btn-large'><i class="icon-bolt"> </i> <span class="not-small">Line</span></a>
                     </span>
 
 
                     <span class="btn-group salvus-editor-codemirror-worksheet-buttons hide">
-                        <a href="#execute" class='btn '> <i class="icon-play"></i>
+                        <a href="#execute" class='btn btn-large'> <i class="icon-play"></i>
                             <span class="not-small">Run</span>
                         </a>
-                        <a href="#interrupt" class='btn '> <i class="icon-stop"></i>
+                        <a href="#interrupt" class='btn btn-large'> <i class="icon-stop"></i>
                             <span class="not-small">Stop</span>
                         </a>
-                        <a href="#tab" class='btn'> <i class="icon-info-sign"></i>
+                        <a href="#tab" class='btn btn-large'> <i class="icon-info-sign"></i>
                             <span class="not-small">Tab</span>
                         </a>
                     </span>
 
 
                     <span class="btn-group not-small">
-                        <a href="#decrease-font" class='btn ' ><i class="icon-font" style="font-size:8pt"> </i> </a>
-                        <a href="#increase-font" class='btn '  ><i class="icon-font" style="font-size:13pt"> </i> </a>
+                        <a href="#decrease-font" class='btn btn-large' ><i class="icon-font" style="font-size:8pt"> </i> </a>
+                        <a href="#increase-font" class='btn btn-large'  ><i class="icon-font" style="font-size:13pt"> </i> </a>
                     </span>
 
                 </span>
@@ -295,5 +295,41 @@ Editor for files in a project
 
     <div class="sagews-input"><hr class="sagews-input-hr"></div>
     <div class="sagews-output"></div>
+
+    <div class="salvus-ipython-notebook">
+        <!--<h3 style="margin-left:1em">IPython Notebook: <span class="salvus-ipython-filename"></span></h3>-->
+        <div  class="salvus-ipython-notebook-buttons big-only">
+            <span class="salvus-ipython-notebook-status-messages lighten"> </span>
+            <a href="#save" class='btn btn-small btn-success'   data-container="body" data-toggle="tooltip" data-placement="bottom"
+                                title="Save .ipynb file to disk (file is constantly sync'd with server)." > <i class="icon-save"></i> Save</a>
+            <a href="#reload" class='btn  btn-small btn-warning'  data-container="body" data-toggle="tooltip" data-placement="bottom"
+               title="Reload this Notebook; use if the IPython server is killed or restarted on another port"> <i class="icon-refresh"></i> Reload</a>
+            <a href="#info" class='btn  btn-small btn-info'    data-container="body" data-toggle="tooltip" data-placement="bottom"
+               title="Extra information about the IPython notebook"> <i class="icon-info-sign"></i> </a>
+        </div>
+        <div class="not-big">
+            <span class="btn-group">
+                <a href="#close" class="btn btn-large"><i class="icon-collapse-top"></i> Files...</a>
+                <a href="#save" class='btn btn-large btn-success'> <i class="icon-save"></i> Save</a>
+            </span>
+            <span class="btn-group">
+                <a href="#execute" class='btn btn-large'> <i class="icon-play"></i>
+                    <span class="not-small">Run</span>
+                </a>
+                <a href="#interrupt" class='btn btn-large'> <i class="icon-stop"></i>
+                    <span class="not-small">Stop</span>
+                </a>
+                <a href="#tab" class='btn btn-large'> <i class="icon-info-sign"></i>
+                    <span class="not-small">Tab</span>
+                </a>
+            </span>
+            <span class="btn-group">
+                <a href="#reload" class='btn btn-large btn-warning'> <i class="icon-refresh"></i> Reload</a>
+                <a href="#info" class='btn  btn-large btn-info'> <i class="icon-info-sign"></i> </a>
+            </span>
+        </div>
+        <h3 class="salvus-ipython-notebook-connecting hide" style="margin-left:2em">Connecting to IPython Notebook Server...</h3>
+        <div class="salvus-ipython-notebook-notebook"></div>
+    </div>
 
 </div>

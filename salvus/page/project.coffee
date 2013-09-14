@@ -130,6 +130,7 @@ class ProjectPage
                 @editor?.close_all_open_files()
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
+                @project_log?.disconnect_from_session()
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
@@ -764,11 +765,6 @@ class ProjectPage
             opts.title = @project.title
             save_project(opts)
 
-    close_project: (opts={}) =>
-        opts.title = @project.title
-        opts.project_id = @project.project_id
-        close_project(opts)
-
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project
             project_id : @project.project_id,
@@ -934,6 +930,7 @@ class ProjectPage
         # Make it so clicking on each of the new file tab buttons does the right thing.
         @new_file_tab = @container.find(".project-new-file")
         @new_file_tab_input = @new_file_tab.find(".project-new-file-path-input")
+        @new_file_tab.find("a").tooltip()
 
         path = (ext) =>
             name = $.trim(@new_file_tab_input.val())
@@ -963,7 +960,11 @@ class ProjectPage
             create_file('tex')
             return false
 
-        BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws', 'ipynb']
+        @new_file_tab.find("a[href=#new-ipython]").click () =>
+            create_file('ipynb')
+            return false
+
+        BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
 
         create_file = (ext) =>
             p = path(ext)
@@ -978,11 +979,16 @@ class ProjectPage
             if p[p.length-1] == '/'
                 create_folder()
                 return false
-            @ensure_file_exists
-                path : p
-                alert : true
-                cb : (err) =>
-                    if not err
+            salvus_client.exec
+                project_id : @project.project_id
+                command    : "new-file"
+                timeout    : 10
+                args       : [p]
+                err_on_exit: true
+                cb         : (err, output) =>
+                    if err
+                        alert_message(type:"error", message:"#{output?.stdout} #{output?.stderr} #{err}")
+                    else
                         alert_message(type:"info", message:"Created new file '#{p}'")
                         @display_tab("project-editor")
                         tab = @editor.create_tab(filename:p, content:"")
@@ -1005,26 +1011,38 @@ class ProjectPage
                         @display_tab("project-file-listing")
             return false
 
-        @new_file_tab.find("a[href=#new-file]").click(() => create_file())
+        click_new_file_button = () =>
+            target = @new_file_tab_input.val()
+            if target.indexOf("://") != -1 or misc.startswith(target, "git@github.com:")
+                download_button.icon_spin(start:true, delay:500)
+                new_file_from_web target, () =>
+                    download_button.icon_spin(false)
+
+            else
+                create_file()
+            return false
+
+        @new_file_tab.find("a[href=#new-file]").click(click_new_file_button)
+
+        download_button = @new_file_tab.find("a[href=#new-download]").click(click_new_file_button)
+
         @new_file_tab.find("a[href=#new-folder]").click(create_folder)
         @new_file_tab_input.keyup (event) =>
             if event.keyCode == 13
-                create_file()
+                click_new_file_button()
                 return false
             if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
                 @display_tab("project-file-listing")
                 return false
 
-
-        @get_from_web_input = @new_file_tab.find(".project-import-from-web")
-        @new_file_tab.find("a[href=#import-from-web]").click () =>
-            url = $.trim(@get_from_web_input.val())
-            if url == ""
-                @get_from_web_input.focus()
-                return false
+        new_file_from_web = (url, cb) =>
             dest = @new_file_tab.find(".project-new-file-path").text()
             long = () ->
-                alert_message(type:'info', message:"Launched recursive download of '#{url}' to '#{dest}', which may run for up to 15 seconds.")
+                if dest == ""
+                    d = "root of project"
+                else
+                    d = dest
+                alert_message(type:'info', message:"Downloading '#{url}' to '#{d}', which may run for up to 15 seconds.")
             timer = setTimeout(long, 3000)
             @get_from_web
                 url     : url
@@ -1035,6 +1053,7 @@ class ProjectPage
                     clearTimeout(timer)
                     if not err
                         alert_message(type:'info', message:"Finished downloading '#{url}' to '#{dest}'.")
+                    cb?(err)
             return false
 
     show_new_file_tab: () =>
@@ -1053,11 +1072,9 @@ class ProjectPage
 
         # Clear the filename and focus on it
         now = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
-        #now = now.slice(0, now.length-2)  # get rid of seconds.
         @new_file_tab_input.val(now)
         if not IS_MOBILE
-            @new_file_tab_input.focus()
-        @get_from_web_input.val('')
+            @new_file_tab_input.focus().select()
 
     update_snapshot_ui_elements: () =>
         if @current_path.length > 0 and @current_path[0] == '.snapshot'
@@ -1429,7 +1446,7 @@ class ProjectPage
         salvus_client.exec
             project_id : @project.project_id
             command    : "mkdir"
-            timeout    : 5
+            timeout    : 15
             args       : ['-p', opts.path]
             cb         : (err, result) =>
                 if opts.alert
@@ -1453,10 +1470,11 @@ class ProjectPage
                 else
                     @ensure_directory_exists(path:dir, alert:opts.alert, cb:cb)
             (cb) =>
+                #console.log("ensure_file_exists -- touching '#{opts.path}'")
                 salvus_client.exec
                     project_id : @project.project_id
                     command    : "touch"
-                    timeout    : 5
+                    timeout    : 15
                     args       : [opts.path]
                     cb         : (err, result) =>
                         if opts.alert
@@ -1474,12 +1492,15 @@ class ProjectPage
             timeout : 10
             alert   : true
             cb      : undefined     # cb(true or false, depending on error)
+
+        {command, args} = transform_get_url(opts.url)
+
         salvus_client.exec
             project_id : @project.project_id
-            command    : "wget"
+            command    : command
             timeout    : opts.timeout
             path       : opts.dest
-            args       : [opts.url]
+            args       : args
             cb         : (err, result) =>
                 if opts.alert
                     if err
@@ -1524,6 +1545,7 @@ class ProjectPage
 
     init_project_activity: () =>
         page = @container.find(".project-activity")
+        page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")
         LOG_FILE = '.sagemathcloud.log'
         async.series([
@@ -1582,6 +1604,7 @@ class ProjectPage
                 cb()
 
         ], (err) =>
+            page.find("h1").icon_spin(false)
             if err
                 # Just try again with exponential backoff  This can and does fail if say the project is first being initailized.
                 if not @_init_project_activity?
@@ -1596,8 +1619,9 @@ class ProjectPage
 
     project_activity: (mesg, delay) =>
         if @project_log?
+            #console.log("project_activity", mesg)
             mesg.fullname   = account.account_settings.fullname()
-            mesg.account_id = account.account_settings.account_id
+            mesg.account_id = account.account_settings.account_id()
             s = misc.to_json(new Date())
             mesg.date = s.slice(1, s.length-1)
             @project_log.live(@project_log.live() + '\n' + misc.to_json(mesg))
@@ -2238,4 +2262,36 @@ project_page = exports.project_page = (project) ->
     p = new ProjectPage(project)
     project_pages[project.project_id] = p
     return p
+
+
+# Apply various transformations to url's before downloading a file using the "+ New" from web thing:
+# This is useful, since people often post a link to a page that *hosts* raw content, but isn't raw
+# content, e.g., ipython nbviewer, trac patches, github source files (or repos?), etc.
+
+URL_TRANSFORMS =
+    'http://trac.sagemath.org/attachment/ticket/':'http://trac.sagemath.org/raw-attachment/ticket/'
+    'http://nbviewer.ipython.org/urls/':'https://'
+
+
+transform_get_url = (url) ->  # returns something like {command:'wget', args:['http://...']}
+    if misc.startswith(url, "https://github.com/") and url.indexOf('/blob/') != -1
+        url = url.replace("https://github.com", "https://raw.github.com").replace("/blob/","/")
+
+    if misc.startswith(url, 'git@github.com:')
+        command = 'git'  # kind of useless due to host keys...
+        args = ['clone', url]
+    else if url.slice(url.length-4) == ".git"
+        command = 'git'
+        args = ['clone', url]
+    else
+        # fall back
+        for a,b of URL_TRANSFORMS
+            url = url.replace(a,b)  # only replaces first instance, unlike python.  ok for us.
+        command = 'wget'
+        args = [url]
+
+    return {command:command, args:args}
+
+
+
 

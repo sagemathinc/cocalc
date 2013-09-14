@@ -451,13 +451,13 @@ class Haproxy(Process):
                                                      n, x in enumerate(nginx_servers)]))
 
         if hub_servers:
-            t = Template('server hub$n $ip:$port cookie server$ip check maxconn $maxconn')
-            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',10000)) for
+            t = Template('server hub$n $ip:$port cookie server$ip:$port check maxconn $maxconn')
+            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(hub_servers)]))
 
         if proxy_servers:
-            t = Template('server proxy$n $ip:$port cookie server$ip check maxconn $maxconn')
-            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PROXY_PORT), maxconn=x.get('maxconn',10000)) for
+            t = Template('server proxy$n $ip:$port cookie server$ip:$port check maxconn $maxconn')
+            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
         if insecure_redirect_port:
@@ -511,6 +511,7 @@ class Hub(Process):
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd = [os.path.join(PWD, 'hub'), 'start',
+                                      '--id', id,
                                       '--port', port,
                                       '--proxy_port', proxy_port,
                                       '--keyspace', keyspace,
@@ -518,8 +519,8 @@ class Hub(Process):
                                       '--database_nodes', monitor_database,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile] + extra,
-                         stop_cmd   = [os.path.join(PWD, 'hub'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'hub'), 'restart'])
+                         stop_cmd   = [os.path.join(PWD, 'hub'), 'stop', '--id', id],
+                         reload_cmd = [os.path.join(PWD, 'hub'), 'restart', '--id', id])
 
     def __repr__(self):
         return "Hub server %s on port %s"%(self.id(), self._port)
@@ -1338,7 +1339,16 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":   # 22=ssh, 53=dns, 655=tinc vpn,
-            commands = []
+            commands = (['allow proto tcp from %s to any port 1:65535'%ip for ip in self._hosts['hub admin']] +  # allow access from hub/admin
+                        ['allow proto udp from %s to any port 1:65535'%ip for ip in self._hosts['hub admin']] +
+                        ['deny proto tcp to any port 1025:65535'] +          # deny access to user ports (except from hub) - CRITICAL so users
+                        ['deny proto udp to any port 1025:65535'])           # can safely open a server on localhost
+
+            # drop incoming traffic within compute machines!  this is critical to make
+            # servers-with-passwords that users start listening on the vpn safe, such as ipython.
+            cmd = 'iptables -I INPUT --src %s -p tcp --dport 1025:65535 -j DROP'%(','.join(self._hosts.ip_addresses('compute')))
+            self._hosts(hostname, cmd, sudo=True, timeout=10, wait=False)
+
             # We don't need/want to firewall the compute machines
             #commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
             #            ['allow proto tcp from %s to any port %s'%(ip, y[1]) for ip in self._hosts['hub admin'] for y in COMPUTE_SERVER_PORTS.iteritems()]+
@@ -1348,6 +1358,7 @@ class Services(object):
             return
         else:
             raise ValueError("unknown action '%s'"%action)
+
         return self._hosts.ufw(hostname, commands)
 
     def _all(self, callable, reverse=False):
@@ -1389,6 +1400,8 @@ class Services(object):
             self.start('vm', parallel=True, wait=False)
         log.info(" ** Waiting for VM's to all finish starting")
         self.wait_until_up('all')
+        log.info(" ** Setting up compute VM's firewall")
+        self.compute_firewall('compute', 'start')
         log.info(" ** Starting cassandra databases.")
         self.start('cassandra', wait=True, parallel=True)
         for service in ['haproxy', 'nginx', 'hub', 'snap']:
@@ -1422,7 +1435,7 @@ class Services(object):
 
            - Like any node application, the hub could go which sometimes goes into an infinite loop
              due to a bug.  This would cause it to stop responding to HTTP requests.
-             If this happens for 5 seconds, we restart the hub and make a note in the database.
+             If this happens for 10 seconds, we restart the hub and make a note in the database.
 
            - Cassandra 1.2.4 keeps crashing (about once a day) on me, with an out of memory error, despite
              the host vm having 48GB swap and at least 16GB RAM.  This must be a bug.  In any case,
@@ -1439,7 +1452,7 @@ class Services(object):
         def hub_is_working(ip):
              try:
                  t = time.time()
-                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=5).read()
+                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
                  print "ping: %s"%ip, time.time() - t, "   status: ", s
                  return True
              except:
@@ -1466,7 +1479,7 @@ class Services(object):
                      print ":-( Restarting %s"%ip
                      self.restart('hub',host=ip)
                      try:
-                         message = {'action':'restart', 'reason':'stopped responding to monitor for 5 seconds', 'ip':ip}
+                         message = {'action':'restart', 'reason':'stopped responding to monitor for 10 seconds', 'ip':ip}
                          cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
                               {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
                      except:

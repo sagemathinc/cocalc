@@ -377,6 +377,16 @@ Editor for files in a project
     color:#555;
 }
 
+.salvus-ipython-notebook-buttons {
+    position : absolute;
+    top      : 7px;
+    right    : 7px;
+}
+
+.salvus-ipython-notebook-status-messages {
+    font-size: 10px;
+}
+
 
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */
 li {

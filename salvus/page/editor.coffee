@@ -26,15 +26,16 @@ codemirror_associations =
     'c++'  : 'text/x-c++src'
     cpp    : 'text/x-c++src'
     cc     : 'text/x-c++src'
+    conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
     ecl    : 'ecl'
-    f      : 'python'    # Ondrej Certik says Python modes sucks less than other modes, but it still sucks.
-    f90    : 'python'
-    f95    : 'python'
+    f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
+    f90    : 'text/x-fortran'
+    f95    : 'text/x-fortran'
     h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
     java   : 'text/x-java'
@@ -94,6 +95,11 @@ file_associations['term'] =
     icon   : 'icon-credit-card'
     opts   : {}
 
+file_associations['ipynb'] =
+    editor : 'ipynb'
+    icon   : 'icon-list-ul'
+    opts   : {}
+
 file_associations['sage-worksheet'] =
     editor : 'worksheet'
     icon   : 'icon-list-ul'
@@ -119,7 +125,8 @@ file_associations['pdf'] =
 
 # Multiplex'd worksheet mode
 
-MARKERS = require('diffsync').MARKERS
+diffsync = require('diffsync')
+MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [
     ['coffeescript', 'coffeescript'],
@@ -316,7 +323,7 @@ class exports.Editor
                 @remove_from_recent(filename)
                 v.push(filename)
             undo = @element.find("a[href=#undo-close-all-tabs]")
-            undo.stop().show().animate(opacity:100).fadeOut(duration:60000).click () =>
+            undo.stop().show().animate(opacity:1).fadeOut(duration:60000).click () =>
                 undo.hide()
                 for filename in v
                     if not @tabs[filename]?
@@ -529,6 +536,8 @@ class exports.Editor
             content     : undefined
             extra_opts  : required
 
+        #console.log("create_editor", opts)
+
         if editor_name == 'codemirror'
             if filename.slice(filename.length-7) == '.sagews'
                 typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore
@@ -558,6 +567,8 @@ class exports.Editor
                 editor = new LatexEditor(@, filename, content, extra_opts)
             when 'pdf'
                 editor = new PDF_PreviewEmbed(@, filename, content, extra_opts)
+            when 'ipynb'
+                editor = new IPythonNotebook(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -641,6 +652,7 @@ class exports.Editor
         #        setTimeout( (() -> ignore_clicks=false), 100)
 
         @tabs[filename].open_file_pill = link
+        @tabs[filename].close_tab = close_tab
 
         link_bar.append(link)
         @resize_open_file_tabs()
@@ -701,6 +713,7 @@ class exports.Editor
             tab.editor().remove()
 
         tab.link.remove()
+        tab.close_tab?()
         delete @tabs[filename]
         @update_counter()
 
@@ -1351,6 +1364,7 @@ class CodeMirrorEditor extends FileEditor
                 @codemirror1.focus()
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
+    #console.log("codemirror_session_editor '#{filename}'")
     ext = filename_extension(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
@@ -2755,8 +2769,6 @@ class LatexEditor extends FileEditor
                         highlight_line : true
                 opts.cb?(err)
 
-
-
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @element = $("<div>").hide()
@@ -2795,9 +2807,9 @@ class Terminal extends FileEditor
                     alert_message(type:'error', message:err)
                     cb?(err)
                 else
-                    @console.set_session(session)
                     if @element.is(":visible")
-                        setTimeout(@show, 100)
+                        @show()
+                    @console.set_session(session)
                     salvus_client.write_text_file_to_project
                         project_id : @editor.project_id
                         path       : @filename
@@ -2828,6 +2840,10 @@ class Terminal extends FileEditor
         #@console?.terminate_session()
         @local_storage("auto_open", false)
 
+    remove: () =>
+        @element.salvus_console(false)
+        @element.remove()
+
     show: () =>
         @element.show()
         if @console?
@@ -2840,7 +2856,7 @@ class Terminal extends FileEditor
                 ht = Math.floor(ht/2)
             e.height(ht)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
-            @console.focus()
+            @console.focus(true)
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -3036,6 +3052,765 @@ class Image extends FileEditor
     focus: () =>
         @element.maxheight()
         @element.find(".salvus-editor-image-container").maxheight()
+
+
+#**************************************************
+# IPython Support
+#**************************************************
+
+ipython_notebook_server = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required   # directory from which the files are served
+        cb         : required   # cb(err, server)
+
+    I = new IPythonNotebookServer(opts.project_id, opts.path)
+    I.start_server (err, base) =>
+        opts.cb(err, I)
+
+class IPythonNotebookServer  # call ipython_notebook_server above
+    constructor: (@project_id, @path) ->
+
+    start_server: (cb) =>
+        salvus_client.exec
+            project_id : @project_id
+            path       : @path
+            command    : "ipython-notebook"
+            args       : ['start']
+            bash       : false
+            timeout    : 10
+            err_on_exit: false
+            cb         : (err, output) =>
+                if err
+                    cb?(err)
+                else
+                    try
+                        info = misc.from_json(output.stdout)
+                        if info.error?
+                            cb?(info.error)
+                        else
+                            @url = info.base; @pid = info.pid; @port = info.port
+                            get_with_retry
+                                url : @url
+                                cb  : (err, data) => cb?(err)
+                    catch e
+                        cb?(true)
+
+    notebooks: (cb) =>  # cb(err, [{kernel_id:?, name:?, notebook_id:?}, ...]  # kernel_id is null if not running
+        get_with_retry
+            url : @url + 'notebooks'
+            cb  : (err, data) =>
+                if not err
+                    cb(false, misc.from_json(data))
+                else
+                    cb(err)
+
+    stop_server: (cb) =>
+        if not @pid?
+            cb?(); return
+        salvus_client.exec
+            project_id : @project_id
+            path       : @path
+            command    : "ipython-notebook"
+            args       : ['stop']
+            bash       : false
+            timeout    : 15
+            cb         : (err, output) =>
+                cb?(err)
+
+# Download a remote URL, possibly retrying repeatedly with exponetial backoff, only failing
+# if the delay until next retry hits max_delay.
+# If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
+get_with_retry = (opts) ->
+    opts = defaults opts,
+        url           : required
+        initial_delay : 100
+        max_delay     : 7000     # once delay hits this, give up
+        factor        : 1.2      # for exponential backoff
+        bad_string    : 'ECONNREFUSED'
+        cb            : required  # cb(err, data)  # data = content of that url
+    delay = opts.initial_delay
+    f = () =>
+        if delay >= opts.max_delay  # too many attempts
+            opts.cb("unable to connect to remote server")
+            return
+        $.get(opts.url, (data) ->
+            if data.indexOf(opts.bad_string) != -1
+                delay *= opts.factor
+                setTimeout(f, delay)
+            else
+                opts.cb(false, data)
+        ).fail(() ->
+            delay *= 1.2
+            setTimeout(f, delay)
+        )
+    f()
+
+# Embedded editor for editing IPython notebooks.  Enhanced with sync and integrated into the
+# overall cloud look.
+class IPythonNotebook extends FileEditor
+    constructor: (@editor, @filename, url, opts) ->
+        opts = @opts = defaults opts,
+            sync_interval : 500
+            cursor_interval : 2000
+        @element = templates.find(".salvus-ipython-notebook").clone()
+        @status_element = @element.find(".salvus-ipython-notebook-status-messages")
+        @init_buttons()
+        s = path_split(@filename)
+        @path = s.head
+        @file = s.tail
+
+        if @path
+            @syncdoc_filename = @path + '/.' + @file + ".syncdoc"
+        else
+            @syncdoc_filename = '.' + @file + ".syncdoc"
+
+        # This is where we put the page itself
+        @notebook = @element.find(".salvus-ipython-notebook-notebook")
+        @con = @element.find(".salvus-ipython-notebook-connecting")
+        @setup () =>
+            # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
+            # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
+            # when the notebook is dirty.
+            # Also, note there are cases where IPython doesn't set the dirty flag
+            # even though the output has changed.   For example, if you type "123" in a cell, run, then
+            # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
+            # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
+            @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
+            @_cursor_interval = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
+
+    status: (text) =>
+        if not text?
+            text = ""
+        @status_element.html(text)
+
+    setup: (cb) =>
+        if @_setting_up
+            cb?("already setting up")
+            return  # already setting up
+        @_setting_up = true
+        @con.show().icon_spin(start:true)
+
+        # Delete all the cached cursors in the DOM
+        delete @_cursors
+        delete @nb
+        delete @frame
+
+        async.series([
+            (cb) =>
+                @status("determining newest ipynb file")
+                salvus_client.exec
+                    project_id : @editor.project_id
+                    path       : @path
+                    command    : "ls"
+                    args       : ['-lt', "--time-style=+%s", @file, @syncdoc_filename]
+                    timeout    : 10
+                    err_on_exit: false
+                    cb         : (err, output) =>
+                        if err?
+                            cb(err)
+                        else if output.stderr.indexOf('No such file or directory') != -1
+                            # nothing to do -- the syncdoc file doesn't even exist.
+                            cb()
+                        else
+                            # figure out the two times and see if the .ipynb file is at least 10 seconds (say)
+                            # newer than the syncdoc.
+                            #~$ ls -l --time-style=+%s .2013-09-06-080011.ipynb.syncdoc 2013-09-06-080011.ipynb
+                            #-rw-rw-r-- 1 ccnIX7aT ccnIX7aT 43560 1378514636 2013-09-06-080011.ipynb
+                            #-rw-rw-r-- 1 ccnIX7aT ccnIX7aT 41821 1378513328 .2013-09-06-080011.ipynb.syncdoc
+                            v = output.stdout.split('\n')
+                            a = {}
+                            a[v[0][6]] = parseInt(v[0][5])
+                            a[v[1][6]] = parseInt(v[1][5])
+                            if a[@file] >= a[@syncdoc_filename] + 10
+                                @_use_disk_file = true
+                            cb()
+            (cb) =>
+                @status("ensuring syncdoc exists")
+                @editor.project_page.ensure_file_exists
+                    path : @syncdoc_filename
+                    cb   : cb
+            (cb) =>
+                @initialize(cb)
+            (cb) =>
+                @init_autosave()
+                @_init_doc(cb)
+        ], (err) =>
+            @con.show().icon_spin(false).hide()
+            @_setting_up = false
+            if err
+                @save_button.addClass("disabled")
+                @status("failed to start -- #{err}")
+                cb?("Unable to start IPython server -- #{err}")
+            else
+                cb?()
+        )
+
+    _init_doc: (cb) =>
+        #console.log("_init_doc")
+        @status("connecting to sync session")
+        @doc = syncdoc.synchronized_string
+            project_id : @editor.project_id
+            filename   : @syncdoc_filename
+            sync_interval : @opts.sync_interval
+            cb         : (err) =>
+                @status()
+                if err
+                    cb?("Unable to connect to synchronized document server -- #{err}")
+                else
+                    if @_use_disk_file
+                        @doc.live('')
+                    @_config_doc()
+                    cb?()
+
+    _config_doc: () =>
+        #console.log("_config_doc")
+        # todo -- should check if .ipynb file is newer... ?
+        @status("setting visible document to sync")
+        if @doc.live() == ''
+            @doc.live(@to_doc())
+        else
+            @set_live_from_syncdoc()
+        #console.log("DONE SETTING!")
+        @iframe.animate(opacity:1)
+
+        @doc._presync = () =>
+            if not @nb?
+                # no point -- reinitializing the notebook frame right now...
+                return
+            @doc.live(@to_doc())
+
+        apply_edits = @doc.dsync_client._apply_edits_to_live
+
+        apply_edits2 = (patch, cb) =>
+            #console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
+            before =  @to_doc()
+            @doc.dsync_client.live = before
+            apply_edits(patch)
+            if @doc.dsync_client.live != before
+                @from_doc(@doc.dsync_client.live)
+                #console.log("edits should now be applied!")#, @doc.dsync_client.live)
+            cb?()
+
+        @doc.dsync_client._apply_edits_to_live = apply_edits2
+
+        @doc.on "reconnect", () =>
+            if not @doc.dsync_client?
+                # this could be an older connect emit that didn't get handled -- ignore.
+                return
+            apply_edits = @doc.dsync_client._apply_edits_to_live
+            @doc.dsync_client._apply_edits_to_live = apply_edits2
+            # Update the live document with the edits that we missed when offline
+            @status("reconnect - updating live doc with missed edits")
+            @from_doc(@doc.dsync_client.live)
+            @status()
+
+        # TODO: we should just create a class that derives from SynchronizedString at this point.
+        @doc.draw_other_cursor = (pos, color, name) =>
+            if not @_cursors?
+                @_cursors = {}
+            id = color + name
+            cursor_data = @_cursors[id]
+            if not cursor_data?
+                cursor = templates.find(".salvus-editor-codemirror-cursor").clone().show()
+                # craziness -- now move it into the iframe!
+                cursor = @frame.$("<div>").html(cursor.html())
+                cursor.css(position: 'absolute', width:'15em')
+                inside = cursor.find(".salvus-editor-codemirror-cursor-inside")
+                inside.css
+                    'background-color': color
+                    position : 'absolute'
+                    top : '-1.3em'
+                    left: '.5ex'
+                    height : '1.15em'
+                    width  : '.1ex'
+                    'border-left': '2px solid black'
+                    border  : '1px solid #aaa'
+                    opacity :'.7'
+
+                label = cursor.find(".salvus-editor-codemirror-cursor-label")
+                label.css
+                    color:'color'
+                    position:'absolute'
+                    top:'-2.3em'
+                    left:'1.5ex'
+                    'font-size':'8pt'
+                    'font-family':'serif'
+                    'z-index':10000
+                label.text(name)
+                cursor_data = {cursor: cursor, pos:pos}
+                @_cursors[id] = cursor_data
+            else
+                cursor_data.pos = pos
+
+            # first fade the label out
+            cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
+            # Then fade the cursor out (a non-active cursor is a waste of space).
+            cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
+            @nb.get_cell(pos.index).code_mirror.addWidget(
+                      {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
+        @status()
+
+
+    broadcast_cursor_pos: () =>
+        if not @nb?
+            # no point -- reloading or loading
+            return
+        index = @nb.get_selected_index()
+        cell  = @nb.get_cell(index)
+        pos   = cell.code_mirror.getCursor()
+        s = misc.to_json(pos)
+        if s != @_last_cursor_pos
+            @_last_cursor_pos = s
+            @doc.broadcast_cursor_pos(index:index, line:pos.line, ch:pos.ch)
+
+    remove: () =>
+        if @_sync_check_interval?
+            clearInterval(@_sync_check_interval)
+        if @_cursor_interval?
+            clearInterval(@_cursor_interval)
+        if @_autosync_interval?
+            clearInterval(@_autosync_interval)
+        @element.remove()
+        @doc?.disconnect_from_session()
+
+    get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
+        if not @server?
+            cb("cannot call get_ids until connected to the ipython notebook server."); return
+        @status("getting notebook and kernel id")
+        @server.notebooks (err, notebooks) =>
+            @status()
+            if err
+                cb(err); return
+            for n in notebooks
+                if n.name + '.ipynb' == @file
+                    @kernel_id = n.kernel_id  # will be null if kernel not yet started
+                    @notebook_id = n.notebook_id
+                    cb(); return
+            cb("no ipython notebook listed by server with name '#{@file}'")
+
+    initialize: (cb) =>
+        async.series([
+            (cb) =>
+                @status("getting or starting ipython server")
+                ipython_notebook_server
+                    project_id : @editor.project_id
+                    path       : @path
+                    cb         : (err, server) =>
+                        @server = server
+                        cb(err)
+            (cb) =>
+                @get_ids(cb)
+            (cb) =>
+                @_init_iframe(cb)
+            (cb) =>
+                # start polling until we get the kernel_id
+                attempts = 0
+                f = () =>
+                    attempts += 1
+                    if attempts < 20
+                        @get_ids () =>
+                            if not @kernel_id?
+                                setTimeout(f,500)
+                            else
+                                cb()
+                    else
+                        cb("unable to get kernel id")
+                setTimeout(f, 250)
+        ], cb)
+
+
+    _init_iframe: (cb) =>
+        if not @notebook_id?
+            # assumes @notebook_id has been set
+            cb("must first call get_ids"); return
+
+        @status("initializing iframe")
+        get_with_retry
+            url : @server.url
+            cb  : (err) =>
+                if err
+                    @status()
+                    cb(err); return
+                @iframe_uuid = misc.uuid()
+
+                @status("loading iframe")
+
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.3').attr('src', @server.url + @notebook_id)
+                @notebook.html('').append(@iframe)
+                @show()
+
+                # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
+                # instead of messing up our embedded view.
+                attempts = 0
+                f = () =>
+                    #console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
+                    attempts += 1
+                    if attempts >= 40
+                        # just give up -- this isn't at all critical; don't want to waste resources
+                        @status()
+                        cb()
+                        return
+                    @frame = window.frames[@iframe_uuid]
+                    if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
+                        setTimeout(f, 250)
+                    else
+                        a = @frame.$("#ipython_notebook").find("a")
+                        if a.length == 0
+                            setTimeout(f, 250)
+                        else
+                            @ipython = @frame.IPython
+                            @nb = @ipython.notebook
+
+                            a.click () =>
+                                @info()
+                                return false
+
+                            # Replace the IPython Notebook logo, which is for some weird reason an ugly png, with proper HTML; this ensures the size
+                            # and color match everything else.
+                            a.html('<span style="font-size: 18pt;"><span style="color:black">IP</span>[<span style="color:black">y</span>]: Notebook</span>')
+
+                            # proper file rename with sync not supported yet (but will be -- TODO; needs to work with sync system)
+                            @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
+
+                            # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
+                            for cmd in ['new', 'open', 'copy', 'rename']
+                                @frame.$("#" + cmd + "_notebook").remove()
+                            @frame.$("#kill_and_exit").remove()
+                            #@frame.$("#save_checkpoint").remove()
+                            #@frame.$("#restore_checkpoint").remove()
+                            @frame.$("#menus").find("li:first").find(".divider").remove()
+
+                            #@frame.$("#autosave_status").remove()
+                            #@frame.$("#checkpoint_status").remove()
+                            @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+                            @nb._save_checkpoint = @nb.save_checkpoint
+                            @nb.save_checkpoint = @save
+
+                            # Ipython doesn't consider a load (e.g., snapshot restore) "dirty" (for obvious reasons!)
+                            @nb._load_notebook_success = @nb.load_notebook_success
+                            @nb.load_notebook_success = (data,status,xhr) =>
+                                @nb._load_notebook_success(data,status,xhr)
+                                @sync()
+
+                            @status()
+                            cb()
+
+                setTimeout(f, 100)
+
+    # although highly unlikely, this could happen if something else steals our port before we can restart...
+    check_for_moved_server: () =>
+        if @nb?.kernel?  # only try if nb is already loaded
+            if not @nb.kernel.shell_channel   # if backend is gone/replaced, then this would get set to null
+                ipython_notebook_server
+                    project_id : @editor.project_id
+                    path       : @path
+                    cb         : (err, server) =>
+                        if err
+                            # nothing to be done.
+                            return
+                        if server.url != @server.url
+                            # server moved!?
+                            @server = server
+                            @reload() # -- only thing we can do, really
+
+    autosync: () =>
+        @check_for_moved_server()  # only bother if document being changed.
+        if @frame?.IPython?.notebook?.dirty
+            @save_button.removeClass('disabled')
+            @sync()
+            @nb.dirty = false
+
+    sync: () =>
+        @save_button.icon_spin(start:true,delay:1000)
+        @doc.sync () =>
+            @save_button.icon_spin(false)
+
+    has_unsaved_changes: () =>
+        return not @save_button.hasClass('disabled')
+
+    save: (cb) =>
+        if not @nb?
+            cb?(); return
+        @save_button.icon_spin(start:true,delay:500)
+        @nb._save_checkpoint?()
+        @doc.save () =>
+            @save_button.icon_spin(false)
+            @save_button.addClass('disabled')
+            cb?()
+
+    set_live_from_syncdoc: () =>
+        if not @doc?.dsync_client?  # could be re-initializing
+            return
+        current = @to_doc()
+        if @doc.dsync_client.live != current
+            @from_doc(@doc.dsync_client.live)
+
+    info: () =>
+        t = "<h3>The IPython Notebook</h3>"
+        t += "<h4>Enhanced with Sagemath Cloud Sync</h4>"
+        t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
+        if @kernel_id?
+            t += "<h4>Sage mode by pasting this into a cell</h4>"
+            t += "<pre>%load_ext sage.misc.sage_extension</pre>"
+        if @kernel_id?
+            t += "<h4>Connect to this IPython kernel in a terminal</h4>"
+            t += "<pre>ipython console --existing #{@kernel_id}</pre>"
+        if @server.url?
+            t += "<h4>Pure IPython notebooks</h4>"
+            t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
+            t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
+        bootbox.alert(t)
+        return false
+
+    reload: () =>
+        if @_reloading
+            return
+        @_reloading = true
+        @reload_button.icon_spin(true)
+        @setup (e) =>
+            @_reloading = false
+            @reload_button.icon_spin(false)
+
+    init_buttons: () =>
+        @element.find("a").tooltip()
+        @save_button = @element.find("a[href=#save]").click () =>
+            @save()
+            return false
+
+        @reload_button = @element.find("a[href=#reload]").click () =>
+            @reload()
+            return false
+
+        #@element.find("a[href=#json]").click () =>
+        #    console.log(@to_obj())
+
+        @element.find("a[href=#info]").click () =>
+            @info()
+            return false
+
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
+        @element.find("a[href=#execute]").click () =>
+            @nb.execute_selected_cell()
+            return false
+        @element.find("a[href=#interrupt]").click () =>
+            @nb.kernel.interrupt()
+            return false
+        @element.find("a[href=#tab]").click () =>
+            @nb.get_cell(@nb?.get_selected_index()).completer.startCompletion()
+            return false
+
+    to_obj: () =>
+        #console.log("to_obj: start"); t = misc.mswalltime()
+        obj = @nb.toJSON()
+        obj.metadata.name  = @nb.notebook_name
+        obj.nbformat       = @nb.nbformat
+        obj.nbformat_minor = @nb.nbformat_minor
+        #console.log("to_obj: done", misc.mswalltime(t))
+        return obj
+
+    from_obj: (obj) =>
+        #console.log("from_obj: start"); t = misc.mswalltime()
+        i = @nb.get_selected_index()
+        st = @nb.element.scrollTop()
+        @nb.fromJSON(obj)
+        @nb.dirty = false
+        @nb.select(i)
+        @nb.element.scrollTop(st)
+        #console.log("from_obj: done", misc.mswalltime(t))
+
+    # Notebook Doc Format: line 0 is meta information in JSON; one line with the JSON of each cell for reset of file
+    to_doc: () =>
+        #console.log("to_doc: start"); t = misc.mswalltime()
+        obj = @to_obj()
+        doc = misc.to_json({notebook_name:obj.metadata.name})
+        for cell in obj.worksheets[0].cells
+            doc += '\n' + misc.to_json(cell)
+        #console.log("to_doc: done", misc.mswalltime(t))
+        return doc
+
+    ###
+    # simplistic version of modifying the notebook in place.  VERY slow when new cell added.
+    from_doc0: (doc) =>
+        #console.log("from_doc: start"); t = misc.mswalltime()
+        nb = @nb
+        v = doc.split('\n')
+        nb.metadata.name  = v[0].notebook_name
+        cells = []
+        for line in v.slice(1)
+            try
+                c = misc.from_json(line)
+                cells.push(c)
+            catch e
+                console.log("error de-jsoning '#{line}'", e)
+        obj = @to_obj()
+        obj.worksheets[0].cells = cells
+        @from_obj(obj)
+        console.log("from_doc: done", misc.mswalltime(t))
+    ###
+
+    delete_cell: (index) =>
+        @nb.delete_cell(index)
+
+    insert_cell: (index, cell_data) =>
+        new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+        new_cell.fromJSON(cell_data)
+
+    set_cell: (index, cell_data) =>
+        #console.log("set_cell: start"); t = misc.mswalltime()
+
+        cell = @nb.get_cell(index)
+
+        if cell? and cell_data.cell_type == cell.cell_type
+            #console.log("setting in place")
+
+            if cell.output_area?
+                # for some reason fromJSON doesn't clear the output (it should, imho), and the clear_output method
+                # on the output_area doesn't work as expected.
+                wrapper = cell.output_area.wrapper
+                wrapper.empty()
+                cell.output_area = new @ipython.OutputArea(wrapper, true)
+
+            cell.fromJSON(cell_data)
+
+            ###  for debugging that we properly update a cell in place -- if this is wrong,
+            #    all hell breaks loose, and sync loops ensue.
+            a = misc.to_json(cell_data)
+            b = misc.to_json(cell.toJSON())
+            if a != b
+                console.log("didn't work:")
+                console.log(a)
+                console.log(b)
+                @nb.delete_cell(index)
+                new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+                new_cell.fromJSON(cell_data)
+            ###
+
+        else
+            #console.log("replacing")
+            @nb.delete_cell(index)
+            new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
+            new_cell.fromJSON(cell_data)
+        #console.log("set_cell: done", misc.mswalltime(t))
+
+    ###
+    # simplistic version of setting from doc; *very* slow on cell insert.
+    from_doc0: (doc) =>
+        console.log("goal='#{doc}'")
+        console.log("live='#{@to_doc()}'")
+
+        console.log("from_doc: start"); t = misc.mswalltime()
+        goal = doc.split('\n')
+        live = @to_doc().split('\n')
+
+        @nb.metadata.name  = goal[0].notebook_name
+
+        for i in [1...Math.max(goal.length, live.length)]
+            index = i-1
+            if i >= goal.length
+                console.log("deleting cell #{index}")
+                @nb.delete_cell(index)
+            else if goal[i] != live[i]
+                console.log("replacing cell #{index}")
+                try
+                    cell_data = JSON.parse(goal[i])
+                    @set_cell(index, cell_data)
+                catch e
+                    console.log("error de-jsoning '#{goal[i]}'", e)
+
+        console.log("from_doc: done", misc.mswalltime(t))
+    ###
+
+    from_doc: (doc) =>
+        #console.log("goal='#{doc}'")
+        #console.log("live='#{@to_doc()}'")
+        #console.log("from_doc: start"); tm = misc.mswalltime()
+        goal = doc.split('\n')
+        live = @to_doc().split('\n')
+        @nb.metadata.name  = goal[0].notebook_name
+
+        v0    = live.slice(1)
+        v1    = goal.slice(1)
+        string_mapping = new misc.StringCharMapping()
+        v0_string  = string_mapping.to_string(v0)
+        v1_string  = string_mapping.to_string(v1)
+        diff = diffsync.dmp.diff_main(v0_string, v1_string)
+
+        index = 0
+        i = 0
+
+        parse = (s) ->
+            try
+                return JSON.parse(s)
+            catch e
+                console.log("UNABLE to parse '#{s}' -- not changing this cell.")
+
+        #console.log("diff=#{misc.to_json(diff)}")
+        i = 0
+        while i < diff.length
+            chunk = diff[i]
+            op    = chunk[0]  # -1 = delete, 0 = leave unchanged, 1 = insert
+            val   = chunk[1]
+            if op == 0
+                # skip over  cells
+                index += val.length
+            else if op == -1
+                # delete  cells:
+                # A common special case arises when one is editing a single cell, which gets represented
+                # here as deleting then inserting.  Replacing is far more efficient than delete and add,
+                # due to the overhead of creating codemirror instances (presumably).  (Also, there is a
+                # chance to maintain the cursor later.)
+                if i < diff.length - 1 and diff[i+1][0] == 1 and diff[i+1][1].length == val.length
+                    #console.log("replace")
+                    for x in diff[i+1][1]
+                        obj = parse(string_mapping._to_string[x])
+                        if obj?
+                            @set_cell(index, obj)
+                        index += 1
+                    i += 1 # skip over next chunk
+                else
+                    #console.log("delete")
+                    for j in [0...val.length]
+                        @delete_cell(index)
+            else if op == 1
+                # insert new cells
+                #console.log("insert")
+                for x in val
+                    obj = parse(string_mapping._to_string[x])
+                    if obj?
+                        @insert_cell(index, obj)
+                    index += 1
+            else
+                console.log("BUG -- invalid diff!", diff)
+            i += 1
+
+        #console.log("from_doc: done", misc.mswalltime(tm))
+        #if @to_doc() != doc
+        #    console.log("FAIL!")
+        #    console.log("goal='#{doc}'")
+        #    console.log("live='#{@to_doc()}'")
+        #    @from_doc0(doc)
+
+    focus: () =>
+        # TODO
+        # console.log("ipython notebook focus: todo")
+
+    show: () =>
+        @element.show()
+        top = @editor.editor_top_position()
+        @element.css(top:top)
+        if top == 0
+            @element.css('position':'fixed')
+        w = $(window).width()
+        @iframe?.attr('width',w).maxheight()
+
+#**************************************************
+# other...
+#**************************************************
+
 
 class Spreadsheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->

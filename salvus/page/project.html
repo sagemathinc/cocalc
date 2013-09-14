@@ -169,24 +169,26 @@
 
             <!-- Create a new file -->
             <div class="project-new-file hide">
-                <h1 style="margin-left:1em;">Add files to <span class="project-new-file-if-root">home directory of project</span>
+                <h1 style="margin-left:1em;">Add to <span class="project-new-file-if-root">home directory of project</span>
                     <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a>
                 </h1>
                 <div class="row">
                     <div style="margin-left:3em;">
                         <div class="row">
                             <div class="span3">
-                                <h4><i class="icon-plus"> </i>  New </h4>
+                                <h4><i class="icon-plus"> </i>  New file, new directory, or web link</h4>
                             </div>
                             <div class="span8" style="padding-top: 4px;">
-                                Filename: <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
+                                <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
                                 <br><br>
                                 <span style="width:100%">
-                                    <a class="btn btn-primary" href="#new-file"><i class="icon-file"></i> File</a>
-                                    <a class="btn btn-warning" href="#new-folder"><i class="icon-folder-close"></i> Folder</a>
-                                    <a class="btn btn-info" href="#new-worksheet"><i class="icon-file-alt"> </i> Worksheet</a>
-                                    <a class="btn btn-info" href="#new-terminal"><i class="icon-credit-card"></i> Terminal</a>
-                                    <a class="btn btn-info" href="#new-latex"><i class="icon-superscript"></i> LaTeX</a>
+                                    <a class="btn btn-primary" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="icon-file"></i> File</a>
+                                    <a class="btn btn-warning" href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="icon-folder-close"></i> Folder</a>
+                                    <a class="btn btn-info" href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new terminal (open this to reconnect later)"><i class="icon-credit-card"></i> Terminal</a>
+                                    <a class="btn btn-info" href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="icon-superscript"></i> LaTeX</a>
+                                    <a class="btn btn-info" href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="icon-file-alt"> </i> Sage Worksheet</a>
+                                    <a class="btn btn-info" href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="icon-file-alt"></i> IPython Notebook</a>
+                                    <a class="btn" href="#new-download" data-toggle="tooltip" data-placement="top" title="Download a file or directory from the web"><i class="icon-cloud"></i> From Web</a>
                                     <!--<a class="btn btn-small" href="#old-worksheet"><i class="icon-file-alt"> </i> (Old Worksheet)</a>-->
                                 </span>
                             </div>
@@ -196,10 +198,10 @@
                             <div class="span3">
                                 <h4><i class="icon-cloud-upload"> </i> From your computer </h4>
                             </div>
-                            <div class="span8 project-dropzone" style="overflow-y:auto; height:11em; background-color: #eeeeee;">
+                            <div class="span8 project-dropzone" style="overflow-y:auto; background-color: #eeeeee;">
                             </div>
                         </div>
-                        <hr>
+                        <!--<hr>
                         <div class="row">
                             <div class="span3">
                                 <h4><i class="icon-exchange"> </i> From the web</h4>
@@ -211,7 +213,7 @@
                                 <a class="btn" href="#import-from-web"><i class="icon-external-link"> </i> Copy to project</a>
                             </div>
 
-                        </div>
+                        </div>-->
                     </div>
                 </div>
             </div>
@@ -343,7 +345,13 @@
                                         </a>
                                     </div>
                                 </div>
+                                <br>
+                                <div class="row-fluid">
+                                    <div class="span12 lighten">
+                                        Still not working?!  Immediately email me (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working!
+                                    </div>
 
+                                </div>
                             </div>
                             <div class="span6 well project-settings-well">
                                 <h4>Danger!</h4>

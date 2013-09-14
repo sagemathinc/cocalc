@@ -1,36 +1,42 @@
 - [ ] next release:
      (do these, but also need to put in build.py)
-       - UMASK 022!!!
-       - ./build.py --build_node
-       - delete node_modules and reinstall all of them.
-       - install ipython-1.0.0 into system-wide sage
-            cd /usr/local/sage/current/
-            ./sage -sh
-            wget https://pypi.python.org/packages/source/i/ipython/ipython-1.0.0.tar.gz
-            tar xvf ipython-1.0.0.tar.gz
-            cd ipython-1.0.0
-            python setup.py install
-            cd ..
-            easy_install tornado
-
-       - upgrade pyzmq in system wide sage
+       x - UMASK 022!!!
+       x- upgrade pyzmq in system wide sage
             pip install --upgrade pyzmq
          (actually I ended up deleting it from site-packages and reinstalling with umask 022)
 
-       - worry about jason's patches to ipython for sage (?)
-       - install tornado into system-wide sage and add to build.py!; be sure to umask 022 first!
+       x- install tornado into system-wide sage and add to build.py!; be sure to umask 022 first!
              umask 022
              pip install tornado
-       - install cmake -- requested by Ondrej Certik.
-       - apt-get install spell
+       x- install ipython-1.0.0 into system-wide sage
+            cd /usr/local/sage/current/
+            ./sage -sh
+            rm -rf local/lib/python/site-packages/IPython* local/lib/python/site-package/ipython*
+            easy_install ipython
+       x- patch sage to work with new ipython:
+            -- apply http://trac.sagemath.org/raw-attachment/ticket/14810/trac_14810_ipython_0.13.2.patch
+            -- cd devel/sage/
+                wget https://github.com/jasongrout/sage/commit/fdbe79ef7ed0ca0fa6c712c4c580ba34de1a1166.patch
+                wget https://github.com/jasongrout/sage/commit/c1ad5805558b15694d783bbb5c77296f2d492b2e.patch
+                patch --ignore-whitespace -p2 < fdbe79ef7ed0ca0fa6c712c4c580ba34de1a1166.patch
+                patch --ignore-whitespace -p2 < c1ad5805558b15694d783bbb5c77296f2d492b2e.patch
+
+
+       x- ./build.py --build_node
+
+       x- delete node_modules and reinstall *all* of them.
+
+       x - install cmake -- requested by Ondrej Certik.
+
+       x - apt-get install spell
          (could be a problem; it worked on some vm's but not others when I just tried...)
-       - upgrade to octave 3.6:
+       x- upgrade tex:
+          apt-add-repository ppa:texlive-backports/ppa
+          apt-get update; apt-get dist-upgrade
+       x- upgrade to octave 3.6:
           apt-add-repository ppa:dr-graef/octave-3.6.precise
           apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
           # note, there are a ton of octave-* packages; should also install those?
-       - upgrade tex:
-          apt-add-repository ppa:texlive-backports/ppa
-          apt-get update; apt-get dist-upgrade
 
 
 - [ ] ipython notebooks and port forwarding...
@@ -289,9 +295,9 @@ And visiting this would open this project:
 
 
  [ ] more firewall'ing of the vm's on which user stuff runs.
-     basically don't allow vm's to connect to ports on the vm's above 1024.  only
-     allow connections from hub.
+        only allow incoming connections from hub to ports above 1024:
 
+           TEST this:
 
 
  [ ] Button in UI to run/manage an ipython server... or maybe make this part of `local_hub` startup?
@@ -308,6 +314,19 @@ And visiting this would open this project:
 ----
 
 - [ ] use pkill instead of killall!!!!!!!
+
+- [ ] this in the log of a localhub where a file is suddenly appearing empty:
+
+(node) warning: possible EventEmitter memory leak detected. 11 listeners added. Use emitter.setMaxListeners() to increase limit.
+Trace
+    at StatWatcher.EventEmitter.addListener (events.js:175:15)
+    at Object.fs.watchFile (fs.js:945:8)
+    at DiffSyncFile_server._start_watching_file (/mnt/home/QUFxIlqs/.sagemathcloud/node_modules/local_hub.js:593:17)
+    at DiffSyncFile_server.__bind [as _start_watching_file] (/mnt/home/QUFxIlqs/.sagemathcloud/node_modules/local_hub.js:4:61)
+    at DiffSyncFile_server.kill (/mnt/home/QUFxIlqs/.sagemathcloud/node_modules/local_hub.js:551:19)
+    at fs.readFile (fs.js:176:14)
+    at Object.oncomplete (fs.js:297:15)
+error: Uncaught exception: Error: This socket is closed.
 
 - [ ] middle/ctrl-click on project should open project in background tab.
 
