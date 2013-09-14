@@ -457,7 +457,7 @@ class Haproxy(Process):
 
         if proxy_servers:
             t = Template('server proxy$n $ip:$port cookie server$ip:$port check maxconn $maxconn')
-            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
+            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('proxy_port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
         if insecure_redirect_port:
