@@ -451,13 +451,13 @@ class Haproxy(Process):
                                                      n, x in enumerate(nginx_servers)]))
 
         if hub_servers:
-            t = Template('server hub$n $ip:$port cookie server$ip check maxconn $maxconn')
-            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',10000)) for
+            t = Template('server hub$n $ip:$port cookie server$ip:$port check maxconn $maxconn')
+            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(hub_servers)]))
 
         if proxy_servers:
-            t = Template('server proxy$n $ip:$port cookie server$ip check maxconn $maxconn')
-            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PROXY_PORT), maxconn=x.get('maxconn',10000)) for
+            t = Template('server proxy$n $ip:$port cookie server$ip:$port check maxconn $maxconn')
+            proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
         if insecure_redirect_port:
@@ -511,6 +511,7 @@ class Hub(Process):
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
                          start_cmd = [os.path.join(PWD, 'hub'), 'start',
+                                      '--id', id,
                                       '--port', port,
                                       '--proxy_port', proxy_port,
                                       '--keyspace', keyspace,
@@ -518,8 +519,8 @@ class Hub(Process):
                                       '--database_nodes', monitor_database,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile] + extra,
-                         stop_cmd   = [os.path.join(PWD, 'hub'), 'stop'],
-                         reload_cmd = [os.path.join(PWD, 'hub'), 'restart'])
+                         stop_cmd   = [os.path.join(PWD, 'hub'), 'stop', '--id', id],
+                         reload_cmd = [os.path.join(PWD, 'hub'), 'restart', '--id', id])
 
     def __repr__(self):
         return "Hub server %s on port %s"%(self.id(), self._port)

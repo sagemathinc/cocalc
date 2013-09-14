@@ -462,7 +462,7 @@ class Client extends EventEmitter
                         key : hash
                         cb  : (error, signed_in_mesg) =>
                             if not error and signed_in_mesg?
-                                signed_in_mesg.hub = program.host
+                                signed_in_mesg.hub = program.host + ':' + program.port
                                 @hash_session_id = hash
                                 @signed_in(signed_in_mesg)
                                 @push_to_client(signed_in_mesg)
@@ -3726,7 +3726,7 @@ sign_in = (client, mesg) =>
                             last_name     : account.last_name
                             email_address : mesg.email_address
                             remember_me   : false
-                            hub           : program.host
+                            hub           : program.host + ':' + program.port
 
                         client.signed_in(signed_in_mesg)
                         client.push_to_client(signed_in_mesg)
@@ -4009,7 +4009,7 @@ create_account = (client, mesg) ->
                 first_name    : mesg.first_name
                 last_name     : mesg.last_name
                 email_address : mesg.email_address
-                hub           : program.host
+                hub           : program.host + ':' + program.port
             client.signed_in(mesg)
             client.push_to_client(mesg)
             cb()
@@ -4918,9 +4918,9 @@ exports.start_server = start_server = () ->
 # Process command line arguments
 #############################################
 program.usage('[start/stop/restart/status/nodaemon] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
-    .option('-p, --proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
-    .option('-l, --log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
+    .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
+    .option('--log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
@@ -4929,7 +4929,8 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .parse(process.argv)
 
-if program._name == 'hub.js'
+console.log(program._name)
+if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
     if program.rawArgs[1] in ['start', 'restart']
         process.addListener "uncaughtException", (err) ->
@@ -4942,5 +4943,5 @@ if program._name == 'hub.js'
         console.log("Resetting password")
         reset_password program.passwd, (err) -> process.exit()
     else
-        console.log("Running web server")
+        console.log("Running web server; pidfile=#{program.pidfile}")
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
