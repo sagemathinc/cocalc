@@ -1004,6 +1004,7 @@ Terminal.prototype.refresh = function(start, end) {
             i -= 6;
         }
         out = out.slice(0,i);
+        if (out.length === 0) { out = "&nbsp;" }
 
         a.innerHTML = out;
     }
