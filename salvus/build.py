@@ -138,6 +138,21 @@ easy_install pip
 
 ./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq
 
+# R Packages:
+
+    umask 022 && R
+    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival"), repos='http://cran.us.r-project.org')
+
+r packages could be automated like so:
+                0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$cat r-install-packages.R
+                #! /usr/bin/Rscript --vanilla
+                options(repos="http://cran.ru.ac.za/")
+                res <- try(install.packages(c("deSolve", "fracdiff", "plyr", "reshape2", "ggplot2", "PBSddesolve"), dependencies=TRUE))
+
+                if(inherits(res, "try-error")) q(status=1) else q()
+                0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$
+
+
 # EXPERIMENTAL PACKAGES
 
    ./sage -i chomp

@@ -445,18 +445,25 @@ class Haproxy(Process):
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
 
+        # randomize the order of the servers to get better distribution between them by all the different
+        # haproxies that are running on the edge machines. (Users may hit any of them.)
+        import random
+
         if nginx_servers:
+            random.shuffle(nginx_servers)
             t = Template('server nginx$n $ip:$port maxconn $maxconn')
             nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', NGINX_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(nginx_servers)]))
 
         if hub_servers:
-            t = Template('server hub$n $ip:$port cookie server$ip:$port check maxconn $maxconn')
+            random.shuffle(hub_servers)
+            t = Template('server hub$n $ip:$port cookie server:$ip:$port check maxconn $maxconn')
             hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(hub_servers)]))
 
         if proxy_servers:
-            t = Template('server proxy$n $ip:$port cookie server$ip:$port check maxconn $maxconn')
+            random.shuffle(proxy_servers)
+            t = Template('server proxy$n $ip:$port cookie server:$ip:$port check maxconn $maxconn')
             proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('proxy_port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
