@@ -490,7 +490,7 @@ class Client extends EventEmitter
 
     error_to_client: (opts) ->
         opts = defaults opts,
-            id    : required
+            id    : undefined
             error : required
         @push_to_client(message.error(id:opts.id, error:opts.error))
 
@@ -633,11 +633,23 @@ class Client extends EventEmitter
         # e.g., users storing a multi-gigabyte worksheet title,
         # etc..., which would (and will) otherwise require care with
         # every single thing we store.
+
+        # TODO: the two size things below should be specific messages (not generic error_to_client), and
+        # be sensibly handled by the client.
         if data.length >= MESG_QUEUE_MAX_SIZE_MB * 10000000
-            @error_to_client(id:mesg.id, error:"Messages are limited to #{MESG_QUEUE_MAX_SIZE_MB}MB.")
+            # We don't parse it, we don't look at it, we don't know it's id.  This shouldn't ever happen -- and probably would only
+            # happen because of a malicious attacker.  JSON parsing arbitrarily large strings would
+            # be very dangerous, and make crashing the server way too easy.
+            # We just respond with this error below.   The client should display to the user all id-less errors.
+            msg = "The server ignored a huge message since it exceeded the allowed size limit of #{MESG_QUEUE_MAX_SIZE_MB}MB.  Please report what caused this if you can."
+            winston.error(msg)
+            @error_to_client(error:msg)
+            return
 
         if data.length == 0
-            winston.error("EMPTY DATA MESSAGE -- ignoring!")
+            msg = "The server ignored a message since it was empty."
+            winston.error(msg)
+            @error_to_client(error:msg)
             return
 
         if not @_handle_data_queue?
@@ -645,8 +657,11 @@ class Client extends EventEmitter
 
         channel = data[0]
         h = @_data_handlers[channel]
+
         if not h?
             winston.error("unable to handle data on an unknown channel: '#{channel}', '#{data}'")
+            # Tell the client that they had better reconnect.
+            @push_to_client( message.session_reconnect(data_channel : channel) )
             return
 
         # The rest of the function is basically the same as "h(data.slice(1))", except that
@@ -2761,21 +2776,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.client.push_data_to_client(channel, history)
                     console_socket.on 'data', (data) ->
                         opts.client.push_data_to_client(channel, data)
+
                         # Record in database that there was activity in this project.
                         # This is *way* too frequent -- a tmux session make it always on for no reason.
-                        # Maybe re-enable if I make bups not happen if no files change.
                         # database.touch_project(project_id:opts.project_id)
+
                 else
                     console_socket.history = ''
                     console_socket.on 'data', (data) ->
                         console_socket.history += data
                         n = console_socket.history.length
-                        if n > 150000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                            console_socket.history = console_socket.history.slice(100000)
+                        if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                            console_socket.history = console_socket.history.slice(300000)
 
-                        # Never push more than 5000 characters at once to client, since display is slow, etc.
-                        if data.length > 5000
-                            data = "[...]"+data.slice(data.length-5000)
+                        # Never push more than 20000 characters at once to client, since display is slow, etc.
+                        if data.length > 20000
+                            data = "[...]"+data.slice(data.length-20000)
 
                         opts.client.push_data_to_client(channel, data)
 

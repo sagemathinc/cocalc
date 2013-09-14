@@ -26,15 +26,16 @@ codemirror_associations =
     'c++'  : 'text/x-c++src'
     cpp    : 'text/x-c++src'
     cc     : 'text/x-c++src'
+    conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
     ecl    : 'ecl'
-    f      : 'python'    # Ondrej Certik says Python modes sucks less than other modes, but it still sucks.
-    f90    : 'python'
-    f95    : 'python'
+    f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
+    f90    : 'text/x-fortran'
+    f95    : 'text/x-fortran'
     h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
     java   : 'text/x-java'
@@ -2768,8 +2769,6 @@ class LatexEditor extends FileEditor
                         highlight_line : true
                 opts.cb?(err)
 
-
-
 class Terminal extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         @element = $("<div>").hide()
@@ -2808,9 +2807,9 @@ class Terminal extends FileEditor
                     alert_message(type:'error', message:err)
                     cb?(err)
                 else
-                    @console.set_session(session)
                     if @element.is(":visible")
-                        setTimeout(@show, 100)
+                        @show()
+                    @console.set_session(session)
                     salvus_client.write_text_file_to_project
                         project_id : @editor.project_id
                         path       : @filename
@@ -2841,6 +2840,10 @@ class Terminal extends FileEditor
         #@console?.terminate_session()
         @local_storage("auto_open", false)
 
+    remove: () =>
+        @element.salvus_console(false)
+        @element.remove()
+
     show: () =>
         @element.show()
         if @console?
@@ -2853,7 +2856,7 @@ class Terminal extends FileEditor
                 ht = Math.floor(ht/2)
             e.height(ht)
             @element.css(top:@editor.editor_top_position(), position:'fixed')   # TODO: this is hack-ish; needs to be redone!
-            @console.focus()
+            @console.focus(true)
 
 class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
@@ -3075,7 +3078,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             command    : "ipython-notebook"
             args       : ['start']
             bash       : false
-            timeout    : 1
+            timeout    : 10
             err_on_exit: false
             cb         : (err, output) =>
                 if err
@@ -3201,6 +3204,7 @@ class IPythonNotebook extends FileEditor
                     path       : @path
                     command    : "ls"
                     args       : ['-lt', "--time-style=+%s", @file, @syncdoc_filename]
+                    timeout    : 10
                     err_on_exit: false
                     cb         : (err, output) =>
                         if err?

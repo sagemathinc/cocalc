@@ -340,7 +340,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
                 if @_last_sync?
                     # We have sync'd before.
-                    @_presync?() # give syncstring chance to be updated by true live. 
+                    @_presync?() # give syncstring chance to be updated by true live.
                     patch = @dsync_client._compute_edits(@_last_sync, @live())
 
                 @dsync_client = new diffsync.DiffSync(doc:resp.content)
@@ -366,10 +366,12 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
-        salvus_client.call
-            timeout : 10
-            message : message.codemirror_disconnect(session_uuid : @session_uuid)
-            cb      : cb
+        if @session_uuid?
+            # no need to re-disconnect (and would cause serious error!)
+            salvus_client.call
+                timeout : 10
+                message : message.codemirror_disconnect(session_uuid : @session_uuid)
+                cb      : cb
 
 
 
@@ -385,11 +387,11 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cursor_interval : 1000
             sync_interval   : 750   # never send sync messages up stream more often than this
 
+        @filename    = @editor.filename
+
         @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
-
-        @filename    = @editor.filename
 
         @editor.save = @save
         @codemirror  = @editor.codemirror
@@ -509,10 +511,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
-        salvus_client.call
-            timeout : 10
-            message : message.codemirror_disconnect(session_uuid : @session_uuid)
-            cb      : cb
+        if @session_uuid?
+            # no need to re-disconnect (and would cause serious error!)            
+            salvus_client.call
+                timeout : 10
+                message : message.codemirror_disconnect(session_uuid : @session_uuid)
+                cb      : cb
 
         # store pref in localStorage to not auto-open this file next time
         @editor.local_storage('auto_open', false)

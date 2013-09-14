@@ -51,6 +51,15 @@
     white-space: nowrap;    /* critical at least for firefox and IE */
 }
 
+.salvus-console-scrollbar {
+    position:absolute;
+    right:0;
+    width:10;
+    border:none;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
+
 .salvus-console-cursor-blur  {
     border:1px solid grey;
     border-radius: 3px;

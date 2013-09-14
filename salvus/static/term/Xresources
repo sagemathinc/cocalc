@@ -1,4 +1,4 @@
-! light - black on white
+! Default black on white
 default*foreground:  #000000
 default*background:  #ffffff
 default*color0:      #2e3436
@@ -18,7 +18,7 @@ default*color13:     #ad7fa8
 default*color14:     #34e2e2
 default*color15:     #eeeeec
 
-! light - Solarized
+! Solarized light
 solarized-light*color0: #073642
 solarized-light*color1: #dc322f
 solarized-light*color2: #859900
@@ -38,7 +38,7 @@ solarized-light*color15: #fdf6e3
 solarized-light*foreground: #073642
 solarized-light*background: #fdf6e3
 
-! dark - Solarized
+! Solarized dark
 solarized-dark*color0: #eee8d5
 solarized-dark*color1: #dc322f
 solarized-dark*color2: #859900
@@ -58,7 +58,7 @@ solarized-dark*color15: #002b36
 solarized-dark*foreground: #eee8d5
 solarized-dark*background: #002b36
 
-! dark - Low contrast
+! Low contrast dark
 low-contrast*color0: #222222
 low-contrast*color1: #9E5641
 low-contrast*color2: #6C7E55
@@ -78,7 +78,7 @@ low-contrast*color15: #cdcdcd
 low-contrast*foreground: #cdcdcd
 low-contrast*background: #343434
 
-! light - Tango
+! Tango light
 tango*foreground:  #000000
 tango*background:  #ffffff
 tango*color0:      #2E3436
@@ -98,7 +98,7 @@ tango*color13:     #AD7FA8
 tango*color14:     #34E2E2
 tango*color15:     #EEEEEC
 
-! dark - Infinite red
+! Infinite red dark
 infred*foreground: #f2f2f2
 infred*background: #101010
 infred*color0:    #6c6c6c
@@ -118,7 +118,7 @@ infred*color13:    #fba1fb
 infred*color14:    #d7d9fc
 infred*color15:    #e2e2e2
 
-! dark - Monochrome
+! Monochrome dark
 mono*foreground: #B0B0B0
 mono*background: #282828
 mono*color0: #000000
@@ -137,3 +137,43 @@ mono*color12: #4D4D4D
 mono*color13: #747474
 mono*color14: #C4C4C4
 mono*color15: #DEDEDE
+
+! Raven light
+raven-light*background: #FAF0E6
+raven-light*foreground: #69717A
+raven-light*color0: #E7DFD5
+raven-light*color8: #8F98A1
+raven-light*color7: #5B636B
+raven-light*color15: #00020E
+raven-light*color1: #F46864
+raven-light*color9: #B42B33
+raven-light*color3: #AC9510
+raven-light*color11: #726000
+raven-light*color2: #00AE58
+raven-light*color10: #007525
+raven-light*color6: #00B0CC
+raven-light*color14: #007793
+raven-light*color4: #389BFF
+raven-light*color12: #0066CB
+raven-light*color5: #DC6DD2
+raven-light*color13: #A03398
+
+! Raven dark
+raven-dark*background: #32312E
+raven-dark*foreground: #A6A7AA
+raven-dark*color0:     #3F3E3B
+raven-dark*color8:     #7F7F83
+raven-dark*color7:     #B6B7BB
+raven-dark*color15:    #FEFFFF
+raven-dark*color1: #B36B65
+raven-dark*color9: #EFA29B
+raven-dark*color3: #8D7E45
+raven-dark*color11: #C7B679
+raven-dark*color2: #4F8C61
+raven-dark*color10: #86C596
+raven-dark*color6: #0E8E9A
+raven-dark*color14: #5EC7D4
+raven-dark*color4: #6181B8
+raven-dark*color12: #9AB9F3
+raven-dark*color5: #A46D9D
+raven-dark*color13: #DFA4D7

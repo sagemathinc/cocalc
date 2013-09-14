@@ -700,11 +700,11 @@ $("#account-forgot_password-button-submit").click (event) ->
         email_address : email_address
         cb : (error, mesg) ->
             if error
-                alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
+                alert_message(type:"error", message:"Error sending password reset message to #{email_address} -- #{mesg.error}")
             else if mesg.error
-                alert_message(type:"error", message:"Error sending password reset message to '#{email_address}'. #{mesg.error}")
+                alert_message(type:"error", message:"Error sending password reset message to #{email_address} -- #{mesg.error}")
             else
-                alert_message(type:"info", message:"Salvus sent a password reset email message to #{email_address}.")
+                alert_message(type:"info", message:"Password reset message sent to #{email_address}.")
 
 
 #################################################################
