@@ -1958,7 +1958,7 @@ def show_3d_plot_using_tachyon(obj, **kwds):
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
-def show(obj, svg=False, threejs=False, **kwds):
+def show(obj, svg=False, **kwds):
     """
     Show an expression, typeset nicely in tex, or a 2d or 3d graphics object.
 
@@ -1966,20 +1966,16 @@ def show(obj, svg=False, threejs=False, **kwds):
          since at least Google Chrome mis-renders this as empty:
               line([(10, 0), (10, 15)], color='black').show(svg=True)
 
-       - threejs: (default False for now); if True, render 3d plots using THREE.js.  This is False
-         by default until the render is more well developed.  For example, right now it doesn't
-         render colors.
-
        - display: (default: True); if true use display math for expression (big and centered).
 
     """
     if isinstance(obj, (Graphics, GraphicsArray)):
         show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):
-        if threejs:
-            show_3d_plot_using_threejs(obj, **kwds)
-        else:
+        if kwds.get('viewer') == 'tachyon':
             show_3d_plot_using_tachyon(obj, **kwds)
+        else:
+            show_3d_plot_using_threejs(obj, **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True
@@ -2684,10 +2680,264 @@ def default_mode(mode):
 #######################################################
 
 def show_3d_plot_using_threejs(p, **kwds):
-    import os, uuid
+
+    #container id to store scene
+    id = uuid()
+    obj_list = []
+
+    def parse_obj(obj):
+        model = []
+        for item in obj.split("\n"):
+            if "usemtl" in item:
+                tmp = str(item.strip())
+                tmp_list = {}
+                try:
+                    tmp_list = {"material_name":name,"face3":face3,"face4":face4,"face5":face5}
+                    model.append(tmp_list)
+                except (ValueError,UnboundLocalError):
+                    pass
+                face3 = []
+                face4 = []
+                face5 = []
+                tmp_list = []
+                name = tmp.split()[1]
+
+
+            if "f" in item:
+                tmp = str(item.strip())
+                face_num = len(tmp.split())
+                for t in tmp.split():
+                    if(face_num ==4):
+                        try:
+                            face3.append(int(t))
+                        except ValueError:
+                            pass
+
+                    elif(face_num ==6):
+                        try:
+                            face5.append(int(t))
+                        except ValueError:
+                            pass
+                    else:
+                        try:
+                            face4.append(int(t))
+                        except ValueError:
+                            pass
+
+        tmp_list = {"material_name":name,"face3":face3,"face4":face4,"face5":face5}
+        model.append(tmp_list)
+
+        return model
+
+
+    def parse_texture(p):
+        texture_dict = []
+        textures = p.texture_set()
+        for item in range(0,len(textures)):
+            texture_pop = textures.pop()
+            string = str(texture_pop)
+            item = string.split("(")[1]
+            name = item.split(",")[0]
+            color = texture_pop.color
+            tmp_dict = {"name":name,"color":color}
+            texture_dict.append(tmp_dict)
+
+        return texture_dict
+
+
+
+    def get_color(name,texture_set):
+        for item in range(0,len(texture_set)):
+            if(texture_set[item]["name"] == name):
+                color = texture_set[item]["color"]
+                color_list = [color[0],color[1],color[2]]
+                break
+            else:
+                color_list = []
+        return color_list
+
+
+    def parse_mtl(p):
+        mtl = p.mtl_str()
+        all_material = []
+        for item in mtl.split("\n"):
+            if "newmtl" in item:
+                tmp = str(item.strip())
+                tmp_list = []
+                try:
+                    texture_set = parse_texture(p)
+                    color = get_color(name,texture_set)
+                except (ValueError,UnboundLocalError):
+                    pass
+                try:
+                    tmp_list = {"name":name,"ambient":ambient, "specular":specular, "diffuse":diffuse, "illum":illum_list[0],
+                               "shininess":shininess_list[0],"opacity":opacity_diffuse[3],"color":color}
+                    all_material.append(tmp_list)
+                except (ValueError,UnboundLocalError):
+                    pass
+
+                ambient = []
+                specular = []
+                diffuse = []
+                illum_list = []
+                shininess_list = []
+                opacity_list = []
+                opacity_diffuse = []
+                tmp_list = []
+                name = tmp.split()[1]
+
+            if "Ka" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        ambient.append(float(t))
+                    except ValueError:
+                        pass
+
+            if "Ks" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        specular.append(float(t))
+                    except ValueError:
+                        pass
+
+            if "Kd" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        diffuse.append(float(t))
+                    except ValueError:
+                        pass
+
+            if "illum" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        illum_list.append(float(t))
+                    except ValueError:
+                        pass
+
+
+
+            if "Ns" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        shininess_list.append(float(t))
+                    except ValueError:
+                        pass
+
+            if "d" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        opacity_diffuse.append(float(t))
+                    except ValueError:
+                        pass
+
+        try:
+            color = list(p.all[0].texture.color.rgb())
+        except (ValueError, AttributeError):
+            pass
+
+        try:
+            texture_set = parse_texture(p)
+            color = get_color(name,texture_set)
+        except (ValueError, AttributeError):
+            color = []
+            #pass
+
+        tmp_list = {"name":name,"ambient":ambient, "specular":specular, "diffuse":diffuse, "illum":illum_list[0],
+                   "shininess":shininess_list[0],"opacity":opacity_diffuse[3],"color":color}
+        all_material.append(tmp_list)
+
+        return all_material
+
+
+
+    def gs_parametric_plot3d(p):
+        id =int(3)
+        face_geometry = parse_obj(p.obj())
+        material = parse_mtl(p)
+        vertex_geometry = []
+        obj  = p.obj()
+        for item in obj.split("\n"):
+            if "v" in item:
+                tmp = str(item.strip())
+                for t in tmp.split():
+                    try:
+                        vertex_geometry.append(float(t))
+                    except ValueError:
+                        pass
+        myobj = {"face_geometry":face_geometry,"id":id,"vertex_geometry":vertex_geometry,"material":material}
+        obj_list.append(myobj)
+
+    def gs_text3d(p):
+        id =int(2)
+        text3d_sub_obj = p.all[0]
+        text_content = text3d_sub_obj.string
+
+        myobj = {"vertices":[],"faces":[],"normals":[],"colors":[],"text":text_content,"id":id}
+        obj_list.append(myobj)
+
+
+
+    def gs_combination(p):
+        for x in p.all:
+            options[str(type(x))](x)
+
+
+    def gs_inner(p):
+        if (str(type(p.all[0]))=="<class 'sage.plot.plot3d.base.TransformGroup'>"):
+            gs_parametric_plot3d(p)
+        else:
+            options[str(type(p.all[0]))](p)
+
+
+    options = {"<class 'sage.plot.plot3d.base.TransformGroup'>": gs_inner,
+               "<type 'sage.plot.plot3d.parametric_surface.ParametricSurface'>": gs_parametric_plot3d,#gs_plot3d,
+               "<type 'sage.plot.plot3d.implicit_surface.ImplicitSurface'>":gs_parametric_plot3d,#gs_implicit_plot3d,
+               "<class 'sage.plot.plot3d.base.Graphics3dGroup'>": gs_combination,
+               "<class 'sage.plot.plot3d.shapes2.Line'>": gs_parametric_plot3d,
+               "<type 'sage.plot.plot3d.parametric_surface.ParametricSurface'>":gs_parametric_plot3d,#gs_plot3d,
+               "<class 'sage.plot.plot3d.parametric_surface.MobiusStrip'>":gs_parametric_plot3d,#gs_plot3d,
+               "<class 'sage.plot.plot3d.shapes.Text'>": gs_text3d,
+               "<type 'sage.plot.plot3d.shapes.Sphere'>": gs_parametric_plot3d,
+               "<type 'sage.plot.plot3d.index_face_set.IndexFaceSet'>": gs_parametric_plot3d,
+               "<class 'sage.plot.plot3d.shapes.Box'>": gs_parametric_plot3d,
+               "<type 'sage.plot.plot3d.shapes.Cone'>": gs_parametric_plot3d,
+               }
+
+
+    try:
+        options[str(type(p))](p)
+    except KeyError:
+        return "Type not supported"
+
+    json_obj_list = json.dumps(obj_list, separators=(',', ':'))
+
+
+    # Create div that will contain our 3d scene
+    html("<div id=%s style='border:1px solid black; width:100; height:100;margin :0px 200px 0px 200px;z-index:0'></div>"%id, hide=False)
+
+    # Display the object
+    #s = "d=$('#%s'); d.data('three', new window.ThreeJSobj(d,'%s'))"%(id, json_obj_list)
+    #salvus.coffeescript(s)
+
+    #print s
+    open("tmp.js",'w').write("window._three_data = %s;"%json_obj_list)
+    load("tmp.js")
+    s = "d=$('#%s'); d.data('three', new window.ThreeJSobj(d,window._three_data))"%id
+    salvus.coffeescript(s)
+
+    # TODO: what about garbage collection / memory leaks!?
+
+def xxx_show_3d_plot_using_threejs(p, **kwds):
+    import os
     # Save rendered 3d scene to a temporary file
     # TODO: there is no color information here yet -- see docs for .obj.
-    id = uuid.uuid4()
+    id = uuid()
     filename = "." + str(id) + '.obj'
     try:
         open(filename,'w').write(p.obj())
@@ -2748,7 +2998,7 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
         salvus.html(s)
     elif viewer == 'pdfjs':
         import uuid
-        id = 'a'+str(uuid.uuid4())
+        id = 'a'+str(uuid())
         salvus.html('<div id="%s" style="background-color:white; width:%spx; height:%spx; cursor:pointer; overflow:auto;"></div>'%(id, width, height))
         salvus.html("""
     <!-- pdf.js-based embedded javascript PDF viewer -->

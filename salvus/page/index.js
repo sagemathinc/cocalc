@@ -29,6 +29,8 @@ interact.coffee
 project.coffee
 projects.coffee
 
+3d.coffee
+
 explore.coffee
 
 exit_confirmation.coffee
