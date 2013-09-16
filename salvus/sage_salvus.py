@@ -2919,40 +2919,13 @@ def show_3d_plot_using_threejs(p, **kwds):
 
 
     # Create div that will contain our 3d scene
-    html("<div id=%s style='border:1px solid black; width:100; height:100;margin :0px 200px 0px 200px;z-index:0'></div>"%id, hide=False)
+    html("<div id=%s style='border:1px solid grey;'></div>"%id, hide=False)
 
     # Display the object
-    #s = "d=$('#%s'); d.data('three', new window.ThreeJSobj(d,'%s'))"%(id, json_obj_list)
-    #salvus.coffeescript(s)
-
-    #print s
     open("tmp.js",'w').write("window._three_data = %s;"%json_obj_list)
     load("tmp.js")
-    s = "d=$('#%s'); d.data('three', new window.ThreeJSobj(d,window._three_data))"%id
-    salvus.coffeescript(s)
-
-    # TODO: what about garbage collection / memory leaks!?
-
-def xxx_show_3d_plot_using_threejs(p, **kwds):
-    import os
-    # Save rendered 3d scene to a temporary file
-    # TODO: there is no color information here yet -- see docs for .obj.
-    id = uuid()
-    filename = "." + str(id) + '.obj'
-    try:
-        open(filename,'w').write(p.obj())
-        # Get URL to the file
-        obj_url = salvus.file(filename, show=False)
-    finally:
-        # It should now be safe to remove the file from disk
-        os.unlink(filename)
-
-    # Create div that will contain our 3d scene
-    html("<div id=%s style='border:1px solid black'>"%id, hide=False)
-
-    # Display the object
-    s = "d=$('#%s'); d.data('three', new salvus_threejs.ThreeJSobj('%s', d, obj.mtl))"%(id, obj_url)
-    salvus.coffeescript(s, obj={'mtl':p.mtl_str()} )
+    s = "d=$('#%s'); d.data('three', new window.ThreeJSobj(d, window._three_data))"%id
+    salvus.javascript(s)
 
     # TODO: what about garbage collection / memory leaks!?
 

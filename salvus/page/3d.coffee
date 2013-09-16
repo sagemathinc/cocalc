@@ -3,25 +3,24 @@
 class ThreeJSobj
     constructor : (@container, @scene3d) ->
         @scene = new THREE.Scene()
-        screen_width = $(window).width()*(2/3)
-        screen_height = $(window).height()/2
+
+        screen_width  = $(window).width()*.9
+        screen_height = $(window).height()*.5
 
         view_angle = 45
-        aspect = screen_width/screen_height
-        near = 0.1
-        far = 20000
-
+        aspect     = screen_width/screen_height
+        near       = 0.1
+        far        = 20000
         @camera = new THREE.PerspectiveCamera(view_angle, aspect, near, far)
         @scene.add(@camera)
 
-        #@camera.position = new THREE.Vector3(10, 10, 10)
         @camera.position.set(10,10,10)
         @camera.lookAt(@scene.position)
         @camera.up = new THREE.Vector3(0,0,1)
 
-        #get renderer and set up camera controls: note that camera funcionality is unpredictable if controls are defined before
-        #renderer.domElement is
-        #placed in container??
+        # Get renderer and set up camera controls: note that camera
+        # functionality is unpredictable if controls are defined before
+        # renderer.domElement is placed in container.
 
         if Detector.webgl
             @renderer = new THREE.WebGLRenderer(antialias:true)
@@ -30,12 +29,8 @@ class ThreeJSobj
 
         @renderer.setSize(screen_width, screen_height)
 
-        #placing renderer in container
-        selec = @container.selector
-        container_id = selec.replace("#", "")
-        container_node = document.getElementById(container_id)
-        container_node.appendChild(@renderer.domElement)
-
+        # Placing renderer in container
+        @container.append($(@renderer.domElement))
 
         #setting up camera controls: note that the camera is not functioning properly
         @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
@@ -55,18 +50,11 @@ class ThreeJSobj
 
         #-----------------------------------------------------------------------------------------------------------------------------------
 
-        #getting models
+        # getting models
 
-        #creating json object from sage 3d scene information
-        #tmp = @scene3d
-        #@myobj1 = tmp.replace("'","")
+        # Creating json object from sage 3d scene information
         @myjson = @scene3d
-        #console.log("im above it")
-        #console.log(@scene3d)
 
-
-
-        #implement code the scales // or fix scaleing issues
         @create_mesh = (myobj)=>
             @vertices = myobj.vertex_geometry
             for objects in [0..myobj.face_geometry.length-1]
@@ -99,14 +87,17 @@ class ThreeJSobj
 
                 @colorMaterial =  new THREE.MeshPhongMaterial( {shininess:"1",ambient:0x0ffff,wireframe:false
                 transparent:true} )
-                @colorMaterial.color.setRGB(myobj.material[mk].color[0],myobj.material[mk].color[1],myobj.material[mk].color[2])
-                @colorMaterial.ambient.setRGB(myobj.material[mk].ambient[mk],myobj.material[mk].ambient[1],myobj.material[0].ambient[2])
-                @colorMaterial.specular.setRGB(myobj.material[mk].specular[0],myobj.material[mk].specular[1],myobj.material[mk].specular[2])
+
+                @colorMaterial.color.setRGB(myobj.material[mk].color[0],
+                                            myobj.material[mk].color[1],myobj.material[mk].color[2])
+                @colorMaterial.ambient.setRGB(myobj.material[mk].ambient[mk],
+                                              myobj.material[mk].ambient[1],myobj.material[0].ambient[2])
+                @colorMaterial.specular.setRGB(myobj.material[mk].specular[0],
+                                               myobj.material[mk].specular[1],myobj.material[mk].specular[2])
                 @colorMaterial.opacity = myobj.material[mk].opacity
+
                 @mesh = new THREE.Mesh(@geometry, @colorMaterial )
-                #@mesh.scale.set 5,5,5
                 @mesh.position.set(0,0,0)
-                #@mesh.position.set(Math.floor(Math.random()*20),Math.floor(Math.random()*20),Math.floor(Math.random()*20))
                 @scene.add(@mesh)
 
         makeTextSprite = (message, parameters) =>
@@ -129,19 +120,20 @@ class ThreeJSobj
             @scene.add(sprite)
             true
 
-        console.log(@myjson)
+        console.log(JSON.stringify(@myjson))
 
         #model calls go here ********
         for num in [0..(@myjson.length-1)]
-            switch(@myjson[num].id)
-                when 2 then makeTextSprite @myjson[num].text , { fontsize: 40, fontface: "Arial", borderColor: {r:0,g:0,b:225,a:1.0}}
-                when 3 then (@create_mesh @myjson[num])
-                else console.log("not matching model to render")
-
-
+            switch @myjson[num].id
+                when 2
+                    makeTextSprite(@myjson[num].text , { fontsize: 40, fontface: "Arial", borderColor: {r:0,g:0,b:225,a:1.0}})
+                when 3
+                    @create_mesh(@myjson[num])
+                else
+                    console.log("not matching model to render")
 
 #--------------------------------------------------------------------------------------------------------------------------------
-        #grird axis-helper setup
+        #grid axis-helper setup
         @bounding_info = 10
         @gridxz = new THREE.GridHelper(@bounding_info,1)
         @gridxz.position.set(0,-@bounding_info,0)
@@ -182,13 +174,6 @@ class ThreeJSobj
         @light.position.set(0,10,0)
         #@scene.add(@light)
 
-
-#--------------------------------------------------------------------------------------
-
-        tool_bar_node = document.getElementById('id_117')
-        (@container).before(tool_bar_node)
-
-
         @animate()
 
     animate: () =>
@@ -203,3 +188,4 @@ class ThreeJSobj
 
 
 window.ThreeJSobj = ThreeJSobj
+
