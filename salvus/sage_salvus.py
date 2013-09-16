@@ -2919,15 +2919,14 @@ def show_3d_plot_using_threejs(p, **kwds):
 
 
     # Create div that will contain our 3d scene
-    html("<div id=%s style='border:1px solid grey;'></div>"%id, hide=False)
+    html("<div id=%s></div>"%id, hide=False)
 
     # Display the object
+
+    # TODO: do this right. (for dev it's nice to have tmp.js and ._three_data easily accessible.)
     open("tmp.js",'w').write("window._three_data = %s;"%json_obj_list)
     load("tmp.js")
-    s = "d=$('#%s'); d.data('three', new window.ThreeJSobj(d, window._three_data))"%id
-    salvus.javascript(s)
-
-    # TODO: what about garbage collection / memory leaks!?
+    salvus.javascript("$('#%s').threejs({create:window._three_data})"%id)
 
 
 #######################################################

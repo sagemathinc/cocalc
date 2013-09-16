@@ -1,7 +1,7 @@
 
 # This is the three.js wrapper object.
 class ThreeJSobj
-    constructor : (@container, @scene3d) ->
+    constructor : (@element, @scene3d) ->
         @scene = new THREE.Scene()
 
         screen_width  = $(window).width()*.9
@@ -23,14 +23,16 @@ class ThreeJSobj
         # renderer.domElement is placed in container.
 
         if Detector.webgl
+            @element.find(".salvus-3d-viewer-renderer").text("webgl")
             @renderer = new THREE.WebGLRenderer(antialias:true)
         else
+            @element.find(".salvus-3d-viewer-renderer").text("canvas2d")
             @renderer = new THREE.CanvasRenderer()
 
         @renderer.setSize(screen_width, screen_height)
 
-        # Placing renderer in container
-        @container.append($(@renderer.domElement))
+        # Placing renderer in the DOM.
+        @element.find(".salvus-3d-canvas").append($(@renderer.domElement))
 
         #setting up camera controls: note that the camera is not functioning properly
         @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
@@ -187,5 +189,16 @@ class ThreeJSobj
         @renderer.render(@scene, @camera)
 
 
-window.ThreeJSobj = ThreeJSobj
+# jQuery plugin
+
+$.fn.threejs = (obj) ->
+    if typeof obj != "object"
+        throw "start must be an object"
+    @each () ->
+        elt = $(this)
+        if obj.create?
+            e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
+            elt.empty().append(e)
+            elt.data('threejs', new ThreeJSobj(e, obj.create))
+
 
