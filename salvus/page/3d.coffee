@@ -2,29 +2,32 @@
 # This is the three.js wrapper object.
 class ThreeJSobj
     constructor : (@container, @scene3d) ->
-        #Spawns the objects, scenes, cameras, renderers etc.
-        #set the scene
-        #width =760
-        #height = 400
         @scene = new THREE.Scene()
-        screen_width = 760 #window.innerWidth
-        screen_height = 400 #window.innerHeight
+        screen_width = $(window).width()*(2/3)
+        screen_height = $(window).height()/2
+
         view_angle = 45
         aspect = screen_width/screen_height
         near = 0.1
         far = 20000
+
         @camera = new THREE.PerspectiveCamera(view_angle, aspect, near, far)
         @scene.add(@camera)
+
         #@camera.position = new THREE.Vector3(10, 10, 10)
-        @camera.position.set(20,20,60)
+        @camera.position.set(10,10,10)
         @camera.lookAt(@scene.position)
         @camera.up = new THREE.Vector3(0,0,1)
 
         #get renderer and set up camera controls: note that camera funcionality is unpredictable if controls are defined before
         #renderer.domElement is
-        #plcaed in container??
+        #placed in container??
 
-        if (Detector.webgl) then @renderer = new THREE.WebGLRenderer({antialias:true}) else @renderer = new THREE.CanvasRenderer()
+        if Detector.webgl
+            @renderer = new THREE.WebGLRenderer(antialias:true)
+        else
+            @renderer = new THREE.CanvasRenderer()
+
         @renderer.setSize(screen_width, screen_height)
 
         #placing renderer in container
