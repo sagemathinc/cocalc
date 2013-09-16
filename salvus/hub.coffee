@@ -342,7 +342,7 @@ init_http_proxy_server = () =>
         v          = url.split('/')
         project_id = v[1]
         port       = parseInt(v[3])
-        winston.debug("project_id=#{project_id}, port=#{port}, v=#{misc.to_json(v)}")
+        winston.debug("setting up a proxy: project_id=#{project_id}, port=#{port}, v=#{misc.to_json(v)}")
         loc        = undefined
         async.series([
             (cb) ->
@@ -393,6 +393,9 @@ init_http_proxy_server = () =>
 
         target remember_me, req.url, (err, location) ->
             if err
+
+                winston.debug("proxy denied -- #{err}")
+
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else

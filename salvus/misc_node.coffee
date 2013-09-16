@@ -456,6 +456,16 @@ exports.unforward_all_ports = () ->
     for port, r of local_port_to_child_process
         r.kill("SIGKILL")
 
+free_port = exports.free_port = (cb) ->    # cb(err, available port as assigned by the operating system)
+    server = require("net").createServer()
+    port = 0
+    server.on "listening", () ->
+        port = server.address().port
+        server.close()
+    server.on "close", ->
+        cb(null, port)
+    server.listen(0)
+
 exports.forward_remote_port_to_localhost = (opts) ->
     opts = defaults opts,
         username    : required
@@ -493,13 +503,11 @@ exports.forward_remote_port_to_localhost = (opts) ->
     ###
 
     # We have to make a new port forward
-    portfinder = require('portfinder')
-    portfinder.basePort = Math.floor(Math.random()*50000)+8000  # avoid race condition...
-    portfinder.getPort (err, local_port) ->
+    free_port (err, local_port) ->
         if err
             opts.cb(err)
             return
-        winston.debug("portfinder: #{local_port} available")
+        winston.debug("forward_remote_port_to_local_host: local port #{local_port} available")
         command = "ssh"
         args =  ['-o', 'StrictHostKeyChecking=no', "-p", opts.ssh_port,
                  '-L', "#{local_port}:localhost:#{opts.remote_port}",
@@ -587,3 +595,5 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
             ], (err) -> cb?(err))
 
 exports.ensure_containing_directory_exists = ensure_containing_directory_exists
+
+
