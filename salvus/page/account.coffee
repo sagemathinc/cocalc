@@ -292,7 +292,7 @@ sign_in = () ->
     salvus_client.sign_in
         email_address : $("#sign_in-email").val()
         password      : $("#sign_in-password").val()
-        remember_me   : $("#sign_in-remember_me").is(":checked")
+        remember_me   : true
         timeout       : 10
         cb            : (error, mesg) ->
             if error
@@ -362,8 +362,8 @@ sign_out = () ->
     $("#connection_bars").find("i").tooltip('destroy')
 
     # Send a message to the server that the user explicitly
-    # requested to sign out.  The server can clean up resources
-    # and invalidate the remember_me cookie for this client.
+    # requested to sign out.  The server must clean up resources
+    # and *invalidate* the remember_me cookie for this client.
     salvus_client.sign_out
         timeout : 10
         cb      : (error) ->
