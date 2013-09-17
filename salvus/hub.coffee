@@ -2443,8 +2443,8 @@ class CodeMirrorSession
             cb   : (err, resp) =>
                 if err
                     winston.debug("client_call: error -- #err -- reconnecting")
-                    @reconnect () =>
-                        resp = message.reconnect(id:mesg.id, reason:"error introspecting code-- #{err}")
+                    @connect () =>
+                        resp = message.reconnect(id:mesg.id, reason:"error -- #{err}")
                         client.push_to_client(resp)
                 else
                     client.push_to_client(resp)
@@ -2468,7 +2468,7 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
             if err
                 opts.cb(err)
             else
-                misc_node.enable_mesg(socket)
+                misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
                 opts.cb(false, socket)
 
     socket.on 'data', (data) ->
@@ -3053,7 +3053,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             timeout  : 10
             cb      : (err, out) =>
                 if out?.stdout?
-                    status = misc.from_json(out.stdout)
+                    try
+                        status = misc.from_json(out.stdout)
+                    catch e
+                        cb("error parsing local hub status")
+                        return
                 cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>

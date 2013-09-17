@@ -1058,7 +1058,7 @@ handle_connection = (socket) ->
         if err
             winston.info(err)
         else
-            misc_node.enable_mesg(socket)
+            misc_node.enable_mesg(socket, "connection from outside to a snap server")
             handler = (type, mesg) ->
                 if type == "json"
                     handle_mesg(socket, mesg)
@@ -1181,7 +1181,7 @@ exports.client_socket = (opts) ->
             if err
                 opts.cb(err)
             else
-                misc_node.enable_mesg(socket)
+                misc_node.enable_mesg(socket, "client connection to a snap server")
                 opts.cb(false, socket)
 
 exports.client_snap = (opts) ->

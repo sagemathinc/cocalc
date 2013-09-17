@@ -512,7 +512,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     disconnect_from_session: (cb) =>
         @_remove_listeners()
         if @session_uuid?
-            # no need to re-disconnect (and would cause serious error!)            
+            # no need to re-disconnect (and would cause serious error!)
             salvus_client.call
                 timeout : 10
                 message : message.codemirror_disconnect(session_uuid : @session_uuid)
@@ -1183,7 +1183,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.html?
-            output.append($("<div class='sagews-output-html'>").html(mesg.html).mathjax())
+            output.append($("<span class='sagews-output-html'>").html(mesg.html).mathjax())
 
         if mesg.interact?
             @interact(output, mesg.interact)
@@ -1567,6 +1567,8 @@ class Cell
 class Worksheet
 
     constructor : (@worksheet) ->
+        @project_page = @worksheet.editor.editor.project_page
+        @editor = @worksheet.editor.editor
 
     execute_code: (opts) =>
         if typeof opts == "string"

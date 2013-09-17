@@ -45,9 +45,11 @@ import sagenb.notebook.interact
 
 # Standard imports.
 import json, resource, shutil, signal, socket, struct, \
-       tempfile, time, traceback, uuid, pwd
+       tempfile, time, traceback, pwd
 
 import parsing, sage_salvus
+
+uuid = sage_salvus.uuid
 
 # Configure logging
 #logging.basicConfig()
@@ -86,9 +88,9 @@ class ConnectionJSON(object):
         self._send('j' + json.dumps(m))
 
     def send_blob(self, blob):
-        uuid = uuidsha1(blob)
-        self._send('b' + uuid + blob)
-        return uuid
+        s = uuidsha1(blob)
+        self._send('b' + s + blob)
+        return s
 
     def send_file(self, filename):
         return self.send_blob(open(filename, 'rb').read())
@@ -381,6 +383,92 @@ class Salvus(object):
         self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
         return self
 
+    def link(self, filename, label=None, foreground=True, cls=''):
+        """
+        Output a clickable link to a file somewhere in this project.  The filename
+        path must be relative to the current working directory of the Python process.
+
+        The simplest way to use this is
+
+             salvus.link("../name/of/file")    # any relative path to any file
+
+        This creates a link, which when clicked on, opens that file in the foreground.
+
+        If the filename is the name of a directory, clicking will instead
+        open the file browser on that directory:
+
+             salvus.link("../name/of/directory")    # clicking on the resulting link opens a directory
+
+        If you would like a button instead of a link, pass cls='btn'.  You can use any of
+        the standard Bootstrap button classes, e.g., btn-small, btn-large, btn-success, etc.
+
+        If you would like to change the text in the link (or button) to something
+        besides the default (filename), just pass arbitrary HTML to the label= option.
+
+        INPUT:
+
+        - filename -- a relative path to a file or directory
+        - label -- (default: the filename) html label for the link
+        - foreground -- (default: True); if True, opens link in the foreground
+        - cls -- (default: '') optional CSS classes, such as 'btn'.
+
+        EXAMPLES:
+
+        Use as a line decorator::
+
+            %salvus.link name/of/file.foo
+
+        Make a button::
+
+            salvus.link("foo/bar/", label="The Bar Directory", cls='btn')
+
+        Make two big blue buttons with plots in them::
+
+            plot(sin, 0, 20).save('sin.png')
+            plot(cos, 0, 20).save('cos.png')
+            for img in ['sin.png', 'cos.png']:
+                salvus.link(img, label="<img width='150px' src='%s'>"%salvus.file(img, show=False), cls='btn btn-large btn-primary')
+
+
+
+        """
+        path = os.path.abspath(filename)[len(os.environ['HOME'])+1:]
+        if label is None:
+            label = filename
+        id = uuid()
+        self.html("<a class='%s' style='cursor:pointer'; id='%s'></a>"%(cls, id))
+
+        s = "$('#%s').html(obj.label).click(function() {%s; return false;});"%(id, self._action(path, foreground))
+        self.javascript(s, obj={'label':label, 'path':path, 'foreground':foreground}, once=False)
+
+    def _action(self, path, foreground):
+        if os.path.isdir(path):
+            action = "worksheet.project_page.chdir(obj.path);"
+            if foreground:
+                action += "worksheet.project_page.display_tab('project-file-listing');"
+        else:
+            action = "worksheet.project_page.open_file({'path':obj.path, 'foreground': obj.foreground});"
+        return action
+
+    def open_tab(self, filename, foreground=True):
+        """
+        Open a new file (or directory) document in another tab.
+        See the documentation for salvus.link.
+        """
+        path = os.path.abspath(filename)[len(os.environ['HOME'])+1:]
+        self.javascript(self._action(path, foreground),
+                         obj = {'path':path, 'foreground':foreground}, once=True)
+
+    def close_tab(self, filename):
+        """
+        Open an open file tab.  The filename is relative to the current working directory.
+        """
+        self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
+
+
+    #def open_project(self, project_id):
+    #def close_project(self, project_id):
+
     def file(self, filename, show=True, done=False, download=False, once=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
@@ -579,9 +667,15 @@ class Salvus(object):
                 code_decorator.after(code)
 
     def html(self, html, done=False, once=None):
+        """
+        Display html in the output stream.
+
+        EXAMPLE:
+
+            salvus.html("<b>Hi</b>")
+        """
         self._flush_stdio()
         self._conn.send_json(message.output(html=unicode(html), id=self._id, done=done, once=once))
-        return self
 
     def pdf(self, filename, **kwds):
         sage_salvus.show_pdf(filename, **kwds)
@@ -803,7 +897,7 @@ class Salvus(object):
 
     def _import_code(self, content, **opts):
         while True:
-            py_file_base = str(uuid.uuid4()).replace('-','_')
+            py_file_base = uuid().replace('-','_')
             if not os.path.exists(py_file_base + '.py'):
                 break
         try:

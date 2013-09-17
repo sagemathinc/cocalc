@@ -701,7 +701,7 @@ class exports.Editor
         @project_page.container.find(".project-pages").children().removeClass('active')
         link.addClass('active')
 
-    # Close this tab.
+    # Close tab with given filename
     close: (filename) =>
         tab = @tabs[filename]
         if not tab? # nothing to do -- tab isn't opened anymore

@@ -110,7 +110,7 @@ class exports.Connection
                     winston.error("sage connection error: #{err}")
                     @recv?('json', message.terminate_session(reason:"#{err}"))
 
-                enable_mesg(@conn)
+                enable_mesg(@conn, 'connection to a sage server')
                 @conn.on 'mesg', (type, data) =>
                     @recv?(type, data)
 

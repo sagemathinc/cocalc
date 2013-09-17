@@ -1088,6 +1088,10 @@ class ProjectPage
         else
             search.removeClass('disabled')
 
+    chdir: (path, no_focus) =>
+        @set_current_path(path)
+        @update_file_list_tab(no_focus)
+
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
 

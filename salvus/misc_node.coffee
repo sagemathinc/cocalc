@@ -38,8 +38,8 @@ misc = require 'misc'
 
 message = require 'message'
 
-exports.enable_mesg = enable_mesg = (socket) ->
-    socket.setMaxListeners(200)  # we use a lot of listeners for listening for messages
+exports.enable_mesg = enable_mesg = (socket, desc) ->
+    socket.setMaxListeners(500)  # we use a lot of listeners for listening for messages
     socket._buf = null
     socket._buf_target_length = -1
     socket._listen_for_mesg = (data) ->
@@ -61,11 +61,12 @@ exports.enable_mesg = enable_mesg = (socket) ->
                         try
                             obj = JSON.parse(s)
                         catch e
-                            winston.debug("Error parsing JSON message '#{s}'")
+                            winston.debug("Error parsing JSON message on socket #{desc} -- '#{s}'")
                             # TODO -- this throw can seriously mess up the server; handle this
                             # in a better way in production.  This could happen if there is
                             # corruption of the connection.
-                            throw(e)
+                            #throw(e)
+                            return
                         socket.emit('mesg', 'json', obj)
                     when 'b'   # BLOB (tagged by a uuid)
                         socket.emit('mesg', 'blob', {uuid:mesg.slice(0,36).toString(), blob:mesg.slice(36)})
