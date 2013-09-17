@@ -35,6 +35,8 @@ info = json.loads(open(os.path.join(os.environ['HOME'], '.sagemathcloud', 'info.
 project_id = info['project_id']
 
 ip = info['location']['host']
+if ip == 'localhost':
+    ip = '127.0.0.1'  # special case for local devel user (not part of public sagemath cloud)
 
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.

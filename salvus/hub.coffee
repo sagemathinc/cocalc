@@ -339,11 +339,17 @@ init_http_proxy_server = () =>
 
     _target_cache = {}
     target = (remember_me, url, cb) ->
+        key = remember_me + url
+        t = _target_cache[key]
+        if t?
+            cb(false, t)
+            return
         v          = url.split('/')
         project_id = v[1]
-        port       = parseInt(v[3])
-        winston.debug("setting up a proxy: project_id=#{project_id}, port=#{port}, v=#{misc.to_json(v)}")
-        loc        = undefined
+        type       = v[2]  # 'port' or 'raw'
+        winston.debug("setting up a proxy: #{v}")
+        location   = undefined
+        port       = undefined
         async.series([
             (cb) ->
                 if not remember_me?
@@ -365,15 +371,47 @@ init_http_proxy_server = () =>
                 database.get_project_location
                     project_id  : project_id
                     allow_cache : true
-                    cb          : (err, location) ->
+                    cb          : (err, _location) ->
                         if err
                             cb(err)
                         else
-                            loc = {host:location.host, port:port}
+                            location = _location
                             cb()
+            (cb) ->
+                # determine the port
+                if type == 'port'
+                    port = parseInt(v[3])
+                    cb()
+                else if type == 'raw'
+                    new_local_hub
+                        username : location.username
+                        host     : location.host
+                        port     : location.port
+                        cb       : (err, local_hub) ->
+                            if err
+                                cb(err)
+                            else
+                                local_hub._get_local_hub_status (err, status) ->
+                                    if err
+                                        cb(err)
+                                    else
+                                        port = status['raw.port']
+                                        cb()
+                else
+                    cb("unknown url type -- #{type}")
             ], (err) ->
-                cb(err, loc)
-
+                if err
+                    cb(err)
+                else
+                    t = {host:location.host, port:port}
+                    _target_cache[key] = t
+                    # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                    # but also if the user is suddenly granted permission to the project, or the project server
+                    # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
+                    # and any could cause a project restart at any time, we just timeout this info after
+                    # a few seconds.  This helps enormously when there is a burst of requests.
+                    setTimeout((()->delete _target_cache[key]), 1000*15)
+                    cb(false, t)
             )
 
     http_proxy_server = httpProxy.createServer (req, res, proxy) ->

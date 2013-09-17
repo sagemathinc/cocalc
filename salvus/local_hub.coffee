@@ -1596,14 +1596,14 @@ start_raw_server = (cb) ->
     info = fs.readFileSync('.sagemathcloud/info.json')
     winston.debug("info = #{info}")
     info = JSON.parse(info)
-    
+
     express = require('express')
     raw_server = express()
     project_id = info.project_id
     misc_node.free_port (err, port) ->
         if err
             cb(err); return
-        base = "/#{project_id}/port/#{port}/"  # TODO -- change to /raw/
+        base = "/#{project_id}/raw/"  # TODO -- change to /raw/
         winston.info("raw server -- #{base}")
         raw_server.configure () ->
             raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
