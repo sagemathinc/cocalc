@@ -10,3 +10,4 @@ npm install pty.js
 npm install posix
 npm install node-uuid
 npm install googlediff
+npm install express

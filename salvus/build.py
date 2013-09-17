@@ -228,7 +228,7 @@ NODE_MODULES = [
     'password-hash',
     'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
     'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
-    'mkdirp', 'walk', 'temp', 'portfinder', 'googlediff', 'formidable@latest',
+    'mkdirp', 'walk', 'temp', 'googlediff', 'formidable@latest',
     'moment', 'underscore', 'read', 'http-proxy'
     ]
 

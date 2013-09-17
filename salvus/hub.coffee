@@ -339,11 +339,17 @@ init_http_proxy_server = () =>
 
     _target_cache = {}
     target = (remember_me, url, cb) ->
+        key = remember_me + url
+        t = _target_cache[key]
+        if t?
+            cb(false, t)
+            return
         v          = url.split('/')
         project_id = v[1]
-        port       = parseInt(v[3])
-        winston.debug("project_id=#{project_id}, port=#{port}, v=#{misc.to_json(v)}")
-        loc        = undefined
+        type       = v[2]  # 'port' or 'raw'
+        winston.debug("setting up a proxy: #{v}")
+        location   = undefined
+        port       = undefined
         async.series([
             (cb) ->
                 if not remember_me?
@@ -365,15 +371,52 @@ init_http_proxy_server = () =>
                 database.get_project_location
                     project_id  : project_id
                     allow_cache : true
-                    cb          : (err, location) ->
+                    cb          : (err, _location) ->
                         if err
                             cb(err)
                         else
-                            loc = {host:location.host, port:port}
+                            location = _location
                             cb()
+            (cb) ->
+                # determine the port
+                if type == 'port'
+                    port = parseInt(v[3])
+                    cb()
+                else if type == 'raw'
+                    new_local_hub
+                        username : location.username
+                        host     : location.host
+                        port     : location.port
+                        cb       : (err, local_hub) ->
+                            if err
+                                cb(err)
+                            else
+                                # TODO Optimization: getting the status is slow (half second?), so
+                                # we cache this for 15 seconds below; caching longer
+                                # could cause trouble due to project restarts, but we'll
+                                # have to look into that for speed (and maybe use the database
+                                # to better track project restarts).
+                                local_hub._get_local_hub_status (err, status) ->
+                                    if err
+                                        cb(err)
+                                    else
+                                        port = status['raw.port']
+                                        cb()
+                else
+                    cb("unknown url type -- #{type}")
             ], (err) ->
-                cb(err, loc)
-
+                if err
+                    cb(err)
+                else
+                    t = {host:location.host, port:port}
+                    _target_cache[key] = t
+                    # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
+                    # but also if the user is suddenly granted permission to the project, or the project server
+                    # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
+                    # and any could cause a project restart at any time, we just timeout this info after
+                    # a few seconds.  This helps enormously when there is a burst of requests.
+                    setTimeout((()->delete _target_cache[key]), 1000*15)
+                    cb(false, t)
             )
 
     http_proxy_server = httpProxy.createServer (req, res, proxy) ->
@@ -393,6 +436,9 @@ init_http_proxy_server = () =>
 
         target remember_me, req.url, (err, location) ->
             if err
+
+                winston.debug("proxy denied -- #{err}")
+
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
@@ -2940,16 +2986,41 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     _push_local_hub_code: (cb) =>
         winston.debug("pushing latest code to #{@address}")
         tm = misc.walltime()
-        misc_node.execute_code
-            command : "rsync"
-            args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                       'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
-            timeout : 60
-            bash    : false
-            path    : SALVUS_HOME
-            cb      : (err, output) =>
+        output = ''
+        async.series([
+            (cb) =>
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
+                               'local_hub_template/', '--exclude=node_modules/*', "#{@address}:~#{@username}/.sagemathcloud/"]
+                    timeout : 60
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, out) =>
+                        if err
+                            cb(err)
+                        else
+                            output += out.stdout + '\n' + out.stderr
+                            cb()
+
+            (cb) =>
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axH', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
+                               'local_hub_template/node_modules/', "#{@address}:~#{@username}/.sagemathcloud/node_modules/"]
+                    timeout : 60
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, out) =>
+                        if err
+                            cb(err)
+                        else
+                            output += out.stdout + '\n' + out.stderr
+                            cb()
+            ], (err) =>
                 winston.debug("time to rsync latest code to #{@address}: #{misc.walltime(tm)} seconds -- #{err}")
                 cb(err, output)
+            )
 
     _exec_on_local_hub: (opts) =>
         opts = defaults opts,
@@ -2974,7 +3045,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : (err, output) =>
                 winston.debug("time to exec #{opts.command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
                 opts.cb(err, output)
-
 
     _get_local_hub_status: (cb) =>
         winston.debug("getting status of remote location")

@@ -1585,12 +1585,44 @@ server = net.createServer (socket) ->
                     handle_mesg(socket, mesg, handler)
             socket.on 'mesg', handler
 
+
+start_tcp_server = (cb) ->
+    server.listen program.port, '127.0.0.1', () ->
+        winston.info("listening on port #{server.address().port}")
+        fs.writeFile(abspath('.sagemathcloud/data/local_hub.port'), server.address().port, cb)
+
+start_raw_server = (cb) ->
+    # It's fine to move these lines to the outer scope... when they are needed there.
+    info = fs.readFileSync('.sagemathcloud/info.json')
+    winston.debug("info = #{info}")
+    info = JSON.parse(info)
+
+    express = require('express')
+    raw_server = express()
+    project_id = info.project_id
+    misc_node.free_port (err, port) ->
+        if err
+            cb(err); return
+        base = "/#{project_id}/raw/"  # TODO -- change to /raw/
+
+        winston.info("raw server -- #{base}")
+
+        raw_server.configure () ->
+            raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
+            raw_server.use(base, express.static(process.env.HOME))
+
+        # NOTE: It is critical to only listen on the host interface, since otherwise other users
+        # on the same VM could listen in.   We firewall connections from the other VM hosts above
+        # port 1024, so this is safe without authentication.
+        raw_server.listen port, info.location.host, (err) ->
+            if err
+                cb(err); return
+            fs.writeFile(abspath('.sagemathcloud/data/raw.port'), port, cb)
+
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    server.listen program.port, '127.0.0.1', () ->
-        winston.info "listening on port #{server.address().port}"
-        fs.writeFile(abspath('.sagemathcloud/data/local_hub.port'), server.address().port)
-
+    async.series [start_tcp_server, start_raw_server], (err) ->
+        winston.debug("Error starting a server -- #{err}")
 
 # daemonize it
 
@@ -1615,4 +1647,4 @@ if program._name == 'local_hub.js'
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
     console.log("after daemon")
 
-# x
+
