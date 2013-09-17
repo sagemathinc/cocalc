@@ -1604,11 +1604,17 @@ start_raw_server = (cb) ->
         if err
             cb(err); return
         base = "/#{project_id}/raw/"  # TODO -- change to /raw/
+
         winston.info("raw server -- #{base}")
+
         raw_server.configure () ->
             raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
             raw_server.use(base, express.static(process.env.HOME))
-        raw_server.listen port, (err) ->
+
+        # NOTE: It is critical to only listen on the host interface, since otherwise other users
+        # on the same VM could listen in.   We firewall connections from the other VM hosts above
+        # port 1024, so this is safe without authentication.
+        raw_server.listen port, info.location.host, (err) ->
             if err
                 cb(err); return
             fs.writeFile(abspath('.sagemathcloud/data/raw.port'), port, cb)

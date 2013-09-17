@@ -391,6 +391,11 @@ init_http_proxy_server = () =>
                             if err
                                 cb(err)
                             else
+                                # TODO Optimization: getting the status is slow (half second?), so
+                                # we cache this for 15 seconds below; caching longer
+                                # could cause trouble due to project restarts, but we'll
+                                # have to look into that for speed (and maybe use the database
+                                # to better track project restarts).
                                 local_hub._get_local_hub_status (err, status) ->
                                     if err
                                         cb(err)
