@@ -1,6 +1,6 @@
 <!-- Forgot password: dialog to request email be sent (and token placed in database) -->
 
-<div class="modal hide" id="account-forgot_password" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal hide" id="account-forgot_password"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
             <h3>Forgot your password?</h3>
@@ -54,7 +54,9 @@ I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
         <div class="span4 well">
             <form id="sign_in-form">
                 <h4>Sign in (or <a href="#account-create_account">create an account</a>)</h4><br  class="big-only">
+                <!--<span class="big-only lighten">Email:</span>-->
                 <input class="span4" type="email" placeholder="Email" id="sign_in-email"><br class="big-only">
+                <!--<span class="big-only lighten">Password:</span>-->
                 <input class="span4" type="password" placeholder="Password"  id="sign_in-password"><br  class="big-only">
                 <br  class="big-only">
                 <div class="row">
@@ -92,10 +94,15 @@ I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
             <h4>Create an account (or <a href="#account-sign_in">sign in</a>)</h4>
             <br>
 
+            <span class="big-only lighten">First name:</span>
             <input class="span4" type="text" placeholder="First name (everyone can see this)" id="create_account-first_name"><br class="big-only">
+            <span class="big-only lighten">Last name:</span>
             <input class="span4" type="text" placeholder="Last name (everyone can see this)" id="create_account-last_name"><br class="big-only">
+            <span class="big-only lighten">Email:</span>
             <input class="span4" type="email" placeholder="Email (this is private)" id="create_account-email_address"><br class="big-only">
+            <span class="big-only lighten">Password:</span>
             <input class="span4 salvus-password-meter" type="password" placeholder="Password" id="create_account-password">
+            <span class="big-only lighten">Retype Password:</span>
             <input class="span4" type="password" placeholder="Retype password" id="create_account-retype_password">
 
             <label class="checkbox">
@@ -506,7 +513,7 @@ I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
 
 
 <!-- Change email address -->
-<div class="modal hide" id="account-change_email_address" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal hide" id="account-change_email_address"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
         <h3  class="big-only">Change email address</h3>
@@ -535,7 +542,7 @@ I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
 
 
 <!-- Change password -->
-<div class="modal hide" id="account-change_password" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal hide" id="account-change_password"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
         <h3 class="big-only">Change password</h3>
@@ -569,7 +576,7 @@ I agree to <a href="#link-terms">the SageMath Cloud Terms</a>
 
 
 <!-- Forgot password: reset -->
-<div class="modal hide" id="account-forgot_password_reset" tabindex="-1" role="dialog" aria-hidden="true">
+<div class="modal hide" id="account-forgot_password_reset" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
         <h3>Reset your password:</h3>

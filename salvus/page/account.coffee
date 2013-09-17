@@ -712,13 +712,14 @@ $("#account-forgot_password-button-submit").click (event) ->
 #################################################################
 forgot_password_reset = $("#account-forgot_password_reset")
 url_args = window.location.href.split("#")
-if url_args.length == 3 and url_args[1] == "forgot"
-    forget_password_reset_key = url_args[2]
+if url_args.length == 2 and url_args[1].slice(0,6) == "forgot"
+    forget_password_reset_key = url_args[1].split('%')[1]
     forgot_password_reset.modal("show")
 
 close_forgot_password_reset = () ->
     forgot_password_reset.modal('hide').find('input').val('')
     forgot_password_reset.find(".account-error-text").hide()
+    window.history.pushState("", "", "/")  # this gets rid of the #forgot, etc. part of the URL.
 
 forgot_password_reset.find(".close").click((event) -> close_forgot_password_reset())
 $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_password_reset())

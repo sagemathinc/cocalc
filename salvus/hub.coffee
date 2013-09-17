@@ -4370,17 +4370,19 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
-                Somebody just requested to change the password on your SageMath cloud account.
+                Somebody just requested to change the password on your Sagemath Cloud account.
                 If you requested this password change, please change your password by
-                following the link below:
+                following the link below within 15 minutes:
 
-                     https://cloud.sagemath.com#forgot##{id}
+                     https://cloud.sagemath.com#forgot%#{id}
 
                 If you don't want to change your password, ignore this message.
+
+                In case of problems, email wstein@uw.edu. 
                 """
 
             send_email
-                subject : 'SageMath cloud password reset confirmation'
+                subject : 'Sagemath Cloud password reset confirmation'
                 body    : body
                 to      : mesg.email_address
                 cb      : (error) ->
