@@ -2943,16 +2943,41 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     _push_local_hub_code: (cb) =>
         winston.debug("pushing latest code to #{@address}")
         tm = misc.walltime()
-        misc_node.execute_code
-            command : "rsync"
-            args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                       'local_hub_template/', "#{@address}:~#{@username}/.sagemathcloud/"]
-            timeout : 60
-            bash    : false
-            path    : SALVUS_HOME
-            cb      : (err, output) =>
+        output = ''
+        async.series([
+            (cb) =>
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
+                               'local_hub_template/', '--exclude=node_modules/*', "#{@address}:~#{@username}/.sagemathcloud/"]
+                    timeout : 60
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, out) =>
+                        if err
+                            cb(err)
+                        else
+                            output += out.stdout + '\n' + out.stderr
+                            cb()
+
+            (cb) =>
+                misc_node.execute_code
+                    command : "rsync"
+                    args    : ['-axH', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
+                               'local_hub_template/node_modules/', "#{@address}:~#{@username}/.sagemathcloud/node_modules/"]
+                    timeout : 60
+                    bash    : false
+                    path    : SALVUS_HOME
+                    cb      : (err, out) =>
+                        if err
+                            cb(err)
+                        else
+                            output += out.stdout + '\n' + out.stderr
+                            cb()
+            ], (err) =>
                 winston.debug("time to rsync latest code to #{@address}: #{misc.walltime(tm)} seconds -- #{err}")
                 cb(err, output)
+            )
 
     _exec_on_local_hub: (opts) =>
         opts = defaults opts,
@@ -2977,7 +3002,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : (err, output) =>
                 winston.debug("time to exec #{opts.command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
                 opts.cb(err, output)
-
 
     _get_local_hub_status: (cb) =>
         winston.debug("getting status of remote location")
