@@ -1711,16 +1711,17 @@ class ProjectPage
 
 
     init_project_download: () =>
-        # Download entire project
+        # Download entire project -- not implemented!
+        ###
         link = @container.find("a[href=#download-project]")
         link.click () =>
             link.find(".spinner").show()
             @download_file
                 path   : ""
-                prefix : 'project'
                 cb     : (err) =>
                     link.find(".spinner").hide()
             return false
+        ###
 
     init_delete_project: () =>
         if @project.deleted
@@ -2049,7 +2050,8 @@ class ProjectPage
             @update_file_list_tab(true)
         )
 
-    download_file: (opts) =>
+    # TODO: was used before; not used now, but might need it in case of problems... (?)
+    download_file_using_database: (opts) =>
         opts = defaults opts,
             path    : required
             timeout : 45
@@ -2072,8 +2074,19 @@ class ProjectPage
                         i = url.lastIndexOf('/')
                         url = url.slice(0,i+1) + opts.prefix + url.slice(i+1)
                     iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-                    setTimeout((() -> iframe.remove()), 1000)
+                    setTimeout((() -> iframe.remove()), 30000)
                     opts.cb?()
+
+    download_file: (opts) =>
+        opts = defaults opts,
+            path    : required
+            timeout : 45
+            cb      : undefined   # cb(err) when file download from browser starts.
+        url = "/#{@project.project_id}/raw/#{opts.path}"
+        iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
+        setTimeout((() -> iframe.remove()), 30000)
+        bootbox.alert("Your file <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>
         salvus_client.read_file_from_project
