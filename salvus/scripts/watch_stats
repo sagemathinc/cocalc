@@ -1,0 +1,51 @@
+#!/usr/bin/python
+
+PROJ_ALERT = 20
+CLIENT_ALERT = 120
+SNAP_SERVERS = 4
+ACCOUNTS = 4600
+BALANCE_ALERT = 15
+
+import os, sys, time, json
+
+os.chdir('/tmp/')
+
+def show(s):
+    print "\x1b]2; %s \x07"%s
+
+
+def go():
+    if os.path.exists('stats'):
+        os.unlink('stats')
+    os.system('wget https://cloud.sagemath.com/stats')
+    stats = json.loads(open('stats').read())
+    print stats
+    clients = sum([x['clients'] for x in stats['hub_servers']])
+    projs = stats['active_projects']
+    snaps = stats['snap_servers']
+    accounts = stats['accounts']
+    if projs > PROJ_ALERT or clients > CLIENT_ALERT or snaps < SNAP_SERVERS or accounts > ACCOUNTS:
+        alert = True
+    else:
+        alert = False
+    s = ""
+    s += "%s  %s   %s  %s"%(projs, clients, accounts, stats['projects'])
+    if snaps < SNAP_SERVERS:
+        s += " SNAP SERVER ISSUE "
+    if accounts > ACCOUNTS:
+        s += " new account goal met "
+    for c in stats['hub_servers']:
+        if c['clients'] >= BALANCE_ALERT:
+            alert = True
+            s += "  UNBALANCED LOAD "
+            break
+    if alert:
+        s = "*** !!! *** " + s + "*** !!! ***"
+    show(s)
+
+while 1:
+    try:
+        go()
+    except KeyboardInterrupt:
+        print "Ctrl-C pressed; exiting watch."
+    time.sleep(30)
