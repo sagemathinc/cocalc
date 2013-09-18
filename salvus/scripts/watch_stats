@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-PROJ_ALERT = 20
+PROJ_ALERT = 25
 CLIENT_ALERT = 120
 SNAP_SERVERS = 4
 ACCOUNTS = 4600
@@ -11,6 +11,7 @@ import os, sys, time, json
 os.chdir('/tmp/')
 
 def show(s):
+    print '\n' + s + '\n'
     print "\x1b]2; %s \x07"%s
 
 
@@ -29,7 +30,7 @@ def go():
     else:
         alert = False
     s = ""
-    s += "%s  %s   %s  %s"%(projs, clients, accounts, stats['projects'])
+    s += "%s,%s,%s,%s"%(projs, clients, accounts, stats['projects'])
     if snaps < SNAP_SERVERS:
         s += " SNAP SERVER ISSUE "
     if accounts > ACCOUNTS:
@@ -40,8 +41,8 @@ def go():
             s += "  UNBALANCED LOAD "
             break
     if alert:
-        s = "*** !!! *** " + s + "*** !!! ***"
-        os.system("kdialog --title 'Alert' --passivepopup '%s' & "%s)
+        s = "!! " + s
+        # os.system("kdialog --title 'Alert' --passivepopup '%s' & "%s)
     show(s)
 
 while 1:
@@ -49,4 +50,6 @@ while 1:
         go()
     except KeyboardInterrupt:
         print "Ctrl-C pressed; exiting watch."
+    except:
+        pass
     time.sleep(30)
