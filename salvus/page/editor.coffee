@@ -43,6 +43,10 @@ codemirror_associations =
     lua    : 'lua'
     md     : 'markdown'
     patch  : 'text/x-diff'
+
+    gp     : 'text/pari'
+    pari   : 'text/pari'
+
     php    : 'php'
     py     : 'python'
     pyx    : 'python'
@@ -137,6 +141,7 @@ sagews_decorator_modes = [
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
     ['md'          , 'markdown'],
+    ['gp'          , 'text/pari'],
     ['perl'        , 'text/x-perl'],
     ['python3'     , 'python'],
     ['python'      , 'python'],
