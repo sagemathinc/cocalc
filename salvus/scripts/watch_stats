@@ -24,7 +24,7 @@ def go():
     projs = stats['active_projects']
     snaps = stats['snap_servers']
     accounts = stats['accounts']
-    if projs > PROJ_ALERT or clients > CLIENT_ALERT or snaps < SNAP_SERVERS or accounts > ACCOUNTS:
+    if projs >= PROJ_ALERT or clients >= CLIENT_ALERT or snaps < SNAP_SERVERS or accounts > ACCOUNTS:
         alert = True
     else:
         alert = False
@@ -41,6 +41,7 @@ def go():
             break
     if alert:
         s = "*** !!! *** " + s + "*** !!! ***"
+        os.system("kdialog --title 'Alert' --passivepopup '%s' & "%s)
     show(s)
 
 while 1:
