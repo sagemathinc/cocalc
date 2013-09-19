@@ -272,7 +272,9 @@ class InteractiveGraphics(object):
     def __init__(self, g, **events):
         self._g = g
         self._events = events
-        fig = g.matplotlib()
+
+    def show(self, **kwds):
+        fig = self._g.matplotlib()
         from matplotlib.backends.backend_agg import FigureCanvasAgg
         canvas = FigureCanvasAgg(fig)
         fig.set_canvas(canvas)
@@ -280,29 +282,35 @@ class InteractiveGraphics(object):
 
         ax = fig.axes[0]
         # upper left data coordinates
-        self.xmin, self.ymax = ax.transData.inverted().transform( fig.transFigure.transform((0,1)) )
+        xmin, ymax = ax.transData.inverted().transform( fig.transFigure.transform((0,1)) )
         # lower right data coordinates
-        self.xmax, self.ymin = ax.transData.inverted().transform( fig.transFigure.transform((1,0)) )
+        xmax, ymin = ax.transData.inverted().transform( fig.transFigure.transform((1,0)) )
 
-        self._id = '_a' + uuid().replace('-','')
+        id = '_a' + uuid().replace('-','')
 
-    def to_data_coords(self, p):
-        # 0<=x,y<=1
-        return ((self.xmax-self.xmin)*p[0] + self.xmin, (self.ymax-self.ymin)*(1-p[1]) + self.ymin)
+        def to_data_coords(p):
+            # 0<=x,y<=1
+            return ((xmax-xmin)*p[0] + xmin, (ymax-ymin)*(1-p[1]) + ymin)
 
-    def show(self, **kwds):
         if kwds.get('svg',False):
-            filename = '%s.svg'%self._id
+            filename = '%s.svg'%id
         else:
-            filename = '%s.png'%self._id
+            filename = '%s.png'%id
+
+        # When fig_tight=True (the default), the margins are very slightly different.
+        # I don't know how to properly account for this yet (or even if it is possible),
+        # since it only happens at figsize time -- do "a=plot(sin); a.save??".
+        # So for interactive graphics, we just set this to false no matter what.
+        kwds['fig_tight'] = False
+
         self._g.save(filename, **kwds)
 
         def f(event, p):
-            self._events[event](self.to_data_coords(p))
-        sage_salvus.salvus.namespace[self._id] = f
+            self._events[event](to_data_coords(p))
+        sage_salvus.salvus.namespace[id] = f
         x = {}
         for ev in self._events.keys():
-            x[ev] = self._id
+            x[ev] = id
 
         sage_salvus.salvus.file(filename, show=True, events=x)
         os.unlink(filename)
