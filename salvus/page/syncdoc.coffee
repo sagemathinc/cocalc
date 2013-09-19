@@ -1176,6 +1176,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         #console.log("new output: ", mesg)
 
+        if mesg.clear? and mesg.clear
+            output.empty()
+
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
 

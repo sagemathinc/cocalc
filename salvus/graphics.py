@@ -266,20 +266,43 @@ def show_3d_plot_using_threejs(p, **kwds):
 # Interactive 2d Graphics
 ###
 
-import os
+import os, matplotlib.figure
 
 class InteractiveGraphics(object):
     def __init__(self, g, **events):
         self._g = g
         self._events = events
 
-    def show(self, **kwds):
-        fig = self._g.matplotlib()
+    def figure(self, **kwds):
+        if isinstance(self._g, matplotlib.figure.Figure):
+            return self._g
+
+        options = dict()
+        options.update(self._g.SHOW_OPTIONS)
+        options.update(self._g._extra_kwds)
+        options.update(kwds)
+        options.pop('dpi'); options.pop('transparent'); options.pop('fig_tight')
+        fig = self._g.matplotlib(**options)
+
         from matplotlib.backends.backend_agg import FigureCanvasAgg
         canvas = FigureCanvasAgg(fig)
         fig.set_canvas(canvas)
         fig.tight_layout()  # critical, since sage does this -- if not, coords all wrong
+        return fig
 
+    def save(self, filename, **kwds):
+        if isinstance(self._g, matplotlib.figure.Figure):
+            self._g.savefig(filename)
+        else:
+            # When fig_tight=True (the default), the margins are very slightly different.
+            # I don't know how to properly account for this yet (or even if it is possible),
+            # since it only happens at figsize time -- do "a=plot(sin); a.save??".
+            # So for interactive graphics, we just set this to false no matter what.
+            kwds['fig_tight'] = False
+            self._g.save(filename, **kwds)
+
+    def show(self, **kwds):
+        fig = self.figure(**kwds)
         ax = fig.axes[0]
         # upper left data coordinates
         xmin, ymax = ax.transData.inverted().transform( fig.transFigure.transform((0,1)) )
@@ -294,16 +317,11 @@ class InteractiveGraphics(object):
 
         if kwds.get('svg',False):
             filename = '%s.svg'%id
+            del kwds['svg']
         else:
             filename = '%s.png'%id
 
-        # When fig_tight=True (the default), the margins are very slightly different.
-        # I don't know how to properly account for this yet (or even if it is possible),
-        # since it only happens at figsize time -- do "a=plot(sin); a.save??".
-        # So for interactive graphics, we just set this to false no matter what.
-        kwds['fig_tight'] = False
-
-        self._g.save(filename, **kwds)
+        fig.savefig(filename)
 
         def f(event, p):
             self._events[event](to_data_coords(p))

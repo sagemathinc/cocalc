@@ -158,7 +158,7 @@ class Message(object):
     def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None and len(stdout) > 0: m['stdout'] = stdout
@@ -176,6 +176,7 @@ class Message(object):
         if show is not None: m['show'] = show
         if auto is not None: m['auto'] = auto
         if events is not None: m['events'] = events
+        if clear is not None: m['clear'] = clear
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -697,6 +698,12 @@ class Salvus(object):
 
     def start_executing(self):
         self._conn.send_json(message.output(done=False, id=self._id))
+
+    def clear(self, done=False):
+        """
+        Clear the output of the current cell.
+        """
+        self._conn.send_json(message.output(clear=True, id=self._id, done=done))
 
     def stdout(self, output, done=False, once=None):
         """

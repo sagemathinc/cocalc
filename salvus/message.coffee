@@ -167,6 +167,7 @@ message
     done         : false       # the sequences of messages for a given code evaluation is done.
     session_uuid : undefined   # the uuid of the session that produced this output
     once         : undefined   # if given, message is transient; it is not saved by the worksheet, etc.
+    clear        : undefined   # if true, clears all output of the current cell before rendering message.
     events       : undefined   # {'event_name':'name of Python callable to call', ...} -- only for images right now
 
 # This message tells the client to execute the given Javascript code

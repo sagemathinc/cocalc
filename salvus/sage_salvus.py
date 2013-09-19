@@ -217,8 +217,11 @@ class InteractFunction(object):
     def __init__(self, interact_cell):
         self.__dict__['interact_cell'] = interact_cell
 
-    def __call__(self, *args, **kwds):
-        return self.interact_cell._f(*args, **kwds)
+    def __call__(self, **kwds):
+        salvus.clear()
+        for arg, value in kwds.iteritems():
+            self.__setattr__(arg, value)
+        return self.interact_cell(kwds)
 
     def __setattr__(self, arg, value):
         I = self.__dict__['interact_cell']
@@ -1944,17 +1947,23 @@ fork = Fork()
 ####################################################
 
 from sage.misc.all import tmp_filename
+import matplotlib.figure
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
     if 'events' in kwds:
         from graphics import InteractiveGraphics
-        obj._ig = InteractiveGraphics(obj, **kwds['events'])
+        ig = InteractiveGraphics(obj, **kwds['events'])
+        n = '__a'+uuid().replace('-','')  # so it doesn't get garbage collected instantly.
+        obj.__setattr__(n, ig)
         kwds2 = dict(kwds)
         del kwds2['events']
-        obj._ig.show(**kwds2)
+        ig.show(**kwds2)
     else:
         t = tmp_filename(ext = '.svg' if svg else '.png')
-        obj.save(t, **kwds)
+        if isinstance(obj, matplotlib.figure.Figure):
+            obj.savefig(t, **kwds)
+        else:
+            obj.save(t, **kwds)
         salvus.file(t)
 
 def show_3d_plot_using_tachyon(obj, **kwds):
@@ -1967,17 +1976,40 @@ from sage.plot.plot3d.base import Graphics3d
 
 def show(obj, svg=False, **kwds):
     """
-    Show an expression, typeset nicely in tex, or a 2d or 3d graphics object.
+    Show a 2d or 3d graphics object or matplotlib figure, or show an
+    expression typeset nicely using LaTeX.
+
+       - display: (default: True); if true use display math for expression (big and centered).
 
        - svg: (default False); if True, render graphics using svg.  This is False by default,
          since at least Google Chrome mis-renders this as empty:
               line([(10, 0), (10, 15)], color='black').show(svg=True)
 
-       - display: (default: True); if true use display math for expression (big and centered).
+       - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
+         the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
+         for mousemove.  This works for Sage 2d graphics and matplotlib figures.
 
+
+    EXAMPLES:
+
+    Here's an example that illustrates creating a clickable image with events::
+
+        @interact
+        def f0(fun=x*sin(x^2), mousemove='', click='(0,0)'):
+            click = sage_eval(click)
+            g = plot(fun, (x,0,5), zorder=0) + point(click, color='red', pointsize=100, zorder=10)
+            ymax = g.ymax(); ymin = g.ymin()
+            m = fun.derivative(x)(x=click[0])
+            b =  fun(x=click[0]) - m*click[0]
+            g += plot(m*x + b, (click[0]-1,click[0]+1), color='red', zorder=10)
+            def h(p):
+                f0.mousemove = p
+            def c(p):
+                f0(click=p)
+            show(g, events={'click':c, 'mousemove':h}, svg=True, gridlines='major', ymin=ymin, ymax=ymax)
     """
     import graphics
-    if isinstance(obj, (Graphics, GraphicsArray)):
+    if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure)):
         show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):
         if kwds.get('viewer') == 'tachyon':
@@ -2599,7 +2631,9 @@ def _show_pylab():
             os.unlink(filename)
         except:
             pass
+
 pylab.show = _show_pylab
+matplotlib.figure.Figure.show = show
 
 import matplotlib.pyplot
 def _show_pyplot():
@@ -2620,7 +2654,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure)):
         show(obj)
     else:
         _system_sys_displayhook(obj)
