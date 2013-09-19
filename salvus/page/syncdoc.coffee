@@ -521,7 +521,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         # store pref in localStorage to not auto-open this file next time
         @editor.local_storage('auto_open', false)
 
-        @chat_session.disconnect_from_session()
+        @chat_session?.disconnect_from_session()
 
     execute_code: (opts) =>
         opts = defaults opts,
@@ -1205,7 +1205,50 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 switch misc.filename_extension(val.filename)
                     # TODO: harden DOM creation below
                     when 'svg', 'png', 'gif', 'jpg'
-                        output.append($("<img src='#{target}' class='sagews-output-image'>"))
+                        img = $("<img src='#{target}' class='sagews-output-image'>")
+                        output.append(img)
+
+                        if mesg.events?
+                            img.css(cursor:'crosshair')
+                            location = (e) ->
+                                offset = img.offset()
+                                x = (e.pageX - offset.left) /img.width()
+                                y = (e.pageY - offset.top) /img.height()
+                                return [x,y]
+
+                            exec = (code) =>
+                                @execute_code
+                                    code     :code
+                                    preparse : true
+                                    cb       : (mesg) =>
+                                        delete mesg.done
+                                        @process_output_mesg
+                                            mesg    : mesg
+                                            element : output
+
+                            for event, function_name of mesg.events
+                                img.data("salvus-events-#{event}", function_name)
+                                switch event
+                                    when 'click'
+                                        img.click (e) =>
+                                            p = location(e)
+                                            exec("#{img.data('salvus-events-click')}('click',(#{p}))")
+                                    when 'mousemove'
+                                        ignore_mouse_move = undefined
+                                        last_pos = undefined
+                                        img.mousemove (e) =>
+                                            if ignore_mouse_move?
+                                                return
+                                            ignore_mouse_move = true
+                                            setTimeout( ( () => ignore_mouse_move=undefined ), 100 )
+                                            p = location(e)
+                                            if last_pos? and p[0] == last_pos[0] and p[1] == last_pos[1]
+                                                return
+                                            last_pos = p
+                                            exec("#{img.data('salvus-events-mousemove')}('mousemove',(#{p}))")
+                                    else
+                                        console.log("unknown or unimplemented event -- #{event}")
+
                     else
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 

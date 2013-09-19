@@ -343,12 +343,12 @@ Editor for files in a project
 }
 
 .sagews-output-image {
-
+    cursor:pointer;
 }
 
 
 .sagews-output-link {
-
+    cursor:pointer;
 }
 
 .sagews-output-hide {

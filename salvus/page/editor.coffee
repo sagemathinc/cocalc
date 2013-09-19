@@ -630,7 +630,7 @@ class exports.Editor
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
-                tab.editor().disconnect_from_session()
+                tab.editor()?.disconnect_from_session()
                 tab.close_editor()
 
             @resize_open_file_tabs()
@@ -714,7 +714,7 @@ class exports.Editor
 
         # Disconnect from remote session (if relevant)
         if tab.editor_open()
-            tab.editor().disconnect_from_session()
+            tab.editor()?.disconnect_from_session()
             tab.editor().remove()
 
         tab.link.remove()

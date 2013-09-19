@@ -1,3 +1,25 @@
+
+                        img.css(cursor:'crosshair')
+                        output.append(img)
+                        img.click (e) =>
+                            offset = img.offset()
+                            x = (e.pageX - offset.left) /img.width()
+                            y = (e.pageY - offset.top) /img.height()
+                            @execute_code(code:"click(#{x},#{y})", preparse:true)
+
+                        @_block_mouse_move = undefined
+                        img.mousemove (e) =>
+                            if @_block_mouse_move?
+                                return
+                            @_block_mouse_move = true
+                            setTimeout( ( () => delete @_block_mouse_move ), 100 )
+                            offset = img.offset()
+                            x = (e.pageX - offset.left) /img.width()
+                            y = (e.pageY - offset.top) /img.height()
+                            @execute_code(code:"mousemove(#{x},#{y})", preparse:true)
+
+
+
 <a href="#stop" class='btn btn-warning btn-small'> <i class="icon-stop"></i> Shutdown</a>
 
         @element.find("a[href=#stop]").click () =>

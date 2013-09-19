@@ -158,7 +158,7 @@ class Message(object):
     def execute_javascript(self, code, data=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None and len(stdout) > 0: m['stdout'] = stdout
@@ -175,6 +175,7 @@ class Message(object):
         if hide is not None: m['hide'] = hide
         if show is not None: m['show'] = show
         if auto is not None: m['auto'] = auto
+        if events is not None: m['events'] = events
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -469,7 +470,7 @@ class Salvus(object):
     #def open_project(self, project_id):
     #def close_project(self, project_id):
 
-    def file(self, filename, show=True, done=False, download=False, once=None):
+    def file(self, filename, show=True, done=False, download=False, once=None, events=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
@@ -512,7 +513,7 @@ class Salvus(object):
             raise RuntimeError("error saving blob -- " + mesg['error'])
 
         self._flush_stdio()
-        self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
+        self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events))
         if not show:
             url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
             if download:
