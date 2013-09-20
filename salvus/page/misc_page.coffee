@@ -174,8 +174,8 @@ $.fn.icon_spin = (start) ->
         elt = $(this)
         if start
             f = () ->
-                if elt.find("i.icon-spinner").length == 0
-                    elt.append("<i class='icon-spin icon-spinner' style='margin-left:1em'> </i>")
+                if elt.find("i.icon-spinner").length == 0  # icon-spin
+                    elt.append("<i class=' icon-spinner' style='margin-left:1em'> </i>")
             if delay
                 elt.data('icon-spin', setTimeout(f, delay))
             else
