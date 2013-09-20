@@ -366,8 +366,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
-        if @session_uuid?
-            # no need to re-disconnect (and would cause serious error!)
+        if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
             salvus_client.call
                 timeout : 10
                 message : message.codemirror_disconnect(session_uuid : @session_uuid)
@@ -511,6 +510,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
+        @_remove_execute_callbacks()
         if @session_uuid?
             # no need to re-disconnect (and would cause serious error!)
             salvus_client.call
@@ -520,7 +520,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         # store pref in localStorage to not auto-open this file next time
         @editor.local_storage('auto_open', false)
-
         @chat_session?.disconnect_from_session()
 
     execute_code: (opts) =>
@@ -530,6 +529,10 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             preparse : true
             cb       : undefined
         uuid = misc.uuid()
+        if @_execute_callbacks?
+            @_execute_callbacks.push(uuid)
+        else
+            @_execute_callbacks = [uuid]
         salvus_client.send(
             message.codemirror_execute_code
                 id   : uuid
@@ -540,6 +543,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         )
         if opts.cb?
             salvus_client.execute_callbacks[uuid] = opts.cb
+
+    _remove_execute_callbacks: () =>
+        if @_execute_callbacks?
+            for uuid in @_execute_callbacks
+                delete salvus_client.execute_callbacks[uuid]
+            delete @_execute_callbacks
 
     introspect_line: (opts) =>
         opts = defaults opts,
