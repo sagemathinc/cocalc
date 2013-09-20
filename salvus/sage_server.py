@@ -1248,6 +1248,9 @@ def serve(port, host):
 
         sage_salvus.default_namespace = dict(namespace)
 
+        # this way client code can tell it is running as a Sage Worksheet.
+        namespace['__SAGEWS__'] = True
+
     # Initialize sage library.
     init_library()
 
