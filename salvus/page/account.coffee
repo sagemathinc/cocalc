@@ -262,12 +262,12 @@ password_strength_meter = (input) ->
     input.after(display)
     colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
-    input.bind('change keypress paste focus textInput input', () ->
-        result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
-        display.find(".bar").css("width", "#{13*(result.score+1)}%")
-        display.find("font").html(score[result.score])
-        display.css("background-color", colors[result.score])
-    )
+    input.bind 'change keypress paste focus textInput input', () ->
+        if input.val()
+            result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
+            display.find(".bar").css("width", "#{13*(result.score+1)}%")
+            display.find("font").html(score[result.score])
+            display.css("background-color", colors[result.score])
     return input
 
 $.fn.extend
@@ -716,6 +716,9 @@ if url_args.length == 2 and url_args[1].slice(0,6) == "forgot"
     forget_password_reset_key = url_args[1].split('%')[1]
     forgot_password_reset.modal("show")
 
+    # this line is just stupid; but it doesn't matter if it fails
+    setTimeout((()=>forgot_password_reset.find("input").focus()), 1000)
+
 close_forgot_password_reset = () ->
     forgot_password_reset.modal('hide').find('input').val('')
     forgot_password_reset.find(".account-error-text").hide()
@@ -731,7 +734,7 @@ $("#account-forgot_password_reset-button-submit").click (event) ->
     new_password = $("#account-forgot_password_reset-new_password").val()
     forgot_password_reset.find(".account-error-text").hide()
     salvus_client.reset_forgot_password
-        reset_code   : url_args[2]
+        reset_code   : url_args[1].slice(7)
         new_password : new_password
         cb : (error, mesg) ->
             if error
