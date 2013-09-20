@@ -236,6 +236,7 @@ CREATE TABLE projects (
 
 CREATE INDEX ON projects(snapshots_disabled);
 CREATE INDEX ON projects(account_id);
+CREATE INDEX ON projects(location);
 
 CREATE TABLE project_users (
      project_id       uuid,
