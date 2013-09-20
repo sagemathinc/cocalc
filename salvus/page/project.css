@@ -410,3 +410,10 @@
     cursor: pointer;
 }
 
+.project-file-icon {
+    font-size: 14pt;
+}
+
+.project-home-icon {
+    font-size: 16pt;
+}
