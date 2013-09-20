@@ -779,6 +779,7 @@ class exports.Editor
         opts = defaults opts,
             path       : required
             foreground : true      # display in foreground as soon as possible
+
         filename = opts.path
 
         if not @tabs[filename]?
@@ -896,8 +897,9 @@ class FileEditor extends EventEmitter
         autosave = require('account').account_settings.settings.autosave
         if autosave
             save_if_changed = () =>
-                if not @editor.tabs[@filename]?
-                    # don't autosave anymore if the doc is closed
+                if not @editor.tabs[@filename]?.editor_open()
+                    # don't autosave anymore if the doc is closed -- since autosave references
+                    # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
                     clearInterval(@_autosave_interval)
                     return
                 if @has_unsaved_changes()
