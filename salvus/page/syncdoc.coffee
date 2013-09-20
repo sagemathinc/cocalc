@@ -186,7 +186,7 @@ class AbstractSynchronizedDoc extends EventEmitter
 
         @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
+        @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
         @connect (err) =>
             opts.cb(err, @)
@@ -391,7 +391,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
+        @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
         @editor.save = @save
         @codemirror  = @editor.codemirror

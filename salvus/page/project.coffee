@@ -521,7 +521,8 @@ class ProjectPage
                         filename = line
                         r = search_result.clone()
                         r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
-                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey)  )
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
+                            return false
                         r.find("span").addClass('lighten').text('(filename)')
                     else
                         # the rgrep part
@@ -535,6 +536,7 @@ class ProjectPage
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
                             that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
+                            return false
 
                     search_output.append(r)
                     if num_results >= max_results

@@ -320,21 +320,26 @@ class exports.Editor
             return
         @active_tab.editor().show()
 
+    # This really closes the "recent files" page.  The name is confusing
+    # due to partial refactor of code (i.e., historical reasons).
     init_close_all_tabs_button: () =>
         @element.find("a[href=#close-all-tabs]").click () =>
-            v = []
-            for filename, tab of @tabs
-                @close(filename)
-                @remove_from_recent(filename)
-                v.push(filename)
             undo = @element.find("a[href=#undo-close-all-tabs]")
-            undo.stop().show().animate(opacity:1).fadeOut(duration:60000).click () =>
+            if not undo.data('files')?
+                undo.data('files', [])
+            v = undo.data('files')
+            for filename, tab of @tabs
+                if tab.link.is(":visible")
+                    @remove_from_recent(filename)
+                    if filename not in v
+                        v.push(filename)
+            undo.show().click () =>
                 undo.hide()
-                for filename in v
-                    if not @tabs[filename]?
-                        @create_tab(filename:filename)
+                for filename in undo.data('files')
+                    @tabs[filename]?.link.show()
                 return false
-            alert_message(type:'info', message:"Closed all recently opened files.")
+            setTimeout((() => undo.hide()), 60000)
+
             return false
 
     init_openfile_search: () =>
@@ -452,6 +457,7 @@ class exports.Editor
             x = file_associations['']
         return x
 
+    # This is just one of thetabs in the recent files list, not at the very top
     create_tab: (opts) =>
         opts = defaults opts,
             filename     : required
@@ -476,7 +482,6 @@ class exports.Editor
         link.find(".salvus-editor-close-button-x").click () =>
             if ignore_clicks
                 return false
-            @close(filename)
             @remove_from_recent(filename)
 
         containing_path = misc.path_split(filename).head
@@ -488,6 +493,7 @@ class exports.Editor
             @display_tab(path:link_filename.text(), foreground:foreground)
             if foreground
                 @project_page.set_current_path(containing_path)
+            return false
 
         create_editor_opts =
             editor_name : opts0.editor
@@ -499,6 +505,7 @@ class exports.Editor
         @tabs[filename] =
             link     : link
             filename : filename
+
             editor   : () =>
                 if editor?
                     return editor
@@ -507,12 +514,16 @@ class exports.Editor
                     @element.find(".salvus-editor-content").append(editor.element.hide())
                     @create_opened_file_tab(filename)
                     return editor
-            hide_editor: () -> editor?.hide()
-            editor_open : ()->editor?
+
+            hide_editor : () -> editor?.hide()
+
+            editor_open : () -> editor?   # editor is defined if the editor is open.
+
             close_editor: () ->
                 if editor?
                     editor.disconnect_from_session()
                     editor.remove()
+
                 editor = undefined
                 # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
                 # will end up overwriting it with stale contents.
@@ -714,7 +725,7 @@ class exports.Editor
 
         # Disconnect from remote session (if relevant)
         if tab.editor_open()
-            tab.editor()?.disconnect_from_session()
+            tab.editor().disconnect_from_session()
             tab.editor().remove()
 
         tab.link.remove()
@@ -725,7 +736,9 @@ class exports.Editor
     remove_from_recent: (filename) =>
         # Do not show this file in "recent" next time.
         local_storage_delete(@project_id, filename, "auto_open")
-
+        # Hide from the DOM.
+        # This same tab object also stores the top tab and editor, so we don't just delete it.
+        @tabs[filename]?.link.hide()
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -766,7 +779,6 @@ class exports.Editor
         opts = defaults opts,
             path       : required
             foreground : true      # display in foreground as soon as possible
-
         filename = opts.path
 
         if not @tabs[filename]?
