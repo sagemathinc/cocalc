@@ -9,19 +9,24 @@ def uuid():
 
 class ThreeJS(object):
     def __init__(self, salvus):
-        self.salvus   = salvus  # object for this cell
-        self.id       = uuid()
-        self.selector = '$("#%s")'%self.id
-        self.obj      = "%s.data('salvus-threejs')"%self.selector
-        salvus.html("<div id=%s style='border:1px solid grey'></div>"%self.id)
-        self.salvus.javascript("%s.salvus_threejs()"%self.selector,once=False)
-        print "%s.salvus_threejs()"%self.selector
+        self._salvus   = salvus  # object for this cell
+        self._id       = uuid()
+        self._selector = "$('#%s')"%self._id
+        self._obj      = "%s.data('salvus-threejs')"%self._selector
+        salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
+        self._salvus.javascript("%s.salvus_threejs()"%self._selector, once=False)
+        print "%s.salvus_threejs()"%self._selector
+
+    def _call(self, s, obj=None):
+        cmd = 'misc.eval_until_defined({code:"%s", cb:(function(err, __t__) { __t__ != null ? __t__.%s:void 0 })})'%(
+                self._obj, s)
+        self._salvus.javascript(cmd, obj=obj, once=True)
 
     def add(self, graphics3d):
-        self.salvus.javascript('%s.add(obj)'%self.obj, obj=graphics3d_to_jsonable(graphics3d), once=True)
+        self._call('add(obj)', obj=graphics3d_to_jsonable(graphics3d))
 
     def animate(self):
-        self.salvus.javascript('%s.animate()'%self.obj, once=True)
+        self._call('animate()')
 
 
 def graphics3d_to_jsonable(p):

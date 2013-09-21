@@ -146,3 +146,12 @@ $.fn.salvus_threejs = () ->
         e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
         elt.empty().append(e)
         elt.data('salvus-threejs', new SalvusThreeJS(e))
+
+
+
+# cb(err, obj)
+    # Keep trying to eval code until the result is defined,
+    # with exponential backoff, etc.
+
+
+

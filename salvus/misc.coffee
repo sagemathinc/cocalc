@@ -344,6 +344,33 @@ class RetryUntilSuccess
             else
                 g()
 
+# WARNING: params below have different semantics than above; these are what *really* make sense....
+exports.eval_until_defined = (opts) ->
+    opts = exports.defaults opts,
+        code         : exports.required
+        start_delay  : 100    # initial delay beforing calling f again.  times are all in milliseconds
+        max_time     : 10000  # error if total time spent trying will exceed this time
+        exp_factor   : 1.4
+        cb           : exports.required # cb(err, eval(code))
+    delay = undefined
+    total = 0
+    f = () ->
+        result = eval(opts.code)
+        if result?
+            opts.cb(false, result)
+        else
+            if not delay?
+                delay = opts.start_delay
+            else
+                delay *= opts.exp_factor
+            total += delay
+            if total > opts.max_time
+                opts.cb("failed to eval code within #{opts.max_time}")
+            else
+                setTimeout(f, delay)
+    f()
+
+
 
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
