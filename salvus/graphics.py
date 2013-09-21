@@ -2,18 +2,40 @@ import json
 from uuid import uuid4
 def uuid():
     return str(uuid4())
+import sage_salvus
 
 
 #######################################################
 # Three.js based plotting
 #######################################################
 
-import sage_salvus
+class ThreeJS(object):
+    def __init__(self, salvus):
+        self._salvus   = salvus  # object for this cell
+        self._id       = uuid()
+        self._selector = "$('#%s')"%self._id
+        self._obj      = "%s.data('salvus-threejs')"%self._selector
+        salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
+        self._salvus.javascript("%s.salvus_threejs()"%self._selector, once=False)
+
+    def _call(self, s, obj=None):
+        cmd = 'misc.eval_until_defined({code:"%s", cb:(function(err, __t__) { __t__ != null ? __t__.%s:void 0 })})'%(
+                self._obj, s)
+        self._salvus.javascript(cmd, obj=obj, once=True)
+
+    def add(self, graphics3d):
+        self._call('add(obj)', obj=graphics3d_to_jsonable(graphics3d))
+
+    def animate(self):
+        self._call('animate()')
 
 def show_3d_plot_using_threejs(p, **kwds):
+    t = ThreeJS(sage_salvus.salvus)
+    t.add(p)
+    t.animate()
 
-    #container id to store scene
-    id = uuid()
+def graphics3d_to_jsonable(p):
+
     obj_list = []
 
     def parse_obj(obj):
@@ -75,8 +97,6 @@ def show_3d_plot_using_threejs(p, **kwds):
 
         return texture_dict
 
-
-
     def get_color(name,texture_set):
         for item in range(0,len(texture_set)):
             if(texture_set[item]["name"] == name):
@@ -86,7 +106,6 @@ def show_3d_plot_using_threejs(p, **kwds):
             else:
                 color_list = []
         return color_list
-
 
     def parse_mtl(p):
         mtl = p.mtl_str()
@@ -246,18 +265,9 @@ def show_3d_plot_using_threejs(p, **kwds):
     except KeyError:
         return "Type not supported"
 
-    json_obj_list = json.dumps(obj_list, separators=(',', ':'))
+    return obj_list
 
 
-    # Create div that will contain our 3d scene
-    sage_salvus.html("<div id=%s></div>"%id, hide=False)
-
-    # Display the object
-
-    # TODO: do this right. (for dev it's nice to have tmp.js and ._three_data easily accessible.)
-    open("tmp.js",'w').write("window._three_data = %s;"%json_obj_list)
-    sage_salvus.load("tmp.js")
-    sage_salvus.salvus.javascript("$('#%s').threejs({create:window._three_data})"%id)
 
 
 
