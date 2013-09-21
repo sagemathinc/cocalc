@@ -1240,6 +1240,9 @@ def javascript(s=None, once=True):
 
          %javascript(once=False)
          ... some code
+
+    WARNING: If once=True, then this code is likely to get executed *before* the rest
+    of the output for this cell has been rendered by the client.
     """
     if s is None:
         return lambda s : salvus.javascript(s, once=once)

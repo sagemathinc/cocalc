@@ -748,7 +748,7 @@ class Salvus(object):
             id=self._id, done=done, once=once))
         return sage_salvus.InteractFunction(I)
 
-    def javascript(self, code, once=True, coffeescript=False, done=False, obj=None):
+    def javascript(self, code, once=False, coffeescript=False, done=False, obj=None):
         """
         Execute the given Javascript code as part of the output
         stream.  This same code will be executed (at exactly this
@@ -760,11 +760,13 @@ class Salvus(object):
         INPUT:
 
         - code -- a string
-        - once -- boolean (default: True); if True the Javascript is
+        - once -- boolean (default: FAlse); if True the Javascript is
           only executed once, not every time the cell is loaded. This
           is what you would use if you call salvus.stdout, etc.  Use
           once=False, e.g., if you are using javascript to make a DOM
-          element draggable (say).
+          element draggable (say).  WARNING: If once=True, then the
+          javascript is likely to get executed before other output to
+          a given cell is even rendered.
         - coffeescript -- boolean (default: False); if True, the input
           code is first converted from CoffeeScript to Javascript.
 
@@ -815,7 +817,7 @@ class Salvus(object):
         """
         self._conn.send_json(message.output(self._id, auto=state))
 
-    def notify(self, once=None, **kwds):
+    def notify(self, **kwds):
         """
         Display a graphical notification using the pnotify Javascript library.
 
@@ -853,7 +855,7 @@ class Salvus(object):
         obj = {}
         for k, v in kwds.iteritems():
             obj[k] = sage_salvus.jsonable(v)
-        self.javascript("$.pnotify(obj)", once=once, obj=obj)
+        self.javascript("$.pnotify(obj)", once=True, obj=obj)
 
     def execute_javascript(self, code, coffeescript=False, obj=None):
         """
@@ -864,7 +866,8 @@ class Salvus(object):
 
         See the docs for the top-level javascript function for more details.
         """
-        self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, obj=obj))
+        self._conn.send_json(message.execute_javascript(code,
+            coffeescript=coffeescript, obj=json.dumps(obj,separators=(',', ':'))))
 
     def execute_coffeescript(self, *args, **kwds):
         """
