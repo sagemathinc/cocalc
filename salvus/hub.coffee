@@ -2522,9 +2522,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb("already restarting")
             return
         @_restart_lock = true
+        created_remote_lock = false
+        location = {username:@username, host:@host, port:@port}
+        lockfile = '.sagemathcloud.lock'
         async.series([
             (cb) =>
+                winston.debug("local_hub restart: creating a lock")
+                snap.create_lock
+                    location : {username:@username, host:@host, port:@port}
+                    lockfile : lockfile
+                    ttl      : 30  # 30 seconds
+                    cb       : cb  # will fail if there is already a lock
+            (cb) =>
                 winston.debug("local_hub restart: Killing all processes")
+                # if we get to this point, *we* created the remote lock -- so we better clean it
+                # up no matter what happens below.
+                created_remote_lock = true
                 if @username.length != 8
                     winston.debug("local_hub restart: skipping killall since this user #{@username} is clearly not a cloud.sagemath project :-)")
                     cb()
@@ -2554,7 +2567,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         ], (err) =>
             winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
-            cb(err)
+            if created_remote_lock
+                snap.remove_lock
+                    location : location
+                    lockfile : lockfile
+                    cb       : () =>
+                        cb(err)
+            else
+                cb(err)
+
         )
 
     # Send a JSON message to a session.
@@ -4382,7 +4403,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
                 If you don't want to change your password, ignore this message.
 
-                In case of problems, email wstein@uw.edu. 
+                In case of problems, email wstein@uw.edu.
                 """
 
             send_email
@@ -4974,6 +4995,8 @@ exports.start_server = start_server = () ->
     init_http_proxy_server()
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
+
+    snap.set_server_id("#{program.host}:#{program.port}")
 
     # Once we connect to the database, start serving.
     connect_to_database (err) ->

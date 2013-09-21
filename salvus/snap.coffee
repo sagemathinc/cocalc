@@ -45,7 +45,6 @@ cassandra = require 'cassandra'
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, level: 'debug')
 
-
 # Run a bup command
 bup = (opts) ->
     opts = defaults opts,
@@ -71,7 +70,6 @@ bup = (opts) ->
         timeout : opts.timeout
         env     : {BUP_DIR : opts.bup_dir}
         cb      : opts.cb
-
 
 ##------------------------------------------
 # This section contains functions for accessing the bup archive
@@ -274,7 +272,7 @@ append_slashes_after_directory_names = (path, files, cb) ->
 _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
     database.select
         table     : 'snap_commits'
-        where     : {server_id : snap_server_uuid}
+        where     : {server_id : server_id}
         columns   : ['project_id']
         objectify : false
         cb        : (err, results) =>
@@ -511,10 +509,11 @@ snap_log = (opts) ->
 # of a given remote path, as is discussed (a lot) on the mailing list.
 # Also, for my purpose, that would be meaningless and undesirable for users.
 
-create_lock = (opts) ->
+exports.create_lock = create_lock = (opts) ->
     opts = defaults opts,
         location : required
         ttl      : DEFAULT_TIMEOUT   # time to live, in seconds
+        lockfile : '.bup/lock'   # make customizable for other users
         cb       : required
 
     user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
@@ -523,7 +522,7 @@ create_lock = (opts) ->
              # check if project is currently locked -- if so, returns an error.
              misc_node.execute_code
                  command     : 'ssh'
-                 args        : [user, 'cat .bup/lock']
+                 args        : [user, "cat '#{opts.lockfile}'"]
                  timeout     : 10
                  err_on_exit : false
                  max_output  : 2048  # in case some asshole makes .bup/lock a multi-gigabyte file.
@@ -542,22 +541,23 @@ create_lock = (opts) ->
              # create the lock
              lock = misc.to_json
                     expire : misc.walltime() + opts.ttl
-                    server_id: snap_server_uuid
+                    server_id: server_id
              misc_node.execute_code
                  command : 'ssh'
-                 args    : [user, "mkdir -p .bup; echo '#{lock}' > .bup/lock"]
+                 args    : [user, "mkdir -p .bup; echo '#{lock}' > '#{opts.lockfile}'"]
                  timeout : 10
                  cb      : cb
     ], opts.cb)
 
-remove_lock = (opts) ->
+exports.remove_lock = remove_lock = (opts) ->
     opts = defaults opts,
         location : required
+        lockfile : ".bup/lock"
         cb       : required
     user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
     misc_node.execute_code
         command : 'ssh'
-        args    : [user, 'rm -f .bup/lock']
+        args    : [user, "rm -f '#{opts.lockfile}'"]
         cb      : (err) ->
             # err here is non-fatal; lock has a timeout, etc.
 	    opts.cb()
@@ -903,7 +903,7 @@ monitor_snapshot_queue = () ->
                     set   : {size: size, repo_id:repo_id, modified_files:modified_files}
                     json  : ['modified_files']
                     where :
-                        server_id  : snap_server_uuid
+                        server_id  : server_id
                         project_id : project_id
                         timestamp  : timestamp
                     cb    : (err) ->
@@ -1279,21 +1279,26 @@ initialize_snap_dir = (cb) ->
     # TODO: we could do some significant checks at this point, e.g.,
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
 
-
 # Generate or read uuid of this server, which is the longterm identification
 # of this entire backup set.  This is needed because we may move where
 # the backup sets is hosted -- in fact, the port (part of the location) changes
 # whenever the server restarts.
-snap_server_uuid = undefined
-initialize_server_uuid = (cb) ->
+server_id = undefined
+initialize_server_id = (cb) ->
     fs.exists uuid_file, (exists) ->
         if exists
             fs.readFile uuid_file, (err, data) ->
-                snap_server_uuid = data.toString()
+                server_id = data.toString()
                 cb()
         else
-            snap_server_uuid = uuid.v4()
-            fs.writeFile uuid_file, snap_server_uuid, cb
+            server_id = uuid.v4()
+            fs.writeFile uuid_file, server_id, cb
+
+# some functionality in this file is also used by the hub; and it needs to
+# set the id for some of it (e.g., lock files).  This could be refactored
+# into misc_node or somewhere else.
+exports.set_server_id = (id) ->
+    server_id = id
 
 # Connect to the cassandra database server; sets the global database variable.
 database = undefined
@@ -1354,7 +1359,7 @@ register_with_database = (cb) ->
 
     database.update
         table : 'snap_servers'
-        where : {id : snap_server_uuid}
+        where : {id : server_id}
         set   : {key:secret_key, host:program.host, port:listen_port, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
@@ -1441,7 +1446,7 @@ exports.start_server = start_server = () ->
         (cb) ->
             initialize_snap_dir(cb)
         (cb) ->
-            initialize_server_uuid(cb)
+            initialize_server_id(cb)
         (cb) ->
             generate_secret_key(cb)
         (cb) ->
