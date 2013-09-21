@@ -471,7 +471,7 @@ class Salvus(object):
     #def open_project(self, project_id):
     #def close_project(self, project_id):
 
-    def file(self, filename, show=True, done=False, download=False, once=None, events=None):
+    def file(self, filename, show=True, done=False, download=False, once=False, events=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
@@ -780,7 +780,6 @@ class Salvus(object):
         if obj is None:
             obj = {}
         self._conn.send_json(message.output(javascript={'code':code, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj, once=once))
-        return self
 
     def coffeescript(self, *args, **kwds):
         """
@@ -789,7 +788,7 @@ class Salvus(object):
         See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
-        return self.javascript(*args, **kwds)
+        self.javascript(*args, **kwds)
 
     def _check_component(self, component):
         if component not in ['input', 'output']:
@@ -860,7 +859,8 @@ class Salvus(object):
         """
         Tell the browser to execute javascript.  Basically the same as
         salvus.javascript with once=True (the default), except this
-        isn't tied to a particular cell.
+        isn't tied to a particular cell.  There is a worksheet object
+        defined in the scope of the evaluation.
 
         See the docs for the top-level javascript function for more details.
         """

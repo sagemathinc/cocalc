@@ -739,12 +739,16 @@ class CodeMirrorSession
                                             m[x] = y
                                     else
                                         m[x] = y
-                            winston.debug("sage --> local_hub: '#{json(mesg)}'")
+
+                            #winston.debug("sage --> local_hub: '#{json(mesg)}'")
+
+                            before = @content
                             @sage_output_mesg(mesg.id, m)
-                            @set_content(@content)
-                            # Suggest to all connected clients to sync.
-                            for id, ds_client of @diffsync_clients
-                                ds_client.remote.sync_ready()
+                            if before != @content
+                                @set_content(@content)
+                                # Suggest to all connected clients to sync.
+                                for id, ds_client of @diffsync_clients
+                                    ds_client.remote.sync_ready()
 
                 # Submit all auto cells to be evaluated.
                 @sage_update(auto:true)
@@ -932,6 +936,21 @@ class CodeMirrorSession
 
         if misc.is_empty_object(mesg)
             return
+
+        if mesg.once? and mesg.once
+            # only javascript is define  once=True
+            if mesg.javascript?
+                msg = message.execute_javascript
+                    session_uuid : @session_uuid
+                    code         : mesg.javascript.code
+                    coffeescript : mesg.javascript.coffeescript
+                    obj          : mesg.obj
+                    cell_id      : cell_id
+                bcast = message.codemirror_bcast
+                    session_uuid : @session_uuid
+                    mesg         : msg
+                @client_bcast(undefined, bcast)
+                return  # once = do *not* want to record this message in the output stream.
 
         i = @content.indexOf(diffsync.MARKERS.output + output_id)
         if i == -1

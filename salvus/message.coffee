@@ -184,6 +184,7 @@ message
     code         : required
     obj          : undefined
     coffeescript : false
+    cell_id      : undefined    # if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
 
 
 ############################################

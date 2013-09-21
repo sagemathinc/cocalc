@@ -1295,6 +1295,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     mesg = mesg.mesg
                     (() =>
                          worksheet = new Worksheet(@)
+                         cell      = new Cell(cell_id : mesg.cell_id)
                          code = mesg.code
                          if mesg.coffeescript
                              code = CoffeeScript.compile(code)
@@ -1630,12 +1631,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
 class Cell
     constructor : (opts) ->
-        opts = defaults opts,
-            output : required # jquery wrapped output area
-            #cell_mark   : required # where cell starts
+        @opts = defaults opts,
+            output  : undefined # jquery wrapped output area
+            cell_id : undefined
 
 class Worksheet
-
     constructor : (@worksheet) ->
         @project_page = @worksheet.editor.editor.project_page
         @editor = @worksheet.editor.editor
