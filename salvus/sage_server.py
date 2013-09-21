@@ -155,7 +155,7 @@ class Message(object):
     def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def execute_javascript(self, code, data=None, coffeescript=False):
+    def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
     def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
@@ -856,7 +856,7 @@ class Salvus(object):
             obj[k] = sage_salvus.jsonable(v)
         self.javascript("$.pnotify(obj)", once=once, obj=obj)
 
-    def execute_javascript(self, code, coffeescript=False, data=None):
+    def execute_javascript(self, code, coffeescript=False, obj=None):
         """
         Tell the browser to execute javascript.  Basically the same as
         salvus.javascript with once=True (the default), except this
@@ -864,8 +864,7 @@ class Salvus(object):
 
         See the docs for the top-level javascript function for more details.
         """
-        self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, data=data))
-        return self
+        self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, obj=obj))
 
     def execute_coffeescript(self, *args, **kwds):
         """
@@ -874,7 +873,7 @@ class Salvus(object):
         See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
-        return self.execute_javascript(*args, **kwds)
+        self.execute_javascript(*args, **kwds)
 
     def _cython(self, filename, **opts):
         """

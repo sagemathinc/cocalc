@@ -1288,6 +1288,21 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         @refresh_soon()
 
+    _receive_broadcast: (mesg) =>
+        switch mesg.mesg.event
+            when 'execute_javascript'
+                if @editor.opts.allow_javascript_eval
+                    mesg = mesg.mesg
+                    (() =>
+                         worksheet = new Worksheet(@)
+                         code = mesg.code
+                         if mesg.coffeescript
+                             code = CoffeeScript.compile(code)
+                         obj  = mesg.obj
+                         eval(code)
+                    )()
+
+
     mark_cell_start: (line) =>
         # Assuming the proper text is in the document for a new cell at this line,
         # mark it as such. This hides control codes and places a cell separation

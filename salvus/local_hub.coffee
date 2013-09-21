@@ -288,6 +288,8 @@ plug = (s1, s2) ->
     s2.on 'data', (data) ->
         s1.write(data)
 
+## WARNING!  I think this is no longer used!  It was used for my first (few)
+## approaches to worksheets.
 
 class SageSessions
     constructor: () ->
@@ -658,7 +660,7 @@ class CodeMirrorSession
 
         # Ensure that no cells appear to be running.  This is important
         # because the worksheet file that we just loaded could have had some
-        # markup that cells cells are running.
+        # markup that cells are running.
         @sage_update(kill:true)
 
         # Connect to the local Sage server.
@@ -708,6 +710,8 @@ class CodeMirrorSession
 
 
                         when 'json'
+                            # First check for callbacks (e.g., used in interact and things where the
+                            # browser directly asks to evaluate code in this session).
                             c = @_sage_output_cb[mesg.id]
                             if c?
                                 c(mesg)
@@ -715,6 +719,18 @@ class CodeMirrorSession
                                     delete @_sage_output_cb[mesg.id]
                                 return
 
+                            # Handle code execution in browser messages
+                            if mesg.event == 'execute_javascript'
+                                # winston.debug("got execute_javascript message from sage session #{json(mesg)}")
+                                # Wrap and forward it on as a broadcast message.
+                                mesg.session_uuid = @session_uuid
+                                bcast = message.codemirror_bcast
+                                    session_uuid : @session_uuid
+                                    mesg         : mesg
+                                @client_bcast(undefined, bcast)
+                                return
+
+                            # Finally, handle output messages
                             m = {}
                             for x, y of mesg
                                 if x != 'id' and x != 'event'  # the event is always "output"
@@ -1053,10 +1069,10 @@ class CodeMirrorSession
         winston.debug("client_bcast: #{json(mesg)}")
 
         # Forward this message on to all global hubs except the
-        # one that just sent it to us.
+        # one that just sent it to us...
         for id, ds_client of @diffsync_clients
-            if socket.id != id
-                winston.debug("BROADCAST: sending message from hub with socket.id=#{socket.id} to hub with socket.id = #{id}")
+            if socket?.id != id
+                #winston.debug("BROADCAST: sending message from hub with socket.id=#{socket?.id} to hub with socket.id = #{id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
     client_diffsync: (socket, mesg) =>

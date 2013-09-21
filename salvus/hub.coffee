@@ -2600,21 +2600,24 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
     # except those in @_multi_response.
     handle_mesg: (mesg) =>
+        #winston.debug("local_hub --> global_hub: received a mesg: #{to_json(mesg)}")
         if mesg.id?
             @_multi_response[mesg.id]?(false, mesg)
             return
-        if mesg.event == 'codemirror_diffsync_ready'
-            @get_codemirror_session
-                session_uuid : mesg.session_uuid
-                cb           : (err, session) ->
-                    if not err
-                        session.sync()
-        if mesg.event == 'codemirror_bcast'
-            @get_codemirror_session
-                session_uuid : mesg.session_uuid
-                cb           : (err, session) ->
-                    if not err
-                        session.broadcast_mesg_to_clients(mesg)
+        switch mesg.event
+            when 'codemirror_diffsync_ready'
+                @get_codemirror_session
+                    session_uuid : mesg.session_uuid
+                    cb           : (err, session) ->
+                        if not err
+                            session.sync()
+
+            when 'codemirror_bcast'
+                @get_codemirror_session
+                    session_uuid : mesg.session_uuid
+                    cb           : (err, session) ->
+                        if not err
+                            session.broadcast_mesg_to_clients(mesg)
 
     handle_blob: (opts) =>
         opts = defaults opts,
