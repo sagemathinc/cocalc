@@ -9,14 +9,24 @@ import sage_salvus
 # Three.js based plotting
 #######################################################
 
+noneint = lambda n : n if n is None else int(n)
+
 class ThreeJS(object):
-    def __init__(self, salvus):
-        self._salvus   = salvus  # object for this cell
+    def __init__(self, renderer=None, width=None, height=None):
+        """
+        INPUT:
+
+        - renderer -- None (automatic), 'canvas2d', or 'webgl'
+        - width    -- None (automatic) or an integer
+        - height   -- None (automatic) or an integer
+        """
+        self._salvus   = sage_salvus.salvus  # object for this cell
         self._id       = uuid()
         self._selector = "$('#%s')"%self._id
         self._obj      = "%s.data('salvus-threejs')"%self._selector
         salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
-        self._salvus.javascript("%s.salvus_threejs()"%self._selector, once=False)
+        self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
+                                obj={'renderer':renderer, 'width':noneint(width), 'height':noneint(height)})
 
     def _call(self, s, obj=None):
         cmd = 'misc.eval_until_defined({code:"%s", cb:(function(err, __t__) { __t__ != null ? __t__.%s:void 0 })})'%(
@@ -24,10 +34,10 @@ class ThreeJS(object):
         self._salvus.javascript(cmd, obj=obj, once=True)
 
     def add(self, graphics3d):
-        self._call('add(obj)', obj=graphics3d_to_jsonable(graphics3d))
+        self._call('add_3dgraphics_obj(obj)', obj=graphics3d_to_jsonable(graphics3d))
 
-    def animate(self):
-        self._call('animate()')
+    def animate(self, fps=None, stop=None):
+        self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop})
 
 def show_3d_plot_using_threejs(p, **kwds):
     t = ThreeJS(sage_salvus.salvus)

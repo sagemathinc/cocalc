@@ -1,40 +1,65 @@
+{defaults, required} = require('misc')
+
 class SalvusThreeJS
-    constructor: (@element) ->
+    constructor: (opts) ->
+        @opts = defaults opts,
+            element  : required
+            width    : undefined
+            height   : undefined
+            renderer : undefined  # 'webgl', 'canvas2d', or undefined = "webgl if available; otherwise, canvas2d"
+            trackball: true
+            light    : true
+
         @scene = new THREE.Scene()
+        @opts.width  = if opts.width? then opts.width else $(window).width()*.9
+        @opts.height = if opts.height? then opts.height else $(window).height()*.6
 
-        screen_width  = $(window).width()*.9
-        screen_height = $(window).height()*.5
+        if not @opts.renderer?
+            if Detector.webgl
+                @opts.renderer = 'webgl'
+            else
+                @opts.renderer = 'canvas2d'
 
+        if @opts.renderer == 'webgl'
+            @opts.element.find(".salvus-3d-viewer-renderer").text("webgl")
+            @renderer = new THREE.WebGLRenderer(antialias:true)
+        else
+            @opts.element.find(".salvus-3d-viewer-renderer").text("canvas2d")
+            @renderer = new THREE.CanvasRenderer()
+
+        @renderer.setSize(@opts.width, @opts.height)
+
+        # Placing renderer in the DOM.
+        @opts.element.find(".salvus-3d-canvas").append($(@renderer.domElement))
+
+        @add_camera()
+
+        if @opts.trackball
+            @add_trackball_controls()
+
+        if @opts.light
+            @add_light()
+
+    add_trackball_controls: () =>
+        if @controls?
+            return
+        #setting up camera controls
+        @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
+
+    add_camera: () =>
         view_angle = 45
-        aspect     = screen_width/screen_height
+        aspect     = @opts.width/@opts.height
         near       = 0.1
         far        = 20000
-        @camera = new THREE.PerspectiveCamera(view_angle, aspect, near, far)
-        @scene.add(@camera)
 
+        @camera    = new THREE.PerspectiveCamera(view_angle, aspect, near, far)
+        @scene.add(@camera)
         @camera.position.set(10,10,10)
         @camera.lookAt(@scene.position)
         @camera.up = new THREE.Vector3(0,0,1)
 
-        # Get renderer and set up camera controls: note that camera
-        # functionality is unpredictable if controls are defined before
-        # renderer.domElement is placed in container.
-        if Detector.webgl
-            @element.find(".salvus-3d-viewer-renderer").text("webgl")
-            @renderer = new THREE.WebGLRenderer(antialias:true)
-        else
-            @element.find(".salvus-3d-viewer-renderer").text("canvas2d")
-            @renderer = new THREE.CanvasRenderer()
-
-        @renderer.setSize(screen_width, screen_height)
-
-        # Placing renderer in the DOM.
-        @element.find(".salvus-3d-canvas").append($(@renderer.domElement))
-
-        #setting up camera controls: note that the camera is not functioning properly
-        @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
-
-        ambient = new THREE.AmbientLight( 0xffffff )
+    add_light: (color= 0xffffff) =>
+        ambient = new THREE.AmbientLight( )
         @scene.add( ambient )
         directionalLight = new THREE.DirectionalLight( 0xffffff )
         directionalLight.position.set( 100, 100, 100 ).normalize()
@@ -45,8 +70,27 @@ class SalvusThreeJS
         @light = new THREE.PointLight(0xffffff)
         @light.position.set(0,10,0)
 
+    animate: (opts={}) =>
+        opts = defaults opts,
+            fps  : undefined
+            stop : false
+        if opts.stop
+            @_stop_animating = true
+            # so next time around will start
+            return
+        if @_stop_animating
+            @_stop_animating = false
+            return
+        f = () =>
+            requestAnimationFrame((()=>@animate(opts)))
+        if opts.fps? and opts.fps
+            setTimeout(f , 1000/opts.fps)
+        else
+            f()
+        @controls?.update()
+        @renderer.render(@scene, @camera)
 
-    add: (obj) =>
+    add_3dgraphics_obj: (obj) =>
         console.log("adding object to scene", obj, typeof obj)
         window.obj = obj
 
@@ -129,20 +173,13 @@ class SalvusThreeJS
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return
 
-
-    animate: () =>
-        requestAnimationFrame(@animate)
-        @controls.update()
-        @myrender()
-
-    myrender: () =>
-        # renders our scene
-        @renderer.render(@scene, @camera)
-
-
-$.fn.salvus_threejs = () ->
+$.fn.salvus_threejs = (opts={}) ->
     @each () ->
         elt = $(this)
         e = $(".salvus-3d-templates .salvus-3d-viewer").clone()
         elt.empty().append(e)
-        elt.data('salvus-threejs', new SalvusThreeJS(e))
+        opts.element = e
+        elt.data('salvus-threejs', new SalvusThreeJS(opts))
+
+
+
