@@ -32,6 +32,9 @@ class SalvusThreeJS
         # Placing renderer in the DOM.
         @opts.element.find(".salvus-3d-canvas").append($(@renderer.domElement))
 
+        @opts.element.mouseenter () => @_mouse_over = true
+        @opts.element.mouseleave () => @_mouse_over = false
+
         @add_camera()
 
         if @opts.trackball
@@ -74,6 +77,7 @@ class SalvusThreeJS
         opts = defaults opts,
             fps  : undefined
             stop : false
+            mouseover : true
         if opts.stop
             @_stop_animating = true
             # so next time around will start
@@ -87,11 +91,16 @@ class SalvusThreeJS
             setTimeout(f , 1000/opts.fps)
         else
             f()
+        if opts.mouseover and not @_mouse_over
+            return
+        @render_scene()
+
+    render_scene: () =>
         @controls?.update()
         @renderer.render(@scene, @camera)
 
     add_3dgraphics_obj: (obj) =>
-        console.log("adding object to scene", obj, typeof obj)
+        #console.log("adding object to scene", obj, typeof obj)
         window.obj = obj
 
         create_mesh = (myobj)=>
@@ -172,6 +181,7 @@ class SalvusThreeJS
                 else
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return
+            @render_scene()
 
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->

@@ -12,7 +12,7 @@ import sage_salvus
 noneint = lambda n : n if n is None else int(n)
 
 class ThreeJS(object):
-    def __init__(self, renderer=None, width=None, height=None):
+    def __init__(self, renderer=None, width=None, height=None, **ignored):
         """
         INPUT:
 
@@ -24,23 +24,23 @@ class ThreeJS(object):
         self._id       = uuid()
         self._selector = "$('#%s')"%self._id
         self._obj      = "%s.data('salvus-threejs')"%self._selector
-        salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
+        self._salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
         self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
                                 obj={'renderer':renderer, 'width':noneint(width), 'height':noneint(height)})
 
     def _call(self, s, obj=None):
         cmd = 'misc.eval_until_defined({code:"%s", cb:(function(err, __t__) { __t__ != null ? __t__.%s:void 0 })})'%(
                 self._obj, s)
-        self._salvus.javascript(cmd, obj=obj, once=True)
+        self._salvus.execute_javascript(cmd, obj=obj)
 
     def add(self, graphics3d):
         self._call('add_3dgraphics_obj(obj)', obj=graphics3d_to_jsonable(graphics3d))
 
-    def animate(self, fps=None, stop=None):
-        self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop})
+    def animate(self, fps=None, stop=None, mouseover=True):
+        self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
 
 def show_3d_plot_using_threejs(p, **kwds):
-    t = ThreeJS(sage_salvus.salvus)
+    t = ThreeJS(**kwds)
     t.add(p)
     t.animate()
 
