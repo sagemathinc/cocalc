@@ -1,6 +1,6 @@
 ####################################################
 #
-# Client device features and capabilities. 
+# Client device features and capabilities.
 #
 ####################################################
 
@@ -10,5 +10,10 @@ isMobile = exports.isMobile =
     iOS        : () -> if navigator.userAgent.match(/iPhone|iPad|iPod/i) then true else false
     Windows    : () -> if navigator.userAgent.match(/IEMobile/i) then true else false
     any        : () -> if (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows()) then true else false
+
+if not $.browser?
+    $.browser = {}
+
+$.browser.chrome = /chrom(e|ium)/.test(navigator.userAgent.toLowerCase());
 
 exports.IS_MOBILE = exports.isMobile.any()
