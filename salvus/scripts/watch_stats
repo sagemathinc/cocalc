@@ -43,6 +43,9 @@ def go():
     if alert:
         s = "!! " + s
         # os.system("kdialog --title 'Alert' --passivepopup '%s' & "%s)
+    for ip in ['10.1.1.4', '10.1.2.4', '10.1.3.4', '10.1.4.4']:
+        if os.system("ping -c1 %s"%ip):
+            s = "VM DOWN! " + s
     show(s)
 
 while 1:
