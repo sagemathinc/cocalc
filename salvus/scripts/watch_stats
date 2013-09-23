@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-PROJ_ALERT = 25
-CLIENT_ALERT = 120
+PROJ_ALERT = 50
+CLIENT_ALERT = 150
 SNAP_SERVERS = 4
-ACCOUNTS = 4600
+ACCOUNTS = 5000
 BALANCE_ALERT = 50
 
 import os, sys, time, json
