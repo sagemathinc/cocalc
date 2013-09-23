@@ -37,7 +37,7 @@ class SalvusThreeJS
         @add_camera(distance:@opts.camera_distance)
 
         if @opts.trackball
-            @set_trackball_controls()
+            setTimeout((()=>@set_trackball_controls()), 1000)
 
         if @opts.light
             @set_light()
@@ -133,7 +133,7 @@ class SalvusThreeJS
             color              : o.color
             wireframeLinewidth : o.thickness
 
-        # This makes a cube *centered at the origin*.
+        # This makes a cube *centered at the origin*, so we have to move it.
         @frame = new THREE.Mesh(geometry, material)
         @frame.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
         @scene.add(@frame)
@@ -171,7 +171,7 @@ class SalvusThreeJS
             e = (o.ymax - o.ymin)*offset
             txt(o.xmax,o.ymax+e,o.zmin,l(o.xmax))
             txt((o.xmin+o.xmax)/2,o.ymax+e,o.zmin, "x=#{l(o.xmin,o.xmax)}")
-            txt(o.xmin,o.ymax+e,o.zmin,l(o.xmax))
+            txt(o.xmin,o.ymax+e,o.zmin,l(o.xmin))
 
         @render_scene(true)
 
@@ -237,7 +237,6 @@ class SalvusThreeJS
         opts = defaults opts,
             obj       : required
             wireframe : false
-        #console.log("adding object to scene", obj, typeof obj)
 
         create_mesh = (myobj)=>
             vertices = myobj.vertex_geometry
@@ -269,15 +268,15 @@ class SalvusThreeJS
                         mk = item
                         break
 
-                if opts.wireframe
-                    material = new THREE.MeshBasicMaterial(wireframe:true, color:'blue') # TODO
+                if opts.wireframe or myobj.wireframe
+                    c = myobj.material[mk].color
+                    material = new THREE.MeshBasicMaterial(wireframe:true, color:"rgb(#{c[0]*255},#{c[1]*255},#{c[2]*255})")
                 else
                     material =  new THREE.MeshPhongMaterial
                         shininess   : "1"
                         ambient     : 0x0ffff
                         wireframe   : false
                         transparent : myobj.material[mk].opacity < 1
-
                     material.color.setRGB(myobj.material[mk].color[0],
                                                 myobj.material[mk].color[1],myobj.material[mk].color[2])
                     material.ambient.setRGB(myobj.material[mk].ambient[mk],

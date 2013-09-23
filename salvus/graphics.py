@@ -40,9 +40,10 @@ class ThreeJS(object):
                 self._obj, s)
         self._salvus.execute_javascript(cmd, obj=obj)
 
-    def add(self, graphics3d, wireframe=False):
+    def add(self, graphics3d, **kwds):
+        kwds = graphics3d._process_viewing_options(kwds)
         self._graphics.append(graphics3d)
-        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':wireframe})
+        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':kwds.get('wireframe')})
         if self._frame:
             self.set_frame()  # update the frame
 
@@ -76,14 +77,17 @@ class ThreeJS(object):
                       'zmin':float(zmin), 'zmax':float(zmax), 'color':color})
 
 def show_3d_plot_using_threejs(g, **kwds):
-    kwds = g._process_viewing_options(kwds)  # ensures that options set as part of g get passed on
     if 'camera_distance' not in kwds:
         b = g.bounding_box()
         kwds['camera_distance'] = 2 * max([abs(x) for x in list(b[0])+list(b[1])])
     t = ThreeJS(**kwds)
-    t.add(g)
+    t.add(g, **kwds)
     t.animate()
     return t
+
+import sage.plot.plot3d.index_face_set
+import sage.plot.plot3d.shapes
+import sage.plot.plot3d.base
 
 def graphics3d_to_jsonable(p):
 
@@ -128,8 +132,7 @@ def graphics3d_to_jsonable(p):
                         except ValueError:
                             pass
 
-        tmp_list = {"material_name":name,"face3":face3,"face4":face4,"face5":face5}
-        model.append(tmp_list)
+        model.append({"material_name":name,"face3":face3,"face4":face4,"face5":face5})
 
         return model
 
@@ -255,10 +258,8 @@ def graphics3d_to_jsonable(p):
 
         return all_material
 
-
-
-    def gs_parametric_plot3d(p):
-        id =int(3)
+    def convert_index_face_set(p):
+        id = 3
         face_geometry = parse_obj(p.obj())
         material = parse_mtl(p)
         vertex_geometry = []
@@ -272,20 +273,24 @@ def graphics3d_to_jsonable(p):
                     except ValueError:
                         pass
         myobj = {"face_geometry":face_geometry,"id":id,"vertex_geometry":vertex_geometry,"material":material}
+        if p._extra_kwds.get('wireframe'):
+            myobj['wireframe'] = True
         obj_list.append(myobj)
 
-    def gs_text3d(p):
-        id =int(2)
+    def convert_text3d(p):
+        id = 2
         text3d_sub_obj = p.all[0]
         text_content = text3d_sub_obj.string
         color = "#" + text3d_sub_obj.get_texture().hex_rgb()
-        # support for options not officially supported in sage
-        extra_opts = p._process_viewing_options({})
+
+        # support for extra options not supported in sage
+        extra_opts = p._extra_kwds
         fontsize = int(extra_opts.get('fontsize', 12))
         fontface = str(extra_opts.get('fontface', 'Arial'))
         constant_size = bool(extra_opts.get('constant_size', True))
 
-        myobj = {"vertices":[],"faces":[],"normals":[],"colors":[],"text":text_content,"id":id,
+        myobj = {"id":id,
+                 "text":text_content,
                  "pos":list(p.bounding_box()[0]),
                  "color":color,
                  'fontface':fontface,
@@ -293,39 +298,31 @@ def graphics3d_to_jsonable(p):
                  'fontsize':fontsize}
         obj_list.append(myobj)
 
-
-
-    def gs_combination(p):
+    def convert_combination(p):
         for x in p.all:
-            options[str(type(x))](x)
+            handler(x)(x)
 
-
-    def gs_inner(p):
-        if (str(type(p.all[0]))=="<class 'sage.plot.plot3d.base.TransformGroup'>"):
-            gs_parametric_plot3d(p)
+    def convert_inner(p):
+        if isinstance(p.all[0], sage.plot.plot3d.base.TransformGroup):
+            convert_index_face_set(p)
         else:
-            options[str(type(p.all[0]))](p)
+            handler(p.all[0])(p)
 
 
-    options = {"<class 'sage.plot.plot3d.base.TransformGroup'>": gs_inner,
-               "<type 'sage.plot.plot3d.parametric_surface.ParametricSurface'>": gs_parametric_plot3d,#gs_plot3d,
-               "<type 'sage.plot.plot3d.implicit_surface.ImplicitSurface'>":gs_parametric_plot3d,#gs_implicit_plot3d,
-               "<class 'sage.plot.plot3d.base.Graphics3dGroup'>": gs_combination,
-               "<class 'sage.plot.plot3d.shapes2.Line'>": gs_parametric_plot3d,
-               "<type 'sage.plot.plot3d.parametric_surface.ParametricSurface'>":gs_parametric_plot3d,#gs_plot3d,
-               "<class 'sage.plot.plot3d.parametric_surface.MobiusStrip'>":gs_parametric_plot3d,#gs_plot3d,
-               "<class 'sage.plot.plot3d.shapes.Text'>": gs_text3d,
-               "<type 'sage.plot.plot3d.shapes.Sphere'>": gs_parametric_plot3d,
-               "<type 'sage.plot.plot3d.index_face_set.IndexFaceSet'>": gs_parametric_plot3d,
-               "<class 'sage.plot.plot3d.shapes.Box'>": gs_parametric_plot3d,
-               "<type 'sage.plot.plot3d.shapes.Cone'>": gs_parametric_plot3d,
-               }
+    def handler(p):
+        if isinstance(p, sage.plot.plot3d.index_face_set.IndexFaceSet):
+            return convert_index_face_set
+        elif isinstance(p, sage.plot.plot3d.shapes.Text):
+            return convert_text3d
+        elif isinstance(p, sage.plot.plot3d.base.TransformGroup):
+            return convert_inner
+        elif isinstance(p, sage.plot.plot3d.base.Graphics3dGroup):
+            return convert_combination
+        else:
+            raise NotImplementedError("unhandled type ", type(p))
 
 
-    try:
-        options[str(type(p))](p)
-    except KeyError:
-        return "Type not supported"
+    handler(p)(p)
 
     return obj_list
 
