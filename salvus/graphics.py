@@ -68,7 +68,7 @@ class ThreeJS(object):
                 xmin, xmax, ymin, ymax, zmin, zmax = (
                       min(xmin,b[0][0]), max(b[1][0],xmax),
                       min(b[0][1],ymin), max(b[1][1],ymax),
-                      min(b[0][2],zmax), max(b[1][2],zmax))
+                      min(b[0][2],zmin), max(b[1][2],zmax))
 
         self._call('set_frame(obj)', obj={
                       'xmin':float(xmin), 'xmax':float(xmax),

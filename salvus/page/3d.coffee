@@ -84,7 +84,8 @@ class SalvusThreeJS
             color            : [0,0,0,1]
             border_thickness : 0
             sprite_alignment : 'topLeft'
-            constant_size    : false   # if true, then text is automatically resized when the camera moves
+            constant_size    : true  # if true, then text is automatically resized when the camera moves;
+            # WARNING: if constant_size, don't remove text from scene (or if you do, note that it is slightly inefficient still.)
 
         o.sprite_alignment = THREE.SpriteAlignment[o.sprite_alignment]
         canvas  = document.createElement("canvas")
@@ -154,23 +155,24 @@ class SalvusThreeJS
                 z = z.toFixed(2)
                 return (z*1).toString()
 
+            txt = (x,y,z,text) =>
+                @_frame_labels.push(@add_text(pos:[x,y,z], text:text, fontsize:o.fontsize, constant_size:false))
 
             offset = 0.075
-
             e = (o.ymax - o.ymin)*offset
-            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymin-e,o.zmin],text:l(o.zmin),fontsize:o.fontsize))
-            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymin-e,(o.zmin+o.zmax)/2],text:"z=#{l(o.zmin,o.zmax)}",fontsize:o.fontsize))
-            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymin-e,o.zmax],text:l(o.zmax),fontsize:o.fontsize))
+            txt(o.xmax,o.ymin-e,o.zmin, l(o.zmin))
+            txt(o.xmax,o.ymin-e,(o.zmin+o.zmax)/2, "z=#{l(o.zmin,o.zmax)}")
+            txt(o.xmax,o.ymin-e,o.zmax,l(o.zmax))
 
             e = (o.xmax - o.xmin)*offset
-            @_frame_labels.push(@add_text(pos:[o.xmax+e,o.ymin,o.zmin],text:l(o.ymin),fontsize:o.fontsize))
-            @_frame_labels.push(@add_text(pos:[o.xmax+e,(o.ymin+o.ymax)/2,o.zmin],text:"y=#{l(o.ymin,o.ymax)}",fontsize:o.fontsize))
-            @_frame_labels.push(@add_text(pos:[o.xmax+e,o.ymax,o.zmin],text:l(o.ymax),fontsize:o.fontsize))
+            txt(o.xmax+e,o.ymin,o.zmin,l(o.ymin))
+            txt(o.xmax+e,(o.ymin+o.ymax)/2,o.zmin, "y=#{l(o.ymin,o.ymax)}")
+            txt(o.xmax+e,o.ymax,o.zmin,l(o.ymax))
 
             e = (o.ymax - o.ymin)*offset
-            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymax+e,o.zmin],text:l(o.xmax),fontsize:o.fontsize))
-            @_frame_labels.push(@add_text(pos:[(o.xmin+o.xmax)/2,o.ymax+e,o.zmin],text:"x=#{l(o.xmin,o.xmax)}",fontsize:o.fontsize))
-            @_frame_labels.push(@add_text(pos:[o.xmin,o.ymax+e,o.zmin],text:l(o.xmax),fontsize:o.fontsize))
+            txt(o.xmax,o.ymax+e,o.zmin,l(o.xmax))
+            txt((o.xmin+o.xmax)/2,o.ymax+e,o.zmin, "x=#{l(o.xmin,o.xmax)}")
+            txt(o.xmin,o.ymax+e,o.zmin,l(o.xmax))
 
         @render_scene(true)
 
