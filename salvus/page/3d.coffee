@@ -10,6 +10,8 @@ class SalvusThreeJS
             trackball: true
             light    : true
 
+            camera_distance : 10
+
         @scene = new THREE.Scene()
         @opts.width  = if opts.width? then opts.width else $(window).width()*.9
         @opts.height = if opts.height? then opts.height else $(window).height()*.6
@@ -32,7 +34,7 @@ class SalvusThreeJS
         # Placing renderer in the DOM.
         @opts.element.find(".salvus-3d-canvas").append($(@renderer.domElement))
 
-        @add_camera()
+        @add_camera(distance:@opts.camera_distance)
 
         if @opts.trackball
             @add_trackball_controls()
@@ -46,15 +48,18 @@ class SalvusThreeJS
         #setting up camera controls
         @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
 
-    add_camera: () =>
+    add_camera: (opts) =>
+        opts = defaults opts,
+            distance : 10
+
         view_angle = 45
         aspect     = @opts.width/@opts.height
         near       = 0.1
-        far        = 20000
+        far        = Math.max(20000, opts.distance*2)
 
         @camera    = new THREE.PerspectiveCamera(view_angle, aspect, near, far)
         @scene.add(@camera)
-        @camera.position.set(10,10,10)
+        @camera.position.set(opts.distance, opts.distance, opts.distance)
         @camera.lookAt(@scene.position)
         @camera.up = new THREE.Vector3(0,0,1)
 
@@ -70,7 +75,7 @@ class SalvusThreeJS
         @light = new THREE.PointLight(0xffffff)
         @light.position.set(0,10,0)
 
-    add_frame: (opts) =>
+    set_frame: (opts) =>
         o = defaults opts,
             xmin : required
             xmax : required
@@ -79,14 +84,21 @@ class SalvusThreeJS
             zmin : required
             zmax : required
             color : 'grey'
-        console.log("drawing frame: ", o)
+            thickness : .4
+        if @frame?
+            # remove existing frame
+            @scene.remove(@frame)
         geometry = new THREE.CubeGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
-        console.log(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
-        material = new THREE.MeshBasicMaterial(wireframe:true, color:o.color)
+        material = new THREE.MeshBasicMaterial
+            wireframe          : true
+            color              : o.color
+            wireframeLinewidth : o.thickness
+
         # This makes a cube *centered at the origin*.
-        cube = new THREE.Mesh(geometry, material)
-        cube.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
-        @scene.add(cube)
+        @frame = new THREE.Mesh(geometry, material)
+        @frame.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
+        @scene.add(@frame)
+        @render_scene()
 
     animate: (opts={}) =>
         opts = defaults opts,
@@ -165,7 +177,7 @@ class SalvusThreeJS
                         shininess   : "1"
                         ambient     : 0x0ffff
                         wireframe   : false
-                        transparent : true
+                        transparent : myobj.material[mk].opacity < 1
 
                     material.color.setRGB(myobj.material[mk].color[0],
                                                 myobj.material[mk].color[1],myobj.material[mk].color[2])

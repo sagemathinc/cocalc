@@ -12,21 +12,28 @@ import sage_salvus
 noneint = lambda n : n if n is None else int(n)
 
 class ThreeJS(object):
-    def __init__(self, renderer=None, width=None, height=None, **ignored):
+    def __init__(self, renderer=None, width=None, height=None,
+                 frame=True, camera_distance=10.0, **ignored):
         """
         INPUT:
 
         - renderer -- None (automatic), 'canvas2d', or 'webgl'
         - width    -- None (automatic) or an integer
         - height   -- None (automatic) or an integer
+        - frame    -- bool (default: True); draw a frame that includes every object.
+        - camera_distance -- float (default: 10); default camera distance.
         """
+        self._frame    = frame
         self._salvus   = sage_salvus.salvus  # object for this cell
         self._id       = uuid()
         self._selector = "$('#%s')"%self._id
         self._obj      = "%s.data('salvus-threejs')"%self._selector
         self._salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
         self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
-                                obj={'renderer':renderer, 'width':noneint(width), 'height':noneint(height)})
+                                obj={'renderer':renderer, 'width':noneint(width),
+                                     'height':noneint(height),
+                                     'camera_distance':float(camera_distance)})
+        self._graphics = []
 
     def _call(self, s, obj=None):
         cmd = 'misc.eval_until_defined({code:"%s", cb:(function(err, __t__) { __t__ != null ? __t__.%s:void 0 })})'%(
@@ -34,19 +41,40 @@ class ThreeJS(object):
         self._salvus.execute_javascript(cmd, obj=obj)
 
     def add(self, graphics3d, wireframe=False):
+        self._graphics.append(graphics3d)
         self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':wireframe})
+        if self._frame:
+            self.set_frame()  # update the frame
 
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
 
-    def add_frame(self, xmin, xmax, ymin, ymax, zmin, zmax, color='grey'):
-        self._call('add_frame(obj)', obj={'xmin':float(xmin), 'xmax':float(xmax),
-              'ymin':float(ymin), 'ymax':float(ymax), 'zmin':float(zmin), 'zmax':float(zmax), 'color':color})
+    def set_frame(self, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, color='grey'):
+        if not self._graphics:
+            xmin, xmax, ymin, ymax, zmin, zmax = -1,1,-1,1,-1,1
+        else:
+            b = self._graphics[0].bounding_box()
+            xmin, xmax, ymin, ymax, zmin, zmax = b[0][0], b[1][0], b[0][1], b[1][1], b[0][2], b[1][2]
+            for g in self._graphics[1:]:
+                b = g.bounding_box()
+                xmin, xmax, ymin, ymax, zmin, zmax = (
+                      min(xmin,b[0][0]), max(b[1][0],xmax),
+                      min(b[0][1],ymin), max(b[1][1],ymax),
+                      min(b[0][2],zmax), max(b[1][2],zmax))
+
+        self._call('set_frame(obj)', obj={
+                      'xmin':float(xmin), 'xmax':float(xmax),
+                      'ymin':float(ymin), 'ymax':float(ymax),
+                      'zmin':float(zmin), 'zmax':float(zmax), 'color':color})
 
 def show_3d_plot_using_threejs(p, **kwds):
+    if 'camera_distance' not in kwds:
+        b = p.bounding_box()
+        kwds['camera_distance'] = 2 * max([abs(x) for x in list(b[0])+list(b[1])])
     t = ThreeJS(**kwds)
     t.add(p)
     t.animate()
+    return t
 
 def graphics3d_to_jsonable(p):
 
