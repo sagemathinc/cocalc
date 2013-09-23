@@ -75,6 +75,39 @@ class SalvusThreeJS
         @light = new THREE.PointLight(0xffffff)
         @light.position.set(0,10,0)
 
+    add_text: (opts) =>
+        o = defaults opts,
+            x        : required
+            y        : required
+            z        : required
+            text     : required
+            fontsize : 18
+            fontface : 'Arial'
+            border_thickness : 4
+            sprite_alignment : 'topLeft'
+
+        o.sprite_alignment = THREE.SpriteAlignment[o.sprite_alignment]
+        canvas  = document.createElement("canvas")
+        context = canvas.getContext("2d")
+        context.font = "Normal " + o.fontsize + "px " + o.fontface
+        context.fillStyle = "rgba(0, 0, 0, 1.0)"
+        context.fillText(o.text, o.border_thickness, o.fontsize + o.border_thickness)
+        texture = new THREE.Texture(canvas)
+        texture.needsUpdate = true
+        spriteMaterial = new THREE.SpriteMaterial
+            map                  : texture
+            useScreenCoordinates : false
+            alignment            : o.sprite_alignment,
+            sizeAttenuation      : true
+        sprite = new THREE.Sprite(spriteMaterial)
+        sprite.position.set(o.x, o.y, o.z)
+        if not @_text?
+            @_text = [sprite]
+        else
+            @_text.push(sprite)
+        @scene.add(sprite)
+
+
     set_frame: (opts) =>
         o = defaults opts,
             xmin : required
@@ -98,7 +131,7 @@ class SalvusThreeJS
         @frame = new THREE.Mesh(geometry, material)
         @frame.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
         @scene.add(@frame)
-        @render_scene()
+        @render_scene(true)
 
     animate: (opts={}) =>
         opts = defaults opts,
@@ -129,9 +162,29 @@ class SalvusThreeJS
             return
         @render_scene()
 
-    render_scene: () =>
+    render_scene: (force=false) =>
         #console.log('render', @opts.element.length)
         @controls?.update()
+
+        pos = @camera.position
+        if not @_last_pos?
+            new_pos = true
+            @_last_pos = pos.clone()
+        else if @_last_pos.distanceToSquared(pos) > .05
+            new_pos = true
+            @_last_pos.copy(pos)
+        else
+            new_pos = false
+
+        if not new_pos and not force
+            return
+
+        # rescale all text in scene
+        if @_text? and new_pos
+            s = @camera.position.length() / 3
+            for sprite in @_text
+                sprite.scale.set(s,s,s)
+
         @renderer.render(@scene, @camera)
 
     add_3dgraphics_obj: (opts) =>
@@ -209,11 +262,11 @@ class SalvusThreeJS
             sprite.scale.set 10, 10, 1.0
             sprite.position.set Math.floor(Math.random()*20),Math.floor(Math.random()*20),Math.floor(Math.random()*20)
             @scene.add(sprite)
-            true
 
         for o in opts.obj
             switch o.id
                 when 2
+                    console.log("text defined by", o)
                     makeTextSprite(o.text,
                        { fontsize: 40, fontface: "Arial", borderColor: {r:0,g:0,b:225,a:1.0}})
                 when 3
@@ -221,7 +274,7 @@ class SalvusThreeJS
                 else
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return
-        @render_scene()
+        @render_scene(true)
 
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->

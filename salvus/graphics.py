@@ -46,6 +46,11 @@ class ThreeJS(object):
         if self._frame:
             self.set_frame()  # update the frame
 
+    def add_text(self, x, y, z, text, fontsize=18, fontface='Arial'):
+        self._call('add_text(obj)',
+                   obj={'x':float(x),'y':float(y),'z':float(z),'text':str(text),
+                        'fontsize':int(fontsize),'fontface':str(fontface)})
+
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
 
