@@ -81,7 +81,7 @@ class SalvusThreeJS
             text             : required
             fontsize         : 12
             fontface         : 'Arial'
-            color            : [0,0,0,1]
+            color            : "#000000"   # anything that is valid to canvas context, e.g., "rgba(249,95,95,0.7)" is also valid.
             border_thickness : 0
             sprite_alignment : 'topLeft'
             constant_size    : true  # if true, then text is automatically resized when the camera moves;
@@ -91,8 +91,7 @@ class SalvusThreeJS
         canvas  = document.createElement("canvas")
         context = canvas.getContext("2d")
         context.font = "Normal " + o.fontsize + "px " + o.fontface
-        c = o.color
-        context.fillStyle = "rgba(#{c[0]},#{c[1]},#{c[2]},#{c[3]})"
+        context.fillStyle = o.color
         context.fillText(o.text, o.border_thickness, o.fontsize + o.border_thickness)
         texture = new THREE.Texture(canvas)
         texture.needsUpdate = true
@@ -291,31 +290,16 @@ class SalvusThreeJS
                 mesh.position.set(0,0,0)
                 @scene.add(mesh)
 
-        makeTextSprite = (message, parameters) =>
-            parameters = {}  if parameters is `undefined`
-            fontface = (if parameters.hasOwnProperty("fontface") then parameters["fontface"] else "Arial")
-            fontsize = (if parameters.hasOwnProperty("fontsize") then parameters["fontsize"] else 18)
-            borderThickness = (if parameters.hasOwnProperty("borderThickness") then parameters["borderThickness"] else 4)
-            spriteAlignment = THREE.SpriteAlignment.topLeft
-            canvas = document.createElement("canvas")
-            context = canvas.getContext("2d")
-            context.font = "Normal " + fontsize + "px " + fontface
-            context.fillStyle = "rgba(0, 0, 0, 1.0)"
-            context.fillText message, borderThickness, fontsize + borderThickness
-            texture = new THREE.Texture(canvas)
-            texture.needsUpdate = true
-            spriteMaterial = new THREE.SpriteMaterial(map: texture, useScreenCoordinates: false, alignment: spriteAlignment,sizeAttenuation:0.05)
-            sprite = new THREE.Sprite(spriteMaterial)
-            sprite.scale.set 10, 10, 1.0
-            sprite.position.set Math.floor(Math.random()*20),Math.floor(Math.random()*20),Math.floor(Math.random()*20)
-            @scene.add(sprite)
-
         for o in opts.obj
             switch o.id
                 when 2
-                    console.log("text defined by", o)
-                    makeTextSprite(o.text,
-                       { fontsize: 40, fontface: "Arial", borderColor: {r:0,g:0,b:225,a:1.0}})
+                    @add_text
+                        pos:o.pos
+                        text:o.text
+                        color:o.color
+                        fontsize:o.fontsize
+                        fontface:o.fontface
+                        constant_size:o.constant_size
                 when 3
                     create_mesh(o)
                 else

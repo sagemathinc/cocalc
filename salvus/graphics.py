@@ -278,8 +278,19 @@ def graphics3d_to_jsonable(p):
         id =int(2)
         text3d_sub_obj = p.all[0]
         text_content = text3d_sub_obj.string
+        color = "#" + text3d_sub_obj.get_texture().hex_rgb()
+        # support for options not officially supported in sage
+        extra_opts = p._process_viewing_options({})
+        fontsize = int(extra_opts.get('fontsize', 12))
+        fontface = str(extra_opts.get('fontface', 'Arial'))
+        constant_size = bool(extra_opts.get('constant_size', True))
 
-        myobj = {"vertices":[],"faces":[],"normals":[],"colors":[],"text":text_content,"id":id}
+        myobj = {"vertices":[],"faces":[],"normals":[],"colors":[],"text":text_content,"id":id,
+                 "pos":list(p.bounding_box()[0]),
+                 "color":color,
+                 'fontface':fontface,
+                 'constant_size':constant_size,
+                 'fontsize':fontsize}
         obj_list.append(myobj)
 
 
