@@ -32,6 +32,7 @@ codemirror_associations =
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
+    dtd    : 'application/xml-dtd'
     ecl    : 'ecl'
     f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
     f90    : 'text/x-fortran'
@@ -41,6 +42,7 @@ codemirror_associations =
     java   : 'text/x-java'
     js     : 'javascript'
     lua    : 'lua'
+    m      : 'text/x-octave'
     md     : 'markdown'
     patch  : 'text/x-diff'
 
@@ -62,6 +64,7 @@ codemirror_associations =
     sql    : 'mysql'
     txt    : 'text'
     tex    : 'stex'
+    toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
     xml    : 'xml'
