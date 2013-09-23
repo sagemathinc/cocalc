@@ -33,11 +33,15 @@ class ThreeJS(object):
                 self._obj, s)
         self._salvus.execute_javascript(cmd, obj=obj)
 
-    def add(self, graphics3d):
-        self._call('add_3dgraphics_obj(obj)', obj=graphics3d_to_jsonable(graphics3d))
+    def add(self, graphics3d, wireframe=False):
+        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':wireframe})
 
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
+
+    def add_frame(self, xmin, xmax, ymin, ymax, zmin, zmax, color='grey'):
+        self._call('add_frame(obj)', obj={'xmin':float(xmin), 'xmax':float(xmax),
+              'ymin':float(ymin), 'ymax':float(ymax), 'zmin':float(zmin), 'zmax':float(zmax), 'color':color})
 
 def show_3d_plot_using_threejs(p, **kwds):
     t = ThreeJS(**kwds)

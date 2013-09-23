@@ -25,7 +25,7 @@ class SalvusThreeJS
             @renderer = new THREE.WebGLRenderer(antialias:true)
         else
             @opts.element.find(".salvus-3d-viewer-renderer").text("canvas2d")
-            @renderer = new THREE.CanvasRenderer()
+            @renderer = new THREE.CanvasRenderer(antialias:true)
 
         @renderer.setSize(@opts.width, @opts.height)
 
@@ -70,6 +70,24 @@ class SalvusThreeJS
         @light = new THREE.PointLight(0xffffff)
         @light.position.set(0,10,0)
 
+    add_frame: (opts) =>
+        o = defaults opts,
+            xmin : required
+            xmax : required
+            ymin : required
+            ymax : required
+            zmin : required
+            zmax : required
+            color : 'grey'
+        console.log("drawing frame: ", o)
+        geometry = new THREE.CubeGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
+        console.log(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
+        material = new THREE.MeshBasicMaterial(wireframe:true, color:o.color)
+        # This makes a cube *centered at the origin*.
+        cube = new THREE.Mesh(geometry, material)
+        cube.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
+        @scene.add(cube)
+
     animate: (opts={}) =>
         opts = defaults opts,
             fps  : undefined
@@ -104,9 +122,11 @@ class SalvusThreeJS
         @controls?.update()
         @renderer.render(@scene, @camera)
 
-    add_3dgraphics_obj: (obj) =>
+    add_3dgraphics_obj: (opts) =>
+        opts = defaults opts,
+            obj       : required
+            wireframe : false
         #console.log("adding object to scene", obj, typeof obj)
-        window.obj = obj
 
         create_mesh = (myobj)=>
             vertices = myobj.vertex_geometry
@@ -138,21 +158,24 @@ class SalvusThreeJS
                         mk = item
                         break
 
-                colorMaterial =  new THREE.MeshPhongMaterial
-                    shininess   : "1"
-                    ambient     : 0x0ffff
-                    wireframe   : false
-                    transparent : true
+                if opts.wireframe
+                    material = new THREE.MeshBasicMaterial(wireframe:true, color:'blue') # TODO
+                else
+                    material =  new THREE.MeshPhongMaterial
+                        shininess   : "1"
+                        ambient     : 0x0ffff
+                        wireframe   : false
+                        transparent : true
 
-                colorMaterial.color.setRGB(myobj.material[mk].color[0],
-                                            myobj.material[mk].color[1],myobj.material[mk].color[2])
-                colorMaterial.ambient.setRGB(myobj.material[mk].ambient[mk],
-                                              myobj.material[mk].ambient[1],myobj.material[0].ambient[2])
-                colorMaterial.specular.setRGB(myobj.material[mk].specular[0],
-                                               myobj.material[mk].specular[1],myobj.material[mk].specular[2])
-                colorMaterial.opacity = myobj.material[mk].opacity
+                    material.color.setRGB(myobj.material[mk].color[0],
+                                                myobj.material[mk].color[1],myobj.material[mk].color[2])
+                    material.ambient.setRGB(myobj.material[mk].ambient[mk],
+                                                  myobj.material[mk].ambient[1],myobj.material[0].ambient[2])
+                    material.specular.setRGB(myobj.material[mk].specular[0],
+                                                   myobj.material[mk].specular[1],myobj.material[mk].specular[2])
+                    material.opacity = myobj.material[mk].opacity
 
-                mesh = new THREE.Mesh(geometry, colorMaterial )
+                mesh = new THREE.Mesh(geometry, material)
                 mesh.position.set(0,0,0)
                 @scene.add(mesh)
 
@@ -176,7 +199,7 @@ class SalvusThreeJS
             @scene.add(sprite)
             true
 
-        for o in obj
+        for o in opts.obj
             switch o.id
                 when 2
                     makeTextSprite(o.text,
