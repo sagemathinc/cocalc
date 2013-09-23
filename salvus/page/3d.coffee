@@ -37,12 +37,12 @@ class SalvusThreeJS
         @add_camera(distance:@opts.camera_distance)
 
         if @opts.trackball
-            @add_trackball_controls()
+            @set_trackball_controls()
 
         if @opts.light
-            @add_light()
+            @set_light()
 
-    add_trackball_controls: () =>
+    set_trackball_controls: () =>
         if @controls?
             return
         #setting up camera controls
@@ -63,7 +63,7 @@ class SalvusThreeJS
         @camera.lookAt(@scene.position)
         @camera.up = new THREE.Vector3(0,0,1)
 
-    add_light: (color= 0xffffff) =>
+    set_light: (color= 0xffffff) =>
         ambient = new THREE.AmbientLight( )
         @scene.add( ambient )
         directionalLight = new THREE.DirectionalLight( 0xffffff )
@@ -77,20 +77,21 @@ class SalvusThreeJS
 
     add_text: (opts) =>
         o = defaults opts,
-            x        : required
-            y        : required
-            z        : required
-            text     : required
-            fontsize : 18
-            fontface : 'Arial'
-            border_thickness : 4
+            pos              : [0,0,0]
+            text             : required
+            fontsize         : 12
+            fontface         : 'Arial'
+            color            : [0,0,0,1]
+            border_thickness : 0
             sprite_alignment : 'topLeft'
+            constant_size    : false   # if true, then text is automatically resized when the camera moves
 
         o.sprite_alignment = THREE.SpriteAlignment[o.sprite_alignment]
         canvas  = document.createElement("canvas")
         context = canvas.getContext("2d")
         context.font = "Normal " + o.fontsize + "px " + o.fontface
-        context.fillStyle = "rgba(0, 0, 0, 1.0)"
+        c = o.color
+        context.fillStyle = "rgba(#{c[0]},#{c[1]},#{c[2]},#{c[3]})"
         context.fillText(o.text, o.border_thickness, o.fontsize + o.border_thickness)
         texture = new THREE.Texture(canvas)
         texture.needsUpdate = true
@@ -100,13 +101,15 @@ class SalvusThreeJS
             alignment            : o.sprite_alignment,
             sizeAttenuation      : true
         sprite = new THREE.Sprite(spriteMaterial)
-        sprite.position.set(o.x, o.y, o.z)
-        if not @_text?
-            @_text = [sprite]
-        else
-            @_text.push(sprite)
+        p = o.pos
+        sprite.position.set(p[0],p[1],p[2])
+        if o.constant_size
+            if not @_text?
+                @_text = [sprite]
+            else
+                @_text.push(sprite)
         @scene.add(sprite)
-
+        return sprite
 
     set_frame: (opts) =>
         o = defaults opts,
@@ -118,6 +121,9 @@ class SalvusThreeJS
             zmax : required
             color : 'grey'
             thickness : .4
+            labels    : true  # whether to draw three numerical labels along each of the x, y, and z axes.
+            fontsize  : 14
+
         if @frame?
             # remove existing frame
             @scene.remove(@frame)
@@ -131,6 +137,41 @@ class SalvusThreeJS
         @frame = new THREE.Mesh(geometry, material)
         @frame.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
         @scene.add(@frame)
+
+        if o.labels
+
+            if @_frame_labels?
+                for x in @_frame_labels
+                    @scene.remove(x)
+
+            @_frame_labels = []
+
+            l = (a,b) ->
+                if not b?
+                    z = a
+                else
+                    z = (a+b)/2
+                z = z.toFixed(2)
+                return (z*1).toString()
+
+
+            offset = 0.075
+
+            e = (o.ymax - o.ymin)*offset
+            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymin-e,o.zmin],text:l(o.zmin),fontsize:o.fontsize))
+            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymin-e,(o.zmin+o.zmax)/2],text:"z=#{l(o.zmin,o.zmax)}",fontsize:o.fontsize))
+            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymin-e,o.zmax],text:l(o.zmax),fontsize:o.fontsize))
+
+            e = (o.xmax - o.xmin)*offset
+            @_frame_labels.push(@add_text(pos:[o.xmax+e,o.ymin,o.zmin],text:l(o.ymin),fontsize:o.fontsize))
+            @_frame_labels.push(@add_text(pos:[o.xmax+e,(o.ymin+o.ymax)/2,o.zmin],text:"y=#{l(o.ymin,o.ymax)}",fontsize:o.fontsize))
+            @_frame_labels.push(@add_text(pos:[o.xmax+e,o.ymax,o.zmin],text:l(o.ymax),fontsize:o.fontsize))
+
+            e = (o.ymax - o.ymin)*offset
+            @_frame_labels.push(@add_text(pos:[o.xmax,o.ymax+e,o.zmin],text:l(o.xmax),fontsize:o.fontsize))
+            @_frame_labels.push(@add_text(pos:[(o.xmin+o.xmax)/2,o.ymax+e,o.zmin],text:"x=#{l(o.xmin,o.xmax)}",fontsize:o.fontsize))
+            @_frame_labels.push(@add_text(pos:[o.xmin,o.ymax+e,o.zmin],text:l(o.xmax),fontsize:o.fontsize))
+
         @render_scene(true)
 
     animate: (opts={}) =>
@@ -180,10 +221,14 @@ class SalvusThreeJS
             return
 
         # rescale all text in scene
-        if @_text? and new_pos
+        if new_pos or force
             s = @camera.position.length() / 3
-            for sprite in @_text
-                sprite.scale.set(s,s,s)
+            if @_text?
+                for sprite in @_text
+                    sprite.scale.set(s,s,s)
+            if @_frame_labels?
+                for sprite in @_frame_labels
+                    sprite.scale.set(s,s,s)
 
         @renderer.render(@scene, @camera)
 

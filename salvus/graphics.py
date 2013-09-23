@@ -46,10 +46,13 @@ class ThreeJS(object):
         if self._frame:
             self.set_frame()  # update the frame
 
-    def add_text(self, x, y, z, text, fontsize=18, fontface='Arial'):
+    def render_scene(self, force=True):
+        self._call('render_scene(obj)', obj={'force':force})
+
+    def add_text(self, pos, text, fontsize=18, fontface='Arial', sprite_alignment='topLeft'):
         self._call('add_text(obj)',
-                   obj={'x':float(x),'y':float(y),'z':float(z),'text':str(text),
-                        'fontsize':int(fontsize),'fontface':str(fontface)})
+                   obj={'pos':[float(pos[0]), float(pos[1]), float(pos[2])],'text':str(text),
+                        'fontsize':int(fontsize),'fontface':str(fontface), 'sprite_alignment':str(sprite_alignment)})
 
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
@@ -72,12 +75,13 @@ class ThreeJS(object):
                       'ymin':float(ymin), 'ymax':float(ymax),
                       'zmin':float(zmin), 'zmax':float(zmax), 'color':color})
 
-def show_3d_plot_using_threejs(p, **kwds):
+def show_3d_plot_using_threejs(g, **kwds):
+    kwds = g._process_viewing_options(kwds)  # ensures that options set as part of g get passed on
     if 'camera_distance' not in kwds:
-        b = p.bounding_box()
+        b = g.bounding_box()
         kwds['camera_distance'] = 2 * max([abs(x) for x in list(b[0])+list(b[1])])
     t = ThreeJS(**kwds)
-    t.add(p)
+    t.add(g)
     t.animate()
     return t
 
