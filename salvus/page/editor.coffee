@@ -1021,6 +1021,7 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
+        @element.data('editor', @)
 
         @init_save_button()
         @init_edit_buttons()
@@ -1132,6 +1133,12 @@ class CodeMirrorEditor extends FileEditor
         @_split_view = false
 
         @init_change_event()
+
+    set_theme: (theme) =>
+        # Change the editor theme after the editor has been created
+        @codemirror.setOption('theme', theme)
+        @codemirror1.setOption('theme', theme)
+        @opts.theme = theme
 
     set_cursor_center_focus: (pos) =>
         cm = @codemirror_with_last_focus

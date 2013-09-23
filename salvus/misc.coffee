@@ -42,6 +42,8 @@ exports.min_object = (target, upper_bounds) ->
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
 exports.defaults = (obj1, obj2) ->
+    if not obj1?
+        obj1 = {}
     error  = () ->
         try
             "(obj1=#{exports.to_json(obj1)}, obj2=#{exports.to_json(obj2)})"

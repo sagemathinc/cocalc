@@ -72,13 +72,12 @@ $("a[href='#account-sign_in']").click (event) ->
 ################################################
 $("#account-settings-change-settings-button").click (event) ->
     account_settings.load_from_view()
-    account_settings.save_to_server(
+    account_settings.save_to_server
         cb : (error, mesg) ->
             if error
                 alert_message(type:"error", message:error)
             else
-                alert_message(type:"info", message:"You have saved your settings.  Changes only apply to newly opened files and terminals.")
-    )
+                alert_message(type:"info", message:"You have saved your settings.  Some changes only apply to newly opened files and terminals.")
 
 $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
 
@@ -546,8 +545,8 @@ class AccountSettings
     # want to save the settings in view, you must first call load_from_view.
     save_to_server: (opts) ->
         opts = defaults opts,
-            cb       : required
-            password : undefined  # must be set, or all restricted settings are ignored by the server
+            cb       : undefined
+            password : undefined  # must be set or all restricted settings are ignored by the server
 
         if not @settings? or @settings == 'error'
             opts.cb("There are no account settings to save.")
@@ -560,6 +559,21 @@ class AccountSettings
             cb         : opts.cb
 
 account_settings = exports.account_settings = new AccountSettings()
+
+################################################
+# Make it so changing each editor property impacts all open editors instantly
+# TODO: just started with theme -- need to do the rest
+################################################
+
+editor_theme = $(".account-settings-editor-color_scheme").on 'change', () ->
+    val = editor_theme.val()
+    if account_settings.settings.editor_settings.theme == val
+        return
+    account_settings.settings.editor_settings.theme = val
+    for x in $(".salvus-editor-codemirror")
+        $(x).data("editor")?.set_theme(val)
+    account_settings.save_to_server()
+
 
 ################################################
 # Change Email Address
