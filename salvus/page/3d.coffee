@@ -24,7 +24,9 @@ class SalvusThreeJS
 
         if @opts.renderer == 'webgl'
             @opts.element.find(".salvus-3d-viewer-renderer").text("webgl")
-            @renderer = new THREE.WebGLRenderer(antialias:true)
+            @renderer = new THREE.WebGLRenderer
+                antialias             : true
+                preserveDrawingBuffer : true
         else
             @opts.element.find(".salvus-3d-viewer-renderer").text("canvas2d")
             @renderer = new THREE.CanvasRenderer(antialias:true)
@@ -36,11 +38,11 @@ class SalvusThreeJS
 
         @add_camera(distance:@opts.camera_distance)
 
-        if @opts.trackball
-            setTimeout((()=>@set_trackball_controls()), 100)
-
         if @opts.light
             @set_light()
+
+    data_url: (type='png') =>   # 'png' or 'jpeg'
+        return @renderer.domElement.toDataURL("image/#{type}")
 
     set_trackball_controls: () =>
         if @controls?
@@ -120,12 +122,40 @@ class SalvusThreeJS
             points     : required
             thickness  : 1
             color      : "#000000"
-            arrow_head : false
+            arrow_head : false  # TODO
         geometry = new THREE.Geometry()
         for a in o.points
             geometry.vertices.push(new THREE.Vector3(a[0],a[1],a[2]))
         line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:opts.color, linewidth:o.thickness))
         @scene.add(line)
+
+    add_point: (opts) =>
+        o = defaults opts,
+            loc  : [0,0,0]
+            size : 1
+            color: "#000000"
+            sizeAttenuation : false
+        console.log("rendering a point", o)
+        material = new THREE.ParticleBasicMaterial
+                  color           : o.color
+                  size            : o.size
+                  sizeAttenuation : o.sizeAttenuation
+        switch @opts.renderer
+            when 'webgl'
+                geometry = new THREE.Geometry()
+                geometry.vertices.push(new THREE.Vector3(o.loc[0], o.loc[1], o.loc[2]))
+                particle = new THREE.ParticleSystem(geometry, material)
+            when 'canvas2d'
+                particle = new THREE.Particle(material)
+                particle.position.set(o.loc[0], o.loc[1], o.loc[2])
+                if @_frame_params?
+                    p = @_frame_params
+                    w = Math.min(Math.min(p.xmax-p.xmin, p.ymax-p.ymin),p.zmax-p.zmin)
+                else
+                    w = 5 # little to go on
+                particle.scale.x = particle.scale.y = Math.max(50/@opts.width, o.size * 5 * w / @opts.width)
+
+        @scene.add(particle)
 
     # always call this after adding things to the scene to make sure track
     # controls are sorted out, etc.   Set draw:false, if you don't want to
@@ -143,6 +173,8 @@ class SalvusThreeJS
             labels    : true  # whether to draw three numerical labels along each of the x, y, and z axes.
             fontsize  : 14
             draw   : true
+
+        @_frame_params = o
 
         eps = 0.1
         if Math.abs(o.xmax-o.xmin)<eps
@@ -163,8 +195,8 @@ class SalvusThreeJS
         if o.draw
             geometry = new THREE.CubeGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
             material = new THREE.MeshBasicMaterial
-                wireframe          : true
                 color              : o.color
+                wireframe          : true
                 wireframeLinewidth : o.thickness
 
             # This makes a cube *centered at the origin*, so we have to move it.
@@ -250,7 +282,11 @@ class SalvusThreeJS
 
     render_scene: (force=false) =>
         #console.log('render', @opts.element.length)
-        @controls?.update()
+        if @controls?
+            @controls?.update()
+        else
+            if @opts.trackball
+                @set_trackball_controls()
 
         pos = @camera.position
         if not @_last_pos?
@@ -371,8 +407,11 @@ class SalvusThreeJS
                         o.wireframe = o.mesh
                         add_obj_to_scene(o)
                 when 'line'
-                    delete(o.type)
+                    delete o.type
                     @add_line(o)
+                when 'point'
+                    delete o.type
+                    @add_point(o)
                 else
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return

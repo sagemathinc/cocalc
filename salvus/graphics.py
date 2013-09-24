@@ -77,10 +77,11 @@ class ThreeJS(object):
                       'zmin':float(zmin), 'zmax':float(zmax), 'color':color, 'draw':draw})
 
 def show_3d_plot_using_threejs(g, **kwds):
+    b = g.bounding_box()
     if 'camera_distance' not in kwds:
-        b = g.bounding_box()
         kwds['camera_distance'] = 2 * max([abs(x) for x in list(b[0])+list(b[1])])
     t = ThreeJS(**kwds)
+    t.set_frame(b[0][0],b[1][0],b[0][1],b[1][1],b[0][2],b[1][2],draw=False)
     t.add(g, **kwds)
     t.animate()
     return t
@@ -313,6 +314,12 @@ def graphics3d_to_jsonable(p):
                          "color"      : "#" + p.get_texture().hex_rgb(),
                          "arrow_head" : bool(p.arrow_head)})
 
+    def convert_point(p):
+        obj_list.append({"type" : "point",
+                         "loc"  : p.loc,
+                         "size" : float(p.size),
+                         "color" : "#" + p.get_texture().hex_rgb()})
+
     def convert_combination(p):
         for x in p.all:
             handler(x)(x)
@@ -335,6 +342,8 @@ def graphics3d_to_jsonable(p):
             return convert_combination
         elif isinstance(p, sage.plot.plot3d.shapes2.Line):
             return convert_line
+        elif isinstance(p, sage.plot.plot3d.shapes2.Point):
+            return convert_point
         elif isinstance(p, sage.plot.plot3d.base.PrimitiveObject):
             return convert_index_face_set
         else:
