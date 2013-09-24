@@ -42,10 +42,10 @@ class ThreeJS(object):
 
     def add(self, graphics3d, **kwds):
         kwds = graphics3d._process_viewing_options(kwds)
+        self._frame = kwds.get('frame',False)
         self._graphics.append(graphics3d)
         self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':jsonable(kwds.get('wireframe'))})
-        if self._frame:
-            self.set_frame()  # update the frame
+        self.set_frame(draw = self._frame)  # update the frame
 
     def render_scene(self, force=True):
         self._call('render_scene(obj)', obj={'force':force})
@@ -58,7 +58,7 @@ class ThreeJS(object):
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
 
-    def set_frame(self, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, color='grey'):
+    def set_frame(self, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, color='grey', draw=True):
         if not self._graphics:
             xmin, xmax, ymin, ymax, zmin, zmax = -1,1,-1,1,-1,1
         else:
@@ -74,7 +74,7 @@ class ThreeJS(object):
         self._call('set_frame(obj)', obj={
                       'xmin':float(xmin), 'xmax':float(xmax),
                       'ymin':float(ymin), 'ymax':float(ymax),
-                      'zmin':float(zmin), 'zmax':float(zmax), 'color':color})
+                      'zmin':float(zmin), 'zmax':float(zmax), 'color':color, 'draw':draw})
 
 def show_3d_plot_using_threejs(g, **kwds):
     if 'camera_distance' not in kwds:

@@ -47,7 +47,10 @@ class SalvusThreeJS
             return
         #setting up camera controls
         @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
+        if @_center?
+            @controls.target = @_center
         @render_scene(true)
+
 
     add_camera: (opts) =>
         opts = defaults opts,
@@ -124,6 +127,9 @@ class SalvusThreeJS
         line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:opts.color, linewidth:o.thickness))
         @scene.add(line)
 
+    # always call this after adding things to the scene to make sure track
+    # controls are sorted out, etc.   Set draw:false, if you don't want to
+    # actually *see* a frame.
     set_frame: (opts) =>
         o = defaults opts,
             xmin : required
@@ -136,6 +142,7 @@ class SalvusThreeJS
             thickness : .4
             labels    : true  # whether to draw three numerical labels along each of the x, y, and z axes.
             fontsize  : 14
+            draw   : true
 
         eps = 0.1
         if Math.abs(o.xmax-o.xmin)<eps
@@ -151,16 +158,19 @@ class SalvusThreeJS
         if @frame?
             # remove existing frame
             @scene.remove(@frame)
-        geometry = new THREE.CubeGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
-        material = new THREE.MeshBasicMaterial
-            wireframe          : true
-            color              : o.color
-            wireframeLinewidth : o.thickness
+            @frame = undefined
 
-        # This makes a cube *centered at the origin*, so we have to move it.
-        @frame = new THREE.Mesh(geometry, material)
-        @frame.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
-        @scene.add(@frame)
+        if o.draw
+            geometry = new THREE.CubeGeometry(o.xmax-o.xmin, o.ymax-o.ymin, o.zmax-o.zmin)
+            material = new THREE.MeshBasicMaterial
+                wireframe          : true
+                color              : o.color
+                wireframeLinewidth : o.thickness
+
+            # This makes a cube *centered at the origin*, so we have to move it.
+            @frame = new THREE.Mesh(geometry, material)
+            @frame.position.set(o.xmin + (o.xmax-o.xmin)/2, o.ymin + (o.ymax-o.ymin)/2, o.zmin + (o.zmax-o.zmin)/2)
+            @scene.add(@frame)
 
         if o.labels
 
@@ -187,24 +197,26 @@ class SalvusThreeJS
             mz = (o.zmin+o.zmax)/2
             @_center = new THREE.Vector3(mx,my,mz)
 
-            e = (o.ymax - o.ymin)*offset
-            txt(o.xmax,o.ymin-e,o.zmin, l(o.zmin))
-            txt(o.xmax,o.ymin-e,mz, "z=#{l(o.zmin,o.zmax)}")
-            txt(o.xmax,o.ymin-e,o.zmax,l(o.zmax))
+            if o.draw
+                e = (o.ymax - o.ymin)*offset
+                txt(o.xmax,o.ymin-e,o.zmin, l(o.zmin))
+                txt(o.xmax,o.ymin-e,mz, "z=#{l(o.zmin,o.zmax)}")
+                txt(o.xmax,o.ymin-e,o.zmax,l(o.zmax))
 
-            e = (o.xmax - o.xmin)*offset
-            txt(o.xmax+e,o.ymin,o.zmin,l(o.ymin))
-            txt(o.xmax+e,my,o.zmin, "y=#{l(o.ymin,o.ymax)}")
-            txt(o.xmax+e,o.ymax,o.zmin,l(o.ymax))
+                e = (o.xmax - o.xmin)*offset
+                txt(o.xmax+e,o.ymin,o.zmin,l(o.ymin))
+                txt(o.xmax+e,my,o.zmin, "y=#{l(o.ymin,o.ymax)}")
+                txt(o.xmax+e,o.ymax,o.zmin,l(o.ymax))
 
-            e = (o.ymax - o.ymin)*offset
-            txt(o.xmax,o.ymax+e,o.zmin,l(o.xmax))
-            txt(mx,o.ymax+e,o.zmin, "x=#{l(o.xmin,o.xmax)}")
-            txt(o.xmin,o.ymax+e,o.zmin,l(o.xmin))
+                e = (o.ymax - o.ymin)*offset
+                txt(o.xmax,o.ymax+e,o.zmin,l(o.xmax))
+                txt(mx,o.ymax+e,o.zmin, "x=#{l(o.xmin,o.xmax)}")
+                txt(o.xmin,o.ymax+e,o.zmin,l(o.xmin))
 
         v = new THREE.Vector3(mx, my, mz)
-        console.log("make camera look at ", v)
         @camera.lookAt(v)
+        if @controls?
+            @controls.target = @_center
         @render_scene(true)
 
     animate: (opts={}) =>
