@@ -112,6 +112,18 @@ class SalvusThreeJS
         @scene.add(sprite)
         return sprite
 
+    add_line : (opts) =>
+        o = defaults opts,
+            points     : required
+            thickness  : 1
+            color      : "#000000"
+            arrow_head : false
+        geometry = new THREE.Geometry()
+        for a in o.points
+            geometry.vertices.push(new THREE.Vector3(a[0],a[1],a[2]))
+        line = new THREE.Line(geometry, new THREE.LineBasicMaterial(color:opts.color, linewidth:o.thickness))
+        @scene.add(line)
+
     set_frame: (opts) =>
         o = defaults opts,
             xmin : required
@@ -124,6 +136,17 @@ class SalvusThreeJS
             thickness : .4
             labels    : true  # whether to draw three numerical labels along each of the x, y, and z axes.
             fontsize  : 14
+
+        eps = 0.1
+        if Math.abs(o.xmax-o.xmin)<eps
+            o.xmax += 1
+            o.xmin -= 1
+        if Math.abs(o.ymax-o.ymin)<eps
+            o.ymax += 1
+            o.ymin -= 1
+        if Math.abs(o.zmax-o.zmin)<eps
+            o.zmax += 1
+            o.zmin -= 1
 
         if @frame?
             # remove existing frame
@@ -159,21 +182,29 @@ class SalvusThreeJS
                 @_frame_labels.push(@add_text(pos:[x,y,z], text:text, fontsize:o.fontsize, constant_size:false))
 
             offset = 0.075
+            mx = (o.xmin+o.xmax)/2
+            my = (o.ymin+o.ymax)/2
+            mz = (o.zmin+o.zmax)/2
+            @_center = new THREE.Vector3(mx,my,mz)
+
             e = (o.ymax - o.ymin)*offset
             txt(o.xmax,o.ymin-e,o.zmin, l(o.zmin))
-            txt(o.xmax,o.ymin-e,(o.zmin+o.zmax)/2, "z=#{l(o.zmin,o.zmax)}")
+            txt(o.xmax,o.ymin-e,mz, "z=#{l(o.zmin,o.zmax)}")
             txt(o.xmax,o.ymin-e,o.zmax,l(o.zmax))
 
             e = (o.xmax - o.xmin)*offset
             txt(o.xmax+e,o.ymin,o.zmin,l(o.ymin))
-            txt(o.xmax+e,(o.ymin+o.ymax)/2,o.zmin, "y=#{l(o.ymin,o.ymax)}")
+            txt(o.xmax+e,my,o.zmin, "y=#{l(o.ymin,o.ymax)}")
             txt(o.xmax+e,o.ymax,o.zmin,l(o.ymax))
 
             e = (o.ymax - o.ymin)*offset
             txt(o.xmax,o.ymax+e,o.zmin,l(o.xmax))
-            txt((o.xmin+o.xmax)/2,o.ymax+e,o.zmin, "x=#{l(o.xmin,o.xmax)}")
+            txt(mx,o.ymax+e,o.zmin, "x=#{l(o.xmin,o.xmax)}")
             txt(o.xmin,o.ymax+e,o.zmin,l(o.xmin))
 
+        v = new THREE.Vector3(mx, my, mz)
+        console.log("make camera look at ", v)
+        @camera.lookAt(v)
         @render_scene(true)
 
     animate: (opts={}) =>
@@ -223,8 +254,8 @@ class SalvusThreeJS
             return
 
         # rescale all text in scene
-        if new_pos or force
-            s = @camera.position.length() / 3
+        if (new_pos or force) and @_center?
+            s = @camera.position.distanceTo(@_center) / 3
             if @_text?
                 for sprite in @_text
                     sprite.scale.set(s,s,s)
@@ -264,6 +295,7 @@ class SalvusThreeJS
                 geometry.computeBoundingSphere()
                 #finding material key(mk)
                 name = myobj.face_geometry[objects].material_name
+                mk = 0
                 for item in [0..myobj.material.length-1]
                     if name == myobj.material[item].name
                         mk = item
@@ -286,6 +318,11 @@ class SalvusThreeJS
                         wireframe          : true
                         color              : color
                         wireframeLinewidth : line_width
+                else if not myobj.material[mk]?
+                    console.log("BUG -- couldn't get material for ", myobj)
+                    material = new THREE.MeshBasicMaterial
+                        wireframe : false
+                        color     : "#000000"
                 else
                     material =  new THREE.MeshPhongMaterial
                         shininess   : "1"
@@ -321,6 +358,9 @@ class SalvusThreeJS
                         o.color='#000000'
                         o.wireframe = o.mesh
                         add_obj_to_scene(o)
+                when 'line'
+                    delete(o.type)
+                    @add_line(o)
                 else
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return

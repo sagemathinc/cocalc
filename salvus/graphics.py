@@ -43,7 +43,7 @@ class ThreeJS(object):
     def add(self, graphics3d, **kwds):
         kwds = graphics3d._process_viewing_options(kwds)
         self._graphics.append(graphics3d)
-        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':jsonify(kwds.get('wireframe'))})
+        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':jsonable(kwds.get('wireframe'))})
         if self._frame:
             self.set_frame()  # update the frame
 
@@ -88,9 +88,10 @@ def show_3d_plot_using_threejs(g, **kwds):
 import sage.plot.plot3d.index_face_set
 import sage.plot.plot3d.shapes
 import sage.plot.plot3d.base
+import sage.plot.plot3d.shapes2
 from sage.structure.element import Element
 
-def jsonify(x):
+def jsonable(x):
     if isinstance(x, Element):
         return float(x)
     return x
@@ -281,7 +282,7 @@ def graphics3d_to_jsonable(p):
         for e in ['wireframe', 'mesh']:
             v = p._extra_kwds.get(e, None)
             if v is not None:
-                myobj[e] = jsonify(v)
+                myobj[e] = jsonable(v)
         obj_list.append(myobj)
 
     def convert_text3d(p):
@@ -304,6 +305,13 @@ def graphics3d_to_jsonable(p):
                  'fontsize':fontsize}
         obj_list.append(myobj)
 
+    def convert_line(p):
+        obj_list.append({"type"       : "line",
+                         "points"     : p.points,
+                         "thickness"  : jsonable(p.thickness),
+                         "color"      : "#" + p.get_texture().hex_rgb(),
+                         "arrow_head" : bool(p.arrow_head)})
+
     def convert_combination(p):
         for x in p.all:
             handler(x)(x)
@@ -324,6 +332,10 @@ def graphics3d_to_jsonable(p):
             return convert_inner
         elif isinstance(p, sage.plot.plot3d.base.Graphics3dGroup):
             return convert_combination
+        elif isinstance(p, sage.plot.plot3d.shapes2.Line):
+            return convert_line
+        elif isinstance(p, sage.plot.plot3d.base.PrimitiveObject):
+            return convert_index_face_set
         else:
             raise NotImplementedError("unhandled type ", type(p))
 
