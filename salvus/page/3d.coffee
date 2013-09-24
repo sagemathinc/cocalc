@@ -37,7 +37,7 @@ class SalvusThreeJS
         @add_camera(distance:@opts.camera_distance)
 
         if @opts.trackball
-            setTimeout((()=>@set_trackball_controls()), 1000)
+            setTimeout((()=>@set_trackball_controls()), 100)
 
         if @opts.light
             @set_light()
@@ -47,6 +47,7 @@ class SalvusThreeJS
             return
         #setting up camera controls
         @controls = new THREE.TrackballControls(@camera, @renderer.domElement)
+        @render_scene(true)
 
     add_camera: (opts) =>
         opts = defaults opts,
@@ -238,7 +239,7 @@ class SalvusThreeJS
             obj       : required
             wireframe : false
 
-        create_mesh = (myobj)=>
+        add_obj_to_scene = (myobj)=>
             vertices = myobj.vertex_geometry
             for objects in [0..myobj.face_geometry.length-1]
                 face3 = myobj.face_geometry[objects].face3
@@ -269,14 +270,29 @@ class SalvusThreeJS
                         break
 
                 if opts.wireframe or myobj.wireframe
-                    c = myobj.material[mk].color
-                    material = new THREE.MeshBasicMaterial(wireframe:true, color:"rgb(#{c[0]*255},#{c[1]*255},#{c[2]*255})")
+                    if myobj.color
+                        color = myobj.color
+                    else
+                        c = myobj.material[mk].color
+                        color = "rgb(#{c[0]*255},#{c[1]*255},#{c[2]*255})"
+                    if typeof myobj.wireframe == 'number'
+                        line_width = myobj.wireframe
+                    else if typeof opts.wireframe == 'number'
+                        line_width = opts.wireframe
+                    else
+                        line_width = 1
+
+                    material = new THREE.MeshBasicMaterial
+                        wireframe          : true
+                        color              : color
+                        wireframeLinewidth : line_width
                 else
                     material =  new THREE.MeshPhongMaterial
                         shininess   : "1"
                         ambient     : 0x0ffff
                         wireframe   : false
                         transparent : myobj.material[mk].opacity < 1
+
                     material.color.setRGB(myobj.material[mk].color[0],
                                                 myobj.material[mk].color[1],myobj.material[mk].color[2])
                     material.ambient.setRGB(myobj.material[mk].ambient[mk],
@@ -290,8 +306,8 @@ class SalvusThreeJS
                 @scene.add(mesh)
 
         for o in opts.obj
-            switch o.id
-                when 2
+            switch o.type
+                when 'text'
                     @add_text
                         pos:o.pos
                         text:o.text
@@ -299,8 +315,12 @@ class SalvusThreeJS
                         fontsize:o.fontsize
                         fontface:o.fontface
                         constant_size:o.constant_size
-                when 3
-                    create_mesh(o)
+                when 'index_face_set'
+                    add_obj_to_scene(o)
+                    if o.mesh and not o.wireframe  # draw a wireframe mesh on top of the surface we just drew.
+                        o.color='#000000'
+                        o.wireframe = o.mesh
+                        add_obj_to_scene(o)
                 else
                     console.log("ERROR: no renderer for model number = #{o.id}")
                     return

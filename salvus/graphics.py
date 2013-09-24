@@ -43,7 +43,7 @@ class ThreeJS(object):
     def add(self, graphics3d, **kwds):
         kwds = graphics3d._process_viewing_options(kwds)
         self._graphics.append(graphics3d)
-        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':kwds.get('wireframe')})
+        self._call('add_3dgraphics_obj(obj)', obj={'obj':graphics3d_to_jsonable(graphics3d), 'wireframe':jsonify(kwds.get('wireframe'))})
         if self._frame:
             self.set_frame()  # update the frame
 
@@ -88,6 +88,12 @@ def show_3d_plot_using_threejs(g, **kwds):
 import sage.plot.plot3d.index_face_set
 import sage.plot.plot3d.shapes
 import sage.plot.plot3d.base
+from sage.structure.element import Element
+
+def jsonify(x):
+    if isinstance(x, Element):
+        return float(x)
+    return x
 
 def graphics3d_to_jsonable(p):
 
@@ -259,7 +265,6 @@ def graphics3d_to_jsonable(p):
         return all_material
 
     def convert_index_face_set(p):
-        id = 3
         face_geometry = parse_obj(p.obj())
         material = parse_mtl(p)
         vertex_geometry = []
@@ -272,13 +277,14 @@ def graphics3d_to_jsonable(p):
                         vertex_geometry.append(float(t))
                     except ValueError:
                         pass
-        myobj = {"face_geometry":face_geometry,"id":id,"vertex_geometry":vertex_geometry,"material":material}
-        if p._extra_kwds.get('wireframe'):
-            myobj['wireframe'] = True
+        myobj = {"face_geometry":face_geometry,"type":'index_face_set',"vertex_geometry":vertex_geometry,"material":material}
+        for e in ['wireframe', 'mesh']:
+            v = p._extra_kwds.get(e, None)
+            if v is not None:
+                myobj[e] = jsonify(v)
         obj_list.append(myobj)
 
     def convert_text3d(p):
-        id = 2
         text3d_sub_obj = p.all[0]
         text_content = text3d_sub_obj.string
         color = "#" + text3d_sub_obj.get_texture().hex_rgb()
@@ -289,7 +295,7 @@ def graphics3d_to_jsonable(p):
         fontface = str(extra_opts.get('fontface', 'Arial'))
         constant_size = bool(extra_opts.get('constant_size', True))
 
-        myobj = {"id":id,
+        myobj = {"type":"text",
                  "text":text_content,
                  "pos":list(p.bounding_box()[0]),
                  "color":color,
