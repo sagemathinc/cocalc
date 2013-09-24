@@ -157,6 +157,78 @@ class SalvusThreeJS
 
         @scene.add(particle)
 
+    add_obj: (myobj)=>
+        vertices = myobj.vertex_geometry
+        for objects in [0..myobj.face_geometry.length-1]
+            face3 = myobj.face_geometry[objects].face3
+            face4 = myobj.face_geometry[objects].face4
+            face5 = myobj.face_geometry[objects].face5
+            geometry = new THREE.Geometry()
+            geometry.vertices.push(new THREE.Vector3(vertices[i],
+            vertices[i+1],vertices[i+2])) for i in [0..(vertices.length-1)] by 3
+            geometry.faces.push(new THREE.Face4(face4[k]-1,face4[k+1]-1,face4[k+2]-1,
+            face4[k+3]-1)) for k in [0..(face4.length-1)] by 4
+            geometry.faces.push(new THREE.Face3(face3[k]-1,face3[k+1]-1,face3[k+2]-1)) for k in [0..(face3.length-1)] by 3
+            geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
+            face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
+            face5[k+3]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
+            face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+2]-1,face5[k+3]-1,
+            face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k+1]-1,face5[k+2]-1,face5[k+3]-1,
+            face5[k+4]-1))for k in [0..(face5.length-1)] by 5
+            geometry.mergeVertices()
+            geometry.computeCentroids()
+            geometry.computeFaceNormals()
+            #geometry.computeVertexNormals()
+            geometry.computeBoundingSphere()
+            #finding material key(mk)
+            name = myobj.face_geometry[objects].material_name
+            mk = 0
+            for item in [0..myobj.material.length-1]
+                if name == myobj.material[item].name
+                    mk = item
+                    break
+
+            if opts.wireframe or myobj.wireframe
+                if myobj.color
+                    color = myobj.color
+                else
+                    c = myobj.material[mk].color
+                    color = "rgb(#{c[0]*255},#{c[1]*255},#{c[2]*255})"
+                if typeof myobj.wireframe == 'number'
+                    line_width = myobj.wireframe
+                else if typeof opts.wireframe == 'number'
+                    line_width = opts.wireframe
+                else
+                    line_width = 1
+
+                material = new THREE.MeshBasicMaterial
+                    wireframe          : true
+                    color              : color
+                    wireframeLinewidth : line_width
+            else if not myobj.material[mk]?
+                console.log("BUG -- couldn't get material for ", myobj)
+                material = new THREE.MeshBasicMaterial
+                    wireframe : false
+                    color     : "#000000"
+            else
+                material =  new THREE.MeshPhongMaterial
+                    shininess   : "1"
+                    ambient     : 0x0ffff
+                    wireframe   : false
+                    transparent : myobj.material[mk].opacity < 1
+
+                material.color.setRGB(myobj.material[mk].color[0],
+                                            myobj.material[mk].color[1],myobj.material[mk].color[2])
+                material.ambient.setRGB(myobj.material[mk].ambient[mk],
+                                              myobj.material[mk].ambient[1],myobj.material[0].ambient[2])
+                material.specular.setRGB(myobj.material[mk].specular[0],
+                                               myobj.material[mk].specular[1],myobj.material[mk].specular[2])
+                material.opacity = myobj.material[mk].opacity
+
+            mesh = new THREE.Mesh(geometry, material)
+            mesh.position.set(0,0,0)
+            @scene.add(mesh)
+
     # always call this after adding things to the scene to make sure track
     # controls are sorted out, etc.   Set draw:false, if you don't want to
     # actually *see* a frame.
@@ -251,6 +323,38 @@ class SalvusThreeJS
             @controls.target = @_center
         @render_scene(true)
 
+    add_3dgraphics_obj: (opts) =>
+        opts = defaults opts,
+            obj       : required
+            wireframe : false
+
+        for o in opts.obj
+            switch o.type
+                when 'text'
+                    @add_text
+                        pos:o.pos
+                        text:o.text
+                        color:o.color
+                        fontsize:o.fontsize
+                        fontface:o.fontface
+                        constant_size:o.constant_size
+                when 'index_face_set'
+                    @add_obj(o)
+                    if o.mesh and not o.wireframe  # draw a wireframe mesh on top of the surface we just drew.
+                        o.color='#000000'
+                        o.wireframe = o.mesh
+                        @add_obje(o)
+                when 'line'
+                    delete o.type
+                    @add_line(o)
+                when 'point'
+                    delete o.type
+                    @add_point(o)
+                else
+                    console.log("ERROR: no renderer for model number = #{o.id}")
+                    return
+        @render_scene(true)
+
     animate: (opts={}) =>
         opts = defaults opts,
             fps  : undefined
@@ -312,110 +416,6 @@ class SalvusThreeJS
                     sprite.scale.set(s,s,s)
 
         @renderer.render(@scene, @camera)
-
-    add_3dgraphics_obj: (opts) =>
-        opts = defaults opts,
-            obj       : required
-            wireframe : false
-
-        add_obj_to_scene = (myobj)=>
-            vertices = myobj.vertex_geometry
-            for objects in [0..myobj.face_geometry.length-1]
-                face3 = myobj.face_geometry[objects].face3
-                face4 = myobj.face_geometry[objects].face4
-                face5 = myobj.face_geometry[objects].face5
-                geometry = new THREE.Geometry()
-                geometry.vertices.push(new THREE.Vector3(vertices[i],
-                vertices[i+1],vertices[i+2])) for i in [0..(vertices.length-1)] by 3
-                geometry.faces.push(new THREE.Face4(face4[k]-1,face4[k+1]-1,face4[k+2]-1,
-                face4[k+3]-1)) for k in [0..(face4.length-1)] by 4
-                geometry.faces.push(new THREE.Face3(face3[k]-1,face3[k+1]-1,face3[k+2]-1)) for k in [0..(face3.length-1)] by 3
-                geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
-                face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
-                face5[k+3]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+1]-1,face5[k+2]-1,
-                face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k]-1,face5[k+2]-1,face5[k+3]-1,
-                face5[k+4]-1)) + geometry.faces.push(new THREE.Face4(face5[k+1]-1,face5[k+2]-1,face5[k+3]-1,
-                face5[k+4]-1))for k in [0..(face5.length-1)] by 5
-                geometry.mergeVertices()
-                geometry.computeCentroids()
-                geometry.computeFaceNormals()
-                #geometry.computeVertexNormals()
-                geometry.computeBoundingSphere()
-                #finding material key(mk)
-                name = myobj.face_geometry[objects].material_name
-                mk = 0
-                for item in [0..myobj.material.length-1]
-                    if name == myobj.material[item].name
-                        mk = item
-                        break
-
-                if opts.wireframe or myobj.wireframe
-                    if myobj.color
-                        color = myobj.color
-                    else
-                        c = myobj.material[mk].color
-                        color = "rgb(#{c[0]*255},#{c[1]*255},#{c[2]*255})"
-                    if typeof myobj.wireframe == 'number'
-                        line_width = myobj.wireframe
-                    else if typeof opts.wireframe == 'number'
-                        line_width = opts.wireframe
-                    else
-                        line_width = 1
-
-                    material = new THREE.MeshBasicMaterial
-                        wireframe          : true
-                        color              : color
-                        wireframeLinewidth : line_width
-                else if not myobj.material[mk]?
-                    console.log("BUG -- couldn't get material for ", myobj)
-                    material = new THREE.MeshBasicMaterial
-                        wireframe : false
-                        color     : "#000000"
-                else
-                    material =  new THREE.MeshPhongMaterial
-                        shininess   : "1"
-                        ambient     : 0x0ffff
-                        wireframe   : false
-                        transparent : myobj.material[mk].opacity < 1
-
-                    material.color.setRGB(myobj.material[mk].color[0],
-                                                myobj.material[mk].color[1],myobj.material[mk].color[2])
-                    material.ambient.setRGB(myobj.material[mk].ambient[mk],
-                                                  myobj.material[mk].ambient[1],myobj.material[0].ambient[2])
-                    material.specular.setRGB(myobj.material[mk].specular[0],
-                                                   myobj.material[mk].specular[1],myobj.material[mk].specular[2])
-                    material.opacity = myobj.material[mk].opacity
-
-                mesh = new THREE.Mesh(geometry, material)
-                mesh.position.set(0,0,0)
-                @scene.add(mesh)
-
-        for o in opts.obj
-            switch o.type
-                when 'text'
-                    @add_text
-                        pos:o.pos
-                        text:o.text
-                        color:o.color
-                        fontsize:o.fontsize
-                        fontface:o.fontface
-                        constant_size:o.constant_size
-                when 'index_face_set'
-                    add_obj_to_scene(o)
-                    if o.mesh and not o.wireframe  # draw a wireframe mesh on top of the surface we just drew.
-                        o.color='#000000'
-                        o.wireframe = o.mesh
-                        add_obj_to_scene(o)
-                when 'line'
-                    delete o.type
-                    @add_line(o)
-                when 'point'
-                    delete o.type
-                    @add_point(o)
-                else
-                    console.log("ERROR: no renderer for model number = #{o.id}")
-                    return
-        @render_scene(true)
 
 $.fn.salvus_threejs = (opts={}) ->
     @each () ->
