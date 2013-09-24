@@ -1,16 +1,27 @@
 {defaults, required} = require('misc')
 
+component_to_hex = (c) ->
+    hex = c.toString(16);
+    if hex.length == 1
+        return "0" + hex
+    else
+        return hex
+
+rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + component_to_hex(b)
+
 class SalvusThreeJS
     constructor: (opts) ->
         @opts = defaults opts,
-            element  : required
-            width    : undefined
-            height   : undefined
-            renderer : undefined  # 'webgl', 'canvas2d', or undefined = "webgl if available; otherwise, canvas2d"
-            trackball: true
-            light    : true
-
+            element         : required
+            width           : undefined
+            height          : undefined
+            renderer        : undefined  # 'webgl', 'canvas2d', or undefined = "webgl if available; otherwise, canvas2d"
+            trackball       : true
+            light           : true
+            background      : undefined
+            foreground      : undefined
             camera_distance : 10
+
 
         @scene = new THREE.Scene()
         @opts.width  = if opts.width? then opts.width else $(window).width()*.9
@@ -33,8 +44,19 @@ class SalvusThreeJS
 
         @renderer.setSize(@opts.width, @opts.height)
 
+        if not @opts.background?
+            @opts.background = "rgba(0,0,0,0)" # transparent -- looks better with themes
+            if not @opts.foreground?
+                @opts.foreground = "#000000" # black
+
         # Placing renderer in the DOM.
-        @opts.element.find(".salvus-3d-canvas").append($(@renderer.domElement))
+        @opts.element.find(".salvus-3d-canvas").css('background':@opts.background).append($(@renderer.domElement))
+
+        if not @opts.foreground?
+            c = @opts.element.find(".salvus-3d-canvas").css('background')
+            i = c.indexOf(')')
+            z = (255-parseInt(a) for a in c.slice(4,i).split(','))
+            @opts.foreground = rgb_to_hex(z[0], z[1], z[2])
 
         @add_camera(distance:@opts.camera_distance)
 
@@ -240,7 +262,7 @@ class SalvusThreeJS
             ymax : required
             zmin : required
             zmax : required
-            color : 'grey'
+            color     : @opts.foreground
             thickness : .4
             labels    : true  # whether to draw three numerical labels along each of the x, y, and z axes.
             fontsize  : 14
@@ -293,7 +315,7 @@ class SalvusThreeJS
                 return (z*1).toString()
 
             txt = (x,y,z,text) =>
-                @_frame_labels.push(@add_text(pos:[x,y,z], text:text, fontsize:o.fontsize, constant_size:false))
+                @_frame_labels.push(@add_text(pos:[x,y,z], text:text, fontsize:o.fontsize, color:o.color, constant_size:false))
 
             offset = 0.075
             mx = (o.xmin+o.xmax)/2
@@ -343,7 +365,7 @@ class SalvusThreeJS
                     if o.mesh and not o.wireframe  # draw a wireframe mesh on top of the surface we just drew.
                         o.color='#000000'
                         o.wireframe = o.mesh
-                        @add_obje(o)
+                        @add_obj(o)
                 when 'line'
                     delete o.type
                     @add_line(o)

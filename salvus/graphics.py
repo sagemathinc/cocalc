@@ -13,7 +13,7 @@ noneint = lambda n : n if n is None else int(n)
 
 class ThreeJS(object):
     def __init__(self, renderer=None, width=None, height=None,
-                 frame=True, camera_distance=10.0, **ignored):
+                 frame=True, camera_distance=10.0, background=None, foreground=None, **ignored):
         """
         INPUT:
 
@@ -22,6 +22,9 @@ class ThreeJS(object):
         - height   -- None (automatic) or an integer
         - frame    -- bool (default: True); draw a frame that includes every object.
         - camera_distance -- float (default: 10); default camera distance.
+        - background -- None (transparent); otherwise a color such as 'black' or 'white'
+        - foreground -- None (automatic = black if transparent; otherwise opposite of background);
+           or a color; this is used for drawing the frame and axes labels.
         """
         self._frame    = frame
         self._salvus   = sage_salvus.salvus  # object for this cell
@@ -30,9 +33,13 @@ class ThreeJS(object):
         self._obj      = "%s.data('salvus-threejs')"%self._selector
         self._salvus.html("<div id=%s style='border:1px solid grey'></div>"%self._id)
         self._salvus.javascript("%s.salvus_threejs(obj)"%self._selector, once=False,
-                                obj={'renderer':renderer, 'width':noneint(width),
+                                obj={'renderer':renderer,
+                                     'width':noneint(width),
                                      'height':noneint(height),
-                                     'camera_distance':float(camera_distance)})
+                                     'camera_distance':float(camera_distance),
+                                     'background':background,
+                                     'foreground':foreground
+                                     })
         self._graphics = []
 
     def _call(self, s, obj=None):
@@ -58,7 +65,7 @@ class ThreeJS(object):
     def animate(self, fps=None, stop=None, mouseover=True):
         self._call('animate(obj)', obj={'fps':noneint(fps), 'stop':stop, 'mouseover':mouseover})
 
-    def set_frame(self, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, color='grey', draw=True):
+    def set_frame(self, xmin=None, xmax=None, ymin=None, ymax=None, zmin=None, zmax=None, color=None, draw=True):
         if not self._graphics:
             xmin, xmax, ymin, ymax, zmin, zmax = -1,1,-1,1,-1,1
         else:
