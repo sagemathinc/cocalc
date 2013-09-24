@@ -280,9 +280,10 @@ def graphics3d_to_jsonable(p):
                         pass
         myobj = {"face_geometry":face_geometry,"type":'index_face_set',"vertex_geometry":vertex_geometry,"material":material}
         for e in ['wireframe', 'mesh']:
-            v = p._extra_kwds.get(e, None)
-            if v is not None:
-                myobj[e] = jsonable(v)
+            if p._extra_kwds is not None:
+                v = p._extra_kwds.get(e, None)
+                if v is not None:
+                    myobj[e] = jsonable(v)
         obj_list.append(myobj)
 
     def convert_text3d(p):
