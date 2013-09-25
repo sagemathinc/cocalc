@@ -3044,7 +3044,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     bash    : false
                     path    : SALVUS_HOME
                     cb      : (err, out) =>
-                        and @project.local_hub? if err
+                        if err
                             cb(err)
                         else
                             output += out.stdout + '\n' + out.stderr
