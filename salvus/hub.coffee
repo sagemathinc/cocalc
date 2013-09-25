@@ -2481,6 +2481,7 @@ new_local_hub = (opts) ->    # cb(err, hub)
         username : required
         host     : required
         port     : 22
+        project  : undefined
         cb       : required
     hash = "#{opts.username}@#{opts.host} -p#{opts.port}"
     H = _local_hub_cache[hash]   # memory leak issues?
@@ -2489,7 +2490,7 @@ new_local_hub = (opts) ->    # cb(err, hub)
         opts.cb(false, H)
     else
         start_time = misc.walltime()
-        H = new LocalHub(opts.username, opts.host, opts.port, (err) ->
+        H = new LocalHub(opts.username, opts.host, opts.port, opts.project, (err) ->
                    winston.debug("new_local_hub creation: time= #{misc.walltime() - start_time}")
                    if not err
                       _local_hub_cache[hash] = H
@@ -2497,7 +2498,7 @@ new_local_hub = (opts) ->    # cb(err, hub)
             )
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@username, @host, @port, cb) ->
+    constructor: (@username, @host, @port, @project, cb) ->  # NOTE @project may be undefined.
         winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
         assert @username? and @host? and @port? and cb?
         @address = "#{username}@#{host}"
@@ -2564,9 +2565,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
                 # MUST be here, since _restart_lock prevents _exec_on_local_hub!
                 @_restart_lock = true
+
+
         ], (err) =>
             winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
+            if not err and @project? and @project.local_hub?
+                # This deals with VERY RARE case where user of project somehow deleted
+                # the info.json file...
+                @project.write_info_json(cb)
+
             if created_remote_lock
                 snap.remove_lock
                     location : location
@@ -3036,7 +3044,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     bash    : false
                     path    : SALVUS_HOME
                     cb      : (err, out) =>
-                        if err
+                        and @project.local_hub? if err
                             cb(err)
                         else
                             output += out.stdout + '\n' + out.stderr
@@ -3386,6 +3394,7 @@ class Project
                     username : @location.username
                     host     : @location.host
                     port     : @location.port
+                    project  : @
                     cb       : (err, hub) =>
                         if err
                             cb(err)
@@ -3395,12 +3404,15 @@ class Project
             # Write the project id to the local hub unix account, since it is useful to
             # have there (for various services).
             (cb) =>
-                @write_file
-                    path : ".sagemathcloud/info.json"
-                    project_id : @project_id
-                    data       : misc.to_json(project_id:@project_id, location:@location)
-                    cb         : cb
+                @write_info_json(cb)
         ], (err) => cb(err, @))
+
+    write_info_json: (cb) =>
+        @write_file
+            path       : ".sagemathcloud/info.json"
+            project_id : @project_id
+            data       : misc.to_json(project_id:@project_id, location:@location)
+            cb         : cb
 
     _fixpath: (obj) =>
         if obj?

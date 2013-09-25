@@ -1628,9 +1628,21 @@ start_tcp_server = (cb) ->
 
 start_raw_server = (cb) ->
     # It's fine to move these lines to the outer scope... when they are needed there.
-    info = fs.readFileSync('.sagemathcloud/info.json')
-    winston.debug("info = #{info}")
-    info = JSON.parse(info)
+    try
+        info = fs.readFileSync('.sagemathcloud/info.json')
+        winston.debug("info = #{info}")
+        info = JSON.parse(info)
+    catch e
+        winston.debug("Missing or corrupt info.json file -- waiting for a new one. #{e}")
+        # There is really nothing the local hub can do if the info.json file is missing
+        # or corrupt, except to wait for a global hub to copy over a new good version.
+        # A global hub should do this on local hub restart or project connection...
+        # Try again soon.
+        f = () ->
+            start_raw_server(()->)
+        setTimeout(f, 1000)
+        cb() # no error, since other stuff needs to happen
+        return
 
     express = require('express')
     raw_server = express()
