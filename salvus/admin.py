@@ -1025,10 +1025,10 @@ class Hosts(object):
         return self(hostname, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, hostname, pkg_name, timeout=250):
-        return self(hostname, 'cd $HOME/salvus/salvus && . salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+        return self(hostname, 'cd $HOME/salvus/salvus && . ./salvus-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
     def python_c(self, hostname, cmd, timeout=30, sudo=False, wait=True):
-        command = 'cd \"$HOME/salvus/salvus\" && . salvus-env && python -c "%s"'%cmd
+        command = 'cd \"$HOME/salvus/salvus\" && . ./salvus-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
         return self(hostname, command, sudo=sudo, timeout=timeout, wait=wait)
 

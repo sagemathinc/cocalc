@@ -1184,23 +1184,70 @@ class HTML:
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
 
-def coffeescript(s):
+def coffeescript(s=None, once=True):
     """
     Execute code using CoffeeScript.
 
+    For example:
+
+         %coffeescript console.log 'hi'
+
+    or
+
+         coffeescript("console.log 'hi'")
+
     You may either pass in a string or use this as a cell decorator,
     i.e., put %coffeescript at the top of a cell.
-    """
-    return salvus.coffeescript(s)
 
-def javascript(s):
+    If you set once=False, the code will be executed every time the output of the cell is rendered, e.g.,
+    on load, like with %auto::
+
+         coffeescript('console.log("hi")', once=False)
+
+    or
+
+         %coffeescript(once=False)
+         console.log("hi")
+
+    """
+    if s is None:
+        return lambda s : salvus.javascript(s, once=once, coffeescript=True)
+    else:
+        return salvus.javascript(s, coffeescript=True)
+
+def javascript(s=None, once=True):
     """
     Execute code using JavaScript.
 
+    For example:
+
+         %javascript console.log('hi')
+
+    or
+
+         javascript("console.log('hi')")
+
+
     You may either pass in a string or use this as a cell decorator,
     i.e., put %javascript at the top of a cell.
+
+    If you set once=False, the code will be executed every time the output of the cell is rendered, e.g.,
+    on load, like with %auto::
+
+         javascript('.. some code ', once=False)
+
+    or
+
+         %javascript(once=False)
+         ... some code
+
+    WARNING: If once=True, then this code is likely to get executed *before* the rest
+    of the output for this cell has been rendered by the client.
     """
-    return salvus.javascript(s)
+    if s is None:
+        return lambda s : salvus.javascript(s, once=once)
+    else:
+        return salvus.javascript(s)
 
 javascript_exec_doc = r"""
 

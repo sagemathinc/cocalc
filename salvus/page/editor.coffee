@@ -32,6 +32,7 @@ codemirror_associations =
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
+    dtd    : 'application/xml-dtd'
     ecl    : 'ecl'
     f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
     f90    : 'text/x-fortran'
@@ -41,6 +42,7 @@ codemirror_associations =
     java   : 'text/x-java'
     js     : 'javascript'
     lua    : 'lua'
+    m      : 'text/x-octave'
     md     : 'markdown'
     patch  : 'text/x-diff'
 
@@ -62,6 +64,7 @@ codemirror_associations =
     sql    : 'mysql'
     txt    : 'text'
     tex    : 'stex'
+    toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
     xml    : 'xml'
@@ -1018,6 +1021,7 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
+        @element.data('editor', @)
 
         @init_save_button()
         @init_edit_buttons()
@@ -1129,6 +1133,12 @@ class CodeMirrorEditor extends FileEditor
         @_split_view = false
 
         @init_change_event()
+
+    set_theme: (theme) =>
+        # Change the editor theme after the editor has been created
+        @codemirror.setOption('theme', theme)
+        @codemirror1.setOption('theme', theme)
+        @opts.theme = theme
 
     set_cursor_center_focus: (pos) =>
         cm = @codemirror_with_last_focus

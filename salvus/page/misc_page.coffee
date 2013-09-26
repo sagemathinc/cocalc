@@ -176,6 +176,11 @@ $.fn.icon_spin = (start) ->
             f = () ->
                 if elt.find("i.icon-spinner").length == 0  # icon-spin
                     elt.append("<i class=' icon-spinner' style='margin-left:1em'> </i>")
+                    # do not do this on Chrome, where it is TOTALLY BROKEN in that it uses tons of CPU
+                    # (and the font-awesome people can't work around it):
+                    #    https://github.com/FortAwesome/Font-Awesome/issues/701
+                    if not $.browser.chrome
+                        elt.find("i.icon-spinner").addClass('icon-spin')
             if delay
                 elt.data('icon-spin', setTimeout(f, delay))
             else

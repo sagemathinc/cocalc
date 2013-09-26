@@ -1288,6 +1288,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         @refresh_soon()
 
+    _receive_broadcast: (mesg) =>
+        switch mesg.mesg.event
+            when 'execute_javascript'
+                if @editor.opts.allow_javascript_eval
+                    mesg = mesg.mesg
+                    (() =>
+                         worksheet = new Worksheet(@)
+                         cell      = new Cell(cell_id : mesg.cell_id)
+                         code = mesg.code
+                         if mesg.coffeescript
+                             code = CoffeeScript.compile(code)
+                         obj = JSON.parse(mesg.obj)
+                         eval(code)
+                    )()
+
+
     mark_cell_start: (line) =>
         # Assuming the proper text is in the document for a new cell at this line,
         # mark it as such. This hides control codes and places a cell separation
@@ -1615,12 +1631,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
 class Cell
     constructor : (opts) ->
-        opts = defaults opts,
-            output : required # jquery wrapped output area
-            #cell_mark   : required # where cell starts
+        @opts = defaults opts,
+            output  : undefined # jquery wrapped output area
+            cell_id : undefined
 
 class Worksheet
-
     constructor : (@worksheet) ->
         @project_page = @worksheet.editor.editor.project_page
         @editor = @worksheet.editor.editor

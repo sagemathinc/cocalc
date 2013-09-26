@@ -288,6 +288,8 @@ plug = (s1, s2) ->
     s2.on 'data', (data) ->
         s1.write(data)
 
+## WARNING!  I think this is no longer used!  It was used for my first (few)
+## approaches to worksheets.
 
 class SageSessions
     constructor: () ->
@@ -658,7 +660,7 @@ class CodeMirrorSession
 
         # Ensure that no cells appear to be running.  This is important
         # because the worksheet file that we just loaded could have had some
-        # markup that cells cells are running.
+        # markup that cells are running.
         @sage_update(kill:true)
 
         # Connect to the local Sage server.
@@ -708,6 +710,8 @@ class CodeMirrorSession
 
 
                         when 'json'
+                            # First check for callbacks (e.g., used in interact and things where the
+                            # browser directly asks to evaluate code in this session).
                             c = @_sage_output_cb[mesg.id]
                             if c?
                                 c(mesg)
@@ -715,6 +719,18 @@ class CodeMirrorSession
                                     delete @_sage_output_cb[mesg.id]
                                 return
 
+                            # Handle code execution in browser messages
+                            if mesg.event == 'execute_javascript'
+                                # winston.debug("got execute_javascript message from sage session #{json(mesg)}")
+                                # Wrap and forward it on as a broadcast message.
+                                mesg.session_uuid = @session_uuid
+                                bcast = message.codemirror_bcast
+                                    session_uuid : @session_uuid
+                                    mesg         : mesg
+                                @client_bcast(undefined, bcast)
+                                return
+
+                            # Finally, handle output messages
                             m = {}
                             for x, y of mesg
                                 if x != 'id' and x != 'event'  # the event is always "output"
@@ -723,12 +739,16 @@ class CodeMirrorSession
                                             m[x] = y
                                     else
                                         m[x] = y
-                            winston.debug("sage --> local_hub: '#{json(mesg)}'")
+
+                            #winston.debug("sage --> local_hub: '#{json(mesg)}'")
+
+                            before = @content
                             @sage_output_mesg(mesg.id, m)
-                            @set_content(@content)
-                            # Suggest to all connected clients to sync.
-                            for id, ds_client of @diffsync_clients
-                                ds_client.remote.sync_ready()
+                            if before != @content
+                                @set_content(@content)
+                                # Suggest to all connected clients to sync.
+                                for id, ds_client of @diffsync_clients
+                                    ds_client.remote.sync_ready()
 
                 # Submit all auto cells to be evaluated.
                 @sage_update(auto:true)
@@ -917,6 +937,21 @@ class CodeMirrorSession
         if misc.is_empty_object(mesg)
             return
 
+        if mesg.once? and mesg.once
+            # only javascript is define  once=True
+            if mesg.javascript?
+                msg = message.execute_javascript
+                    session_uuid : @session_uuid
+                    code         : mesg.javascript.code
+                    coffeescript : mesg.javascript.coffeescript
+                    obj          : mesg.obj
+                    cell_id      : cell_id
+                bcast = message.codemirror_bcast
+                    session_uuid : @session_uuid
+                    mesg         : msg
+                @client_bcast(undefined, bcast)
+                return  # once = do *not* want to record this message in the output stream.
+
         i = @content.indexOf(diffsync.MARKERS.output + output_id)
         if i == -1
             # no such output cell anymore -- ignore (?) -- or we could make such a cell...?
@@ -1053,10 +1088,10 @@ class CodeMirrorSession
         winston.debug("client_bcast: #{json(mesg)}")
 
         # Forward this message on to all global hubs except the
-        # one that just sent it to us.
+        # one that just sent it to us...
         for id, ds_client of @diffsync_clients
-            if socket.id != id
-                winston.debug("BROADCAST: sending message from hub with socket.id=#{socket.id} to hub with socket.id = #{id}")
+            if socket?.id != id
+                #winston.debug("BROADCAST: sending message from hub with socket.id=#{socket?.id} to hub with socket.id = #{id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
     client_diffsync: (socket, mesg) =>
@@ -1593,9 +1628,21 @@ start_tcp_server = (cb) ->
 
 start_raw_server = (cb) ->
     # It's fine to move these lines to the outer scope... when they are needed there.
-    info = fs.readFileSync('.sagemathcloud/info.json')
-    winston.debug("info = #{info}")
-    info = JSON.parse(info)
+    try
+        info = fs.readFileSync('.sagemathcloud/info.json')
+        winston.debug("info = #{info}")
+        info = JSON.parse(info)
+    catch e
+        winston.debug("Missing or corrupt info.json file -- waiting for a new one. #{e}")
+        # There is really nothing the local hub can do if the info.json file is missing
+        # or corrupt, except to wait for a global hub to copy over a new good version.
+        # A global hub should do this on local hub restart or project connection...
+        # Try again soon.
+        f = () ->
+            start_raw_server(()->)
+        setTimeout(f, 1000)
+        cb() # no error, since other stuff needs to happen
+        return
 
     express = require('express')
     raw_server = express()

@@ -155,7 +155,7 @@ class Message(object):
     def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def execute_javascript(self, code, data=None, coffeescript=False):
+    def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
     def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
@@ -471,7 +471,7 @@ class Salvus(object):
     #def open_project(self, project_id):
     #def close_project(self, project_id):
 
-    def file(self, filename, show=True, done=False, download=False, once=None, events=None):
+    def file(self, filename, show=True, done=False, download=False, once=False, events=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
@@ -748,7 +748,7 @@ class Salvus(object):
             id=self._id, done=done, once=once))
         return sage_salvus.InteractFunction(I)
 
-    def javascript(self, code, once=True, coffeescript=False, done=False, obj=None):
+    def javascript(self, code, once=False, coffeescript=False, done=False, obj=None):
         """
         Execute the given Javascript code as part of the output
         stream.  This same code will be executed (at exactly this
@@ -760,11 +760,13 @@ class Salvus(object):
         INPUT:
 
         - code -- a string
-        - once -- boolean (default: True); if True the Javascript is
+        - once -- boolean (default: FAlse); if True the Javascript is
           only executed once, not every time the cell is loaded. This
           is what you would use if you call salvus.stdout, etc.  Use
           once=False, e.g., if you are using javascript to make a DOM
-          element draggable (say).
+          element draggable (say).  WARNING: If once=True, then the
+          javascript is likely to get executed before other output to
+          a given cell is even rendered.
         - coffeescript -- boolean (default: False); if True, the input
           code is first converted from CoffeeScript to Javascript.
 
@@ -780,7 +782,6 @@ class Salvus(object):
         if obj is None:
             obj = {}
         self._conn.send_json(message.output(javascript={'code':code, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj, once=once))
-        return self
 
     def coffeescript(self, *args, **kwds):
         """
@@ -789,7 +790,7 @@ class Salvus(object):
         See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
-        return self.javascript(*args, **kwds)
+        self.javascript(*args, **kwds)
 
     def _check_component(self, component):
         if component not in ['input', 'output']:
@@ -816,7 +817,7 @@ class Salvus(object):
         """
         self._conn.send_json(message.output(self._id, auto=state))
 
-    def notify(self, once=None, **kwds):
+    def notify(self, **kwds):
         """
         Display a graphical notification using the pnotify Javascript library.
 
@@ -854,18 +855,19 @@ class Salvus(object):
         obj = {}
         for k, v in kwds.iteritems():
             obj[k] = sage_salvus.jsonable(v)
-        self.javascript("$.pnotify(obj)", once=once, obj=obj)
+        self.javascript("$.pnotify(obj)", once=True, obj=obj)
 
-    def execute_javascript(self, code, coffeescript=False, data=None):
+    def execute_javascript(self, code, coffeescript=False, obj=None):
         """
         Tell the browser to execute javascript.  Basically the same as
         salvus.javascript with once=True (the default), except this
-        isn't tied to a particular cell.
+        isn't tied to a particular cell.  There is a worksheet object
+        defined in the scope of the evaluation.
 
         See the docs for the top-level javascript function for more details.
         """
-        self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, data=data))
-        return self
+        self._conn.send_json(message.execute_javascript(code,
+            coffeescript=coffeescript, obj=json.dumps(obj,separators=(',', ':'))))
 
     def execute_coffeescript(self, *args, **kwds):
         """
@@ -874,7 +876,7 @@ class Salvus(object):
         See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
-        return self.execute_javascript(*args, **kwds)
+        self.execute_javascript(*args, **kwds)
 
     def _cython(self, filename, **opts):
         """
