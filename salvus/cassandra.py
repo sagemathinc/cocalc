@@ -138,6 +138,7 @@ def init_salvus_schema(keyspace=None):
     for s in open('db_schema.cql').read().split('CREATE'):
         if s:
             cql = "CREATE " + s
+            print cql
             try:
                 cursor.execute(cql)
             except Exception, msg:
