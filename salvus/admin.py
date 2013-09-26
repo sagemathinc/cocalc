@@ -600,11 +600,26 @@ class Compute(Process):
 # environ variable for conf/ dir:  CASSANDRA_CONF
 
 class Cassandra(Process):
-    def __init__(self, topology=None, path=None, id=0, monitor_database=None, conf_template_path=None, **kwds):
+    def __init__(self, topology=None, path=None, id=0, monitor_database=None, conf_template_path=None,
+                 MAX_HEAP_SIZE=None,  HEAP_NEWSIZE=None,
+                 **kwds):
         """
         id -- arbitrary identifier
         conf_template_path -- path that contains the initial conf files
+
+        MAX_HEAP_SIZE, HEAP_NEWSIZE -- use these if your computer has a lot of memory,
+        but you don't want to devote very
+ much to cassandra; if you don't constrain it
+        this way, Cassandra uses its own internal memory.  E.g., on a large-memory
+        machine with strong per-user limits, use
+                MAX_HEAP_SIZE="4G",  HEAP_NEWSIZE="800M"
         """
+        
+        if MAX_HEAP_SIZE is not None:
+            os.environ['MAX_HEAP_SIZE'] = MAX_HEAP_SIZE
+        if HEAP_NEWSIZE is not None:
+            os.environ['HEAP_NEWSIZE'] = HEAP_NEWSIZE
+
         cassandra_install = os.path.join(DATA, 'local', 'cassandra')
         if conf_template_path is None:
             conf_template_path = os.path.join(cassandra_install, 'conf')
