@@ -121,6 +121,8 @@ init_http_server = () ->
 
         {query, pathname} = url.parse(req.url, true)
 
+        pathname = pathname.slice(program.base_url.length)
+
         if pathname != '/alive'
             winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
 
@@ -420,6 +422,7 @@ init_http_proxy_server = () =>
             )
 
     http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+        req.url = req.url.slice(program.base_url.length)
         if req.url == "/alive"
             res.end('')
             return
@@ -5041,6 +5044,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or starts with /
     .parse(process.argv)
 
 console.log(program._name)

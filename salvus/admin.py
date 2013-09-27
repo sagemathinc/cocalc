@@ -440,7 +440,8 @@ class Haproxy(Process):
                  hub_servers=None, # list of ip addresses
                  proxy_servers=None, # list of ip addresses
                  monitor_database=None,
-                 conf_file='conf/haproxy.conf'):
+                 conf_file='conf/haproxy.conf',
+                 base_url=''):
 
         pidfile = os.path.join(PIDS, 'haproxy-%s.pid'%id)
         logfile = os.path.join(LOGS, 'haproxy-%s.log'%id)
@@ -482,7 +483,8 @@ frontend unsecured *:$port
             nginx_servers         = nginx_servers,
             hub_servers           = hub_servers,
             proxy_servers         = proxy_servers,
-            insecure_redirect     = insecure_redirect
+            insecure_redirect     = insecure_redirect,
+            base_url              = base_url
             )
 
         haproxy_conf = 'haproxy-%s.conf'%id
@@ -505,7 +507,7 @@ frontend unsecured *:$port
 class Hub(Process):
     def __init__(self, id=0, host='', port=HUB_PORT, proxy_port=HUB_PROXY_PORT,
                  monitor_database=None, keyspace='salvus', debug=False,
-                 logfile=None, pidfile=None):
+                 logfile=None, pidfile=None, base_url=None):
         self._port = port
         if pidfile is None:
             pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
@@ -514,6 +516,9 @@ class Hub(Process):
         extra = []
         if debug:
             extra.append('-g')
+        if base_url:
+            extra.append('--base_url')
+            extra.append(base_url)
         Process.__init__(self, id, name='hub', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
