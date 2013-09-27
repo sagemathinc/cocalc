@@ -614,7 +614,7 @@ class Cassandra(Process):
         machine with strong per-user limits, use
                 MAX_HEAP_SIZE="4G",  HEAP_NEWSIZE="800M"
         """
-        
+
         if MAX_HEAP_SIZE is not None:
             os.environ['MAX_HEAP_SIZE'] = MAX_HEAP_SIZE
         if HEAP_NEWSIZE is not None:
@@ -902,10 +902,15 @@ class Hosts(object):
     Defines a set of hosts on a network and provides convenient tools
     for running commands on them using ssh.
     """
-    def __init__(self, hosts_file, username=whoami):
+    def __init__(self, hosts_file, username=whoami, passwd=True):
+        """
+        - passwd -- if False, don't ask for a password; in this case nothing must require sudo to
+          run, and all logins must work using ssh with keys
+        """
         self._ssh = {}
         self._username = username
         self._password = None
+        self._passwd = passwd
         self._ip_addresses, self._canonical_hostnames = parse_hosts_file(hosts_file)
 
     def __getitem__(self, hostname):
@@ -931,6 +936,9 @@ class Hosts(object):
         return hostname in self._canonical_hostnames   # ok, since is dictionary mapping hostnames to canonical ones
 
     def password(self, retry=False):
+        if not self._passwd:
+            log.info("Explicitly skipping asking for password, due to passwd=False option.")
+            return self._password
         if self._password is None or retry:
             import getpass
             self._password = getpass.getpass("%s's password: "%self._username)
@@ -1005,6 +1013,9 @@ class Hosts(object):
         return result
 
     def _exec_command(self, command, hostname, sudo, timeout, wait):
+        if not self._passwd:
+            # never use sudo if self._passwd is false...
+            sudo = False
         start = time.time()
         ssh = self.ssh(hostname, timeout=timeout)
         import paramiko
@@ -1146,11 +1157,15 @@ class Hosts(object):
                 pass # file doesn't exist
 
 class Services(object):
-    def __init__(self, path, username=whoami, keyspace='salvus'):
+    def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
+        """
+        - passwd -- if False, don't ask for a password; in this case nothing must require sudo to
+          run, and all logins must work using ssh with keys
+        """
         self._keyspace = keyspace
         self._path = path
         self._username = username
-        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username)
+        self._hosts = Hosts(os.path.join(path, 'hosts'), username=username, passwd=passwd)
 
         try:
             self._cassandra = self._hosts['cassandra']
