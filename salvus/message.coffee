@@ -642,10 +642,12 @@ message
 #      hub --> client
 # In response, the client grabs "/cookies?id=...,set=...,get=..." via an AJAX call.
 # During that call the server can get/set HTTP-only cookies.
+# (Note that the /cookies url gets customized by base_url.)
 ######################################################################################
 message
     event       : 'cookies'
     id          : required
+    url         : "/cookies"
     set         : undefined  # name of a cookie to set
     get         : undefined  # name of a cookie to get
 

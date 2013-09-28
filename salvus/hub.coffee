@@ -192,7 +192,8 @@ init_http_server = () ->
                             # authenticate user
                             (cb) ->
                                 cookies = new Cookies(req, res)
-                                value = cookies.get('remember_me')
+                                # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
+                                value = cookies.get(program.base_url + 'remember_me')
                                 if not value?
                                     res.end('ERROR -- you must enable remember_me cookies')
                                     return
@@ -431,11 +432,11 @@ init_http_proxy_server = () =>
         buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         cookies = new Cookies(req, res)
-        remember_me = cookies.get('remember_me')
+        remember_me = cookies.get(program.base_url + 'remember_me')
 
         if not remember_me?
             res.writeHead(500, {'Content-Type':'text/html'})
-            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> and enable 'remember me' at the sign in screen, then refresh this page.")
+            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
             return
 
         target remember_me, req.url, (err, location) ->
@@ -503,7 +504,7 @@ class Client extends EventEmitter
 
     check_for_remember_me: () =>
         @get_cookie
-            name : 'remember_me'
+            name : program.base_url + 'remember_me'
             cb   : (value) =>
                 if value?
                     x    = value.split('$')
@@ -575,14 +576,15 @@ class Client extends EventEmitter
         @account_id = undefined
 
     #########################################################
-    # Setting and getting HTTPonly cookies via SockJS + AJAX
+    # Setting and getting HTTP-only cookies via SockJS + AJAX
     #########################################################
     get_cookie: (opts) ->
         opts = defaults opts,
             name : required
             cb   : required   # cb(value)
+        winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
 
     set_cookie: (opts) ->
         opts = defaults opts,
@@ -595,7 +597,7 @@ class Client extends EventEmitter
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @once("set_cookie-#{opts.name}", ()->opts.cb?())
         @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name))
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies"))
 
     remember_me: (opts) ->
         #############################################################
@@ -647,7 +649,7 @@ class Client extends EventEmitter
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @set_cookie
-            name  : 'remember_me'
+            name  : program.base_url + 'remember_me'
             value : [x[0], x[1], x[2], session_id].join('$')
             ttl   : ttl
 
