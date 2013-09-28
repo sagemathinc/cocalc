@@ -507,7 +507,7 @@ frontend unsecured *:$port
 class Hub(Process):
     def __init__(self, id=0, host='', port=HUB_PORT, proxy_port=HUB_PROXY_PORT,
                  monitor_database=None, keyspace='salvus', debug=False,
-                 logfile=None, pidfile=None, base_url=None):
+                 logfile=None, pidfile=None, base_url=None, local=False):
         self._port = port
         if pidfile is None:
             pidfile = os.path.join(PIDS, 'hub-%s.pid'%id)
@@ -529,6 +529,7 @@ class Hub(Process):
                                       '--keyspace', keyspace,
                                       '--host', host,
                                       '--database_nodes', monitor_database,
+                                      '--local', local,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile] + extra,
                          stop_cmd   = [os.path.join(PWD, 'hub'), 'stop', '--id', id],

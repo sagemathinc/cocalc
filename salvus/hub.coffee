@@ -3106,13 +3106,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     killall: (cb) =>
         winston.debug("kill all processes running on a local hub (including the local hub itself)")
+        if program.local
+            winston.debug("killall -- skipping since running with --local=true debug mode")
+            cb(); return
         @_exec_on_local_hub
             command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
             cb      : (err, out) =>
                 winston.debug("killall returned -- #{err}, #{misc.to_json(out)}")
-                # We explicitly ignore errors since killall kills self while at it.
+                # We explicitly ignore errors since killall kills self while at it, which results in an error code return.
                 cb()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
@@ -3940,6 +3943,12 @@ delete_unix_user = (opts) ->
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb          : required
+
+    if program.local
+        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
+        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
+        return
+
     cache = new_random_unix_user.cache
 
     if cache.length > 0
@@ -5045,7 +5054,9 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
-    .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or starts with /
+    .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
+    .option('--local [boolean]', '*All* projects run locally as the same user as the server -- for devel only (default: false)', Boolean, false)
+
     .parse(process.argv)
 
 console.log(program._name)

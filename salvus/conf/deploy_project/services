@@ -9,7 +9,7 @@ localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 [nginx] {'base_url':'/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/8389'}
 localhost
 
-[hub] {'base_url':'/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/8389', 'keyspace':'salvus'}
+[hub] {'base_url':'/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/8389', 'keyspace':'salvus', 'local':'true'}
 localhost {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 #localhost {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 #localhost {'id':'1', 'port':'5002', 'proxy_port':'5003'}
