@@ -58,9 +58,9 @@ exports.days_ago = (d) -> exports.hours_ago(24*d)
 PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
 
 
+# This is used in account creation right now, so has to be set.
+# It is actually not used in practice and the limits have no meaning. 
 DEFAULT_PLAN_ID = "13814000-1dd2-11b2-0000-fe8ebeead9df"
-
-
 exports.create_default_plan = (conn, cb) ->
     conn.cql("UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=#{DEFAULT_PLAN_ID}",[],cb)
 

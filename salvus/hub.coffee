@@ -124,7 +124,8 @@ init_http_server = () ->
         pathname = pathname.slice(program.base_url.length)
 
         if pathname != '/alive'
-            winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
+            winston.info("#{req.connection.remoteAddress} accessed #{req.url}")
+            winston.info("pathname='#{pathname}'")
 
         segments = pathname.split('/')
         switch segments[1]
@@ -200,7 +201,7 @@ init_http_server = () ->
                                 database.key_value_store(name: 'remember_me').get
                                     key : hash
                                     cb  : (err, signed_in_mesg) =>
-                                        if err
+                                        if err or not signed_in_mesg?
                                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
                                         account_id = signed_in_mesg.account_id
                                         if not account_id?
@@ -1980,7 +1981,7 @@ init_sockjs_server = () ->
     sockjs_server.on "connection", (conn) ->
         clients[conn.id] = new Client(conn)
 
-    sockjs_server.installHandlers(http_server, {prefix:'/hub'})
+    sockjs_server.installHandlers(http_server, {prefix : program.base_url + '/hub'})
 
 
     #######################################################

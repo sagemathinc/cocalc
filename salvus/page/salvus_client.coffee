@@ -2,7 +2,10 @@
 # connection to Salvus hub
 ############################################
 
-exports.salvus_client = salvus_client = require("client_browser").connect("#{window.location.protocol}//#{window.location.host}")
+if not window.salvus_base_url?
+    window.salvus_base_url = ""
+
+exports.salvus_client = salvus_client = require("client_browser").connect("#{window.location.protocol}//#{window.location.host}#{window.salvus_base_url}")
 
 salvus_client.on "connecting", () ->
     $("#connection_status").html("<font color='#a00'>connecting...</font>")

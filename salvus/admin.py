@@ -375,12 +375,12 @@ class Process(object):
 # Nginx
 ####################
 class Nginx(Process):
-    def __init__(self, id=0, port=NGINX_PORT, monitor_database=None):
+    def __init__(self, id=0, port=NGINX_PORT, monitor_database=None, base_url=""):
         log = 'nginx-%s.log'%id
         pid = 'nginx-%s.pid'%id
         nginx = 'nginx.conf'
         conf = Template(open(os.path.join(CONF, nginx)).read())
-        conf = conf.substitute(logfile=log, pidfile=pid, http_port=port)
+        conf = conf.substitute(logfile=log, pidfile=pid, http_port=port, base_url=base_url)
         nginx_conf = 'nginx-%s.conf'%id
         writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
         nginx_cmd = ['nginx', '-c', '../' + nginx_conf]

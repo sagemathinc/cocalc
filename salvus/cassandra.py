@@ -145,6 +145,8 @@ def init_salvus_schema(keyspace=None):
                 if 'already existing column family' not in str(msg) and 'Index already exists' not in str(msg):
                     print msg
                     print cql
+    # TODO: used right now for account creation, but not actually used or meaningful (it used to be a year ago...)
+    cursor.execute("UPDATE plans SET current=true, name='Free', session_limit=3, storage_limit=250, max_session_time=30, ram_limit=2000, support_level='None' WHERE plan_id=13814000-1dd2-11b2-0000-fe8ebeead9df")
 
 
 ##############################
