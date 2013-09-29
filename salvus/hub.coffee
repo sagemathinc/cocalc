@@ -3428,7 +3428,7 @@ class Project
         @write_file
             path       : "#{@SAGEMATHCLOUD}/info.json"
             project_id : @project_id
-            data       : misc.to_json(project_id:@project_id, location:@location)
+            data       : misc.to_json(project_id:@project_id, location:@location, base_url:program.base_url)
             cb         : cb
 
     _fixpath: (obj) =>
