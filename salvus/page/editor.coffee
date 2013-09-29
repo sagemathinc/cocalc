@@ -3183,6 +3183,13 @@ class IPythonNotebook extends FileEditor
             sync_interval : 500
             cursor_interval : 2000
         @element = templates.find(".salvus-ipython-notebook").clone()
+
+        if window.salvus_base_url != ""
+            # TODO: having a base_url doesn't imply necessarily that we're in a dangerous devel mode...
+            # (this is just a warning).
+            # The solutiion for this issue will be to set a password whenever ipython listens on localhost.
+            @element.find(".salvus-ipython-notebook-danger").show()
+
         @status_element = @element.find(".salvus-ipython-notebook-status-messages")
         @init_buttons()
         s = path_split(@filename)

@@ -41,8 +41,8 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 # Uncomment these 2 lines to set the log level to "debug" in order to see lots of
 # debugging output about what is happening:
-#winston.remove(winston.transports.Console)
-#winston.add(winston.transports.Console, level: 'debug')
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
 
 #####################################################################
 # Generate the "secret_token" file as
@@ -1656,8 +1656,8 @@ start_raw_server = (cb) ->
         if err
             winston.debug("error starting raw server: #{err}")
             cb(err); return
-        base = "/#{project_id}/raw/"
-        winston.info("raw server (port=#{port}) -- #{base}")
+        base = "#{info.base_url}/#{project_id}/raw/"
+        winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
         raw_server.configure () ->
             raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
             raw_server.use(base, express.static(process.env.HOME))

@@ -275,6 +275,7 @@
                                 <!-- The project id -->
                                 Project id:
                                 <span class="project-id"></span>
+                                <span class="hide salvus-project-id-warning">DANGER: When doing development of SMC inside an SMC project, the security of the raw http server and ipython server is via the project id; other users on the same VM that know the project id of your devel project both from the POV of SMC and of your local server, could get readonly access to your files (or read/write if you start an ipython server).</span>
                             </div>
                         </div>
                         <div class="row-fluid">

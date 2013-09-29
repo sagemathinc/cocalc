@@ -299,6 +299,13 @@
     font-family:monospace;
 }
 
+.salvus-project-id-warning {
+    color: white;
+    font-weight: bold;
+    font-size: 7pt;
+    background: red;
+}
+
 .project-location {
     color:#666;
     margin-right:2ex;

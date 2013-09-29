@@ -424,8 +424,8 @@ init_http_proxy_server = () =>
             )
 
     http_proxy_server = httpProxy.createServer (req, res, proxy) ->
-        req.url = req.url.slice(program.base_url.length)
-        if req.url == "/alive"
+        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        if req_url == "/alive"
             res.end('')
             return
 
@@ -439,13 +439,13 @@ init_http_proxy_server = () =>
             res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
             return
 
-        target remember_me, req.url, (err, location) ->
+        target remember_me, req_url, (err, location) ->
             if err
 
                 winston.debug("proxy denied -- #{err}")
 
                 res.writeHead(500, {'Content-Type':'text/html'})
-                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
+                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this req_url = req.url.slice(program.base_url.length)page.")
             else
                 winston.debug("location = #{misc.to_json(location)}")
                 proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
@@ -453,7 +453,8 @@ init_http_proxy_server = () =>
     http_proxy_server.listen(program.proxy_port, program.host)
 
     http_proxy_server.on 'upgrade', (req, socket, head) ->
-        target undefined, req.url, (err, location) ->
+        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        target undefined, req_url, (err, location) ->
             if err
                 winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
             else

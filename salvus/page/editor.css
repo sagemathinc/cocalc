@@ -387,6 +387,13 @@ Editor for files in a project
     font-size: 10px;
 }
 
+.salvus-ipython-notebook-danger {
+    color: white;
+    font-weight: bold;
+    font-size: 7pt;
+    background: red;
+}
+
 
 /* Undo various bootstrap madness (which makes scaling markdown very painful) */
 li {

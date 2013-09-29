@@ -190,6 +190,8 @@ class ProjectPage
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
+        if window.salvus_base_url != "" # TODO -- should use a better way to decide dev mode.
+            @container.find(".salvus-project-id-warning").show()
 
         if @project.size? and @project.size
             @container.find(".project-size").text(human_readable_size(@project.size))
