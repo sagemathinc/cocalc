@@ -84,7 +84,7 @@ def run(args, maxtime=30, verbose=True):
     signal.signal(signal.SIGALRM, timeout)
     signal.alarm(maxtime)
     if verbose:
-        log.info("running '%s'", ' '.join(args))
+        log.info("running '%s' in '%s'", ' '.join(args), os.path.abspath('.'))
     try:
         out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE).stdout.read()
@@ -376,21 +376,30 @@ class Process(object):
 ####################
 class Nginx(Process):
     def __init__(self, id=0, port=NGINX_PORT, monitor_database=None, base_url=""):
-        log = 'nginx-%s.log'%id
-        pid = 'nginx-%s.pid'%id
-        nginx = 'nginx.conf'
-        conf = Template(open(os.path.join(CONF, nginx)).read())
-        conf = conf.substitute(logfile=log, pidfile=pid, http_port=port, base_url=base_url)
-        nginx_conf = 'nginx-%s.conf'%id
-        writefile(filename=os.path.join(DATA, nginx_conf), content=conf)
-        nginx_cmd = ['nginx', '-c', '../' + nginx_conf]
-        Process.__init__(self, id, name='nginx', port=port,
+        self._base_url = base_url
+        self._port = port
+        self._log = 'nginx-%s.log'%id
+        self._pid = 'nginx-%s.pid'%id
+        self._nginx_conf = 'nginx-%s.conf'%id
+        nginx_cmd = ['nginx', '-c', '../' + self._nginx_conf]
+        Process.__init__(self, id, name='nginx', port=self._port,
                          monitor_database = monitor_database,
-                         logfile   = os.path.join(LOGS, log),
-                         pidfile    = os.path.join(PIDS, pid),
+                         logfile   = os.path.join(LOGS, self._log),
+                         pidfile    = os.path.join(PIDS, self._pid),
                          start_cmd  = nginx_cmd,
                          stop_cmd   = nginx_cmd + ['-s', 'stop'],
                          reload_cmd = nginx_cmd + ['-s', 'reload'])
+
+    def _pre_start(self):
+        # Create and write conf file
+        conf = Template(open(os.path.join(CONF, 'nginx.conf')).read())
+        conf = conf.substitute(logfile=self._log, pidfile=self._pid,
+                               http_port=self._port, base_url=self._base_url)
+        writefile(filename=os.path.join(DATA, self._nginx_conf), content=conf)
+
+        # Write base_url javascript file, so clients have access to it
+        s = "salvus_base_url='%s';"%self._base_url
+        open(os.path.join(PWD, 'static/salvus_base_url.js'), 'w').write(s)
 
     def __repr__(self):
         return "Nginx process %s"%self._id
