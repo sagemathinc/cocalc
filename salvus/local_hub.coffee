@@ -41,9 +41,8 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 # Uncomment these 2 lines to set the log level to "debug" in order to see lots of
 # debugging output about what is happening:
-
-# winston.remove(winston.transports.Console)
-# winston.add(winston.transports.Console, level: 'debug')
+#winston.remove(winston.transports.Console)
+#winston.add(winston.transports.Console, level: 'debug')
 
 #####################################################################
 # Generate the "secret_token" file as
@@ -1626,14 +1625,16 @@ server = net.createServer (socket) ->
 
 
 start_tcp_server = (cb) ->
+    winston.info("starting tcp server...")
     server.listen program.port, '127.0.0.1', () ->
         winston.info("listening on port #{server.address().port}")
         fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
 start_raw_server = (cb) ->
+    winston.info("starting raw server...")
     # It's fine to move these lines to the outer scope... when they are needed there.
     try
-        info = fs.readFileSync("#{DATA}/info.json")
+        info = fs.readFileSync("#{process.env['SAGEMATHCLOUD']}/info.json")
         winston.debug("info = #{info}")
         info = JSON.parse(info)
     catch e
@@ -1653,11 +1654,10 @@ start_raw_server = (cb) ->
     project_id = info.project_id
     misc_node.free_port (err, port) ->
         if err
+            winston.debug("error starting raw server: #{err}")
             cb(err); return
-        base = "/#{project_id}/raw/"  # TODO -- change to /raw/
-
-        winston.info("raw server -- #{base}")
-
+        base = "/#{project_id}/raw/"
+        winston.info("raw server (port=#{port}) -- #{base}")
         raw_server.configure () ->
             raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
             raw_server.use(base, express.static(process.env.HOME))
@@ -1673,7 +1673,10 @@ start_raw_server = (cb) ->
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
     async.series [start_tcp_server, start_raw_server], (err) ->
-        winston.debug("Error starting a server -- #{err}")
+        if err
+            winston.debug("Error starting a server -- #{err}")
+        else
+            winston.debug("Successfully started servers.")
 
 # daemonize it
 

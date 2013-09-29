@@ -2092,7 +2092,7 @@ class ProjectPage
             path    : required
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts.
-        url = "/#{@project.project_id}/raw/#{opts.path}"
+        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
         iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
         setTimeout((() -> iframe.remove()), 30000)
         bootbox.alert("Your file <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")

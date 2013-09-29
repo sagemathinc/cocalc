@@ -447,6 +447,7 @@ init_http_proxy_server = () =>
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
+                winston.debug("location = #{misc.to_json(location)}")
                 proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
 
     http_proxy_server.listen(program.proxy_port, program.host)
