@@ -1,15 +1,23 @@
+# How to use this conf fi conf fi conf file:
+# import os, admin; reload(admin); s = admin.Services('conf/deploy_project/', username=os.environ['USER']); h=s._hosts
+#
+
 # services
 
-# import os, admin; reload(admin); s = admin.Services('conf/deploy_project/', username=os.environ['USER']); h=s._hosts
+import json, os
+port       = '8389'
+project_id = str(json.loads(open("%s/info.json"%os.environ['SAGEMATHCLOUD']).read())['project_id'])
+base_url   = '/%s/port/%s'%(project_id, port)
+
 
 [cassandra] {'cluster_name':'salvus1', 'thrift_max_message_length_in_mb':'40', 'thrift_framed_transport_size_in_mb':'39', 'MAX_HEAP_SIZE':'4G',  'HEAP_NEWSIZE':'800M'}
 #{'read_request_timeout_in_ms':'60000', 'request_timeout_in_ms':'60000', 'range_request_timeout_in_ms':'60000'}
 localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 
-[nginx] {'base_url':'/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/8389'}
+[nginx] {'base_url':base_url}
 localhost
 
-[hub] {'base_url':'/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/8389', 'keyspace':'salvus', 'local':'true'}
+[hub] {'base_url':base_url, 'keyspace':'salvus', 'local':'true'}
 localhost {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 #localhost {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 #localhost {'id':'1', 'port':'5002', 'proxy_port':'5003'}
@@ -23,5 +31,5 @@ localhost
 # this isn't a major security risk (as compared to the hub).
 
 # The uuid below is the project id.
-[haproxy] {'sudo':False, 'base_url':'/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/port/8389'}
-localhost {'insecure_testing_port':8389, 'sitename':'localhost'}
+[haproxy] {'sudo':False, 'base_url':base_url}
+localhost {'insecure_testing_port':port, 'sitename':'localhost'}

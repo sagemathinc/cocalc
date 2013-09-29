@@ -869,16 +869,23 @@ def parse_groupfile(filename):
     group = None
     group_opts = []
     ordered_group_names = []
+    namespace = {}
     for r in open(filename).xreadlines():
         line = r.split('#')[0].strip()  # ignore comments and leading/trailing whitespace
         if line: # ignore blank lines
+            if line.startswith('import ') or '=' in line:
+                # import modules for use in assignments below below
+                print "exec ", line
+                exec line in namespace
+                continue
+
             i = line.find(' ')
             if i == -1:
                 opts = {}
                 name = line
             else:
                 name = line[:i]
-                opts = eval(line[i+1:])
+                opts = eval(line[i+1:], namespace)
             if name.startswith('['):  # host group
                 group = name.strip(' []')
                 group_opts = opts
