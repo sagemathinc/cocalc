@@ -1213,7 +1213,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.file?
             val = mesg.file
             if not val.show? or val.show
-                target = "/blobs/#{val.filename}?uuid=#{val.uuid}"
+                target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)
                     # TODO: harden DOM creation below
                     when 'svg', 'png', 'gif', 'jpg'

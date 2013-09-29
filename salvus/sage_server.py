@@ -4,8 +4,8 @@ sage_server.py -- unencrypted forking TCP server.
 
 Note: I wrote functionality so this can run as root, create accounts on the fly,
 and serve sage as those accounts.  Doing this is horrendous from a security point of
-view, and I'm definitely not doing this.
-
+view, and I'm definitely not doing this.  None of that functionality is actually
+used in https://cloud.sagemath.com!
 
 For debugging, this may help:
 
@@ -32,6 +32,7 @@ import os, sys
 PWD = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, PWD)
 
+
 LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 # This can be useful, just in case.
 def log(s):
@@ -50,6 +51,20 @@ import json, resource, shutil, signal, socket, struct, \
 import parsing, sage_salvus
 
 uuid = sage_salvus.uuid
+
+
+# Determine the info object, if available.  There's no good reason
+# it wouldn't be available, unless a user explicitly deleted it, but
+# we may as well try to be robust to this, especially if somebody
+# were to try to use this server outside of cloud.sagemath.com.
+_info_path = os.path.join(os.environ['SAGEMATHCLOUD'], 'info.json')
+if os.path.exists(_info_path):
+    info = json.loads(open(_info_path).read())
+else:
+    info = {}
+if 'base_url' not in info:
+    info['base_url'] = ''
+
 
 # Configure logging
 #logging.basicConfig()
@@ -516,7 +531,7 @@ class Salvus(object):
         self._flush_stdio()
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events))
         if not show:
-            url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
+            url = "%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
             if download:
                 url += '?download'
             return TemporaryURL(url=url, ttl=mesg['ttl'])
