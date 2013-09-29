@@ -58,10 +58,10 @@ bup = (opts) ->
                 winston.info("bup output -- #{misc.to_json(output)}")
 
     if typeof(opts.args) == "string"
-        command = "bup " + opts.args
+        command = "/usr/bin/bup " + opts.args
         opts.args = []
     else
-        command = "bup"
+        command = "/usr/bin/bup"
 
     winston.debug("bup_dir = '#{opts.bup_dir}'")
     misc_node.execute_code
@@ -796,7 +796,7 @@ monitor_snapshot_queue = () ->
             # which is what we want, since we will get redundancy by rsyncing them around.
             (cb) ->
                 misc_node.execute_code
-                    command : "bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
+                    command : "/usr/bin/bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
                     timeout : 30  # should be very fast no matter what.
                     bash    : true
                     env     : {BUP_DIR : bup_active}
