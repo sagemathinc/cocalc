@@ -2,7 +2,7 @@
 
 import json, os, sys
 
-SMC = os.path.join(os.environ['HOME'], '.sagemathcloud/')
+SMC = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(SMC)
 
 status = {}

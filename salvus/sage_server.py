@@ -1127,9 +1127,8 @@ def handle_session_term(signum, frame):
             return
         if not pid: return
 
-CONFPATH = os.path.join(os.environ['HOME'], '.sagemathcloud') + os.path.sep
 secret_token = None
-secret_token_path = os.path.join(CONFPATH, 'data/secret_token')
+secret_token_path = os.path.join(os.environ['SAGEMATHCLOUD'], 'data/secret_token')
 
 def unlock_conn(conn):
     global secret_token
@@ -1234,7 +1233,7 @@ def serve(port, host):
 
         # Plot, integrate, etc., -- so startup time of worksheets is minimal.
 
-        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
+        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/a.png'%os.environ['SAGEMATHCLOUD'], figsize=2); integrate(sin(x**2),x);" in namespace
         print 'imported sage library in %s seconds'%(time.time() - tm)
 
         for k,v in sage_salvus.interact_functions.iteritems():
@@ -1306,7 +1305,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Sage server")
     parser.add_argument("-p", dest="port", type=int, default=0,
-                        help="port to listen on (default: 0); 0 = automatically allocated; saved to .sagemathcloud/data/sage_server.port")
+                        help="port to listen on (default: 0); 0 = automatically allocated; saved to $SAGEMATHCLOUD/data/sage_server.port")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
@@ -1342,7 +1341,7 @@ if __name__ == "__main__":
     if not args.port:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0)) # pick a free port
         args.port = s.getsockname()[1]
-        DATA_PATH = os.path.join(os.environ['HOME'], ".sagemathcloud/data")
+        DATA_PATH = os.path.join(os.environ['SAGEMATHCLOUD'], "data")
         if not os.path.exists(DATA_PATH):
             os.makedirs(DATA_PATH)
         open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))

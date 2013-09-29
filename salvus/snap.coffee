@@ -369,16 +369,16 @@ snap_restore = (opts) ->
                    winston.info("restore time (#{target}) -- #{misc.walltime(t)}")
                    cb(err)
 
-        # If target path is ., then remove .sagemathcloud, since we *must* not restore it,
-        # since it contains a bunch of invalid and out of data cache info, etc., which will
-        # cause all kinds of trouble.
+        # If target path is ., then remove .sagemathcloud*, since we *must* not restore it,
+        # since it contains a bunch of invalid and out of data cache info, etc., which might
+        # cause all kinds of trouble (not really that bad, but still).
         (cb) ->
             if opts.path != '.'
                 cb(); return
             winston.debug("removing .sagemathcloud since target path is '.'")
             misc_node.execute_code
                 command : "rm"
-                args    : ["-rf", outdir + "/.sagemathcloud/"]
+                args    : ["-rf", outdir + "/.sagemathcloud*"]   # use start since for SMCinSMC, we use .sagemathcloud-project_id.
                 cb      : (err, output) ->
                     cb()
 

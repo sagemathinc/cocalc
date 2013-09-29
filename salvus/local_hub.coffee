@@ -47,15 +47,19 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 #####################################################################
 # Generate the "secret_token" file as
-# $HOME/.sagemathcloud/data/secret_token if it does not already
+# $SAGEMATHCLOUD/data/secret_token if it does not already
 # exist.  All connections to all local-to-the user services that
 # SageMathClouds starts must be prefixed with this key.
 #####################################################################
 
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node; if this path changes, it has
-# to be change there as well.
-CONFPATH = exports.CONFPATH = abspath('.sagemathcloud/data/')
+# to be change there as well (it will use the SAGEMATHCLOUD environ
+# variable though).
+
+DATA = process.env['SAGEMATHCLOUD'] + '/data'
+
+CONFPATH = exports.CONFPATH = abspath(DATA)
 secret_token_filename = exports.secret_token_filename = "#{CONFPATH}/secret_token"
 secret_token = undefined
 
@@ -96,7 +100,7 @@ get_port = (type, cb) ->   # cb(err, port number)
     if ports[type]?
         cb(false, ports[type])
     else
-        fs.readFile abspath(".sagemathcloud/data/#{type}_server.port"), (err, content) ->
+        fs.readFile abspath("#{DATA}/#{type}_server.port"), (err, content) ->
             if err
                 cb(err)
             else
@@ -1386,7 +1390,7 @@ read_file_from_project = (socket, mesg) ->
                 split = misc.path_split(path)
                 path = target
                 # same patterns also in project.coffee (TODO)
-                args = ['--exclude=.sagemathcloud', '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', '-jcf', target, split.tail]
+                args = ["--exclude=.sagemathcloud*", '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', '-jcf', target, split.tail]
                 winston.debug("tar #{args.join(' ')}")
                 child_process.execFile 'tar', args, {cwd:split.head}, (err, stdout, stderr) ->
                     if err
@@ -1624,12 +1628,12 @@ server = net.createServer (socket) ->
 start_tcp_server = (cb) ->
     server.listen program.port, '127.0.0.1', () ->
         winston.info("listening on port #{server.address().port}")
-        fs.writeFile(abspath('.sagemathcloud/data/local_hub.port'), server.address().port, cb)
+        fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
 start_raw_server = (cb) ->
     # It's fine to move these lines to the outer scope... when they are needed there.
     try
-        info = fs.readFileSync('.sagemathcloud/info.json')
+        info = fs.readFileSync("#{DATA}/info.json")
         winston.debug("info = #{info}")
         info = JSON.parse(info)
     catch e
@@ -1664,7 +1668,7 @@ start_raw_server = (cb) ->
         raw_server.listen port, info.location.host, (err) ->
             if err
                 cb(err); return
-            fs.writeFile(abspath('.sagemathcloud/data/raw.port'), port, cb)
+            fs.writeFile(abspath("#{DATA}/raw.port"), port, cb)
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
@@ -1677,8 +1681,8 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('--pidfile [string]', 'store pid in this file', String, abspath(".sagemathcloud/data/local_hub.pid"))
-    .option('--logfile [string]', 'write log to this file', String, abspath(".sagemathcloud/data/local_hub.log"))
+    .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
+    .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
     .parse(process.argv)
 
 if program._name == 'local_hub.js'

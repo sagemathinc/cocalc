@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 
+# directory containing this script
+export SAGEMATHCLOUD="`dirname \`readlink -f $BASH_SOURCE\``"
+
 echo "Read SageMathCloud environment variables."
-. "$HOME"/.sagemathcloud/sagemathcloud-env
+. "$SAGEMATHCLOUD"/sagemathcloud-env
 
 echo "Remove port files."
-rm  "$HOME"/.sagemathcloud/data/*.port
+rm  "$SAGEMATHCLOUD"/data/*.port
 
 echo "Stop daemons."
 local_hub      stop

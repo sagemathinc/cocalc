@@ -2507,6 +2507,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     constructor: (@username, @host, @port, @project, cb) ->  # NOTE @project may be undefined.
         winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
         assert @username? and @host? and @port? and cb?
+
+        if program.local
+            @SAGEMATHCLOUD = ".sagemathcloud-local"
+        else
+            @SAGEMATHCLOUD = ".sagemathcloud"
         @address = "#{username}@#{host}"
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
@@ -2531,7 +2536,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_restart_lock = true
         created_remote_lock = false
         location = {username:@username, host:@host, port:@port}
-        lockfile = '.sagemathcloud.lock'
+        lockfile = @SAGEMATHCLOUD + '.lock'
         async.series([
             (cb) =>
                 winston.debug("local_hub restart: creating a lock")
@@ -2589,7 +2594,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
             else
                 cb(err)
-
         )
 
     # Send a JSON message to a session.
@@ -3030,7 +3034,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 misc_node.execute_code
                     command : "rsync"
                     args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                               'local_hub_template/', '--exclude=node_modules/*', "#{@address}:~#{@username}/.sagemathcloud/"]
+                               'local_hub_template/', '--exclude=node_modules/*', "#{@address}:~#{@username}/#{@SAGEMATHCLOUD}/"]
                     timeout : 60
                     bash    : false
                     path    : SALVUS_HOME
@@ -3045,7 +3049,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 misc_node.execute_code
                     command : "rsync"
                     args    : ['-axH', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                               'local_hub_template/node_modules/', "#{@address}:~#{@username}/.sagemathcloud/node_modules/"]
+                               'local_hub_template/node_modules/', "#{@address}:~#{@username}/#{@SAGEMATHCLOUD}/node_modules/"]
                     timeout : 60
                     bash    : false
                     path    : SALVUS_HOME
@@ -3068,12 +3072,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : required
 
         if opts.dot_sagemathcloud_path
-            opts.command = "~#{@username}/.sagemathcloud/#{opts.command}"
+            opts.command = "~#{@username}/#{@SAGEMATHCLOUD}/#{opts.command}"
 
         if @_restart_lock
             opts.cb("_restart_lock..."); return
 
-        # ssh [user]@[host] [-p port] .sagemathcloud/[commmand]
+        # ssh [user]@[host] [-p port] #{@SAGEMATHCLOUD}/[commmand]
         tm = misc.walltime()
         misc_node.execute_code
             command : "ssh"
@@ -3386,6 +3390,10 @@ class Project
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
         winston.debug("Instantiating Project class for project with id #{@project_id}.")
+        if program.local
+            @SAGEMATHCLOUD = ".sagemathcloud-local"
+        else
+            @SAGEMATHCLOUD = ".sagemathcloud"
         async.series([
             (cb) =>
                 winston.debug("Getting project #{@project_id} location.")
@@ -3418,7 +3426,7 @@ class Project
 
     write_info_json: (cb) =>
         @write_file
-            path       : ".sagemathcloud/info.json"
+            path       : "#{@SAGEMATHCLOUD}/info.json"
             project_id : @project_id
             data       : misc.to_json(project_id:@project_id, location:@location)
             cb         : cb
@@ -5057,9 +5065,10 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
-    .option('--local [boolean]', '*All* projects run locally as the same user as the server -- for devel only (default: false)', Boolean, false)
-
+    .option('--local [boolean]', '*All* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false)', Boolean, false)
     .parse(process.argv)
+
+    # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
 
 console.log(program._name)
 if program._name.slice(0,3) == 'hub'
