@@ -2571,7 +2571,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 winston.debug("local_hub restart: Restart the local services....")
                 @_restart_lock = false # so we can call @_exec_on_local_hub
                 @_exec_on_local_hub
-                    command : 'start_smc'
+                    command : 'restart_smc'
                     timeout : 45
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
