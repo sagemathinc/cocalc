@@ -27,7 +27,7 @@ cloud4   {'hostname':'storm-web4',       'vcpus':web_cpu,       'ram':web_ram,  
 cloud4   {'hostname':'storm-compute4a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:8'}
 
 
-[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_max_message_length_in_mb':'100', 'thrift_framed_transport_size_in_mb':'99'}
+[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_max_message_length_in_mb':'100', 'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
 # N=4; [i * (2**127 / N) for i in range(N)]
 storm-cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 storm-cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}

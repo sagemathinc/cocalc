@@ -19,10 +19,13 @@ if os.path.exists('/mnt/home/'):
         os.system("quotacheck -cug /mnt/home")
         os.system("quotaon -a")
 
-    # disable quotas for now, so that students in my class can do Sage development.
+    # disable quotas for now, so that people can do Sage development...
     os.system('quotaoff -a')
 
-    # Restore user accounts
+    # Delete secrets that aren't needed for the *compute machines* (only web machines)
+    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets')
+
+    # Restore existing user accounts
     if os.path.exists('/mnt/home/etc/'):
         os.system("cp /mnt/home/etc/* /etc/")
     else:

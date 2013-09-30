@@ -59,6 +59,7 @@ NGINX_PORT   = 8080
 HUB_PORT       = 5000
 HUB_PROXY_PORT = 5001
 
+# These are used by the firewall.
 CASSANDRA_CLIENT_PORT = 9160
 CASSANDRA_INTERNODE_PORTS = [7000, 7001]
 CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT]
@@ -626,8 +627,7 @@ class Cassandra(Process):
         conf_template_path -- path that contains the initial conf files
 
         MAX_HEAP_SIZE, HEAP_NEWSIZE -- use these if your computer has a lot of memory,
-        but you don't want to devote very
- much to cassandra; if you don't constrain it
+        but you don't want to devote very much to cassandra; if you don't constrain it
         this way, Cassandra uses its own internal memory.  E.g., on a large-memory
         machine with strong per-user limits, use
                 MAX_HEAP_SIZE="4G",  HEAP_NEWSIZE="800M"
