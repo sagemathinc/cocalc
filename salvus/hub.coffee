@@ -5067,7 +5067,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
-    .option('--local [boolean]', '*All* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false)', Boolean, false)
+    .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.

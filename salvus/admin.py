@@ -394,7 +394,9 @@ class Nginx(Process):
         # Create and write conf file
         conf = Template(open(os.path.join(CONF, 'nginx.conf')).read())
         conf = conf.substitute(logfile=self._log, pidfile=self._pid,
-                               http_port=self._port, base_url=self._base_url)
+                               http_port=self._port, base_url=self._base_url,
+                               ifbase='#' if not self._base_url else '',
+                               ifnobase='' if not self._base_url else '#')
         writefile(filename=os.path.join(DATA, self._nginx_conf), content=conf)
 
         # Write base_url javascript file, so clients have access to it
@@ -528,6 +530,8 @@ class Hub(Process):
         if base_url:
             extra.append('--base_url')
             extra.append(base_url)
+        if local:
+            extra.append('--local')
         Process.__init__(self, id, name='hub', port=port,
                          pidfile = pidfile,
                          logfile = logfile, monitor_database=monitor_database,
@@ -538,7 +542,6 @@ class Hub(Process):
                                       '--keyspace', keyspace,
                                       '--host', host,
                                       '--database_nodes', monitor_database,
-                                      '--local', local,
                                       '--pidfile', pidfile,
                                       '--logfile', logfile] + extra,
                          stop_cmd   = [os.path.join(PWD, 'hub'), 'stop', '--id', id],
