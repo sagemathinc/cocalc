@@ -328,7 +328,7 @@ def build_nginx():
     log.info('building nginx'); start = time.time()
     try:
         path = extract_package('nginx')
-        cmd('./configure --without-http_rewrite_module --prefix="%s"'%PREFIX, path)
+        cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
         cmd('mv sbin/nginx bin/', PREFIX)
