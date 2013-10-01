@@ -14,6 +14,9 @@
 
 DEFAULT_TIMEOUT   = 60*15   # time in seconds; max time we would ever wait to "bup index" or "bup save"
 
+
+SALVUS_HOME=process.cwd()
+
 # The following is an extra measure, just in case the user somehow gets around quotas.
 # This is the max size of an individual snapshot; if exceeded, then project is black listed.
 # This is for one single snapshot, not all of them in sum.
@@ -1303,12 +1306,18 @@ exports.set_server_id = (id) ->
 # Connect to the cassandra database server; sets the global database variable.
 database = undefined
 connect_to_database = (cb) ->
-    new cassandra.Salvus
-        hosts    : program.database_nodes.split(',')
-        keyspace : program.keyspace
-        cb       : (err, db) ->
-            database = db
+    fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/snap", (err, password) ->
+        if err
             cb(err)
+        else
+            new cassandra.Salvus
+                hosts    : program.database_nodes.split(',')
+                keyspace : program.keyspace
+                user     : 'snap'
+                password : password.toString().trim()
+                cb       : (err, db) ->
+                    database = db
+                    cb(err)
 
 # Generate the random secret key and save it in global variable
 secret_key = undefined
