@@ -143,10 +143,10 @@ Editor for files in a project
     border : 2px solid #a00;
 }
 .salvus-editor-latex-mesg-template-warning {
-    border : 2px solid ##FDB600;
+    border : 2px solid #FDB600;
 }
 .salvus-editor-latex-mesg-template-typesetting {
-    border : 2px solid ##FDB600;
+    border : 2px solid #FDB600;
 }
 
 .salvus-latex-mesg-message {
