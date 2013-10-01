@@ -5018,20 +5018,22 @@ clean_up_on_shutdown = () ->
 #
 # load database password from 'data/secrets/cassandra/hub'
 #
+
 connect_to_database = (cb) ->
     if database? # already did this
         cb(); return
-    fs.readFile 'data/secrets/cassandra/hub', (err, password) ->
+    fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/hub", (err, password) ->
         if err
-            cb(err); return
-        new cass.Salvus
-            hosts    : program.database_nodes.split(',')
-            keyspace : program.keyspace
-            user     : 'hub'
-            password : password
-            cb       : (err, _db) ->
-                database = _db
-                cb(err)
+            cb(err)
+        else
+            new cass.Salvus
+                hosts    : program.database_nodes.split(',')
+                keyspace : program.keyspace
+                user     : 'hub'
+                password : password.toString().trim()
+                cb       : (err, _db) ->
+                    database = _db
+                    cb(err)
 
 #############################################
 # Start everything running
@@ -5048,7 +5050,7 @@ exports.start_server = start_server = () ->
     # Once we connect to the database, start serving.
     connect_to_database (err) ->
         if err
-            winston.debug("Failed to connect to database!")
+            winston.debug("Failed to connect to database! -- #{err}")
             return
 
         # start updating stats cache every minute (on every hub)

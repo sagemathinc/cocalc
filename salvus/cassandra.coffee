@@ -358,6 +358,7 @@ class exports.Cassandra extends EventEmitter
 
         @keyspace = opts.keyspace
 
+        #winston.debug("connect using: #{JSON.stringify(opts)}")  # DEBUG ONLY!! output contains sensitive info (the password)!!!
         @conn = new helenus.ConnectionPool
             hosts      : opts.hosts
             keyspace   : opts.keyspace
