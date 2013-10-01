@@ -5015,16 +5015,23 @@ clean_up_on_shutdown = () ->
 #############################################
 # Connect to database
 #############################################
+#
+# load database password from 'data/secrets/cassandra/hub'
+#
 connect_to_database = (cb) ->
     if database? # already did this
         cb(); return
-    new cass.Salvus
-        hosts    : program.database_nodes.split(',')
-        keyspace : program.keyspace
-        cb       : (err, _db) ->
-            database = _db
-            cb(err)
-
+    fs.readFile 'data/secrets/cassandra/hub', (err, password) ->
+        if err
+            cb(err); return
+        new cass.Salvus
+            hosts    : program.database_nodes.split(',')
+            keyspace : program.keyspace
+            user     : 'hub'
+            password : password
+            cb       : (err, _db) ->
+                database = _db
+                cb(err)
 
 #############################################
 # Start everything running
