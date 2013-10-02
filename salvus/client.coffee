@@ -30,6 +30,16 @@ exports.DEFAULT_SESSION_PING_TIME = 600
 JSON_CHANNEL = '\u0000'
 exports.JSON_CHANNEL = JSON_CHANNEL # export, so can be used by hub
 
+# Default timeout for many operations -- a user will get an error in many cases
+# if there is no response to an operation after this amount of time.
+DEFAULT_TIMEOUT = 20  # in seconds
+
+# Default minimum ping time (see below) -- if don't get response this quickly, then will reconnect automatically
+# Making this shorter can easily lead to false positives and lots of reconnects for no reason, which means that
+# many messages, etc., get dropped.  Making this too long means it can take longer for the client to realize that
+# it needs to reconnect.  Making this too short also limits the maximum message time.
+PING_CHECK_INTERVAL = 30  # in seconds
+
 
 # change these soon
 git0 = 'git0'
@@ -300,7 +310,7 @@ class exports.Connection extends EventEmitter
         # this many ms, or client will start freaking out and trying
         # to reconnect.  This limits things like max size of files we
         # can edit.
-        @_ping_check_interval = 15000  # 15 seconds.
+        @_ping_check_interval = PING_CHECK_INTERVAL * 1000
         @_ping_check_id = setInterval((()=>@ping(); @_ping_check()), @_ping_check_interval)
 
     close: () ->
@@ -414,7 +424,7 @@ class exports.Connection extends EventEmitter
             type         : required
             session_uuid : required
             project_id   : required
-            timeout      : 10
+            timeout      : DEFAULT_TIMEOUT
             params  : undefined   # extra params relevant to the session (in case we need to restart it)
             cb           : required
         @call
@@ -445,7 +455,7 @@ class exports.Connection extends EventEmitter
 
     new_session: (opts) ->
         opts = defaults opts,
-            timeout : 10          # how long until give up on getting a new session
+            timeout : DEFAULT_TIMEOUT          # how long until give up on getting a new session
             type    : "sage"      # "sage", "console"
             params  : undefined   # extra params relevant to the session
             project_id : undefined # project that this session starts in (TODO: make required)
@@ -613,7 +623,7 @@ class exports.Connection extends EventEmitter
             email_address  : required
             password       : required
             agreed_to_terms: required
-            timeout        : 10 # seconds
+            timeout        : DEFAULT_TIMEOUT # seconds
             cb             : required
         )
         mesg = message.create_account(
@@ -631,7 +641,7 @@ class exports.Connection extends EventEmitter
             password     : required
             remember_me  : false
             cb           : required
-            timeout      : 10 # seconds
+            timeout      : DEFAULT_TIMEOUT # seconds
         )
         @call(
             message : message.sign_in(email_address:opts.email_address, password:opts.password, remember_me:opts.remember_me)
@@ -643,7 +653,7 @@ class exports.Connection extends EventEmitter
     sign_out: (opts) ->
         opts = defaults(opts,
             cb           : undefined
-            timeout      : 10 # seconds
+            timeout      : DEFAULT_TIMEOUT # seconds
         )
 
         @account_id = undefined
@@ -701,7 +711,7 @@ class exports.Connection extends EventEmitter
             reset_code    : required
             new_password  : required
             cb            : required
-            timeout       : 10 # seconds
+            timeout       : DEFAULT_TIMEOUT # seconds
         )
         @call(
             message : message.reset_forgot_password(reset_code:opts.reset_code, new_password:opts.new_password)
@@ -716,7 +726,7 @@ class exports.Connection extends EventEmitter
 
         @call
             message : message.get_account_settings(account_id: opts.account_id)
-            timeout : 10
+            timeout : DEFAULT_TIMEOUT
             cb      : opts.cb
 
     # restricted settings are only saved if the password is set; otherwise they are ignored.
@@ -867,7 +877,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             data       : required
-            timeout    : 10
+            timeout    : DEFAULT_TIMEOUT
             cb         : undefined    # cb would get project_data_updated message back, as does everybody else with eyes on this project
         @call
             message: message.update_project_data(project_id:opts.project_id, data:opts.data)
@@ -906,7 +916,7 @@ class exports.Connection extends EventEmitter
     delete_project: (opts) =>
         opts = defaults opts,
             project_id : required
-            timeout    : 10
+            timeout    : DEFAULT_TIMEOUT
             cb         : undefined
         @call
             message :
@@ -918,7 +928,7 @@ class exports.Connection extends EventEmitter
     undelete_project: (opts) =>
         opts = defaults opts,
             project_id : required
-            timeout    : 10
+            timeout    : DEFAULT_TIMEOUT
             cb         : undefined
         @call
             message :
@@ -932,7 +942,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             content    : required
-            timeout    : 10
+            timeout    : DEFAULT_TIMEOUT
             cb         : undefined
 
         @call
@@ -951,7 +961,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             cb         : required
-            timeout    : 10
+            timeout    : DEFAULT_TIMEOUT
 
         @call
             message :
@@ -968,7 +978,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             path       : required
-            timeout    : 10
+            timeout    : DEFAULT_TIMEOUT
             archive    : 'tar.bz2'   # when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : required
         @call
@@ -1238,7 +1248,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             query   : required
             limit   : 20
-            timeout : 10
+            timeout : DEFAULT_TIMEOUT
             cb      : required
 
         @call
