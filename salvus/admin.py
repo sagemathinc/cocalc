@@ -1192,14 +1192,6 @@ class Services(object):
         self._username = username
         self._hosts = Hosts(os.path.join(path, 'hosts'), username=username, passwd=passwd)
 
-        try:
-            self._cassandra = self._hosts['cassandra']
-            import cassandra
-            cassandra.KEYSPACE = self._keyspace
-            cassandra.set_nodes(self._cassandra)
-        except ValueError:
-            print "WARNING: no cassandra hosts -- severly degraded functionality!"
-
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
@@ -1230,6 +1222,17 @@ class Services(object):
                 o['listen_address'] = address
                 o['rpc_address'] = address
                 if 'seed' in o: del o['seed']
+
+            rpc_port = v[0][1].get('rpc_port', 9160)
+            if rpc_port != 9160:
+                print "Serving cassandra on non-standard port %s"%rpc_port
+            try:
+                self._cassandra = ['%s:%s'%(h, rpc_port) for h in self._hosts['cassandra']]
+                import cassandra
+                cassandra.KEYSPACE = self._keyspace
+                cassandra.set_nodes(self._cassandra)
+            except ValueError:
+                print "WARNING: no cassandra hosts -- severly degraded functionality!"
 
         # HAPROXY options
         if 'haproxy' in self._options:
