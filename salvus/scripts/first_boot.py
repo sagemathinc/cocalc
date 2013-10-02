@@ -25,6 +25,11 @@ if os.path.exists('/mnt/home/'):
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets')
 
+    # Delete ssh private key not needed for the *compute machines*; not deleting this
+    # is a major security risk, since this key could provide access to a database node
+    # (say) to a user on the compute node who cracks the salvus account.
+    os.system('rm -rf /home/salvus/.ssh/id_rsa')
+
     # Restore existing user accounts
     if os.path.exists('/mnt/home/etc/'):
         os.system("cp /mnt/home/etc/* /etc/")
