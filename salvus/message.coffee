@@ -167,6 +167,8 @@ message
     done         : false       # the sequences of messages for a given code evaluation is done.
     session_uuid : undefined   # the uuid of the session that produced this output
     once         : undefined   # if given, message is transient; it is not saved by the worksheet, etc.
+    clear        : undefined   # if true, clears all output of the current cell before rendering message.
+    events       : undefined   # {'event_name':'name of Python callable to call', ...} -- only for images right now
 
 # This message tells the client to execute the given Javascript code
 # in the browser.  (For safety, the client may choose to ignore this
@@ -180,8 +182,9 @@ message
     event        : 'execute_javascript'
     session_uuid : undefined              # set by the hub, since sage_server doesn't (need to) know the session_uuid.
     code         : required
-    data         : undefined
+    obj          : undefined
     coffeescript : false
+    cell_id      : undefined    # if set, eval scope contains an object cell that refers to the cell in the worksheet with this id.
 
 
 ############################################
@@ -639,10 +642,12 @@ message
 #      hub --> client
 # In response, the client grabs "/cookies?id=...,set=...,get=..." via an AJAX call.
 # During that call the server can get/set HTTP-only cookies.
+# (Note that the /cookies url gets customized by base_url.)
 ######################################################################################
 message
     event       : 'cookies'
     id          : required
+    url         : "/cookies"
     set         : undefined  # name of a cookie to set
     get         : undefined  # name of a cookie to get
 

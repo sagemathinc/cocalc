@@ -236,6 +236,7 @@ CREATE TABLE projects (
 
 CREATE INDEX ON projects(snapshots_disabled);
 CREATE INDEX ON projects(account_id);
+CREATE INDEX ON projects(location);
 
 CREATE TABLE project_users (
      project_id       uuid,
@@ -328,41 +329,6 @@ CREATE TABLE snap_ls_cache (
     PRIMARY KEY(project_id, timestamp, path)
 );
 
-
-////////////////////////////////////////////
-// NOTE: This no longer used, since it didn't
-// turn out to be a good idea.
-////////////////////////////////////////////
-
-/* Table of pack files attached to a project. This gives the entire snapshot history
-   of the project in a git format that can be used with bup.
-
-   Cassandra has no support for streaming of blobs, so we must manually split big
-   pack files into multiple small ones of size at most 64MB, or there will be
-   memory/scalability issues on some hosts (especially because of having to convert
-   the blob into a hex string when sending/receiving it).
-*/
-
-CREATE TABLE project_bups (
-     project_id  uuid,
-     time        timestamp,     /* when inserted */
-     number      int,           /* if pack file is big it is split into multiple entries */
-     num_chunks  int,           /* number of chuncks that pack file is split into */
-     sha1        varchar,       /* sha1 hash of pack file */
-     pack        blob,          /* contents of pack file */
-     idx         blob,          /* index into this pack file */
-     head        varchar,       /* head, when this pack file was the newest */
-     PRIMARY KEY(project_id, time, number)
-) WITH CLUSTERING ORDER BY (time ASC, number ASC);
-
-/* AND compression={ 'sstable_compression' :''}; */
-
-/* CREATE INDEX ON project_bups(sha1); */
-
-
-
-
-
 ////////////////////////////////////////////
 // Sessions -- live compute sessions
 ////////////////////////////////////////////
@@ -409,6 +375,7 @@ CREATE TABLE stats (
     active_projects int,
     last_day_projects int,
     last_week_projects int,
+    last_month_projects int,    
     snap_servers int,
     hub_servers varchar /* JSON */
 );

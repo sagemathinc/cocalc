@@ -1,6 +1,6 @@
 <!-- Modal dialogs for manipulating paths -->
 
-<div id="project-delete-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+<div id="project-delete-path-dialog" class="modal hide"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close btn-close">
             <span style="font-size:20pt;">×</span>
@@ -20,7 +20,7 @@
     </div>
 </div>
 
-<div id="project-move-path-dialog" class="modal hide" tabindex="-1" role="dialog" aria-hidden="true">
+<div id="project-move-path-dialog" class="modal hide"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close" aria-hidden="true">
             <span style="font-size:20pt;">×</span>
@@ -90,7 +90,6 @@
 
             <!-- List of all files in the project, which is browsable -->
             <div class="project-file-listing">
-                <h1 class="big-only">Files </h1>
                 <div class="row">
 
                     <div class="span2">
@@ -159,9 +158,10 @@
 
             <!-- Open files in this project. -->
             <div class="project-editor hide">
-                <h1  class="big-only project-editor-recent-files-header" style="margin-left:1em;">
+                <!--<h1  class="big-only project-editor-recent-files-header" style="margin-left:1em;">
                     Recent Files (<span class="project-editor-file-count">0</span>)
                 </h1>
+                -->
 
                 <!-- the actual recent file UI gets inserted here dynamically! -->
 
@@ -275,6 +275,7 @@
                                 <!-- The project id -->
                                 Project id:
                                 <span class="project-id"></span>
+                                <span class="hide salvus-project-id-warning">DANGER: When doing development of SMC inside an SMC project, the security of the raw http server and ipython server is via the project id; other users on the same VM that know the project id of your devel project both from the POV of SMC and of your local server, could get readonly access to your files (or read/write if you start an ipython server).</span>
                             </div>
                         </div>
                         <div class="row-fluid">
@@ -494,9 +495,9 @@
         <div class="span" style="width:120px">
             <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore file from snapshot"><i class="icon-external-link-sign"> </i> </a>
         </div>
-        <div class="span" style="width: 20px;">
-            <i class="icon-file project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-        </div>
+        <a class="span" style="width: 20px;">
+            <i class="icon-file-alt project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+        </a>
         <div class="span" style="width:15em;">
             <a href="#open-file"><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
         </div>
@@ -506,9 +507,9 @@
         <div class="span" style="width:120px">
             <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore directory from snapshot"><i class="icon-external-link-sign"> </i> </a>
         </div>
-        <div class="span" style="width: 20px;">
+        <a class="span" style="width: 20px;">
             <i class="icon-folder-close project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-        </div>
+        </a>
         <div class="span" style="width:15em;">
             <a href="#open-file"><span class="project-directory-name"></span></a>
         </div>
@@ -529,9 +530,9 @@
         <div class="span" style="width: 10px;">
             <!-- <i class="icon-check-empty lighten"> </i> -->   <!-- TODO: enable this when we have functions for groups of files -->
         </div>
-        <div class="span" style="width: 20px;">
-            <i class="icon-file project-file-icon"> </i>
-        </div>
+        <a class="span" style="width: 20px;">
+            <i class="icon-file-alt project-file-icon"> </i>
+        </a>
 
         <div class="span" style="width:15em;">
             <a class="salvus-no-middle-click" href="#open-file"><span class="salvus-no-middle-click project-file-name"></span><span class="salvus-no-middle-click  project-file-name-extension"></span></a>
@@ -571,9 +572,9 @@
 <i class="icon-check-empty lighten"> </i>
 -->
         </div>
-        <div class="span" style="width: 20px;">
-            <i class="icon-folder-close"> </i>
-        </div>
+        <a class="span" style="width: 20px;">
+            <i class="icon-folder-close project-file-icon"> </i>
+        </a>
         <div class="span" style="width:15em;">
             <a  href="#open-file" class="project-directory-name"></a>
         </div>

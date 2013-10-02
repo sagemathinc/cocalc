@@ -5,6 +5,8 @@
             <h2><i class="icon-cloud"> </i> The Sagemath Cloud&trade;</h2>
             <h3 class="not-small">Computational mathematics in the cloud using <a target="_blank" href="http://www.sagemath.org">Sage</a></h3>
 
+
+
             <ul>
                 <li class="salvus-help-list">Interactive Worksheets that let you mix Sage, R, Python, Cython, GAP, Macaulay2, Singular, and much, much more.  For example, type "<tt>%default_mode r</tt>" in a worksheet to make all cells evaluate using R by default.</li>
                 <li class="salvus-help-list">Terminal with color themes, which can be used by multiple people at once</li>
@@ -22,6 +24,9 @@
                 <li class="salvus-help-list">  Join <a target="_blank" href="https://groups.google.com/forum/?fromgroups#!forum/sage-cloud">the mailing list</a> to discuss features, bugs, and get help.  <b>All upgrade and status announcements</b> are currently made via the mailing list (instead of emailing you directly).
                 </li>
                 <li  class="salvus-help-list"> <a href="#how-do-i">Sagemath Cloud specific help</a> </li>
+                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">The Sagemath Cloud FAQ</a> [github] </li>
+                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/issues">List of known bugs and feature requests</a> [github] </li>
+
                 <li  class="salvus-help-list"> <a target="_blank" href="http://www.sagemath.org/help.html">General Sage help and support</a> </li>
                 <li  class="salvus-help-list"> <a href="https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb" target="_blank">Install the Chrome App</a><br></li>
 
@@ -43,11 +48,21 @@
                     <li  class="salvus-help-list">
                         There are <b><span class="salvus-stats-projects"></span> projects</b> with <b><span class="salvus-stats-active_projects"></span> being modified</b> right now.   During the last 24 hours, <span class="salvus-stats-last_day_projects"></span> were modified; also, <span class="salvus-stats-last_week_projects"></span> were modified in the last week, and <span class="salvus-stats-last_month_projects"></span> were modified in the last month.
                     </li>
-                    <li class="salvus-help-list"> There are currently <b>48 cores</b>, <b>256GB RAM</b> and <b>20TB disk</b>
+                    <li class="salvus-help-list">
+                        There are currently <b>48 cores</b>, <b>256GB RAM</b> and <b>20TB disk</b>
                         space dedicated to the Sagemath Cloud cluster.
                         We are in the process of increasing this to 288 cores,  1216GB RAM and 50TB disk
-                        during September 2013.  <!-- If there is sufficient demand, in 2014 we'll upgrade
+                        during September 2013.
+                        <!-- If there is sufficient demand, in 2014 we'll upgrade
                         to 2176GB RAM and 246TB disk. -->
+                    </li>
+                    <li class="salvus-help-list">
+                        We own all the hardware and host it in various
+                        data centers at University of Washington.
+                        The project director (William Stein) is a tenured full professor, founder
+                        of the Sage mathematics software project, and has
+                        been making mathematical software available via the web for over a decade.
+                        If you have any questions, don't hesitate to email him at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.
                     </li>
 
                 </ul>
@@ -63,11 +78,12 @@
             <ul>
                 <li  class="salvus-help-list"> <a href="#help-create-an-account">Create an account</a></li>
                 <li  class="salvus-help-list"> <a href="#help-change-my-username">Change your username, email address, or password</a></li>
+                <li  class="salvus-help-list"> <a href="#help-examples">Get a bunch of examples</a></li>
                 <li  class="salvus-help-list"> <a href="#help-latex">Using LaTeX</a></li>
                 <li  class="salvus-help-list"> <a href="#help-r">Using R Worksheets</a></li>
                 <li  class="salvus-help-list"> <a href="#help-ipython">Using IPython Notebooks</a></li>
                 <li class="salvus-help-list"> <a href="#help-proxy">Run a web service from a project</a></li>
-                <li class="salvus-help-list"> <a target="_blank" href="https://github.com/sagemath/cloud/wiki/FAQ">More topics in the Sagemath Cloud FAQ...</a> [github] </li>
+
 
                 <!--
 <li  class="salvus-help-list"> <a href="#help-use-sage-command-prompt">Use Python, Sage, Octave, Macaulay2, etc., on the command line?</a></li>
@@ -96,8 +112,8 @@
                 <br><br>
                 <div class="salvus-help-answer">
                     <div class="row-fluid">
-                        <div class="span8">
-                            <h3>Create an account</h3>
+                        <div class="span12">
+                            <h3>Create an account (<a href="https://www.youtube.com/embed/eadnL5hDg9M" target="_blank">video</a>)</h3>
                             Navigate to <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>.
                             If you're already signed in, first sign out
                             by clicking on your email address by the  <i class="icon-cog"> </i> icon
@@ -106,9 +122,6 @@
                             the new account you would like to create, and read and agree to the terms of usage.
                             You may <a href="#help-change-my-username">change your email address, password, etc.</a>
                             at any time later, and also reset your password in case you forget it.
-                        </div>
-                        <div class="span4">
-                            <iframe class="pull-right" width="252" height="188" src="https://www.youtube.com/embed/eadnL5hDg9M" frameborder="0" allowfullscreen></iframe>
                         </div>
                     </div>
                     <div  class="lighten">
@@ -140,8 +153,8 @@
                 <br><br>
                 <div class="salvus-help-answer">
                     <div class="row-fluid">
-                        <div class="span8">
-                            <h3>Change your name, email address, or password</h3>
+                        <div class="span12">
+                            <h3>Change your name, email address, or password (<a href="https://www.youtube.com/embed/A9zltIsU2cM" target="_blank">video</a>)</h3>
                             <p>
                                 Log into <a href="https://cloud.sagemath.com" target="_blank">https://cloud.sagemath.com</a>,
                                 then click in the upper right corner on your email address by
@@ -158,10 +171,6 @@
                                 on the "change" link next to your email address, type in the password (to your cloud.sagemath
                                 account), then enter a new email address.
                             </p>
-
-                        </div>
-                        <div class="span4">
-                            <iframe class="pull-right" width="252" height="188" src="https://www.youtube.com/embed/A9zltIsU2cM" frameborder="0" allowfullscreen></iframe>
 
                         </div>
                     </div>
@@ -181,13 +190,41 @@
                 </div>
             </div>
 
+            <div id="help-examples">
+                <br><br>
+                <div class="salvus-help-answer">
+                    <div class="row-fluid">
+                        <div class="span8">
+                            <h3>Get a bunch of examples</h3>
+
+                            To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you'll find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
+                        </div>
+                        <div class="span4">
+                            <img class="pull-right" width="252" src="/art/templates.png">
+                        </div>
+                    </div>
+                    <div  class="lighten">
+                        <h4>Technical Notes</h4>
+                        <ul class="lighten">
+                            <li>The collection of examples is a <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates">Github repository</a>, which we regularly update.
+                                In a terminal in the sage-cloud-templates directory, you can type
+                                <pre>git pull</pre>
+                                to get the latest changes and
+                                examples (you may have to type <tt>"git commit -a"</tt> first, if you have made changes).
+                                You can also <a href="https://github.com/haraldschilly/sage-cloud-templates/commits/master" target="_blank">see what's new in the Github repository</a>.
+
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
 
             <div id="help-latex">
                 <br><br>
                 <div class="salvus-help-answer">
                     <div class="row-fluid">
-                        <div class="span8">
-                            <h3>Using $\LaTeX$</h3>
+                        <div class="span12">
+                            <h3>Using $\LaTeX$ (<a href="https://www.youtube.com/embed/IaachWg4IEQ" target="_blank">video1</a>, <a href="https://www.youtube.com/embed/cXhnX3UtizI" target="_blank">video2</a>)</h3>
 
                             <a href="http://www.latex-project.org/" target="_blank">$LaTeX$</a> is a system for creating
 
@@ -228,13 +265,6 @@
                                 </li>
                             </ol>
                         </div>
-                        <div class="span4">
-                            <iframe width="252" height="188" src="https://www.youtube.com/embed/IaachWg4IEQ?rel=0"
-                                    frameborder="0" allowfullscreen></iframe>
-                            <br><br><br>
-                            <iframe width="252" height="188" src="https://www.youtube.com/embed/cXhnX3UtizI?rel=0"
-                                    frameborder="0" allowfullscreen></iframe>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -244,18 +274,14 @@
                 <br><br>
                 <div class="salvus-help-answer">
                     <div class="row-fluid">
-                        <div class="span8">
-                            <h3>Use R in Worksheets</h3>
+                        <div class="span12">
+                            <h3>Use R in Worksheets (<a href="https://www.youtube.com/embed/JtVuX4yb70A" target="_blank">video</a>)</h3>
                             In a project, click <span class="salvus-a"><i class="icon-plus-sign"></i> New</span> then the
                             "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
                             then press shift+enter.
                             For the reset of the worksheet, type normal R commands, followed by shift+enter.
                             Plotting should just work as usual in R.
                             See <a href="https://github.com/haraldschilly/sage-cloud-templates/tree/master/r" target="_blank">these example worksheets</a>.
-                        </div>
-                        <div class="span4">
-                            <iframe width="252" height="188" src="https://www.youtube.com/embed/JtVuX4yb70A?rel=0"
-                                    frameborder="0" allowfullscreen></iframe>
                         </div>
                     </div>
                 </div>
@@ -266,8 +292,8 @@
                 <br><br>
                 <div class="salvus-help-answer">
                     <div class="row-fluid">
-                        <div class="span8">
-                            <h3>Use IPython Notebooks</h3>
+                        <div class="span12">
+                            <h3>Use IPython Notebooks (<a href="https://www.youtube.com/embed/sDBbt8U4aJw" target="_blank">video</a>)</h3>
                             In a project, click <span class="salvus-a"><i class="icon-plus-sign"></i> New</span> then the
                             "IPython" button, or just open an ipynb file.
                             The notebook will be opened using IPython's html-based client,
@@ -278,10 +304,6 @@
                             people open the same notebook), they will stay in sync.
                             Also, if you want to use the Sage preparser, type
                             <tt>%load_ext sage.misc.sage_extension</tt> into a notebook cell.
-                        </div>
-                        <div class="span4">
-                            <iframe width="252" height="188" src="https://www.youtube.com/embed/sDBbt8U4aJw?rel=0"
-                                    frameborder="0" allowfullscreen></iframe>
                         </div>
                     </div>
 
@@ -304,7 +326,7 @@
                 <br><br>
                 <div class="salvus-help-answer">
                     <div class="row-fluid">
-                        <div class="span8">
+                        <div class="span12">
                             <h3>Run a web service from a project</h3>
 
                             <ol>

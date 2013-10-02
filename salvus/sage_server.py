@@ -4,8 +4,8 @@ sage_server.py -- unencrypted forking TCP server.
 
 Note: I wrote functionality so this can run as root, create accounts on the fly,
 and serve sage as those accounts.  Doing this is horrendous from a security point of
-view, and I'm definitely not doing this.
-
+view, and I'm definitely not doing this.  None of that functionality is actually
+used in https://cloud.sagemath.com!
 
 For debugging, this may help:
 
@@ -32,6 +32,7 @@ import os, sys
 PWD = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, PWD)
 
+
 LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 # This can be useful, just in case.
 def log(s):
@@ -45,9 +46,25 @@ import sagenb.notebook.interact
 
 # Standard imports.
 import json, resource, shutil, signal, socket, struct, \
-       tempfile, time, traceback, uuid, pwd
+       tempfile, time, traceback, pwd
 
 import parsing, sage_salvus
+
+uuid = sage_salvus.uuid
+
+
+# Determine the info object, if available.  There's no good reason
+# it wouldn't be available, unless a user explicitly deleted it, but
+# we may as well try to be robust to this, especially if somebody
+# were to try to use this server outside of cloud.sagemath.com.
+_info_path = os.path.join(os.environ['SAGEMATHCLOUD'], 'info.json')
+if os.path.exists(_info_path):
+    info = json.loads(open(_info_path).read())
+else:
+    info = {}
+if 'base_url' not in info:
+    info['base_url'] = ''
+
 
 # Configure logging
 #logging.basicConfig()
@@ -86,9 +103,9 @@ class ConnectionJSON(object):
         self._send('j' + json.dumps(m))
 
     def send_blob(self, blob):
-        uuid = uuidsha1(blob)
-        self._send('b' + uuid + blob)
-        return uuid
+        s = uuidsha1(blob)
+        self._send('b' + s + blob)
+        return s
 
     def send_file(self, filename):
         return self.send_blob(open(filename, 'rb').read())
@@ -153,10 +170,10 @@ class Message(object):
     def execute_code(self, id, code, preparse=True):
         return self._new('execute_code', locals())
 
-    def execute_javascript(self, code, data=None, coffeescript=False):
+    def execute_javascript(self, code, obj=None, coffeescript=False):
         return self._new('execute_javascript', locals())
 
-    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None):
+    def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
         m = self._new('output')
         m['id'] = id
         if stdout is not None and len(stdout) > 0: m['stdout'] = stdout
@@ -173,6 +190,8 @@ class Message(object):
         if hide is not None: m['hide'] = hide
         if show is not None: m['show'] = show
         if auto is not None: m['auto'] = auto
+        if events is not None: m['events'] = events
+        if clear is not None: m['clear'] = clear
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -381,7 +400,93 @@ class Salvus(object):
         self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
         return self
 
-    def file(self, filename, show=True, done=False, download=False, once=None):
+    def link(self, filename, label=None, foreground=True, cls=''):
+        """
+        Output a clickable link to a file somewhere in this project.  The filename
+        path must be relative to the current working directory of the Python process.
+
+        The simplest way to use this is
+
+             salvus.link("../name/of/file")    # any relative path to any file
+
+        This creates a link, which when clicked on, opens that file in the foreground.
+
+        If the filename is the name of a directory, clicking will instead
+        open the file browser on that directory:
+
+             salvus.link("../name/of/directory")    # clicking on the resulting link opens a directory
+
+        If you would like a button instead of a link, pass cls='btn'.  You can use any of
+        the standard Bootstrap button classes, e.g., btn-small, btn-large, btn-success, etc.
+
+        If you would like to change the text in the link (or button) to something
+        besides the default (filename), just pass arbitrary HTML to the label= option.
+
+        INPUT:
+
+        - filename -- a relative path to a file or directory
+        - label -- (default: the filename) html label for the link
+        - foreground -- (default: True); if True, opens link in the foreground
+        - cls -- (default: '') optional CSS classes, such as 'btn'.
+
+        EXAMPLES:
+
+        Use as a line decorator::
+
+            %salvus.link name/of/file.foo
+
+        Make a button::
+
+            salvus.link("foo/bar/", label="The Bar Directory", cls='btn')
+
+        Make two big blue buttons with plots in them::
+
+            plot(sin, 0, 20).save('sin.png')
+            plot(cos, 0, 20).save('cos.png')
+            for img in ['sin.png', 'cos.png']:
+                salvus.link(img, label="<img width='150px' src='%s'>"%salvus.file(img, show=False), cls='btn btn-large btn-primary')
+
+
+
+        """
+        path = os.path.abspath(filename)[len(os.environ['HOME'])+1:]
+        if label is None:
+            label = filename
+        id = uuid()
+        self.html("<a class='%s' style='cursor:pointer'; id='%s'></a>"%(cls, id))
+
+        s = "$('#%s').html(obj.label).click(function() {%s; return false;});"%(id, self._action(path, foreground))
+        self.javascript(s, obj={'label':label, 'path':path, 'foreground':foreground}, once=False)
+
+    def _action(self, path, foreground):
+        if os.path.isdir(path):
+            action = "worksheet.project_page.chdir(obj.path);"
+            if foreground:
+                action += "worksheet.project_page.display_tab('project-file-listing');"
+        else:
+            action = "worksheet.project_page.open_file({'path':obj.path, 'foreground': obj.foreground});"
+        return action
+
+    def open_tab(self, filename, foreground=True):
+        """
+        Open a new file (or directory) document in another tab.
+        See the documentation for salvus.link.
+        """
+        path = os.path.abspath(filename)[len(os.environ['HOME'])+1:]
+        self.javascript(self._action(path, foreground),
+                         obj = {'path':path, 'foreground':foreground}, once=True)
+
+    def close_tab(self, filename):
+        """
+        Open an open file tab.  The filename is relative to the current working directory.
+        """
+        self.javascript("worksheet.editor.close(obj)", obj = filename, once=True)
+
+
+    #def open_project(self, project_id):
+    #def close_project(self, project_id):
+
+    def file(self, filename, show=True, done=False, download=False, once=False, events=None):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
@@ -424,9 +529,9 @@ class Salvus(object):
             raise RuntimeError("error saving blob -- " + mesg['error'])
 
         self._flush_stdio()
-        self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}))
+        self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events))
         if not show:
-            url = "/blobs/%s?uuid=%s"%(filename, file_uuid)
+            url = "%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
             if download:
                 url += '?download'
             return TemporaryURL(url=url, ttl=mesg['ttl'])
@@ -579,9 +684,15 @@ class Salvus(object):
                 code_decorator.after(code)
 
     def html(self, html, done=False, once=None):
+        """
+        Display html in the output stream.
+
+        EXAMPLE:
+
+            salvus.html("<b>Hi</b>")
+        """
         self._flush_stdio()
         self._conn.send_json(message.output(html=unicode(html), id=self._id, done=done, once=once))
-        return self
 
     def pdf(self, filename, **kwds):
         sage_salvus.show_pdf(filename, **kwds)
@@ -602,6 +713,12 @@ class Salvus(object):
 
     def start_executing(self):
         self._conn.send_json(message.output(done=False, id=self._id))
+
+    def clear(self, done=False):
+        """
+        Clear the output of the current cell.
+        """
+        self._conn.send_json(message.output(clear=True, id=self._id, done=done))
 
     def stdout(self, output, done=False, once=None):
         """
@@ -646,7 +763,7 @@ class Salvus(object):
             id=self._id, done=done, once=once))
         return sage_salvus.InteractFunction(I)
 
-    def javascript(self, code, once=True, coffeescript=False, done=False, obj=None):
+    def javascript(self, code, once=False, coffeescript=False, done=False, obj=None):
         """
         Execute the given Javascript code as part of the output
         stream.  This same code will be executed (at exactly this
@@ -658,11 +775,13 @@ class Salvus(object):
         INPUT:
 
         - code -- a string
-        - once -- boolean (default: True); if True the Javascript is
+        - once -- boolean (default: FAlse); if True the Javascript is
           only executed once, not every time the cell is loaded. This
           is what you would use if you call salvus.stdout, etc.  Use
           once=False, e.g., if you are using javascript to make a DOM
-          element draggable (say).
+          element draggable (say).  WARNING: If once=True, then the
+          javascript is likely to get executed before other output to
+          a given cell is even rendered.
         - coffeescript -- boolean (default: False); if True, the input
           code is first converted from CoffeeScript to Javascript.
 
@@ -678,7 +797,6 @@ class Salvus(object):
         if obj is None:
             obj = {}
         self._conn.send_json(message.output(javascript={'code':code, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj, once=once))
-        return self
 
     def coffeescript(self, *args, **kwds):
         """
@@ -687,7 +805,7 @@ class Salvus(object):
         See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
-        return self.javascript(*args, **kwds)
+        self.javascript(*args, **kwds)
 
     def _check_component(self, component):
         if component not in ['input', 'output']:
@@ -714,7 +832,7 @@ class Salvus(object):
         """
         self._conn.send_json(message.output(self._id, auto=state))
 
-    def notify(self, once=None, **kwds):
+    def notify(self, **kwds):
         """
         Display a graphical notification using the pnotify Javascript library.
 
@@ -752,18 +870,19 @@ class Salvus(object):
         obj = {}
         for k, v in kwds.iteritems():
             obj[k] = sage_salvus.jsonable(v)
-        self.javascript("$.pnotify(obj)", once=once, obj=obj)
+        self.javascript("$.pnotify(obj)", once=True, obj=obj)
 
-    def execute_javascript(self, code, coffeescript=False, data=None):
+    def execute_javascript(self, code, coffeescript=False, obj=None):
         """
         Tell the browser to execute javascript.  Basically the same as
         salvus.javascript with once=True (the default), except this
-        isn't tied to a particular cell.
+        isn't tied to a particular cell.  There is a worksheet object
+        defined in the scope of the evaluation.
 
         See the docs for the top-level javascript function for more details.
         """
-        self._conn.send_json(message.execute_javascript(code, coffeescript=coffeescript, data=data))
-        return self
+        self._conn.send_json(message.execute_javascript(code,
+            coffeescript=coffeescript, obj=json.dumps(obj,separators=(',', ':'))))
 
     def execute_coffeescript(self, *args, **kwds):
         """
@@ -772,7 +891,7 @@ class Salvus(object):
         See the docs for the top-level javascript function for more details.
         """
         kwds['coffeescript'] = True
-        return self.execute_javascript(*args, **kwds)
+        self.execute_javascript(*args, **kwds)
 
     def _cython(self, filename, **opts):
         """
@@ -803,7 +922,7 @@ class Salvus(object):
 
     def _import_code(self, content, **opts):
         while True:
-            py_file_base = str(uuid.uuid4()).replace('-','_')
+            py_file_base = uuid().replace('-','_')
             if not os.path.exists(py_file_base + '.py'):
                 break
         try:
@@ -1023,9 +1142,8 @@ def handle_session_term(signum, frame):
             return
         if not pid: return
 
-CONFPATH = os.path.join(os.environ['HOME'], '.sagemathcloud') + os.path.sep
 secret_token = None
-secret_token_path = os.path.join(CONFPATH, 'data/secret_token')
+secret_token_path = os.path.join(os.environ['SAGEMATHCLOUD'], 'data/secret_token')
 
 def unlock_conn(conn):
     global secret_token
@@ -1130,7 +1248,7 @@ def serve(port, host):
 
         # Plot, integrate, etc., -- so startup time of worksheets is minimal.
 
-        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/.sagemathcloud/a.png'%os.environ['HOME'], figsize=2); integrate(sin(x**2),x);" in namespace
+        exec "from sage.all import *; from sage.calculus.predefined import x; import scipy; import sympy; import pylab; plot(sin).save('%s/a.png'%os.environ['SAGEMATHCLOUD'], figsize=2); integrate(sin(x**2),x);" in namespace
         print 'imported sage library in %s seconds'%(time.time() - tm)
 
         for k,v in sage_salvus.interact_functions.iteritems():
@@ -1145,6 +1263,9 @@ def serve(port, host):
             namespace[name] = getattr(sage_salvus, name)
 
         sage_salvus.default_namespace = dict(namespace)
+
+        # this way client code can tell it is running as a Sage Worksheet.
+        namespace['__SAGEWS__'] = True
 
     # Initialize sage library.
     init_library()
@@ -1199,7 +1320,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Sage server")
     parser.add_argument("-p", dest="port", type=int, default=0,
-                        help="port to listen on (default: 0); 0 = automatically allocated; saved to .sagemathcloud/data/sage_server.port")
+                        help="port to listen on (default: 0); 0 = automatically allocated; saved to $SAGEMATHCLOUD/data/sage_server.port")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
@@ -1235,7 +1356,7 @@ if __name__ == "__main__":
     if not args.port:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0)) # pick a free port
         args.port = s.getsockname()[1]
-        DATA_PATH = os.path.join(os.environ['HOME'], ".sagemathcloud/data")
+        DATA_PATH = os.path.join(os.environ['SAGEMATHCLOUD'], "data")
         if not os.path.exists(DATA_PATH):
             os.makedirs(DATA_PATH)
         open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))

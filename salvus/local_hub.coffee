@@ -41,21 +41,24 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 # Uncomment these 2 lines to set the log level to "debug" in order to see lots of
 # debugging output about what is happening:
-
-# winston.remove(winston.transports.Console)
-# winston.add(winston.transports.Console, level: 'debug')
+#winston.remove(winston.transports.Console)
+#winston.add(winston.transports.Console, level: 'debug')
 
 #####################################################################
 # Generate the "secret_token" file as
-# $HOME/.sagemathcloud/data/secret_token if it does not already
+# $SAGEMATHCLOUD/data/secret_token if it does not already
 # exist.  All connections to all local-to-the user services that
 # SageMathClouds starts must be prefixed with this key.
 #####################################################################
 
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node; if this path changes, it has
-# to be change there as well.
-CONFPATH = exports.CONFPATH = abspath('.sagemathcloud/data/')
+# to be change there as well (it will use the SAGEMATHCLOUD environ
+# variable though).
+
+DATA = process.env['SAGEMATHCLOUD'] + '/data'
+
+CONFPATH = exports.CONFPATH = abspath(DATA)
 secret_token_filename = exports.secret_token_filename = "#{CONFPATH}/secret_token"
 secret_token = undefined
 
@@ -96,7 +99,7 @@ get_port = (type, cb) ->   # cb(err, port number)
     if ports[type]?
         cb(false, ports[type])
     else
-        fs.readFile abspath(".sagemathcloud/data/#{type}_server.port"), (err, content) ->
+        fs.readFile abspath("#{DATA}/#{type}_server.port"), (err, content) ->
             if err
                 cb(err)
             else
@@ -288,6 +291,8 @@ plug = (s1, s2) ->
     s2.on 'data', (data) ->
         s1.write(data)
 
+## WARNING!  I think this is no longer used!  It was used for my first (few)
+## approaches to worksheets.
 
 class SageSessions
     constructor: () ->
@@ -658,7 +663,7 @@ class CodeMirrorSession
 
         # Ensure that no cells appear to be running.  This is important
         # because the worksheet file that we just loaded could have had some
-        # markup that cells cells are running.
+        # markup that cells are running.
         @sage_update(kill:true)
 
         # Connect to the local Sage server.
@@ -708,6 +713,8 @@ class CodeMirrorSession
 
 
                         when 'json'
+                            # First check for callbacks (e.g., used in interact and things where the
+                            # browser directly asks to evaluate code in this session).
                             c = @_sage_output_cb[mesg.id]
                             if c?
                                 c(mesg)
@@ -715,6 +722,18 @@ class CodeMirrorSession
                                     delete @_sage_output_cb[mesg.id]
                                 return
 
+                            # Handle code execution in browser messages
+                            if mesg.event == 'execute_javascript'
+                                # winston.debug("got execute_javascript message from sage session #{json(mesg)}")
+                                # Wrap and forward it on as a broadcast message.
+                                mesg.session_uuid = @session_uuid
+                                bcast = message.codemirror_bcast
+                                    session_uuid : @session_uuid
+                                    mesg         : mesg
+                                @client_bcast(undefined, bcast)
+                                return
+
+                            # Finally, handle output messages
                             m = {}
                             for x, y of mesg
                                 if x != 'id' and x != 'event'  # the event is always "output"
@@ -723,12 +742,16 @@ class CodeMirrorSession
                                             m[x] = y
                                     else
                                         m[x] = y
-                            winston.debug("sage --> local_hub: '#{json(mesg)}'")
+
+                            #winston.debug("sage --> local_hub: '#{json(mesg)}'")
+
+                            before = @content
                             @sage_output_mesg(mesg.id, m)
-                            @set_content(@content)
-                            # Suggest to all connected clients to sync.
-                            for id, ds_client of @diffsync_clients
-                                ds_client.remote.sync_ready()
+                            if before != @content
+                                @set_content(@content)
+                                # Suggest to all connected clients to sync.
+                                for id, ds_client of @diffsync_clients
+                                    ds_client.remote.sync_ready()
 
                 # Submit all auto cells to be evaluated.
                 @sage_update(auto:true)
@@ -917,6 +940,21 @@ class CodeMirrorSession
         if misc.is_empty_object(mesg)
             return
 
+        if mesg.once? and mesg.once
+            # only javascript is define  once=True
+            if mesg.javascript?
+                msg = message.execute_javascript
+                    session_uuid : @session_uuid
+                    code         : mesg.javascript.code
+                    coffeescript : mesg.javascript.coffeescript
+                    obj          : mesg.obj
+                    cell_id      : cell_id
+                bcast = message.codemirror_bcast
+                    session_uuid : @session_uuid
+                    mesg         : msg
+                @client_bcast(undefined, bcast)
+                return  # once = do *not* want to record this message in the output stream.
+
         i = @content.indexOf(diffsync.MARKERS.output + output_id)
         if i == -1
             # no such output cell anymore -- ignore (?) -- or we could make such a cell...?
@@ -1053,10 +1091,10 @@ class CodeMirrorSession
         winston.debug("client_bcast: #{json(mesg)}")
 
         # Forward this message on to all global hubs except the
-        # one that just sent it to us.
+        # one that just sent it to us...
         for id, ds_client of @diffsync_clients
-            if socket.id != id
-                winston.debug("BROADCAST: sending message from hub with socket.id=#{socket.id} to hub with socket.id = #{id}")
+            if socket?.id != id
+                #winston.debug("BROADCAST: sending message from hub with socket.id=#{socket?.id} to hub with socket.id = #{id}")
                 ds_client.remote.socket.write_mesg('json', mesg)
 
     client_diffsync: (socket, mesg) =>
@@ -1351,7 +1389,7 @@ read_file_from_project = (socket, mesg) ->
                 split = misc.path_split(path)
                 path = target
                 # same patterns also in project.coffee (TODO)
-                args = ['--exclude=.sagemathcloud', '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', '-jcf', target, split.tail]
+                args = ["--exclude=.sagemathcloud*", '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', '-jcf', target, split.tail]
                 winston.debug("tar #{args.join(' ')}")
                 child_process.execFile 'tar', args, {cwd:split.head}, (err, stdout, stderr) ->
                     if err
@@ -1587,26 +1625,39 @@ server = net.createServer (socket) ->
 
 
 start_tcp_server = (cb) ->
+    winston.info("starting tcp server...")
     server.listen program.port, '127.0.0.1', () ->
         winston.info("listening on port #{server.address().port}")
-        fs.writeFile(abspath('.sagemathcloud/data/local_hub.port'), server.address().port, cb)
+        fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
 start_raw_server = (cb) ->
+    winston.info("starting raw server...")
     # It's fine to move these lines to the outer scope... when they are needed there.
-    info = fs.readFileSync('.sagemathcloud/info.json')
-    winston.debug("info = #{info}")
-    info = JSON.parse(info)
+    try
+        info = fs.readFileSync("#{process.env['SAGEMATHCLOUD']}/info.json")
+        winston.debug("info = #{info}")
+        info = JSON.parse(info)
+    catch e
+        winston.debug("Missing or corrupt info.json file -- waiting for a new one. #{e}")
+        # There is really nothing the local hub can do if the info.json file is missing
+        # or corrupt, except to wait for a global hub to copy over a new good version.
+        # A global hub should do this on local hub restart or project connection...
+        # Try again soon.
+        f = () ->
+            start_raw_server(()->)
+        setTimeout(f, 1000)
+        cb() # no error, since other stuff needs to happen
+        return
 
     express = require('express')
     raw_server = express()
     project_id = info.project_id
     misc_node.free_port (err, port) ->
         if err
+            winston.debug("error starting raw server: #{err}")
             cb(err); return
-        base = "/#{project_id}/raw/"  # TODO -- change to /raw/
-
-        winston.info("raw server -- #{base}")
-
+        base = "#{info.base_url}/#{project_id}/raw/"
+        winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
         raw_server.configure () ->
             raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
             raw_server.use(base, express.static(process.env.HOME))
@@ -1617,12 +1668,15 @@ start_raw_server = (cb) ->
         raw_server.listen port, info.location.host, (err) ->
             if err
                 cb(err); return
-            fs.writeFile(abspath('.sagemathcloud/data/raw.port'), port, cb)
+            fs.writeFile(abspath("#{DATA}/raw.port"), port, cb)
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
     async.series [start_tcp_server, start_raw_server], (err) ->
-        winston.debug("Error starting a server -- #{err}")
+        if err
+            winston.debug("Error starting a server -- #{err}")
+        else
+            winston.debug("Successfully started servers.")
 
 # daemonize it
 
@@ -1630,8 +1684,8 @@ program = require('commander')
 daemon  = require("start-stop-daemon")
 
 program.usage('[start/stop/restart/status] [options]')
-    .option('--pidfile [string]', 'store pid in this file', String, abspath(".sagemathcloud/data/local_hub.pid"))
-    .option('--logfile [string]', 'write log to this file', String, abspath(".sagemathcloud/data/local_hub.log"))
+    .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
+    .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
     .parse(process.argv)
 
 if program._name == 'local_hub.js'

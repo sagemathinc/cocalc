@@ -30,13 +30,14 @@ mode = sys.argv[1]
 del sys.argv[1]
 
 
-info = json.loads(open(os.path.join(os.environ['HOME'], '.sagemathcloud', 'info.json')).read())
+info = json.loads(open(os.path.join(os.environ['SAGEMATHCLOUD'], 'info.json')).read())
 
 project_id = info['project_id']
 
 ip = info['location']['host']
 if ip == 'localhost':
-    ip = '127.0.0.1'  # special case for local devel user (not part of public sagemath cloud)
+    # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!
+    ip = '127.0.0.1' 
 
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.
@@ -48,7 +49,7 @@ def random_port():
 
 def command():
     port = random_port()
-    base = "/%s/port/%s/"%(project_id, port)
+    base = "%s/%s/port/%s/"%(info['base_url'], project_id, port)
     cmd = "ipython notebook --port-retries=0 --pylab=inline --matplotlib=inline --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port

@@ -32,6 +32,7 @@ codemirror_associations =
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
+    dtd    : 'application/xml-dtd'
     ecl    : 'ecl'
     f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
     f90    : 'text/x-fortran'
@@ -41,8 +42,13 @@ codemirror_associations =
     java   : 'text/x-java'
     js     : 'javascript'
     lua    : 'lua'
+    m      : 'text/x-octave'
     md     : 'markdown'
     patch  : 'text/x-diff'
+
+    gp     : 'text/pari'
+    pari   : 'text/pari'
+
     php    : 'php'
     py     : 'python'
     pyx    : 'python'
@@ -58,6 +64,7 @@ codemirror_associations =
     sql    : 'mysql'
     txt    : 'text'
     tex    : 'stex'
+    toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
     xml    : 'xml'
@@ -137,6 +144,7 @@ sagews_decorator_modes = [
     ['latex'       , 'stex']
     ['lisp'        , 'ecl'],
     ['md'          , 'markdown'],
+    ['gp'          , 'text/pari'],
     ['perl'        , 'text/x-perl'],
     ['python3'     , 'python'],
     ['python'      , 'python'],
@@ -315,21 +323,26 @@ class exports.Editor
             return
         @active_tab.editor().show()
 
+    # This really closes the "recent files" page.  The name is confusing
+    # due to partial refactor of code (i.e., historical reasons).
     init_close_all_tabs_button: () =>
         @element.find("a[href=#close-all-tabs]").click () =>
-            v = []
-            for filename, tab of @tabs
-                @close(filename)
-                @remove_from_recent(filename)
-                v.push(filename)
             undo = @element.find("a[href=#undo-close-all-tabs]")
-            undo.stop().show().animate(opacity:1).fadeOut(duration:60000).click () =>
+            if not undo.data('files')?
+                undo.data('files', [])
+            v = undo.data('files')
+            for filename, tab of @tabs
+                if tab.link.is(":visible")
+                    @remove_from_recent(filename)
+                    if filename not in v
+                        v.push(filename)
+            undo.show().click () =>
                 undo.hide()
-                for filename in v
-                    if not @tabs[filename]?
-                        @create_tab(filename:filename)
+                for filename in undo.data('files')
+                    @tabs[filename]?.link.show()
                 return false
-            alert_message(type:'info', message:"Closed all recently opened files.")
+            setTimeout((() => undo.hide()), 60000)
+
             return false
 
     init_openfile_search: () =>
@@ -447,6 +460,7 @@ class exports.Editor
             x = file_associations['']
         return x
 
+    # This is just one of thetabs in the recent files list, not at the very top
     create_tab: (opts) =>
         opts = defaults opts,
             filename     : required
@@ -471,7 +485,6 @@ class exports.Editor
         link.find(".salvus-editor-close-button-x").click () =>
             if ignore_clicks
                 return false
-            @close(filename)
             @remove_from_recent(filename)
 
         containing_path = misc.path_split(filename).head
@@ -483,6 +496,7 @@ class exports.Editor
             @display_tab(path:link_filename.text(), foreground:foreground)
             if foreground
                 @project_page.set_current_path(containing_path)
+            return false
 
         create_editor_opts =
             editor_name : opts0.editor
@@ -494,6 +508,7 @@ class exports.Editor
         @tabs[filename] =
             link     : link
             filename : filename
+
             editor   : () =>
                 if editor?
                     return editor
@@ -502,12 +517,16 @@ class exports.Editor
                     @element.find(".salvus-editor-content").append(editor.element.hide())
                     @create_opened_file_tab(filename)
                     return editor
-            hide_editor: () -> editor?.hide()
-            editor_open : ()->editor?
+
+            hide_editor : () -> editor?.hide()
+
+            editor_open : () -> editor?   # editor is defined if the editor is open.
+
             close_editor: () ->
                 if editor?
                     editor.disconnect_from_session()
                     editor.remove()
+
                 editor = undefined
                 # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
                 # will end up overwriting it with stale contents.
@@ -625,7 +644,7 @@ class exports.Editor
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
-                tab.editor().disconnect_from_session()
+                tab.editor()?.disconnect_from_session()
                 tab.close_editor()
 
             @resize_open_file_tabs()
@@ -701,7 +720,7 @@ class exports.Editor
         @project_page.container.find(".project-pages").children().removeClass('active')
         link.addClass('active')
 
-    # Close this tab.
+    # Close tab with given filename
     close: (filename) =>
         tab = @tabs[filename]
         if not tab? # nothing to do -- tab isn't opened anymore
@@ -720,7 +739,9 @@ class exports.Editor
     remove_from_recent: (filename) =>
         # Do not show this file in "recent" next time.
         local_storage_delete(@project_id, filename, "auto_open")
-
+        # Hide from the DOM.
+        # This same tab object also stores the top tab and editor, so we don't just delete it.
+        @tabs[filename]?.link.hide()
 
     # Reload content of this tab.  Warn user if this will result in changes.
     reload: (filename) =>
@@ -879,8 +900,9 @@ class FileEditor extends EventEmitter
         autosave = require('account').account_settings.settings.autosave
         if autosave
             save_if_changed = () =>
-                if not @editor.tabs[@filename]?
-                    # don't autosave anymore if the doc is closed
+                if not @editor.tabs[@filename]?.editor_open()
+                    # don't autosave anymore if the doc is closed -- since autosave references
+                    # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
                     clearInterval(@_autosave_interval)
                     return
                 if @has_unsaved_changes()
@@ -999,6 +1021,7 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
+        @element.data('editor', @)
 
         @init_save_button()
         @init_edit_buttons()
@@ -1110,6 +1133,12 @@ class CodeMirrorEditor extends FileEditor
         @_split_view = false
 
         @init_change_event()
+
+    set_theme: (theme) =>
+        # Change the editor theme after the editor has been created
+        @codemirror.setOption('theme', theme)
+        @codemirror1.setOption('theme', theme)
+        @opts.theme = theme
 
     set_cursor_center_focus: (pos) =>
         cm = @codemirror_with_last_focus
@@ -3154,6 +3183,13 @@ class IPythonNotebook extends FileEditor
             sync_interval : 500
             cursor_interval : 2000
         @element = templates.find(".salvus-ipython-notebook").clone()
+
+        if window.salvus_base_url != ""
+            # TODO: having a base_url doesn't imply necessarily that we're in a dangerous devel mode...
+            # (this is just a warning).
+            # The solutiion for this issue will be to set a password whenever ipython listens on localhost.
+            @element.find(".salvus-ipython-notebook-danger").show()
+
         @status_element = @element.find(".salvus-ipython-notebook-status-messages")
         @init_buttons()
         s = path_split(@filename)

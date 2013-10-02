@@ -1,0 +1,58 @@
+#!/usr/bin/python
+
+PROJ_ALERT = 50
+CLIENT_ALERT = 150
+SNAP_SERVERS = 4
+ACCOUNTS = 5500
+BALANCE_ALERT = 50
+
+import os, sys, time, json
+
+os.chdir('/tmp/')
+
+def show(s):
+    print '\n' + s + '\n'
+    print "\x1b]2; %s \x07"%s
+
+
+def go():
+    if os.path.exists('stats'):
+        os.unlink('stats')
+    os.system('wget https://cloud.sagemath.com/stats')
+    stats = json.loads(open('stats').read())
+    print stats
+    clients = sum([x['clients'] for x in stats['hub_servers']])
+    projs = stats['active_projects']
+    snaps = stats['snap_servers']
+    accounts = stats['accounts']
+    if projs >= PROJ_ALERT or clients >= CLIENT_ALERT or snaps < SNAP_SERVERS or accounts > ACCOUNTS:
+        alert = True
+    else:
+        alert = False
+    s = ""
+    s += "%s,%s,%s,%s"%(projs, clients, accounts, stats['projects'])
+    if snaps < SNAP_SERVERS:
+        s += " SNAP SERVER ISSUE "
+    if accounts > ACCOUNTS:
+        s += " new account goal met "
+    for c in stats['hub_servers']:
+        if c['clients'] >= BALANCE_ALERT:
+            alert = True
+            s += "  UNBALANCED LOAD "
+            break
+    if alert:
+        s = "!! " + s
+        # os.system("kdialog --title 'Alert' --passivepopup '%s' & "%s)
+    for ip in ['10.1.1.4', '10.1.2.4', '10.1.3.4', '10.1.4.4']:
+        if os.system("ping -c1 %s"%ip):
+            s = "VM DOWN! " + s
+    show(s)
+
+while 1:
+    try:
+        go()
+    except KeyboardInterrupt:
+        print "Ctrl-C pressed; exiting watch."
+    except:
+        pass
+    time.sleep(30)

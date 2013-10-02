@@ -540,7 +540,10 @@ class exports.Connection extends EventEmitter
         #      The message will not be seen by @handle_message.
         #    * If the timeout is reached before any messages come back, delete the callback and stop listening.
         #      However, if the message later arrives it may still be handled by @handle_message.
-        opts = defaults(opts, message:defaults.required, timeout:null, cb:undefined)
+        opts = defaults opts,
+            message : required
+            timeout : null
+            cb      : undefined
         if not opts.cb?
             @send(opts.message)
             return
@@ -722,7 +725,7 @@ class exports.Connection extends EventEmitter
             account_id : required
             settings   : required
             password   : undefined
-            cb         : required
+            cb         : undefined
 
         @call
             message : message.account_settings(misc.merge(opts.settings, {account_id: opts.account_id, password: opts.password}))

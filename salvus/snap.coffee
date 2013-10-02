@@ -14,6 +14,9 @@
 
 DEFAULT_TIMEOUT   = 60*15   # time in seconds; max time we would ever wait to "bup index" or "bup save"
 
+
+SALVUS_HOME=process.cwd()
+
 # The following is an extra measure, just in case the user somehow gets around quotas.
 # This is the max size of an individual snapshot; if exceeded, then project is black listed.
 # This is for one single snapshot, not all of them in sum.
@@ -45,7 +48,6 @@ cassandra = require 'cassandra'
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, level: 'debug')
 
-
 # Run a bup command
 bup = (opts) ->
     opts = defaults opts,
@@ -59,10 +61,10 @@ bup = (opts) ->
                 winston.info("bup output -- #{misc.to_json(output)}")
 
     if typeof(opts.args) == "string"
-        command = "bup " + opts.args
+        command = "/usr/bin/bup " + opts.args
         opts.args = []
     else
-        command = "bup"
+        command = "/usr/bin/bup"
 
     winston.debug("bup_dir = '#{opts.bup_dir}'")
     misc_node.execute_code
@@ -71,7 +73,6 @@ bup = (opts) ->
         timeout : opts.timeout
         env     : {BUP_DIR : opts.bup_dir}
         cb      : opts.cb
-
 
 ##------------------------------------------
 # This section contains functions for accessing the bup archive
@@ -274,7 +275,7 @@ append_slashes_after_directory_names = (path, files, cb) ->
 _info_all_projects_with_a_backup = (cb) ->  # cb(err, list)
     database.select
         table     : 'snap_commits'
-        where     : {server_id : snap_server_uuid}
+        where     : {server_id : server_id}
         columns   : ['project_id']
         objectify : false
         cb        : (err, results) =>
@@ -371,16 +372,16 @@ snap_restore = (opts) ->
                    winston.info("restore time (#{target}) -- #{misc.walltime(t)}")
                    cb(err)
 
-        # If target path is ., then remove .sagemathcloud, since we *must* not restore it,
-        # since it contains a bunch of invalid and out of data cache info, etc., which will
-        # cause all kinds of trouble.
+        # If target path is ., then remove .sagemathcloud*, since we *must* not restore it,
+        # since it contains a bunch of invalid and out of data cache info, etc., which might
+        # cause all kinds of trouble (not really that bad, but still).
         (cb) ->
             if opts.path != '.'
                 cb(); return
             winston.debug("removing .sagemathcloud since target path is '.'")
             misc_node.execute_code
                 command : "rm"
-                args    : ["-rf", outdir + "/.sagemathcloud/"]
+                args    : ["-rf", outdir + "/.sagemathcloud*"]   # use start since for SMCinSMC, we use .sagemathcloud-project_id.
                 cb      : (err, output) ->
                     cb()
 
@@ -511,10 +512,11 @@ snap_log = (opts) ->
 # of a given remote path, as is discussed (a lot) on the mailing list.
 # Also, for my purpose, that would be meaningless and undesirable for users.
 
-create_lock = (opts) ->
+exports.create_lock = create_lock = (opts) ->
     opts = defaults opts,
         location : required
         ttl      : DEFAULT_TIMEOUT   # time to live, in seconds
+        lockfile : '.bup/lock'   # make customizable for other users
         cb       : required
 
     user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
@@ -523,7 +525,7 @@ create_lock = (opts) ->
              # check if project is currently locked -- if so, returns an error.
              misc_node.execute_code
                  command     : 'ssh'
-                 args        : [user, 'cat .bup/lock']
+                 args        : [user, "cat '#{opts.lockfile}'"]
                  timeout     : 10
                  err_on_exit : false
                  max_output  : 2048  # in case some asshole makes .bup/lock a multi-gigabyte file.
@@ -542,22 +544,23 @@ create_lock = (opts) ->
              # create the lock
              lock = misc.to_json
                     expire : misc.walltime() + opts.ttl
-                    server_id: snap_server_uuid
+                    server_id: server_id
              misc_node.execute_code
                  command : 'ssh'
-                 args    : [user, "mkdir -p .bup; echo '#{lock}' > .bup/lock"]
+                 args    : [user, "mkdir -p .bup; echo '#{lock}' > '#{opts.lockfile}'"]
                  timeout : 10
                  cb      : cb
     ], opts.cb)
 
-remove_lock = (opts) ->
+exports.remove_lock = remove_lock = (opts) ->
     opts = defaults opts,
         location : required
+        lockfile : ".bup/lock"
         cb       : required
     user = "#{opts.location.username}@#{opts.location.host}"   # TODO; port and path?
     misc_node.execute_code
         command : 'ssh'
-        args    : [user, 'rm -f .bup/lock']
+        args    : [user, "rm -f '#{opts.lockfile}'"]
         cb      : (err) ->
             # err here is non-fatal; lock has a timeout, etc.
 	    opts.cb()
@@ -796,7 +799,7 @@ monitor_snapshot_queue = () ->
             # which is what we want, since we will get redundancy by rsyncing them around.
             (cb) ->
                 misc_node.execute_code
-                    command : "bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
+                    command : "/usr/bin/bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
                     timeout : 30  # should be very fast no matter what.
                     bash    : true
                     env     : {BUP_DIR : bup_active}
@@ -903,7 +906,7 @@ monitor_snapshot_queue = () ->
                     set   : {size: size, repo_id:repo_id, modified_files:modified_files}
                     json  : ['modified_files']
                     where :
-                        server_id  : snap_server_uuid
+                        server_id  : server_id
                         project_id : project_id
                         timestamp  : timestamp
                     cb    : (err) ->
@@ -1058,7 +1061,7 @@ handle_connection = (socket) ->
         if err
             winston.info(err)
         else
-            misc_node.enable_mesg(socket)
+            misc_node.enable_mesg(socket, "connection from outside to a snap server")
             handler = (type, mesg) ->
                 if type == "json"
                     handle_mesg(socket, mesg)
@@ -1181,7 +1184,7 @@ exports.client_socket = (opts) ->
             if err
                 opts.cb(err)
             else
-                misc_node.enable_mesg(socket)
+                misc_node.enable_mesg(socket, "client connection to a snap server")
                 opts.cb(false, socket)
 
 exports.client_snap = (opts) ->
@@ -1279,31 +1282,42 @@ initialize_snap_dir = (cb) ->
     # TODO: we could do some significant checks at this point, e.g.,
     # ensure "fsck -g" works on the archive, delete tmp files, etc.
 
-
 # Generate or read uuid of this server, which is the longterm identification
 # of this entire backup set.  This is needed because we may move where
 # the backup sets is hosted -- in fact, the port (part of the location) changes
 # whenever the server restarts.
-snap_server_uuid = undefined
-initialize_server_uuid = (cb) ->
+server_id = undefined
+initialize_server_id = (cb) ->
     fs.exists uuid_file, (exists) ->
         if exists
             fs.readFile uuid_file, (err, data) ->
-                snap_server_uuid = data.toString()
+                server_id = data.toString()
                 cb()
         else
-            snap_server_uuid = uuid.v4()
-            fs.writeFile uuid_file, snap_server_uuid, cb
+            server_id = uuid.v4()
+            fs.writeFile uuid_file, server_id, cb
+
+# some functionality in this file is also used by the hub; and it needs to
+# set the id for some of it (e.g., lock files).  This could be refactored
+# into misc_node or somewhere else.
+exports.set_server_id = (id) ->
+    server_id = id
 
 # Connect to the cassandra database server; sets the global database variable.
 database = undefined
 connect_to_database = (cb) ->
-    new cassandra.Salvus
-        hosts    : program.database_nodes.split(',')
-        keyspace : program.keyspace
-        cb       : (err, db) ->
-            database = db
+    fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/snap", (err, password) ->
+        if err
             cb(err)
+        else
+            new cassandra.Salvus
+                hosts    : program.database_nodes.split(',')
+                keyspace : program.keyspace
+                user     : 'snap'
+                password : password.toString().trim()
+                cb       : (err, db) ->
+                    database = db
+                    cb(err)
 
 # Generate the random secret key and save it in global variable
 secret_key = undefined
@@ -1354,7 +1368,7 @@ register_with_database = (cb) ->
 
     database.update
         table : 'snap_servers'
-        where : {id : snap_server_uuid}
+        where : {id : server_id}
         set   : {key:secret_key, host:program.host, port:listen_port, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
@@ -1441,7 +1455,7 @@ exports.start_server = start_server = () ->
         (cb) ->
             initialize_snap_dir(cb)
         (cb) ->
-            initialize_server_uuid(cb)
+            initialize_server_id(cb)
         (cb) ->
             generate_secret_key(cb)
         (cb) ->

@@ -1,24 +1,24 @@
 # services
+base = 'salvus-2013-09-13-2204'
 
 [vm]
-cloud1   {'hostname':'cassandra1', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus-2013-09-13-2204', 'disk':'cassandra:256'}
-cloud1   {'hostname':'web1',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus-2013-09-13-2204', 'disk':'snap:1024'}
-cloud1   {'hostname':'compute1a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-09-13-2204', 'disk':'home:1024'}
+cloud1   {'hostname':'cassandra1', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':base, 'disk':'cassandra:256'}
+cloud1   {'hostname':'web1',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':base, 'disk':'snap:1024'}
+cloud1   {'hostname':'compute1a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':base, 'disk':'home:1024'}
 
-cloud2   {'hostname':'cassandra2', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus-2013-09-13-2204', 'disk':'cassandra:256'}
-cloud2   {'hostname':'web2',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus-2013-09-13-2204', 'disk':'snap:1024'}
-cloud2   {'hostname':'compute2a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-09-13-2204', 'disk':'home:1024'}
+cloud2   {'hostname':'cassandra2', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':base, 'disk':'cassandra:256'}
+cloud2   {'hostname':'web2',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':base, 'disk':'snap:1024'}
+cloud2   {'hostname':'compute2a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':base, 'disk':'home:1024'}
 
-cloud3   {'hostname':'cassandra3', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus-2013-09-13-2204', 'disk':'cassandra:256'}
-cloud3   {'hostname':'web3',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus-2013-09-13-2204', 'disk':'snap:1024'}
-cloud3   {'hostname':'compute3a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-09-13-2204', 'disk':'home:1024'}
+cloud3   {'hostname':'cassandra3', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':base, 'disk':'cassandra:256'}
+cloud3   {'hostname':'web3',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':base, 'disk':'snap:1024'}
+cloud3   {'hostname':'compute3a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':base, 'disk':'home:1024'}
 
-cloud4   {'hostname':'cassandra4', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':'salvus-2013-09-13-2204', 'disk':'cassandra:256'}
-cloud4   {'hostname':'web4',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':'salvus-2013-09-13-2204', 'disk':'snap:1024'}
-cloud4   {'hostname':'compute4a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':'salvus-2013-09-13-2204', 'disk':'home:1024'}
+cloud4   {'hostname':'cassandra4', 'vcpus':4, 'ram':8, 'vnc':9000, 'base':base, 'disk':'cassandra:256'}
+cloud4   {'hostname':'web4',       'vcpus':4, 'ram':8, 'vnc':9003, 'base':base, 'disk':'snap:1024'}
+cloud4   {'hostname':'compute4a',  'vcpus':8, 'ram':32, 'vnc':9001, 'base':base, 'disk':'home:1024'}
 
-
-[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_max_message_length_in_mb':'100', 'thrift_framed_transport_size_in_mb':'99'}
+[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_max_message_length_in_mb':'100', 'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
 # N=4; [i * (2**127 / N) for i in range(N)]
 cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}

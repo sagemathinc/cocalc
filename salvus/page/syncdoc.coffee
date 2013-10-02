@@ -186,7 +186,7 @@ class AbstractSynchronizedDoc extends EventEmitter
 
         @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
+        @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
         @connect (err) =>
             opts.cb(err, @)
@@ -366,8 +366,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
-        if @session_uuid?
-            # no need to re-disconnect (and would cause serious error!)
+        if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
             salvus_client.call
                 timeout : 10
                 message : message.codemirror_disconnect(session_uuid : @session_uuid)
@@ -391,7 +390,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save)#, logname:'save')
+        @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
         @editor.save = @save
         @codemirror  = @editor.codemirror
@@ -511,8 +510,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     disconnect_from_session: (cb) =>
         @_remove_listeners()
+        @_remove_execute_callbacks()
         if @session_uuid?
-            # no need to re-disconnect (and would cause serious error!)            
+            # no need to re-disconnect (and would cause serious error!)
             salvus_client.call
                 timeout : 10
                 message : message.codemirror_disconnect(session_uuid : @session_uuid)
@@ -520,8 +520,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         # store pref in localStorage to not auto-open this file next time
         @editor.local_storage('auto_open', false)
-
-        @chat_session.disconnect_from_session()
+        @chat_session?.disconnect_from_session()
 
     execute_code: (opts) =>
         opts = defaults opts,
@@ -530,6 +529,10 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             preparse : true
             cb       : undefined
         uuid = misc.uuid()
+        if @_execute_callbacks?
+            @_execute_callbacks.push(uuid)
+        else
+            @_execute_callbacks = [uuid]
         salvus_client.send(
             message.codemirror_execute_code
                 id   : uuid
@@ -540,6 +543,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         )
         if opts.cb?
             salvus_client.execute_callbacks[uuid] = opts.cb
+
+    _remove_execute_callbacks: () =>
+        if @_execute_callbacks?
+            for uuid in @_execute_callbacks
+                delete salvus_client.execute_callbacks[uuid]
+            delete @_execute_callbacks
 
     introspect_line: (opts) =>
         opts = defaults opts,
@@ -1176,6 +1185,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         #console.log("new output: ", mesg)
 
+        if mesg.clear? and mesg.clear
+            output.empty()
+
         if mesg.stdout?
             output.append($("<span class='sagews-output-stdout'>").text(mesg.stdout))
 
@@ -1183,7 +1195,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.append($("<span class='sagews-output-stderr'>").text(mesg.stderr))
 
         if mesg.html?
-            output.append($("<div class='sagews-output-html'>").html(mesg.html).mathjax())
+            output.append($("<span class='sagews-output-html'>").html(mesg.html).mathjax())
 
         if mesg.interact?
             @interact(output, mesg.interact)
@@ -1201,11 +1213,54 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.file?
             val = mesg.file
             if not val.show? or val.show
-                target = "/blobs/#{val.filename}?uuid=#{val.uuid}"
+                target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)
                     # TODO: harden DOM creation below
                     when 'svg', 'png', 'gif', 'jpg'
-                        output.append($("<img src='#{target}' class='sagews-output-image'>"))
+                        img = $("<img src='#{target}' class='sagews-output-image'>")
+                        output.append(img)
+
+                        if mesg.events?
+                            img.css(cursor:'crosshair')
+                            location = (e) ->
+                                offset = img.offset()
+                                x = (e.pageX - offset.left) /img.width()
+                                y = (e.pageY - offset.top) /img.height()
+                                return [x,y]
+
+                            exec = (code) =>
+                                @execute_code
+                                    code     :code
+                                    preparse : true
+                                    cb       : (mesg) =>
+                                        delete mesg.done
+                                        @process_output_mesg
+                                            mesg    : mesg
+                                            element : output
+
+                            for event, function_name of mesg.events
+                                img.data("salvus-events-#{event}", function_name)
+                                switch event
+                                    when 'click'
+                                        img.click (e) =>
+                                            p = location(e)
+                                            exec("#{img.data('salvus-events-click')}('click',(#{p}))")
+                                    when 'mousemove'
+                                        ignore_mouse_move = undefined
+                                        last_pos = undefined
+                                        img.mousemove (e) =>
+                                            if ignore_mouse_move?
+                                                return
+                                            ignore_mouse_move = true
+                                            setTimeout( ( () => ignore_mouse_move=undefined ), 100 )
+                                            p = location(e)
+                                            if last_pos? and p[0] == last_pos[0] and p[1] == last_pos[1]
+                                                return
+                                            last_pos = p
+                                            exec("#{img.data('salvus-events-mousemove')}('mousemove',(#{p}))")
+                                    else
+                                        console.log("unknown or unimplemented event -- #{event}")
+
                     else
                         output.append($("<a href='#{target}' class='sagews-output-link' target='_new'>#{val.filename} (this temporary link expires in a minute)</a> "))
 
@@ -1232,6 +1287,22 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output.addClass('sagews-output-done')
 
         @refresh_soon()
+
+    _receive_broadcast: (mesg) =>
+        switch mesg.mesg.event
+            when 'execute_javascript'
+                if @editor.opts.allow_javascript_eval
+                    mesg = mesg.mesg
+                    (() =>
+                         worksheet = new Worksheet(@)
+                         cell      = new Cell(cell_id : mesg.cell_id)
+                         code = mesg.code
+                         if mesg.coffeescript
+                             code = CoffeeScript.compile(code)
+                         obj = JSON.parse(mesg.obj)
+                         eval(code)
+                    )()
+
 
     mark_cell_start: (line) =>
         # Assuming the proper text is in the document for a new cell at this line,
@@ -1560,13 +1631,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
 class Cell
     constructor : (opts) ->
-        opts = defaults opts,
-            output : required # jquery wrapped output area
-            #cell_mark   : required # where cell starts
+        @opts = defaults opts,
+            output  : undefined # jquery wrapped output area
+            cell_id : undefined
 
 class Worksheet
-
     constructor : (@worksheet) ->
+        @project_page = @worksheet.editor.editor.project_page
+        @editor = @worksheet.editor.editor
 
     execute_code: (opts) =>
         if typeof opts == "string"

@@ -190,6 +190,8 @@ class ProjectPage
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
+        if window.salvus_base_url != "" # TODO -- should use a better way to decide dev mode.
+            @container.find(".salvus-project-id-warning").show()
 
         if @project.size? and @project.size
             @container.find(".project-size").text(human_readable_size(@project.size))
@@ -521,7 +523,8 @@ class ProjectPage
                         filename = line
                         r = search_result.clone()
                         r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
-                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey)  )
+                            that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
+                            return false
                         r.find("span").addClass('lighten').text('(filename)')
                     else
                         # the rgrep part
@@ -535,6 +538,7 @@ class ProjectPage
                         r.find("span").text(context)
                         r.find("a").text(filename).data(filename: path_prefix + filename).mousedown (e) ->
                             that.open_file(path:$(@).data('filename'), foreground:not(e.which==2 or e.ctrlKey))
+                            return false
 
                     search_output.append(r)
                     if num_results >= max_results
@@ -1087,6 +1091,10 @@ class ProjectPage
             search.addClass('disabled')
         else
             search.removeClass('disabled')
+
+    chdir: (path, no_focus) =>
+        @set_current_path(path)
+        @update_file_list_tab(no_focus)
 
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
@@ -1954,13 +1962,15 @@ class ProjectPage
         # Restart worksheet server
         link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            link.find("i").addClass('icon-spin')
+            #link.find("i").addClass('icon-spin')
+            link.icon_spin(start:true)
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
                 timeout    : 10
                 cb         : (err, output) =>
-                    link.find("i").removeClass('icon-spin')
+                    #link.find("i").removeClass('icon-spin')
+                    link.icon_spin(false)
                     if err
                         alert_message
                             type    : "error"
@@ -1986,7 +1996,8 @@ class ProjectPage
                         else
                             cb(true)
                 (cb) =>
-                    link.find("i").addClass('icon-spin')
+                    #link.find("i").addClass('icon-spin')
+                    link.icon_spin(start:true)
                     alert_message
                         type    : "info"
                         message : "Restarting project server..."
@@ -1995,7 +2006,8 @@ class ProjectPage
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
-                    link.find("i").removeClass('icon-spin')
+                    #link.find("i").removeClass('icon-spin')
+                    link.icon_spin(false)
                     alert_message
                         type    : "success"
                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
@@ -2082,7 +2094,7 @@ class ProjectPage
             path    : required
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts.
-        url = "/#{@project.project_id}/raw/#{opts.path}"
+        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
         iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
         setTimeout((() -> iframe.remove()), 30000)
         bootbox.alert("Your file <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")

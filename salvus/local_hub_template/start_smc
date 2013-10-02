@@ -2,14 +2,16 @@
 
 import os, sys,time
 
+SAGEMATHCLOUD=os.path.abspath(os.path.dirname(__file__))
+
 os.chdir(os.environ['HOME'])
 
 def cmd(s):
     print s
-    if os.system(". $HOME/.sagemathcloud/sagemathcloud-env && " + s):
+    if os.system(". '%s'/sagemathcloud-env && "%SAGEMATHCLOUD + s):
        sys.exit(1)
 
-cmd("cd $HOME/.sagemathcloud && ./make_coffee")
+cmd("cd '%s' && ./make_coffee"%SAGEMATHCLOUD)
 
 cmd("local_hub start")
 
@@ -19,7 +21,7 @@ cmd("console_server start  </dev/null >/dev/null 2>&1 &")
 # For now we do NOT background the sage server, since we run into serious problems if a session is requested, but the server isn't started.
 cmd("sage_server    start  </dev/null >/dev/null 2>&1 ")
 
-port_files = [".sagemathcloud/data/%s.port"%s for s in ['local_hub', 'console_server', 'sage_server']]
+port_files = ["%s/data/%s.port"%(SAGEMATHCLOUD, s) for s in ['local_hub', 'console_server', 'sage_server']]
 
 def started():
     for p in port_files:
