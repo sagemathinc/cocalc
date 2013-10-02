@@ -143,10 +143,10 @@ Editor for files in a project
     border : 2px solid #a00;
 }
 .salvus-editor-latex-mesg-template-warning {
-    border : 2px solid ##FDB600;
+    border : 2px solid #FDB600;
 }
 .salvus-editor-latex-mesg-template-typesetting {
-    border : 2px solid ##FDB600;
+    border : 2px solid #FDB600;
 }
 
 .salvus-latex-mesg-message {
@@ -315,8 +315,8 @@ Editor for files in a project
     padding-right: 0px;
     /* background-color: #f9f9f9; */ /* this messes up codemirror themes */
     margin: 0px;  /* WARNING: Must be 0 for codemirror 3.14 ! */
-    border-left:3px solid #aaa;
-    border-radius:5px;
+    border-left: 1px solid #aaa;
+    border-radius: 3px;
     /* box-shadow: 2px 2px 1px #ddd; */   /* no longer trendy */
     overflow-y:auto;
     white-space:normal;
@@ -325,8 +325,8 @@ Editor for files in a project
 
 .sagews-output-html {
     font-family:helvetica;
-    padding-left: 2em;
-    padding-right:2em;
+    /*padding-left: 2em;
+    padding-right:2em;*/
 }
 
 .sagews-output-stdout {
@@ -343,12 +343,12 @@ Editor for files in a project
 }
 
 .sagews-output-image {
-
+    cursor:pointer;
 }
 
 
 .sagews-output-link {
-
+    cursor:pointer;
 }
 
 .sagews-output-hide {
@@ -385,6 +385,13 @@ Editor for files in a project
 
 .salvus-ipython-notebook-status-messages {
     font-size: 10px;
+}
+
+.salvus-ipython-notebook-danger {
+    color: white;
+    font-weight: bold;
+    font-size: 7pt;
+    background: red;
 }
 
 

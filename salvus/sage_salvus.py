@@ -217,8 +217,11 @@ class InteractFunction(object):
     def __init__(self, interact_cell):
         self.__dict__['interact_cell'] = interact_cell
 
-    def __call__(self, *args, **kwds):
-        return self.interact_cell._f(*args, **kwds)
+    def __call__(self, **kwds):
+        salvus.clear()
+        for arg, value in kwds.iteritems():
+            self.__setattr__(arg, value)
+        return self.interact_cell(kwds)
 
     def __setattr__(self, arg, value):
         I = self.__dict__['interact_cell']
@@ -1181,23 +1184,70 @@ class HTML:
 html = HTML()
 html.iframe = _html.iframe  # written in a way that works fine
 
-def coffeescript(s):
+def coffeescript(s=None, once=True):
     """
     Execute code using CoffeeScript.
 
+    For example:
+
+         %coffeescript console.log 'hi'
+
+    or
+
+         coffeescript("console.log 'hi'")
+
     You may either pass in a string or use this as a cell decorator,
     i.e., put %coffeescript at the top of a cell.
-    """
-    return salvus.coffeescript(s)
 
-def javascript(s):
+    If you set once=False, the code will be executed every time the output of the cell is rendered, e.g.,
+    on load, like with %auto::
+
+         coffeescript('console.log("hi")', once=False)
+
+    or
+
+         %coffeescript(once=False)
+         console.log("hi")
+
+    """
+    if s is None:
+        return lambda s : salvus.javascript(s, once=once, coffeescript=True)
+    else:
+        return salvus.javascript(s, coffeescript=True)
+
+def javascript(s=None, once=True):
     """
     Execute code using JavaScript.
 
+    For example:
+
+         %javascript console.log('hi')
+
+    or
+
+         javascript("console.log('hi')")
+
+
     You may either pass in a string or use this as a cell decorator,
     i.e., put %javascript at the top of a cell.
+
+    If you set once=False, the code will be executed every time the output of the cell is rendered, e.g.,
+    on load, like with %auto::
+
+         javascript('.. some code ', once=False)
+
+    or
+
+         %javascript(once=False)
+         ... some code
+
+    WARNING: If once=True, then this code is likely to get executed *before* the rest
+    of the output for this cell has been rendered by the client.
     """
-    return salvus.javascript(s)
+    if s is None:
+        return lambda s : salvus.javascript(s, once=once)
+    else:
+        return salvus.javascript(s)
 
 javascript_exec_doc = r"""
 
@@ -1944,11 +1994,24 @@ fork = Fork()
 ####################################################
 
 from sage.misc.all import tmp_filename
+import matplotlib.figure
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
-    t = tmp_filename(ext = '.svg' if svg else '.png')
-    obj.save(t, **kwds)
-    salvus.file(t)
+    if 'events' in kwds:
+        from graphics import InteractiveGraphics
+        ig = InteractiveGraphics(obj, **kwds['events'])
+        n = '__a'+uuid().replace('-','')  # so it doesn't get garbage collected instantly.
+        obj.__setattr__(n, ig)
+        kwds2 = dict(kwds)
+        del kwds2['events']
+        ig.show(**kwds2)
+    else:
+        t = tmp_filename(ext = '.svg' if svg else '.png')
+        if isinstance(obj, matplotlib.figure.Figure):
+            obj.savefig(t, **kwds)
+        else:
+            obj.save(t, **kwds)
+        salvus.file(t)
 
 def show_3d_plot_using_tachyon(obj, **kwds):
     t = tmp_filename(ext = '.png')
@@ -1960,22 +2023,46 @@ from sage.plot.plot3d.base import Graphics3d
 
 def show(obj, svg=False, **kwds):
     """
-    Show an expression, typeset nicely in tex, or a 2d or 3d graphics object.
+    Show a 2d or 3d graphics object or matplotlib figure, or show an
+    expression typeset nicely using LaTeX.
+
+       - display: (default: True); if true use display math for expression (big and centered).
 
        - svg: (default False); if True, render graphics using svg.  This is False by default,
          since at least Google Chrome mis-renders this as empty:
               line([(10, 0), (10, 15)], color='black').show(svg=True)
 
-       - display: (default: True); if true use display math for expression (big and centered).
+       - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
+         the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
+         for mousemove.  This works for Sage 2d graphics and matplotlib figures.
 
+
+    EXAMPLES:
+
+    Here's an example that illustrates creating a clickable image with events::
+
+        @interact
+        def f0(fun=x*sin(x^2), mousemove='', click='(0,0)'):
+            click = sage_eval(click)
+            g = plot(fun, (x,0,5), zorder=0) + point(click, color='red', pointsize=100, zorder=10)
+            ymax = g.ymax(); ymin = g.ymin()
+            m = fun.derivative(x)(x=click[0])
+            b =  fun(x=click[0]) - m*click[0]
+            g += plot(m*x + b, (click[0]-1,click[0]+1), color='red', zorder=10)
+            def h(p):
+                f0.mousemove = p
+            def c(p):
+                f0(click=p)
+            show(g, events={'click':c, 'mousemove':h}, svg=True, gridlines='major', ymin=ymin, ymax=ymax)
     """
-    if isinstance(obj, (Graphics, GraphicsArray)):
+    import graphics
+    if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure)):
         show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
     elif isinstance(obj, Graphics3d):
         if kwds.get('viewer') == 'tachyon':
             show_3d_plot_using_tachyon(obj, **kwds)
         else:
-            show_3d_plot_using_threejs(obj, **kwds)
+            graphics.show_3d_plot_using_threejs(obj, **kwds)
     else:
         if 'display' not in kwds:
             kwds['display'] = True
@@ -2591,7 +2678,9 @@ def _show_pylab():
             os.unlink(filename)
         except:
             pass
+
 pylab.show = _show_pylab
+matplotlib.figure.Figure.show = show
 
 import matplotlib.pyplot
 def _show_pyplot():
@@ -2612,7 +2701,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure)):
         show(obj)
     else:
         _system_sys_displayhook(obj)
@@ -2675,258 +2764,6 @@ def default_mode(mode):
 
 
 
-#######################################################
-# Three.js based plotting
-#######################################################
-
-def show_3d_plot_using_threejs(p, **kwds):
-
-    #container id to store scene
-    id = uuid()
-    obj_list = []
-
-    def parse_obj(obj):
-        model = []
-        for item in obj.split("\n"):
-            if "usemtl" in item:
-                tmp = str(item.strip())
-                tmp_list = {}
-                try:
-                    tmp_list = {"material_name":name,"face3":face3,"face4":face4,"face5":face5}
-                    model.append(tmp_list)
-                except (ValueError,UnboundLocalError):
-                    pass
-                face3 = []
-                face4 = []
-                face5 = []
-                tmp_list = []
-                name = tmp.split()[1]
-
-
-            if "f" in item:
-                tmp = str(item.strip())
-                face_num = len(tmp.split())
-                for t in tmp.split():
-                    if(face_num ==4):
-                        try:
-                            face3.append(int(t))
-                        except ValueError:
-                            pass
-
-                    elif(face_num ==6):
-                        try:
-                            face5.append(int(t))
-                        except ValueError:
-                            pass
-                    else:
-                        try:
-                            face4.append(int(t))
-                        except ValueError:
-                            pass
-
-        tmp_list = {"material_name":name,"face3":face3,"face4":face4,"face5":face5}
-        model.append(tmp_list)
-
-        return model
-
-
-    def parse_texture(p):
-        texture_dict = []
-        textures = p.texture_set()
-        for item in range(0,len(textures)):
-            texture_pop = textures.pop()
-            string = str(texture_pop)
-            item = string.split("(")[1]
-            name = item.split(",")[0]
-            color = texture_pop.color
-            tmp_dict = {"name":name,"color":color}
-            texture_dict.append(tmp_dict)
-
-        return texture_dict
-
-
-
-    def get_color(name,texture_set):
-        for item in range(0,len(texture_set)):
-            if(texture_set[item]["name"] == name):
-                color = texture_set[item]["color"]
-                color_list = [color[0],color[1],color[2]]
-                break
-            else:
-                color_list = []
-        return color_list
-
-
-    def parse_mtl(p):
-        mtl = p.mtl_str()
-        all_material = []
-        for item in mtl.split("\n"):
-            if "newmtl" in item:
-                tmp = str(item.strip())
-                tmp_list = []
-                try:
-                    texture_set = parse_texture(p)
-                    color = get_color(name,texture_set)
-                except (ValueError,UnboundLocalError):
-                    pass
-                try:
-                    tmp_list = {"name":name,"ambient":ambient, "specular":specular, "diffuse":diffuse, "illum":illum_list[0],
-                               "shininess":shininess_list[0],"opacity":opacity_diffuse[3],"color":color}
-                    all_material.append(tmp_list)
-                except (ValueError,UnboundLocalError):
-                    pass
-
-                ambient = []
-                specular = []
-                diffuse = []
-                illum_list = []
-                shininess_list = []
-                opacity_list = []
-                opacity_diffuse = []
-                tmp_list = []
-                name = tmp.split()[1]
-
-            if "Ka" in item:
-                tmp = str(item.strip())
-                for t in tmp.split():
-                    try:
-                        ambient.append(float(t))
-                    except ValueError:
-                        pass
-
-            if "Ks" in item:
-                tmp = str(item.strip())
-                for t in tmp.split():
-                    try:
-                        specular.append(float(t))
-                    except ValueError:
-                        pass
-
-            if "Kd" in item:
-                tmp = str(item.strip())
-                for t in tmp.split():
-                    try:
-                        diffuse.append(float(t))
-                    except ValueError:
-                        pass
-
-            if "illum" in item:
-                tmp = str(item.strip())
-                for t in tmp.split():
-                    try:
-                        illum_list.append(float(t))
-                    except ValueError:
-                        pass
-
-
-
-            if "Ns" in item:
-                tmp = str(item.strip())
-                for t in tmp.split():
-                    try:
-                        shininess_list.append(float(t))
-                    except ValueError:
-                        pass
-
-            if "d" in item:
-                tmp = str(item.strip())
-                for t in tmp.split():
-                    try:
-                        opacity_diffuse.append(float(t))
-                    except ValueError:
-                        pass
-
-        try:
-            color = list(p.all[0].texture.color.rgb())
-        except (ValueError, AttributeError):
-            pass
-
-        try:
-            texture_set = parse_texture(p)
-            color = get_color(name,texture_set)
-        except (ValueError, AttributeError):
-            color = []
-            #pass
-
-        tmp_list = {"name":name,"ambient":ambient, "specular":specular, "diffuse":diffuse, "illum":illum_list[0],
-                   "shininess":shininess_list[0],"opacity":opacity_diffuse[3],"color":color}
-        all_material.append(tmp_list)
-
-        return all_material
-
-
-
-    def gs_parametric_plot3d(p):
-        id =int(3)
-        face_geometry = parse_obj(p.obj())
-        material = parse_mtl(p)
-        vertex_geometry = []
-        obj  = p.obj()
-        for item in obj.split("\n"):
-            if "v" in item:
-                tmp = str(item.strip())
-                for t in tmp.split():
-                    try:
-                        vertex_geometry.append(float(t))
-                    except ValueError:
-                        pass
-        myobj = {"face_geometry":face_geometry,"id":id,"vertex_geometry":vertex_geometry,"material":material}
-        obj_list.append(myobj)
-
-    def gs_text3d(p):
-        id =int(2)
-        text3d_sub_obj = p.all[0]
-        text_content = text3d_sub_obj.string
-
-        myobj = {"vertices":[],"faces":[],"normals":[],"colors":[],"text":text_content,"id":id}
-        obj_list.append(myobj)
-
-
-
-    def gs_combination(p):
-        for x in p.all:
-            options[str(type(x))](x)
-
-
-    def gs_inner(p):
-        if (str(type(p.all[0]))=="<class 'sage.plot.plot3d.base.TransformGroup'>"):
-            gs_parametric_plot3d(p)
-        else:
-            options[str(type(p.all[0]))](p)
-
-
-    options = {"<class 'sage.plot.plot3d.base.TransformGroup'>": gs_inner,
-               "<type 'sage.plot.plot3d.parametric_surface.ParametricSurface'>": gs_parametric_plot3d,#gs_plot3d,
-               "<type 'sage.plot.plot3d.implicit_surface.ImplicitSurface'>":gs_parametric_plot3d,#gs_implicit_plot3d,
-               "<class 'sage.plot.plot3d.base.Graphics3dGroup'>": gs_combination,
-               "<class 'sage.plot.plot3d.shapes2.Line'>": gs_parametric_plot3d,
-               "<type 'sage.plot.plot3d.parametric_surface.ParametricSurface'>":gs_parametric_plot3d,#gs_plot3d,
-               "<class 'sage.plot.plot3d.parametric_surface.MobiusStrip'>":gs_parametric_plot3d,#gs_plot3d,
-               "<class 'sage.plot.plot3d.shapes.Text'>": gs_text3d,
-               "<type 'sage.plot.plot3d.shapes.Sphere'>": gs_parametric_plot3d,
-               "<type 'sage.plot.plot3d.index_face_set.IndexFaceSet'>": gs_parametric_plot3d,
-               "<class 'sage.plot.plot3d.shapes.Box'>": gs_parametric_plot3d,
-               "<type 'sage.plot.plot3d.shapes.Cone'>": gs_parametric_plot3d,
-               }
-
-
-    try:
-        options[str(type(p))](p)
-    except KeyError:
-        return "Type not supported"
-
-    json_obj_list = json.dumps(obj_list, separators=(',', ':'))
-
-
-    # Create div that will contain our 3d scene
-    html("<div id=%s></div>"%id, hide=False)
-
-    # Display the object
-
-    # TODO: do this right. (for dev it's nice to have tmp.js and ._three_data easily accessible.)
-    open("tmp.js",'w').write("window._three_data = %s;"%json_obj_list)
-    load("tmp.js")
-    salvus.javascript("$('#%s').threejs({create:window._three_data})"%id)
 
 
 #######################################################

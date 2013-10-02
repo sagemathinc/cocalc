@@ -29,4 +29,4 @@ class Connection extends client.Connection
         @_conn.close()
 
     _cookies: (mesg) ->
-        $.ajax(url:"/cookies", data:{id:mesg.id, set:mesg.set, get:mesg.get})
+        $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get})

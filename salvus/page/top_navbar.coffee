@@ -42,7 +42,7 @@ class TopNavbar  extends EventEmitter
             onfullscreen  : undefined  # called with onfullscreen(true or false) when switching to fullscreen (true) or out (false).
             icon          : undefined      # something like 'icon-globe'
 
-        button = @button_template.clone()
+        button  = @button_template.clone()
         divider = @divider_template.clone()
         if opts.pull_right
             @buttons_right.prepend(button)

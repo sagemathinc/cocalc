@@ -72,13 +72,12 @@ $("a[href='#account-sign_in']").click (event) ->
 ################################################
 $("#account-settings-change-settings-button").click (event) ->
     account_settings.load_from_view()
-    account_settings.save_to_server(
+    account_settings.save_to_server
         cb : (error, mesg) ->
             if error
                 alert_message(type:"error", message:error)
             else
-                alert_message(type:"info", message:"You have saved your settings.  Changes only apply to newly opened files and terminals.")
-    )
+                alert_message(type:"info", message:"You have saved your settings.  Some changes only apply to newly opened files and terminals.")
 
 $("#account-settings-cancel-changes-button").click((event) -> account_settings.set_view())
 
@@ -262,12 +261,12 @@ password_strength_meter = (input) ->
     input.after(display)
     colors = ['red', 'yellow', 'orange', 'lightgreen', 'green']
     score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
-    input.bind('change keypress paste focus textInput input', () ->
-        result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
-        display.find(".bar").css("width", "#{13*(result.score+1)}%")
-        display.find("font").html(score[result.score])
-        display.css("background-color", colors[result.score])
-    )
+    input.bind 'change keypress paste focus textInput input', () ->
+        if input.val()
+            result = zxcvbn(input.val(), ['sagemath'])  # explicitly ban some words.
+            display.find(".bar").css("width", "#{13*(result.score+1)}%")
+            display.find("font").html(score[result.score])
+            display.css("background-color", colors[result.score])
     return input
 
 $.fn.extend
@@ -546,8 +545,8 @@ class AccountSettings
     # want to save the settings in view, you must first call load_from_view.
     save_to_server: (opts) ->
         opts = defaults opts,
-            cb       : required
-            password : undefined  # must be set, or all restricted settings are ignored by the server
+            cb       : undefined
+            password : undefined  # must be set or all restricted settings are ignored by the server
 
         if not @settings? or @settings == 'error'
             opts.cb("There are no account settings to save.")
@@ -560,6 +559,21 @@ class AccountSettings
             cb         : opts.cb
 
 account_settings = exports.account_settings = new AccountSettings()
+
+################################################
+# Make it so changing each editor property impacts all open editors instantly
+# TODO: just started with theme -- need to do the rest
+################################################
+
+editor_theme = $(".account-settings-editor-color_scheme").on 'change', () ->
+    val = editor_theme.val()
+    if account_settings.settings.editor_settings.theme == val
+        return
+    account_settings.settings.editor_settings.theme = val
+    for x in $(".salvus-editor-codemirror")
+        $(x).data("editor")?.set_theme(val)
+    account_settings.save_to_server()
+
 
 ################################################
 # Change Email Address
@@ -712,13 +726,17 @@ $("#account-forgot_password-button-submit").click (event) ->
 #################################################################
 forgot_password_reset = $("#account-forgot_password_reset")
 url_args = window.location.href.split("#")
-if url_args.length == 3 and url_args[1] == "forgot"
-    forget_password_reset_key = url_args[2]
+if url_args.length == 2 and url_args[1].slice(0,6) == "forgot"
+    forget_password_reset_key = url_args[1].split('%')[1]
     forgot_password_reset.modal("show")
+
+    # this line is just stupid; but it doesn't matter if it fails
+    setTimeout((()=>forgot_password_reset.find("input").focus()), 1000)
 
 close_forgot_password_reset = () ->
     forgot_password_reset.modal('hide').find('input').val('')
     forgot_password_reset.find(".account-error-text").hide()
+    window.history.pushState("", "", "/")  # this gets rid of the #forgot, etc. part of the URL.
 
 forgot_password_reset.find(".close").click((event) -> close_forgot_password_reset())
 $("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_password_reset())
@@ -730,7 +748,7 @@ $("#account-forgot_password_reset-button-submit").click (event) ->
     new_password = $("#account-forgot_password_reset-new_password").val()
     forgot_password_reset.find(".account-error-text").hide()
     salvus_client.reset_forgot_password
-        reset_code   : url_args[2]
+        reset_code   : url_args[1].slice(7)
         new_password : new_password
         cb : (error, mesg) ->
             if error

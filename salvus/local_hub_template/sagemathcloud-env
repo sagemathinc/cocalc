@@ -1,4 +1,10 @@
-export SAGEMATHCLOUD="$HOME/.sagemathcloud"
+#!/usr/bin/env bash
+
+# directory containing this script
+if [ "$SAGEMATHCLOUD"x = "" ]; then
+    export SAGEMATHCLOUD="`dirname \`readlink -f $BASH_SOURCE\``"
+fi
+
 P="$SAGEMATHCLOUD"
 
 # If for some reason you ever change this, also possibly change the Python code in "build".

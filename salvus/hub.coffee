@@ -121,8 +121,11 @@ init_http_server = () ->
 
         {query, pathname} = url.parse(req.url, true)
 
+        pathname = pathname.slice(program.base_url.length)
+
         if pathname != '/alive'
-            winston.info ("#{req.connection.remoteAddress} accessed #{req.url}")
+            winston.info("#{req.connection.remoteAddress} accessed #{req.url}")
+            winston.info("pathname='#{pathname}'")
 
         segments = pathname.split('/')
         switch segments[1]
@@ -189,7 +192,8 @@ init_http_server = () ->
                             # authenticate user
                             (cb) ->
                                 cookies = new Cookies(req, res)
-                                value = cookies.get('remember_me')
+                                # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
+                                value = cookies.get(program.base_url + 'remember_me')
                                 if not value?
                                     res.end('ERROR -- you must enable remember_me cookies')
                                     return
@@ -198,7 +202,7 @@ init_http_server = () ->
                                 database.key_value_store(name: 'remember_me').get
                                     key : hash
                                     cb  : (err, signed_in_mesg) =>
-                                        if err
+                                        if err or not signed_in_mesg?
                                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
                                         account_id = signed_in_mesg.account_id
                                         if not account_id?
@@ -420,34 +424,37 @@ init_http_proxy_server = () =>
             )
 
     http_proxy_server = httpProxy.createServer (req, res, proxy) ->
-        if req.url == "/alive"
+        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        if req_url == "/alive"
             res.end('')
             return
 
         buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         cookies = new Cookies(req, res)
-        remember_me = cookies.get('remember_me')
+        remember_me = cookies.get(program.base_url + 'remember_me')
 
         if not remember_me?
             res.writeHead(500, {'Content-Type':'text/html'})
-            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> and enable 'remember me' at the sign in screen, then refresh this page.")
+            res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
             return
 
-        target remember_me, req.url, (err, location) ->
+        target remember_me, req_url, (err, location) ->
             if err
 
                 winston.debug("proxy denied -- #{err}")
 
                 res.writeHead(500, {'Content-Type':'text/html'})
-                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
+                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this req_url = req.url.slice(program.base_url.length)page.")
             else
+                winston.debug("location = #{misc.to_json(location)}")
                 proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
 
     http_proxy_server.listen(program.proxy_port, program.host)
 
     http_proxy_server.on 'upgrade', (req, socket, head) ->
-        target undefined, req.url, (err, location) ->
+        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        target undefined, req_url, (err, location) ->
             if err
                 winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
             else
@@ -499,7 +506,7 @@ class Client extends EventEmitter
 
     check_for_remember_me: () =>
         @get_cookie
-            name : 'remember_me'
+            name : program.base_url + 'remember_me'
             cb   : (value) =>
                 if value?
                     x    = value.split('$')
@@ -571,14 +578,15 @@ class Client extends EventEmitter
         @account_id = undefined
 
     #########################################################
-    # Setting and getting HTTPonly cookies via SockJS + AJAX
+    # Setting and getting HTTP-only cookies via SockJS + AJAX
     #########################################################
     get_cookie: (opts) ->
         opts = defaults opts,
             name : required
             cb   : required   # cb(value)
+        winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
 
     set_cookie: (opts) ->
         opts = defaults opts,
@@ -591,7 +599,7 @@ class Client extends EventEmitter
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @once("set_cookie-#{opts.name}", ()->opts.cb?())
         @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name))
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies"))
 
     remember_me: (opts) ->
         #############################################################
@@ -643,7 +651,7 @@ class Client extends EventEmitter
 
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @set_cookie
-            name  : 'remember_me'
+            name  : program.base_url + 'remember_me'
             value : [x[0], x[1], x[2], session_id].join('$')
             ttl   : ttl
 
@@ -1977,7 +1985,7 @@ init_sockjs_server = () ->
     sockjs_server.on "connection", (conn) ->
         clients[conn.id] = new Client(conn)
 
-    sockjs_server.installHandlers(http_server, {prefix:'/hub'})
+    sockjs_server.installHandlers(http_server, {prefix : program.base_url + '/hub'})
 
 
     #######################################################
@@ -2443,8 +2451,8 @@ class CodeMirrorSession
             cb   : (err, resp) =>
                 if err
                     winston.debug("client_call: error -- #err -- reconnecting")
-                    @reconnect () =>
-                        resp = message.reconnect(id:mesg.id, reason:"error introspecting code-- #{err}")
+                    @connect () =>
+                        resp = message.reconnect(id:mesg.id, reason:"error -- #{err}")
                         client.push_to_client(resp)
                 else
                     client.push_to_client(resp)
@@ -2468,7 +2476,7 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
             if err
                 opts.cb(err)
             else
-                misc_node.enable_mesg(socket)
+                misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
                 opts.cb(false, socket)
 
     socket.on 'data', (data) ->
@@ -2481,6 +2489,7 @@ new_local_hub = (opts) ->    # cb(err, hub)
         username : required
         host     : required
         port     : 22
+        project  : undefined
         cb       : required
     hash = "#{opts.username}@#{opts.host} -p#{opts.port}"
     H = _local_hub_cache[hash]   # memory leak issues?
@@ -2489,7 +2498,7 @@ new_local_hub = (opts) ->    # cb(err, hub)
         opts.cb(false, H)
     else
         start_time = misc.walltime()
-        H = new LocalHub(opts.username, opts.host, opts.port, (err) ->
+        H = new LocalHub(opts.username, opts.host, opts.port, opts.project, (err) ->
                    winston.debug("new_local_hub creation: time= #{misc.walltime() - start_time}")
                    if not err
                       _local_hub_cache[hash] = H
@@ -2497,9 +2506,14 @@ new_local_hub = (opts) ->    # cb(err, hub)
             )
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@username, @host, @port, cb) ->
+    constructor: (@username, @host, @port, @project, cb) ->  # NOTE @project may be undefined.
         winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
         assert @username? and @host? and @port? and cb?
+
+        if program.local
+            @SAGEMATHCLOUD = ".sagemathcloud-local"
+        else
+            @SAGEMATHCLOUD = ".sagemathcloud"
         @address = "#{username}@#{host}"
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
@@ -2522,9 +2536,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb("already restarting")
             return
         @_restart_lock = true
+        created_remote_lock = false
+        location = {username:@username, host:@host, port:@port}
+        lockfile = @SAGEMATHCLOUD + '.lock'
         async.series([
             (cb) =>
+                winston.debug("local_hub restart: creating a lock")
+                snap.create_lock
+                    location : {username:@username, host:@host, port:@port}
+                    lockfile : lockfile
+                    ttl      : 30  # 30 seconds
+                    cb       : cb  # will fail if there is already a lock
+            (cb) =>
                 winston.debug("local_hub restart: Killing all processes")
+                # if we get to this point, *we* created the remote lock -- so we better clean it
+                # up no matter what happens below.
+                created_remote_lock = true
                 if @username.length != 8
                     winston.debug("local_hub restart: skipping killall since this user #{@username} is clearly not a cloud.sagemath project :-)")
                     cb()
@@ -2544,17 +2571,31 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 winston.debug("local_hub restart: Restart the local services....")
                 @_restart_lock = false # so we can call @_exec_on_local_hub
                 @_exec_on_local_hub
-                    command : 'start_smc'
+                    command : 'restart_smc'
                     timeout : 45
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
                         cb(err)
                 # MUST be here, since _restart_lock prevents _exec_on_local_hub!
                 @_restart_lock = true
+
+
         ], (err) =>
             winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
-            cb(err)
+            if not err and @project? and @project.local_hub?
+                # This deals with VERY RARE case where user of project somehow deleted
+                # the info.json file...
+                @project.write_info_json(cb)
+
+            if created_remote_lock
+                snap.remove_lock
+                    location : location
+                    lockfile : lockfile
+                    cb       : () =>
+                        cb(err)
+            else
+                cb(err)
         )
 
     # Send a JSON message to a session.
@@ -2579,21 +2620,24 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
     # except those in @_multi_response.
     handle_mesg: (mesg) =>
+        #winston.debug("local_hub --> global_hub: received a mesg: #{to_json(mesg)}")
         if mesg.id?
             @_multi_response[mesg.id]?(false, mesg)
             return
-        if mesg.event == 'codemirror_diffsync_ready'
-            @get_codemirror_session
-                session_uuid : mesg.session_uuid
-                cb           : (err, session) ->
-                    if not err
-                        session.sync()
-        if mesg.event == 'codemirror_bcast'
-            @get_codemirror_session
-                session_uuid : mesg.session_uuid
-                cb           : (err, session) ->
-                    if not err
-                        session.broadcast_mesg_to_clients(mesg)
+        switch mesg.event
+            when 'codemirror_diffsync_ready'
+                @get_codemirror_session
+                    session_uuid : mesg.session_uuid
+                    cb           : (err, session) ->
+                        if not err
+                            session.sync()
+
+            when 'codemirror_bcast'
+                @get_codemirror_session
+                    session_uuid : mesg.session_uuid
+                    cb           : (err, session) ->
+                        if not err
+                            session.broadcast_mesg_to_clients(mesg)
 
     handle_blob: (opts) =>
         opts = defaults opts,
@@ -2992,7 +3036,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 misc_node.execute_code
                     command : "rsync"
                     args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                               'local_hub_template/', '--exclude=node_modules/*', "#{@address}:~#{@username}/.sagemathcloud/"]
+                               'local_hub_template/', '--exclude=node_modules/*', "#{@address}:~#{@username}/#{@SAGEMATHCLOUD}/"]
                     timeout : 60
                     bash    : false
                     path    : SALVUS_HOME
@@ -3007,7 +3051,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 misc_node.execute_code
                     command : "rsync"
                     args    : ['-axH', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                               'local_hub_template/node_modules/', "#{@address}:~#{@username}/.sagemathcloud/node_modules/"]
+                               'local_hub_template/node_modules/', "#{@address}:~#{@username}/#{@SAGEMATHCLOUD}/node_modules/"]
                     timeout : 60
                     bash    : false
                     path    : SALVUS_HOME
@@ -3030,12 +3074,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : required
 
         if opts.dot_sagemathcloud_path
-            opts.command = "~#{@username}/.sagemathcloud/#{opts.command}"
+            opts.command = "~#{@username}/#{@SAGEMATHCLOUD}/#{opts.command}"
 
         if @_restart_lock
             opts.cb("_restart_lock..."); return
 
-        # ssh [user]@[host] [-p port] .sagemathcloud/[commmand]
+        # ssh [user]@[host] [-p port] #{@SAGEMATHCLOUD}/[commmand]
         tm = misc.walltime()
         misc_node.execute_code
             command : "ssh"
@@ -3053,7 +3097,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             timeout  : 10
             cb      : (err, out) =>
                 if out?.stdout?
-                    status = misc.from_json(out.stdout)
+                    try
+                        status = misc.from_json(out.stdout)
+                    catch e
+                        cb("error parsing local hub status")
+                        return
                 cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
@@ -3066,13 +3114,16 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     killall: (cb) =>
         winston.debug("kill all processes running on a local hub (including the local hub itself)")
+        if program.local
+            winston.debug("killall -- skipping since running with --local=true debug mode")
+            cb(); return
         @_exec_on_local_hub
             command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
             cb      : (err, out) =>
                 winston.debug("killall returned -- #{err}, #{misc.to_json(out)}")
-                # We explicitly ignore errors since killall kills self while at it.
+                # We explicitly ignore errors since killall kills self while at it, which results in an error code return.
                 cb()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
@@ -3341,6 +3392,10 @@ class Project
         if not @project_id?
             throw "When creating Project, the project_id must be defined"
         winston.debug("Instantiating Project class for project with id #{@project_id}.")
+        if program.local
+            @SAGEMATHCLOUD = ".sagemathcloud-local"
+        else
+            @SAGEMATHCLOUD = ".sagemathcloud"
         async.series([
             (cb) =>
                 winston.debug("Getting project #{@project_id} location.")
@@ -3358,6 +3413,7 @@ class Project
                     username : @location.username
                     host     : @location.host
                     port     : @location.port
+                    project  : @
                     cb       : (err, hub) =>
                         if err
                             cb(err)
@@ -3367,12 +3423,15 @@ class Project
             # Write the project id to the local hub unix account, since it is useful to
             # have there (for various services).
             (cb) =>
-                @write_file
-                    path : ".sagemathcloud/info.json"
-                    project_id : @project_id
-                    data       : misc.to_json(project_id:@project_id, location:@location)
-                    cb         : cb
+                @write_info_json(cb)
         ], (err) => cb(err, @))
+
+    write_info_json: (cb) =>
+        @write_file
+            path       : "#{@SAGEMATHCLOUD}/info.json"
+            project_id : @project_id
+            data       : misc.to_json(project_id:@project_id, location:@location, base_url:program.base_url)
+            cb         : cb
 
     _fixpath: (obj) =>
         if obj?
@@ -3896,6 +3955,12 @@ delete_unix_user = (opts) ->
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb          : required
+
+    if program.local
+        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
+        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
+        return
+
     cache = new_random_unix_user.cache
 
     if cache.length > 0
@@ -4370,17 +4435,19 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
-                Somebody just requested to change the password on your SageMath cloud account.
+                Somebody just requested to change the password on your Sagemath Cloud account.
                 If you requested this password change, please change your password by
-                following the link below:
+                following the link below within 15 minutes:
 
-                     https://cloud.sagemath.com#forgot##{id}
+                     https://cloud.sagemath.com#forgot%#{id}
 
                 If you don't want to change your password, ignore this message.
+
+                In case of problems, email wstein@uw.edu.
                 """
 
             send_email
-                subject : 'SageMath cloud password reset confirmation'
+                subject : 'Sagemath Cloud password reset confirmation'
                 body    : body
                 to      : mesg.email_address
                 cb      : (error) ->
@@ -4948,16 +5015,25 @@ clean_up_on_shutdown = () ->
 #############################################
 # Connect to database
 #############################################
+#
+# load database password from 'data/secrets/cassandra/hub'
+#
+
 connect_to_database = (cb) ->
     if database? # already did this
         cb(); return
-    new cass.Salvus
-        hosts    : program.database_nodes.split(',')
-        keyspace : program.keyspace
-        cb       : (err, _db) ->
-            database = _db
+    fs.readFile "#{SALVUS_HOME}/data/secrets/cassandra/hub", (err, password) ->
+        if err
             cb(err)
-
+        else
+            new cass.Salvus
+                hosts    : program.database_nodes.split(',')
+                keyspace : program.keyspace
+                user     : 'hub'
+                password : password.toString().trim()
+                cb       : (err, _db) ->
+                    database = _db
+                    cb(err)
 
 #############################################
 # Start everything running
@@ -4969,10 +5045,12 @@ exports.start_server = start_server = () ->
     winston.info("Using Cassandra keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
 
+    snap.set_server_id("#{program.host}:#{program.port}")
+
     # Once we connect to the database, start serving.
     connect_to_database (err) ->
         if err
-            winston.debug("Failed to connect to database!")
+            winston.debug("Failed to connect to database! -- #{err}")
             return
 
         # start updating stats cache every minute (on every hub)
@@ -4997,7 +5075,11 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
+    .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .parse(process.argv)
+
+    # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
 
 console.log(program._name)
 if program._name.slice(0,3) == 'hub'
