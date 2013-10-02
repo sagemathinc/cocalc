@@ -1637,6 +1637,10 @@ start_raw_server = (cb) ->
         info = fs.readFileSync("#{process.env['SAGEMATHCLOUD']}/info.json")
         winston.debug("info = #{info}")
         info = JSON.parse(info)
+        # We do the following for backward compatibility -- old projects may have an
+        # old base_url laying around.
+        if not info.base_url?
+            info.base_url = ''
     catch e
         winston.debug("Missing or corrupt info.json file -- waiting for a new one. #{e}")
         # There is really nothing the local hub can do if the info.json file is missing
