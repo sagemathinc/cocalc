@@ -183,12 +183,16 @@ class ConsoleSessions
                         project_id   : mesg.project_id
 
                     # Connect the sockets together.
+
+                    # receive data from the user (typing at their keyboard)
                     client_socket.on 'data', (data) ->
+                        activity()
                         console_socket.write(data)
 
                     session.amount_of_data = 0
                     session.last_data = misc.mswalltime()
 
+                    # receive data from the pty, which we push out to the user (via global hub)
                     console_socket.on 'data', (data) ->
 
                         # every 2 ms we reset the burst data watcher.
@@ -287,6 +291,7 @@ get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
 plug = (s1, s2) ->
     # Connect the sockets together.
     s1.on 'data', (data) ->
+        activity()   # record incoming activity  (don't do this in other direction, since that shouldn't keep session alive)
         s2.write(data)
     s2.on 'data', (data) ->
         s1.write(data)
@@ -1551,6 +1556,7 @@ handle_save_blob_message = (mesg) ->
 ###############################################
 
 handle_mesg = (socket, mesg, handler) ->
+    activity()  # record that there was some activity so process doesn't killall
     try
         winston.debug("Handling '#{json(mesg)}'")
         if mesg.event.split('_')[0] == 'codemirror'
@@ -1674,9 +1680,40 @@ start_raw_server = (cb) ->
                 cb(err); return
             fs.writeFile(abspath("#{DATA}/raw.port"), port, cb)
 
+last_activity = undefined
+# Call this function to signal that there is activity.
+activity = () ->
+    last_activity = misc.mswalltime()
+activity() # initialize
+
+start_kill_monitor = (cb) ->
+    # Start a monitor that periodically checks for some sort of client-initiated hub activity.
+    # If there is none for program.timeout seconds, then all processes running as this user
+    # are killed (including this local hub, of course).
+    if not program.timeout or process.env['USER'].length != 8   # 8 = length of SMC accounts... this excludes 'wstein' (say)
+        # don't bother
+        cb()
+        return
+
+    timeout = program.timeout*1000
+    kill_if_inactive = () ->
+        if misc.mswalltime() - last_activity >= timeout
+            # game over -- kill everything...
+            mesg = "Activity timeout hit: killing everything!"
+            console.log(mesg)
+            winston.info(mesg)
+            misc_node.execute_code
+                command : "pkill"
+                args    : ['-9', '-u', process.env['USER']]
+                cb      : (err) ->
+                    # shouldn't get hit, since *everything* including this process, gets killed
+
+    # check every 30 seconds (or timeout/2 if < 30000 seconds).
+    setInterval(kill_if_inactive, Math.min(30000, timeout/2))
+
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
-    async.series [start_tcp_server, start_raw_server], (err) ->
+    async.series [start_kill_monitor, start_tcp_server, start_raw_server], (err) ->
         if err
             winston.debug("Error starting a server -- #{err}")
         else
@@ -1690,6 +1727,7 @@ daemon  = require("start-stop-daemon")
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
     .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
+    .option('--timeout [number]', 'kill all processes if there is no "activity" for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 
 if program._name == 'local_hub.js'

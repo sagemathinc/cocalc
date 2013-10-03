@@ -21,6 +21,10 @@ SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
+# Default local hub parameters -- how long until project local hubs kill everything in that project, if there is no activity,
+# where activity = "any message from a global hub".
+DEFAULT_LOCAL_HUB_TIMEOUT = 20  # in seconds; 0 to disable
+
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
 MESG_QUEUE_INTERVAL_MS  = 50
@@ -2510,8 +2514,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
         assert @username? and @host? and @port? and cb?
 
+        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
+            # This is used when starting the local hub server daemon.
+            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
+
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
+            # Do not timeout when doing development, since the enclosing project would already timeout... and
+            # timeout would make left-running subproject kill enclosing project.  BAD.
+            # @timeout = 0  # 0 means "don't timeout"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
         @address = "#{username}@#{host}"
@@ -2571,7 +2582,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 winston.debug("local_hub restart: Restart the local services....")
                 @_restart_lock = false # so we can call @_exec_on_local_hub
                 @_exec_on_local_hub
-                    command : 'restart_smc'
+                    command : "restart_smc --timeout=#{@timeout}"
                     timeout : 45
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
@@ -3107,7 +3118,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     _restart_local_hub_daemons: (cb) =>
         winston.debug("restarting local_hub daemons")
         @_exec_on_local_hub
-            command : "restart_smc"
+            command : "restart_smc --timeout=#{@timeout}"
             timeout : 30
             cb      : (err, out) =>
                 cb(err)
