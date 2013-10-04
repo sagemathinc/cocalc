@@ -4,7 +4,7 @@ import argparse, os, sys,time
 
 parser = argparse.ArgumentParser(description="Run all SMC daemons")
 parser.add_argument("--timeout", dest="timeout", type=int, default=0,
-    help="kill all processes if there is no "activity" for this many *seconds* (use 0 to disable, which is the default)")
+    help="kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)")
 args = parser.parse_args()
 
 SAGEMATHCLOUD=os.path.abspath(os.path.dirname(__file__))
@@ -18,7 +18,7 @@ def cmd(s):
 
 cmd("cd '%s' && ./make_coffee"%SAGEMATHCLOUD)
 
-cmd("local_hub start --timeout=%"%args.timeout)
+cmd("local_hub start --timeout=%s"%args.timeout)
 
 # we redirect to /dev/null to detach file descriptors so remote ssh terminates without waiting for these.
 cmd("console_server start  </dev/null >/dev/null 2>&1 &")

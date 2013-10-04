@@ -1684,32 +1684,36 @@ last_activity = undefined
 # Call this function to signal that there is activity.
 activity = () ->
     last_activity = misc.mswalltime()
-activity() # initialize
 
 start_kill_monitor = (cb) ->
     # Start a monitor that periodically checks for some sort of client-initiated hub activity.
     # If there is none for program.timeout seconds, then all processes running as this user
     # are killed (including this local hub, of course).
     if not program.timeout or process.env['USER'].length != 8   # 8 = length of SMC accounts... this excludes 'wstein' (say)
-        # don't bother
+        winston.debug("Not setting kill monitor")
         cb()
         return
 
     timeout = program.timeout*1000
+    winston.debug("Creating kill monitor to kill if idle for #{program.timeout} seconds")
+    activity()
     kill_if_inactive = () ->
-        if misc.mswalltime() - last_activity >= timeout
+        age = misc.mswalltime() - last_activity
+        winston.debug("kill_if_inactive: last activity #{age/1000} seconds ago")
+        if age >= timeout
             # game over -- kill everything...
             mesg = "Activity timeout hit: killing everything!"
             console.log(mesg)
-            winston.info(mesg)
+            winston.debug(mesg)
             misc_node.execute_code
                 command : "pkill"
                 args    : ['-9', '-u', process.env['USER']]
                 cb      : (err) ->
                     # shouldn't get hit, since *everything* including this process, gets killed
 
-    # check every 30 seconds (or timeout/2 if < 30000 seconds).
-    setInterval(kill_if_inactive, Math.min(30000, timeout/2))
+    # check every 30 seconds
+    setInterval(kill_if_inactive, 30000)
+    cb()
 
 # Start listening for connections on the socket.
 exports.start_server = start_server = () ->
@@ -1727,7 +1731,7 @@ daemon  = require("start-stop-daemon")
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
     .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
-    .option('--timeout [number]', 'kill all processes if there is no "activity" for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
+    .option('--timeout [number]', 'kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 
 if program._name == 'local_hub.js'

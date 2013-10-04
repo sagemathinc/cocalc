@@ -21,9 +21,10 @@ SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
-# Default local hub parameters -- how long until project local hubs kill everything in that project, if there is no activity,
-# where activity = "any message from a global hub".
-DEFAULT_LOCAL_HUB_TIMEOUT = 20  # in seconds; 0 to disable
+# Default local hub parameters -- how long until project local hubs
+# kill everything in that project, if there is no activity, where
+# activity = "receive data from a global hub".
+DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*12  # time in seconds; 0 to disable
 
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
@@ -2579,7 +2580,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         winston.debug("proceeding anyways, since it's critical that the user have access.")
                     cb()
             (cb) =>
-                winston.debug("local_hub restart: Restart the local services....")
+                winston.debug("local_hub restart: Restart the local services...")
                 @_restart_lock = false # so we can call @_exec_on_local_hub
                 @_exec_on_local_hub
                     command : "restart_smc --timeout=#{@timeout}"
