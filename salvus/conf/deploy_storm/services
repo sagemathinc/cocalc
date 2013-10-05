@@ -1,13 +1,12 @@
 # services
 
-base='salvus-2013-09-13-2204'
+base='salvus-2013-10-02-1259'
 cassandra_ram = 6
 cassandra_cpu = 1
 web_ram       = 4
 web_cpu       = 1
 compute_ram   = 4
 compute_cpu   = 1
-
 
 [vm]
 cloud1   {'hostname':'storm-cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:8'}
