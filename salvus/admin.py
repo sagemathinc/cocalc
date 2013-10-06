@@ -85,11 +85,12 @@ def run(args, maxtime=30, verbose=True):
     signal.signal(signal.SIGALRM, timeout)
     signal.alarm(maxtime)
     if verbose:
-        log.info("running '%s' in '%s'", ' '.join(args), os.path.abspath('.'))
+        log.info("running '%s'", ' '.join(args))
     try:
         out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE).stdout.read()
-        #log.info("output '%s'", out)
+        if False and verbose:
+            log.info("output '%s'", out)
         return out
     finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
