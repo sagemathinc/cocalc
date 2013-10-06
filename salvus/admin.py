@@ -655,7 +655,9 @@ class Cassandra(Process):
             kwds['class_name'] = 'org.apache.cassandra.locator.SimpleSeedProvider'
 
         for name in os.listdir(conf_template_path):
-            r = open(os.path.join(conf_template_path, name)).read()
+            f = os.path.join(conf_template_path, name)
+            if not os.path.isfile(f): continue
+            r = open(f).read()
             r = r.replace('/var/log/cassandra', log_path)
             r = r.replace('/var/lib/cassandra', lib_path)
 
