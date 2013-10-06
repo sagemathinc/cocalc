@@ -796,7 +796,8 @@ monitor_snapshot_queue = () ->
             # Note that "modified" is global to *all* snap servers, so this is actually
             # a really sensible thing to do.  And if one snap server makes a snapshot,
             # then no other snapshot server will make exactly the same snapshot (by a different name),
-            # which is what we want, since we will get redundancy by rsyncing them around.
+            # which is what we want, since we will (eventually-when-i-implement-it!)
+            # get redundancy by rsyncing them around.
             (cb) ->
                 misc_node.execute_code
                     command : "/usr/bin/bup on #{user} index -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"

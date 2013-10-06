@@ -103,9 +103,9 @@ def sws_body_to_sagews(body):
                 output = body[k2+4:k3]
                 i = k3+4
 
-        html   = unicode(html.strip())
-        input  = unicode(migrate_input(input.strip()))
-        output = unicode(output.strip())
+        html   = unicode(html.strip(), encoding='utf8')
+        input  = unicode(migrate_input(input.strip()), encoding='utf8')
+        output = unicode(output.strip(), encoding='utf8')
 
 
         if html:
