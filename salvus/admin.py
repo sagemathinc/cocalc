@@ -85,11 +85,12 @@ def run(args, maxtime=30, verbose=True):
     signal.signal(signal.SIGALRM, timeout)
     signal.alarm(maxtime)
     if verbose:
-        log.info("running '%s' in '%s'", ' '.join(args), os.path.abspath('.'))
+        log.info("running '%s'", ' '.join(args))
     try:
         out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE).stdout.read()
-        #log.info("output '%s'", out)
+        if False and verbose:
+            log.info("output '%s'", out)
         return out
     finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
@@ -654,7 +655,9 @@ class Cassandra(Process):
             kwds['class_name'] = 'org.apache.cassandra.locator.SimpleSeedProvider'
 
         for name in os.listdir(conf_template_path):
-            r = open(os.path.join(conf_template_path, name)).read()
+            f = os.path.join(conf_template_path, name)
+            if not os.path.isfile(f): continue
+            r = open(f).read()
             r = r.replace('/var/log/cassandra', log_path)
             r = r.replace('/var/lib/cassandra', lib_path)
 
@@ -1242,7 +1245,7 @@ class Services(object):
                               for h, o in self._options['hub']]
             # NOTE: right now we assume that the proxy servers are running on exactly the same machine as the hub,
             # since they are implemented as part of the same process (though, listening on a different ports).
-            proxy_servers = [{'ip':h,'port':o.get('port',HUB_PROXY_PORT), 'maxconn':100}
+            proxy_servers = [{'ip':h,'proxy_port':o.get('proxy_port',HUB_PROXY_PORT), 'maxconn':100}
                               for h, o in self._options['hub']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:

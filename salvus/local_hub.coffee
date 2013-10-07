@@ -39,11 +39,6 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 {ensure_containing_directory_exists, abspath} = misc_node
 
-# Uncomment these 2 lines to set the log level to "debug" in order to see lots of
-# debugging output about what is happening:
-#winston.remove(winston.transports.Console)
-#winston.add(winston.transports.Console, level: 'debug')
-
 #####################################################################
 # Generate the "secret_token" file as
 # $SAGEMATHCLOUD/data/secret_token if it does not already
@@ -753,15 +748,18 @@ class CodeMirrorSession
                             before = @content
                             @sage_output_mesg(mesg.id, m)
                             if before != @content
-                                @set_content(@content)
-                                # Suggest to all connected clients to sync.
-                                for id, ds_client of @diffsync_clients
-                                    ds_client.remote.sync_ready()
+                                @_set_content_and_sync()
 
                 # Submit all auto cells to be evaluated.
                 @sage_update(auto:true)
 
                 cb(false, @_sage_socket)
+
+    _set_content_and_sync: () =>
+        @set_content(@content)
+        # Suggest to all connected clients to sync.
+        for id, ds_client of @diffsync_clients
+            ds_client.remote.sync_ready()
 
 
     sage_execute_cell: (id) =>
@@ -778,7 +776,11 @@ class CodeMirrorSession
             @_sage_output_to_input_id[output_id] = id
             winston.debug("start running -- #{id}")
 
+            # Change the cell to "running" mode - this doesn't generate output, so we must explicit force clients
+            # to sync.
             @sage_set_cell_flag(id, diffsync.FLAGS.running)
+            @_set_content_and_sync()
+
             @sage_socket (err, socket) =>
                 if err
                     winston.debug("Error getting sage socket: #{err}")
@@ -1731,10 +1733,15 @@ daemon  = require("start-stop-daemon")
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
     .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
+    .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, '')
     .option('--timeout [number]', 'kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 
 if program._name == 'local_hub.js'
+    if program.debug
+        winston.remove(winston.transports.Console)
+        winston.add(winston.transports.Console, level: program.debug)
+
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->

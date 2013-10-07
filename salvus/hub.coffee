@@ -24,7 +24,7 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # Default local hub parameters -- how long until project local hubs
 # kill everything in that project, if there is no activity, where
 # activity = "receive data from a global hub".
-DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*12  # time in seconds; 0 to disable
+DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*28  # time in seconds; 0 to disable
 
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
