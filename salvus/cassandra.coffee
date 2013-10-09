@@ -369,7 +369,7 @@ class exports.Cassandra extends EventEmitter
             password   : opts.password
             timeout    : 30000
             cqlVersion : '3.0.0'
-            consistencylevel : helenus.ConsistencyLevel.TWO
+            #consistencylevel : helenus.ConsistencyLevel.TWO
             #consistencylevel : helenus.ConsistencyLevel.QUORUM # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! -- faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
 
         @conn.on 'error', (err) =>
