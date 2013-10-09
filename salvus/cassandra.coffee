@@ -9,6 +9,8 @@
 #
 # (c) William Stein, University of Washington
 #
+# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], user:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+#
 #########################################################################
 
 # This is used for project servers.
@@ -365,7 +367,10 @@ class exports.Cassandra extends EventEmitter
             timeout    : opts.timeout
             user       : opts.user
             password   : opts.password
+            timeout    : 30000
             cqlVersion : '3.0.0'
+            #consistencylevel : helenus.ConsistencyLevel.TWO
+            #consistencylevel : helenus.ConsistencyLevel.QUORUM # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! -- faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
@@ -1347,6 +1352,30 @@ class exports.Salvus extends exports.Cassandra
                             opts.cb(false)
                             cb()
         ])
+
+    set_all_project_owners_to_users: (cb) =>
+        # This is solely due to database consistency issues.
+        @select
+            table: 'projects'
+            limit: 100000
+            columns: ['project_id', 'account_id']
+            objectify: false
+            cb: (err, results) =>
+                 f = (r, cb) =>
+                     console.log(r)
+                     if not r[0]? or not r[1]?
+                          console.log("skipping")
+                          cb()
+                          return
+                     @update
+                         table : 'project_users'
+                         set   :
+                               mode : 'owner'
+                         where :
+                               project_id : r[0]
+                               account_id : r[1]
+                         cb: cb
+                 async.map(results, f, cb)
 
     undelete_project: (opts) ->
         opts = defaults opts,
