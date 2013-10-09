@@ -202,7 +202,7 @@ r packages could be automated like so:
 
 """
 
-CASSANDRA_VERSION='1.2.4'   # options here -- http://downloads.datastax.com/community/
+CASSANDRA_VERSION='1.2.9'   # options here -- http://downloads.datastax.com/community/
 
 import logging, os, shutil, subprocess, sys, time
 
