@@ -122,15 +122,16 @@ easy_install pip
 
 [os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
 
+(Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
+
 # We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
 pip install --upgrade rpy2
 
-(Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
     sage -sh
-    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz; tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install; cd ..; rm -rf basemap-1.0.6*
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz; tar xf basemap-1.0.7.tar.gz; cd basemap-1.0.7; python setup.py install; cd ..; rm -rf basemap-1.0.7*
 
 # Also, edit the banner:
 
@@ -193,13 +194,13 @@ r packages could be automated like so:
 
    http://wstein.org/home/wstein/tmp/trac-14713.patch
    http://trac.sagemath.org/raw-attachment/ticket/14810/trac_14810_ipython_0.13.2.patch
-   easy_install
+   easy_install ipython
 
 # Fix permissions, just in case!
 
   chmod -R a+r /usr/local/sage/sage-5.11
 
-# Run sage one lst time
+# Run sage one last time
 
   ./sage
 
