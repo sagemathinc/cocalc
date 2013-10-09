@@ -192,13 +192,12 @@ r packages could be automated like so:
 
 # Update to ipython 1.0.0
 
+   pip install --upgrade ipython
    http://wstein.org/home/wstein/tmp/trac-14713.patch
-   http://trac.sagemath.org/raw-attachment/ticket/14810/trac_14810_ipython_0.13.2.patch
-   easy_install ipython
 
 # Fix permissions, just in case!
 
-  chmod -R a+r /usr/local/sage/sage-5.11
+  cd /usr/local/sage/current; chmod -R a+r *
 
 # Run sage one last time
 
