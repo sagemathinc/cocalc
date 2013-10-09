@@ -9,6 +9,8 @@
 #
 # (c) William Stein, University of Washington
 #
+# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], user:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+#
 #########################################################################
 
 # This is used for project servers.
@@ -366,6 +368,7 @@ class exports.Cassandra extends EventEmitter
             user       : opts.user
             password   : opts.password
             cqlVersion : '3.0.0'
+            consistencylevel : helenus.ConsistencyLevel.QUORUM # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! -- faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
