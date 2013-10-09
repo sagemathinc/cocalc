@@ -368,7 +368,8 @@ class exports.Cassandra extends EventEmitter
             user       : opts.user
             password   : opts.password
             cqlVersion : '3.0.0'
-            consistencylevel : helenus.ConsistencyLevel.QUORUM # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! -- faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
+            #consistencylevel : helenus.ConsistencyLevel.TWO
+            #consistencylevel : helenus.ConsistencyLevel.QUORUM # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! -- faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
