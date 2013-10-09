@@ -1353,6 +1353,30 @@ class exports.Salvus extends exports.Cassandra
                             cb()
         ])
 
+    set_all_project_owners_to_users: (cb) =>
+        # This is solely due to database consistency issues.
+        @select
+            table: 'projects'
+            limit: 100000
+            columns: ['project_id', 'account_id']
+            objectify: false
+            cb: (err, results) =>
+                 f = (r, cb) =>
+                     console.log(r) 
+                     if not r[0]? or not r[1]?
+                          console.log("skipping")
+                          cb()
+                          return
+                     @update
+                         table : 'project_users'
+                         set   : 
+                               mode : 'owner'
+                         where : 
+                               project_id : r[0] 
+                               account_id : r[1]
+                         cb: cb
+                 async.map(results, f, cb) 
+
     undelete_project: (opts) ->
         opts = defaults opts,
             project_id  : required
