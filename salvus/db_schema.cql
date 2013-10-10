@@ -116,9 +116,16 @@ CREATE TABLE accounts (
     enable_tooltips    boolean
 );
 
+CREATE TABLE email_address_to_account_id (
+    email_address varchar PRIMARY KEY,
+    account_id    uuid
+);
+
+CREATE INDEX ON accounts(email_address);  /* this is horrible and should not be used or exist */
+
+/* these indexes are for command line convenience and use only: */
 CREATE INDEX ON accounts(first_name);
 CREATE INDEX ON accounts(last_name);
-CREATE INDEX ON accounts(email_address);
 CREATE INDEX ON accounts(plan_id);
 
 CREATE TABLE account_log (
@@ -221,7 +228,7 @@ CREATE TABLE projects (
      title            varchar,
      description      varchar,
      public           boolean,   // whether or not the project is visible to everybody in the world
-     snapshots_disabled boolean, // if true, don't make snapshots (e.g., because something is weird)
+     snapshots_disabled boolean, // if true, do not make snapshots (e.g., because something is weird)
 
      last_edited      timestamp,// timestamp of last modification of the project
 
@@ -234,9 +241,10 @@ CREATE TABLE projects (
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 );
 
-CREATE INDEX ON projects(snapshots_disabled);
-CREATE INDEX ON projects(account_id);
-CREATE INDEX ON projects(location);
+CREATE INDEX ON projects(account_id);   /* no real reason to use this -- since all projects owned by a given user isn't really interesting -- users want all projects they collab on in some way. */
+
+CREATE INDEX ON projects(snapshots_disabled);  /* rare lookup */
+CREATE INDEX ON projects(location);   /* rare lookup -- mainly used for manually checking on weirdness... */
 
 CREATE TABLE project_users (
      project_id       uuid,
@@ -245,6 +253,9 @@ CREATE TABLE project_users (
      state            varchar,        // 'invited', 'accepted'
      PRIMARY KEY (project_id, account_id)
 );
+
+
+
 
 /* Example: update project_users set mode='collaborator', state='accepted' where project_id=06ec6722-7ecd-410d-b5da-cdb9bfa09a51 and account_id=25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5 ;
 */
@@ -308,6 +319,8 @@ CREATE TABLE snap_commits (
     PRIMARY KEY(server_id, project_id, timestamp)
 );
 
+/* This would be very slow... but note that we do not do this query during any normal website ops.
+   This is something that was just meant for maybe offline stuff... */
 CREATE INDEX ON snap_commits(repo_id);
 
 CREATE TABLE snap_modified_files (
@@ -375,7 +388,7 @@ CREATE TABLE stats (
     active_projects int,
     last_day_projects int,
     last_week_projects int,
-    last_month_projects int,    
+    last_month_projects int,
     snap_servers int,
     hub_servers varchar /* JSON */
 );

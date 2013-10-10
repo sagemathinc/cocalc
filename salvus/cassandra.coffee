@@ -356,7 +356,17 @@ class exports.Cassandra extends EventEmitter
             keyspace : undefined
             user     : undefined
             password : undefined
-            timeout  : 3000
+            timeout  : 10000
+            # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! --
+            # faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
+            consistencylevel : undefined
+
+        if not opts.consistencylevel?
+            if opts.hosts.length > 1
+                opts.consistencylevel = helenus.ConsistencyLevel.QUORUM
+            else
+                # if only 1 host it is assumed this is a small local test install where QUORUM won't work anyways.
+                opts.consistencylevel = helenus.ConsistencyLevel.ONE
 
         @keyspace = opts.keyspace
 
@@ -367,10 +377,9 @@ class exports.Cassandra extends EventEmitter
             timeout    : opts.timeout
             user       : opts.user
             password   : opts.password
-            timeout    : 30000
+            consistencylevel : opts.consistencylevel
             cqlVersion : '3.0.0'
-            #consistencylevel : helenus.ConsistencyLevel.TWO
-            #consistencylevel : helenus.ConsistencyLevel.QUORUM # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! -- faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
+
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
@@ -908,60 +917,191 @@ class exports.Salvus extends exports.Cassandra
         )
 
     create_account: (opts={}) ->
-        opts = defaults(opts,
-            cb:undefined
+        opts = defaults opts,
             first_name    : required
             last_name     : required
             email_address : required
             password_hash : required
-        )
+            cb            : required
 
         account_id = uuid.v4()
-        a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_id:DEFAULT_PLAN_ID}
-
-        @update(
-            table :'accounts'
-            json  : []
-            set   : a
-            where : {account_id:account_id}
-            cb    : (error, result) -> opts.cb?(error, account_id)
+        async.series([
+            # verify that account doesn't already exist
+            (cb) =>
+                @select
+                    table : 'email_address_to_account_id'
+                    columns : ['account_id']
+                    where : {'email_address':opts.email_address}
+                    cb    : (err, results) =>
+                        if err
+                            cb(err)
+                        else if results.length > 0
+                            cb("account with email address '#{opts.email_address}' already exists")
+                        else
+                            cb()
+            # create account
+            (cb) =>
+                @update
+                    table :'accounts'
+                    set   :
+                        first_name    : opts.first_name
+                        last_name     : opts.last_name
+                        email_address : opts.email_address
+                        password_hash : opts.password_hash
+                        plan_id       : DEFAULT_PLAN_ID
+                    where : {account_id:account_id}
+                    cb    : cb
+            (cb) =>
+                @update
+                    table : 'email_address_to_account_id'
+                    set   : {account_id : account_id}
+                    where : {email_address: opts.email_address}
+                    cb    : cb
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, account_id)
         )
 
-        return account_id
+    # This should never have to be run; however, it could be useful to run it periodically "just in case".
+    # I wrote this when migrating the database to avoid secondary indexes.
+    update_email_address_to_account_id_table: (cb) =>
+        @select
+            table: 'accounts'
+            limit: 10000000  # effectively unlimited...
+            columns: ['email_address', 'account_id']
+            objectify: false
+            cb: (err, results) =>
+                console.log("Got full table with #{results.length} entries.  Now populating email_address_to_account_id table....")
+                t = {}
+                f = (r, cb) =>
+                     if not r[0]? or not r[1]?
+                          console.log("skipping", r)
+                          cb()
+                          return
+                     if t[r[0]]?
+                         console.log("WARNING: saw the email address '#{r[0]}' more than once.  account_id=#{r[1]} ")
+                     t[r[0]] = r[1]
+                     @update
+                         table : 'email_address_to_account_id'
+                         set   : {account_id: r[1]}
+                         where : {email_address: r[0]}
+                         cb    : cb
+                async.map results, f, (err) =>
+                    console.log("#{misc.len(t)} distinct email addresses")
+                    if err
+                        console.log("error updating...",err)
+                    cb?(err)
 
-    get_account: (opts={}) ->
+    # Delete the account with given id, and
+    # remove the entry in the email_address_to_account_id table
+    # corresponding to this account, if indeed the entry in that
+    # table does map to this account_id.  This should only ever be
+    # used for testing purposes, since there's no reason to ever
+    # delete an account record -- doing so would mean throwing
+    # away valuable information, e.g., there could be projects, etc.,
+    # that only refer to the account_id, and we must know what the
+    # account_id means.
+    # Returns an error if the account doesn't exist.
+    delete_account: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        email_address = undefined
+        async.series([
+            # find email address associated to this account
+            (cb) =>
+                @get_account
+                    account_id : opts.account_id
+                    columns    : ['email_address']
+                    cb         : (err, account) =>
+                        if err
+                            cb(err)
+                        else
+                            email_address = account.email_address
+                            cb()
+            # delete entry in the email_address_to_account_id table
+            (cb) =>
+                @select
+                    table   : 'email_address_to_account_id'
+                    columns : ['account_id']
+                    where   : {email_address: email_address}
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else if results.length > 0 and results[0][0] == opts.account_id
+                            # delete entry of that table
+                            @delete
+                                table : 'email_address_to_account_id'
+                                where : {email_address: email_address}
+                                cb    : cb
+                        else
+                            # deleting a "spurious" account that isn't mapped to by email_address_to_account_id table,
+                            # so nothing to do here.
+                            cb()
+            # everything above worked, so now delete the actual account
+            (cb) =>
+                @delete
+                    table : "accounts"
+                    where : {account_id : opts.account_id}
+                    cb    : cb
+        ], opts.cb)
+
+
+    get_account: (opts={}) =>
         opts = defaults opts,
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
-            columns       : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
+            columns       : ['account_id', 'password_hash',
+                             'first_name', 'last_name', 'email_address',
                              'plan_id', 'plan_starttime',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
                              'autosave', 'terminal', 'editor_settings']
-        where = {}
-        if opts.account_id?
-            where.account_id = opts.account_id
-        if opts.email_address?
-            where.email_address = opts.email_address
 
-        @select
-            table   : 'accounts'
-            where   : where
-            columns : opts.columns
-            objectify : true
-            json    : ['terminal', 'editor_settings']
-            cb      : (error, results) ->
-                if error
-                    opts.cb(error)
-                else if results.length != 1
-                    if opts.account_id?
-                        opts.cb("There is no account with account_id #{opts.account_id}.")
-                    else
-                        opts.cb("There is no account with email address #{opts.email_address}.")
+        account = undefined
+        async.series([
+            (cb) =>
+                if opts.account_id?
+                    cb()
+                else if not opts.email_address?
+                    cb("either the email_address or account_id must be specified")
                 else
-                    opts.cb(false, results[0])
+                    @select
+                        table     : 'email_address_to_account_id'
+                        where     : {email_address:opts.email_address}
+                        columns   : ['account_id']
+                        objectify : false
+                        cb        : (err, results) =>
+                            if err
+                                cb(err)
+                            else if results.length == 0
+                                cb("There is no account with email address #{opts.email_address}.")
+                            else
+                                # success!
+                                opts.account_id = results[0][0]
+                                cb()
+            (cb) =>
+                @select
+                    table     : 'accounts'
+                    where     : {account_id : opts.account_id}
+                    columns   : opts.columns
+                    objectify : true
+                    json      : ['terminal', 'editor_settings']
+                    cb        : (error, results) ->
+                        if error
+                            cb(error)
+                        else if results.length == 0
+                            cb("There is no account with account_id #{opts.account_id}.")
+                        else
+                            account = results[0]
+                            cb()
+        ], (err) =>
+            opts.cb(err, account)
+        )
 
     update_account_settings: (opts={}) ->
         opts = defaults opts,
@@ -1362,9 +1502,8 @@ class exports.Salvus extends exports.Cassandra
             objectify: false
             cb: (err, results) =>
                  f = (r, cb) =>
-                     console.log(r)
                      if not r[0]? or not r[1]?
-                          console.log("skipping")
+                          console.log("skipping", r)
                           cb()
                           return
                      @update
