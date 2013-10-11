@@ -458,14 +458,77 @@ class exports.Cassandra extends EventEmitter
         @conn.close()
         @emit('close')
 
-    count: (opts={}) ->
-        opts = defaults(opts,  table:undefined, where:{}, cb:undefined)
+    ###########################################################################################
+    # Set the count of entries in a table that we manually track.
+    # (Note -- I tried implementing this by deleting the entry then updating and that made
+    # the value *always* null no matter what.  So don't do that.)
+    set_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            value : required
+            cb    : required
+
+        current_value = undefined
+        async.series([
+            (cb) =>
+                @get_table_counter
+                    table : 'counts'
+                    cb    : (err, value) =>
+                        current_value = value
+                        cb(err)
+            (cb) =>
+                @update_table_counter
+                    table : opts.table
+                    delta : opts.value - current_value
+                    cb    : cb
+        ], opts.cb)
+
+    # Modify the count of entries in a table that we manually track.
+    # The default is to add 1.
+    update_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            delta : 1
+            cb    : required
+        query = "update counts set count=count+? where table_name=?"
+        @cql query, [opts.delta, opts.table], opts.cb
+
+    # Get count of entries in a table for which we manually maintain the count.
+    get_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            cb    : required  # cb(err, count)
+        @select
+            table     : 'counts'
+            where     : {table_name : opts.table}
+            columns   : ['count']
+            objectify : false
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    if result.length == 0
+                        opts.cb(false, 0)
+                    else
+                        opts.cb(false, result[0][0])
+
+    # Compute a count directly from the table.
+    # ** This is highly inefficient in general and doesn't scale.  PAIN.  **
+    count: (opts) ->
+        opts = defaults opts,
+            table : required
+            where : {}
+            cb    : required   # cb(err, the count if delta=set=undefined)
+
         query = "SELECT COUNT(*) FROM #{opts.table}"
         vals = []
         if not misc.is_empty_object(opts.where)
             where = @_where(opts.where, vals)
             query += " WHERE #{where}"
-        @cql(query, vals, (error, results) -> opts.cb?(error, results[0].get('count').value))
+
+        @cql query, vals, (err, results) =>
+            opts.cb?(err, results[0].get('count').value)
+
 
     update: (opts={}) ->
         opts = defaults opts,
@@ -518,7 +581,8 @@ class exports.Cassandra extends EventEmitter
         )
 
     # Exactly like select (above), but gives an error if there is not exactly one
-    # row in the table that matches the condition.
+    # row in the table that matches the condition.  Also, this returns the one
+    # rather than an array of length 0.
     select_one: (opts={}) ->
         cb = opts.cb
         opts.cb = (err, results) ->
@@ -957,6 +1021,12 @@ class exports.Salvus extends exports.Cassandra
                     set   : {account_id : account_id}
                     where : {email_address: opts.email_address}
                     cb    : cb
+            # add 1 to the "number of accounts" counter
+            (cb) =>
+                @update_table_counter
+                    table : 'accounts'
+                    delta : 1
+                    cb    : cb
         ], (err) =>
             if err
                 opts.cb(err)
@@ -992,7 +1062,12 @@ class exports.Salvus extends exports.Cassandra
                     console.log("#{misc.len(t)} distinct email addresses")
                     if err
                         console.log("error updating...",err)
-                    cb?(err)
+                        cb(err)
+                    else
+                        @set_table_counter
+                            table : 'accounts'
+                            value : misc.len(t)
+                            cb    : cb
 
     # Delete the account with given id, and
     # remove the entry in the email_address_to_account_id table
@@ -1046,6 +1121,13 @@ class exports.Salvus extends exports.Cassandra
                     table : "accounts"
                     where : {account_id : opts.account_id}
                     cb    : cb
+            # subtract 1 from the "number of accounts" counter
+            (cb) =>
+                @update_table_counter
+                    table : 'accounts'
+                    delta : -1
+                    cb    : cb
+
         ], opts.cb)
 
 
@@ -1703,7 +1785,7 @@ class exports.Salvus extends exports.Cassandra
         stats = {timestamp:moment(new Date()).format('YYYY-MM-DD-HHmmss') }
         async.series([
             (cb) =>
-                @count
+                @get_table_counter
                     table : 'accounts'
                     cb    : (err, val) =>
                         stats.accounts = val

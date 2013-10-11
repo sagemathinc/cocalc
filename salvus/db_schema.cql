@@ -393,3 +393,9 @@ CREATE TABLE stats (
     hub_servers varchar /* JSON */
 );
 
+
+CREATE TABLE counts (
+    table_name varchar PRIMARY KEY,
+    count counter  /* see http://www.datastax.com/documentation/cql/3.0/webhelp/cql/cql_using/use_counter_t.html */
+);
+
