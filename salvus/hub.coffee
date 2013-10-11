@@ -5065,8 +5065,9 @@ exports.start_server = start_server = () ->
             winston.debug("Failed to connect to database! -- #{err}")
             return
 
-        # start updating stats cache every minute (on every hub)
-        update_server_stats(); setInterval(update_server_stats, 60*1000)
+        # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+        # too big a problem if we call it too frequently...
+        update_server_stats(); setInterval(update_server_stats, 120*1000)
         register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
         init_sockjs_server()

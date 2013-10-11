@@ -393,6 +393,18 @@ CREATE TABLE stats (
     hub_servers varchar /* JSON */
 );
 
+CREATE TABLE stats_cache (
+    dummy    boolean PRIMARY KEY,
+    timestamp varchar,
+    accounts int,
+    projects int,
+    active_projects int,
+    last_day_projects int,
+    last_week_projects int,
+    last_month_projects int,
+    snap_servers int,
+    hub_servers varchar /* JSON */
+);
 
 CREATE TABLE counts (
     table_name varchar PRIMARY KEY,

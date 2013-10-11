@@ -356,7 +356,7 @@ class exports.Cassandra extends EventEmitter
             keyspace : undefined
             user     : undefined
             password : undefined
-            timeout  : 10000
+            timeout  : 30000  # 30 seconds = max time for each query
             # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! --
             # faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
             consistencylevel : undefined
@@ -1573,6 +1573,12 @@ class exports.Salvus extends exports.Cassandra
                         else
                             opts.cb(false)
                             cb()
+            # increment number of projects counter
+            (cb) =>
+                @update_table_counter
+                    table : 'projects'
+                    delta : 1
+                    cb    : cb
         ])
 
     set_all_project_owners_to_users: (cb) =>
@@ -1779,11 +1785,39 @@ class exports.Salvus extends exports.Cassandra
                 filename   : opts.filename
             cb         : opts.cb
 
+    # If there is a cached version of stats (which has given ttl) return that -- this could have
+    # been computed by any of the hubs.  If there is no cached version, compute anew and store
+    # in cache for ttl seconds.
+    # CONCERN: This could take around 15 seconds, and numerous hubs could all initiate it
+    # at once, which is a waste.
+    # TODO: This *can* be optimized to be super-fast by getting rid of all counts; to do that,
+    # we need a list of all possible servers, say in a file or somewhere.  That's for later.
     get_stats: (opts) ->
         opts = defaults opts,
-            cb : required
+            ttl : 120  # how long cached version lives (in seconds)
+            cb  : required
         stats = {timestamp:moment(new Date()).format('YYYY-MM-DD-HHmmss') }
+        cached_answer = undefined
         async.series([
+            (cb) =>
+                @select
+                    table     : 'stats_cache'
+                    where     : {dummy:true}
+                    objectify : true
+                    json      : ['hub_servers']
+                    columns   : [ 'timestamp', 'accounts', 'projects', 'active_projects',
+                                  'last_day_projects', 'last_week_projects',
+                                  'last_month_projects', 'snap_servers', 'hub_servers']
+                    cb        : (err, result) =>
+                        if err
+                            cb(err)
+                        else if result.length == 0 # nothing in cache
+                            cb()
+                        else
+                            # done
+                            cached_answer = result[0]
+                            # don't do anything else
+                            cb(true)
             (cb) =>
                 @get_table_counter
                     table : 'accounts'
@@ -1791,7 +1825,7 @@ class exports.Salvus extends exports.Cassandra
                         stats.accounts = val
                         cb(err)
             (cb) =>
-                @count
+                @get_table_counter
                     table : 'projects'
                     cb    : (err, val) =>
                         stats.projects = val
@@ -1845,8 +1879,22 @@ class exports.Salvus extends exports.Cassandra
                     json  : ['hub_servers']
                     where : {time:now()}
                     cb    : cb
+            (cb) =>
+                @update
+                    table : 'stats_cache'
+                    set   : stats
+                    where : {dummy : true}
+                    json  : ['hub_servers']
+                    ttl   : opts.ttl
+                    cb    : cb
+            (cb) =>
+                # store result in a cache
+                cb()
         ], (err) =>
-            opts.cb(err, stats)
+            if cached_answer?
+                opts.cb(false, cached_answer)
+            else
+                opts.cb(err, stats)
         )
 
 
