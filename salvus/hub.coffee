@@ -428,13 +428,15 @@ init_http_proxy_server = () =>
                     cb(false, t)
             )
 
-    http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+    #proxy = httpProxy.createProxyServer(ws:true)
+
+    http_proxy_server = http.createServer (req, res) ->
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
             return
 
-        buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+        #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(program.base_url + 'remember_me')
@@ -450,10 +452,11 @@ init_http_proxy_server = () =>
                 winston.debug("proxy denied -- #{err}")
 
                 res.writeHead(500, {'Content-Type':'text/html'})
-                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this req_url = req.url.slice(program.base_url.length)page.")
+                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 winston.debug("location = #{misc.to_json(location)}")
-                proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
+                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}")
+                proxy.web(req, res) #, buffer:buffer}
 
     http_proxy_server.listen(program.proxy_port, program.host)
 
@@ -463,7 +466,10 @@ init_http_proxy_server = () =>
             if err
                 winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
             else
-                http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
+                winston.debug("attempting websocket upgrade -- ws://#{location.host}:#{location.port}")
+                proxy = httpProxy.createProxyServer(ws:true, target:"ws://#{location.host}:#{location.port}")
+                proxy.ws(req, socket, head)
+                #http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
 
 
 

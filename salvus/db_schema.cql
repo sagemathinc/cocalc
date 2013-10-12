@@ -239,9 +239,16 @@ CREATE TABLE projects (
 
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
+
+     collaborators         set<uuid>,   // all actual collaborators on this project
+     invited_collaborators set<uuid>,   // accounts that have been invited to collaborate
+     viewers               set<uuid>,   // accounts who are viewers
+     invited_viewers       set<uuid>    // accounts who have been invited to view.
 );
 
-CREATE INDEX ON projects(account_id);   /* no real reason to use this -- since all projects owned by a given user isn't really interesting -- users want all projects they collab on in some way. */
+/* no real reason to use this -- since all projects owned by a given user isn't really interesting --
+   users want all projects they collab on in some way. */
+CREATE INDEX ON projects(account_id);
 
 CREATE INDEX ON projects(snapshots_disabled);  /* rare lookup */
 CREATE INDEX ON projects(location);   /* rare lookup -- mainly used for manually checking on weirdness... */

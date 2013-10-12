@@ -13,9 +13,13 @@
 #
 #########################################################################
 
-# This is used for project servers.
+# This is used for project servers.  [[um, -- except it isn't actually used at all anywhere! (oct 11, 2013)]]
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
+
+
+PROJECT_GROUPS = ['collaborators', 'viewers', 'invited_collaborators', 'invited_viewers']
+
 
 # recent times, used for recently_modified_projects
 exports.RECENT_TIMES = RECENT_TIMES =
@@ -1624,6 +1628,57 @@ class exports.Salvus extends exports.Cassandra
             set   : {deleted:true}
             where : {project_id : opts.project_id}
             cb    : opts.cb
+
+    # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
+    # on the given project.  This modifies a set collection on the project *and* modifies a
+    # collection on that account.
+    # There is no attempt to make sure a user is in only one group at a time -- client code must do that.
+    _verify_project_user: (opts) =>
+        # We have to check that is a uuid and use strings, rather than params, due to limitations of the
+        # Helenus driver.  CQL injection...
+        if not misc.is_valid_uuid_string(opts.project_id) or not misc.is_valid_uuid_string(opts.account_id)
+            return "invalid uuid"
+        else if opts.group not in PROJECT_GROUPS
+            return "invalid group"
+        else
+            return null
+
+    set_project_user: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            group      : required  # collaborators, viewers, invited_collaborators, invited_viewers
+            cb         : required  # cb(err)
+        e = @_verify_project_user(opts)
+        if e
+            opts.cb(e); return
+        query = "UPDATE projects SET #{opts.group} = #{opts.group} + {#{opts.account_id}} WHERE project_id=#{opts.project_id}"
+        @cql query, [], opts.cb
+
+    remove_project_user: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            group      : required  # collaborators, viewers, invited_collaborators, invited_viewers
+            cb         : required  # cb(err)
+        e = @_verify_project_user(opts)
+        if e
+            opts.cb(e); return
+        query = "UPDATE projects SET #{opts.group} = #{opts.group} - {#{opts.account_id}} WHERE project_id=#{opts.project_id}"
+        @cql query, [], opts.cb
+
+    get_project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            group      : undefined
+            cb         : required   #  cb(err, {group_name:[account_id's...], ...}) if undefined; otherwise cb(err, [account_ids for that group]))
+        if not opts.group?
+            f = (group, cb) => @get_prooject_users(project_id:opts.project_id, group:group, cb:cb)
+            async.map(PROJECT_GROUPS, f, opts.cb)
+        else
+            query = "SELECT #{opts.group} FROM projects where project_id=#{opts.project_id}"
+            console.log(query)
+            @cql query, [], opts.cb
 
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
