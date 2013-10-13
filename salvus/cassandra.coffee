@@ -6,8 +6,10 @@
 # *Cassandra/CQL agnostic wrapper functions defined here.   E.g.,
 # to find out if an email address is available, define a function
 # here that does the CQL query.
+# Well, calling "select" is ok, but don't ever directly write
+# CQL statements.
 #
-# (c) William Stein, University of Washington
+# (c) 2013 William Stein, University of Washington
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], user:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
 #
@@ -17,9 +19,7 @@
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
-
 PROJECT_GROUPS = ['collaborators', 'viewers', 'invited_collaborators', 'invited_viewers']
-
 
 # recent times, used for recently_modified_projects
 exports.RECENT_TIMES = RECENT_TIMES =
@@ -36,13 +36,13 @@ required = defaults.required
 
 assert  = require('assert')
 async   = require('async')
-winston = require('winston')            # https://github.com/flatiron/winston
-helenus = require("helenus")            # https://github.com/simplereach/helenus
+winston = require('winston')                    # https://github.com/flatiron/winston
+
+Client  = require("node-cassandra-cql").Client  # https://github.com/jorgebay/node-cassandra-cql
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
 moment  = require('moment')
-
 
 # the time right now, in iso format ready to insert into the database:
 now = exports.now = () -> to_iso(new Date())
@@ -79,7 +79,7 @@ exports.create_schema = (conn, cb) ->
             conn.cql("CREATE "+s, [], ((e,r)->console.log(e) if e; cb(null,0)))
         else
             cb(null, 0)
-    async.mapSeries(blocks, f, (err, results) ->
+    async.mapSeries blocks, f, (err, results) ->
         winston.info("created schema in #{misc.walltime()-t} seconds.")
         winston.info(err)
         if not err
@@ -87,7 +87,6 @@ exports.create_schema = (conn, cb) ->
             exports.create_default_plan(conn, (error, results) => cb(error) if error)
 
         cb(err)
-    )
 
 class UUIDStore
     set: (opts) ->
@@ -334,23 +333,17 @@ class KeyValueStore
         )
 
 # Convert individual entries in columns from cassandra formats to what we
-# want to use everywhere in Salvus. For example, uuids are converted to
+# want to use everywhere in Salvus. For example, uuids ficare converted to
 # strings instead of their own special object type, since otherwise they
 # convert to JSON incorrectly.
 
-exports.from_cassandra = from_cassandra = (obj, json, timestamp) ->
-    if not obj?
+exports.from_cassandra = from_cassandra = (value, json) ->
+    if not value?
         return undefined
-
-    value = obj.value
+    value = value.valueOf()
     if json
         value = from_json(value)
-    else if value and value.hex?    # uuid de-mangle
-        value = value.hex
-    if timestamp
-        return {timestamp:obj.timestamp, value:value}
-    else
-        return value
+    return value
 
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
@@ -358,37 +351,23 @@ class exports.Cassandra extends EventEmitter
             hosts    : ['localhost']
             cb       : undefined
             keyspace : undefined
-            user     : undefined
+            username : undefined
             password : undefined
-            timeout  : 30000  # 30 seconds = max time for each query
-            # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! --
-            # faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
-            consistencylevel : undefined
-
-        if not opts.consistencylevel?
-            if opts.hosts.length > 1
-                opts.consistencylevel = helenus.ConsistencyLevel.QUORUM
-            else
-                # if only 1 host it is assumed this is a small local test install where QUORUM won't work anyways.
-                opts.consistencylevel = helenus.ConsistencyLevel.ONE
 
         @keyspace = opts.keyspace
+        @consistency = 1  # the default consistency (for now)
 
         #winston.debug("connect using: #{JSON.stringify(opts)}")  # DEBUG ONLY!! output contains sensitive info (the password)!!!
-        @conn = new helenus.ConnectionPool
+
+        @conn = new Client
             hosts      : opts.hosts
             keyspace   : opts.keyspace
-            timeout    : opts.timeout
-            user       : opts.user
+            username   : opts.username
             password   : opts.password
-            consistencylevel : opts.consistencylevel
-            cqlVersion : '3.0.0'
-
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
             @emit('error', err)
-
 
         @conn.connect (err) =>
             opts.cb?(err, @)
@@ -414,6 +393,7 @@ class exports.Cassandra extends EventEmitter
                     if op == '=='
                         op = '=' # for cassandra
 
+                    ###
                     if op == 'in'
                         # !!!!!!!!!!!!!! potential CQL-injection attack  !!!!!!!!!!!
                         # TODO -- keep checking/complaining?:  in queries just aren't supported by helenus, at least as of Nov 17, 2012 ! :-(
@@ -433,10 +413,16 @@ class exports.Cassandra extends EventEmitter
                         # This is of course scary/dangerous since what if x2 is accidentally a uuid!
                         where += "#{key} #{op} #{x2}"
                     else
+                    ###
+                    if op == 'in'
+                        # !!!!!!!!!!!!!! potential CQL-injection attack !?  !!!!!!!!!!!
+                        # TODO -- keep checking/complaining?:  in queries with params don't seem to work right at least as of Oct 13, 2013 !
+                        where += "#{key} IN #{array_of_strings_to_cql_list(x2)}"
+                    else
                         where += "#{key} #{op} ?"
-                        vals.push(x2)
+                    vals.push(x2)
                     where += " AND "
-        return where.slice(0,-4)
+        return where.slice(0,-4)    # slice off final AND.
 
     _set: (properties, vals, json=[]) ->
         set = "";
@@ -531,7 +517,7 @@ class exports.Cassandra extends EventEmitter
             query += " WHERE #{where}"
 
         @cql query, vals, (err, results) =>
-            opts.cb?(err, results[0].get('count').value)
+            opts.cb?(err, results[0].get('count').valueOf())
 
 
     update: (opts={}) ->
@@ -562,8 +548,6 @@ class exports.Cassandra extends EventEmitter
             objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
             limit     : undefined   # if defined, limit the number of results returned to this integer
             json      : []          # list of columns that should be converted from JSON format
-            timestamp : []          # list of columns to retrieve in the form {value:'value of that column', timestamp:timestamp of that column}
-                                    # timestamp columns must not be part of the primary key
             order_by : undefined    # if given, adds an "ORDER BY opts.order_by"
 
         vals = []
@@ -575,14 +559,12 @@ class exports.Cassandra extends EventEmitter
             query += " LIMIT #{opts.limit} "
         if opts.order_by?
             query += " ORDER BY #{opts.order_by} "
-        @cql(query, vals,
-            (error, results) ->
-                if opts.objectify
-                    x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json, col in opts.timestamp)] for col in opts.columns) for r in results)
-                else
-                    x = ((from_cassandra(r.get(col), col in opts.json, col in opts.timestamp) for col in opts.columns) for r in results)
-                opts.cb(error, x)
-        )
+        @cql query, vals, (error, results) =>
+            if opts.objectify
+                x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
+            else
+                x = ((from_cassandra(r.get(col), col in opts.json) for col in opts.columns) for r in results)
+            opts.cb(error, x)
 
     # Exactly like select (above), but gives an error if there is not exactly one
     # row in the table that matches the condition.  Also, this returns the one
@@ -601,18 +583,19 @@ class exports.Cassandra extends EventEmitter
         @select(opts)
 
     cql: (query, vals, cb) ->
-        #winston.debug("About to query db #{query}...")
+        #console.log("About to query db '#{query}'")
         # TODO: sometimes allow filtering is needed -- TODO -- fix this to be a clearly specified option.
         if query.slice(0,6).toLowerCase() == 'select'
             query += '   ALLOW FILTERING'
-        @conn.cql query, vals, (error, results) =>
-            if error
-                winston.error("Query cql('#{query}','params=#{vals}') caused a CQL error:\n#{error}")
-            else
-                #winston.debug("query completed")
-            if error
-                @emit('error', error)
-            cb?(error, results)
+        try
+            @conn.execute query, vals, @consistency, (error, results) =>
+                if error
+                    winston.error("Query cql('#{query}',params=#{vals}) caused a CQL error:\n#{error}")
+                    @emit('error', error)
+                #console.log("got ", results)
+                cb?(error, results?.rows)
+        catch e
+            cb?("exception doing cql query -- #{e}")
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)

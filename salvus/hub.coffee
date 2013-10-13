@@ -5047,9 +5047,10 @@ connect_to_database = (cb) ->
             new cass.Salvus
                 hosts    : program.database_nodes.split(',')
                 keyspace : program.keyspace
-                user     : 'hub'
+                username : 'hub'
                 password : password.toString().trim()
                 cb       : (err, _db) ->
+                    winston.debug("got db connected!")
                     database = _db
                     cb(err)
 
@@ -5060,9 +5061,8 @@ exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
     init_http_proxy_server()
-    winston.info("Using Cassandra keyspace #{program.keyspace}")
+    winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-
     snap.set_server_id("#{program.host}:#{program.port}")
 
     # Once we connect to the database, start serving.
@@ -5070,6 +5070,8 @@ exports.start_server = start_server = () ->
         if err
             winston.debug("Failed to connect to database! -- #{err}")
             return
+        else
+            winston.debug("connected to database.")
 
         # start updating stats cache every so often -- note: this is cached in the database, so it isn't
         # too big a problem if we call it too frequently...
@@ -5087,7 +5089,7 @@ exports.start_server = start_server = () ->
 program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
     .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
-    .option('--log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
+    .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")

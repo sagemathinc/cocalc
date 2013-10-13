@@ -1226,11 +1226,11 @@ class Services(object):
                 o['rpc_address'] = address
                 if 'seed' in o: del o['seed']
 
-            rpc_port = v[0][1].get('rpc_port', 9160)
-            if rpc_port != 9160:
-                print "Serving cassandra on non-standard port %s"%rpc_port
+            native_transport_port = v[0][1].get('native_transport_port', 9042)
+            if native_transport_port != 9042:
+                print "Serving cassandra on non-standard port %s"%native_transport_port
             try:
-                self._cassandra = ['%s:%s'%(h, rpc_port) for h in self._hosts['cassandra']]
+                self._cassandra = ['%s:%s'%(h, native_transport_port) for h in self._hosts['cassandra']]
                 import cassandra
                 cassandra.KEYSPACE = self._keyspace
                 cassandra.set_nodes(self._cassandra)
