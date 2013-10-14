@@ -6,16 +6,20 @@
 # *Cassandra/CQL agnostic wrapper functions defined here.   E.g.,
 # to find out if an email address is available, define a function
 # here that does the CQL query.
+# Well, calling "select" is ok, but don't ever directly write
+# CQL statements.
 #
-# (c) William Stein, University of Washington
+# (c) 2013 William Stein, University of Washington
 #
 # fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], user:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
 #
 #########################################################################
 
-# This is used for project servers.
+# This is used for project servers.  [[um, -- except it isn't actually used at all anywhere! (oct 11, 2013)]]
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
+
+PROJECT_GROUPS = exports.PROJECT_GROUPS = ['owner', 'collaborator', 'viewer', 'invited_collaborator', 'invited_viewer']
 
 # recent times, used for recently_modified_projects
 exports.RECENT_TIMES = RECENT_TIMES =
@@ -32,12 +36,16 @@ required = defaults.required
 
 assert  = require('assert')
 async   = require('async')
-winston = require('winston')            # https://github.com/flatiron/winston
-helenus = require("helenus")            # https://github.com/simplereach/helenus
+winston = require('winston')                    # https://github.com/flatiron/winston
+
+Client  = require("node-cassandra-cql").Client  # https://github.com/jorgebay/node-cassandra-cql
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
 moment  = require('moment')
+
+_ = require('underscore')
+
 
 
 # the time right now, in iso format ready to insert into the database:
@@ -45,20 +53,14 @@ now = exports.now = () -> to_iso(new Date())
 
 # the time ms milliseconds ago, in iso format ready to insert into the database:
 exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
-
-exports.seconds_ago = (s) -> exports.milliseconds_ago(1000*s)
-
-exports.minutes_ago = (m) -> exports.seconds_ago(60*m)
-
-exports.hours_ago = (h) -> exports.minutes_ago(60*h)
-
-exports.days_ago = (d) -> exports.hours_ago(24*d)
+exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
+exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
+exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
+exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
 #########################################################################
 
-
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
-
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted'].concat(PROJECT_GROUPS)
 
 # This is used in account creation right now, so has to be set.
 # It is actually not used in practice and the limits have no meaning.
@@ -75,7 +77,7 @@ exports.create_schema = (conn, cb) ->
             conn.cql("CREATE "+s, [], ((e,r)->console.log(e) if e; cb(null,0)))
         else
             cb(null, 0)
-    async.mapSeries(blocks, f, (err, results) ->
+    async.mapSeries blocks, f, (err, results) ->
         winston.info("created schema in #{misc.walltime()-t} seconds.")
         winston.info(err)
         if not err
@@ -83,7 +85,6 @@ exports.create_schema = (conn, cb) ->
             exports.create_default_plan(conn, (error, results) => cb(error) if error)
 
         cb(err)
-    )
 
 class UUIDStore
     set: (opts) ->
@@ -330,23 +331,17 @@ class KeyValueStore
         )
 
 # Convert individual entries in columns from cassandra formats to what we
-# want to use everywhere in Salvus. For example, uuids are converted to
+# want to use everywhere in Salvus. For example, uuids ficare converted to
 # strings instead of their own special object type, since otherwise they
 # convert to JSON incorrectly.
 
-exports.from_cassandra = from_cassandra = (obj, json, timestamp) ->
-    if not obj?
+exports.from_cassandra = from_cassandra = (value, json) ->
+    if not value?
         return undefined
-
-    value = obj.value
+    value = value.valueOf()
     if json
         value = from_json(value)
-    else if value and value.hex?    # uuid de-mangle
-        value = value.hex
-    if timestamp
-        return {timestamp:obj.timestamp, value:value}
-    else
-        return value
+    return value
 
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
@@ -354,28 +349,29 @@ class exports.Cassandra extends EventEmitter
             hosts    : ['localhost']
             cb       : undefined
             keyspace : undefined
-            user     : undefined
+            username : undefined
             password : undefined
-            timeout  : 3000
+            consistency : undefined
 
         @keyspace = opts.keyspace
 
+        if opts.hosts.length == 1
+            # the default QUORUM won't work if there is only one node.
+            opts.consistency = 1
+
+        @consistency = opts.consistency  # the default consistency (for now)
+
         #winston.debug("connect using: #{JSON.stringify(opts)}")  # DEBUG ONLY!! output contains sensitive info (the password)!!!
-        @conn = new helenus.ConnectionPool
+
+        @conn = new Client
             hosts      : opts.hosts
             keyspace   : opts.keyspace
-            timeout    : opts.timeout
-            user       : opts.user
+            username   : opts.username
             password   : opts.password
-            timeout    : 30000
-            cqlVersion : '3.0.0'
-            #consistencylevel : helenus.ConsistencyLevel.TWO
-            #consistencylevel : helenus.ConsistencyLevel.QUORUM # ONE is the helenus default; we use QUORUM to massively improve consistency, which is super-important!! -- faster without this, but really does lead to trouble, e.g., when adding nodes or if repair not run constantly.
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
             @emit('error', err)
-
 
         @conn.connect (err) =>
             opts.cb?(err, @)
@@ -401,6 +397,7 @@ class exports.Cassandra extends EventEmitter
                     if op == '=='
                         op = '=' # for cassandra
 
+                    ###
                     if op == 'in'
                         # !!!!!!!!!!!!!! potential CQL-injection attack  !!!!!!!!!!!
                         # TODO -- keep checking/complaining?:  in queries just aren't supported by helenus, at least as of Nov 17, 2012 ! :-(
@@ -420,10 +417,16 @@ class exports.Cassandra extends EventEmitter
                         # This is of course scary/dangerous since what if x2 is accidentally a uuid!
                         where += "#{key} #{op} #{x2}"
                     else
+                    ###
+                    if op == 'in'
+                        # !!!!!!!!!!!!!! potential CQL-injection attack !?  !!!!!!!!!!!
+                        # TODO -- keep checking/complaining?:  in queries with params don't seem to work right at least as of Oct 13, 2013 !
+                        where += "#{key} IN #{array_of_strings_to_cql_list(x2)}"
+                    else
                         where += "#{key} #{op} ?"
-                        vals.push(x2)
+                    vals.push(x2)
                     where += " AND "
-        return where.slice(0,-4)
+        return where.slice(0,-4)    # slice off final AND.
 
     _set: (properties, vals, json=[]) ->
         set = "";
@@ -449,14 +452,77 @@ class exports.Cassandra extends EventEmitter
         @conn.close()
         @emit('close')
 
-    count: (opts={}) ->
-        opts = defaults(opts,  table:undefined, where:{}, cb:undefined)
+    ###########################################################################################
+    # Set the count of entries in a table that we manually track.
+    # (Note -- I tried implementing this by deleting the entry then updating and that made
+    # the value *always* null no matter what.  So don't do that.)
+    set_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            value : required
+            cb    : required
+
+        current_value = undefined
+        async.series([
+            (cb) =>
+                @get_table_counter
+                    table : opts.table
+                    cb    : (err, value) =>
+                        current_value = value
+                        cb(err)
+            (cb) =>
+                @update_table_counter
+                    table : opts.table
+                    delta : opts.value - current_value
+                    cb    : cb
+        ], opts.cb)
+
+    # Modify the count of entries in a table that we manually track.
+    # The default is to add 1.
+    update_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            delta : 1
+            cb    : required
+        query = "update counts set count=count+? where table_name=?"
+        @cql query, [opts.delta, opts.table], opts.cb
+
+    # Get count of entries in a table for which we manually maintain the count.
+    get_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            cb    : required  # cb(err, count)
+        @select
+            table     : 'counts'
+            where     : {table_name : opts.table}
+            columns   : ['count']
+            objectify : false
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    if result.length == 0
+                        opts.cb(false, 0)
+                    else
+                        opts.cb(false, result[0][0])
+
+    # Compute a count directly from the table.
+    # ** This is highly inefficient in general and doesn't scale.  PAIN.  **
+    count: (opts) ->
+        opts = defaults opts,
+            table : required
+            where : {}
+            cb    : required   # cb(err, the count if delta=set=undefined)
+
         query = "SELECT COUNT(*) FROM #{opts.table}"
         vals = []
         if not misc.is_empty_object(opts.where)
             where = @_where(opts.where, vals)
             query += " WHERE #{where}"
-        @cql(query, vals, (error, results) -> opts.cb?(error, results[0].get('count').value))
+
+        @cql query, vals, (err, results) =>
+            opts.cb?(err, results[0].get('count').valueOf())
+
 
     update: (opts={}) ->
         opts = defaults opts,
@@ -486,9 +552,8 @@ class exports.Cassandra extends EventEmitter
             objectify : false       # if false results is a array of arrays (so less redundant); if true, array of objects (so keys redundant)
             limit     : undefined   # if defined, limit the number of results returned to this integer
             json      : []          # list of columns that should be converted from JSON format
-            timestamp : []          # list of columns to retrieve in the form {value:'value of that column', timestamp:timestamp of that column}
-                                    # timestamp columns must not be part of the primary key
             order_by : undefined    # if given, adds an "ORDER BY opts.order_by"
+            consistency : undefined  # default...
 
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
@@ -499,17 +564,16 @@ class exports.Cassandra extends EventEmitter
             query += " LIMIT #{opts.limit} "
         if opts.order_by?
             query += " ORDER BY #{opts.order_by} "
-        @cql(query, vals,
-            (error, results) ->
-                if opts.objectify
-                    x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json, col in opts.timestamp)] for col in opts.columns) for r in results)
-                else
-                    x = ((from_cassandra(r.get(col), col in opts.json, col in opts.timestamp) for col in opts.columns) for r in results)
-                opts.cb(error, x)
-        )
+        @cql query, vals, opts.consistency, (error, results) =>
+            if opts.objectify
+                x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
+            else
+                x = ((from_cassandra(r.get(col), col in opts.json) for col in opts.columns) for r in results)
+            opts.cb(error, x)
 
     # Exactly like select (above), but gives an error if there is not exactly one
-    # row in the table that matches the condition.
+    # row in the table that matches the condition.  Also, this returns the one
+    # rather than an array of length 0.
     select_one: (opts={}) ->
         cb = opts.cb
         opts.cb = (err, results) ->
@@ -523,19 +587,29 @@ class exports.Cassandra extends EventEmitter
                 cb(false, results[0])
         @select(opts)
 
-    cql: (query, vals, cb) ->
-        #winston.debug("About to query db #{query}...")
+    cql: (query, vals, consistency, cb) ->
+        if typeof vals == 'function'
+            cb = vals
+            vals = []
+            consistency = undefined
+        if typeof consistency == 'function'
+            cb = consistency
+            consistency = undefined
+        if not consistency?
+            consistency = @consistency
+        #console.log("About to query db '#{query}'")
         # TODO: sometimes allow filtering is needed -- TODO -- fix this to be a clearly specified option.
         if query.slice(0,6).toLowerCase() == 'select'
             query += '   ALLOW FILTERING'
-        @conn.cql query, vals, (error, results) =>
-            if error
-                winston.error("Query cql('#{query}','params=#{vals}') caused a CQL error:\n#{error}")
-            else
-                #winston.debug("query completed")
-            if error
-                @emit('error', error)
-            cb?(error, results)
+        try
+            @conn.execute query, vals, consistency, (error, results) =>
+                if error
+                    winston.error("Query cql('#{query}',params=#{vals}) caused a CQL error:\n#{error}")
+                    @emit('error', error)
+                #console.log("got ", results)
+                cb?(error, results?.rows)
+        catch e
+            cb?("exception doing cql query -- #{e}")
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)
@@ -596,60 +670,85 @@ class exports.Salvus extends exports.Cassandra
 
     ##-- search
 
+
+    # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'names and email thing to search'})
+    #
+    # No matter how often all_users is called, it is only updated at most once every 60 seconds, since it is expensive
+    # to scan the entire database, and the client will typically make numerous requests within seconds for
+    # different searches.  When some time elapses and we get a search, if we have an old cached list in memory, we
+    # use it and THEN start computing a new one -- so user queries are always answered nearly instantly, but only
+    # repeated queries will give an up to date result.
+    #
+    # Of course, caching means that newly created accounts, or modified account names,
+    # will not show up in searches for 1 minute.  That's
+    # very acceptable.
+    #
+    # This obviously doesn't scale, and will need to be re-written to use some sort of indexing system, or
+    # possibly only allow searching on email address, or other ways.  I don't know yet.
+    #
+    all_users: (cb) =>
+        if @_all_users_fresh?
+            cb(false, @_all_users); return
+        if @_all_users?
+            cb(false, @_all_users)
+        if @_all_users_computing? and @_all_users?
+            return
+        @_all_users_computing = true
+        @select
+            table     : 'accounts'
+            columns   : ['first_name', 'last_name', 'email_address', 'account_id']
+            objectify : true
+            consistency : 1     # since we really want optimal speed, and missing something temporarily is ok.
+            limit     : 1000000  # TODO: probably start failing due to timeouts around 100K users (?) -- will have to cursor or query multiple times then?
+            cb        : (err, results) =>
+                console.log("queried...", err, results.length)
+                if err and not @_all_users?
+                    cb(err); return
+                v = []
+                for r in results
+                    if not r.first_name?
+                        r.first_name = ''
+                    if not r.last_name?
+                        r.last_name = ''
+                    search = (r.first_name + ' ' + r.last_name + ' ' + r.email_address).toLowerCase()
+                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
+                    v.push(obj)
+                delete @_all_users_computing
+                if not @_all_users?
+                    cb(false,v)
+                @_all_users = v
+                @_all_users_fresh = true
+                f = () =>
+                    delete @_all_users_fresh
+                setTimeout(f, 60000)   # cache for 1 minute
+
     user_search: (opts) =>
         opts = defaults opts,
             query : required
             limit : undefined
             cb    : required
 
-        # TODO: this obviously won't scale to a large number of users; we need a full-text search index
-        # system for that, which will have to get written somehow...
-        @select
-            table     : 'accounts'
-            columns   : ['first_name', 'last_name', 'account_id']
-            objectify : true
-            cb        : (err, results) =>
-                if err
-                    opts.cb(err)
-                    return
-                query = opts.query.toLowerCase().split(/\s+/g)
-                match = (name) ->
-                    name = name.toLowerCase()
-                    for q in query
-                        if name.indexOf(q) == -1
-                            return false
-                    return true
-                r = []
-                for x in results
-                    if match(x.first_name + x.last_name)
-                        r.push(x)
-                        if opts.limit? and r.length >= opts.limit
-                            break
-                opts.cb(false, r)
-
-    project_users: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required   # (err, list of users)
-        @select
-            table     : 'project_users'
-            columns   : ['account_id', 'mode', 'state']
-            where     : {project_id : opts.project_id}
-            objectify : true
-            cb        : (err, results) =>
-                if err
-                    opts.cb(err)
-                    return
-                @account_ids_to_usernames
-                    account_ids : (x.account_id for x in results)
-                    cb          : (err, users) =>
-                        if err
-                            opts.cb(err)
-                            return
-                        for x in results
-                            x.first_name = users[x.account_id].first_name
-                            x.last_name = users[x.account_id].last_name
-                        opts.cb(false, results)
+        @all_users (err, users) =>
+            if err
+                opts.cb(err); return
+            query = opts.query.toLowerCase().split(/\s+/g)
+            match = (search) ->
+                for q in query
+                    if search.indexOf(q) == -1
+                        return false
+                return true
+            r = []
+            # LOCKING WARNING: In the worst case, this is a non-indexed linear search through all
+            # names which completely locks the server.  That said, it would take about
+            # 500,000 users before this blocks the server for *1 second*... at which point the
+            # database query to load all users into memory above (in @all_users) would take
+            # several hours.   So let's optimize this, but do that later!!
+            for x in users
+                if match(x.search)
+                    r.push(x)
+                    if opts.limit? and r.length >= opts.limit
+                        break
+            opts.cb(false, r)
 
     account_ids_to_usernames: (opts) =>
         opts = defaults opts,
@@ -783,9 +882,6 @@ class exports.Salvus extends exports.Cassandra
                     else
                         opts.cb(false, results[0][0])
 
-
-
-
     random_snap_server: (opts) =>
         opts = defaults opts,
             cb        : required
@@ -908,60 +1004,209 @@ class exports.Salvus extends exports.Cassandra
         )
 
     create_account: (opts={}) ->
-        opts = defaults(opts,
-            cb:undefined
+        opts = defaults opts,
             first_name    : required
             last_name     : required
             email_address : required
             password_hash : required
-        )
+            cb            : required
 
         account_id = uuid.v4()
-        a = {first_name:opts.first_name, last_name:opts.last_name, email_address:opts.email_address, password_hash:opts.password_hash, plan_id:DEFAULT_PLAN_ID}
-
-        @update(
-            table :'accounts'
-            json  : []
-            set   : a
-            where : {account_id:account_id}
-            cb    : (error, result) -> opts.cb?(error, account_id)
+        async.series([
+            # verify that account doesn't already exist
+            (cb) =>
+                @select
+                    table : 'email_address_to_account_id'
+                    columns : ['account_id']
+                    where : {'email_address':opts.email_address}
+                    cb    : (err, results) =>
+                        if err
+                            cb(err)
+                        else if results.length > 0
+                            cb("account with email address '#{opts.email_address}' already exists")
+                        else
+                            cb()
+            # create account
+            (cb) =>
+                @update
+                    table :'accounts'
+                    set   :
+                        first_name    : opts.first_name
+                        last_name     : opts.last_name
+                        email_address : opts.email_address
+                        password_hash : opts.password_hash
+                        plan_id       : DEFAULT_PLAN_ID
+                    where : {account_id:account_id}
+                    cb    : cb
+            (cb) =>
+                @update
+                    table : 'email_address_to_account_id'
+                    set   : {account_id : account_id}
+                    where : {email_address: opts.email_address}
+                    cb    : cb
+            # add 1 to the "number of accounts" counter
+            (cb) =>
+                @update_table_counter
+                    table : 'accounts'
+                    delta : 1
+                    cb    : cb
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(false, account_id)
         )
 
-        return account_id
+    # This should never have to be run; however, it could be useful to run it periodically "just in case".
+    # I wrote this when migrating the database to avoid secondary indexes.
+    update_email_address_to_account_id_table: (cb) =>
+        @select
+            table: 'accounts'
+            limit: 10000000  # effectively unlimited...
+            columns: ['email_address', 'account_id']
+            objectify: false
+            cb: (err, results) =>
+                console.log("Got full table with #{results.length} entries.  Now populating email_address_to_account_id table....")
+                t = {}
+                f = (r, cb) =>
+                     if not r[0]? or not r[1]?
+                          console.log("skipping", r)
+                          cb()
+                          return
+                     if t[r[0]]?
+                         console.log("WARNING: saw the email address '#{r[0]}' more than once.  account_id=#{r[1]} ")
+                     t[r[0]] = r[1]
+                     @update
+                         table : 'email_address_to_account_id'
+                         set   : {account_id: r[1]}
+                         where : {email_address: r[0]}
+                         cb    : cb
+                async.map results, f, (err) =>
+                    console.log("#{misc.len(t)} distinct email addresses")
+                    if err
+                        console.log("error updating...",err)
+                        cb(err)
+                    else
+                        @set_table_counter
+                            table : 'accounts'
+                            value : misc.len(t)
+                            cb    : cb
 
-    get_account: (opts={}) ->
+    # Delete the account with given id, and
+    # remove the entry in the email_address_to_account_id table
+    # corresponding to this account, if indeed the entry in that
+    # table does map to this account_id.  This should only ever be
+    # used for testing purposes, since there's no reason to ever
+    # delete an account record -- doing so would mean throwing
+    # away valuable information, e.g., there could be projects, etc.,
+    # that only refer to the account_id, and we must know what the
+    # account_id means.
+    # Returns an error if the account doesn't exist.
+    delete_account: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        email_address = undefined
+        async.series([
+            # find email address associated to this account
+            (cb) =>
+                @get_account
+                    account_id : opts.account_id
+                    columns    : ['email_address']
+                    cb         : (err, account) =>
+                        if err
+                            cb(err)
+                        else
+                            email_address = account.email_address
+                            cb()
+            # delete entry in the email_address_to_account_id table
+            (cb) =>
+                @select
+                    table   : 'email_address_to_account_id'
+                    columns : ['account_id']
+                    where   : {email_address: email_address}
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else if results.length > 0 and results[0][0] == opts.account_id
+                            # delete entry of that table
+                            @delete
+                                table : 'email_address_to_account_id'
+                                where : {email_address: email_address}
+                                cb    : cb
+                        else
+                            # deleting a "spurious" account that isn't mapped to by email_address_to_account_id table,
+                            # so nothing to do here.
+                            cb()
+            # everything above worked, so now delete the actual account
+            (cb) =>
+                @delete
+                    table : "accounts"
+                    where : {account_id : opts.account_id}
+                    cb    : cb
+            # subtract 1 from the "number of accounts" counter
+            (cb) =>
+                @update_table_counter
+                    table : 'accounts'
+                    delta : -1
+                    cb    : cb
+
+        ], opts.cb)
+
+
+    get_account: (opts={}) =>
         opts = defaults opts,
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
-            columns       : ['account_id', 'password_hash', 'first_name', 'last_name', 'email_address',
+            columns       : ['account_id', 'password_hash',
+                             'first_name', 'last_name', 'email_address',
                              'plan_id', 'plan_starttime',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
                              'autosave', 'terminal', 'editor_settings']
-        where = {}
-        if opts.account_id?
-            where.account_id = opts.account_id
-        if opts.email_address?
-            where.email_address = opts.email_address
 
-        @select
-            table   : 'accounts'
-            where   : where
-            columns : opts.columns
-            objectify : true
-            json    : ['terminal', 'editor_settings']
-            cb      : (error, results) ->
-                if error
-                    opts.cb(error)
-                else if results.length != 1
-                    if opts.account_id?
-                        opts.cb("There is no account with account_id #{opts.account_id}.")
-                    else
-                        opts.cb("There is no account with email address #{opts.email_address}.")
+        account = undefined
+        async.series([
+            (cb) =>
+                if opts.account_id?
+                    cb()
+                else if not opts.email_address?
+                    cb("either the email_address or account_id must be specified")
                 else
-                    opts.cb(false, results[0])
+                    @select
+                        table     : 'email_address_to_account_id'
+                        where     : {email_address:opts.email_address}
+                        columns   : ['account_id']
+                        objectify : false
+                        cb        : (err, results) =>
+                            if err
+                                cb(err)
+                            else if results.length == 0
+                                cb("There is no account with email address #{opts.email_address}.")
+                            else
+                                # success!
+                                opts.account_id = results[0][0]
+                                cb()
+            (cb) =>
+                @select
+                    table     : 'accounts'
+                    where     : {account_id : opts.account_id}
+                    columns   : opts.columns
+                    objectify : true
+                    json      : ['terminal', 'editor_settings']
+                    cb        : (error, results) ->
+                        if error
+                            cb(error)
+                        else if results.length == 0
+                            cb("There is no account with account_id #{opts.account_id}.")
+                        else
+                            account = results[0]
+                            cb()
+        ], (err) =>
+            opts.cb(err, account)
+        )
 
     update_account_settings: (opts={}) ->
         opts = defaults opts,
@@ -1138,7 +1383,7 @@ class exports.Salvus extends exports.Cassandra
                         gitconfig = "[user]\n    name = #{r.first_name} #{r.last_name}\n    email = #{r.email_address}\n"
                     opts.cb(false, gitconfig)
 
-    get_project_data: (opts) ->
+    get_project_data: (opts) =>
         opts = defaults opts,
             project_id : required
             columns    : required
@@ -1151,6 +1396,51 @@ class exports.Salvus extends exports.Cassandra
             objectify : opts.objectify
             json    : ['quota', 'location']
             cb      : opts.cb
+
+    # get map {project_group:[{account_id:?,first_name:?,last_name:?}], ...}
+    get_project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            groups     : PROJECT_GROUPS
+            cb         : required
+
+        groups = undefined
+        names = undefined
+        async.series([
+            # get account_id's of all users
+            (cb) =>
+                @get_project_data
+                    project_id : opts.project_id
+                    columns    : opts.groups
+                    objectify  : false
+                    cb         : (err, _groups) =>
+                        groups = _groups
+                        for i in [0...groups.length]
+                            if not groups[i]?
+                                groups[i] = []
+                        cb(err)
+            # get names of users
+            (cb) =>
+                v = _.flatten(groups)
+                @account_ids_to_usernames
+                    account_ids : v
+                    cb          : (err, _names) =>
+                        names = _names
+                        cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                r = {}
+                i = 0
+                for g in opts.groups
+                    r[g] = []
+                    for account_id in groups[i]
+                        x = names[account_id]
+                        r[g].push({account_id:account_id, first_name:x.first_name, last_name:x.last_name})
+                    i += 1
+                opts.cb(false, r)
+        )
 
     # TODO: REWRITE THE function below (and others) to use get_project_data above.
     _get_project_location: (opts) =>
@@ -1312,7 +1602,7 @@ class exports.Salvus extends exports.Cassandra
             public      : required
             quota       : required
             idle_timeout: required
-            cb          : undefined
+            cb          : required
 
         async.series([
             # add entry to projects table
@@ -1335,26 +1625,25 @@ class exports.Salvus extends exports.Cassandra
                             cb(true)
                         else
                             cb()
-            # add entry to project_users table
+            # add account_id as owner of project (modifies both project and account records).
             (cb) =>
-                @update
-                    table : 'project_users'
-                    set   :
-                        mode       : 'owner'
-                    where :
-                        project_id : opts.project_id
-                        account_id : opts.account_id
-                    cb    : (error, result) ->
-                        if error
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            opts.cb(false)
-                            cb()
-        ])
+                @add_user_to_project
+                    project_id : opts.project_id
+                    account_id : opts.account_id
+                    group      : 'owner'
+                    cb         : cb
+            # increment number of projects counter
+            (cb) =>
+                @update_table_counter
+                    table : 'projects'
+                    delta : 1
+                    cb    : cb
+        ], opts.cb)
 
+    # DEPRECATED
     set_all_project_owners_to_users: (cb) =>
-        # This is solely due to database consistency issues.
+        # DELETE THIS: This is solely due fix some database consistency issues... -- that said, this
+        # is a deprecated table anyways, so this can be deleted soon.
         @select
             table: 'projects'
             limit: 100000
@@ -1362,9 +1651,8 @@ class exports.Salvus extends exports.Cassandra
             objectify: false
             cb: (err, results) =>
                  f = (r, cb) =>
-                     console.log(r)
                      if not r[0]? or not r[1]?
-                          console.log("skipping")
+                          console.log("skipping", r)
                           cb()
                           return
                      @update
@@ -1387,7 +1675,6 @@ class exports.Salvus extends exports.Cassandra
             where : {project_id : opts.project_id}
             cb    : opts.cb
 
-
     delete_project: (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -1398,49 +1685,153 @@ class exports.Salvus extends exports.Cassandra
             where : {project_id : opts.project_id}
             cb    : opts.cb
 
+    # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
+    # on the given project.  This modifies a set collection on the project *and* modifies a
+    # collection on that account.
+    # There is no attempt to make sure a user is in only one group at a time -- client code must do that.
+    _verify_project_user: (opts) =>
+        # We have to check that is a uuid and use strings, rather than params, due to limitations of the
+        # Helenus driver.  CQL injection...
+        if not misc.is_valid_uuid_string(opts.project_id) or not misc.is_valid_uuid_string(opts.account_id)
+            return "invalid uuid"
+        else if opts.group not in PROJECT_GROUPS
+            return "invalid group"
+        else
+            return null
+
+    add_user_to_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            group      : required  # see PROJECT_GROUPS above
+            cb         : required  # cb(err)
+        e = @_verify_project_user(opts)
+        if e
+            opts.cb(e); return
+        async.series([
+            # add account_id to the project's set of users (for the given group)
+            (cb) =>
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{?} WHERE project_id=?"
+                @cql(query, [opts.account_id, opts.project_id], cb)
+            # add project_id to the set of projects (for the given group) for the user's account
+            (cb) =>
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{?} WHERE account_id=?"
+                @cql(query, [opts.project_id, opts.account_id], cb)
+        ], opts.cb)
+
+    remove_user_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            group      : required  # see PROJECT_GROUPS above
+            cb         : required  # cb(err)
+        e = @_verify_project_user(opts)
+        if e
+            opts.cb(e); return
+        async.series([
+            # remove account_id from the project's set of users (for the given group)
+            (cb) =>
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{?} WHERE project_id=?"
+                @cql(query, [opts.account_id, opts.project_id], cb)
+            # remove project_id from the set of projects (for the given group) for the user's account
+            (cb) =>
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{?} WHERE account_id=?"
+                @cql(query, [opts.project_id, opts.account_id], cb)
+        ], opts.cb)
+
+    # SINGLE USE ONLY:
+    # This code below is *only* used for migrating from the project_users table to a
+    # denormalized representation using the PROJECT_GROUPS collections.
+    migrate_from_deprecated_project_users_table: (cb) =>
+        results = undefined
+        async.series([
+            (cb) =>
+                console.log("Load entire project_users table into memory")
+                @select
+                    table     : 'project_users'
+                    limit     : 1000000
+                    columns   : ['project_id', 'account_id', 'mode', 'state']
+                    objectify : true
+                    cb        : (err, _results) =>
+                        results = _results
+                        cb(err)
+            (cb) =>
+                console.log("For each row in the table, call add_user_to_project")
+                f = (r, c) =>
+                    console.log(r)
+                    group = r.mode
+                    if r.state == 'invited'
+                        group = 'invited_' + group
+                    @add_user_to_project
+                        project_id : r.project_id
+                        account_id : r.account_id
+                        group      : group
+                        cb         : c
+                # note -- this does all bazillion in parallel :-)
+                async.map(results, f, cb)
+        ], cb)
+
+    # cb(err, true if user is in one of the groups)
+    user_is_in_project_group: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            groups     : required  # array of elts of PROJECT_GROUPS above
+            cb         : required  # cb(err)
+        @get_project_data
+            project_id : opts.project_id
+            columns    : opts.groups
+            objectify  : false
+            cb         : (err, result) ->
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, opts.account_id in _.flatten(result))
+
+    # all id's of projects having anything to do with the given account
+    get_project_ids_with_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
+        @select_one
+            table     : 'accounts'
+            columns   : PROJECT_GROUPS
+            where     : {account_id : opts.account_id}
+            objectify : false
+            cb        : (err, result) ->
+                if err
+                    opts.cb(err); return
+                v = []
+                for r in result
+                    if r?
+                        v = v.concat(r)
+                opts.cb(false, v)
+
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
-    get_projects_with_user: (opts) ->
+    get_projects_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
             cb         : required
 
-        projects = undefined  # array of pairs (project_id, mode)
+        ids = undefined
+        projects = undefined
         async.series([
             (cb) =>
-                @select
-                    table     : 'project_users'
-                    columns   : ['project_id', 'mode']
-                    where     : {account_id : opts.account_id}
-                    objectify : false
-                    cb        : (error, results) ->
-                        if error
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            projects = results
-                            cb()
+                @get_project_ids_with_user
+                    account_id : opts.account_id
+                    cb         : (err, r) =>
+                        ids = r
+                        cb(err)
             (cb) =>
                 @get_projects_with_ids
-                    ids : (x[0] for x in projects)
-                    cb  : (error, results) ->
-                        if error
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            # The following is a little awkward and is done this way only
-                            # because of the potential for inconsistency in the database, e.g.,
-                            # project_id's in the project_users table that shouldn't be there
-                            # since the project was deleted but something nasty happened before
-                            # everything else related to that project was deleted.
-                            modes = {}
-                            for p in projects
-                                modes[p.project_id] = p.mode
-                            for r in results
-                                r.mode = modes[r.project_id]
-                            opts.cb(false, results)
-                            cb()
-        ])
+                    ids : ids
+                    cb  : (err, _projects) =>
+                        projects = _projects
+                        cb(err)
+        ], (err) ->
+                opts.cb(err, projects)
+        )
 
     get_projects_with_ids: (opts) ->
         opts = defaults opts,
@@ -1463,20 +1854,23 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results)
 
+    # cb(err, array of account_id's of accounts in non-invited-only groups)
     get_account_ids_using_project: (opts) ->
         opts = defaults opts,
             project_id : required
             cb         : required
-
         @select
-            table      : 'project_users'
-            columns    : ['account_id']
-            where      : { project_id:opts.project_id }
-            cb         : (error, results) ->
-                if error
-                    opts.cb(error)
+            table      : 'projects'
+            columns    : (c for c in PROJECT_COLUMNS if c.indexOf('invited') == -1)
+            where      : { project_id : opts.project_id }
+            cb         : (err, results) =>
+                if err?
+                    opts.cb(err)
                 else
-                    opts.cb(false, results)
+                    v = []
+                    for r in results
+                        v = v.concat(r)
+                    opts.cb(false, v)
 
     get_project_open_info: (opts) ->
         opts = defaults opts,
@@ -1495,6 +1889,7 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results[0])
 
+    # DEPRECATED
     get_project_bundles: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1513,6 +1908,7 @@ class exports.Salvus extends exports.Cassandra
                         v.push([r[0], new Buffer(r[1], 'hex')])
                     opts.cb(err, v)
 
+    # DEPRECATED
     get_project_bundle_filenames: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1522,6 +1918,23 @@ class exports.Salvus extends exports.Cassandra
             table      : 'project_bundles'
             columns    : ['filename']
             where      : { project_id:opts.project_id }
+            cb         : opts.cb
+
+    # DEPRECATED
+    save_project_bundle: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            filename   : required
+            bundle     : required
+            cb         : required
+
+        @update
+            table      : 'project_bundles'
+            set        :
+                bundle : opts.bundle.toString('hex')
+            where      :
+                project_id : opts.project_id
+                filename   : opts.filename
             cb         : opts.cb
 
     # Get array of uuid's all *all* projects in the database
@@ -1542,35 +1955,56 @@ class exports.Salvus extends exports.Cassandra
                         ans = (r[0] for r in results)
                     opts.cb(false, ans)
 
-    save_project_bundle: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            filename   : required
-            bundle     : required
-            cb         : required
+    update_project_count: (cb) =>
+        @count
+            table : 'projects'
+            cb    : (err, value) =>
+                @set_table_counter
+                    table : 'projects'
+                    value : value
+                    cb    : cb
 
-        @update
-            table      : 'project_bundles'
-            set        :
-                bundle : opts.bundle.toString('hex')
-            where      :
-                project_id : opts.project_id
-                filename   : opts.filename
-            cb         : opts.cb
-
+    # If there is a cached version of stats (which has given ttl) return that -- this could have
+    # been computed by any of the hubs.  If there is no cached version, compute anew and store
+    # in cache for ttl seconds.
+    # CONCERN: This could take around 15 seconds, and numerous hubs could all initiate it
+    # at once, which is a waste.
+    # TODO: This *can* be optimized to be super-fast by getting rid of all counts; to do that,
+    # we need a list of all possible servers, say in a file or somewhere.  That's for later.
     get_stats: (opts) ->
         opts = defaults opts,
-            cb : required
+            ttl : 120  # how long cached version lives (in seconds)
+            cb  : required
         stats = {timestamp:moment(new Date()).format('YYYY-MM-DD-HHmmss') }
+        cached_answer = undefined
         async.series([
             (cb) =>
-                @count
+                @select
+                    table     : 'stats_cache'
+                    where     : {dummy:true}
+                    objectify : true
+                    json      : ['hub_servers']
+                    columns   : [ 'timestamp', 'accounts', 'projects', 'active_projects',
+                                  'last_day_projects', 'last_week_projects',
+                                  'last_month_projects', 'snap_servers', 'hub_servers']
+                    cb        : (err, result) =>
+                        if err
+                            cb(err)
+                        else if result.length == 0 # nothing in cache
+                            cb()
+                        else
+                            # done
+                            cached_answer = result[0]
+                            # don't do anything else
+                            cb(true)
+            (cb) =>
+                @get_table_counter
                     table : 'accounts'
                     cb    : (err, val) =>
                         stats.accounts = val
                         cb(err)
             (cb) =>
-                @count
+                @get_table_counter
                     table : 'projects'
                     cb    : (err, val) =>
                         stats.projects = val
@@ -1624,8 +2058,22 @@ class exports.Salvus extends exports.Cassandra
                     json  : ['hub_servers']
                     where : {time:now()}
                     cb    : cb
+            (cb) =>
+                @update
+                    table : 'stats_cache'
+                    set   : stats
+                    where : {dummy : true}
+                    json  : ['hub_servers']
+                    ttl   : opts.ttl
+                    cb    : cb
+            (cb) =>
+                # store result in a cache
+                cb()
         ], (err) =>
-            opts.cb(err, stats)
+            if cached_answer?
+                opts.cb(false, cached_answer)
+            else
+                opts.cb(err, stats)
         )
 
 

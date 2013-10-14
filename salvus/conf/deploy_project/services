@@ -22,7 +22,7 @@ project_id = str(json.loads(open("%s/info.json"%os.environ['SAGEMATHCLOUD']).rea
 base_url   = '/%s/port/%s'%(project_id, port)
 
 
-[cassandra] {'cluster_name':'salvus1', 'storage_port':cassandra[0], 'ssl_storage_port':cassandra[1], 'native_transport_port':cassandra[2], 'rpc_port':cassandra[3], 'thrift_max_message_length_in_mb':'40', 'thrift_framed_transport_size_in_mb':'39', 'MAX_HEAP_SIZE':'1G',  'HEAP_NEWSIZE':'128M', 'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
+[cassandra] {'cluster_name':'salvus1', 'storage_port':cassandra[0], 'ssl_storage_port':cassandra[1], 'native_transport_port':cassandra[2], 'rpc_port':cassandra[3], 'thrift_framed_transport_size_in_mb':'39', 'MAX_HEAP_SIZE':'1G',  'HEAP_NEWSIZE':'128M', 'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
 #{'read_request_timeout_in_ms':'60000', 'request_timeout_in_ms':'60000', 'range_request_timeout_in_ms':'60000'}
 localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0}
 
