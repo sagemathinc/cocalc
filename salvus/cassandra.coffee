@@ -19,7 +19,7 @@
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
-PROJECT_GROUPS = ['collaborators', 'viewers', 'invited_collaborators', 'invited_viewers']
+PROJECT_GROUPS = exports.PROJECT_GROUPS = ['owner', 'collaborator', 'viewer', 'invited_collaborator', 'invited_viewer']
 
 # recent times, used for recently_modified_projects
 exports.RECENT_TIMES = RECENT_TIMES =
@@ -44,25 +44,23 @@ uuid    = require('node-uuid')
 
 moment  = require('moment')
 
+_ = require('underscore')
+
+
+
 # the time right now, in iso format ready to insert into the database:
 now = exports.now = () -> to_iso(new Date())
 
 # the time ms milliseconds ago, in iso format ready to insert into the database:
 exports.milliseconds_ago = (ms) -> to_iso(new Date(new Date() - ms))
-
-exports.seconds_ago = (s) -> exports.milliseconds_ago(1000*s)
-
-exports.minutes_ago = (m) -> exports.seconds_ago(60*m)
-
-exports.hours_ago = (h) -> exports.minutes_ago(60*h)
-
-exports.days_ago = (d) -> exports.hours_ago(24*d)
+exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
+exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
+exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
+exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
 #########################################################################
 
-
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted']
-
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted'].concat(PROJECT_GROUPS)
 
 # This is used in account creation right now, so has to be set.
 # It is actually not used in practice and the limits have no meaning.
@@ -686,30 +684,6 @@ class exports.Salvus extends exports.Cassandra
                         if opts.limit? and r.length >= opts.limit
                             break
                 opts.cb(false, r)
-
-    project_users: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required   # (err, list of users)
-        @select
-            table     : 'project_users'
-            columns   : ['account_id', 'mode', 'state']
-            where     : {project_id : opts.project_id}
-            objectify : true
-            cb        : (err, results) =>
-                if err
-                    opts.cb(err)
-                    return
-                @account_ids_to_usernames
-                    account_ids : (x.account_id for x in results)
-                    cb          : (err, users) =>
-                        if err
-                            opts.cb(err)
-                            return
-                        for x in results
-                            x.first_name = users[x.account_id].first_name
-                            x.last_name = users[x.account_id].last_name
-                        opts.cb(false, results)
 
     account_ids_to_usernames: (opts) =>
         opts = defaults opts,
@@ -1347,7 +1321,7 @@ class exports.Salvus extends exports.Cassandra
                         gitconfig = "[user]\n    name = #{r.first_name} #{r.last_name}\n    email = #{r.email_address}\n"
                     opts.cb(false, gitconfig)
 
-    get_project_data: (opts) ->
+    get_project_data: (opts) =>
         opts = defaults opts,
             project_id : required
             columns    : required
@@ -1360,6 +1334,51 @@ class exports.Salvus extends exports.Cassandra
             objectify : opts.objectify
             json    : ['quota', 'location']
             cb      : opts.cb
+
+    # get map {project_group:[{account_id:?,first_name:?,last_name:?}], ...}
+    get_project_users: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            groups     : PROJECT_GROUPS
+            cb         : required
+
+        groups = undefined
+        names = undefined
+        async.series([
+            # get account_id's of all users
+            (cb) =>
+                @get_project_data
+                    project_id : opts.project_id
+                    columns    : opts.groups
+                    objectify  : false
+                    cb         : (err, _groups) =>
+                        groups = _groups
+                        for i in [0...groups.length]
+                            if not groups[i]?
+                                groups[i] = []
+                        cb(err)
+            # get names of users
+            (cb) =>
+                v = _.flatten(groups)
+                @account_ids_to_usernames
+                    account_ids : v
+                    cb          : (err, _names) =>
+                        names = _names
+                        cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                r = {}
+                i = 0
+                for g in opts.groups
+                    r[g] = []
+                    for account_id in groups[i]
+                        x = names[account_id]
+                        r[g].push({account_id:account_id, first_name:x.first_name, last_name:x.last_name})
+                    i += 1
+                opts.cb(false, r)
+        )
 
     # TODO: REWRITE THE function below (and others) to use get_project_data above.
     _get_project_location: (opts) =>
@@ -1544,22 +1563,13 @@ class exports.Salvus extends exports.Cassandra
                             cb(true)
                         else
                             cb()
-            # add entry to project_users table
+            # add account_id as owner of project (modifies both project and account records).
             (cb) =>
-                @update
-                    table : 'project_users'
-                    set   :
-                        mode       : 'owner'
-                    where :
-                        project_id : opts.project_id
-                        account_id : opts.account_id
-                    cb    : (error, result) ->
-                        if error
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            opts.cb(false)
-                            cb()
+                @add_user_to_project
+                    project_id : opts.project_id
+                    account_id : opts.account_id
+                    group      : 'owner'
+                    cb         : cb
             # increment number of projects counter
             (cb) =>
                 @update_table_counter
@@ -1568,8 +1578,10 @@ class exports.Salvus extends exports.Cassandra
                     cb    : cb
         ])
 
+    # DEPRECATED
     set_all_project_owners_to_users: (cb) =>
-        # This is solely due to database consistency issues.
+        # DELETE THIS: This is solely due fix some database consistency issues... -- that said, this
+        # is a deprecated table anyways, so this can be deleted soon.
         @select
             table: 'projects'
             limit: 100000
@@ -1601,7 +1613,6 @@ class exports.Salvus extends exports.Cassandra
             where : {project_id : opts.project_id}
             cb    : opts.cb
 
-
     delete_project: (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -1626,86 +1637,139 @@ class exports.Salvus extends exports.Cassandra
         else
             return null
 
-    set_project_user: (opts) =>
+    add_user_to_project: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
-            group      : required  # collaborators, viewers, invited_collaborators, invited_viewers
+            group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
         e = @_verify_project_user(opts)
         if e
             opts.cb(e); return
-        query = "UPDATE projects SET #{opts.group} = #{opts.group} + {#{opts.account_id}} WHERE project_id=#{opts.project_id}"
-        @cql query, [], opts.cb
+        async.series([
+            # add account_id to the project's set of users (for the given group)
+            (cb) =>
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}+{?} WHERE project_id=?"
+                @cql(query, [opts.account_id, opts.project_id], cb)
+            # add project_id to the set of projects (for the given group) for the user's account
+            (cb) =>
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}+{?} WHERE account_id=?"
+                @cql(query, [opts.project_id, opts.account_id], cb)
+        ], opts.cb)
 
-    remove_project_user: (opts) =>
+    remove_user_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
-            group      : required  # collaborators, viewers, invited_collaborators, invited_viewers
+            group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
         e = @_verify_project_user(opts)
         if e
             opts.cb(e); return
-        query = "UPDATE projects SET #{opts.group} = #{opts.group} - {#{opts.account_id}} WHERE project_id=#{opts.project_id}"
-        @cql query, [], opts.cb
+        async.series([
+            # remove account_id from the project's set of users (for the given group)
+            (cb) =>
+                query = "UPDATE projects SET #{opts.group}=#{opts.group}-{?} WHERE project_id=?"
+                @cql(query, [opts.account_id, opts.project_id], cb)
+            # remove project_id from the set of projects (for the given group) for the user's account
+            (cb) =>
+                query = "UPDATE accounts SET #{opts.group}=#{opts.group}-{?} WHERE account_id=?"
+                @cql(query, [opts.project_id, opts.account_id], cb)
+        ], opts.cb)
 
-    get_project_users: (opts) =>
+    # SINGLE USE ONLY:
+    # This code below is *only* used for migrating from the project_users table to a
+    # denormalized representation using the PROJECT_GROUPS collections.
+    migrate_from_deprecated_project_users_table: (cb) =>
+        results = undefined
+        async.series([
+            (cb) =>
+                console.log("Load entire project_users table into memory")
+                @select
+                    table     : 'project_users'
+                    limit     : 1000000
+                    columns   : ['project_id', 'account_id', 'mode', 'state']
+                    objectify : true
+                    cb        : (err, _results) =>
+                        results = _results
+                        cb(err)
+            (cb) =>
+                console.log("For each row in the table, call add_user_to_project")
+                f = (r, c) =>
+                    console.log(r)
+                    group = r.mode
+                    if r.state == 'invited'
+                        group = 'invited_' + group
+                    @add_user_to_project
+                        project_id : r.project_id
+                        account_id : r.account_id
+                        group      : group
+                        cb         : c
+                # note -- this does all bazillion in parallel :-)
+                async.map(results, f, cb)
+        ], cb)
+
+    # cb(err, true if user is in one of the groups)
+    user_is_in_project_group: (opts) =>
         opts = defaults opts,
             project_id : required
-            group      : undefined
-            cb         : required   #  cb(err, {group_name:[account_id's...], ...}) if undefined; otherwise cb(err, [account_ids for that group]))
-        if not opts.group?
-            f = (group, cb) => @get_prooject_users(project_id:opts.project_id, group:group, cb:cb)
-            async.map(PROJECT_GROUPS, f, opts.cb)
-        else
-            query = "SELECT #{opts.group} FROM projects where project_id=#{opts.project_id}"
-            console.log(query)
-            @cql query, [], opts.cb
+            account_id : required
+            groups     : required  # array of elts of PROJECT_GROUPS above
+            cb         : required  # cb(err)
+        @get_project_data
+            project_id : opts.project_id
+            columns    : opts.groups
+            objectify  : false
+            cb         : (err, result) ->
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(false, opts.account_id in _.flatten(result))
+
+    # all id's of projects having anything to do with the given account
+    get_project_ids_with_user: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
+        @select_one
+            table     : 'accounts'
+            columns   : PROJECT_GROUPS
+            where     : {account_id : opts.account_id}
+            objectify : false
+            cb        : (err, result) ->
+                if err
+                    opts.cb(err); return
+                v = []
+                for r in result
+                    if r?
+                        v = v.concat(r)
+                opts.cb(false, v)
 
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
-    get_projects_with_user: (opts) ->
+    get_projects_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
             cb         : required
 
-        projects = undefined  # array of pairs (project_id, mode)
+        ids = undefined
+        projects = undefined
         async.series([
             (cb) =>
-                @select
-                    table     : 'project_users'
-                    columns   : ['project_id', 'mode']
-                    where     : {account_id : opts.account_id}
-                    objectify : false
-                    cb        : (error, results) ->
-                        if error
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            projects = results
-                            cb()
+                @get_project_ids_with_user
+                    account_id : opts.account_id
+                    cb         : (err, r) =>
+                        ids = r
+                        cb(err)
             (cb) =>
                 @get_projects_with_ids
-                    ids : (x[0] for x in projects)
-                    cb  : (error, results) ->
-                        if error
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            # The following is a little awkward and is done this way only
-                            # because of the potential for inconsistency in the database, e.g.,
-                            # project_id's in the project_users table that shouldn't be there
-                            # since the project was deleted but something nasty happened before
-                            # everything else related to that project was deleted.
-                            modes = {}
-                            for p in projects
-                                modes[p.project_id] = p.mode
-                            for r in results
-                                r.mode = modes[r.project_id]
-                            opts.cb(false, results)
-                            cb()
-        ])
+                    ids : ids
+                    cb  : (err, _projects) =>
+                        projects = _projects
+                        cb(err)
+        ], (err) ->
+                opts.cb(err, projects)
+        )
 
     get_projects_with_ids: (opts) ->
         opts = defaults opts,
@@ -1728,20 +1792,23 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results)
 
+    # cb(err, array of account_id's of accounts in non-invited-only groups)
     get_account_ids_using_project: (opts) ->
         opts = defaults opts,
             project_id : required
             cb         : required
-
         @select
-            table      : 'project_users'
-            columns    : ['account_id']
-            where      : { project_id:opts.project_id }
-            cb         : (error, results) ->
-                if error
-                    opts.cb(error)
+            table      : 'projects'
+            columns    : (c for c in PROJECT_COLUMNS if c.indexOf('invited') == -1)
+            where      : { project_id : opts.project_id }
+            cb         : (err, results) =>
+                if err?
+                    opts.cb(err)
                 else
-                    opts.cb(false, results)
+                    v = []
+                    for r in results
+                        v = v.concat(r)
+                    opts.cb(false, v)
 
     get_project_open_info: (opts) ->
         opts = defaults opts,
@@ -1760,6 +1827,7 @@ class exports.Salvus extends exports.Cassandra
                 else
                     opts.cb(false, results[0])
 
+    # DEPRECATED
     get_project_bundles: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1778,6 +1846,7 @@ class exports.Salvus extends exports.Cassandra
                         v.push([r[0], new Buffer(r[1], 'hex')])
                     opts.cb(err, v)
 
+    # DEPRECATED
     get_project_bundle_filenames: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1787,6 +1856,23 @@ class exports.Salvus extends exports.Cassandra
             table      : 'project_bundles'
             columns    : ['filename']
             where      : { project_id:opts.project_id }
+            cb         : opts.cb
+
+    # DEPRECATED
+    save_project_bundle: (opts) ->
+        opts = defaults opts,
+            project_id : required
+            filename   : required
+            bundle     : required
+            cb         : required
+
+        @update
+            table      : 'project_bundles'
+            set        :
+                bundle : opts.bundle.toString('hex')
+            where      :
+                project_id : opts.project_id
+                filename   : opts.filename
             cb         : opts.cb
 
     # Get array of uuid's all *all* projects in the database
@@ -1806,23 +1892,6 @@ class exports.Salvus extends exports.Cassandra
                     else
                         ans = (r[0] for r in results)
                     opts.cb(false, ans)
-
-    save_project_bundle: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            filename   : required
-            bundle     : required
-            cb         : required
-
-        @update
-            table      : 'project_bundles'
-            set        :
-                bundle : opts.bundle.toString('hex')
-            where      :
-                project_id : opts.project_id
-                filename   : opts.filename
-            cb         : opts.cb
-
     # If there is a cached version of stats (which has given ttl) return that -- this could have
     # been computed by any of the hubs.  If there is no cached version, compute anew and store
     # in cache for ttl seconds.

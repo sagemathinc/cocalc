@@ -114,6 +114,13 @@ CREATE TABLE accounts (
     editor_settings    varchar, // JSON
 
     enable_tooltips    boolean
+
+    owner                set<uuid>,   // projects that this user owns
+    collaborator         set<uuid>,   // projects this users is collaborating on
+    invited_collaborator set<uuid>,   // projects this user has been invited to collaborate on (but has not accepted)
+    viewer               set<uuid>,   // projects this user can view (but not change)
+    invited_viewer       set<uuid>    // projects this user has been invited to view (but has not accepted)
+
 );
 
 CREATE TABLE email_address_to_account_id (
@@ -224,7 +231,7 @@ CREATE TABLE successful_sign_ins (
 
 CREATE TABLE projects (
      project_id       uuid  PRIMARY KEY,
-     account_id       uuid,          // id of the owner of this project
+     account_id       uuid,          // id of original creator of this project
      title            varchar,
      description      varchar,
      public           boolean,   // whether or not the project is visible to everybody in the world
@@ -240,10 +247,11 @@ CREATE TABLE projects (
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
 
-     collaborators         set<uuid>,   // all actual collaborators on this project
-     invited_collaborators set<uuid>,   // accounts that have been invited to collaborate
-     viewers               set<uuid>,   // accounts who are viewers
-     invited_viewers       set<uuid>    // accounts who have been invited to view.
+     owner                set<uuid>,   // owners of this project (will have some special perms)
+     collaborator         set<uuid>,   // all actual collaborators on this project
+     invited_collaborator set<uuid>,   // accounts that have been invited to collaborate
+     viewer               set<uuid>,   // accounts who are viewers
+     invited_viewer       set<uuid>    // accounts who have been invited to view.
 );
 
 /* no real reason to use this -- since all projects owned by a given user isn't really interesting --
@@ -260,9 +268,6 @@ CREATE TABLE project_users (
      state            varchar,        // 'invited', 'accepted'
      PRIMARY KEY (project_id, account_id)
 );
-
-
-
 
 /* Example: update project_users set mode='collaborator', state='accepted' where project_id=06ec6722-7ecd-410d-b5da-cdb9bfa09a51 and account_id=25e2cae4-05c7-4c28-ae22-1e6d3d2e8bb5 ;
 */

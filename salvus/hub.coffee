@@ -1541,7 +1541,7 @@ class Client extends EventEmitter
         @get_project mesg, 'read', (err, project) =>
             if err
                 return
-            database.project_users
+            database.get_project_users
                 project_id : mesg.project_id
                 cb         : (err, users) =>
                     if err
@@ -1556,49 +1556,32 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-
-            database.select
-                table   : 'project_users'
-                columns : ['mode']
-                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
-                cb      : (err, result) =>
+            # SECURITY NOTE: mesg.project_id is valid and the client has write access, since otherwise,
+            # the @get_project function above wouldn't have returned without err...
+            database.add_user_to_project
+                project_id : mesg.project_id
+                account_id : mesg.account_id
+                group      : ['collaborator']  # in future will be "invite_collaborator", once implemented
+                cb         : (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
-                    else if result.length > 0 and result[0][0] == 'owner'
-                        # target is already has better privileges
-                        @push_to_client(message.success(id:mesg.id))
                     else
-                        database.update
-                            table : 'project_users'
-                            set   : {mode:'collaborator'}
-                            where : {project_id:mesg.project_id, account_id:mesg.account_id}
-                            cb    : (err) =>
-                                if err
-                                    @error_to_client(id:mesg.id, error:err)
-                                else
-                                    @push_to_client(message.success(id:mesg.id))
+                        @push_to_client(message.success(id:mesg.id))
 
     mesg_remove_collaborator: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            database.select
-                table   : 'project_users'
-                columns : ['mode']
-                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
-                cb      : (err, result) =>
+            # See "Security note" in mesg_invite_collaborator
+            database.remove_user_from_project
+                project_id : mesg.project_id
+                account_id : mesg.account_id
+                group      : 'collaborator'
+                cb         : (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
-                    else if result.length > 0 and result[0][0] == 'owner'
-                        @error_to_client(id:mesg.id, error:"Cannot remove owner of project.")
-                    else database.delete
-                        table : 'project_users'
-                        where : {project_id:mesg.project_id, account_id:mesg.account_id}
-                        cb    : (err) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:err)
-                            else
-                                @push_to_client(message.success(id:mesg.id))
+                    else
+                        @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # Project snapshots -- interface to the snap servers
@@ -1999,7 +1982,7 @@ init_sockjs_server = () ->
     sockjs_server.installHandlers(http_server, {prefix : program.base_url + '/hub'})
 
 
-    #######################################################
+#######################################################
 # Pushing a message to clients; querying for clients
 # This is (or will be) subtle, due to having
 # multiple HUBs running on different computers.
@@ -2015,7 +1998,9 @@ get_client_ids = (opts) ->
         exclude    : undefined      # array of id's to exclude from results
         cb         : required
 
-    result = []
+    result = []   # will have list of client id's in it
+
+    # include a given client id in result, if it isn't in the exclude array
     include = (id) ->
         if id not in result
             if opts.exclude?
@@ -2023,34 +2008,43 @@ get_client_ids = (opts) ->
                     return
             result.push(id)
 
+    account_ids = {}   # account_id's to consider
+
+    if opts.account_id?
+        account_ids[opts.account_id] = true
+
     async.series([
+        # If considering a given project, then get all the relevant account_id's.
         (cb) ->
             if opts.project_id?
                 database.get_account_ids_using_project
                     project_id : opts.project_id
-                    cb : (error, result) ->
-                        if (error)
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            for id in result
-                                include(id)
-                            cb()
+                    cb         : (err, result) ->
+                        if err
+                            cb(err); return
+                        for r in result
+                            account_ids[r] = true
+                        cb()
             else
                 cb()
+        # Now get the corresponding connected client id's.
         (cb) ->
-            # TODO: This will be replaced by one scalable database query on an indexed column
-            if opts.account_id?
-                for id, client of clients
-                    if client.account_id == opts.account_id
-                        include(id)
-            opts.cb(false, result)
+            for id, client of clients
+                if account_ids[client.account_id]?
+                    include(id)
             cb()
-    ])
+    ], (err) ->
+        opts.cb(err, result)
+    )
 
 
-# Send a message to a bunch of clients, connected either to this hub
-# or other hubs (local clients first).
+# Send a message to a bunch of clients connected to this hub.
+# This does not send anything to other hubs or clients at other hubs; the only
+# way for a message to go to a client at another hub is via some local hub.
+# This design means that we do not have to track which hubs which
+# clients are connected to in a database or registry, which wold be a nightmare
+# especially due to synchronization issues (some TODO comments might refer to such
+# a central design, because that *was* the non-implemented design at some point).
 push_to_clients = (opts) ->
     opts = defaults opts,
         mesg     : required
@@ -2079,7 +2073,6 @@ push_to_clients = (opts) ->
             if opts.to?
                 dest = dest.concat(opts.to)
 
-            # *MAJOR IMPORTANT TODO*: extend to use database and inter-hub communication
             for id in dest
                 client = clients[id]
                 if client?
@@ -3566,84 +3559,34 @@ class Project
         cb(false, 0)
 
 
-
-    # move_file: (src, dest, cb) =>
-    #     @exec(message.project_exec(command: "mv", args: [src, dest]), cb)
-
-    # make_directory: (path, cb) =>
-    #     @exec(message.project_exec(command: "mkdir", args: [path]), cb)
-
-    # remove_file: (path, cb) =>
-    #     @exec(message.project_exec(command: "rm", args: [path]), cb)
-
-
 ########################################
 # Permissions related to projects
 ########################################
-#
-
-# Return the access that account_id has to project_id.  The
-# possibilities are 'none', 'owner', 'collaborator', 'viewer'
-get_project_access = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        account_id : required
-        cb : required        # cb(err, mode)
-    winston.debug("opts = #{misc.to_json(opts)}")
-    database.select
-        table : 'project_users'
-        where : {project_id : opts.project_id,  account_id: opts.account_id}
-        columns : ['mode']
-        cb : (err, results) ->
-            if err
-                opts.cb(err)
-            else
-                if results.length == 0
-                    opts.cb(false, null)
-                else
-                    opts.cb(false, results[0][0])
 
 user_owns_project = (opts) ->
     opts = defaults opts,
         project_id : required
         account_id : required
-        cb : required         # input: (error, result) where if defined result is true or false
-    get_project_access
-        project_id : opts.project_id
-        account_id : opts.account_id
-        cb : (err, mode) ->
-            if err
-                opts.cb(err)
-            else
-                opts.cb(false, mode == 'owner')
+        cb         : required         # input: (error, result) where if defined result is true or false
+    opts.groups = ['owner']
+    database.user_is_in_project_group(opts)
 
 user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
         project_id : required
         account_id : required
         cb : required        # cb(err, true or false)
-    get_project_access
-        project_id : opts.project_id
-        account_id : opts.account_id
-        cb : (err, mode) ->
-            if err
-                opts.cb(err)
-            else
-                opts.cb(false, mode in ['owner', 'collaborator'])
+    opts.groups = ['owner', 'collaborator']
+    database.user_is_in_project_group(opts)
 
 user_has_read_access_to_project = (opts) ->
     opts = defaults opts,
         project_id : required
         account_id : required
         cb : required        # cb(err, true or false)
-    get_project_access
-        project_id : opts.project_id
-        account_id : opts.account_id
-        cb : (err, mode) ->
-            if err
-                opts.cb(err)
-            else
-                opts.cb(false, mode != 'none')
+    opts.groups = ['owner', 'collaborator', 'viewer']
+    database.user_is_in_project_group(opts)
+
 
 ########################################
 # Passwords
