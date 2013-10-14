@@ -351,9 +351,15 @@ class exports.Cassandra extends EventEmitter
             keyspace : undefined
             username : undefined
             password : undefined
+            consistency : undefined
 
         @keyspace = opts.keyspace
-        @consistency = 1  # the default consistency (for now)
+
+        if opts.hosts.length == 1
+            # the default QUORUM won't work if there is only one node.
+            opts.consistency = 1
+
+        @consistency = opts.consistency  # the default consistency (for now)
 
         #winston.debug("connect using: #{JSON.stringify(opts)}")  # DEBUG ONLY!! output contains sensitive info (the password)!!!
 
@@ -875,9 +881,6 @@ class exports.Salvus extends exports.Cassandra
                         opts.cb(false, undefined)  # no error, but nothing in caching
                     else
                         opts.cb(false, results[0][0])
-
-
-
 
     random_snap_server: (opts) =>
         opts = defaults opts,
@@ -1951,6 +1954,16 @@ class exports.Salvus extends exports.Cassandra
                     else
                         ans = (r[0] for r in results)
                     opts.cb(false, ans)
+
+    update_project_count: (cb) =>
+        @count
+            table : 'projects'
+            cb    : (err, value) =>
+                @set_table_counter
+                    table : 'projects'
+                    value : value
+                    cb    : cb
+
     # If there is a cached version of stats (which has given ttl) return that -- this could have
     # been computed by any of the hubs.  If there is no cached version, compute anew and store
     # in cache for ttl seconds.
