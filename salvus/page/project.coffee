@@ -1876,16 +1876,21 @@ class ProjectPage
                 project_id : @project.project_id
                 cb : (err, users) =>
                     collabs_loading.hide()
-                    if not err
-                        collabs.empty()
-                        already_collab = {}
-                        for x in users
+                    if err
+                        # TODO: make nicer; maybe have a retry button...
+                        collabs.html("(error loading collaborators)")
+                        return
+                    collabs.empty()
+                    already_collab = {}
+
+                    for mode in ['collaborator', 'viewer', 'owner', 'invited_collaborator', 'invited_viewer']
+                        for x in users[mode]
                             already_collab[x.account_id] = true
                             c = template_project_collab.clone()
                             c.find(".project-collab-first-name").text(x.first_name)
                             c.find(".project-collab-last-name").text(x.last_name)
-                            c.find(".project-collab-mode").text(x.mode)
-                            if x.mode == 'owner'
+                            c.find(".project-collab-mode").text(mode)
+                            if mode == 'owner'
                                 c.find(".project-close-button").hide()
                                 c.css('background-color', '#51a351')
                                 c.tooltip(title:"Project owner (cannot be revoked)", delay: { show: 500, hide: 100 })
@@ -1901,9 +1906,9 @@ class ProjectPage
                                     extra_tip = ""
 
 
-                                if x.mode == 'collaborator'
+                                if mode == 'collaborator'
                                     c.tooltip(title:"Collaborator"+extra_tip, delay: { show: 500, hide: 100 })
-                                else if x.mode == 'viewer'
+                                else if mode == 'viewer'
                                     if extra_tip == ""
                                         c.css('background-color', '#f89406')
                                     c.tooltip(title:"Viewer"+extra_tip, delay: { show: 500, hide: 100 })
@@ -1920,7 +1925,7 @@ class ProjectPage
                 return
             salvus_client.user_search
                 query : input.val()
-                limit : 50
+                limit : 30
                 cb    : (err, result) =>
                     select.html("")
                     for r in result

@@ -460,7 +460,7 @@ class exports.Cassandra extends EventEmitter
         async.series([
             (cb) =>
                 @get_table_counter
-                    table : 'counts'
+                    table : opts.table
                     cb    : (err, value) =>
                         current_value = value
                         cb(err)
@@ -547,6 +547,7 @@ class exports.Cassandra extends EventEmitter
             limit     : undefined   # if defined, limit the number of results returned to this integer
             json      : []          # list of columns that should be converted from JSON format
             order_by : undefined    # if given, adds an "ORDER BY opts.order_by"
+            consistency : undefined  # default...
 
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
@@ -557,7 +558,7 @@ class exports.Cassandra extends EventEmitter
             query += " LIMIT #{opts.limit} "
         if opts.order_by?
             query += " ORDER BY #{opts.order_by} "
-        @cql query, vals, (error, results) =>
+        @cql query, vals, opts.consistency, (error, results) =>
             if opts.objectify
                 x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
             else
@@ -580,13 +581,22 @@ class exports.Cassandra extends EventEmitter
                 cb(false, results[0])
         @select(opts)
 
-    cql: (query, vals, cb) ->
+    cql: (query, vals, consistency, cb) ->
+        if typeof vals == 'function'
+            cb = vals
+            vals = []
+            consistency = undefined
+        if typeof consistency == 'function'
+            cb = consistency
+            consistency = undefined
+        if not consistency?
+            consistency = @consistency
         #console.log("About to query db '#{query}'")
         # TODO: sometimes allow filtering is needed -- TODO -- fix this to be a clearly specified option.
         if query.slice(0,6).toLowerCase() == 'select'
             query += '   ALLOW FILTERING'
         try
-            @conn.execute query, vals, @consistency, (error, results) =>
+            @conn.execute query, vals, consistency, (error, results) =>
                 if error
                     winston.error("Query cql('#{query}',params=#{vals}) caused a CQL error:\n#{error}")
                     @emit('error', error)
@@ -654,36 +664,85 @@ class exports.Salvus extends exports.Cassandra
 
     ##-- search
 
+
+    # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'names and email thing to search'})
+    #
+    # No matter how often all_users is called, it is only updated at most once every 60 seconds, since it is expensive
+    # to scan the entire database, and the client will typically make numerous requests within seconds for
+    # different searches.  When some time elapses and we get a search, if we have an old cached list in memory, we
+    # use it and THEN start computing a new one -- so user queries are always answered nearly instantly, but only
+    # repeated queries will give an up to date result.
+    #
+    # Of course, caching means that newly created accounts, or modified account names,
+    # will not show up in searches for 1 minute.  That's
+    # very acceptable.
+    #
+    # This obviously doesn't scale, and will need to be re-written to use some sort of indexing system, or
+    # possibly only allow searching on email address, or other ways.  I don't know yet.
+    #
+    all_users: (cb) =>
+        if @_all_users_fresh?
+            cb(false, @_all_users); return
+        if @_all_users?
+            cb(false, @_all_users)
+        if @_all_users_computing? and @_all_users?
+            return
+        @_all_users_computing = true
+        @select
+            table     : 'accounts'
+            columns   : ['first_name', 'last_name', 'email_address', 'account_id']
+            objectify : true
+            consistency : 1     # since we really want optimal speed, and missing something temporarily is ok.
+            limit     : 1000000  # TODO: probably start failing due to timeouts around 100K users (?) -- will have to cursor or query multiple times then?
+            cb        : (err, results) =>
+                console.log("queried...", err, results.length)
+                if err and not @_all_users?
+                    cb(err); return
+                v = []
+                for r in results
+                    if not r.first_name?
+                        r.first_name = ''
+                    if not r.last_name?
+                        r.last_name = ''
+                    search = (r.first_name + ' ' + r.last_name + ' ' + r.email_address).toLowerCase()
+                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
+                    v.push(obj)
+                delete @_all_users_computing
+                if not @_all_users?
+                    cb(false,v)
+                @_all_users = v
+                @_all_users_fresh = true
+                f = () =>
+                    delete @_all_users_fresh
+                setTimeout(f, 60000)   # cache for 1 minute
+
     user_search: (opts) =>
         opts = defaults opts,
             query : required
             limit : undefined
             cb    : required
 
-        # TODO: this obviously won't scale to a large number of users; we need a full-text search index
-        # system for that, which will have to get written somehow...
-        @select
-            table     : 'accounts'
-            columns   : ['first_name', 'last_name', 'account_id']
-            objectify : true
-            cb        : (err, results) =>
-                if err
-                    opts.cb(err)
-                    return
-                query = opts.query.toLowerCase().split(/\s+/g)
-                match = (name) ->
-                    name = name.toLowerCase()
-                    for q in query
-                        if name.indexOf(q) == -1
-                            return false
-                    return true
-                r = []
-                for x in results
-                    if match(x.first_name + x.last_name)
-                        r.push(x)
-                        if opts.limit? and r.length >= opts.limit
-                            break
-                opts.cb(false, r)
+        @all_users (err, users) =>
+            if err
+                opts.cb(err); return
+            query = opts.query.toLowerCase().split(/\s+/g)
+            match = (search) ->
+                for q in query
+                    if search.indexOf(q) == -1
+                        return false
+                return true
+            r = []
+            # LOCKING WARNING: In the worst case, this is a non-indexed linear search through all
+            # names which completely locks the server.  That said, it would take about
+            # 500,000 users before this blocks the server for *1 second*... at which point the
+            # database query to load all users into memory above (in @all_users) would take
+            # several hours.   So let's optimize this, but do that later!!
+            for x in users
+                if match(x.search)
+                    r.push(x)
+                    if opts.limit? and r.length >= opts.limit
+                        break
+            opts.cb(false, r)
 
     account_ids_to_usernames: (opts) =>
         opts = defaults opts,
@@ -1540,7 +1599,7 @@ class exports.Salvus extends exports.Cassandra
             public      : required
             quota       : required
             idle_timeout: required
-            cb          : undefined
+            cb          : required
 
         async.series([
             # add entry to projects table
@@ -1576,7 +1635,7 @@ class exports.Salvus extends exports.Cassandra
                     table : 'projects'
                     delta : 1
                     cb    : cb
-        ])
+        ], opts.cb)
 
     # DEPRECATED
     set_all_project_owners_to_users: (cb) =>

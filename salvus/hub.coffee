@@ -1528,6 +1528,9 @@ class Client extends EventEmitter
 
     ## -- user search
     mesg_user_search: (mesg) =>
+        if not mesg.limit? or mesg.limit > 50
+            # hard cap at 50...
+            mesg.limit = 50
         database.user_search
             query : mesg.query
             limit : mesg.limit
@@ -1561,7 +1564,7 @@ class Client extends EventEmitter
             database.add_user_to_project
                 project_id : mesg.project_id
                 account_id : mesg.account_id
-                group      : ['collaborator']  # in future will be "invite_collaborator", once implemented
+                group      : 'collaborator'  # in future will be "invite_collaborator", once implemented
                 cb         : (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
