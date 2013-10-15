@@ -31,7 +31,7 @@
 
 # DC1:RAC0   cloud5   
 10.1.5.1 kvm-host  edge            cloud5    # 64gb ram; 16 cores; 2tb disk
-10.1.5.2 kvm              cassandra5
+10.1.5.2 kvm          cassandra    cassandra5
 10.1.5.3 kvm       hub nginx snap  web5
 10.1.5.4 kvm       compute         compute5a
 
