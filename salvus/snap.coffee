@@ -1369,7 +1369,7 @@ register_with_database = (cb) ->
 
     database.update
         table : 'snap_servers'
-        where : {id : server_id}
+        where : {id : server_id, dummy:true}
         set   : {key:secret_key, host:program.host, port:listen_port, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->

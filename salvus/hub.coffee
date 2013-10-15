@@ -1649,7 +1649,7 @@ update_server_stats = () ->
 register_hub = (cb) ->
     database.update
         table : 'hub_servers'
-        where : {host : program.host, port : program.port}
+        where : {host : program.host, port : program.port, dummy: true}
         set   : {clients: misc.len(clients)}
         ttl   : 2*REGISTER_INTERVAL_S
         cb    : (err) ->
