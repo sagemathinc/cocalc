@@ -1314,7 +1314,7 @@ connect_to_database = (cb) ->
             new cassandra.Salvus
                 hosts    : program.database_nodes.split(',')
                 keyspace : program.keyspace
-                user     : 'snap'
+                username : 'snap'
                 password : password.toString().trim()
                 cb       : (err, db) ->
                     database = db

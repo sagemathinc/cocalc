@@ -24,6 +24,7 @@ top_navbar =  $(".salvus-top_navbar")
 codemirror_associations =
     c      : 'text/x-c'
     'c++'  : 'text/x-c++src'
+    cql    : 'text/x-sql'
     cpp    : 'text/x-c++src'
     cc     : 'text/x-c++src'
     conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
@@ -44,6 +45,7 @@ codemirror_associations =
     lua    : 'lua'
     m      : 'text/x-octave'
     md     : 'markdown'
+    mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
 
     gp     : 'text/pari'
@@ -61,7 +63,7 @@ codemirror_associations =
     scala  : 'text/x-scala'
     sh     : 'shell'
     spyx   : 'python'
-    sql    : 'mysql'
+    sql    : 'text/x-sql'
     txt    : 'text'
     tex    : 'stex'
     toml   : 'text/x-toml'
