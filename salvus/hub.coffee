@@ -428,13 +428,15 @@ init_http_proxy_server = () =>
                     cb(false, t)
             )
 
-    http_proxy_server = httpProxy.createServer (req, res, proxy) ->
+    #proxy = httpProxy.createProxyServer(ws:true)
+
+    http_proxy_server = http.createServer (req, res) ->
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
             return
 
-        buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
+        #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
         cookies = new Cookies(req, res)
         remember_me = cookies.get(program.base_url + 'remember_me')
@@ -450,10 +452,11 @@ init_http_proxy_server = () =>
                 winston.debug("proxy denied -- #{err}")
 
                 res.writeHead(500, {'Content-Type':'text/html'})
-                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this req_url = req.url.slice(program.base_url.length)page.")
+                res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 winston.debug("location = #{misc.to_json(location)}")
-                proxy.proxyRequest req, res, {host:location.host, port:location.port, buffer:buffer}
+                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}")
+                proxy.web(req, res) #, buffer:buffer}
 
     http_proxy_server.listen(program.proxy_port, program.host)
 
@@ -463,7 +466,10 @@ init_http_proxy_server = () =>
             if err
                 winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
             else
-                http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
+                winston.debug("attempting websocket upgrade -- ws://#{location.host}:#{location.port}")
+                proxy = httpProxy.createProxyServer(ws:true, target:"ws://#{location.host}:#{location.port}")
+                proxy.ws(req, socket, head)
+                #http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
 
 
 
@@ -1522,6 +1528,9 @@ class Client extends EventEmitter
 
     ## -- user search
     mesg_user_search: (mesg) =>
+        if not mesg.limit? or mesg.limit > 50
+            # hard cap at 50...
+            mesg.limit = 50
         database.user_search
             query : mesg.query
             limit : mesg.limit
@@ -1535,7 +1544,7 @@ class Client extends EventEmitter
         @get_project mesg, 'read', (err, project) =>
             if err
                 return
-            database.project_users
+            database.get_project_users
                 project_id : mesg.project_id
                 cb         : (err, users) =>
                     if err
@@ -1550,49 +1559,32 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-
-            database.select
-                table   : 'project_users'
-                columns : ['mode']
-                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
-                cb      : (err, result) =>
+            # SECURITY NOTE: mesg.project_id is valid and the client has write access, since otherwise,
+            # the @get_project function above wouldn't have returned without err...
+            database.add_user_to_project
+                project_id : mesg.project_id
+                account_id : mesg.account_id
+                group      : 'collaborator'  # in future will be "invite_collaborator", once implemented
+                cb         : (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
-                    else if result.length > 0 and result[0][0] == 'owner'
-                        # target is already has better privileges
-                        @push_to_client(message.success(id:mesg.id))
                     else
-                        database.update
-                            table : 'project_users'
-                            set   : {mode:'collaborator'}
-                            where : {project_id:mesg.project_id, account_id:mesg.account_id}
-                            cb    : (err) =>
-                                if err
-                                    @error_to_client(id:mesg.id, error:err)
-                                else
-                                    @push_to_client(message.success(id:mesg.id))
+                        @push_to_client(message.success(id:mesg.id))
 
     mesg_remove_collaborator: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            database.select
-                table   : 'project_users'
-                columns : ['mode']
-                where   : {project_id:mesg.project_id, account_id:mesg.account_id}
-                cb      : (err, result) =>
+            # See "Security note" in mesg_invite_collaborator
+            database.remove_user_from_project
+                project_id : mesg.project_id
+                account_id : mesg.account_id
+                group      : 'collaborator'
+                cb         : (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
-                    else if result.length > 0 and result[0][0] == 'owner'
-                        @error_to_client(id:mesg.id, error:"Cannot remove owner of project.")
-                    else database.delete
-                        table : 'project_users'
-                        where : {project_id:mesg.project_id, account_id:mesg.account_id}
-                        cb    : (err) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:err)
-                            else
-                                @push_to_client(message.success(id:mesg.id))
+                    else
+                        @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # Project snapshots -- interface to the snap servers
@@ -1993,7 +1985,7 @@ init_sockjs_server = () ->
     sockjs_server.installHandlers(http_server, {prefix : program.base_url + '/hub'})
 
 
-    #######################################################
+#######################################################
 # Pushing a message to clients; querying for clients
 # This is (or will be) subtle, due to having
 # multiple HUBs running on different computers.
@@ -2009,7 +2001,9 @@ get_client_ids = (opts) ->
         exclude    : undefined      # array of id's to exclude from results
         cb         : required
 
-    result = []
+    result = []   # will have list of client id's in it
+
+    # include a given client id in result, if it isn't in the exclude array
     include = (id) ->
         if id not in result
             if opts.exclude?
@@ -2017,34 +2011,43 @@ get_client_ids = (opts) ->
                     return
             result.push(id)
 
+    account_ids = {}   # account_id's to consider
+
+    if opts.account_id?
+        account_ids[opts.account_id] = true
+
     async.series([
+        # If considering a given project, then get all the relevant account_id's.
         (cb) ->
             if opts.project_id?
                 database.get_account_ids_using_project
                     project_id : opts.project_id
-                    cb : (error, result) ->
-                        if (error)
-                            opts.cb(error)
-                            cb(true)
-                        else
-                            for id in result
-                                include(id)
-                            cb()
+                    cb         : (err, result) ->
+                        if err
+                            cb(err); return
+                        for r in result
+                            account_ids[r] = true
+                        cb()
             else
                 cb()
+        # Now get the corresponding connected client id's.
         (cb) ->
-            # TODO: This will be replaced by one scalable database query on an indexed column
-            if opts.account_id?
-                for id, client of clients
-                    if client.account_id == opts.account_id
-                        include(id)
-            opts.cb(false, result)
+            for id, client of clients
+                if account_ids[client.account_id]?
+                    include(id)
             cb()
-    ])
+    ], (err) ->
+        opts.cb(err, result)
+    )
 
 
-# Send a message to a bunch of clients, connected either to this hub
-# or other hubs (local clients first).
+# Send a message to a bunch of clients connected to this hub.
+# This does not send anything to other hubs or clients at other hubs; the only
+# way for a message to go to a client at another hub is via some local hub.
+# This design means that we do not have to track which hubs which
+# clients are connected to in a database or registry, which wold be a nightmare
+# especially due to synchronization issues (some TODO comments might refer to such
+# a central design, because that *was* the non-implemented design at some point).
 push_to_clients = (opts) ->
     opts = defaults opts,
         mesg     : required
@@ -2073,7 +2076,6 @@ push_to_clients = (opts) ->
             if opts.to?
                 dest = dest.concat(opts.to)
 
-            # *MAJOR IMPORTANT TODO*: extend to use database and inter-hub communication
             for id in dest
                 client = clients[id]
                 if client?
@@ -3560,84 +3562,34 @@ class Project
         cb(false, 0)
 
 
-
-    # move_file: (src, dest, cb) =>
-    #     @exec(message.project_exec(command: "mv", args: [src, dest]), cb)
-
-    # make_directory: (path, cb) =>
-    #     @exec(message.project_exec(command: "mkdir", args: [path]), cb)
-
-    # remove_file: (path, cb) =>
-    #     @exec(message.project_exec(command: "rm", args: [path]), cb)
-
-
 ########################################
 # Permissions related to projects
 ########################################
-#
-
-# Return the access that account_id has to project_id.  The
-# possibilities are 'none', 'owner', 'collaborator', 'viewer'
-get_project_access = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        account_id : required
-        cb : required        # cb(err, mode)
-    winston.debug("opts = #{misc.to_json(opts)}")
-    database.select
-        table : 'project_users'
-        where : {project_id : opts.project_id,  account_id: opts.account_id}
-        columns : ['mode']
-        cb : (err, results) ->
-            if err
-                opts.cb(err)
-            else
-                if results.length == 0
-                    opts.cb(false, null)
-                else
-                    opts.cb(false, results[0][0])
 
 user_owns_project = (opts) ->
     opts = defaults opts,
         project_id : required
         account_id : required
-        cb : required         # input: (error, result) where if defined result is true or false
-    get_project_access
-        project_id : opts.project_id
-        account_id : opts.account_id
-        cb : (err, mode) ->
-            if err
-                opts.cb(err)
-            else
-                opts.cb(false, mode == 'owner')
+        cb         : required         # input: (error, result) where if defined result is true or false
+    opts.groups = ['owner']
+    database.user_is_in_project_group(opts)
 
 user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
         project_id : required
         account_id : required
         cb : required        # cb(err, true or false)
-    get_project_access
-        project_id : opts.project_id
-        account_id : opts.account_id
-        cb : (err, mode) ->
-            if err
-                opts.cb(err)
-            else
-                opts.cb(false, mode in ['owner', 'collaborator'])
+    opts.groups = ['owner', 'collaborator']
+    database.user_is_in_project_group(opts)
 
 user_has_read_access_to_project = (opts) ->
     opts = defaults opts,
         project_id : required
         account_id : required
         cb : required        # cb(err, true or false)
-    get_project_access
-        project_id : opts.project_id
-        account_id : opts.account_id
-        cb : (err, mode) ->
-            if err
-                opts.cb(err)
-            else
-                opts.cb(false, mode != 'none')
+    opts.groups = ['owner', 'collaborator', 'viewer']
+    database.user_is_in_project_group(opts)
+
 
 ########################################
 # Passwords
@@ -5041,9 +4993,10 @@ connect_to_database = (cb) ->
             new cass.Salvus
                 hosts    : program.database_nodes.split(',')
                 keyspace : program.keyspace
-                user     : 'hub'
+                username : 'hub'
                 password : password.toString().trim()
                 cb       : (err, _db) ->
+                    winston.debug("got db connected!")
                     database = _db
                     cb(err)
 
@@ -5054,9 +5007,8 @@ exports.start_server = start_server = () ->
     # the order of init below is important
     init_http_server()
     init_http_proxy_server()
-    winston.info("Using Cassandra keyspace #{program.keyspace}")
+    winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-
     snap.set_server_id("#{program.host}:#{program.port}")
 
     # Once we connect to the database, start serving.
@@ -5064,9 +5016,12 @@ exports.start_server = start_server = () ->
         if err
             winston.debug("Failed to connect to database! -- #{err}")
             return
+        else
+            winston.debug("connected to database.")
 
-        # start updating stats cache every minute (on every hub)
-        update_server_stats(); setInterval(update_server_stats, 60*1000)
+        # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+        # too big a problem if we call it too frequently...
+        update_server_stats(); setInterval(update_server_stats, 120*1000)
         register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
         init_sockjs_server()
@@ -5080,7 +5035,7 @@ exports.start_server = start_server = () ->
 program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
     .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
-    .option('--log_level [level]', "log level (default: INFO) useful options include WARNING and DEBUG", String, "INFO")
+    .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")

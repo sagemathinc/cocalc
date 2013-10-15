@@ -1,5 +1,5 @@
 # services
-base = 'salvus-2013-10-05-1850'
+base = 'salvus-2013-10-14-1748'
 
 cassandra_ram = 8
 cassandra_cpu = 4
@@ -74,26 +74,25 @@ cloud19  {'hostname':'compute19a', 'vcpus':compute_cpu,   'ram':compute_ram,   '
 cloud20  {'hostname':'compute20a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
 cloud21  {'hostname':'compute21a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
 
-[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_max_message_length_in_mb':'100', 'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
+[cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
 # N=4; [i * (2**127 / N) for i in range(N)]
-cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}
 cassandra3    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
 cassandra4    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
+cassandra5    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
+cassandra6    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
+cassandra7    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
+
+cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}
+cassandra10    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra11    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra12    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
-#edge
-cloud1
-cloud2
-cloud3
-cloud4
+edge
 
 [haproxy] {'sudo':True, 'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
-#edge
-cloud1
-cloud2
-cloud3
-cloud4
+edge
 
 [nginx]
 nginx
