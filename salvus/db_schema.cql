@@ -298,10 +298,11 @@ CREATE TABLE recently_modified_projects (
 
 
 CREATE TABLE hub_servers (
+    dummy      boolean,    /* so fast */
     host       varchar,    /* hostname (ip address) */
     port       int,
     clients    int,        /* total number of connected clients right now */
-    PRIMARY KEY(host, port)
+    PRIMARY KEY(dummy, host, port)
 );
 
 
@@ -312,12 +313,13 @@ CREATE TABLE hub_servers (
 /* The snap servers -- entries in this table should always be inserted with a
    very small ttl (e.g., 15 seconds); the entry then gets periodically updated. */
 CREATE TABLE snap_servers (
+    dummy      boolean,   /* so all stored in same place, so "select *" query is instance instead of 10 seconds! */
     id         uuid,
     host       varchar,    /* hostname */
     port       int,        /* integer port */
     key        varchar,    /* random string needed to unlock tcp connection */
     size       int,        /* total size in kilobytes of the objects/pack directory of the archive */
-    PRIMARY KEY(id)
+    PRIMARY KEY(dummy, id)
 );
 
 
