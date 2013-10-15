@@ -995,13 +995,15 @@ class exports.Salvus extends exports.Cassandra
     #####################################
     # Account Management
     #####################################
-    is_email_address_available: (email_address, cb) ->
-        @count(table:"accounts", where:{email_address:email_address}, cb:(error, cnt) ->
-            if error
-                cb(error)
-            else
-                cb(null, cnt==0)
-        )
+    is_email_address_available: (email_address, cb) =>
+        @count
+            table : "email_address_to_account_id" 
+            where :{email_address:email_address}
+            cb    : (error, cnt) =>
+                if error
+                   cb(error)
+                else
+                   cb(null, cnt==0)
 
     create_account: (opts={}) ->
         opts = defaults opts,

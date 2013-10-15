@@ -3937,8 +3937,9 @@ new_random_unix_user = (opts) ->
     # Now replenish the cache for next time.
     replenish_random_unix_user_cache()
 
-new_random_unix_user_cache_target_size = 1
-if program.keyspace == "test"
+# This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
+new_random_unix_user_cache_target_size = 4
+if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
     new_random_unix_user_cache_target_size = 0
 
 new_random_unix_user.cache = []
@@ -3968,8 +3969,6 @@ replenish_random_unix_user_cache = () ->
                                 cache.push(user)
                                 winston.debug("SUCCESS -- created a new unix user for cache, which now has size #{cache.length}")
                                 replenish_random_unix_user_cache()
-
-
 
 new_random_unix_user_no_cache = (opts) ->
     opts = defaults opts,
@@ -5027,6 +5026,8 @@ exports.start_server = start_server = () ->
         init_sockjs_server()
         init_stateless_exec()
         http_server.listen(program.port, program.host)
+        replenish_random_unix_user_cache()
+
         winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
