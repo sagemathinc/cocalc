@@ -889,7 +889,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'compute_servers'
             columns : ['host', 'score']
-            where   : {running:true, score:{'>':opts.min_score}}
+            where   : {running:true, dummy:true}
             allow_filtering : true
             cb      : (err, results) =>
                 if results.length == 0 and @keyspace == 'test'
@@ -898,7 +898,7 @@ class exports.Salvus extends exports.Cassandra
                     # in the database.
                     opts.cb(err, [{host:'localhost', score:0}])
                 else
-                    opts.cb(err, {host:x[0], score:x[1]} for x in results)
+                    opts.cb(err, {host:x[0], score:x[1]} for x in results when x[1]>=opts.min_score)
 
     # cb(error, random running sage server) or if there are no running
     # sage servers, then cb(undefined).  We only consider servers whose
@@ -909,7 +909,10 @@ class exports.Salvus extends exports.Cassandra
 
         @running_compute_servers
             cb   : (error, res) ->
-                opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
+                if not error and res.length == 0
+                    opts.cb("no compute servers")
+                else
+                    opts.cb(error, misc.random_choice(res))
 
     # Adjust the score on a compute server.  It's possible that two
     # different servers could change this at the same time, thus
@@ -929,7 +932,7 @@ class exports.Salvus extends exports.Cassandra
                 @select
                     table   : 'compute_servers'
                     columns : ['score']
-                    where   : {host:opts.host}
+                    where   : {host:opts.host, dummy:true}
                     cb      : (err, results) ->
                         if err
                             cb(err)
@@ -943,7 +946,7 @@ class exports.Salvus extends exports.Cassandra
                     @update
                         table : 'compute_servers'
                         set   : {score : new_score}
-                        where : {host  : opts.host}
+                        where : {host  : opts.host, dummy:true}
                         cb    : cb
                 else
                     # new_score is outside the allowed range, so we do nothing.

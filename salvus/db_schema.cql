@@ -20,11 +20,12 @@ CREATE TABLE key_value (
 );
 
 CREATE TABLE compute_servers (
-    host varchar PRIMARY KEY,
+    dummy boolean,
+    host varchar,
     running boolean,
-    score int
+    score int,
+    PRIMARY KEY(dummy, host)
 );
-
 CREATE INDEX ON compute_servers (running);
 
 CREATE TABLE services (

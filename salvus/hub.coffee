@@ -3938,7 +3938,7 @@ new_random_unix_user = (opts) ->
     replenish_random_unix_user_cache()
 
 # This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
-new_random_unix_user_cache_target_size = 4
+new_random_unix_user_cache_target_size = 3
 if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
     new_random_unix_user_cache_target_size = 0
 
