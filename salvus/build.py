@@ -120,14 +120,18 @@ easy_install pip
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-[os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml'.split()]
+[os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
+
+# We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
+pip install --upgrade rpy2
+
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
     sage -sh
-    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.6/basemap-1.0.6.tar.gz; tar xf basemap-1.0.6.tar.gz; cd basemap-1.0.6; python setup.py install; cd ..; rm -rf basemap-1.0.6*
+    wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz; tar xf basemap-1.0.7.tar.gz; cd basemap-1.0.7; python setup.py install; cd ..; rm -rf basemap-1.0.7*
 
 # Also, edit the banner:
 
@@ -188,21 +192,21 @@ r packages could be automated like so:
 
 # Update to ipython 1.0.0
 
+   pip install --upgrade ipython
    http://wstein.org/home/wstein/tmp/trac-14713.patch
-   http://trac.sagemath.org/raw-attachment/ticket/14810/trac_14810_ipython_0.13.2.patch
-   easy_install
 
 # Fix permissions, just in case!
 
-  chmod -R a+r /usr/local/sage/sage-5.11
+  cd /usr/local/sage/current; chmod -R a+r *
 
-# Run sage one lst time
+# Run sage one last time
 
   ./sage
 
 """
 
-CASSANDRA_VERSION='1.2.4'   # options here -- http://downloads.datastax.com/community/
+CASSANDRA_VERSION='1.2.9'   # options here -- http://downloads.datastax.com/community/
+NODE_VERSION='0.10.20'      # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 
 import logging, os, shutil, subprocess, sys, time
 
@@ -227,14 +231,14 @@ if 'MAKE' in os.environ:
 # due to some packages cheating npm.  So I'm typically just copying over node_modules/start-stop-daemon from previous installs.
 
 NODE_MODULES = [
-    'commander', 'start-stop-daemon', 'winston', 'sockjs', 'helenus',
+    'commander', 'start-stop-daemon', 'winston', 'sockjs', 'node-cassandra-cql',
     'sockjs-client-ws', 'coffee-script', 'node-uuid', 'browserify@1.16.4', 'uglify-js2',
     'passport', 'passport-github', 'express', 'nodeunit', 'validator', 'async',
     'password-hash',
     'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
     'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'googlediff', 'formidable@latest',
-    'moment', 'underscore', 'read', 'http-proxy'
+    'moment', 'underscore', 'read'
     ]
 
 PYTHON_PACKAGES = [
@@ -319,8 +323,13 @@ def build_python():
 def build_node():
     log.info('building node'); start = time.time()
     try:
+        target = "node-v%s.tar.gz"%NODE_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd('rm -f node-v*.tar.*', SRC)  # remove any source tarballs that might have got left around
+            download("http://nodejs.org/dist/v%s/node-v%s.tar.gz"%(NODE_VERSION, NODE_VERSION))
         path = extract_package('node')
-        cmd('patch -p1 < %s/node-patch-backported-to-fix-hex-issue.patch'%PATCHES, path)
+        if NODE_VERSION == "0.8.25":
+            cmd('patch -p1 < %s/node-patch-backported-to-fix-hex-issue.patch'%PATCHES, path)
         cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
@@ -415,6 +424,7 @@ def build_node_modules():
     log.info('building node_modules'); start = time.time()
     try:
         cmd('npm install %s'%(' '.join(NODE_MODULES)), PWD)
+        cmd('git clone https://github.com/nodejitsu/node-http-proxy.git -b caronte; npm install node-http-proxy/; rm -rf node-http-proxy')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start

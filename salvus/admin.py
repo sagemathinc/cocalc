@@ -48,7 +48,7 @@ BASE = 'salvus/salvus/'
 
 LOG_INTERVAL = 6
 
-GIT_REPO='git@combinat1.salv.us:.'   # TODO
+GIT_REPO=''   # TODO
 
 whoami = os.environ['USER']
 
@@ -61,8 +61,9 @@ HUB_PROXY_PORT = 5001
 
 # These are used by the firewall.
 CASSANDRA_CLIENT_PORT = 9160
+CASSANDRA_NATIVE_PORT = 9042
 CASSANDRA_INTERNODE_PORTS = [7000, 7001]
-CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT]
+CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_NATIVE_PORT]
 
 ####################
 # Running a subprocess
@@ -1226,11 +1227,11 @@ class Services(object):
                 o['rpc_address'] = address
                 if 'seed' in o: del o['seed']
 
-            rpc_port = v[0][1].get('rpc_port', 9160)
-            if rpc_port != 9160:
-                print "Serving cassandra on non-standard port %s"%rpc_port
+            native_transport_port = v[0][1].get('native_transport_port', 9042)
+            if native_transport_port != 9042:
+                print "Serving cassandra on non-standard port %s"%native_transport_port
             try:
-                self._cassandra = ['%s:%s'%(h, rpc_port) for h in self._hosts['cassandra']]
+                self._cassandra = ['%s:%s'%(h, native_transport_port) for h in self._hosts['cassandra']]
                 import cassandra
                 cassandra.KEYSPACE = self._keyspace
                 cassandra.set_nodes(self._cassandra)
@@ -1389,9 +1390,10 @@ class Services(object):
         if action == "stop":
             commands = []
         elif action == "start":
-            # hub hosts can connect to CASSANDRA_CLIENT_PORT
+            # hub hosts can connect to CASSANDRA_CLIENT_PORT and CASSANDRA_NATIVE_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
             commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin snap']] +
+                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin snap']] +
                         ['allow proto tcp from %s to any port %s'%(host, port)
                                 for host in self._hosts['cassandra admin'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
