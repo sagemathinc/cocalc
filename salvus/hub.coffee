@@ -4994,6 +4994,7 @@ connect_to_database = (cb) ->
                 keyspace : program.keyspace
                 username : 'hub'
                 password : password.toString().trim()
+                consistency : 2
                 cb       : (err, _db) ->
                     winston.debug("got db connected!")
                     database = _db

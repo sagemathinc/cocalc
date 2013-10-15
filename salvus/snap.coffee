@@ -1315,6 +1315,7 @@ connect_to_database = (cb) ->
                 hosts    : program.database_nodes.split(',')
                 keyspace : program.keyspace
                 username : 'snap'
+                consistency : 2   # for now; later switch to quorum
                 password : password.toString().trim()
                 cb       : (err, db) ->
                     database = db
