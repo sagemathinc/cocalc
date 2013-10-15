@@ -20,11 +20,12 @@ CREATE TABLE key_value (
 );
 
 CREATE TABLE compute_servers (
-    host varchar PRIMARY KEY,
+    dummy boolean,
+    host varchar,
     running boolean,
-    score int
+    score int,
+    PRIMARY KEY(dummy, host)
 );
-
 CREATE INDEX ON compute_servers (running);
 
 CREATE TABLE services (
@@ -114,11 +115,25 @@ CREATE TABLE accounts (
     editor_settings    varchar, // JSON
 
     enable_tooltips    boolean
+
+    owner                set<uuid>,   // projects that this user owns
+    collaborator         set<uuid>,   // projects this users is collaborating on
+    invited_collaborator set<uuid>,   // projects this user has been invited to collaborate on (but has not accepted)
+    viewer               set<uuid>,   // projects this user can view (but not change)
+    invited_viewer       set<uuid>    // projects this user has been invited to view (but has not accepted)
+
 );
 
+CREATE TABLE email_address_to_account_id (
+    email_address varchar PRIMARY KEY,
+    account_id    uuid
+);
+
+CREATE INDEX ON accounts(email_address);  /* this is horrible and should not be used or exist */
+
+/* these indexes are for command line convenience and use only: */
 CREATE INDEX ON accounts(first_name);
 CREATE INDEX ON accounts(last_name);
-CREATE INDEX ON accounts(email_address);
 CREATE INDEX ON accounts(plan_id);
 
 CREATE TABLE account_log (
@@ -217,11 +232,11 @@ CREATE TABLE successful_sign_ins (
 
 CREATE TABLE projects (
      project_id       uuid  PRIMARY KEY,
-     account_id       uuid,          // id of the owner of this project
+     account_id       uuid,          // id of original creator of this project
      title            varchar,
      description      varchar,
      public           boolean,   // whether or not the project is visible to everybody in the world
-     snapshots_disabled boolean, // if true, don't make snapshots (e.g., because something is weird)
+     snapshots_disabled boolean, // if true, do not make snapshots (e.g., because something is weird)
 
      last_edited      timestamp,// timestamp of last modification of the project
 
@@ -232,11 +247,20 @@ CREATE TABLE projects (
 
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
+
+     owner                set<uuid>,   // owners of this project (will have some special perms)
+     collaborator         set<uuid>,   // all actual collaborators on this project
+     invited_collaborator set<uuid>,   // accounts that have been invited to collaborate
+     viewer               set<uuid>,   // accounts who are viewers
+     invited_viewer       set<uuid>    // accounts who have been invited to view.
 );
 
-CREATE INDEX ON projects(snapshots_disabled);
+/* no real reason to use this -- since all projects owned by a given user isn't really interesting --
+   users want all projects they collab on in some way. */
 CREATE INDEX ON projects(account_id);
-CREATE INDEX ON projects(location);
+
+CREATE INDEX ON projects(snapshots_disabled);  /* rare lookup */
+CREATE INDEX ON projects(location);   /* rare lookup -- mainly used for manually checking on weirdness... */
 
 CREATE TABLE project_users (
      project_id       uuid,
@@ -275,10 +299,11 @@ CREATE TABLE recently_modified_projects (
 
 
 CREATE TABLE hub_servers (
+    dummy      boolean,    /* so fast */
     host       varchar,    /* hostname (ip address) */
     port       int,
     clients    int,        /* total number of connected clients right now */
-    PRIMARY KEY(host, port)
+    PRIMARY KEY(dummy, host, port)
 );
 
 
@@ -289,12 +314,13 @@ CREATE TABLE hub_servers (
 /* The snap servers -- entries in this table should always be inserted with a
    very small ttl (e.g., 15 seconds); the entry then gets periodically updated. */
 CREATE TABLE snap_servers (
+    dummy      boolean,   /* so all stored in same place, so "select *" query is instance instead of 10 seconds! */
     id         uuid,
     host       varchar,    /* hostname */
     port       int,        /* integer port */
     key        varchar,    /* random string needed to unlock tcp connection */
     size       int,        /* total size in kilobytes of the objects/pack directory of the archive */
-    PRIMARY KEY(id)
+    PRIMARY KEY(dummy, id)
 );
 
 
@@ -308,6 +334,8 @@ CREATE TABLE snap_commits (
     PRIMARY KEY(server_id, project_id, timestamp)
 );
 
+/* This would be very slow... but note that we do not do this query during any normal website ops.
+   This is something that was just meant for maybe offline stuff... */
 CREATE INDEX ON snap_commits(repo_id);
 
 CREATE TABLE snap_modified_files (
@@ -375,8 +403,26 @@ CREATE TABLE stats (
     active_projects int,
     last_day_projects int,
     last_week_projects int,
-    last_month_projects int,    
+    last_month_projects int,
     snap_servers int,
     hub_servers varchar /* JSON */
+);
+
+CREATE TABLE stats_cache (
+    dummy    boolean PRIMARY KEY,
+    timestamp varchar,
+    accounts int,
+    projects int,
+    active_projects int,
+    last_day_projects int,
+    last_week_projects int,
+    last_month_projects int,
+    snap_servers int,
+    hub_servers varchar /* JSON */
+);
+
+CREATE TABLE counts (
+    table_name varchar PRIMARY KEY,
+    count counter  /* see http://www.datastax.com/documentation/cql/3.0/webhelp/cql/cql_using/use_counter_t.html */
 );
 

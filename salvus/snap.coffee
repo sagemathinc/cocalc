@@ -1314,7 +1314,7 @@ connect_to_database = (cb) ->
             new cassandra.Salvus
                 hosts    : program.database_nodes.split(',')
                 keyspace : program.keyspace
-                user     : 'snap'
+                username : 'snap'
                 password : password.toString().trim()
                 cb       : (err, db) ->
                     database = db
@@ -1369,7 +1369,7 @@ register_with_database = (cb) ->
 
     database.update
         table : 'snap_servers'
-        where : {id : server_id}
+        where : {id : server_id, dummy:true}
         set   : {key:secret_key, host:program.host, port:listen_port, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
