@@ -97,12 +97,12 @@ edge
 [nginx]
 nginx
 
-# run 4 hubs on each VM
+# hubs on each VM
 [hub]
 hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
-hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
-hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
-hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
+#hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
+#hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
+#hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
 
 [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
 snap
