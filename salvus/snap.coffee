@@ -1315,6 +1315,7 @@ connect_to_database = (cb) ->
                 hosts    : program.database_nodes.split(',')
                 keyspace : program.keyspace
                 username : 'snap'
+                consistency : 2   # for now; later switch to quorum
                 password : password.toString().trim()
                 cb       : (err, db) ->
                     database = db
@@ -1353,28 +1354,18 @@ active_path = (cb) ->   # cb(err, {active_path:?, repo_id:?})
 # snap server is up and running, and provide the key.
 size_of_bup_archive = undefined
 register_with_database = (cb) ->
-    winston.info("registering with database server...")
-    if not size_of_bup_archive?
-        active_path (err, path) ->
-            misc_node.disk_usage path.active_path, (err, usage) ->
-                if err
-                    winston.info("error computing usage -- #{err}")
-                    # try next time
-                    size_of_bup_archive = 0
-                    setTimeout((() -> register_with_database(cb)), 1000*registration_interval_seconds)
-                else
-                    size_of_bup_archive = usage
-                    register_with_database(cb)
-        return
-
-    database.update
+    database?.update
         table : 'snap_servers'
-        where : {id : server_id}
+        where : {id : server_id, dummy:true}
         set   : {key:secret_key, host:program.host, port:listen_port, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
-            setTimeout(register_with_database, 1000*registration_interval_seconds)
-            cb?()
+            if err
+                winston.info("error registering with database -- #{err}")
+            else
+                winston.info("successfully registered with database")
+
+setInterval(register_with_database, 1000*registration_interval_seconds)
 
 # For each commit in each project, re-enter a record in the database.
 

@@ -396,35 +396,13 @@ class exports.Cassandra extends EventEmitter
                         equals_fallback = false
                     if op == '=='
                         op = '=' # for cassandra
-
-                    ###
-                    if op == 'in'
-                        # !!!!!!!!!!!!!! potential CQL-injection attack  !!!!!!!!!!!
-                        # TODO -- keep checking/complaining?:  in queries just aren't supported by helenus, at least as of Nov 17, 2012 ! :-(
-                        where += "#{key} IN #{array_of_strings_to_cql_list(x2)}"
-                    else if typeof(val) == 'boolean'
-                        # work around a *MAJOR* driver bug :-(
-                        # TODO: check if fixed in new Helenus driver...
-                        # This is not a CQL-injection vector though, since we explicitly write out each case:
-                        if x
-                            where += "#{key} #{op} true"
-                        else
-                            where += "#{key} #{op} false"
-                    else if misc.is_valid_uuid_string(x2)
-                        # The Helenus driver is completely totally
-                        # broken regarding uuid's (their own UUID type
-                        # doesn't work at all). (as of April 15, 2013)
-                        # This is of course scary/dangerous since what if x2 is accidentally a uuid!
-                        where += "#{key} #{op} #{x2}"
-                    else
-                    ###
                     if op == 'in'
                         # !!!!!!!!!!!!!! potential CQL-injection attack !?  !!!!!!!!!!!
                         # TODO -- keep checking/complaining?:  in queries with params don't seem to work right at least as of Oct 13, 2013 !
                         where += "#{key} IN #{array_of_strings_to_cql_list(x2)}"
                     else
                         where += "#{key} #{op} ?"
-                    vals.push(x2)
+                        vals.push(x2)
                     where += " AND "
         return where.slice(0,-4)    # slice off final AND.
 
@@ -554,6 +532,7 @@ class exports.Cassandra extends EventEmitter
             json      : []          # list of columns that should be converted from JSON format
             order_by : undefined    # if given, adds an "ORDER BY opts.order_by"
             consistency : undefined  # default...
+            allow_filtering : false
 
         vals = []
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
@@ -564,6 +543,9 @@ class exports.Cassandra extends EventEmitter
             query += " LIMIT #{opts.limit} "
         if opts.order_by?
             query += " ORDER BY #{opts.order_by} "
+
+        if opts.allow_filtering
+            query += " ALLOW FILTERING"
         @cql query, vals, opts.consistency, (error, results) =>
             if opts.objectify
                 x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
@@ -597,10 +579,6 @@ class exports.Cassandra extends EventEmitter
             consistency = undefined
         if not consistency?
             consistency = @consistency
-        #console.log("About to query db '#{query}'")
-        # TODO: sometimes allow filtering is needed -- TODO -- fix this to be a clearly specified option.
-        if query.slice(0,6).toLowerCase() == 'select'
-            query += '   ALLOW FILTERING'
         try
             @conn.execute query, vals, consistency, (error, results) =>
                 if error
@@ -778,9 +756,9 @@ class exports.Salvus extends exports.Cassandra
             if opts.server_ids.length == 0
                 opts.cb(false, [])
                 return
-            where = {id:{'in':opts.server_ids}}
+            where = {dummy:true, id:{'in':opts.server_ids}}
         else
-            where = undefined
+            where = {dummy:true}
 
         @select
             table     : 'snap_servers'
@@ -911,7 +889,8 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'compute_servers'
             columns : ['host', 'score']
-            where   : {running:true, score:{'>':opts.min_score}}
+            where   : {running:true, dummy:true}
+            allow_filtering : true
             cb      : (err, results) =>
                 if results.length == 0 and @keyspace == 'test'
                     # This is used when testing the compute servers
@@ -919,7 +898,7 @@ class exports.Salvus extends exports.Cassandra
                     # in the database.
                     opts.cb(err, [{host:'localhost', score:0}])
                 else
-                    opts.cb(err, {host:x[0], score:x[1]} for x in results)
+                    opts.cb(err, {host:x[0], score:x[1]} for x in results when x[1]>=opts.min_score)
 
     # cb(error, random running sage server) or if there are no running
     # sage servers, then cb(undefined).  We only consider servers whose
@@ -930,7 +909,10 @@ class exports.Salvus extends exports.Cassandra
 
         @running_compute_servers
             cb   : (error, res) ->
-                opts.cb(error, if res.length == 0 then undefined else misc.random_choice(res))
+                if not error and res.length == 0
+                    opts.cb("no compute servers")
+                else
+                    opts.cb(error, misc.random_choice(res))
 
     # Adjust the score on a compute server.  It's possible that two
     # different servers could change this at the same time, thus
@@ -950,7 +932,7 @@ class exports.Salvus extends exports.Cassandra
                 @select
                     table   : 'compute_servers'
                     columns : ['score']
-                    where   : {host:opts.host}
+                    where   : {host:opts.host, dummy:true}
                     cb      : (err, results) ->
                         if err
                             cb(err)
@@ -964,7 +946,7 @@ class exports.Salvus extends exports.Cassandra
                     @update
                         table : 'compute_servers'
                         set   : {score : new_score}
-                        where : {host  : opts.host}
+                        where : {host  : opts.host, dummy:true}
                         cb    : cb
                 else
                     # new_score is outside the allowed range, so we do nothing.
@@ -995,13 +977,15 @@ class exports.Salvus extends exports.Cassandra
     #####################################
     # Account Management
     #####################################
-    is_email_address_available: (email_address, cb) ->
-        @count(table:"accounts", where:{email_address:email_address}, cb:(error, cnt) ->
-            if error
-                cb(error)
-            else
-                cb(null, cnt==0)
-        )
+    is_email_address_available: (email_address, cb) =>
+        @count
+            table : "email_address_to_account_id" 
+            where :{email_address:email_address}
+            cb    : (error, cnt) =>
+                if error
+                   cb(error)
+                else
+                   cb(null, cnt==0)
 
     create_account: (opts={}) ->
         opts = defaults opts,
@@ -1973,7 +1957,7 @@ class exports.Salvus extends exports.Cassandra
     # we need a list of all possible servers, say in a file or somewhere.  That's for later.
     get_stats: (opts) ->
         opts = defaults opts,
-            ttl : 120  # how long cached version lives (in seconds)
+            ttl : 60  # how long cached version lives (in seconds)
             cb  : required
         stats = {timestamp:moment(new Date()).format('YYYY-MM-DD-HHmmss') }
         cached_answer = undefined
@@ -2040,6 +2024,7 @@ class exports.Salvus extends exports.Cassandra
             (cb) =>
                 @count
                     table : 'snap_servers'
+                    where : {dummy:true}
                     cb    : (err, val) =>
                         stats.snap_servers = val
                         cb(err)
@@ -2048,6 +2033,7 @@ class exports.Salvus extends exports.Cassandra
                     table     : 'hub_servers'
                     columns   : ['host', 'port', 'clients']
                     objectify : true
+                    where     : {dummy: true}
                     cb    : (err, val) =>
                         stats.hub_servers = val
                         cb(err)

@@ -24,7 +24,7 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # Default local hub parameters -- how long until project local hubs
 # kill everything in that project, if there is no activity, where
 # activity = "receive data from a global hub".
-DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*28  # time in seconds; 0 to disable
+DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*12  # time in seconds; 0 to disable
 
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
@@ -1649,7 +1649,7 @@ update_server_stats = () ->
 register_hub = (cb) ->
     database.update
         table : 'hub_servers'
-        where : {host : program.host, port : program.port}
+        where : {host : program.host, port : program.port, dummy: true}
         set   : {clients: misc.len(clients)}
         ttl   : 2*REGISTER_INTERVAL_S
         cb    : (err) ->
@@ -3937,8 +3937,9 @@ new_random_unix_user = (opts) ->
     # Now replenish the cache for next time.
     replenish_random_unix_user_cache()
 
+# This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
 new_random_unix_user_cache_target_size = 1
-if program.keyspace == "test"
+if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
     new_random_unix_user_cache_target_size = 0
 
 new_random_unix_user.cache = []
@@ -3968,8 +3969,6 @@ replenish_random_unix_user_cache = () ->
                                 cache.push(user)
                                 winston.debug("SUCCESS -- created a new unix user for cache, which now has size #{cache.length}")
                                 replenish_random_unix_user_cache()
-
-
 
 new_random_unix_user_no_cache = (opts) ->
     opts = defaults opts,
@@ -4995,6 +4994,7 @@ connect_to_database = (cb) ->
                 keyspace : program.keyspace
                 username : 'hub'
                 password : password.toString().trim()
+                consistency : 2
                 cb       : (err, _db) ->
                     winston.debug("got db connected!")
                     database = _db
@@ -5027,6 +5027,8 @@ exports.start_server = start_server = () ->
         init_sockjs_server()
         init_stateless_exec()
         http_server.listen(program.port, program.host)
+        replenish_random_unix_user_cache()
+
         winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
