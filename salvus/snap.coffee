@@ -812,6 +812,7 @@ monitor_snapshot_queue = () ->
                             cb(err)
                         else
                             modified_files = (x.slice(2) for x in output.stdout.trim().split('\n'))
+                            modified_files = (x for x in modified_files when x != "")
                             n = modified_files.length
                             winston.debug("#{n} modified files for #{project_id}")
                             winston.debug("modified files = #{misc.trunc(misc.to_json(modified_files),512)}")
