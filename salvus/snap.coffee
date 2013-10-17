@@ -25,6 +25,7 @@ MAX_SNAPSHOT_SIZE = 6*gigabyte
 
 secret_key_length             = 128
 registration_interval_seconds = 15
+snapshot_interval_seconds     = 10
 
 net       = require 'net'
 winston   = require 'winston'
@@ -804,6 +805,7 @@ monitor_snapshot_queue = () ->
                     timeout : 30  # should be very fast no matter what.
                     bash    : true
                     env     : {BUP_DIR : bup_active}
+                    err_on_exit : false  # if a grep along the way above is empty -- i.e., no file changes, then get a 1 exit code.  STUPID, but yep.
                     cb      : (err, output) ->
                         if err
                             winston.debug("SERIOUS BUG issue: error determining number of modified files for #{project_id}: #{err}")
@@ -1353,7 +1355,7 @@ active_path = (cb) ->   # cb(err, {active_path:?, repo_id:?})
 # Write entry to the database periodicially (with ttl) that this
 # snap server is up and running, and provide the key.
 size_of_bup_archive = undefined
-register_with_database = (cb) ->
+register_with_database = () ->
     database?.update
         table : 'snap_servers'
         where : {id : server_id, dummy:true}
@@ -1365,7 +1367,6 @@ register_with_database = (cb) ->
             else
                 winston.info("successfully registered with database")
 
-setInterval(register_with_database, 1000*registration_interval_seconds)
 
 # For each commit in each project, re-enter a record in the database.
 
@@ -1453,8 +1454,6 @@ exports.start_server = start_server = () ->
         (cb) ->
             connect_to_database(cb)
         (cb) ->
-            register_with_database(cb)
-        (cb) ->
             if program.resend_all_commits
                 resend_all_commits(cb)
             else
@@ -1463,7 +1462,9 @@ exports.start_server = start_server = () ->
             monitor_snapshot_queue()
             cb()
         (cb) ->
-            setInterval(snapshot_active_projects, 10000)
+            setInterval(register_with_database, 1000*registration_interval_seconds)
+            setInterval(snapshot_active_projects, 1000*snapshot_interval_seconds)
+            cb()
         #(cb) ->
         #    ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
