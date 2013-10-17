@@ -150,7 +150,7 @@ pip install --upgrade rpy2
 # R Packages:
 
     umask 022 && R
-    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival"), repos='http://cran.us.r-project.org')
+    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields"), repos='http://cran.us.r-project.org')
 
 r packages could be automated like so:
                 0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$cat r-install-packages.R
