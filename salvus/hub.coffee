@@ -1382,9 +1382,9 @@ class Client extends EventEmitter
                                 @error_to_client(id:mesg.id, error:err)
                             else
                                 if content.archive?
-                                    the_url = "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
                                 else
-                                    the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
                                 @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
@@ -2544,7 +2544,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @)
 
     restart: (cb) =>
-        winston.debug("restarting a local hub")
+        winston.debug("restarting a local hub -- #{@username}@#{@host}")
         if @_restart_lock
             winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
@@ -2592,8 +2592,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
                 # MUST be here, since _restart_lock prevents _exec_on_local_hub!
                 @_restart_lock = true
-
-
         ], (err) =>
             winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
@@ -3119,7 +3117,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
-        winston.debug("restarting local_hub daemons")
+        winston.debug("restarting local_hub daemons -- #{@username}@#{@host}")
         @_exec_on_local_hub
             command : "restart_smc --timeout=#{@timeout}"
             timeout : 30
@@ -3144,7 +3142,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         if @_status.local_hub and @_status.sage_server and @_status.console_server
             cb()
         else
-            # Not all daemons are running -- restart required
+            # TODO: it would be better just to force start only the daemons that need to be started -- doing this is
+            # just a first brutal minimum way to do this!
+            winston.debug("Not all daemons are running -- restart required -- #{@username}@#{@host}")
             @_restart_local_hub_daemons (err) =>
                 if err
                     cb(err)

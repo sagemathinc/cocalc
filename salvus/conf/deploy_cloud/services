@@ -1,5 +1,5 @@
 # services
-base = 'salvus-2013-10-14-1748'
+base = 'salvus-2013-10-15-1402'
 
 cassandra_ram = 8
 cassandra_cpu = 4
@@ -87,6 +87,15 @@ cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}
 cassandra10    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra11    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra12    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra13    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra14    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra15    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra16    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra17    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra18    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra19    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra20    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra21    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
 edge
@@ -97,12 +106,11 @@ edge
 [nginx]
 nginx
 
-# hubs on each VM
 [hub]
 hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
-#hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
-#hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
-#hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
+hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
+hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
+hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
 
 [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
 snap
