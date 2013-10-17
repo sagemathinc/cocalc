@@ -1382,9 +1382,9 @@ class Client extends EventEmitter
                                 @error_to_client(id:mesg.id, error:err)
                             else
                                 if content.archive?
-                                    the_url = "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
                                 else
-                                    the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
                                 @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
