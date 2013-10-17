@@ -1706,7 +1706,7 @@ class PDFLatexDocument
                 cb?(err)
 
     trash_aux_files: (cb) =>
-        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'pdf', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
+        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
         @_exec
             command : "rm"
             args    : (@base_filename + "." + ext for ext in EXT)
