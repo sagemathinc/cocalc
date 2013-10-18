@@ -1242,7 +1242,7 @@ class CodeMirrorSessions
                 finish(session)
 
     add_session_to_cache: (opts) =>
-        opt = defaults opts,
+        opts = defaults opts,
             session    : required
             project_id : undefined
             timeout    : undefined   # or a time in seconds
