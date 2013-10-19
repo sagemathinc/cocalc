@@ -1585,7 +1585,7 @@ class exports.Salvus extends exports.Cassandra
             project_id  : required
             account_id  : required  # owner
             title       : required
-            location    : required
+            location    : undefined
             description : undefined  # optional
             public      : required
             quota       : required

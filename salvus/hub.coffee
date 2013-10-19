@@ -1185,47 +1185,28 @@ class Client extends EventEmitter
         project = undefined
         location = undefined
 
-        async.series([
-            # get unix account location for the project
-            (cb) =>
-                new_random_unix_user
-                    cb : (err, _location) =>
-                        location = _location
-                        cb(err)
-
-            # create project in database
-            (cb) =>
-                winston.debug("got random unix user location = ", location)
-                database.create_project
-                    project_id  : project_id
-                    account_id  : @account_id
-                    title       : mesg.title
-                    description : mesg.description
-                    public      : mesg.public
-                    location    : location
-                    quota       : DEFAULTS.quota   # TODO -- account based
-                    idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
-                    cb          : cb
-
-            (cb) =>
-                new_project project_id, (err, _project) =>
-                    project = _project
-                    cb(err)
-
-        ], (error) =>
-            if error
-                winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
-                @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
-                if not project?
-                    # project object not even created -- just clean up database
-                    database.delete_project(project_id:project_id)  # do not bother with callback
-            else
-                winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
-                @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                push_to_clients  # push a message to all other clients logged in as this user.
-                    where : {account_id:@account_id,  exclude: [@conn.id]}
-                    mesg  : message.project_list_updated()
-        )
+        database.create_project
+            project_id  : project_id
+            account_id  : @account_id
+            title       : mesg.title
+            description : mesg.description
+            public      : mesg.public
+            quota       : DEFAULTS.quota   # TODO -- account based
+            idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
+            cb          : (err) =>
+                if err
+                    winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
+                    @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
+                else
+                    winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
+                    @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
+                    push_to_clients  # push a message to all other clients logged in as this user.
+                        where : {account_id:@account_id,  exclude: [@conn.id]}
+                        mesg  : message.project_list_updated()
+                    # As an optimization, we start the process of opening the project, which allocates a unix account,
+                    # copies over files, etc.  This way if the user opens the project immediately, it will work more quickly.
+                    @get_project {project_id:project_id}, 'write', (err, project) =>
+                        # do nothing --
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
@@ -3294,9 +3275,6 @@ get_project_location = (opts) ->
         allow_cache : false
         cb          : undefined       # cb(err, location)
         attempts    : 50
-    winston.debug
-    if not attempts?
-        attempts = 50
 
     error = true
     location = undefined
@@ -3317,7 +3295,7 @@ get_project_location = (opts) ->
                         if opts.attempts <= 0
                             cb("failed to deploy project (too many attempts)")
                         else
-                            winston.debug("get_project_location -- try again in 10 seconds (attempts=#{attempts}).")
+                            winston.debug("get_project_location -- try again in 10 seconds (attempts left=#{opts.attempts}).")
                             f = () ->
                                 get_project_location
                                     project_id  : opts.project_id
@@ -3343,10 +3321,14 @@ get_project_location = (opts) ->
             new_random_unix_user
                 cb : (err, _location) =>
                     if err
-                        cb("project location not defined -- and allocating new one led to error -- #{err}")
-                        return
-                    location = _location
-                    cb()
+                        database.set_project_location
+                            project_id : opts.project_id
+                            location   : ""
+                            cb         : () =>
+                                cb("project location not defined -- and allocating new one led to error -- #{err}")
+                    else
+                        location = _location
+                        cb()
         (cb) ->
             # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
             # hence blocks letting the user do other things with the project.   I tried not locking
@@ -3919,11 +3901,9 @@ delete_unix_user = (opts) ->
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb          : required
-
-    if program.local
-        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
-        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
-        return
+    # NOT USING THE CACHE.
+    new_random_unix_user_no_cache(opts)
+    return
 
     cache = new_random_unix_user.cache
 
@@ -3944,6 +3924,7 @@ if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == 
 
 new_random_unix_user.cache = []
 replenish_random_unix_user_cache = () ->
+    return # NOT USING CACHE.
     cache = new_random_unix_user.cache
     if cache.length < new_random_unix_user_cache_target_size
         winston.debug("New unix user cache has size #{cache.length}, which is less than target size #{new_random_unix_user_cache_target_size}, so we create a new account.")
@@ -3973,6 +3954,12 @@ replenish_random_unix_user_cache = () ->
 new_random_unix_user_no_cache = (opts) ->
     opts = defaults opts,
         cb          : required
+
+    if program.local  # development use
+        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
+        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
+        return
+
     host = undefined
     username = undefined
     async.series([

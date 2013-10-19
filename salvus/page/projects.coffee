@@ -234,7 +234,7 @@ open_project = (project, item) ->
     else
         alert_message
             type:"info"
-            message:"WARNING: Opening project #{project.title} will take extra time, since it hasn't been opened in a while.  This takes around 1 minute per gigabyte."
+            message:"WARNING: Opening project #{project.title} on a new virtual machine, which may take extra time (around 1 minute per gigabyte)."
             timeout: 30
         if item?
             item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
