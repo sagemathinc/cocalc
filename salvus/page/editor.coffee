@@ -1658,6 +1658,7 @@ class PDFLatexDocument
                         @_need_to_run.bibtex = true
 
                     @last_latex_log = log
+                    @_parse_latex_log_for_num_pages(log)
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
@@ -1688,11 +1689,7 @@ class PDFLatexDocument
                     @_need_to_run.latex = true
                     cb?(false, log)
 
-
-    _parse_latex_log: (log) =>
-        # todo -- parse through text file of log putting the errors in the corresponding @pages dict.
-
-        # number of pages:  "Output written on rh.pdf (135 pages, 7899064 bytes)."
+    _parse_latex_log_for_num_pages: (log) =>
         i = log.indexOf("Output written")
         if i != -1
             i = log.indexOf("(", i)
@@ -1977,10 +1974,12 @@ class PDF_Preview extends FileEditor
         if @element.width()
             @output.width(@element.width())
 
-        # we do text conversion in parallel to any image updating below -- it takes about a second for a 100 page file...
-        # @pdflatex.update_text (err) =>
-            #if not err
+        # Remove trailing pages from DOM.
+        if @_last_num_pages? and @pdflatex.num_pages?
+            for m in [@pdflatex.num_pages ... @_last_num_pages]
+                @output.find(".salvus-editor-pdf-preview-page-#{m+1}").remove()
 
+        @_last_num_pages = @pdflatex.num_pages
         n = @current_page().number
 
         f = (opts, cb) =>
@@ -2044,7 +2043,7 @@ class PDF_Preview extends FileEditor
         url        = p.url
         resolution = p.resolution
         if not url?
-            # todo: delete page and all following it from DOM
+            # delete page and all following it from DOM
             for m in [n .. @last_page]
                 @output.remove(".salvus-editor-pdf-preview-page-#{m}")
             if @last_page >= n
@@ -2607,7 +2606,6 @@ class LatexEditor extends FileEditor
             cb            : (err, log) =>
                 button.icon_spin(false)
                 opts.cb?()
-
 
     render_error_page: () =>
         log = @preview.pdflatex.last_latex_log
