@@ -206,7 +206,7 @@ r packages could be automated like so:
 """
 
 CASSANDRA_VERSION='1.2.9'   # options here -- http://downloads.datastax.com/community/
-NODE_VERSION='0.10.20'      # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+NODE_VERSION='0.10.21'      # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 
 import logging, os, shutil, subprocess, sys, time
 
