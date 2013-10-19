@@ -88,11 +88,11 @@ class Console extends EventEmitter
 
         if @opts.renderer == 'auto'
             if IS_MOBILE
+                # NOT USED !! -- I stopped developing the codemirror-based version long ago; it just doesn't work.
+                # IGNORE.  DELETE.
                 @opts.renderer = 'codemirror'
             else
                 @opts.renderer = 'ttyjs'
-
-        # On mobile, only codemirror works right now...
 
         # The is_focused variable keeps track of whether or not the
         # editor is focused.  This impacts the cursor, at least.
@@ -169,7 +169,7 @@ class Console extends EventEmitter
         # Initialize the paste bin
         @_init_paste_bin()
 
-        # Initialize fullscreen button
+        # Initialize fullscreen button -- DELETE THIS; there's a generic fullscreen now...
         #@_init_fullscreen()
 
         # delete scroll buttons except on mobile
@@ -179,8 +179,6 @@ class Console extends EventEmitter
 
         if opts.session?
             @set_session(opts.session)
-
-        @blur()
 
     set_session: (session) =>
         # Store the remote session, which is a connection to a HUB
@@ -227,6 +225,8 @@ class Console extends EventEmitter
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
 
+        @terminal.showCursor()
+
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.
         $(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
@@ -234,13 +234,11 @@ class Console extends EventEmitter
         @scrollbar_nlines = 0
         @terminal.reset()
 
-
     update_scrollbar: () =>
         while @scrollbar_nlines < @terminal.ybase
             @scrollbar.append($("<br>"))
             @scrollbar_nlines += 1
         @resize_scrollbar()
-
 
     #######################################################################
     # Private Methods
