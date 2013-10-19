@@ -62,6 +62,12 @@ $(".projects-find-input").keyup (event) ->
     update_project_view()
     return false
 
+$(".projects-search-form-input-clear").click () =>
+    $(".projects-find-input").val('').focus()
+    update_project_view()
+    return false
+
+
 # search when you click a button (which must be uncommented in projects.html):
 #$(".projects-find-input").change((event) -> update_project_view())
 #$(".projects").find(".form-search").find("button").click((event) -> update_project_view(); return false;)
