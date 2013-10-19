@@ -1634,15 +1634,29 @@ class PDFLatexDocument
     _run_latex: (command, cb) =>
         if not command?
             command = @default_tex_command()
+        sagetex_file = @base_filename + '.sagetex.sage'
+        sha_marker = 'sha1sums'
         @_exec
-            command : command + " < /dev/null 2</dev/null"
+            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum #{sagetex_file}"
             bash    : true
             timeout : 20
+            err_on_exit : false
             cb      : (err, output) =>
                 if err
                     cb?(err)
                 else
+                    i = output.stdout.lastIndexOf(sha_marker)
+                    if i != -1
+                        shas = output.stdout.slice(i+sha_marker.length+1)
+                        output.stdout = output.stdout.slice(0,i)
+                        for x in shas.split('\n')
+                            v = x.split(/\s+/)
+                            if v[1] == sagetex_file and v[0] != @_sagetex_file_sha
+                                @_need_to_run.sage = sagetex_file
+                                @_sagetex_file_sha = v[0]
+
                     log = output.stdout + '\n\n' + output.stderr
+
                     if log.indexOf('Rerun to get cross-references right') != -1
                         @_need_to_run.latex = true
 
