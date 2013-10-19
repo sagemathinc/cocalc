@@ -485,7 +485,7 @@ class Console extends EventEmitter
         #    return
 
         if not IS_MOBILE
-            @element.find(".salvus-console-mobile-input").find(".btn-group").hide()
+            @element.find(".salvus-console-mobile-input").hide()
 
         input_line = @element.find('.salvus-console-input-line')
 
