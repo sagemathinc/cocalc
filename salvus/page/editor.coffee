@@ -1658,7 +1658,15 @@ class PDFLatexDocument
                         @_need_to_run.bibtex = true
 
                     @last_latex_log = log
+                    before = @num_pages
                     @_parse_latex_log_for_num_pages(log)
+
+                    # Delete trailing removed pages from our local view of things; otherwise, they won't properly
+                    # re-appear later if they look identical, etc.
+                    if @num_pages < before
+                        for n in [@num_pages ... before]
+                            delete @_pages[n]
+
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
@@ -1897,8 +1905,6 @@ class PDF_Preview extends FileEditor
                 'margin-left' : margin_left
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
 
-
-
     watch_scroll: () =>
         if @_f?
             clearInterval(@_f)
@@ -1975,15 +1981,16 @@ class PDF_Preview extends FileEditor
             @output.width(@element.width())
 
         # Remove trailing pages from DOM.
-        if @_last_num_pages? and @pdflatex.num_pages?
-            for m in [@pdflatex.num_pages ... @_last_num_pages]
-                @output.find(".salvus-editor-pdf-preview-page-#{m+1}").remove()
+        if @pdflatex.num_pages?
+            # This is O(N), but behaves better given the async nature...
+            for p in @output.children()
+                page = $(p)
+                if page.data('number') > @pdflatex.num_pages
+                    page.remove()
 
-        @_last_num_pages = @pdflatex.num_pages
         n = @current_page().number
 
         f = (opts, cb) =>
-
             opts.cb = (err, changed_pages) =>
                 if err
                     cb(err)
@@ -2090,7 +2097,20 @@ class PDF_Preview extends FileEditor
                     if @_first_output
                         @output.empty()
                         @_first_output = false
-                    @output.append(page)
+
+                    # Insert page in the right place in the output.  Since page creation
+                    # can happen in parallel/random order (esp because of deletes of trailing pages),
+                    # we have to work at this a bit.
+                    done = false
+                    for p in @output.children()
+                        pg = $(p)
+                        if pg.data('number') > m
+                            page.insertBefore(pg)
+                            done = true
+                            break
+                    if not done
+                        @output.append(page)
+
                     @pdflatex.page(m).element = page
 
                 @last_page = n
