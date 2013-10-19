@@ -354,16 +354,17 @@ class exports.Editor
         search_box.focus () =>
             search_box.select()
 
-        search_box.keyup (event) =>
+        update = (event) =>
             @active_tab?.editor().hide()
 
-            if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
-                @project_page.display_tab("project-new-file")
-                return false
+            if event?
+                if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                    @project_page.display_tab("project-new-file")
+                    return false
 
-            if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
-                @display_tab(path:@active_tab.filename)
-                return
+                if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
+                    @display_tab(path:@active_tab.filename)
+                    return
 
             v = $.trim(search_box.val()).toLowerCase()
             if v == ""
@@ -386,7 +387,7 @@ class exports.Editor
                 tab = $(link).data('tab')
                 filename = tab.filename
                 if match(filename)
-                    if first and event.keyCode == 13 # enter -- select first match (if any)
+                    if first and event?.keyCode == 13 # enter -- select first match (if any)
                         @display_tab(path:filename)
                         first = false
                     if v != ""
@@ -394,6 +395,14 @@ class exports.Editor
                 else
                     if v != ""
                         tab.link.addClass(exclude); tab.link.removeClass(include)
+
+        @element.find(".salvus-editor-search-openfiles-input-clear").click () =>
+            search_box.val('')
+            update()
+            search_box.select()
+            return false
+
+        search_box.keyup(update)
 
     update_counter: () =>
         if @counter?

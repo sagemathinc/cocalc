@@ -379,6 +379,9 @@ class ProjectPage
                 @display_tab("project-editor")
                 return false
             @update_file_search(event)
+        @container.find(".salvus-project-search-for-file-input-clear").click () =>
+            @_file_search_box.val('').focus()
+            @update_file_search()
 
     clear_file_search: () =>
         @_file_search_box.val('')
@@ -1107,7 +1110,7 @@ class ProjectPage
         timer = setTimeout( (() -> spinner.show().spin()), 100 )
 
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
-        
+
         path = @current_path.join('/')
         salvus_client.project_directory_listing
             project_id : @project.project_id
