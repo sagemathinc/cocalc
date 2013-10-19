@@ -19,8 +19,6 @@
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
-PROJECT_GROUPS = exports.PROJECT_GROUPS = ['owner', 'collaborator', 'viewer', 'invited_collaborator', 'invited_viewer']
-
 # recent times, used for recently_modified_projects
 exports.RECENT_TIMES = RECENT_TIMES =
     short : 5*60
@@ -31,6 +29,9 @@ exports.RECENT_TIMES = RECENT_TIMES =
 RECENT_TIMES_ARRAY = ({desc:desc,ttl:ttl} for desc,ttl of RECENT_TIMES)
 
 misc    = require('misc')
+
+PROJECT_GROUPS = misc.PROJECT_GROUPS
+
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
 
@@ -1834,7 +1835,7 @@ class exports.Salvus extends exports.Cassandra
                         for p in projects
                             for group in PROJECT_GROUPS
                                 if p[group]?
-                                    p[group] = [usernames[id] for id in p[group]]
+                                    p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group])
                         cb()
         ], (err) =>
                 opts.cb(err, projects)

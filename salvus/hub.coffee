@@ -3128,7 +3128,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         winston.debug("kill all processes running on a local hub (including the local hub itself)")
         if program.local
             winston.debug("killall -- skipping since running with --local=true debug mode")
-            cb(); return
+            cb?(); return
         @_exec_on_local_hub
             command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
@@ -3136,7 +3136,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : (err, out) =>
                 winston.debug("killall returned -- #{err}, #{misc.to_json(out)}")
                 # We explicitly ignore errors since killall kills self while at it, which results in an error code return.
-                cb()
+                cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status.local_hub and @_status.sage_server and @_status.console_server
