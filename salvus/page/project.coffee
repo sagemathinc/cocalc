@@ -1096,22 +1096,18 @@ class ProjectPage
         @set_current_path(path)
         @update_file_list_tab(no_focus)
 
+    switch_to_directory: (new_path) =>
+        @current_path = new_path
+        @update_file_list_tab()
+
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
 
-        # Update the display of the path above the listing or file preview
-        @update_current_path()
-
-        # Update UI options that change as a result of browsing snapshots.
-        @update_snapshot_ui_elements()
-
-        @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
-        @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
-
         spinner = @container.find(".project-file-listing-spinner")
+        timer = setTimeout( (() -> spinner.show().spin()), 100 )
 
-        timer = setTimeout( (() -> spinner.show().spin()), 300 )
-
+        # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
+        
         path = @current_path.join('/')
         salvus_client.project_directory_listing
             project_id : @project.project_id
@@ -1119,8 +1115,19 @@ class ProjectPage
             time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
+
                 clearTimeout(timer)
                 spinner.spin(false).hide()
+
+                # Update the display of the path above the listing or file preview
+                @update_current_path()
+
+                # Update UI options that change as a result of browsing snapshots.
+                @update_snapshot_ui_elements()
+
+                @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
+                @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
+
                 if (err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         #console.log("using last path without error:  ", @_last_path_without_error)
@@ -1282,15 +1289,14 @@ class ProjectPage
 
         open = (e) =>
             if isdir
-                @current_path.push(name)
-                @update_file_list_tab()
+                @switch_to_directory(@current_path.concat([name]))
             else
                 @open_file
                     path : fullname
                     foreground : not(e.which==2 or e.ctrlKey)
             return false
 
-        if not is_snapshot or isdir
+        if not (is_snapshot or isdir)
             # Opening a file
             file_link = t.find("a[href=#open-file]")
             file_link.mousedown(open)
@@ -1299,8 +1305,10 @@ class ProjectPage
             # do not use t.mousedown here, since that breaks the download, etc., links.
             t.click(open)
 
-        if is_snapshot
+        if isdir
+            t.find("a[href=#open-file]").click(open)
 
+        if is_snapshot
             restore = () =>
                 n = fullname.slice(".snapshot/xxxx-xx-xx/".length)
                 i = n.indexOf('/')
