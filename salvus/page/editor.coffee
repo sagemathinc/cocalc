@@ -1884,7 +1884,6 @@ class PDF_Preview extends FileEditor
 
         images = @output.find("img")
         if images.length == 0
-            console.log('do nothing')
             return # nothing to do
 
         if opts.delta?
@@ -1931,6 +1930,9 @@ class PDF_Preview extends FileEditor
             y              : 0          # y-coordinate on page
             highlight_line : true
         pg = @pdflatex.page(opts.n)
+        if not pg?
+            # the page has vanished in the meantime...
+            return
         t = @output.offset().top
         @output.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
         top = (pg.element.offset().top + opts.y) - $(window).height() / 2
@@ -2353,7 +2355,7 @@ class LatexEditor extends FileEditor
             cm.setLine(m, line)
         else
             cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
-
+        @latex_editor.syncdoc.sync()
 
     _pause_passive_search: (cb) =>
         @_passive_forward_search_disabled = true
