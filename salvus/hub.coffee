@@ -24,7 +24,7 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # Default local hub parameters -- how long until project local hubs
 # kill everything in that project, if there is no activity, where
 # activity = "receive data from a global hub".
-DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*28  # time in seconds; 0 to disable
+DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*12  # time in seconds; 0 to disable
 
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
@@ -1185,47 +1185,28 @@ class Client extends EventEmitter
         project = undefined
         location = undefined
 
-        async.series([
-            # get unix account location for the project
-            (cb) =>
-                new_random_unix_user
-                    cb : (err, _location) =>
-                        location = _location
-                        cb(err)
-
-            # create project in database
-            (cb) =>
-                winston.debug("got random unix user location = ", location)
-                database.create_project
-                    project_id  : project_id
-                    account_id  : @account_id
-                    title       : mesg.title
-                    description : mesg.description
-                    public      : mesg.public
-                    location    : location
-                    quota       : DEFAULTS.quota   # TODO -- account based
-                    idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
-                    cb          : cb
-
-            (cb) =>
-                new_project project_id, (err, _project) =>
-                    project = _project
-                    cb(err)
-
-        ], (error) =>
-            if error
-                winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
-                @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
-                if not project?
-                    # project object not even created -- just clean up database
-                    database.delete_project(project_id:project_id)  # do not bother with callback
-            else
-                winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
-                @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                push_to_clients  # push a message to all other clients logged in as this user.
-                    where : {account_id:@account_id,  exclude: [@conn.id]}
-                    mesg  : message.project_list_updated()
-        )
+        database.create_project
+            project_id  : project_id
+            account_id  : @account_id
+            title       : mesg.title
+            description : mesg.description
+            public      : mesg.public
+            quota       : DEFAULTS.quota   # TODO -- account based
+            idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
+            cb          : (err) =>
+                if err
+                    winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
+                    @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
+                else
+                    winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
+                    @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
+                    push_to_clients  # push a message to all other clients logged in as this user.
+                        where : {account_id:@account_id,  exclude: [@conn.id]}
+                        mesg  : message.project_list_updated()
+                    # As an optimization, we start the process of opening the project, which allocates a unix account,
+                    # copies over files, etc.  This way if the user opens the project immediately, it will work more quickly.
+                    @get_project {project_id:project_id}, 'write', (err, project) =>
+                        # do nothing --
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
@@ -1382,9 +1363,9 @@ class Client extends EventEmitter
                                 @error_to_client(id:mesg.id, error:err)
                             else
                                 if content.archive?
-                                    the_url = "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
                                 else
-                                    the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
                                 @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
@@ -2544,7 +2525,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @)
 
     restart: (cb) =>
-        winston.debug("restarting a local hub")
+        winston.debug("restarting a local hub -- #{@username}@#{@host}")
         if @_restart_lock
             winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
@@ -2592,8 +2573,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
                 # MUST be here, since _restart_lock prevents _exec_on_local_hub!
                 @_restart_lock = true
-
-
         ], (err) =>
             winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
@@ -3119,7 +3098,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
-        winston.debug("restarting local_hub daemons")
+        winston.debug("restarting local_hub daemons -- #{@username}@#{@host}")
         @_exec_on_local_hub
             command : "restart_smc --timeout=#{@timeout}"
             timeout : 30
@@ -3130,7 +3109,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         winston.debug("kill all processes running on a local hub (including the local hub itself)")
         if program.local
             winston.debug("killall -- skipping since running with --local=true debug mode")
-            cb(); return
+            cb?(); return
         @_exec_on_local_hub
             command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
@@ -3138,13 +3117,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : (err, out) =>
                 winston.debug("killall returned -- #{err}, #{misc.to_json(out)}")
                 # We explicitly ignore errors since killall kills self while at it, which results in an error code return.
-                cb()
+                cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status.local_hub and @_status.sage_server and @_status.console_server
             cb()
         else
-            # Not all daemons are running -- restart required
+            # TODO: it would be better just to force start only the daemons that need to be started -- doing this is
+            # just a first brutal minimum way to do this!
+            winston.debug("Not all daemons are running -- restart required -- #{@username}@#{@host}")
             @_restart_local_hub_daemons (err) =>
                 if err
                     cb(err)
@@ -3294,9 +3275,6 @@ get_project_location = (opts) ->
         allow_cache : false
         cb          : undefined       # cb(err, location)
         attempts    : 50
-    winston.debug
-    if not attempts?
-        attempts = 50
 
     error = true
     location = undefined
@@ -3317,7 +3295,7 @@ get_project_location = (opts) ->
                         if opts.attempts <= 0
                             cb("failed to deploy project (too many attempts)")
                         else
-                            winston.debug("get_project_location -- try again in 10 seconds (attempts=#{attempts}).")
+                            winston.debug("get_project_location -- try again in 10 seconds (attempts left=#{opts.attempts}).")
                             f = () ->
                                 get_project_location
                                     project_id  : opts.project_id
@@ -3343,10 +3321,14 @@ get_project_location = (opts) ->
             new_random_unix_user
                 cb : (err, _location) =>
                     if err
-                        cb("project location not defined -- and allocating new one led to error -- #{err}")
-                        return
-                    location = _location
-                    cb()
+                        database.set_project_location
+                            project_id : opts.project_id
+                            location   : ""
+                            cb         : () =>
+                                cb("project location not defined -- and allocating new one led to error -- #{err}")
+                    else
+                        location = _location
+                        cb()
         (cb) ->
             # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
             # hence blocks letting the user do other things with the project.   I tried not locking
@@ -3919,11 +3901,9 @@ delete_unix_user = (opts) ->
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb          : required
-
-    if program.local
-        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
-        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
-        return
+    # NOT USING THE CACHE.
+    new_random_unix_user_no_cache(opts)
+    return
 
     cache = new_random_unix_user.cache
 
@@ -3938,12 +3918,13 @@ new_random_unix_user = (opts) ->
     replenish_random_unix_user_cache()
 
 # This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
-new_random_unix_user_cache_target_size = 3
+new_random_unix_user_cache_target_size = 1
 if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
     new_random_unix_user_cache_target_size = 0
 
 new_random_unix_user.cache = []
 replenish_random_unix_user_cache = () ->
+    return # NOT USING CACHE.
     cache = new_random_unix_user.cache
     if cache.length < new_random_unix_user_cache_target_size
         winston.debug("New unix user cache has size #{cache.length}, which is less than target size #{new_random_unix_user_cache_target_size}, so we create a new account.")
@@ -3973,6 +3954,12 @@ replenish_random_unix_user_cache = () ->
 new_random_unix_user_no_cache = (opts) ->
     opts = defaults opts,
         cb          : required
+
+    if program.local  # development use
+        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
+        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
+        return
+
     host = undefined
     username = undefined
     async.series([
@@ -4994,6 +4981,7 @@ connect_to_database = (cb) ->
                 keyspace : program.keyspace
                 username : 'hub'
                 password : password.toString().trim()
+                consistency : 2
                 cb       : (err, _db) ->
                     winston.debug("got db connected!")
                     database = _db

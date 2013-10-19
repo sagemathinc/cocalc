@@ -19,8 +19,6 @@
 MAX_SCORE = 3
 MIN_SCORE = -3   # if hit, server is considered busted.
 
-PROJECT_GROUPS = exports.PROJECT_GROUPS = ['owner', 'collaborator', 'viewer', 'invited_collaborator', 'invited_viewer']
-
 # recent times, used for recently_modified_projects
 exports.RECENT_TIMES = RECENT_TIMES =
     short : 5*60
@@ -31,6 +29,9 @@ exports.RECENT_TIMES = RECENT_TIMES =
 RECENT_TIMES_ARRAY = ({desc:desc,ttl:ttl} for desc,ttl of RECENT_TIMES)
 
 misc    = require('misc')
+
+PROJECT_GROUPS = misc.PROJECT_GROUPS
+
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
 
@@ -732,6 +733,9 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             account_ids : required
             cb          : required # (err, mapping {account_id:{first_name:?, last_name:?}})
+        if opts.account_ids.length == 0 # easy special case -- don't waste time on a db query
+            opts.cb(false, [])
+            return
         @select
             table     : 'accounts'
             columns   : ['account_id', 'first_name', 'last_name']
@@ -979,7 +983,7 @@ class exports.Salvus extends exports.Cassandra
     #####################################
     is_email_address_available: (email_address, cb) =>
         @count
-            table : "email_address_to_account_id" 
+            table : "email_address_to_account_id"
             where :{email_address:email_address}
             cb    : (error, cnt) =>
                 if error
@@ -1581,7 +1585,7 @@ class exports.Salvus extends exports.Cassandra
             project_id  : required
             account_id  : required  # owner
             title       : required
-            location    : required
+            location    : undefined
             description : undefined  # optional
             public      : required
             quota       : required
@@ -1795,8 +1799,9 @@ class exports.Salvus extends exports.Cassandra
     # collaborator, or viewer); gets all data about them, not just id's
     get_projects_with_user: (opts) =>
         opts = defaults opts,
-            account_id : required
-            cb         : required
+            account_id       : required
+            collabs_as_names : true       # replace all account_id's of project collabs with their user names.
+            cb               : required
 
         ids = undefined
         projects = undefined
@@ -1813,7 +1818,26 @@ class exports.Salvus extends exports.Cassandra
                     cb  : (err, _projects) =>
                         projects = _projects
                         cb(err)
-        ], (err) ->
+            (cb) =>
+                if not opts.collabs_as_names
+                    cb(); return
+                account_ids = []
+                for p in projects
+                    for group in PROJECT_GROUPS
+                        if p[group]?
+                            for id in p[group]
+                                account_ids.push(id)
+                @account_ids_to_usernames
+                    account_ids : account_ids
+                    cb          : (err, usernames) =>
+                        if err
+                            cb(err); return
+                        for p in projects
+                            for group in PROJECT_GROUPS
+                                if p[group]?
+                                    p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group])
+                        cb()
+        ], (err) =>
                 opts.cb(err, projects)
         )
 

@@ -466,3 +466,16 @@ exports.ensure_string_ends_in_newlines = (s, n) ->
     else
         return s + Array(k+1).join('\n')   # see http://stackoverflow.com/questions/1877475/repeat-character-n-times
 ###
+
+
+
+
+# Used in the database, etc., for different types of users of a project
+
+exports.PROJECT_GROUPS = ['owner', 'collaborator', 'viewer', 'invited_collaborator', 'invited_viewer']
+
+
+
+
+
+

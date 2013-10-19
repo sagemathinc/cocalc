@@ -7,7 +7,7 @@
 {salvus_client} = require('salvus_client')
 {top_navbar}    = require('top_navbar')
 {alert_message} = require('alerts')
-{misc}          = require('misc')
+misc            = require('misc')
 {project_page}  = require('project')
 {human_readable_size} = require('misc_page')
 
@@ -20,6 +20,7 @@ compute_search_data = () ->
     if project_list?
         for project in project_list
             project.search = (project.title+' '+project.description).toLowerCase()
+    # NOTE: update_project_view also adds to project.search
 
 project_list_spinner = $("#projects").find(".projects-project-list-spinner")
 
@@ -33,13 +34,7 @@ update_project_list = exports.update_project_list = () ->
 
             if not error and mesg.event == 'all_projects'
                 project_list = mesg.projects
-
-                # EXPERIMENTAL
-                #if salvus_client.account_id?
-                #    console.log("save project list")
-                #    localStorage[salvus_client.account_id + 'project_list'] = JSON.stringify(project_list)
             else
-
                 alert_message(type:"error", message:"Problem getting updated list of projects. #{error}. #{misc.to_json(mesg)}")
 
                 #if salvus_client.account_id?
@@ -61,6 +56,12 @@ salvus_client.on('project_list_updated', ((data) -> update_project_list()))
 $(".projects-find-input").keyup (event) ->
     update_project_view()
     return false
+
+$(".projects-search-form-input-clear").click () =>
+    $(".projects-find-input").val('').focus()
+    update_project_view()
+    return false
+
 
 # search when you click a button (which must be uncommented in projects.html):
 #$(".projects-find-input").change((event) -> update_project_view())
@@ -135,6 +136,15 @@ create_project_item = (project) ->
 
     item.find(".projects-description").text(project.description)
 
+    users = []
+    for group in misc.PROJECT_GROUPS
+        if project[group]?
+            for user in project[group]
+                if user.account_id != salvus_client.account_id
+                    users.push("#{user.first_name} #{user.last_name}") # (#{group})")  # use color for group...
+                    project.search += (user.first_name + ' ' + user.last_name + ' ').toLowerCase()
+    item.find(".projects-users").text(users.join(', '))
+
     if not project.location  # undefined or empty string
         item.find(".projects-location").append(template_project_stored.clone())
     else if project.location == "deploying"
@@ -169,17 +179,17 @@ update_project_view = (show_all=false) ->
     find_text = $(".projects-find-input").val().toLowerCase()
     n = 0
 
-    desc = ""
+    desc = "Showing "
     if only_deleted
-        desc = "Deleted projects"
+        desc += "deleted projects "
     else if only_public
-        desc = "Public projects"
+        desc += "public projects "
     else if only_private
-        desc = "Private projects"
+        desc += "private projects "
+    else
+        desc += "all projects "
     if find_text != ""
-        if desc == ""
-            desc = "Projects"
-        desc += " whose title or description contains '#{find_text}'."
+        desc += " whose title, description or users contain '#{find_text}'."
 
     $(".projects-describe-listing").text(desc)
 
@@ -224,7 +234,7 @@ open_project = (project, item) ->
     else
         alert_message
             type:"info"
-            message:"WARNING: Opening project #{project.title} will take extra time, since it hasn't been opened in a while.  This takes around 1 minute per gigabyte."
+            message:"WARNING: Opening project #{project.title} on a new virtual machine, which may take extra time (around 1 minute per gigabyte)."
             timeout: 30
         if item?
             item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
