@@ -1471,15 +1471,30 @@ class exports.Connection extends EventEmitter
 # Other account Management functionality shared between client and server
 #################################################
 
-#check = require('validator').check
+reValidEmail = (() ->
+    sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]"
+    sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]"
+    sAtom = "[^\\x00-\\x20\\x22\\x28\\x29\\x2c\\x2e\\x3a-\\x3c\\x3e\\x40\\x5b-\\x5d\\x7f-\\xff]+"
+    sQuotedPair = "\\x5c[\\x00-\\x7f]"
+    sDomainLiteral = "\\x5b(" + sDtext + "|" + sQuotedPair + ")*\\x5d"
+    sQuotedString = "\\x22(" + sQtext + "|" + sQuotedPair + ")*\\x22"
+    sDomain_ref = sAtom
+    sSubDomain = "(" + sDomain_ref + "|" + sDomainLiteral + ")"
+    sWord = "(" + sAtom + "|" + sQuotedString + ")"
+    sDomain = sSubDomain + "(\\x2e" + sSubDomain + ")*"
+    sLocalPart = sWord + "(\\x2e" + sWord + ")*"
+    sAddrSpec = sLocalPart + "\\x40" + sDomain # complete RFC822 email address spec
+    sValidEmail = "^" + sAddrSpec + "$" # as whole string
+    return new RegExp(sValidEmail)
+)()
 
 exports.is_valid_email_address = (email) ->
-    return "@" in email # TODO: currently validator disabled due to issue browserify-ing validator
-    #try
-    #    check(email).isEmail()
-    #    return true
-    #catch err
-    #    return false
+    # From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
+    # but converted to Javascript; it's near the middle but claims to be exactly RFC822.
+    if reValidEmail.test(email)
+        return true
+    else
+        return false
 
 exports.is_valid_password = (password) ->
     if password.length >= 6 and password.length <= 64
