@@ -288,11 +288,16 @@
                                     </div>
                                     <div class="span8">
                                         <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
-                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search for users">
+                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search by name or email address...">
                                         <select multiple="multiple" class="project-add-collaborator-select hide"> </select>
 
-                                        <a href="#add-collaborator" style="margin-bottom: 1ex;" class="disabled pull-right btn btn-primary" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
-                                            <i class="icon-plus"> </i>Add
+                                        <div class="project-add-noncloud-collaborator hide">
+                                            <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex;" class="btn btn-large btn-primary">
+                                                <i class="icon-user"> </i> No matches.  Send an invitation...
+                                            </a>
+                                        </div>
+                                        <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-large btn-primary" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
+                                            <i class="icon-plus"> </i>Add Selected
                                         </a>
                                         <br>
                                         <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->

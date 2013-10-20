@@ -187,6 +187,7 @@ class ProjectPage
         @init_make_private()
 
         @init_add_collaborators()
+        @init_add_noncloud_collaborator()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
@@ -1850,13 +1851,24 @@ class ProjectPage
                                     message : "Successfully made project \"#{@project.title}\" private."
             return false
 
+    init_add_noncloud_collaborator: () =>
+        button = @container.find(".project-add-noncloud-collaborator").find("a")
+        button.click () =>
+            query = @container.find(".project-add-collaborator-input").val()
+
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
         collabs = @container.find(".project-collaborators")
         collabs_loading = @container.find(".project-collaborators-loading")
 
-        add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
+        add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 }).hide()
+        select.change () =>
+            if select.find(":selected").length == 0
+                add_button.addClass('disabled')
+            else
+                add_button.removeClass('disabled')
+
 
         @container.find("a[href=#invite-friend]").click () =>
             require('social').invite_friend
@@ -1932,20 +1944,30 @@ class ProjectPage
             if x == ""
                 select.html("").hide()
                 @container.find("a[href=#invite-friend]").hide()
-                add_button.addClass('disabled')
+                @container.find(".project-add-noncloud-collaborator").hide()
+                add_button.hide()
                 return
+            input.icon_spin(start:true)
             salvus_client.user_search
                 query : input.val()
                 limit : 30
                 cb    : (err, result) =>
+                    input.icon_spin(false)
                     select.html("")
-                    for r in result
-                        if not already_collab[r.account_id]? # only show users not already added
+                    result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
+                    if result.length > 0
+                        select.show()
+                        @container.find(".project-add-noncloud-collaborator").hide()
+                        for r in result
                             name = r.first_name + ' ' + r.last_name
                             select.append($("<option>").attr(value:r.account_id, label:name).text(name))
-                    select.show()
-                    add_button.removeClass('disabled')
-                    @container.find("a[href=#invite-friend]").show()
+                        select.show()
+                        add_button.show().addClass('disabled')
+                        @container.find("a[href=#invite-friend]").show()
+                    else
+                        select.hide()
+                        add_button.hide()
+                        @container.find(".project-add-noncloud-collaborator").show()
 
         invite_selected = () =>
             for y in select.find(":selected")
