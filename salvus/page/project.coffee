@@ -1854,7 +1854,28 @@ class ProjectPage
     init_add_noncloud_collaborator: () =>
         button = @container.find(".project-add-noncloud-collaborator").find("a")
         button.click () =>
+            dialog = $(".project-invite-noncloud-users-dialog").clone()
             query = @container.find(".project-add-collaborator-input").val()
+            dialog.find("input").val(query)
+            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}':\n\n    https://cloud.sagemath.com/invite/uuid\n\n--\n#{account.account_settings.fullname()}"
+            dialog.find("textarea").val(email)
+            dialog.modal()
+            submit = () =>
+                dialog.modal('hide')
+                salvus_client.invite_noncloud_collaborators
+                    project_id : @project.project_id
+                    to         : dialog.find("input").val()
+                    email      : dialog.find("textarea").val()
+                    cb         : (err, resp) =>
+                        if err
+                            alert_message(type:"error", message:err)
+                        else
+                            alert_message(message:resp.mesg)
+                return false
+            dialog.submit(submit)
+            dialog.find("form").submit(submit)
+            dialog.find(".btn-submit").click(submit)
+            dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
 
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")

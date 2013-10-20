@@ -1060,14 +1060,23 @@ message
     project_id : required
     account_id : required
 
-
 message
     event      : 'remove_collaborator'
     id         : undefined
     project_id : required
     account_id : required
 
+message
+    event      : 'invite_noncloud_collaborators'
+    id         : undefined
+    project_id : required
+    to         : required
+    email      : required
 
+message
+    event      : 'invite_noncloud_collaborators_resp'
+    id         : undefined
+    mesg       : required
 
 ############################################
 # Get the current server version number.

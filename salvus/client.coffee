@@ -612,7 +612,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(err, mesg.stats)
 
-
     #################################################
     # Account Management
     #################################################
@@ -1055,7 +1054,7 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
 
 
-    stopped_editing_file: (opts) ->
+    stopped_editing_file: (opts) =>
         opts = defaults opts,
             project_id : required
             filename   : required
@@ -1065,6 +1064,29 @@ class exports.Connection extends EventEmitter
                 project_id : opts.project_id
                 filename   : opts.filename
             cb      : opts.cb
+
+    invite_noncloud_collaborators: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required
+            email      : required
+            cb         : required
+
+        @call
+            message: message.invite_noncloud_collaborators
+                project_id : opts.project_id
+                to         : opts.to
+                email      : opts.email
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    if not resp.error
+                        resp.error = "error inviting collaborators"
+                    opts.cb(resp.error)
+                else
+                    opts.cb(false, resp)
+
 
     ######################################################################
     # Execute a program in a given project

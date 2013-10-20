@@ -595,7 +595,7 @@ class Client extends EventEmitter
         opts = defaults opts,
             name : required
             cb   : required   # cb(value)
-        winston.debug("!!!!  get cookie '#{opts.name}'")
+        #winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
 
@@ -1552,6 +1552,10 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    mesg_invite_noncloud_collaborators: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"sent invitations to #{mesg.to}"))
+
     mesg_remove_collaborator: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1566,6 +1570,7 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.success(id:mesg.id))
+
 
     ################################################
     # Project snapshots -- interface to the snap servers

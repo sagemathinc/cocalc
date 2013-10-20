@@ -46,6 +46,33 @@
 </div>
 
 
+
+<div class="modal hide project-invite-noncloud-users-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3><i class="icon-user"> </i>  Invite Collaborators via Email</h3>
+    </div>
+    <h5 style="margin-left:2ex">To <span class='lighten'>(email addresses)</span></h5>
+    <div class="center">
+        <form>
+            <input type="text" style="width:80%; background-color: #f8f8f8;" name="new-filename" value="">
+        </form>
+    </div>
+    <h5 style="margin-left:2ex">Message</h5>
+    <div class="center">
+        <form>
+            <textarea style="width:80%; background-color: #f8f8f8;" rows=8>
+            </textarea>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-primary btn-submit"><i class="icon-thumbs-up-alt"> </i> Send Invitation</button>
+    </div>
+</div>
+
+
 <!-- The actual project file browser, etc., interface -->
 
 <div id="salvus-project-templates" class="hide">
@@ -293,7 +320,7 @@
 
                                         <div class="project-add-noncloud-collaborator hide">
                                             <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex;" class="btn btn-large btn-primary">
-                                                <i class="icon-user"> </i> No matches.  Send an invitation...
+                                                <i class="icon-user"> </i> No matches.  Send Invitation...
                                             </a>
                                         </div>
                                         <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-large btn-primary" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
