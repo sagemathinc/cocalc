@@ -1554,6 +1554,9 @@ class Client extends EventEmitter
 
     mesg_invite_noncloud_collaborators: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            
             @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"sent invitations to #{mesg.to}"))
 
     mesg_remove_collaborator: (mesg) =>

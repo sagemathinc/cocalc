@@ -1883,7 +1883,7 @@ class ProjectPage
         collabs = @container.find(".project-collaborators")
         collabs_loading = @container.find(".project-collaborators-loading")
 
-        add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 }).hide()
+        add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
         select.change () =>
             if select.find(":selected").length == 0
                 add_button.addClass('disabled')
@@ -1966,7 +1966,7 @@ class ProjectPage
                 select.html("").hide()
                 @container.find("a[href=#invite-friend]").hide()
                 @container.find(".project-add-noncloud-collaborator").hide()
-                add_button.hide()
+                @container.find(".project-add-collaborator").hide()
                 return
             input.icon_spin(start:true)
             salvus_client.user_search
@@ -1979,15 +1979,15 @@ class ProjectPage
                     if result.length > 0
                         select.show()
                         @container.find(".project-add-noncloud-collaborator").hide()
+                        @container.find(".project-add-collaborator").show()
                         for r in result
                             name = r.first_name + ' ' + r.last_name
                             select.append($("<option>").attr(value:r.account_id, label:name).text(name))
                         select.show()
-                        add_button.show().addClass('disabled')
-                        @container.find("a[href=#invite-friend]").show()
+                        add_button.addClass('disabled')
                     else
                         select.hide()
-                        add_button.hide()
+                        @container.find(".project-add-collaborator").hide()
                         @container.find(".project-add-noncloud-collaborator").show()
 
         invite_selected = () =>

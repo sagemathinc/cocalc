@@ -60,6 +60,11 @@
             <input type="text" style="width:80%; background-color: #f8f8f8;" name="new-filename" value="">
         </form>
     </div>
+    <div class="lighten" style="
+   margin-left: 2em;
+    margin-right: 2em;
+">Users must have access to that given email account in order to collaborate on the project (also, invitations expire after 7 days).
+    </div>
     <h5 style="margin-left:2ex">Message</h5>
     <div class="center">
         <form>
@@ -320,12 +325,16 @@
 
                                         <div class="project-add-noncloud-collaborator hide">
                                             <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex;" class="btn btn-large btn-primary">
-                                                <i class="icon-user"> </i> No matches.  Send Invitation...
+                                                <i class="icon-user"> </i> No matches.  Send Email...
                                             </a>
                                         </div>
-                                        <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-large btn-primary" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
+                                        <div class="project-add-collaborator hide">
+                                            <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-large btn-primary" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
                                             <i class="icon-plus"> </i>Add Selected
-                                        </a>
+                                            </a>
+                                            <br>
+                                            <span class="lighten">(To confirm identity, search for the user's email address; they <i>must</i> have access to that email account in order to collaborate on the project.)</span>
+                                        </div>
                                         <br>
                                         <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
                                     </div>
