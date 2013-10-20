@@ -1866,7 +1866,7 @@ class ProjectPage
 
         remove_collaborator = (c) =>
             # c = {first_name:? , last_name:?, account_id:?}
-            m = "Are you sure that you want to remove #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
+            m = "Are you sure that you want to <b>remove</b> #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
             bootbox.confirm m, (result) =>
                 if not result
                     return
@@ -1948,17 +1948,19 @@ class ProjectPage
                     @container.find("a[href=#invite-friend]").show()
 
         invite_selected = () =>
-            x = select.find(":selected")
-            name = x.attr('label')
-            salvus_client.project_invite_collaborator
-                project_id : @project.project_id
-                account_id : x.attr("value")
-                cb         : (err, result) =>
-                    if err
-                        alert_message(type:"error", message:"Error adding collaborator -- #{err}")
-                    else
-                        alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
-                        update_collaborators()
+            for y in select.find(":selected")
+                x = $(y)
+                name = x.attr('label')
+                console.log("name = ", name)
+                salvus_client.project_invite_collaborator
+                    project_id : @project.project_id
+                    account_id : x.attr("value")
+                    cb         : (err, result) =>
+                        if err
+                            alert_message(type:"error", message:"Error adding collaborator -- #{err}")
+                        else
+                            alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
+                            update_collaborators()
 
         add_button.click () =>
             if add_button.hasClass('disabled')
