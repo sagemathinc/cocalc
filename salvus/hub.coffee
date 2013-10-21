@@ -1567,14 +1567,19 @@ class Client extends EventEmitter
 
             # invitation template
             email = mesg.email
-            if email.indexOf("https://cloud.sagemath.com/invite/[uuid]") == -1
+            if email.indexOf("https://cloud.sagemath.com") == -1
                 # User deleted the link template for some reason.
-                email += "\nhttps://cloud.sagemath.com/invite/[uuid]"
+                email += "\nhttps://cloud.sagemath.com\n"
 
             invite_user = (email_address, cb) =>
                 winston.debug("inviting #{email_address}")
                 if not client_lib.is_valid_email_address(email_address)
                     cb("invalid email address '#{email_address}'")
+                    return
+                if email_address.length >= 128
+                    # if an attacker tries to embed a spam in the email address itself (e.g, wstein+spam_message@gmail.com), then
+                    # at least we can limit its size.
+                    cb("email address must be at most 128 characters: '#{email_address}'")
                     return
                 done  = false
                 account_id = undefined
@@ -1598,7 +1603,7 @@ class Client extends EventEmitter
                                 group      : 'collaborator'
                                 cb         : cb
                         else
-                            winston.debug("user #{email_address} doesn't have an account yet -- ignore")
+                            winston.debug("user #{email_address} doesn't have an account yet -- send email")
                             # create trigger so that when user eventually makes an account,
                             # they will be added to the project.
                             database.account_creation_actions
@@ -1611,8 +1616,11 @@ class Client extends EventEmitter
                             cb()
                         else
                             # send an email to the user
-                            winston.debug("skipping sending email invite")
-                            cb()
+                            send_email
+                                to      : email_address
+                                subject : "Sagemath Cloud Invitation"
+                                body    : email
+                                cb      : cb
                 ], cb)
 
             async.map to, invite_user, (err, results) =>

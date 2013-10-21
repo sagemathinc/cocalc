@@ -1856,8 +1856,9 @@ class ProjectPage
         button.click () =>
             dialog = $(".project-invite-noncloud-users-dialog").clone()
             query = @container.find(".project-add-collaborator-input").val()
+            @container.find(".project-add-collaborator-input").val('')
             dialog.find("input").val(query)
-            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}':\n\n    https://cloud.sagemath.com/invite/uuid\n\n--\n#{account.account_settings.fullname()}"
+            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}':\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
             dialog.find("textarea").val(email)
             dialog.modal()
             submit = () =>
@@ -1891,12 +1892,6 @@ class ProjectPage
             else
                 add_button.removeClass('disabled')
 
-
-        @container.find("a[href=#invite-friend]").click () =>
-            require('social').invite_friend
-                message         : "I would like to collaborate with you via the <a href='https://cloud.sagemath.com/signup'>Sagemath Cloud</a> on #{@project.title} (#{@project.description}).  Please join using this email address, and you will be automatically added to my project."
-                collab_projects : [@project.project_id]
-            return false
 
         remove_collaborator = (c) =>
             # c = {first_name:? , last_name:?, account_id:?}

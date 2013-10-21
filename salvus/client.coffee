@@ -1075,8 +1075,8 @@ class exports.Connection extends EventEmitter
         @call
             message: message.invite_noncloud_collaborators
                 project_id : opts.project_id
-                to         : opts.to
                 email      : opts.email
+                to         : opts.to
             cb : (err, resp) =>
                 if err
                     opts.cb(err)

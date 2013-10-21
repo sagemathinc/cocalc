@@ -1071,7 +1071,7 @@ message
     id         : undefined
     project_id : required
     to         : required
-    email      : required
+    email      : required    # spam vector
 
 message
     event      : 'invite_noncloud_collaborators_resp'
