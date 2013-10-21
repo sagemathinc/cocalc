@@ -1563,7 +1563,7 @@ class Client extends EventEmitter
 
             # users to invite
             to = (x for x in mesg.to.replace(/\s/g,",").replace(/;/g,",").split(',') when x)
-            winston.debug("invite users: to=#{misc.to_json(to)}")
+            #winston.debug("invite users: to=#{misc.to_json(to)}")
 
             # invitation template
             email = mesg.email
@@ -1619,7 +1619,7 @@ class Client extends EventEmitter
                             send_email
                                 to      : email_address
                                 subject : "Sagemath Cloud Invitation"
-                                body    : email
+                                body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : cb
                 ], cb)
 

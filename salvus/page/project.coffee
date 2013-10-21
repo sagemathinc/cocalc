@@ -1858,7 +1858,7 @@ class ProjectPage
             query = @container.find(".project-add-collaborator-input").val()
             @container.find(".project-add-collaborator-input").val('')
             dialog.find("input").val(query)
-            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}':\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
+            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}'.\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
             dialog.find("textarea").val(email)
             dialog.modal()
             submit = () =>
