@@ -375,7 +375,16 @@ class exports.Cassandra extends EventEmitter
             @emit('error', err)
 
         @conn.connect (err) =>
+            if err
+                winston.debug("failed to connect to database -- #{err}")
+            else
+                winston.debug("connected to database")
             opts.cb?(err, @)
+            # CRITICAL -- we must not call the callback multiple times; note that this
+            # connect event happens even on *reconnect*, which will happen when the
+            # database connection gets dropped, e.g., due to restarting the database,
+            # network issues, etc.
+            opts.cb = undefined
 
     _where: (where_key, vals, json=[]) ->
         where = "";

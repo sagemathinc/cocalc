@@ -1556,7 +1556,7 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
-            
+
             @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"sent invitations to #{mesg.to}"))
 
     mesg_remove_collaborator: (mesg) =>
@@ -4991,9 +4991,13 @@ connect_to_database = (cb) ->
                 password : password.toString().trim()
                 consistency : 2
                 cb       : (err, _db) ->
-                    winston.debug("got db connected!")
-                    database = _db
-                    cb(err)
+                    if err
+                        winston.debug("Error connecting to database")
+                        cb(err)
+                    else
+                        winston.debug("Successfully connected to database.")
+                        database = _db
+                        cb()
 
 #############################################
 # Start everything running
@@ -5007,24 +5011,24 @@ exports.start_server = start_server = () ->
     snap.set_server_id("#{program.host}:#{program.port}")
 
     # Once we connect to the database, start serving.
-    connect_to_database (err) ->
-        if err
-            winston.debug("Failed to connect to database! -- #{err}")
-            return
-        else
+    misc.retry_until_success
+        f           : connect_to_database
+        start_delay : 1000
+        max_delay   : 10000
+        cb          : () =>
             winston.debug("connected to database.")
 
-        # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-        # too big a problem if we call it too frequently...
-        update_server_stats(); setInterval(update_server_stats, 120*1000)
-        register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+            # too big a problem if we call it too frequently...
+            update_server_stats(); setInterval(update_server_stats, 120*1000)
+            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-        init_sockjs_server()
-        init_stateless_exec()
-        http_server.listen(program.port, program.host)
-        replenish_random_unix_user_cache()
+            init_sockjs_server()
+            init_stateless_exec()
+            http_server.listen(program.port, program.host)
+            replenish_random_unix_user_cache()
 
-        winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments
