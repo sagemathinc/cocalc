@@ -615,6 +615,7 @@ class exports.Salvus extends exports.Cassandra
             opts.keyspace = 'salvus'
         super(opts)
 
+
     #####################################
     # The log: we log important conceptually meaningful events
     # here.  This is something we will actually look at.
@@ -1204,6 +1205,49 @@ class exports.Salvus extends exports.Cassandra
         ], (err) =>
             opts.cb(err, account)
         )
+
+    account_exists: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+        @select
+            table     : 'email_address_to_account_id'
+            where     : {email_address:opts.email_address}
+            columns   : ['account_id']
+            objectify : false
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb(false, false)
+                    else
+                        opts.cb(false, results[0][0])
+
+    account_creation_actions: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            action        : undefined   # if given, adds this action; if not given cb(err, [array of actions])
+            ttl           : undefined
+            cb            : required
+        if opts.action?
+            if opts.ttl?
+                ttl = "USING ttl #{opts.ttl}"
+            else
+                ttl = ""
+            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{?} WHERE email_address=?"
+            @cql(query, [misc.to_json(opts.action), opts.email_address], opts.cb)
+        else
+            @select
+                table     : 'account_creation_actions'
+                where     : {email_address: opts.email_address}
+                columns   : ['actions']
+                objectify : false
+                cb        : (err, results) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        opts.cb(false, (misc.from_json(r[0]) for r in results))
 
     update_account_settings: (opts={}) ->
         opts = defaults opts,

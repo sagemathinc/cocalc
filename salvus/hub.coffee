@@ -1557,7 +1557,69 @@ class Client extends EventEmitter
             if err
                 return
 
-            @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"sent invitations to #{mesg.to}"))
+            if mesg.to.length > 1024
+                @error_to_client(id:mesg.id, error:"Specify less recipients when adding collaborators to project.")
+                return
+
+            # users to invite
+            to = (x for x in mesg.to.replace(/\s/g,",").replace(/;/g,",").split(',') when x)
+            winston.debug("invite users: to=#{misc.to_json(to)}")
+
+            # invitation template
+            email = mesg.email
+            if email.indexOf("https://cloud.sagemath.com/invite/[uuid]") == -1
+                # User deleted the link template for some reason.
+                email += "\nhttps://cloud.sagemath.com/invite/[uuid]"
+
+            invite_user = (email_address, cb) =>
+                winston.debug("inviting #{email_address}")
+                if not client_lib.is_valid_email_address(email_address)
+                    cb("invalid email address '#{email_address}'")
+                    return
+                done  = false
+                account_id = undefined
+                async.series([
+                    # already have an account?
+                    (cb) =>
+                        database.account_exists
+                            email_address : email_address
+                            cb            : (err, _account_id) =>
+                                winston.debug("account_exists: #{err}, #{_account_id}")
+                                account_id = _account_id
+                                cb(err)
+                    (cb) =>
+                        if account_id
+                            winston.debug("user #{email_address} already has an account -- add directly")
+                            # user has an account already
+                            done = true
+                            database.add_user_to_project
+                                project_id : mesg.project_id
+                                account_id : account_id
+                                group      : 'collaborator'
+                                cb         : cb
+                        else
+                            winston.debug("user #{email_address} doesn't have an account yet -- ignore")
+                            # create trigger so that when user eventually makes an account,
+                            # they will be added to the project.
+                            database.account_creation_actions
+                                email_address : email_address
+                                action        : {action:'add_to_project', group:'collaborator', project_id:mesg.project_id}
+                                ttl           : 60*60*24*14  # valid for 14 days
+                                cb            : cb
+                    (cb) =>
+                        if done
+                            cb()
+                        else
+                            # send an email to the user
+                            winston.debug("skipping sending email invite")
+                            cb()
+                ], cb)
+
+            async.map to, invite_user, (err, results) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"Invited #{mesg.to} to collaborate on a project."))
 
     mesg_remove_collaborator: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -4074,7 +4136,7 @@ create_account = (client, mesg) ->
 
         # create new account
         (cb) ->
-            database.create_account(
+            database.create_account
                 first_name:    mesg.first_name
                 last_name:     mesg.last_name
                 email_address: mesg.email_address
@@ -4086,12 +4148,17 @@ create_account = (client, mesg) ->
                         )
                         cb(true)
                     account_id = result
-                    database.log(
+                    database.log
                         event : 'create_account'
                         value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
-                    )
                     cb()
-            )
+
+        # check for account creation actions
+        (cb) ->
+            account_creation_actions
+                email_address : mesg.email_address
+                account_id    : account_id
+                cb            : cb
 
         # send message back to user that they are logged in as the new user
         (cb) ->
@@ -4108,6 +4175,28 @@ create_account = (client, mesg) ->
             cb()
     ])
 
+
+account_creation_actions = (opts) ->
+    opts = defaults opts,
+        email_address : required
+        account_id    : required
+        cb            : required
+    database.account_creation_actions
+        email_address : opts.email_address
+        cb            : (err, actions) ->
+            if err
+                cb(err); return
+            for action in actions
+                winston.debug("action = #{misc.to_json(action)}")
+                if action.action == 'add_to_project'
+                    database.add_user_to_project
+                        project_id : action.project_id
+                        account_id : opts.account_id
+                        group      : action.group
+                        cb         : (err) =>
+                            winston.debug("Error adding user to project: #{err}")
+    # We immediately move on -- it's ok to do the actions in parallel.
+    opts.cb()
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
@@ -4273,6 +4362,14 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     else
                         push_to_client(message.changed_email_address(id:mesg.id)) # finally, success!
                     cb()
+
+        (cb) ->
+            # If they just changed email to an address that hs some actions, carry those out...
+            # TODO: move to hook this only after validdation of the email address.
+            account_creation_actions
+                email_address : mesg.new_email_address
+                account_id    : mesg.account_id
+                cb            : cb
     ])
 
 

@@ -1876,6 +1876,7 @@ class ProjectPage
             dialog.find("form").submit(submit)
             dialog.find(".btn-submit").click(submit)
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+            return false
 
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")

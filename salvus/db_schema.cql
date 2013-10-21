@@ -142,6 +142,19 @@ CREATE TABLE account_log (
     value        varchar
 );
 
+
+/* If an account is created with the given email address, then the
+   given set of actions (given by JSON strings) are all taken.
+   For example, one action is {'action':'add_to_project', 'group':'collaborator', 'project_id':'xxx'}
+   */
+CREATE TABLE account_creation_actions (
+    email_address varchar PRIMARY KEY,
+    actions set<varchar>
+);
+
+
+
+
 CREATE TABLE auths (
     account_id   uuid,
     provider     varchar,
