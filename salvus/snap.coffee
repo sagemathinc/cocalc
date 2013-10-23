@@ -1453,7 +1453,12 @@ exports.start_server = start_server = () ->
         (cb) ->
             generate_secret_key(cb)
         (cb) ->
-            connect_to_database(cb)
+            # keep retrying until database is up and we succeed in connecting.
+            misc.retry_until_success
+                f           : connect_to_database
+                start_delay : 1000
+                max_delay   : 10000
+                cb          : cb
         (cb) ->
             if program.resend_all_commits
                 resend_all_commits(cb)

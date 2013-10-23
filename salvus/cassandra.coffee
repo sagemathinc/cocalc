@@ -375,7 +375,16 @@ class exports.Cassandra extends EventEmitter
             @emit('error', err)
 
         @conn.connect (err) =>
+            if err
+                winston.debug("failed to connect to database -- #{err}")
+            else
+                winston.debug("connected to database")
             opts.cb?(err, @)
+            # CRITICAL -- we must not call the callback multiple times; note that this
+            # connect event happens even on *reconnect*, which will happen when the
+            # database connection gets dropped, e.g., due to restarting the database,
+            # network issues, etc.
+            opts.cb = undefined
 
     _where: (where_key, vals, json=[]) ->
         where = "";
@@ -605,6 +614,7 @@ class exports.Salvus extends exports.Cassandra
         if not opts.keyspace?
             opts.keyspace = 'salvus'
         super(opts)
+
 
     #####################################
     # The log: we log important conceptually meaningful events
@@ -1195,6 +1205,49 @@ class exports.Salvus extends exports.Cassandra
         ], (err) =>
             opts.cb(err, account)
         )
+
+    account_exists: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+        @select
+            table     : 'email_address_to_account_id'
+            where     : {email_address:opts.email_address}
+            columns   : ['account_id']
+            objectify : false
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    if results.length == 0
+                        opts.cb(false, false)
+                    else
+                        opts.cb(false, results[0][0])
+
+    account_creation_actions: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            action        : undefined   # if given, adds this action; if not given cb(err, [array of actions])
+            ttl           : undefined
+            cb            : required
+        if opts.action?
+            if opts.ttl?
+                ttl = "USING ttl #{opts.ttl}"
+            else
+                ttl = ""
+            query = "UPDATE account_creation_actions #{ttl} SET actions=actions+{?} WHERE email_address=?"
+            @cql(query, [misc.to_json(opts.action), opts.email_address], opts.cb)
+        else
+            @select
+                table     : 'account_creation_actions'
+                where     : {email_address: opts.email_address}
+                columns   : ['actions']
+                objectify : false
+                cb        : (err, results) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        opts.cb(false, (misc.from_json(r[0]) for r in results))
 
     update_account_settings: (opts={}) ->
         opts = defaults opts,

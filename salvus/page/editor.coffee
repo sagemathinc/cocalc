@@ -3166,7 +3166,8 @@ class IPythonNotebookServer  # call ipython_notebook_server above
                             @url = info.base; @pid = info.pid; @port = info.port
                             get_with_retry
                                 url : @url
-                                cb  : (err, data) => cb?(err)
+                                cb  : (err, data) =>
+                                    cb?(err)
                     catch e
                         cb?(true)
 
@@ -3198,9 +3199,9 @@ class IPythonNotebookServer  # call ipython_notebook_server above
 get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
-        initial_delay : 100
-        max_delay     : 7000     # once delay hits this, give up
-        factor        : 1.2      # for exponential backoff
+        initial_delay : 50
+        max_delay     : 15000     # once delay hits this, give up
+        factor        : 1.1      # for exponential backoff
         bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url
     delay = opts.initial_delay
@@ -3208,17 +3209,22 @@ get_with_retry = (opts) ->
         if delay >= opts.max_delay  # too many attempts
             opts.cb("unable to connect to remote server")
             return
-        $.get(opts.url, (data) ->
-            if data.indexOf(opts.bad_string) != -1
-                delay *= opts.factor
-                setTimeout(f, delay)
-            else
-                opts.cb(false, data)
+        $.ajax(
+            url     : opts.url
+            timeout : 50
+            success : (data) ->
+                if data.indexOf(opts.bad_string) != -1
+                    delay *= opts.factor
+                    setTimeout(f, delay)
+                else
+                    opts.cb(false, data)
         ).fail(() ->
-            delay *= 1.2
+            delay *= opts.factor
             setTimeout(f, delay)
         )
+
     f()
+
 
 # Embedded editor for editing IPython notebooks.  Enhanced with sync and integrated into the
 # overall cloud look.
@@ -3473,7 +3479,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("getting or starting ipython server")
+                @status("getting or starting ipython server (5-10 seconds)")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     path       : @path
