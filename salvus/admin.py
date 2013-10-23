@@ -1123,6 +1123,9 @@ class Hosts(object):
             print k
             print v['stdout']
 
+    def update_hub_repos(self, parallel=True, wait=False):
+        return self('hub','cd salvus/salvus; git pull 10.1.1.3:salvus && ./make_coffee ', parallel=parallel, wait=wait)
+
     #########################################################
     # SFTP support
     #########################################################
@@ -1392,7 +1395,6 @@ class Services(object):
         elif action == "start":
             # hub hosts can connect to CASSANDRA_CLIENT_PORT and CASSANDRA_NATIVE_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            return # disabled now that we authenticate
             commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin snap']] +
                         ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin snap']] +
                         ['allow proto tcp from %s to any port %s'%(host, port)

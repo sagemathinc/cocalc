@@ -1,5 +1,5 @@
 # services
-base = 'salvus-2013-10-15-1402'
+base = 'salvus-2013-10-21-1058'
 
 cassandra_ram = 8
 cassandra_cpu = 4
@@ -75,27 +75,26 @@ cloud20  {'hostname':'compute20a', 'vcpus':compute_cpu,   'ram':compute_ram,   '
 cloud21  {'hostname':'compute21a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
-# N=4; [i * (2**127 / N) for i in range(N)]
+#cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
+#cassandra2    {'seed':False,  'topology':'DC1:RAC0', 'num_tokens':256}
 cassandra3    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
 cassandra4    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
-cassandra5    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
-cassandra6    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
-cassandra7    {'seed':True,  'topology':'DC1:RAC1', 'num_tokens':256}
+cassandra5    {'seed':False,  'topology':'DC1:RAC1', 'num_tokens':256}
+cassandra6    {'seed':False,  'topology':'DC1:RAC1', 'num_tokens':256}
+cassandra7    {'seed':False,  'topology':'DC1:RAC1', 'num_tokens':256}
 
-cassandra1    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra2    {'seed':True,  'topology':'DC0:RAC1', 'num_tokens':256}
 cassandra10    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra11    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra12    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra13    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra14    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra15    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra16    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra12    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra13    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra14    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra15    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra16    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 cassandra17    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra18    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra19    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra20    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
-cassandra21    {'seed':True,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra18    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra19    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra20    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
+cassandra21    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
 edge
