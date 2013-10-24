@@ -354,16 +354,17 @@ class exports.Editor
         search_box.focus () =>
             search_box.select()
 
-        search_box.keyup (event) =>
+        update = (event) =>
             @active_tab?.editor().hide()
 
-            if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
-                @project_page.display_tab("project-new-file")
-                return false
+            if event?
+                if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
+                    @project_page.display_tab("project-new-file")
+                    return false
 
-            if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
-                @display_tab(path:@active_tab.filename)
-                return
+                if event.keyCode == 27  and @active_tab? # escape - open last viewed tab
+                    @display_tab(path:@active_tab.filename)
+                    return
 
             v = $.trim(search_box.val()).toLowerCase()
             if v == ""
@@ -386,7 +387,7 @@ class exports.Editor
                 tab = $(link).data('tab')
                 filename = tab.filename
                 if match(filename)
-                    if first and event.keyCode == 13 # enter -- select first match (if any)
+                    if first and event?.keyCode == 13 # enter -- select first match (if any)
                         @display_tab(path:filename)
                         first = false
                     if v != ""
@@ -394,6 +395,14 @@ class exports.Editor
                 else
                     if v != ""
                         tab.link.addClass(exclude); tab.link.removeClass(include)
+
+        @element.find(".salvus-editor-search-openfiles-input-clear").click () =>
+            search_box.val('')
+            update()
+            search_box.select()
+            return false
+
+        search_box.keyup(update)
 
     update_counter: () =>
         if @counter?
@@ -1625,15 +1634,29 @@ class PDFLatexDocument
     _run_latex: (command, cb) =>
         if not command?
             command = @default_tex_command()
+        sagetex_file = @base_filename + '.sagetex.sage'
+        sha_marker = 'sha1sums'
         @_exec
-            command : command + " < /dev/null 2</dev/null"
+            command : command + "< /dev/null 2</dev/null; echo '#{sha_marker}'; sha1sum #{sagetex_file}"
             bash    : true
             timeout : 20
+            err_on_exit : false
             cb      : (err, output) =>
                 if err
                     cb?(err)
                 else
+                    i = output.stdout.lastIndexOf(sha_marker)
+                    if i != -1
+                        shas = output.stdout.slice(i+sha_marker.length+1)
+                        output.stdout = output.stdout.slice(0,i)
+                        for x in shas.split('\n')
+                            v = x.split(/\s+/)
+                            if v[1] == sagetex_file and v[0] != @_sagetex_file_sha
+                                @_need_to_run.sage = sagetex_file
+                                @_sagetex_file_sha = v[0]
+
                     log = output.stdout + '\n\n' + output.stderr
+
                     if log.indexOf('Rerun to get cross-references right') != -1
                         @_need_to_run.latex = true
 
@@ -1649,6 +1672,15 @@ class PDFLatexDocument
                         @_need_to_run.bibtex = true
 
                     @last_latex_log = log
+                    before = @num_pages
+                    @_parse_latex_log_for_num_pages(log)
+
+                    # Delete trailing removed pages from our local view of things; otherwise, they won't properly
+                    # re-appear later if they look identical, etc.
+                    if @num_pages < before
+                        for n in [@num_pages ... before]
+                            delete @_pages[n]
+
                     cb?(false, log)
 
     _run_sage: (target, cb) =>
@@ -1679,11 +1711,7 @@ class PDFLatexDocument
                     @_need_to_run.latex = true
                     cb?(false, log)
 
-
-    _parse_latex_log: (log) =>
-        # todo -- parse through text file of log putting the errors in the corresponding @pages dict.
-
-        # number of pages:  "Output written on rh.pdf (135 pages, 7899064 bytes)."
+    _parse_latex_log_for_num_pages: (log) =>
         i = log.indexOf("Output written")
         if i != -1
             i = log.indexOf("(", i)
@@ -1706,7 +1734,7 @@ class PDFLatexDocument
                 cb?(err)
 
     trash_aux_files: (cb) =>
-        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'pdf', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
+        EXT = ['aux', 'log', 'bbl', 'synctex.gz', 'sagetex.py', 'sagetex.sage', 'sagetex.scmd', 'sagetex.sout']
         @_exec
             command : "rm"
             args    : (@base_filename + "." + ext for ext in EXT)
@@ -1870,7 +1898,6 @@ class PDF_Preview extends FileEditor
 
         images = @output.find("img")
         if images.length == 0
-            console.log('do nothing')
             return # nothing to do
 
         if opts.delta?
@@ -1890,8 +1917,6 @@ class PDF_Preview extends FileEditor
                 width         : max_width
                 'margin-left' : margin_left
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
-
-
 
     watch_scroll: () =>
         if @_f?
@@ -1919,6 +1944,9 @@ class PDF_Preview extends FileEditor
             y              : 0          # y-coordinate on page
             highlight_line : true
         pg = @pdflatex.page(opts.n)
+        if not pg?
+            # the page has vanished in the meantime...
+            return
         t = @output.offset().top
         @output.scrollTop(0)  # reset to 0 first so that pg.element.offset().top is correct below
         top = (pg.element.offset().top + opts.y) - $(window).height() / 2
@@ -1968,14 +1996,17 @@ class PDF_Preview extends FileEditor
         if @element.width()
             @output.width(@element.width())
 
-        # we do text conversion in parallel to any image updating below -- it takes about a second for a 100 page file...
-        # @pdflatex.update_text (err) =>
-            #if not err
+        # Remove trailing pages from DOM.
+        if @pdflatex.num_pages?
+            # This is O(N), but behaves better given the async nature...
+            for p in @output.children()
+                page = $(p)
+                if page.data('number') > @pdflatex.num_pages
+                    page.remove()
 
         n = @current_page().number
 
         f = (opts, cb) =>
-
             opts.cb = (err, changed_pages) =>
                 if err
                     cb(err)
@@ -2035,7 +2066,7 @@ class PDF_Preview extends FileEditor
         url        = p.url
         resolution = p.resolution
         if not url?
-            # todo: delete page and all following it from DOM
+            # delete page and all following it from DOM
             for m in [n .. @last_page]
                 @output.remove(".salvus-editor-pdf-preview-page-#{m}")
             if @last_page >= n
@@ -2082,7 +2113,20 @@ class PDF_Preview extends FileEditor
                     if @_first_output
                         @output.empty()
                         @_first_output = false
-                    @output.append(page)
+
+                    # Insert page in the right place in the output.  Since page creation
+                    # can happen in parallel/random order (esp because of deletes of trailing pages),
+                    # we have to work at this a bit.
+                    done = false
+                    for p in @output.children()
+                        pg = $(p)
+                        if pg.data('number') > m
+                            page.insertBefore(pg)
+                            done = true
+                            break
+                    if not done
+                        @output.append(page)
+
                     @pdflatex.page(m).element = page
 
                 @last_page = n
@@ -2325,7 +2369,7 @@ class LatexEditor extends FileEditor
             cm.setLine(m, line)
         else
             cm.replaceRange('\n'+line, {line:cm.doc.lastLine()+1,ch:0})
-
+        @latex_editor.syncdoc.sync()
 
     _pause_passive_search: (cb) =>
         @_passive_forward_search_disabled = true
@@ -2598,7 +2642,6 @@ class LatexEditor extends FileEditor
             cb            : (err, log) =>
                 button.icon_spin(false)
                 opts.cb?()
-
 
     render_error_page: () =>
         log = @preview.pdflatex.last_latex_log

@@ -37,6 +37,7 @@
 }
 
 .projects-find-input {
+    width: 80%;
 }
 
 .projects-active {
@@ -46,4 +47,14 @@
 
 .project-file-top-current-path-container {
     width: 100%;
+}
+
+.projects-describe-listing {
+    margin-bottom: 1em;
+}
+
+.projects-users {
+    margin-left:0px;
+    max-height: 7em;
+    overflow-y: auto;
 }
