@@ -187,6 +187,7 @@ class ProjectPage
         @init_make_private()
 
         @init_add_collaborators()
+        @init_add_noncloud_collaborator()
 
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
@@ -379,6 +380,9 @@ class ProjectPage
                 @display_tab("project-editor")
                 return false
             @update_file_search(event)
+        @container.find(".salvus-project-search-for-file-input-clear").click () =>
+            @_file_search_box.val('').focus()
+            @update_file_search()
 
     clear_file_search: () =>
         @_file_search_box.val('')
@@ -1096,21 +1100,17 @@ class ProjectPage
         @set_current_path(path)
         @update_file_list_tab(no_focus)
 
+    switch_to_directory: (new_path) =>
+        @current_path = new_path
+        @update_file_list_tab()
+
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
 
-        # Update the display of the path above the listing or file preview
-        @update_current_path()
-
-        # Update UI options that change as a result of browsing snapshots.
-        @update_snapshot_ui_elements()
-
-        @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
-        @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
-
         spinner = @container.find(".project-file-listing-spinner")
+        timer = setTimeout( (() -> spinner.show().spin()), 100 )
 
-        timer = setTimeout( (() -> spinner.show().spin()), 300 )
+        # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
         path = @current_path.join('/')
         salvus_client.project_directory_listing
@@ -1119,8 +1119,19 @@ class ProjectPage
             time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
+
                 clearTimeout(timer)
                 spinner.spin(false).hide()
+
+                # Update the display of the path above the listing or file preview
+                @update_current_path()
+
+                # Update UI options that change as a result of browsing snapshots.
+                @update_snapshot_ui_elements()
+
+                @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
+                @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
+
                 if (err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         #console.log("using last path without error:  ", @_last_path_without_error)
@@ -1282,15 +1293,14 @@ class ProjectPage
 
         open = (e) =>
             if isdir
-                @current_path.push(name)
-                @update_file_list_tab()
+                @switch_to_directory(@current_path.concat([name]))
             else
                 @open_file
                     path : fullname
                     foreground : not(e.which==2 or e.ctrlKey)
             return false
 
-        if not is_snapshot or isdir
+        if not (is_snapshot or isdir)
             # Opening a file
             file_link = t.find("a[href=#open-file]")
             file_link.mousedown(open)
@@ -1299,8 +1309,10 @@ class ProjectPage
             # do not use t.mousedown here, since that breaks the download, etc., links.
             t.click(open)
 
-        if is_snapshot
+        if isdir
+            t.find("a[href=#open-file]").click(open)
 
+        if is_snapshot
             restore = () =>
                 n = fullname.slice(".snapshot/xxxx-xx-xx/".length)
                 i = n.indexOf('/')
@@ -1839,6 +1851,34 @@ class ProjectPage
                                     message : "Successfully made project \"#{@project.title}\" private."
             return false
 
+    init_add_noncloud_collaborator: () =>
+        button = @container.find(".project-add-noncloud-collaborator").find("a")
+        button.click () =>
+            dialog = $(".project-invite-noncloud-users-dialog").clone()
+            query = @container.find(".project-add-collaborator-input").val()
+            @container.find(".project-add-collaborator-input").val('')
+            dialog.find("input").val(query)
+            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}'.\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
+            dialog.find("textarea").val(email)
+            dialog.modal()
+            submit = () =>
+                dialog.modal('hide')
+                salvus_client.invite_noncloud_collaborators
+                    project_id : @project.project_id
+                    to         : dialog.find("input").val()
+                    email      : dialog.find("textarea").val()
+                    cb         : (err, resp) =>
+                        if err
+                            alert_message(type:"error", message:err)
+                        else
+                            alert_message(message:resp.mesg)
+                return false
+            dialog.submit(submit)
+            dialog.find("form").submit(submit)
+            dialog.find(".btn-submit").click(submit)
+            dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+            return false
+
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")
         select  = @container.find(".project-add-collaborator-select")
@@ -1846,16 +1886,16 @@ class ProjectPage
         collabs_loading = @container.find(".project-collaborators-loading")
 
         add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
+        select.change () =>
+            if select.find(":selected").length == 0
+                add_button.addClass('disabled')
+            else
+                add_button.removeClass('disabled')
 
-        @container.find("a[href=#invite-friend]").click () =>
-            require('social').invite_friend
-                message         : "I would like to collaborate with you via the <a href='https://cloud.sagemath.com/signup'>Sagemath Cloud</a> on #{@project.title} (#{@project.description}).  Please join using this email address, and you will be automatically added to my project."
-                collab_projects : [@project.project_id]
-            return false
 
         remove_collaborator = (c) =>
             # c = {first_name:? , last_name:?, account_id:?}
-            m = "Are you sure that you want to remove #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
+            m = "Are you sure that you want to <b>remove</b> #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
             bootbox.confirm m, (result) =>
                 if not result
                     return
@@ -1921,33 +1961,45 @@ class ProjectPage
             if x == ""
                 select.html("").hide()
                 @container.find("a[href=#invite-friend]").hide()
-                add_button.addClass('disabled')
+                @container.find(".project-add-noncloud-collaborator").hide()
+                @container.find(".project-add-collaborator").hide()
                 return
+            input.icon_spin(start:true)
             salvus_client.user_search
                 query : input.val()
                 limit : 30
                 cb    : (err, result) =>
+                    input.icon_spin(false)
                     select.html("")
-                    for r in result
-                        if not already_collab[r.account_id]? # only show users not already added
+                    result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
+                    if result.length > 0
+                        select.show()
+                        @container.find(".project-add-noncloud-collaborator").hide()
+                        @container.find(".project-add-collaborator").show()
+                        for r in result
                             name = r.first_name + ' ' + r.last_name
                             select.append($("<option>").attr(value:r.account_id, label:name).text(name))
-                    select.show()
-                    add_button.removeClass('disabled')
-                    @container.find("a[href=#invite-friend]").show()
+                        select.show()
+                        add_button.addClass('disabled')
+                    else
+                        select.hide()
+                        @container.find(".project-add-collaborator").hide()
+                        @container.find(".project-add-noncloud-collaborator").show()
 
         invite_selected = () =>
-            x = select.find(":selected")
-            name = x.attr('label')
-            salvus_client.project_invite_collaborator
-                project_id : @project.project_id
-                account_id : x.attr("value")
-                cb         : (err, result) =>
-                    if err
-                        alert_message(type:"error", message:"Error adding collaborator -- #{err}")
-                    else
-                        alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
-                        update_collaborators()
+            for y in select.find(":selected")
+                x = $(y)
+                name = x.attr('label')
+                console.log("name = ", name)
+                salvus_client.project_invite_collaborator
+                    project_id : @project.project_id
+                    account_id : x.attr("value")
+                    cb         : (err, result) =>
+                        if err
+                            alert_message(type:"error", message:"Error adding collaborator -- #{err}")
+                        else
+                            alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
+                            update_collaborators()
 
         add_button.click () =>
             if add_button.hasClass('disabled')

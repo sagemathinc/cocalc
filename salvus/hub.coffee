@@ -24,7 +24,7 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 # Default local hub parameters -- how long until project local hubs
 # kill everything in that project, if there is no activity, where
 # activity = "receive data from a global hub".
-DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*28  # time in seconds; 0 to disable
+DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*12  # time in seconds; 0 to disable
 
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
@@ -595,7 +595,7 @@ class Client extends EventEmitter
         opts = defaults opts,
             name : required
             cb   : required   # cb(value)
-        winston.debug("!!!!  get cookie '#{opts.name}'")
+        #winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
         @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
 
@@ -1185,47 +1185,28 @@ class Client extends EventEmitter
         project = undefined
         location = undefined
 
-        async.series([
-            # get unix account location for the project
-            (cb) =>
-                new_random_unix_user
-                    cb : (err, _location) =>
-                        location = _location
-                        cb(err)
-
-            # create project in database
-            (cb) =>
-                winston.debug("got random unix user location = ", location)
-                database.create_project
-                    project_id  : project_id
-                    account_id  : @account_id
-                    title       : mesg.title
-                    description : mesg.description
-                    public      : mesg.public
-                    location    : location
-                    quota       : DEFAULTS.quota   # TODO -- account based
-                    idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
-                    cb          : cb
-
-            (cb) =>
-                new_project project_id, (err, _project) =>
-                    project = _project
-                    cb(err)
-
-        ], (error) =>
-            if error
-                winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
-                @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
-                if not project?
-                    # project object not even created -- just clean up database
-                    database.delete_project(project_id:project_id)  # do not bother with callback
-            else
-                winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
-                @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                push_to_clients  # push a message to all other clients logged in as this user.
-                    where : {account_id:@account_id,  exclude: [@conn.id]}
-                    mesg  : message.project_list_updated()
-        )
+        database.create_project
+            project_id  : project_id
+            account_id  : @account_id
+            title       : mesg.title
+            description : mesg.description
+            public      : mesg.public
+            quota       : DEFAULTS.quota   # TODO -- account based
+            idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
+            cb          : (err) =>
+                if err
+                    winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
+                    @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
+                else
+                    winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
+                    @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
+                    push_to_clients  # push a message to all other clients logged in as this user.
+                        where : {account_id:@account_id,  exclude: [@conn.id]}
+                        mesg  : message.project_list_updated()
+                    # As an optimization, we start the process of opening the project, which allocates a unix account,
+                    # copies over files, etc.  This way if the user opens the project immediately, it will work more quickly.
+                    @get_project {project_id:project_id}, 'write', (err, project) =>
+                        # do nothing --
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
@@ -1382,9 +1363,9 @@ class Client extends EventEmitter
                                 @error_to_client(id:mesg.id, error:err)
                             else
                                 if content.archive?
-                                    the_url = "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
                                 else
-                                    the_url = "/blobs/#{mesg.path}?uuid=#{u}"
+                                    the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
                                 @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_move_file_in_project: (mesg) =>
@@ -1571,6 +1552,83 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    mesg_invite_noncloud_collaborators: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+
+            if mesg.to.length > 1024
+                @error_to_client(id:mesg.id, error:"Specify less recipients when adding collaborators to project.")
+                return
+
+            # users to invite
+            to = (x for x in mesg.to.replace(/\s/g,",").replace(/;/g,",").split(',') when x)
+            #winston.debug("invite users: to=#{misc.to_json(to)}")
+
+            # invitation template
+            email = mesg.email
+            if email.indexOf("https://cloud.sagemath.com") == -1
+                # User deleted the link template for some reason.
+                email += "\nhttps://cloud.sagemath.com\n"
+
+            invite_user = (email_address, cb) =>
+                winston.debug("inviting #{email_address}")
+                if not client_lib.is_valid_email_address(email_address)
+                    cb("invalid email address '#{email_address}'")
+                    return
+                if email_address.length >= 128
+                    # if an attacker tries to embed a spam in the email address itself (e.g, wstein+spam_message@gmail.com), then
+                    # at least we can limit its size.
+                    cb("email address must be at most 128 characters: '#{email_address}'")
+                    return
+                done  = false
+                account_id = undefined
+                async.series([
+                    # already have an account?
+                    (cb) =>
+                        database.account_exists
+                            email_address : email_address
+                            cb            : (err, _account_id) =>
+                                winston.debug("account_exists: #{err}, #{_account_id}")
+                                account_id = _account_id
+                                cb(err)
+                    (cb) =>
+                        if account_id
+                            winston.debug("user #{email_address} already has an account -- add directly")
+                            # user has an account already
+                            done = true
+                            database.add_user_to_project
+                                project_id : mesg.project_id
+                                account_id : account_id
+                                group      : 'collaborator'
+                                cb         : cb
+                        else
+                            winston.debug("user #{email_address} doesn't have an account yet -- send email")
+                            # create trigger so that when user eventually makes an account,
+                            # they will be added to the project.
+                            database.account_creation_actions
+                                email_address : email_address
+                                action        : {action:'add_to_project', group:'collaborator', project_id:mesg.project_id}
+                                ttl           : 60*60*24*14  # valid for 14 days
+                                cb            : cb
+                    (cb) =>
+                        if done
+                            cb()
+                        else
+                            # send an email to the user
+                            send_email
+                                to      : email_address
+                                subject : "Sagemath Cloud Invitation"
+                                body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
+                                cb      : cb
+                ], cb)
+
+            async.map to, invite_user, (err, results) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"Invited #{mesg.to} to collaborate on a project."))
+
     mesg_remove_collaborator: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1585,6 +1643,7 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.success(id:mesg.id))
+
 
     ################################################
     # Project snapshots -- interface to the snap servers
@@ -1649,7 +1708,7 @@ update_server_stats = () ->
 register_hub = (cb) ->
     database.update
         table : 'hub_servers'
-        where : {host : program.host, port : program.port}
+        where : {host : program.host, port : program.port, dummy: true}
         set   : {clients: misc.len(clients)}
         ttl   : 2*REGISTER_INTERVAL_S
         cb    : (err) ->
@@ -2544,7 +2603,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @)
 
     restart: (cb) =>
-        winston.debug("restarting a local hub")
+        winston.debug("restarting a local hub -- #{@username}@#{@host}")
         if @_restart_lock
             winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
@@ -2592,8 +2651,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         cb(err)
                 # MUST be here, since _restart_lock prevents _exec_on_local_hub!
                 @_restart_lock = true
-
-
         ], (err) =>
             winston.debug("local_hub restart: #{err}")
             @_restart_lock = false
@@ -3119,7 +3176,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
-        winston.debug("restarting local_hub daemons")
+        winston.debug("restarting local_hub daemons -- #{@username}@#{@host}")
         @_exec_on_local_hub
             command : "restart_smc --timeout=#{@timeout}"
             timeout : 30
@@ -3130,7 +3187,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         winston.debug("kill all processes running on a local hub (including the local hub itself)")
         if program.local
             winston.debug("killall -- skipping since running with --local=true debug mode")
-            cb(); return
+            cb?(); return
         @_exec_on_local_hub
             command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
@@ -3138,13 +3195,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             cb      : (err, out) =>
                 winston.debug("killall returned -- #{err}, #{misc.to_json(out)}")
                 # We explicitly ignore errors since killall kills self while at it, which results in an error code return.
-                cb()
+                cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status.local_hub and @_status.sage_server and @_status.console_server
             cb()
         else
-            # Not all daemons are running -- restart required
+            # TODO: it would be better just to force start only the daemons that need to be started -- doing this is
+            # just a first brutal minimum way to do this!
+            winston.debug("Not all daemons are running -- restart required -- #{@username}@#{@host}")
             @_restart_local_hub_daemons (err) =>
                 if err
                     cb(err)
@@ -3294,9 +3353,6 @@ get_project_location = (opts) ->
         allow_cache : false
         cb          : undefined       # cb(err, location)
         attempts    : 50
-    winston.debug
-    if not attempts?
-        attempts = 50
 
     error = true
     location = undefined
@@ -3317,7 +3373,7 @@ get_project_location = (opts) ->
                         if opts.attempts <= 0
                             cb("failed to deploy project (too many attempts)")
                         else
-                            winston.debug("get_project_location -- try again in 10 seconds (attempts=#{attempts}).")
+                            winston.debug("get_project_location -- try again in 10 seconds (attempts left=#{opts.attempts}).")
                             f = () ->
                                 get_project_location
                                     project_id  : opts.project_id
@@ -3343,10 +3399,14 @@ get_project_location = (opts) ->
             new_random_unix_user
                 cb : (err, _location) =>
                     if err
-                        cb("project location not defined -- and allocating new one led to error -- #{err}")
-                        return
-                    location = _location
-                    cb()
+                        database.set_project_location
+                            project_id : opts.project_id
+                            location   : ""
+                            cb         : () =>
+                                cb("project location not defined -- and allocating new one led to error -- #{err}")
+                    else
+                        location = _location
+                        cb()
         (cb) ->
             # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
             # hence blocks letting the user do other things with the project.   I tried not locking
@@ -3919,11 +3979,9 @@ delete_unix_user = (opts) ->
 new_random_unix_user = (opts) ->
     opts = defaults opts,
         cb          : required
-
-    if program.local
-        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
-        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
-        return
+    # NOT USING THE CACHE.
+    new_random_unix_user_no_cache(opts)
+    return
 
     cache = new_random_unix_user.cache
 
@@ -3937,12 +3995,14 @@ new_random_unix_user = (opts) ->
     # Now replenish the cache for next time.
     replenish_random_unix_user_cache()
 
+# This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
 new_random_unix_user_cache_target_size = 1
-if program.keyspace == "test"
+if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
     new_random_unix_user_cache_target_size = 0
 
 new_random_unix_user.cache = []
 replenish_random_unix_user_cache = () ->
+    return # NOT USING CACHE.
     cache = new_random_unix_user.cache
     if cache.length < new_random_unix_user_cache_target_size
         winston.debug("New unix user cache has size #{cache.length}, which is less than target size #{new_random_unix_user_cache_target_size}, so we create a new account.")
@@ -3969,11 +4029,15 @@ replenish_random_unix_user_cache = () ->
                                 winston.debug("SUCCESS -- created a new unix user for cache, which now has size #{cache.length}")
                                 replenish_random_unix_user_cache()
 
-
-
 new_random_unix_user_no_cache = (opts) ->
     opts = defaults opts,
         cb          : required
+
+    if program.local  # development use
+        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
+        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
+        return
+
     host = undefined
     username = undefined
     async.series([
@@ -4080,7 +4144,7 @@ create_account = (client, mesg) ->
 
         # create new account
         (cb) ->
-            database.create_account(
+            database.create_account
                 first_name:    mesg.first_name
                 last_name:     mesg.last_name
                 email_address: mesg.email_address
@@ -4092,12 +4156,17 @@ create_account = (client, mesg) ->
                         )
                         cb(true)
                     account_id = result
-                    database.log(
+                    database.log
                         event : 'create_account'
                         value : {account_id:account_id, first_name:mesg.first_name, last_name:mesg.last_name, email_address:mesg.email_address}
-                    )
                     cb()
-            )
+
+        # check for account creation actions
+        (cb) ->
+            account_creation_actions
+                email_address : mesg.email_address
+                account_id    : account_id
+                cb            : cb
 
         # send message back to user that they are logged in as the new user
         (cb) ->
@@ -4114,6 +4183,28 @@ create_account = (client, mesg) ->
             cb()
     ])
 
+
+account_creation_actions = (opts) ->
+    opts = defaults opts,
+        email_address : required
+        account_id    : required
+        cb            : required
+    database.account_creation_actions
+        email_address : opts.email_address
+        cb            : (err, actions) ->
+            if err
+                cb(err); return
+            for action in actions
+                winston.debug("action = #{misc.to_json(action)}")
+                if action.action == 'add_to_project'
+                    database.add_user_to_project
+                        project_id : action.project_id
+                        account_id : opts.account_id
+                        group      : action.group
+                        cb         : (err) =>
+                            winston.debug("Error adding user to project: #{err}")
+    # We immediately move on -- it's ok to do the actions in parallel.
+    opts.cb()
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
@@ -4279,6 +4370,14 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     else
                         push_to_client(message.changed_email_address(id:mesg.id)) # finally, success!
                     cb()
+
+        (cb) ->
+            # If they just changed email to an address that hs some actions, carry those out...
+            # TODO: move to hook this only after validdation of the email address.
+            account_creation_actions
+                email_address : mesg.new_email_address
+                account_id    : mesg.account_id
+                cb            : cb
     ])
 
 
@@ -4995,10 +5094,15 @@ connect_to_database = (cb) ->
                 keyspace : program.keyspace
                 username : 'hub'
                 password : password.toString().trim()
+                consistency : 2
                 cb       : (err, _db) ->
-                    winston.debug("got db connected!")
-                    database = _db
-                    cb(err)
+                    if err
+                        winston.debug("Error connecting to database")
+                        cb(err)
+                    else
+                        winston.debug("Successfully connected to database.")
+                        database = _db
+                        cb()
 
 #############################################
 # Start everything running
@@ -5012,22 +5116,24 @@ exports.start_server = start_server = () ->
     snap.set_server_id("#{program.host}:#{program.port}")
 
     # Once we connect to the database, start serving.
-    connect_to_database (err) ->
-        if err
-            winston.debug("Failed to connect to database! -- #{err}")
-            return
-        else
+    misc.retry_until_success
+        f           : connect_to_database
+        start_delay : 1000
+        max_delay   : 10000
+        cb          : () =>
             winston.debug("connected to database.")
 
-        # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-        # too big a problem if we call it too frequently...
-        update_server_stats(); setInterval(update_server_stats, 120*1000)
-        register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
+            # too big a problem if we call it too frequently...
+            update_server_stats(); setInterval(update_server_stats, 120*1000)
+            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
 
-        init_sockjs_server()
-        init_stateless_exec()
-        http_server.listen(program.port, program.host)
-        winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
+            init_sockjs_server()
+            init_stateless_exec()
+            http_server.listen(program.port, program.host)
+            replenish_random_unix_user_cache()
+
+            winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
 #############################################
 # Process command line arguments

@@ -46,6 +46,38 @@
 </div>
 
 
+
+<div class="modal hide project-invite-noncloud-users-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3><i class="icon-user"> </i>  Invite Collaborators via Email</h3>
+    </div>
+    <h5 style="margin-left:2ex"  class='lighten'>One or more email addresses</h5>
+    <div class="center">
+        <form>
+            <input type="text" style="width:80%; background-color: #f8f8f8;" name="new-filename" value="">
+        </form>
+    </div>
+    <!--<div class="lighten" style="
+   margin-left: 2em;
+    margin-right: 2em;
+">Users must have access to that given email account in order to collaborate on the project (also, invitations expire after 7 days).
+    </div>-->
+    <h5 style="margin-left:2ex">Message</h5>
+    <div class="center">
+        <form>
+            <textarea style="width:80%; background-color: #f8f8f8;" rows=8>
+            </textarea>
+        </form>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-primary btn-submit"><i class="icon-thumbs-up-alt"> </i> Send Invitation</button>
+    </div>
+</div>
+
+
 <!-- The actual project file browser, etc., interface -->
 
 <div id="salvus-project-templates" class="hide">
@@ -92,9 +124,9 @@
             <div class="project-file-listing">
                 <div class="row">
 
-                    <div class="span2">
+                    <div class="span3">
                         <input class="salvus-project-search-for-file-input search-query" type="search" placeholder="Choose files...">
-
+                        <i class="salvus-project-search-for-file-input-clear lighten icon-remove-circle" style="cursor:pointer; margin-left: -2em;"></i>
                     </div>
 
                     <!-- The current path -->
@@ -288,12 +320,21 @@
                                     </div>
                                     <div class="span8">
                                         <!--<span class="lighten" style="font-weight:bold">Add&nbsp;&nbsp;</span>-->
-                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search for people">
+                                        <input class="project-add-collaborator-input search-query" type="search" placeholder="Search by name or email address...">
                                         <select multiple="multiple" class="project-add-collaborator-select hide"> </select>
 
-                                        <a href="#add-collaborator" style="margin-bottom: 1ex;" class="disabled pull-right btn btn-primary" data-toggle="tooltip" data-placement="right" title="Add a selected person as collaborator on this project.">
-                                            <i class="icon-plus"> </i>Add
-                                        </a>
+                                        <div class="project-add-noncloud-collaborator hide">
+                                            <a href="#add-noncloud-collaborator" style="margin-bottom: 1ex;" class="btn btn-large btn-primary">
+                                                <i class="icon-user"> </i> No matches.  Send Invitation...
+                                            </a>
+                                        </div>
+                                        <div class="project-add-collaborator hide">
+                                            <a href="#add-collaborator" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-large btn-primary" data-toggle="tooltip" data-placement="right" title="Add all selected users as collaborators on this project.">
+                                            <i class="icon-plus"> </i>Add Selected
+                                            </a>
+                                            <br>
+                                            <span class="lighten">(To confirm identity, search for the user's email address; they <i>must</i> have access to that email account in order to collaborate on the project.)</span>
+                                        </div>
                                         <br>
                                         <!-- <a class="hide" href="#invite-friend">Didn't find who you were looking for?</a> -->
                                     </div>

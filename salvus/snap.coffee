@@ -25,6 +25,7 @@ MAX_SNAPSHOT_SIZE = 6*gigabyte
 
 secret_key_length             = 128
 registration_interval_seconds = 15
+snapshot_interval_seconds     = 10
 
 net       = require 'net'
 winston   = require 'winston'
@@ -804,12 +805,14 @@ monitor_snapshot_queue = () ->
                     timeout : 30  # should be very fast no matter what.
                     bash    : true
                     env     : {BUP_DIR : bup_active}
+                    err_on_exit : false  # if a grep along the way above is empty -- i.e., no file changes, then get a 1 exit code.  STUPID, but yep.
                     cb      : (err, output) ->
                         if err
                             winston.debug("SERIOUS BUG issue: error determining number of modified files for #{project_id}: #{err}")
                             cb(err)
                         else
                             modified_files = (x.slice(2) for x in output.stdout.trim().split('\n'))
+                            modified_files = (x for x in modified_files when x != "")
                             n = modified_files.length
                             winston.debug("#{n} modified files for #{project_id}")
                             winston.debug("modified files = #{misc.trunc(misc.to_json(modified_files),512)}")
@@ -1315,6 +1318,7 @@ connect_to_database = (cb) ->
                 hosts    : program.database_nodes.split(',')
                 keyspace : program.keyspace
                 username : 'snap'
+                consistency : 2   # for now; later switch to quorum
                 password : password.toString().trim()
                 cb       : (err, db) ->
                     database = db
@@ -1352,29 +1356,18 @@ active_path = (cb) ->   # cb(err, {active_path:?, repo_id:?})
 # Write entry to the database periodicially (with ttl) that this
 # snap server is up and running, and provide the key.
 size_of_bup_archive = undefined
-register_with_database = (cb) ->
-    winston.info("registering with database server...")
-    if not size_of_bup_archive?
-        active_path (err, path) ->
-            misc_node.disk_usage path.active_path, (err, usage) ->
-                if err
-                    winston.info("error computing usage -- #{err}")
-                    # try next time
-                    size_of_bup_archive = 0
-                    setTimeout((() -> register_with_database(cb)), 1000*registration_interval_seconds)
-                else
-                    size_of_bup_archive = usage
-                    register_with_database(cb)
-        return
-
-    database.update
+register_with_database = () ->
+    database?.update
         table : 'snap_servers'
-        where : {id : server_id}
+        where : {id : server_id, dummy:true}
         set   : {key:secret_key, host:program.host, port:listen_port, size:size_of_bup_archive}
         ttl   : 2*registration_interval_seconds
         cb    : (err) ->
-            setTimeout(register_with_database, 1000*registration_interval_seconds)
-            cb?()
+            if err
+                winston.info("error registering with database -- #{err}")
+            else
+                winston.info("successfully registered with database")
+
 
 # For each commit in each project, re-enter a record in the database.
 
@@ -1460,9 +1453,12 @@ exports.start_server = start_server = () ->
         (cb) ->
             generate_secret_key(cb)
         (cb) ->
-            connect_to_database(cb)
-        (cb) ->
-            register_with_database(cb)
+            # keep retrying until database is up and we succeed in connecting.
+            misc.retry_until_success
+                f           : connect_to_database
+                start_delay : 1000
+                max_delay   : 10000
+                cb          : cb
         (cb) ->
             if program.resend_all_commits
                 resend_all_commits(cb)
@@ -1472,7 +1468,9 @@ exports.start_server = start_server = () ->
             monitor_snapshot_queue()
             cb()
         (cb) ->
-            setInterval(snapshot_active_projects, 10000)
+            setInterval(register_with_database, 1000*registration_interval_seconds)
+            setInterval(snapshot_active_projects, 1000*snapshot_interval_seconds)
+            cb()
         #(cb) ->
         #    ensure_all_projects_have_a_snapshot(cb)
         #(cb) ->
