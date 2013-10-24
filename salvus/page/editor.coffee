@@ -1277,17 +1277,21 @@ class CodeMirrorEditor extends FileEditor
         @save_button.find(".spinner").hide()
 
     click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            changed = false
-            f = () -> changed = true
-            @codemirror.on 'change', f
-            @save_button.icon_spin(start:true, delay:1000)
-            @editor.save @filename, (err) =>
-                @codemirror.off(f)
-                @save_button.icon_spin(false)
-                if not err and not changed
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
+        if @_saving
+            return
+        @_saving = true
+        #if not @save_button.hasClass('disabled')
+        changed = false
+        f = () -> changed = true
+        @codemirror.on 'change', f
+        @save_button.icon_spin(start:true, delay:1000)
+        @editor.save @filename, (err) =>            
+            @codemirror.off(f)
+            @save_button.icon_spin(false)
+            @_saving = false
+            if not err and not changed
+                @save_button.addClass('disabled')
+                @has_unsaved_changes(false)
         return false
 
     init_change_event: () =>

@@ -284,8 +284,10 @@ class AbstractSynchronizedDoc extends EventEmitter
                 message : message.codemirror_write_to_disk()
                 timeout : 10
                 cb      : (err, resp) ->
-                    if err or resp.event != 'success'
-                        cb(true)
+                    if err
+                        cb(err)
+                    else if resp.event != 'success'
+                        cb(resp)
                     else
                         cb()
 
