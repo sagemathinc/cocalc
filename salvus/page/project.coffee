@@ -194,6 +194,8 @@ class ProjectPage
         if window.salvus_base_url != "" # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
 
+        @set_location()
+
         if @project.size? and @project.size
             @container.find(".project-size").text(human_readable_size(@project.size))
         else
@@ -288,6 +290,8 @@ class ProjectPage
         @init_file_sessions()
 
 
+    set_location: () =>
+        @container.find(".project-location").text(@project.location.username + "@" + @project.location.host)
 
     window_resize: () =>
         if @current_tab.name == "project-file-listing"
@@ -1567,7 +1571,7 @@ class ProjectPage
         page = @container.find(".project-activity")
         page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")
-        if window.salvus_base_url 
+        if window.salvus_base_url
             LOG_FILE = '.sagemathcloud-local.log'
         else
             LOG_FILE = '.sagemathcloud.log'
