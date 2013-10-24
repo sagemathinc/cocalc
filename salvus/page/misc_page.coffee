@@ -174,22 +174,23 @@ $.fn.icon_spin = (start) ->
         elt = $(this)
         if start
             f = () ->
-                if elt.find("i.icon-spinner").length == 0  # icon-spin
-                    elt.append("<i class=' icon-spinner' style='margin-left:1em'> </i>")
+                if elt.find("i.fa-spinner").length == 0  # fa-spin
+                    elt.append("<i class='fa fa-spinner' style='margin-left:1em'> </i>")
                     # do not do this on Chrome, where it is TOTALLY BROKEN in that it uses tons of CPU
                     # (and the font-awesome people can't work around it):
                     #    https://github.com/FortAwesome/Font-Awesome/issues/701
-                    if not $.browser.chrome
-                        elt.find("i.icon-spinner").addClass('icon-spin')
+                    #if not $.browser.chrome
+                    ## -- re-enabling soince fontawesome 4.0 is way faster.
+                    elt.find("i.fa-spinner").addClass('fa-spin')
             if delay
-                elt.data('icon-spin', setTimeout(f, delay))
+                elt.data('fa-spin', setTimeout(f, delay))
             else
                 f()
         else
-            t = elt.data('icon-spin')
+            t = elt.data('fa-spin')
             if t?
                 clearTimeout(t)
-            elt.find("i.icon-spinner").remove()
+            elt.find("i.fa-spinner").remove()
 
 
 

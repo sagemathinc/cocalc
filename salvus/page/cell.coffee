@@ -997,7 +997,7 @@ class Cell extends EventEmitter
                 layout  : '{hnn}{sep}{mnn}{sep}{snn}'
             )
             # CSS spinner effect -- cool but uses way too much CPU
-            #elt.find("i").removeClass('icon-time').addClass("icon-spinner icon-spin")
+            #elt.find("i").removeClass('fa-clock-o').addClass("fa-spinner fa-spin")
 
     stop_stopwatch: () ->
         if @opts.stopwatch
@@ -1006,7 +1006,7 @@ class Cell extends EventEmitter
                 elt = @element.find(".salvus-cell-stopwatch:first")
                 elt.removeClass('salvus-cell-stopwatch-running').find('span').countdown('pause')
                 # CSS spinner effect -- cool but uses way too much CPU
-                # elt.find("i").removeClass('icon-spin icon-spinner').addClass("icon-time")
+                # elt.find("i").removeClass('fa-spin fa-spinner').addClass("fa-clock-o")
 
     destroy_stopwatch: () ->
         if @opts.stopwatch
@@ -1014,7 +1014,7 @@ class Cell extends EventEmitter
             elt = @element.find(".salvus-cell-stopwatch")
             elt.hide().find('span').countdown('destroy')
             # CSS spinner effect -- cool but uses way too much CPU
-            # elt.find("i").removeClass('icon-spin icon-spinner').addClass("icon-time")
+            # elt.find("i").removeClass('fa-spin fa-spinner').addClass("fa-clock-o")
 
     append_to: (e) ->
         e.append(@element)

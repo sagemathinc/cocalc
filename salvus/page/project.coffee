@@ -125,7 +125,7 @@ class ProjectPage
         @container.top_navbar
             id    : @project.project_id
             label : @project.project_id
-            icon  : 'icon-edit'
+            icon  : 'fa-edit'
             onclose : () =>
                 @editor?.close_all_open_files()
                 @save_browser_local_data()
@@ -1192,7 +1192,7 @@ class ProjectPage
                     if parent == ""
                         parent = "."
                     t.data('name', parent)
-                    t.find(".project-directory-name").html("<i class='icon-reply'> </i> Parent Directory")
+                    t.find(".project-directory-name").html("<i class='fa fa-reply'> </i> Parent Directory")
                     t.find("input").hide()  # hide checkbox, etc.
                     # Clicking to open the directory
                     t.click () ->
@@ -1200,7 +1200,7 @@ class ProjectPage
                         that.update_file_list_tab()
                         return false
                     t.droppable(drop:file_dropped_on_directory, scope:'files')
-                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".icon-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
+                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     file_or_listing.append(t)
 
                 # Show the files
@@ -1231,7 +1231,7 @@ class ProjectPage
                         if ext != ''
                             t.find(".project-file-name-extension").text('.' + ext)
                             if file_associations[ext]? and file_associations[ext].icon?
-                                t.find(".project-file-icon").removeClass("icon-file").addClass(file_associations[ext].icon)
+                                t.find(".project-file-icon").removeClass("fa-file").addClass(file_associations[ext].icon)
                         if obj.mtime?
                             date = (new Date(obj.mtime*1000)).toISOString()
                             t.find(".project-file-last-mod-date").attr('title', date).timeago()
@@ -1263,7 +1263,7 @@ class ProjectPage
                         axis           : 'y'
                         scope          : 'files'
 
-                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".icon-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
+                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     # Finally add our new listing entry to the list:
                     directory_is_empty = false
                     file_or_listing.append(t)
@@ -1750,7 +1750,7 @@ class ProjectPage
         else
             @container.find(".project-settings-delete").show()
         link = @container.find("a[href=#delete-project]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -1782,7 +1782,7 @@ class ProjectPage
 
         link = @container.find("a[href=#undelete-project]")
 
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -1807,7 +1807,7 @@ class ProjectPage
 
     init_make_public: () =>
         link = @container.find("a[href=#make-public]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Public</h4>Are you sure you want to make this project public?"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Make Public</h4>Are you sure you want to make this project public?"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -1830,7 +1830,7 @@ class ProjectPage
 
     init_make_private: () =>
         link = @container.find("a[href=#make-private]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Private</h4>Are you sure you want to make this project private?"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Make Private</h4>Are you sure you want to make this project private?"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -2019,14 +2019,14 @@ class ProjectPage
         # Restart worksheet server
         link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            #link.find("i").addClass('icon-spin')
+            #link.find("i").addClass('fa-spin')
             link.icon_spin(start:true)
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
                 timeout    : 10
                 cb         : (err, output) =>
-                    #link.find("i").removeClass('icon-spin')
+                    #link.find("i").removeClass('fa-spin')
                     link.icon_spin(false)
                     if err
                         alert_message
@@ -2053,7 +2053,7 @@ class ProjectPage
                         else
                             cb(true)
                 (cb) =>
-                    #link.find("i").addClass('icon-spin')
+                    #link.find("i").addClass('fa-spin')
                     link.icon_spin(start:true)
                     alert_message
                         type    : "info"
@@ -2063,7 +2063,7 @@ class ProjectPage
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
-                    #link.find("i").removeClass('icon-spin')
+                    #link.find("i").removeClass('fa-spin')
                     link.icon_spin(false)
                     alert_message
                         type    : "success"
@@ -2088,7 +2088,7 @@ class ProjectPage
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id

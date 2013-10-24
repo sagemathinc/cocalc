@@ -237,19 +237,19 @@ open_project = (project, item) ->
             message:"WARNING: Opening project #{project.title} on a new virtual machine, which may take extra time (around 1 minute per gigabyte)."
             timeout: 30
         if item?
-            item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
+            item.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
         salvus_client.project_info
             project_id : project.project_id
             cb         : (err, info) ->
                 if err
                     alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
                     if item?
-                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
+                        item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
                     return
                 if not info.location?
                     alert_message(type:"error", message:"error opening project (missing info)", timeout:6)
                     if item?
-                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
+                        item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
                 else
                     project.location = location
                     if item?
