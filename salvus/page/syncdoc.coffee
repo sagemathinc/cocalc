@@ -303,14 +303,14 @@ class AbstractSynchronizedDoc extends EventEmitter
         # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
         # annoying having a pointless indicator of another person.
         key = mesg.color + mesg.name
-        if not @_last_cursor_pos?
-            @_last_cursor_pos = {}
+        if not @other_cursors?
+            @other_cursors = {}
         else
-            pos = @_last_cursor_pos[key]
+            pos = @other_cursors[key]
             if pos? and JSON.stringify(pos) == JSON.stringify(mesg.mesg.pos)
                 return
         # cursor moved.
-        @_last_cursor_pos[key] = mesg.mesg.pos   # record current position
+        @other_cursors[key] = mesg.mesg.pos   # record current position
         @draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
 
     draw_other_cursor: (pos, color, name) =>
@@ -759,7 +759,10 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     _save: (cb) =>
         if @editor.opts.delete_trailing_whitespace
-            @codemirror.delete_trailing_whitespace()
+            omit_lines = {}
+            for k, x of @other_cursors
+                omit_lines[x.line] = true
+            @codemirror.delete_trailing_whitespace(omit_lines:omit_lines)
         super(cb)
 
     _apply_changeObj: (changeObj) =>

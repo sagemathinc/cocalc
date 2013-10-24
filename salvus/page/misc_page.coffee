@@ -237,7 +237,9 @@ CodeMirror.defineExtension 'apply_changeObj', (changeObj) ->
         @apply_changeObj(changeObj.next)
 
 # Delete all trailing whitespace from the editor's buffer.
-CodeMirror.defineExtension 'delete_trailing_whitespace', () ->
+CodeMirror.defineExtension 'delete_trailing_whitespace', (opts={}) ->
+    opts = defaults opts,
+        omit_lines : {}
     # We *could* easily make a one-line version of this function that
     # just uses setValue.  However, that would mess up the undo
     # history (!), and potentially feel jumpy.
@@ -249,8 +251,9 @@ CodeMirror.defineExtension 'delete_trailing_whitespace', () ->
     if text1.length != text2.length
         console.log("Internal error -- there is a bug in misc.delete_trailing_whitespace; please report.")
         return
+    opts.omit_lines[pos.line] = true
     for i in [0...text1.length]
-        if i == pos.line   # very jarring to delete whitespace in line that user's cursor is in.
+        if opts.omit_lines[i]?
             continue
         if text1[i].length != text2[i].length
             obj = {from:{line:i,ch:text2[i].length}, to:{line:i,ch:text1[i].length}, text:[""]}
