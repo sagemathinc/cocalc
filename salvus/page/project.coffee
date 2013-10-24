@@ -1567,7 +1567,10 @@ class ProjectPage
         page = @container.find(".project-activity")
         page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")
-        LOG_FILE = '.sagemathcloud.log'
+        if window.salvus_base_url 
+            LOG_FILE = '.sagemathcloud-local.log'
+        else
+            LOG_FILE = '.sagemathcloud.log'
         async.series([
             (cb) =>
                 @ensure_file_exists
