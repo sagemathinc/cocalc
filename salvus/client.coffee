@@ -612,7 +612,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(err, mesg.stats)
 
-
     #################################################
     # Account Management
     #################################################
@@ -1055,7 +1054,7 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
 
 
-    stopped_editing_file: (opts) ->
+    stopped_editing_file: (opts) =>
         opts = defaults opts,
             project_id : required
             filename   : required
@@ -1065,6 +1064,29 @@ class exports.Connection extends EventEmitter
                 project_id : opts.project_id
                 filename   : opts.filename
             cb      : opts.cb
+
+    invite_noncloud_collaborators: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required
+            email      : required
+            cb         : required
+
+        @call
+            message: message.invite_noncloud_collaborators
+                project_id : opts.project_id
+                email      : opts.email
+                to         : opts.to
+            cb : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    if not resp.error
+                        resp.error = "error inviting collaborators"
+                    opts.cb(resp.error)
+                else
+                    opts.cb(false, resp)
+
 
     ######################################################################
     # Execute a program in a given project
@@ -1449,15 +1471,30 @@ class exports.Connection extends EventEmitter
 # Other account Management functionality shared between client and server
 #################################################
 
-#check = require('validator').check
+reValidEmail = (() ->
+    sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]"
+    sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]"
+    sAtom = "[^\\x00-\\x20\\x22\\x28\\x29\\x2c\\x2e\\x3a-\\x3c\\x3e\\x40\\x5b-\\x5d\\x7f-\\xff]+"
+    sQuotedPair = "\\x5c[\\x00-\\x7f]"
+    sDomainLiteral = "\\x5b(" + sDtext + "|" + sQuotedPair + ")*\\x5d"
+    sQuotedString = "\\x22(" + sQtext + "|" + sQuotedPair + ")*\\x22"
+    sDomain_ref = sAtom
+    sSubDomain = "(" + sDomain_ref + "|" + sDomainLiteral + ")"
+    sWord = "(" + sAtom + "|" + sQuotedString + ")"
+    sDomain = sSubDomain + "(\\x2e" + sSubDomain + ")*"
+    sLocalPart = sWord + "(\\x2e" + sWord + ")*"
+    sAddrSpec = sLocalPart + "\\x40" + sDomain # complete RFC822 email address spec
+    sValidEmail = "^" + sAddrSpec + "$" # as whole string
+    return new RegExp(sValidEmail)
+)()
 
 exports.is_valid_email_address = (email) ->
-    return "@" in email # TODO: currently validator disabled due to issue browserify-ing validator
-    #try
-    #    check(email).isEmail()
-    #    return true
-    #catch err
-    #    return false
+    # From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
+    # but converted to Javascript; it's near the middle but claims to be exactly RFC822.
+    if reValidEmail.test(email)
+        return true
+    else
+        return false
 
 exports.is_valid_password = (password) ->
     if password.length >= 6 and password.length <= 64

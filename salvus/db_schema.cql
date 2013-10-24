@@ -20,11 +20,12 @@ CREATE TABLE key_value (
 );
 
 CREATE TABLE compute_servers (
-    host varchar PRIMARY KEY,
+    dummy boolean,
+    host varchar,
     running boolean,
-    score int
+    score int,
+    PRIMARY KEY(dummy, host)
 );
-
 CREATE INDEX ON compute_servers (running);
 
 CREATE TABLE services (
@@ -140,6 +141,19 @@ CREATE TABLE account_log (
     event        varchar,
     value        varchar
 );
+
+
+/* If an account is created with the given email address, then the
+   given set of actions (given by JSON strings) are all taken.
+   For example, one action is {'action':'add_to_project', 'group':'collaborator', 'project_id':'xxx'}
+   */
+CREATE TABLE account_creation_actions (
+    email_address varchar PRIMARY KEY,
+    actions set<varchar>
+);
+
+
+
 
 CREATE TABLE auths (
     account_id   uuid,
@@ -298,10 +312,11 @@ CREATE TABLE recently_modified_projects (
 
 
 CREATE TABLE hub_servers (
+    dummy      boolean,    /* so fast */
     host       varchar,    /* hostname (ip address) */
     port       int,
     clients    int,        /* total number of connected clients right now */
-    PRIMARY KEY(host, port)
+    PRIMARY KEY(dummy, host, port)
 );
 
 
@@ -312,12 +327,13 @@ CREATE TABLE hub_servers (
 /* The snap servers -- entries in this table should always be inserted with a
    very small ttl (e.g., 15 seconds); the entry then gets periodically updated. */
 CREATE TABLE snap_servers (
+    dummy      boolean,   /* so all stored in same place, so "select *" query is instance instead of 10 seconds! */
     id         uuid,
     host       varchar,    /* hostname */
     port       int,        /* integer port */
     key        varchar,    /* random string needed to unlock tcp connection */
     size       int,        /* total size in kilobytes of the objects/pack directory of the archive */
-    PRIMARY KEY(id)
+    PRIMARY KEY(dummy, id)
 );
 
 

@@ -1123,6 +1123,9 @@ class Hosts(object):
             print k
             print v['stdout']
 
+    def update_hub_repos(self, parallel=True, wait=False):
+        return self('hub','cd salvus/salvus; git pull 10.1.1.3:salvus && ./make_coffee ', parallel=parallel, wait=wait)
+
     #########################################################
     # SFTP support
     #########################################################

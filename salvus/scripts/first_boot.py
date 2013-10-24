@@ -9,7 +9,8 @@ import os, socket
 
 if socket.gethostname() != "salvus-base":
     # Enable swap
-    os.system("swapon /dev/salvus-base/swap")
+    if not os.path.exists("/mnt/home/"):
+        os.system("swapon /dev/salvus-base/swap")
     # Mount tmp
     os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 

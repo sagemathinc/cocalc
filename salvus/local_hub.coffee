@@ -1242,7 +1242,7 @@ class CodeMirrorSessions
                 finish(session)
 
     add_session_to_cache: (opts) =>
-        opt = defaults opts,
+        opts = defaults opts,
             session    : required
             project_id : undefined
             timeout    : undefined   # or a time in seconds
@@ -1672,7 +1672,7 @@ start_raw_server = (cb) ->
         winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
         raw_server.configure () ->
             raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
-            raw_server.use(base, express.static(process.env.HOME))
+            raw_server.use(base, express.static(process.env.HOME, {hidden:true}))
 
         # NOTE: It is critical to only listen on the host interface, since otherwise other users
         # on the same VM could listen in.   We firewall connections from the other VM hosts above

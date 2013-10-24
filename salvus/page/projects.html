@@ -12,8 +12,9 @@
                     <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="icon-trash"></i> Deleted</button>
                 </span>
             </div>
-            <div class="span3" style="padding:1em">
-                <input class="projects-find-input search-query" type="text" placeholder="Find a project...">
+            <div class="span4" style="padding:1em">
+                <input class="projects-find-input search-query" type="search" placeholder="Find a project...">
+                <i class="projects-search-form-input-clear lighten icon-remove-circle" style="cursor:pointer; margin-left: -2em;"></i>
             </div>
         </div>
         <div class="row span10">
@@ -39,21 +40,20 @@
             <div class="span2">
                 <a href="" class="projects-title"></a>
             </div>
-            <div class="span smallish" style="width:140px;">
+            <div class="span smallish hide" style="width:140px;">
                 <span class="projects-last_edited">
                 </span>
             </div>
-            <div class="span smallish" style="width:25px;">
+            <div class="span smallish hide" style="width:25px;">
                 <span class="projects-size">
                 </span>
             </div>
             <div class="span4 projects-description"  style="margin-left:0px"></div>
+            <div class="span3 projects-users lighten"></div>
 
-            <div class="span1 projects-location small" style="margin-left:0px">
-            </div>
         </div>
 
-        <div class="projects-project-list-spinner hide"></div>
+        <div class="projects-last-spinner hide"></div>
 
         <div id="projects-project_list">
 
