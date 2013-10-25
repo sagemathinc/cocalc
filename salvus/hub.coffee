@@ -1176,6 +1176,20 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    mesg_move_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return # error handled in get_project
+            project.move_project
+                cb : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_moved(id:mesg.id, location:project.location))
+
     mesg_create_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
@@ -3555,6 +3569,10 @@ class Project
             cb         : opts.cb
         @local_hub.killall()  # might as well do this to conserve resources
 
+    move_project: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        opts.cb("not implemented yet")
 
     undelete_project: (opts) =>
         opts = defaults opts,

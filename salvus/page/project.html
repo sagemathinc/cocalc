@@ -78,6 +78,29 @@
 </div>
 
 
+
+<div class="modal hide project-move-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3><i class="fa fa-external-link-square"> </i>  Move Project to a Different Server</h3>
+    </div>
+    <div class="well">
+        If the server on which your project is running is heavily loaded or you feel it is not
+        otherwise not healthy,
+        click the "Move Project" button below to move your project to a different server.
+        This copies all files from the last snapshot, which was taken
+        <span class="project-move-last-snapshot">(loading...)</span>.
+        This will take about one minute per gigabyte of data in your project.
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-close">Cancel</button>
+        <button class="btn btn-large btn-primary btn-submit">Move Project</button>
+    </div>
+</div>
+
+
 <!-- The actual project file browser, etc., interface -->
 
 <div id="salvus-project-templates" class="hide">

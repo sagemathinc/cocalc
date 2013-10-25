@@ -189,6 +189,8 @@ class ProjectPage
         @init_add_collaborators()
         @init_add_noncloud_collaborator()
 
+        @init_move_project()
+
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
         if window.salvus_base_url != "" # TODO -- should use a better way to decide dev mode.
@@ -1884,6 +1886,28 @@ class ProjectPage
             dialog.find("form").submit(submit)
             dialog.find(".btn-submit").click(submit)
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+            return false
+
+    init_move_project: () =>
+        button = @container.find(".project-settings-move").find("a")
+        button.click () =>
+            dialog = $(".project-move-dialog").clone()
+            dialog.modal()
+            dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+            dialog.find(".btn-submit").click () =>
+                button.icon_spin(start:true)
+                dialog.modal('hide')
+                salvus_client.move_project
+                    project_id : @project.project_id
+                    cb         : (err, location) =>
+                        button.icon_spin(false)
+                        if err
+                            alert_message(type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
+                        else
+                            alert_message(message:"Successfully moved project '#{@project.title}'")
+                            @project.location = location
+                            @set_location()
+
             return false
 
     init_add_collaborators: () =>
