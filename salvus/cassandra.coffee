@@ -1512,7 +1512,7 @@ class exports.Salvus extends exports.Cassandra
     get_project_location: (opts) =>
         opts = defaults opts,
             project_id  : required
-            allow_cache : true   # if false, will always get location from database; client can use this to first try cached version and if fails, use
+            allow_cache : false # if false, will always get location from database; client can use this to first try cached version and if fails, use;  since projects can move, caching is a very bad idea. 
             cb          : required
         if not @_project_location_cache?
             @_project_location_cache = {'array':[], 'obj':{}}

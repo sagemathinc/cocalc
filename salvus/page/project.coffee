@@ -293,7 +293,11 @@ class ProjectPage
 
 
     set_location: () =>
-        @container.find(".project-location").text(@project.location.username + "@" + @project.location.host)
+        if @project.location? and @project.location.username?
+            x = @project.location.username + "@" + @project.location.host
+        else
+            x = "" 
+        @container.find(".project-location").text(x)
 
     window_resize: () =>
         if @current_tab.name == "project-file-listing"
@@ -1896,15 +1900,18 @@ class ProjectPage
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
             dialog.find(".btn-submit").click () =>
                 button.icon_spin(start:true)
+                @container.find(".project-location").text("moving...").icon_spin(start:true)
+                alert_message(timeout:3, message:"Started moving project '#{@project.title}'. This could take around 1 minute per gigabyte...")
                 dialog.modal('hide')
                 salvus_client.move_project
                     project_id : @project.project_id
                     cb         : (err, location) =>
+                        @container.find(".project-location").icon_spin(false)
                         button.icon_spin(false)
                         if err
                             alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
                         else
-                            alert_message(timeout:3, message:"Successfully moved project '#{@project.title}'")
+                            alert_message(timeout:3, message:"Moved project '#{@project.title}'...")
                             @project.location = location
                             @set_location()
 

@@ -2586,14 +2586,8 @@ new_local_hub = (opts) ->    # cb(err, hub)
             )
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@username, @host, @port, @project, cb) ->  # NOTE @project may be undefined.
+    constructor: (username, host, port, @project, cb) ->  # NOTE @project may be undefined.
         winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
-        assert @username? and @host? and @port? and cb?
-
-        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
-            # This is used when starting the local hub server daemon.
-            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
-
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
             # Do not timeout when doing development, since the enclosing project would already timeout... and
@@ -2601,6 +2595,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             # @timeout = 0  # 0 means "don't timeout"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
+        @connect(username, host, port, cb)
+
+    connect: (username, host, port, cb) =>
+        if not username? or not host? or not port?
+            cb("all of username, host, port must be defined"); return
+
+        @username = username; @host = host; @port = port
+
+        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
+            # This is used when starting the local hub server daemon.
+            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
+
         @address = "#{username}@#{host}"
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
@@ -3425,7 +3431,7 @@ get_project_location = (opts) ->
                         location = _location
                         cb()
         (cb) ->
-            if location.host == 'localhost'
+            if program.local  # SMC in SMC development...
                 # special case for development -- don't want to overwrite everything, etc.
                 cb()
                 return
@@ -3515,17 +3521,20 @@ class Project
 
             # Get a connection to the local hub
             (cb) =>
-                new_local_hub
-                    username : @location.username
-                    host     : @location.host
-                    port     : @location.port
-                    project  : @
-                    cb       : (err, hub) =>
-                        if err
-                            cb(err)
-                        else
-                            @local_hub = hub
-                            cb()
+                if @local_hub?
+                    @local_hub.connect(@location.username, @location.host, @location.port, cb)
+                else
+                    new_local_hub
+                        username : @location.username
+                        host     : @location.host
+                        port     : @location.port
+                        project  : @
+                        cb       : (err, hub) =>
+                            if err
+                                cb(err)
+                            else
+                                @local_hub = hub
+                                cb()
             # Write the project id to the local hub unix account, since it is useful to
             # have there (for various services).
             (cb) =>
