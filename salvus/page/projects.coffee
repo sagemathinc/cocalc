@@ -127,12 +127,15 @@ create_project_item = (project) ->
         item.find(".projects-private-icon").show()
         item.find(".projects-public-icon").hide()
         item.addClass("private-project").removeClass("public-project")
+
     item.find(".projects-title").text(project.title)
     #if project.host != ""
     #    item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)
-    item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
-    if project.size?
-        item.find(".projects-size").text(human_readable_size(project.size))
+
+    item.find(".projects-last_edited").attr('title', (new Date(project.last_edited)).toISOString()).timeago()
+
+    #if project.size?
+    #    item.find(".projects-size").text(human_readable_size(project.size))
 
     item.find(".projects-description").text(project.description)
 
@@ -143,7 +146,23 @@ create_project_item = (project) ->
                 if user.account_id != salvus_client.account_id
                     users.push("#{user.first_name} #{user.last_name}") # (#{group})")  # use color for group...
                     project.search += (user.first_name + ' ' + user.last_name + ' ').toLowerCase()
-    item.find(".projects-users").text(users.join(', '))
+
+    if users.length == 0
+        u = ''
+    else
+        u = users.join(', ') + ','
+    item.find(".projects-users-list").text(u)
+
+    item.find("a[href=#projects-add-users]").click () =>
+        proj = open_project(project, item)
+        proj.display_tab('project-settings')
+        proj.container.find(".project-add-collaborator-input").focus()
+        collab = proj.container.find(".project-collaborators-box")
+        collab.css(border:'2px solid red')
+        setTimeout((()->collab.css(border:'')), 5000)
+        collab.css('box-shadow':'8px 8px 4px #888')
+        setTimeout((()->collab.css('box-shadow':'')), 5000)
+        return false
 
     if not project.location  # undefined or empty string
         item.find(".projects-location").append(template_project_stored.clone())
@@ -161,10 +180,7 @@ create_project_item = (project) ->
         item.find(".projects-location").text(d)
     ###
     item.click (event) ->
-        #try
         open_project(project, item)
-        #catch e
-        #    console.log(e)
         return false
 
 
@@ -225,17 +241,14 @@ update_project_view = (show_all=false) ->
 open_project = (project, item) ->
     #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
     #    alert_message(type:"warning", message:"Please close a project before opening more projects.")
-    f = () ->
-        project_page(project)
-        top_navbar.switch_to_page(project.project_id)
+    proj = project_page(project)
+    top_navbar.switch_to_page(project.project_id)
 
-    if project.location? and project.location != "deploying"
-        f()
-    else
+    if not (project.location? and project.location != "deploying")
         alert_message
             type:"info"
             message:"WARNING: Opening project #{project.title} on a new virtual machine, which may take extra time (around 1 minute per gigabyte)."
-            timeout: 30
+            timeout: 10
         if item?
             item.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
         salvus_client.project_info
@@ -254,7 +267,7 @@ open_project = (project, item) ->
                     project.location = location
                     if item?
                         item.find(".projects-location").text("")
-                    f()
+    return proj
 
 
 ################################################

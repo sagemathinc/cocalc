@@ -45,8 +45,14 @@
 }
 
 .project-collaborators {
-    margin-left: 1.5em;
     line-height: 2.2em;
+    max-height: 13em;
+    overflow-y: auto;
+    border: 1px solid grey;
+    border-radius: 4px;
+    margin-left: 2em;
+    margin-top: 1em;
+    background-color: #eee;
 }
 
 .project-file-listing-current_path {

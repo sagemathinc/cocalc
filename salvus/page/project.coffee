@@ -1997,7 +1997,6 @@ class ProjectPage
             for y in select.find(":selected")
                 x = $(y)
                 name = x.attr('label')
-                console.log("name = ", name)
                 salvus_client.project_invite_collaborator
                     project_id : @project.project_id
                     account_id : x.attr("value")
