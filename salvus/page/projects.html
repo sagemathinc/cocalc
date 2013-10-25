@@ -7,14 +7,14 @@
             <div class="span4" style="padding-top:1ex;padding-bottom:1ex">
                 <span class="btn-group">
                     <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
-                    <button class="btn btn-info btn-small" id="projects-public-button"><i class="icon-eye-open"></i> Public</button>
-                    <button class="btn btn-info btn-small" id="projects-private-button"><i class="icon-eye-close"></i> Private</button>
-                    <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="icon-trash"></i> Deleted</button>
+                    <button class="btn btn-info btn-small" id="projects-public-button"><i class="fa fa-eye"></i> Public</button>
+                    <button class="btn btn-info btn-small" id="projects-private-button"><i class="fa fa-eye-slash"></i> Private</button>
+                    <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="fa fa-trash-o"></i> Deleted</button>
                 </span>
             </div>
             <div class="span4" style="padding:1em">
                 <input class="projects-find-input search-query" type="search" placeholder="Find a project...">
-                <i class="projects-search-form-input-clear lighten icon-remove-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                <i class="projects-search-form-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
             </div>
         </div>
         <div class="row span10">
@@ -32,25 +32,30 @@
 
 
         <div class="row span10 well well-small  project-link hide" id="projects-project_list_item_template">
-            <div class="span" style="width: 50px; margin-left:0px;">
-                <i class="icon-eye-open projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <i class="icon-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-                <!--<span class="projects-active hide"><i class="icon-bolt"> </i></span>-->
+            <div class="row-fluid">
+                <div class="span1" >
+                    <i class="fa fa-eye projects-public-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <i class="fa fa-lock projects-private-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
+                    <!--<span class="projects-active hide"><i class="fa fa-bolt"> </i></span>-->
+                </div>
+                <div class="span3">
+                    <a href="" class="projects-title"></a>
+                </div>
+                <div class="span2 smallish">
+                    <span class="projects-last_edited">
+                    </span>
+                </div>
+                <!--<div class="span smallish hide" style="width:25px;">
+                    <span class="projects-size">
+                    </span>
+                </div>-->
+                <div class="span3 projects-description"  style="margin-left:0px"></div>
+                <div class="span3 projects-users">
+                    <span class="projects-users-list lighten">
+                    </span>
+                    <a href="#projects-add-users"><i class="fa fa-plus-circle"></i> add</a>
+                </div>
             </div>
-            <div class="span2">
-                <a href="" class="projects-title"></a>
-            </div>
-            <div class="span smallish hide" style="width:140px;">
-                <span class="projects-last_edited">
-                </span>
-            </div>
-            <div class="span smallish hide" style="width:25px;">
-                <span class="projects-size">
-                </span>
-            </div>
-            <div class="span4 projects-description"  style="margin-left:0px"></div>
-            <div class="span3 projects-users lighten"></div>
-
         </div>
 
         <div class="projects-last-spinner hide"></div>
@@ -70,8 +75,8 @@
 </div>
 
 <div class="hide projects-location-states">
-    <span class="projects-location-deploying"><i class='icon-spinner icon-spin'> </i>restoring...</span>
-    <span class="projects-location-stored"><i class='icon-archive'> </i>stored</span>
+    <span class="projects-location-deploying"><i class='fa fa-spinner fa fa-spin'> </i>restoring...</span>
+    <span class="projects-location-stored"><i class='fa fa-archive'> </i>stored</span>
 </div>
 
 <!-- Create new project -->
@@ -107,12 +112,12 @@
             <hr class="big-only">
             <label class="radio">
                 <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
-                <span style="font-size:14pt; font-weight:bold"><i class="icon-eye-open"></i> Public</span><br>
+                <span style="font-size:14pt; font-weight:bold"><i class="fa fa-eye"></i> Public</span><br>
                 <span class="big-only lighten">Anyone can see the contents of this project. You choose who can modify it.</span>
             </label>
             <label class="radio">
                 <input type="radio" name="projects-create_project-public" value="private">
-                <span style="font-size:14pt; font-weight:bold"><i class="icon-lock"></i> Private</span><br>
+                <span style="font-size:14pt; font-weight:bold"><i class="fa fa-lock"></i> Private</span><br>
                 <span class="big-only lighten">You choose who can see and modify contents of this project.</span>
             </label>
         </div>

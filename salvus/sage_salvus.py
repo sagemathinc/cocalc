@@ -747,7 +747,7 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
       are 'ex'.  A string that specifies any valid HTML units (e.g., '100px', '3em')
       is also allowed [SALVUS only].
     - ``icon`` -- None or string name of any icon listed at the font
-      awesome website (http://fortawesome.github.com/Font-Awesome/), e.g., 'icon-repeat'
+      awesome website (http://fortawesome.github.com/Font-Awesome/), e.g., 'fa-repeat'
 
     EXAMPLES::
 
@@ -762,8 +762,8 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
     Some buttons with icons::
 
         @interact
-        def f(n=button('repeat', icon='icon-repeat'),
-              m=button('see?', icon="icon-eye-open", classes="btn-large")):
+        def f(n=button('repeat', icon='fa-repeat'),
+              m=button('see?', icon="fa-eye", classes="btn-large")):
             print interact.changed()
     """
     return control(
@@ -887,8 +887,8 @@ def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
     Squaring an editable and randomizable matrix::
 
         @interact
-        def f(reset  = button('Randomize', classes="btn-primary", icon="icon-th"),
-              square = button("Square", icon="icon-external-link"),
+        def f(reset  = button('Randomize', classes="btn-primary", icon="fa-th"),
+              square = button("Square", icon="fa-external-link"),
               m      = input_grid(4,4,default=0, width=5, label="m =", to_value=matrix)):
             if 'reset' in interact.changed():
                 print "randomize"
@@ -1564,7 +1564,7 @@ def cython(code=None, **kwds):
             html_filename = os.path.join(path, n)
     if html_filename is not None:
         html_url = salvus.file(html_filename, show=False)
-        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code &nbsp;<i class='icon-external-link'></i></a>"%html_url)
+        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code &nbsp;<i class='fa fa-external-link'></i></a>"%html_url)
 
 cython.__doc__ += sage.misc.cython.cython.__doc__
 
@@ -2304,7 +2304,7 @@ def exercise(code):
 
     the_times = []
     @interact(layout=[[('go',1), ('title',11,'')],[('')], [('times',12, "<b>Times:</b>")]], flicker=True)
-    def h(go    = button("&nbsp;"*5 + "Go" + "&nbsp;"*7, label='', icon='icon-refresh', classes="btn-large btn-success"),
+    def h(go    = button("&nbsp;"*5 + "Go" + "&nbsp;"*7, label='', icon='fa-refresh', classes="btn-large btn-success"),
           title = title_control(title),
           times = text_control('')):
         c = interact.changed()

@@ -209,6 +209,7 @@ class AbstractSynchronizedDoc extends EventEmitter
 
     __diffsync_ready: (mesg) =>
         if mesg.session_uuid == @session_uuid
+            @_patch_moved_cursor = true
             @sync()
 
     send_broadcast_message: (mesg, self) =>
@@ -283,8 +284,10 @@ class AbstractSynchronizedDoc extends EventEmitter
                 message : message.codemirror_write_to_disk()
                 timeout : 10
                 cb      : (err, resp) ->
-                    if err or resp.event != 'success'
-                        cb(true)
+                    if err
+                        cb(err)
+                    else if resp.event != 'success'
+                        cb(resp)
                     else
                         cb()
 
@@ -297,21 +300,22 @@ class AbstractSynchronizedDoc extends EventEmitter
         salvus_client.call(opts)
 
     broadcast_cursor_pos: (pos) =>
-        @send_broadcast_message({event:'cursor', pos:pos}, false)
+        @send_broadcast_message({event:'cursor', pos:pos, patch_moved_cursor:@_patch_moved_cursor}, false)
+        delete @_patch_moved_cursor
 
     _receive_cursor: (mesg) =>
         # If the cursor has moved, draw it.  Don't bother if it hasn't moved, since it can get really
         # annoying having a pointless indicator of another person.
         key = mesg.color + mesg.name
-        if not @_last_cursor_pos?
-            @_last_cursor_pos = {}
+        if not @other_cursors?
+            @other_cursors = {}
         else
-            pos = @_last_cursor_pos[key]
+            pos = @other_cursors[key]
             if pos? and JSON.stringify(pos) == JSON.stringify(mesg.mesg.pos)
                 return
         # cursor moved.
-        @_last_cursor_pos[key] = mesg.mesg.pos   # record current position
-        @draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name)
+        @other_cursors[key] = mesg.mesg.pos   # record current position
+        @draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name, mesg.mesg.patch_moved_cursor)
 
     draw_other_cursor: (pos, color, name) =>
         # overload this in derived class
@@ -580,8 +584,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     init_cursorActivity_event: () =>
         @codemirror.on 'cursorActivity', (instance) =>
-            if not @_syncing
-                @send_cursor_info_to_hub_soon()
+            @send_cursor_info_to_hub_soon()
             @editor.local_storage('cursor', @codemirror.getCursor())
 
     init_chat: () =>
@@ -730,7 +733,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
 
     # Move the cursor with given color to the given pos.
-    draw_other_cursor: (pos, color, name) =>
+    draw_other_cursor: (pos, color, name, patch_moved_cursor) =>
         if not @codemirror?
             return
         if not @_cursors?
@@ -750,16 +753,20 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         else
             cursor_data.pos = pos
 
-        # first fade the label out
-        cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
-        # Then fade the cursor out (a non-active cursor is a waste of space).
-        cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
+        if not patch_moved_cursor  # only restart cursor fade out if user initiated.
+            # first fade the label out
+            cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
+            # Then fade the cursor out (a non-active cursor is a waste of space).
+            cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
 
     _save: (cb) =>
         if @editor.opts.delete_trailing_whitespace
-            @codemirror.delete_trailing_whitespace()
+            omit_lines = {}
+            for k, x of @other_cursors
+                omit_lines[x.line] = true
+            @codemirror.delete_trailing_whitespace(omit_lines:omit_lines)
         super(cb)
 
     _apply_changeObj: (changeObj) =>

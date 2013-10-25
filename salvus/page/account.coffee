@@ -15,7 +15,7 @@ required = defaults.required
 
 set_account_tab_label = (signed_in, email_address) ->
     if signed_in
-        top_navbar.pages['account'].icon = 'icon-cog'
+        top_navbar.pages['account'].icon = 'fa-cog'
         top_navbar.set_button_label("account", email_address)
 
     else
@@ -784,7 +784,7 @@ version_check = () ->
             if not err and server_version > client_version
                 $(".salvus_client_version_warning").show()
 
-$(".salvus_client_version_warning").draggable().find(".icon-remove").click () ->
+$(".salvus_client_version_warning").draggable().find(".fa-times").click () ->
     $(".salvus_client_version_warning").hide()
 
 

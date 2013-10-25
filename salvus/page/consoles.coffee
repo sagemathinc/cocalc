@@ -12,8 +12,8 @@ async = require("async")
 templates = $("#salvus-consoles-templates")
 
 icons =
-    worksheet : 'icon-file-alt'
-    console   : 'icon-credit-card'
+    worksheet : 'fa-file-o'
+    console   : 'fa-credit-card'
 
 class FilenameTab
     constructor: () ->

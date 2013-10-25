@@ -81,37 +81,37 @@ for ext, mode of codemirror_associations
 
 file_associations['tex'] =
     editor : 'latex'
-    icon   : 'icon-edit'
+    icon   : 'fa-edit'
     opts   : {mode:'stex', indent_unit:4, tab_size:4}
 
 file_associations['html'] =
     editor : 'codemirror'
-    icon   : 'icon-edit'
+    icon   : 'fa-edit'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
 file_associations['css'] =
     editor : 'codemirror'
-    icon   : 'icon-edit'
+    icon   : 'fa-edit'
     opts   : {mode:'css', indent_unit:4, tab_size:4}
 
 file_associations['sage-terminal'] =
     editor : 'terminal'
-    icon   : 'icon-credit-card'
+    icon   : 'fa-credit-card'
     opts   : {}
 
 file_associations['term'] =
     editor : 'terminal'
-    icon   : 'icon-credit-card'
+    icon   : 'fa-credit-card'
     opts   : {}
 
 file_associations['ipynb'] =
     editor : 'ipynb'
-    icon   : 'icon-list-ul'
+    icon   : 'fa-list-ul'
     opts   : {}
 
 file_associations['sage-worksheet'] =
     editor : 'worksheet'
-    icon   : 'icon-list-ul'
+    icon   : 'fa-list-ul'
     opts   : {}
 
 file_associations['sage-spreadsheet'] =
@@ -1277,17 +1277,21 @@ class CodeMirrorEditor extends FileEditor
         @save_button.find(".spinner").hide()
 
     click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            changed = false
-            f = () -> changed = true
-            @codemirror.on 'change', f
-            @save_button.icon_spin(start:true, delay:1000)
-            @editor.save @filename, (err) =>
-                @codemirror.off(f)
-                @save_button.icon_spin(false)
-                if not err and not changed
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
+        if @_saving
+            return
+        @_saving = true
+        #if not @save_button.hasClass('disabled')
+        changed = false
+        f = () -> changed = true
+        @codemirror.on 'change', f
+        @save_button.icon_spin(start:true, delay:1000)
+        @editor.save @filename, (err) =>            
+            @codemirror.off(f)
+            @save_button.icon_spin(false)
+            @_saving = false
+            if not err and not changed
+                @save_button.addClass('disabled')
+                @has_unsaved_changes(false)
         return false
 
     init_change_event: () =>
