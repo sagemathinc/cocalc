@@ -3370,6 +3370,7 @@ get_project_location = (opts) ->
 
     error = true
     location = undefined
+    unset_project_location = false
 
     async.series([
         (cb) ->
@@ -3403,6 +3404,7 @@ get_project_location = (opts) ->
                     else
                         cb() # more to do
         (cb) ->
+            unset_project_location = true
             database.set_project_location
                 project_id : opts.project_id
                 location   : "deploying"
@@ -3417,11 +3419,16 @@ get_project_location = (opts) ->
                             project_id : opts.project_id
                             location   : ""
                             cb         : () =>
+                                unset_project_location = false
                                 cb("project location not defined -- and allocating new one led to error -- #{err}")
                     else
                         location = _location
                         cb()
         (cb) ->
+            if location.host == 'localhost'
+                # special case for development -- don't want to overwrite everything, etc.
+                cb()
+                return
             # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
             # hence blocks letting the user do other things with the project.   I tried not locking
             # on this and it is confusing (and terrifying!) as a user to see "no files" at the beginning.
@@ -3446,12 +3453,14 @@ get_project_location = (opts) ->
                     if loc == "deploying"
                         # Contents in database are as expected (no race); we set new location.
                         # Finally set the project location.
+                        unset_project_location = false
                         database.set_project_location
                             project_id : opts.project_id
                             location   : location
                             cb         : cb
                     else
                         winston.debug("Project #{opts.project_id} somehow magically got deployed by another hub.")
+                        unset_project_location = false
                         # Let other project win.
                         # We absolutely don't want two hubs simultaneously believing a project
                         # is in two locations, since that would potentially lead to data loss
@@ -3462,6 +3471,12 @@ get_project_location = (opts) ->
                         location = loc
                         cb()
         ], (err) ->
+            if unset_project_location
+                database.set_project_location
+                    project_id : opts.project_id
+                    location   : ""
+                    cb         : cb
+
             if err  # early termination of above steps
                 if error   # genuine error -- just report it
                     opts.cb?(error, err)
@@ -3484,6 +3499,9 @@ class Project
             @SAGEMATHCLOUD = ".sagemathcloud-local"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
+        @deploy(cb)
+
+    deploy: (cb) =>
         async.series([
             (cb) =>
                 winston.debug("Getting project #{@project_id} location.")
@@ -3572,7 +3590,15 @@ class Project
     move_project: (opts) =>
         opts = defaults opts,
             cb : undefined
-        opts.cb("not implemented yet")
+        async.series([
+            (cb) =>
+                database.set_project_location
+                    project_id  : @project_id
+                    location    : ""
+                    cb          : cb
+            (cb) =>
+                @deploy(cb)
+        ], opts.cb)
 
     undelete_project: (opts) =>
         opts = defaults opts,

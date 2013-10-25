@@ -1902,9 +1902,9 @@ class ProjectPage
                     cb         : (err, location) =>
                         button.icon_spin(false)
                         if err
-                            alert_message(type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
+                            alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
                         else
-                            alert_message(message:"Successfully moved project '#{@project.title}'")
+                            alert_message(timeout:3, message:"Successfully moved project '#{@project.title}'")
                             @project.location = location
                             @set_location()
 
