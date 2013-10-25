@@ -3481,7 +3481,6 @@ get_project_location = (opts) ->
                 database.set_project_location
                     project_id : opts.project_id
                     location   : ""
-                    cb         : cb
 
             if err  # early termination of above steps
                 if error   # genuine error -- just report it
