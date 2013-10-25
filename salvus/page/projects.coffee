@@ -150,10 +150,10 @@ create_project_item = (project) ->
     if users.length == 0
         u = ''
     else
-        u = users.join(', ') + ','
+        u = '  ' + users.join(', ')
     item.find(".projects-users-list").text(u)
 
-    item.find("a[href=#projects-add-users]").click () =>
+    item.find(".projects-users").click () =>
         proj = open_project(project, item)
         proj.display_tab('project-settings')
         proj.container.find(".project-add-collaborator-input").focus()

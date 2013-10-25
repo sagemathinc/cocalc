@@ -106,7 +106,7 @@ file_associations['term'] =
 
 file_associations['ipynb'] =
     editor : 'ipynb'
-    icon   : 'fa-list-ul'
+    icon   : 'fa-list-alt'
     opts   : {}
 
 file_associations['sage-worksheet'] =
@@ -1285,7 +1285,7 @@ class CodeMirrorEditor extends FileEditor
         f = () -> changed = true
         @codemirror.on 'change', f
         @save_button.icon_spin(start:true, delay:1000)
-        @editor.save @filename, (err) =>            
+        @editor.save @filename, (err) =>
             @codemirror.off(f)
             @save_button.icon_spin(false)
             @_saving = false
