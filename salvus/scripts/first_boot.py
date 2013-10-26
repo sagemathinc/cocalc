@@ -38,7 +38,7 @@ if os.path.exists('/mnt/home/'):
         os.system("mkdir -p /mnt/home/etc/")
 
     # Store crontabs in persistent storage, so they don't vanish on VM restart
-    if not os.path.exists('/mnt/home/crontabs/')
+    if not os.path.exists("/mnt/home/crontabs/"):
         os.system("mkdir -p /mnt/home/crontabs/; chgrp crontab /mnt/home/crontabs; chmod 1730 /mnt/home/crontabs")
     os.system("cd /var/spool/cron/; rm -rf crontabs; ln -s /mnt/home/crontabs .")
 
