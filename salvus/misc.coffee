@@ -475,6 +475,15 @@ exports.ensure_string_ends_in_newlines = (s, n) ->
 exports.PROJECT_GROUPS = ['owner', 'collaborator', 'viewer', 'invited_collaborator', 'invited_viewer']
 
 
+# turn an arbitrary string into a nice clean identifier that can safely be used in an URL
+exports.make_valid_name = (s) ->
+    # for now we just delete anything that isn't alphanumeric.
+    # See http://stackoverflow.com/questions/9364400/remove-not-alphanumeric-characters-from-string-having-trouble-with-the-char/9364527#9364527
+    # whose existence surprised me!
+    return s.replace(/\W/g, '').toLowerCase()
+
+
+
 
 
 

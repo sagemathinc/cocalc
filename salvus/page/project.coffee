@@ -134,6 +134,7 @@ class ProjectPage
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
+                    @push_state()
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -291,12 +292,21 @@ class ProjectPage
 
         @init_file_sessions()
 
+    push_state: (url) =>
+        if not url?
+            url = @_last_history_state
+        if not url?
+            url = ''
+        @_last_history_state = url
+        if @project.name? and @project.owner?
+            username = misc.make_valid_name(@project.owner[0].first_name + @project.owner[0].last_name)
+            window.history.pushState("", "", window.salvus_base_url + '/' + username + '/' + @project.name + '/' + url)
 
     set_location: () =>
         if @project.location? and @project.location.username?
             x = @project.location.username + "@" + @project.location.host
         else
-            x = "" 
+            x = ""
         @container.find(".project-location").text(x)
 
     window_resize: () =>
@@ -740,12 +750,18 @@ class ProjectPage
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.push_state('new')
                     that.show_new_file_tab()
+            else if name == "project-activity"
+                tab.onshow = () ->
+                    that.push_state('log')
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.push_state('settings')
                     that.update_topbar()
             else if name == "project-search"
                 tab.onshow = () ->
+                    that.push_state('search')
                     that.container.find(".project-search-form-input").focus()
 
         @display_tab("project-file-listing")
@@ -1123,6 +1139,8 @@ class ProjectPage
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
         path = @current_path.join('/')
+        @push_state('files' + '/' + path)
+
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path

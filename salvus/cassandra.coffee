@@ -1913,6 +1913,11 @@ class exports.Salvus extends exports.Cassandra
                 if error
                     opts.cb(error)
                 else
+
+                    for r in results
+                        # fill in a default name for the project -- used in the URL
+                        if not r.name and r.title?
+                            r.name = misc.make_valid_name(r.title)
                     opts.cb(false, results)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)

@@ -28,6 +28,7 @@ set_account_tab_label = (signed_in, email_address) ->
 account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/settings')
     if not @account_id?
         $("#sign_in-email").focus()
 
@@ -418,6 +419,9 @@ class AccountSettings
 
     fullname: () =>
         return @settings.first_name + " " + @settings.last_name
+
+    username: () =>
+        return misc.make_valid_name(@fullname())
 
     load_from_view: () ->
         if not @settings? or @settings == "error"

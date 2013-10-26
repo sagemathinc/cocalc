@@ -10,10 +10,15 @@
 misc            = require('misc')
 {project_page}  = require('project')
 {human_readable_size} = require('misc_page')
+{account_settings} = require('account')
 
 top_navbar.on "switch_to_page-projects", () ->
+
+    window.history.pushState("", "", window.salvus_base_url + '/' + account_settings.username() + '/')
+
     update_project_list?()
     $(".projects-find-input").focus()
+
 
 project_list = undefined
 compute_search_data = () ->
