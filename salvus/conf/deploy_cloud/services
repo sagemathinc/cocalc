@@ -1,13 +1,13 @@
 # services
-base = 'salvus-2013-10-21-1058'
+base = 'salvus-2013-10-25-2046'
 
 cassandra_ram = 8
-cassandra_cpu = 4
+cassandra_cpu = 2
 
 web_ram       = 8
-web_cpu       = 4
+web_cpu       = 2
 
-compute_ram   = 40
+compute_ram   = 48
 compute_cpu   = 12
 
 [vm]
