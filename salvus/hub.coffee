@@ -179,6 +179,12 @@ init_http_server = () ->
                         res.writeHead(200, header)
                         res.end(data, 'utf-8')
 
+            when 'projects', 'help', 'settings'
+                res.writeHead(302, {
+                  'Location': program.base_url + '/#' +  segments.slice(1).join('/')
+                })
+                res.end()
+
             when "upload"
                 # See https://github.com/felixge/node-formidable
                 if req.method == "POST"
@@ -1175,6 +1181,20 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.success(id:mesg.id))
+
+    mesg_move_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return # error handled in get_project
+            project.move_project
+                cb : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_moved(id:mesg.id, location:project.location))
 
     mesg_create_project: (mesg) =>
         if not @account_id?
@@ -2572,14 +2592,8 @@ new_local_hub = (opts) ->    # cb(err, hub)
             )
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@username, @host, @port, @project, cb) ->  # NOTE @project may be undefined.
+    constructor: (username, host, port, @project, cb) ->  # NOTE @project may be undefined.
         winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
-        assert @username? and @host? and @port? and cb?
-
-        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
-            # This is used when starting the local hub server daemon.
-            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
-
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
             # Do not timeout when doing development, since the enclosing project would already timeout... and
@@ -2587,6 +2601,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             # @timeout = 0  # 0 means "don't timeout"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
+        @connect(username, host, port, cb)
+
+    connect: (username, host, port, cb) =>
+        if not username? or not host? or not port?
+            cb("all of username, host, port must be defined"); return
+
+        @username = username; @host = host; @port = port
+
+        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
+            # This is used when starting the local hub server daemon.
+            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
+
         @address = "#{username}@#{host}"
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
@@ -3356,6 +3382,7 @@ get_project_location = (opts) ->
 
     error = true
     location = undefined
+    unset_project_location = false
 
     async.series([
         (cb) ->
@@ -3389,6 +3416,7 @@ get_project_location = (opts) ->
                     else
                         cb() # more to do
         (cb) ->
+            unset_project_location = true
             database.set_project_location
                 project_id : opts.project_id
                 location   : "deploying"
@@ -3403,11 +3431,16 @@ get_project_location = (opts) ->
                             project_id : opts.project_id
                             location   : ""
                             cb         : () =>
+                                unset_project_location = false
                                 cb("project location not defined -- and allocating new one led to error -- #{err}")
                     else
                         location = _location
                         cb()
         (cb) ->
+            if program.local  # SMC in SMC development...
+                # special case for development -- don't want to overwrite everything, etc.
+                cb()
+                return
             # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
             # hence blocks letting the user do other things with the project.   I tried not locking
             # on this and it is confusing (and terrifying!) as a user to see "no files" at the beginning.
@@ -3432,12 +3465,14 @@ get_project_location = (opts) ->
                     if loc == "deploying"
                         # Contents in database are as expected (no race); we set new location.
                         # Finally set the project location.
+                        unset_project_location = false
                         database.set_project_location
                             project_id : opts.project_id
                             location   : location
                             cb         : cb
                     else
                         winston.debug("Project #{opts.project_id} somehow magically got deployed by another hub.")
+                        unset_project_location = false
                         # Let other project win.
                         # We absolutely don't want two hubs simultaneously believing a project
                         # is in two locations, since that would potentially lead to data loss
@@ -3448,6 +3483,11 @@ get_project_location = (opts) ->
                         location = loc
                         cb()
         ], (err) ->
+            if unset_project_location
+                database.set_project_location
+                    project_id : opts.project_id
+                    location   : ""
+
             if err  # early termination of above steps
                 if error   # genuine error -- just report it
                     opts.cb?(error, err)
@@ -3470,6 +3510,9 @@ class Project
             @SAGEMATHCLOUD = ".sagemathcloud-local"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
+        @deploy(cb)
+
+    deploy: (cb) =>
         async.series([
             (cb) =>
                 winston.debug("Getting project #{@project_id} location.")
@@ -3483,17 +3526,20 @@ class Project
 
             # Get a connection to the local hub
             (cb) =>
-                new_local_hub
-                    username : @location.username
-                    host     : @location.host
-                    port     : @location.port
-                    project  : @
-                    cb       : (err, hub) =>
-                        if err
-                            cb(err)
-                        else
-                            @local_hub = hub
-                            cb()
+                if @local_hub?
+                    @local_hub.connect(@location.username, @location.host, @location.port, cb)
+                else
+                    new_local_hub
+                        username : @location.username
+                        host     : @location.host
+                        port     : @location.port
+                        project  : @
+                        cb       : (err, hub) =>
+                            if err
+                                cb(err)
+                            else
+                                @local_hub = hub
+                                cb()
             # Write the project id to the local hub unix account, since it is useful to
             # have there (for various services).
             (cb) =>
@@ -3555,6 +3601,18 @@ class Project
             cb         : opts.cb
         @local_hub.killall()  # might as well do this to conserve resources
 
+    move_project: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        async.series([
+            (cb) =>
+                database.set_project_location
+                    project_id  : @project_id
+                    location    : ""
+                    cb          : cb
+            (cb) =>
+                @deploy(cb)
+        ], opts.cb)
 
     undelete_project: (opts) =>
         opts = defaults opts,

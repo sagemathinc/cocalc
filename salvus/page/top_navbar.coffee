@@ -6,7 +6,7 @@ $(document).on 'keydown', (ev) =>
     #console.log(ev)
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79    # ctrl (or meta) o.
         return false
-    if (ev.altKey and ev.ctrlKey) and ev.keyCode == 70    # ctrl-alt-f = fullscreen
+    if (ev.altKey and ev.ctrlKey) and ev.keyCode == 70    # ctrl-o-f = fullscreen
         toggle_fullscreen()
         return false
 
@@ -40,7 +40,7 @@ class TopNavbar  extends EventEmitter
             onshow        : undefined  # called if defined right after page is shown
             onblur        : undefined  # called if defined right after page is blured
             onfullscreen  : undefined  # called with onfullscreen(true or false) when switching to fullscreen (true) or out (false).
-            icon          : undefined      # something like 'icon-globe'
+            icon          : undefined      # something like 'fa-globe'
 
         button  = @button_template.clone()
         divider = @divider_template.clone()
@@ -77,7 +77,7 @@ class TopNavbar  extends EventEmitter
         if not icon? and @pages[id]?.icon?
             icon = @pages[id].icon
         if icon?
-            label = "<i class='#{icon}' style='font-size:20px'> </i> " + label
+            label = "<i class='fa #{icon}' style='font-size:20px'> </i> " + label
         button = @pages[id].button
         a = button.find("a")
         a.find(".button-label").html(label)# + " &raquo;")
@@ -193,7 +193,7 @@ $.fn.extend
 $("#salvus-help").top_navbar
     id      : "salvus-help"
     label   : "Help"
-    icon : 'icon-question-sign'
+    icon : 'fa-question-circle'
     close   : false
     onshow: () -> document.title = "Sagemath - Help"
 
@@ -203,7 +203,7 @@ $("#about").top_navbar
     id      : "about"
     label   : "SageMathCloud&trade;"
     #label : ''
-    icon : 'icon-cloud'
+    icon : 'fa-cloud'
     #pull_right : true
     close   : false
 ###
@@ -212,7 +212,7 @@ $("#about").top_navbar
 $(".salvus-explore").top_navbar
     id      : "explorer"
     label   : "Explore"
-    icon : 'icon-globe'
+    icon : 'fa-globe'
     close   : false
 ###
 
@@ -220,7 +220,7 @@ $("#projects").top_navbar
     id      : "projects"
     #'class' : 'navbar-big'
     label   : "Projects"
-    icon : 'icon-tasks'
+    icon : 'fa-tasks'
     close   : false
     onshow: () -> document.title = "Sagemath - Projects"
 
@@ -229,7 +229,7 @@ $("#account").top_navbar
     label  : "Sign in"
     pull_right : true
     close   : false
-    icon : 'icon-signin'
+    icon : 'fa-signin'
     onshow: () -> document.title = "Sagemath - Account"
 
 #$("#worksheet2").top_navbar

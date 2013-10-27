@@ -10,10 +10,13 @@
 misc            = require('misc')
 {project_page}  = require('project')
 {human_readable_size} = require('misc_page')
+{account_settings} = require('account')
 
 top_navbar.on "switch_to_page-projects", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/projects')
     update_project_list?()
     $(".projects-find-input").focus()
+
 
 project_list = undefined
 compute_search_data = () ->
@@ -24,7 +27,7 @@ compute_search_data = () ->
 
 project_list_spinner = $("#projects").find(".projects-project-list-spinner")
 
-update_project_list = exports.update_project_list = () ->
+update_project_list = exports.update_project_list = (cb) ->
 
     timer = setTimeout( (() -> project_list_spinner.show().spin()), 2500 )
 
@@ -44,8 +47,12 @@ update_project_list = exports.update_project_list = () ->
                 #        project_list = misc.from_json(x)
 
             if project_list?
+                for p in project_list
+                    p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
                 compute_search_data()
                 update_project_view()
+
+            cb?()
 
 
 
@@ -127,12 +134,15 @@ create_project_item = (project) ->
         item.find(".projects-private-icon").show()
         item.find(".projects-public-icon").hide()
         item.addClass("private-project").removeClass("public-project")
+
     item.find(".projects-title").text(project.title)
     #if project.host != ""
     #    item.find(".projects-active").show().tooltip(title:"This project is opened, so you can access it quickly, search it, etc.", placement:"top", delay:500)
-    item.find(".projects-last_edited").attr('title', project.last_edited).timeago()
-    if project.size?
-        item.find(".projects-size").text(human_readable_size(project.size))
+
+    item.find(".projects-last_edited").attr('title', (new Date(project.last_edited)).toISOString()).timeago()
+
+    #if project.size?
+    #    item.find(".projects-size").text(human_readable_size(project.size))
 
     item.find(".projects-description").text(project.description)
 
@@ -143,7 +153,23 @@ create_project_item = (project) ->
                 if user.account_id != salvus_client.account_id
                     users.push("#{user.first_name} #{user.last_name}") # (#{group})")  # use color for group...
                     project.search += (user.first_name + ' ' + user.last_name + ' ').toLowerCase()
-    item.find(".projects-users").text(users.join(', '))
+
+    if users.length == 0
+        u = ''
+    else
+        u = '  ' + users.join(', ')
+    item.find(".projects-users-list").text(u)
+
+    item.find(".projects-users").click () =>
+        proj = open_project(project, item)
+        proj.display_tab('project-settings')
+        proj.container.find(".project-add-collaborator-input").focus()
+        collab = proj.container.find(".project-collaborators-box")
+        collab.css(border:'2px solid red')
+        setTimeout((()->collab.css(border:'')), 5000)
+        collab.css('box-shadow':'8px 8px 4px #888')
+        setTimeout((()->collab.css('box-shadow':'')), 5000)
+        return false
 
     if not project.location  # undefined or empty string
         item.find(".projects-location").append(template_project_stored.clone())
@@ -161,10 +187,7 @@ create_project_item = (project) ->
         item.find(".projects-location").text(d)
     ###
     item.click (event) ->
-        #try
         open_project(project, item)
-        #catch e
-        #    console.log(e)
         return false
 
 
@@ -225,36 +248,33 @@ update_project_view = (show_all=false) ->
 open_project = (project, item) ->
     #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
     #    alert_message(type:"warning", message:"Please close a project before opening more projects.")
-    f = () ->
-        project_page(project)
-        top_navbar.switch_to_page(project.project_id)
+    proj = project_page(project)
+    top_navbar.switch_to_page(project.project_id)
 
-    if project.location? and project.location != "deploying"
-        f()
-    else
+    if not (project.location? and project.location != "deploying")
         alert_message
             type:"info"
             message:"WARNING: Opening project #{project.title} on a new virtual machine, which may take extra time (around 1 minute per gigabyte)."
-            timeout: 30
+            timeout: 10
         if item?
-            item.find(".projects-location").html("<i class='icon-spinner icon-spin'> </i>restoring...")
+            item.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
         salvus_client.project_info
             project_id : project.project_id
             cb         : (err, info) ->
                 if err
                     alert_message(type:"error", message:"error opening project -- #{err}", timeout:6)
                     if item?
-                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
+                        item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
                     return
                 if not info.location?
                     alert_message(type:"error", message:"error opening project (missing info)", timeout:6)
                     if item?
-                        item.find(".projects-location").html("<i class='icon-bug'></i> (last open failed)")
+                        item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
                 else
                     project.location = location
                     if item?
                         item.find(".projects-location").text("")
-                    f()
+    return proj
 
 
 ################################################
@@ -299,6 +319,55 @@ $("#projects-create_project-button-create_project").click (event) ->
                 update_project_list()
     close_create_project()
 
+
+
+# Open something defined by a URL inside a project where
+#
+# target = project-id/
+# target = ownername/projectname/
+#                                files/....
+#                                recent
+#                                new
+#                                log
+#                                settings
+#                                search
+#
+exports.load_target = load_target = (target) ->
+    #console.log("projects -- load_target=#{target}")
+    if not target or target.length == 0
+        top_navbar.switch_to_page("projects")
+        return
+    segments = target.split('/')
+    project = undefined
+    update_project_list () ->
+        if misc.is_valid_uuid_string(segments[0])
+            t = segments.slice(1).join('/')
+            for p in project_list
+                if p.project_id == segments[0]
+                    project = p
+                    break
+            if not project?
+                # have to get from database.
+                #console.log("loading project '#{segments[0]}' not implemented")
+                # TODO: this will just work via database lookup on public projects...
+                alert_message(type:"error", message:"You do not have access to the project with id #{segments[0]}.")
+                return
+        else
+            t         = segments.slice(2).join('/')
+            ownername = segments[0]
+            name      = segments[1]
+            for p in project_list
+                if p.ownername == ownername and p.name == name
+                    project = p
+                    break
+            if not project?
+                # have to get from database.
+                #console.log("loading project '#{owner}/#{projectname}' not implemented")
+                # TODO: this will just work via database lookup on public projects...
+                alert_message(type:"error", message:"You do not have access to the project '#{owner}/#{projectname}.")
+                return
+
+        open_project(project).load_target(t)
 
 
 ################################################
