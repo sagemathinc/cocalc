@@ -179,6 +179,12 @@ init_http_server = () ->
                         res.writeHead(200, header)
                         res.end(data, 'utf-8')
 
+            when 'projects', 'help', 'settings'
+                res.writeHead(302, {
+                  'Location': program.base_url + '/#' +  segments.slice(1).join('/')
+                })
+                res.end()
+
             when "upload"
                 # See https://github.com/felixge/node-formidable
                 if req.method == "POST"

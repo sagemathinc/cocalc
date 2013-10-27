@@ -480,7 +480,7 @@ exports.make_valid_name = (s) ->
     # for now we just delete anything that isn't alphanumeric.
     # See http://stackoverflow.com/questions/9364400/remove-not-alphanumeric-characters-from-string-having-trouble-with-the-char/9364527#9364527
     # whose existence surprised me!
-    return s.replace(/\W/g, '').toLowerCase()
+    return s.replace(/\W/g, '_').toLowerCase()
 
 
 

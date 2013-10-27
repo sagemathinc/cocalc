@@ -343,9 +343,14 @@ signed_in = (mesg) ->
             # projects page in that case.  Also, if they explicitly
             # log out, then log back in as another user, seeing
             # the account page by default in that case makes sense.
-            if first_login and top_navbar.current_page_id == 'account'
+            if first_login
                 first_login = false
-                top_navbar.switch_to_page("projects")
+                if window.salvus_target
+                    require('last').load_target(window.salvus_target)
+                    window.salvus_target = ''
+                else
+                    require('last').load_target('projects')
+
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.

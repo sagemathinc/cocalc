@@ -298,9 +298,46 @@ class ProjectPage
         if not url?
             url = ''
         @_last_history_state = url
-        if @project.name? and @project.owner?
-            username = misc.make_valid_name(@project.owner[0].first_name + @project.owner[0].last_name)
-            window.history.pushState("", "", window.salvus_base_url + '/' + username + '/' + @project.name + '/' + url)
+        #if @project.name? and @project.owner?
+            #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
+        # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
+        # I can extend to the above later in another release, without any harm.
+        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
+
+
+    #  files/....
+    #  recent
+    #  new
+    #  log
+    #  settings
+    #  search
+    load_target: (target, foreground=true) =>
+        #console.log("project -- load_target=#{target}")
+        segments = target.split('/')
+        switch segments[0]
+            when 'recent'
+                @display_tab("project-editor")
+            when 'files'
+                if target[target.length-1] == '/'
+                    # open a directory
+                    @display_tab("project-file-listing")
+                    @current_path = target.slice(0,target.length-1).split('/').slice(1)
+                    @update_file_list_tab()
+                else
+                    # open a file
+                    @display_tab("project-editor")
+                    @open_file(path:segments.slice(1).join('/'), foreground:foreground)
+                    @current_path = segments.slice(1, segments.length-1)
+            when 'new'
+                @current_path = segments.slice(1)
+                @display_tab("project-new-file")
+            when 'log'
+                @display_tab("project-activity")
+            when 'settings'
+                @display_tab("project-settings")
+            when 'search'
+                @current_path = segments.slice(1)
+                @display_tab("project-search")
 
     set_location: () =>
         if @project.location? and @project.location.username?
@@ -750,7 +787,7 @@ class ProjectPage
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
-                    that.push_state('new')
+                    that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
             else if name == "project-activity"
                 tab.onshow = () ->
@@ -761,7 +798,7 @@ class ProjectPage
                     that.update_topbar()
             else if name == "project-search"
                 tab.onshow = () ->
-                    that.push_state('search')
+                    that.push_state('search/' + that.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 
         @display_tab("project-file-listing")
@@ -1139,7 +1176,10 @@ class ProjectPage
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
         path = @current_path.join('/')
-        @push_state('files' + '/' + path)
+        if path.length > 0 and path[path.length-1] != '/'
+            path += '/'
+
+        @push_state('files/' + path)
 
         salvus_client.project_directory_listing
             project_id : @project.project_id
@@ -2428,7 +2468,6 @@ transform_get_url = (url) ->  # returns something like {command:'wget', args:['h
         args = [url]
 
     return {command:command, args:args}
-
 
 
 
