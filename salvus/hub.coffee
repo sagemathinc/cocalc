@@ -2615,7 +2615,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if err
                 @restart (err) =>
                     if err
-                        cb("Unable to start and connect to local hub #{@address} -- #{err}")
+                        m = "Unable to start and connect to local hub #{@address} -- #{err}"
+                        winston.debug(m)
+                        cb(m)
                     else
                         @local_hub_socket (err) =>
                             cb(err, @)
