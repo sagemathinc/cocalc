@@ -506,7 +506,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
     _watcher: (event) =>
         winston.debug("watch: file '#{@path}' modified.")
         if not @_do_watch
-            winston.debug("watch: skipping read do to watching being turned off.")
+            winston.debug("watch: skipping read because watching is off.")
             return
         @_stop_watching_file()
         fs.readFile @path, (err, data) =>
@@ -522,6 +522,7 @@ class DiffSyncFile_server extends diffsync.DiffSync
             @_do_watch = true
             return
         @_do_watch = true
+        winston.debug("watching #{@path}")
         fs.watchFile(@path, @_watcher)
 
     _stop_watching_file: () =>

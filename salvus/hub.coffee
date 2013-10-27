@@ -2268,7 +2268,7 @@ class CodeMirrorSession
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
                 if err
-                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}, trying to connect to #{@path} in #{@project_id}.")
+                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{to_json(resp)}, trying to connect to #{@path} in #{@project_id}.")
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
@@ -3226,12 +3226,20 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
-        if @_status.local_hub and @_status.sage_server and @_status.console_server
+        if @_status.local_hub and @_status.console_server
+            # NOTE! we do *not* check for @_status.sage_server, since it is easy for a user to mess that up.
+            # If they mess up console_server and local_hub (which should be very hard), they couldn't fix it
+            # anyways -- but messing up the sage server is fixable via the console or file editor.
             cb()
         else
             # TODO: it would be better just to force start only the daemons that need to be started -- doing this is
             # just a first brutal minimum way to do this!
-            winston.debug("Not all daemons are running -- restart required -- #{@username}@#{@host}")
+            bad = ''
+            if not @_status.local_hub
+                bad += ' local_hub'
+            if not @_status.console_server
+                bad += ' console_server'
+            winston.debug("Not all daemons are running (not running: #{bad}) -- restart required -- #{@username}@#{@host}")
             @_restart_local_hub_daemons (err) =>
                 if err
                     cb(err)
