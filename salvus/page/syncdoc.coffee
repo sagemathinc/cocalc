@@ -392,7 +392,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @filename    = @editor.filename
 
-        @connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
+        @connect    = misc.retry_until_success_wrapper(f:@_connect, max_tries:3)#, logname:'connect')
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
