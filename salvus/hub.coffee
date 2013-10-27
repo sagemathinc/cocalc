@@ -179,6 +179,12 @@ init_http_server = () ->
                         res.writeHead(200, header)
                         res.end(data, 'utf-8')
 
+            when 'projects', 'help', 'settings'
+                res.writeHead(302, {
+                  'Location': program.base_url + '/#' +  segments.slice(1).join('/')
+                })
+                res.end()
+
             when "upload"
                 # See https://github.com/felixge/node-formidable
                 if req.method == "POST"
@@ -3483,7 +3489,6 @@ get_project_location = (opts) ->
                 database.set_project_location
                     project_id : opts.project_id
                     location   : ""
-                    cb         : cb
 
             if err  # early termination of above steps
                 if error   # genuine error -- just report it

@@ -2,6 +2,7 @@
 {top_navbar}    = require('top_navbar')
 
 top_navbar.on "switch_to_page-salvus-help", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/help')
     update_stats()
 
 update_stats = () ->

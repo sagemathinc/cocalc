@@ -10,10 +10,13 @@
 misc            = require('misc')
 {project_page}  = require('project')
 {human_readable_size} = require('misc_page')
+{account_settings} = require('account')
 
 top_navbar.on "switch_to_page-projects", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/projects')
     update_project_list?()
     $(".projects-find-input").focus()
+
 
 project_list = undefined
 compute_search_data = () ->
@@ -24,7 +27,7 @@ compute_search_data = () ->
 
 project_list_spinner = $("#projects").find(".projects-project-list-spinner")
 
-update_project_list = exports.update_project_list = () ->
+update_project_list = exports.update_project_list = (cb) ->
 
     timer = setTimeout( (() -> project_list_spinner.show().spin()), 2500 )
 
@@ -44,8 +47,12 @@ update_project_list = exports.update_project_list = () ->
                 #        project_list = misc.from_json(x)
 
             if project_list?
+                for p in project_list
+                    p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
                 compute_search_data()
                 update_project_view()
+
+            cb?()
 
 
 
@@ -150,10 +157,10 @@ create_project_item = (project) ->
     if users.length == 0
         u = ''
     else
-        u = users.join(', ') + ','
+        u = '  ' + users.join(', ')
     item.find(".projects-users-list").text(u)
 
-    item.find("a[href=#projects-add-users]").click () =>
+    item.find(".projects-users").click () =>
         proj = open_project(project, item)
         proj.display_tab('project-settings')
         proj.container.find(".project-add-collaborator-input").focus()
@@ -312,6 +319,55 @@ $("#projects-create_project-button-create_project").click (event) ->
                 update_project_list()
     close_create_project()
 
+
+
+# Open something defined by a URL inside a project where
+#
+# target = project-id/
+# target = ownername/projectname/
+#                                files/....
+#                                recent
+#                                new
+#                                log
+#                                settings
+#                                search
+#
+exports.load_target = load_target = (target) ->
+    #console.log("projects -- load_target=#{target}")
+    if not target or target.length == 0
+        top_navbar.switch_to_page("projects")
+        return
+    segments = target.split('/')
+    project = undefined
+    update_project_list () ->
+        if misc.is_valid_uuid_string(segments[0])
+            t = segments.slice(1).join('/')
+            for p in project_list
+                if p.project_id == segments[0]
+                    project = p
+                    break
+            if not project?
+                # have to get from database.
+                #console.log("loading project '#{segments[0]}' not implemented")
+                # TODO: this will just work via database lookup on public projects...
+                alert_message(type:"error", message:"You do not have access to the project with id #{segments[0]}.")
+                return
+        else
+            t         = segments.slice(2).join('/')
+            ownername = segments[0]
+            name      = segments[1]
+            for p in project_list
+                if p.ownername == ownername and p.name == name
+                    project = p
+                    break
+            if not project?
+                # have to get from database.
+                #console.log("loading project '#{owner}/#{projectname}' not implemented")
+                # TODO: this will just work via database lookup on public projects...
+                alert_message(type:"error", message:"You do not have access to the project '#{owner}/#{projectname}.")
+                return
+
+        open_project(project).load_target(t)
 
 
 ################################################

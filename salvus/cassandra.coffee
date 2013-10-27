@@ -699,8 +699,8 @@ class exports.Salvus extends exports.Cassandra
                         r.first_name = ''
                     if not r.last_name?
                         r.last_name = ''
-                    search = (r.first_name + ' ' + r.last_name + ' ' + r.email_address).toLowerCase()
-                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
+                    search = (r.first_name + ' ' + r.last_name).toLowerCase()
+                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search, email:r.email_address?.toLowerCase()}
                     v.push(obj)
                 delete @_all_users_computing
                 if not @_all_users?
@@ -721,9 +721,9 @@ class exports.Salvus extends exports.Cassandra
             if err
                 opts.cb(err); return
             query = opts.query.toLowerCase().split(/\s+/g)
-            match = (search) ->
+            match = (search, email) ->
                 for q in query
-                    if search.indexOf(q) == -1
+                    if (search.indexOf(q) == -1 and email != q)
                         return false
                 return true
             r = []
@@ -733,7 +733,7 @@ class exports.Salvus extends exports.Cassandra
             # database query to load all users into memory above (in @all_users) would take
             # several hours.   So let's optimize this, but do that later!!
             for x in users
-                if match(x.search)
+                if match(x.search, x.email)
                     r.push(x)
                     if opts.limit? and r.length >= opts.limit
                         break
@@ -1512,7 +1512,7 @@ class exports.Salvus extends exports.Cassandra
     get_project_location: (opts) =>
         opts = defaults opts,
             project_id  : required
-            allow_cache : false # if false, will always get location from database; client can use this to first try cached version and if fails, use;  since projects can move, caching is a very bad idea. 
+            allow_cache : false # if false, will always get location from database; client can use this to first try cached version and if fails, use;  since projects can move, caching is a very bad idea.
             cb          : required
         if not @_project_location_cache?
             @_project_location_cache = {'array':[], 'obj':{}}
@@ -1913,6 +1913,11 @@ class exports.Salvus extends exports.Cassandra
                 if error
                     opts.cb(error)
                 else
+
+                    for r in results
+                        # fill in a default name for the project -- used in the URL
+                        if not r.name and r.title?
+                            r.name = misc.make_valid_name(r.title)
                     opts.cb(false, results)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)

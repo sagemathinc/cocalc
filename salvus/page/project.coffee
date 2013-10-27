@@ -134,6 +134,7 @@ class ProjectPage
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
+                    @push_state()
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -291,12 +292,58 @@ class ProjectPage
 
         @init_file_sessions()
 
+    push_state: (url) =>
+        if not url?
+            url = @_last_history_state
+        if not url?
+            url = ''
+        @_last_history_state = url
+        #if @project.name? and @project.owner?
+            #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
+        # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
+        # I can extend to the above later in another release, without any harm.
+        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
+
+
+    #  files/....
+    #  recent
+    #  new
+    #  log
+    #  settings
+    #  search
+    load_target: (target, foreground=true) =>
+        #console.log("project -- load_target=#{target}")
+        segments = target.split('/')
+        switch segments[0]
+            when 'recent'
+                @display_tab("project-editor")
+            when 'files'
+                if target[target.length-1] == '/'
+                    # open a directory
+                    @display_tab("project-file-listing")
+                    @current_path = target.slice(0,target.length-1).split('/').slice(1)
+                    @update_file_list_tab()
+                else
+                    # open a file
+                    @display_tab("project-editor")
+                    @open_file(path:segments.slice(1).join('/'), foreground:foreground)
+                    @current_path = segments.slice(1, segments.length-1)
+            when 'new'
+                @current_path = segments.slice(1)
+                @display_tab("project-new-file")
+            when 'log'
+                @display_tab("project-activity")
+            when 'settings'
+                @display_tab("project-settings")
+            when 'search'
+                @current_path = segments.slice(1)
+                @display_tab("project-search")
 
     set_location: () =>
         if @project.location? and @project.location.username?
             x = @project.location.username + "@" + @project.location.host
         else
-            x = "" 
+            x = ""
         @container.find(".project-location").text(x)
 
     window_resize: () =>
@@ -740,12 +787,18 @@ class ProjectPage
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
+            else if name == "project-activity"
+                tab.onshow = () ->
+                    that.push_state('log')
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.push_state('settings')
                     that.update_topbar()
             else if name == "project-search"
                 tab.onshow = () ->
+                    that.push_state('search/' + that.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 
         @display_tab("project-file-listing")
@@ -1123,6 +1176,11 @@ class ProjectPage
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
         path = @current_path.join('/')
+        if path.length > 0 and path[path.length-1] != '/'
+            path += '/'
+
+        @push_state('files/' + path)
+
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
@@ -2410,7 +2468,6 @@ transform_get_url = (url) ->  # returns something like {command:'wget', args:['h
         args = [url]
 
     return {command:command, args:args}
-
 
 
 

@@ -178,7 +178,7 @@
                     <!-- Sort by time or alphabetical -->
                     <div class="project-sort-files pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
                         <a href="#sort-by-time" class='hide' data-toggle="tooltip" data-placement="bottom" title="Toggle whether files are sorted by time or filename."><i class="fa fa-sort-numeric-asc"> </i></a>
-                        <a href="#dont-sort-by-time"  data-toggle="tooltip" data-placement="top" title="Toggle whether files are sorted by time or filename."><i class="fa fa-sort-alph-asc"> </i> </a>
+                        <a href="#dont-sort-by-time"  data-toggle="tooltip" data-placement="top" title="Toggle whether files are sorted by time or filename."><i class="fa fa-sort-alpha-asc"> </i> </a>
                     </div>
 
                     <!-- Refresh listing of files -->
@@ -349,7 +349,8 @@
                                     <div class="span6">
                                         <pre class="project-location">loading...</pre>
                                     </div>
-                                    <div class="span4 pull-right">
+                                    <!-- MOVE DISABLED UNTIL FULLY IMPLEMENTED, TESTED, and SAFE -->
+                                    <div class="span4 pull-right hide">
                                         <a href="#move-project" class="btn btn-warning pull-right"
                                             data-toggle="tooltip" data-placement="right" title="Move this project.">
                                             <i class="fa fa-external-link-square"> </i> Move Project
@@ -363,7 +364,7 @@
                             <div class="span6 well project-settings-well project-collaborators-box">
                                 <div class="row-fluid">
                                     <div class="span4">
-                                        <h4 class="pull-left">Collaborators</h4>
+                                        <h4 class="pull-left"><i class="fa fa-user"> </i> Collaborators</h4>
                                         <br><br>
                                         <span class="lighten">Can view and <b>modify</b> this project</span>
                                     </div>
@@ -453,7 +454,7 @@
                                     </div>
                                     <div class="span4">
                                     <!-- Change public / private -->
-                                        <a href="#make-public" class="btn btn-large btn-danger  pull-right"
+                                        <a href="#make-public" class="btn btn-danger  pull-right"
                                             data-toggle="tooltip" data-placement="right" title="Make it so anyone can see the contents of this project. You choose who can modify it.">
                                             <i class="fa fa-eye"> </i> Make Public
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>

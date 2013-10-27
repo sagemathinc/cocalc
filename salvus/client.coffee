@@ -1419,7 +1419,7 @@ class exports.Connection extends EventEmitter
             path       : '.'
             time       : false
             start      : 0
-            limit      : 200
+            limit      : 999999999 # effectively unlimited by default -- get what you can in the time you have...
             timeout    : 60
             hidden     : false
             cb         : required

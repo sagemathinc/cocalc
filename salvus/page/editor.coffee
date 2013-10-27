@@ -106,7 +106,7 @@ file_associations['term'] =
 
 file_associations['ipynb'] =
     editor : 'ipynb'
-    icon   : 'fa-list-ul'
+    icon   : 'fa-list-alt'
     opts   : {}
 
 file_associations['sage-worksheet'] =
@@ -793,13 +793,13 @@ class exports.Editor
         opts = defaults opts,
             path       : required
             foreground : true      # display in foreground as soon as possible
-
         filename = opts.path
 
         if not @tabs[filename]?
             return
 
         if opts.foreground
+            @push_state('files/' + opts.path)
             @hide_recent_file_list()
             @show_editor_content()
 
@@ -848,6 +848,15 @@ class exports.Editor
         #    @display_tab(@active_tab.filename)
         if not IS_MOBILE
             @element.find(".salvus-editor-search-openfiles-input").focus()
+        @push_state('recent')
+
+    push_state: (url) =>
+        if not url?
+            url = @_last_history_state
+        if not url?
+            url = 'recent'
+        @_last_history_state = url
+        @project_page.push_state(url)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -1285,7 +1294,7 @@ class CodeMirrorEditor extends FileEditor
         f = () -> changed = true
         @codemirror.on 'change', f
         @save_button.icon_spin(start:true, delay:1000)
-        @editor.save @filename, (err) =>            
+        @editor.save @filename, (err) =>
             @codemirror.off(f)
             @save_button.icon_spin(false)
             @_saving = false
