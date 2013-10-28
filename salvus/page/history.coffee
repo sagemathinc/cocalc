@@ -49,7 +49,7 @@ exports.push_state = (location) ->
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
-    console.log("load_target('#{target}')")
+    #console.log("load_target('#{target}')")
     if not target
         return
     segments = target.split('/')
@@ -65,5 +65,5 @@ exports.load_target = load_target = (target) ->
             top_navbar.switch_to_page("account")
 
 window.onpopstate = (event) ->
-    console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))
+    #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))
     load_target(decodeURIComponent(document.location.pathname.slice(window.salvus_base_url.length + 1)))
