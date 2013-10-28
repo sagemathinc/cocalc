@@ -34,6 +34,7 @@ codemirror_associations =
     css    : 'css'
     diff   : 'text/x-diff'
     dtd    : 'application/xml-dtd'
+    e      : 'text/x-eiffel'
     ecl    : 'ecl'
     f      : 'text/x-fortran'    # https://github.com/mgaitan/CodeMirror/tree/be73b866e7381da6336b258f4aa75fb455623338/mode/fortran
     f90    : 'text/x-fortran'
@@ -1160,7 +1161,9 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.setOption('theme', theme)
         @opts.theme = theme
 
-    set_cursor_center_focus: (pos) =>
+    set_cursor_center_focus: (pos, tries=5) =>
+        if tries <= 0
+            return
         cm = @codemirror_with_last_focus
         if not cm?
             cm = @codemirror
@@ -1168,7 +1171,11 @@ class CodeMirrorEditor extends FileEditor
             return
         cm.setCursor(pos)
         info = cm.getScrollInfo()
-        cm.scrollIntoView(pos, info.clientHeight/2)
+        try
+            # This call can fail during editor initialization (as of codemirror 3.19, but not before).
+            cm.scrollIntoView(pos, info.clientHeight/2)
+        catch e
+            setTimeout((() => @set_cursor_center_focus(pos, tries-1)), 250)
         cm.focus()
 
     disconnect_from_session: (cb) =>
