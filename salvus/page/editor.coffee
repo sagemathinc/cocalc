@@ -81,37 +81,37 @@ for ext, mode of codemirror_associations
 
 file_associations['tex'] =
     editor : 'latex'
-    icon   : 'icon-edit'
+    icon   : 'fa-edit'
     opts   : {mode:'stex', indent_unit:4, tab_size:4}
 
 file_associations['html'] =
     editor : 'codemirror'
-    icon   : 'icon-edit'
+    icon   : 'fa-edit'
     opts   : {mode:'htmlmixed', indent_unit:4, tab_size:4}
 
 file_associations['css'] =
     editor : 'codemirror'
-    icon   : 'icon-edit'
+    icon   : 'fa-edit'
     opts   : {mode:'css', indent_unit:4, tab_size:4}
 
 file_associations['sage-terminal'] =
     editor : 'terminal'
-    icon   : 'icon-credit-card'
+    icon   : 'fa-credit-card'
     opts   : {}
 
 file_associations['term'] =
     editor : 'terminal'
-    icon   : 'icon-credit-card'
+    icon   : 'fa-credit-card'
     opts   : {}
 
 file_associations['ipynb'] =
     editor : 'ipynb'
-    icon   : 'icon-list-ul'
+    icon   : 'fa-list-alt'
     opts   : {}
 
 file_associations['sage-worksheet'] =
     editor : 'worksheet'
-    icon   : 'icon-list-ul'
+    icon   : 'fa-list-ul'
     opts   : {}
 
 file_associations['sage-spreadsheet'] =
@@ -793,13 +793,13 @@ class exports.Editor
         opts = defaults opts,
             path       : required
             foreground : true      # display in foreground as soon as possible
-
         filename = opts.path
 
         if not @tabs[filename]?
             return
 
         if opts.foreground
+            @push_state('files/' + opts.path)
             @hide_recent_file_list()
             @show_editor_content()
 
@@ -848,6 +848,15 @@ class exports.Editor
         #    @display_tab(@active_tab.filename)
         if not IS_MOBILE
             @element.find(".salvus-editor-search-openfiles-input").focus()
+        @push_state('recent')
+
+    push_state: (url) =>
+        if not url?
+            url = @_last_history_state
+        if not url?
+            url = 'recent'
+        @_last_history_state = url
+        @project_page.push_state(url)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -1277,17 +1286,21 @@ class CodeMirrorEditor extends FileEditor
         @save_button.find(".spinner").hide()
 
     click_save_button: () =>
-        if not @save_button.hasClass('disabled')
-            changed = false
-            f = () -> changed = true
-            @codemirror.on 'change', f
-            @save_button.icon_spin(start:true, delay:1000)
-            @editor.save @filename, (err) =>
-                @codemirror.off(f)
-                @save_button.icon_spin(false)
-                if not err and not changed
-                    @save_button.addClass('disabled')
-                    @has_unsaved_changes(false)
+        if @_saving
+            return
+        @_saving = true
+        #if not @save_button.hasClass('disabled')
+        changed = false
+        f = () -> changed = true
+        @codemirror.on 'change', f
+        @save_button.icon_spin(start:true, delay:1000)
+        @editor.save @filename, (err) =>
+            @codemirror.off(f)
+            @save_button.icon_spin(false)
+            @_saving = false
+            if not err and not changed
+                @save_button.addClass('disabled')
+                @has_unsaved_changes(false)
         return false
 
     init_change_event: () =>
@@ -3166,7 +3179,8 @@ class IPythonNotebookServer  # call ipython_notebook_server above
                             @url = info.base; @pid = info.pid; @port = info.port
                             get_with_retry
                                 url : @url
-                                cb  : (err, data) => cb?(err)
+                                cb  : (err, data) =>
+                                    cb?(err)
                     catch e
                         cb?(true)
 
@@ -3198,9 +3212,9 @@ class IPythonNotebookServer  # call ipython_notebook_server above
 get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
-        initial_delay : 100
-        max_delay     : 7000     # once delay hits this, give up
-        factor        : 1.2      # for exponential backoff
+        initial_delay : 50
+        max_delay     : 15000     # once delay hits this, give up
+        factor        : 1.1      # for exponential backoff
         bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url
     delay = opts.initial_delay
@@ -3208,17 +3222,22 @@ get_with_retry = (opts) ->
         if delay >= opts.max_delay  # too many attempts
             opts.cb("unable to connect to remote server")
             return
-        $.get(opts.url, (data) ->
-            if data.indexOf(opts.bad_string) != -1
-                delay *= opts.factor
-                setTimeout(f, delay)
-            else
-                opts.cb(false, data)
+        $.ajax(
+            url     : opts.url
+            timeout : 50
+            success : (data) ->
+                if data.indexOf(opts.bad_string) != -1
+                    delay *= opts.factor
+                    setTimeout(f, delay)
+                else
+                    opts.cb(false, data)
         ).fail(() ->
-            delay *= 1.2
+            delay *= opts.factor
             setTimeout(f, delay)
         )
+
     f()
+
 
 # Embedded editor for editing IPython notebooks.  Enhanced with sync and integrated into the
 # overall cloud look.
@@ -3473,7 +3492,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("getting or starting ipython server")
+                @status("getting or starting ipython server (wait about 30 seconds)")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     path       : @path

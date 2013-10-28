@@ -179,6 +179,12 @@ init_http_server = () ->
                         res.writeHead(200, header)
                         res.end(data, 'utf-8')
 
+            when 'projects', 'help', 'settings'
+                res.writeHead(302, {
+                  'Location': program.base_url + '/#' +  segments.slice(1).join('/')
+                })
+                res.end()
+
             when "upload"
                 # See https://github.com/felixge/node-formidable
                 if req.method == "POST"
@@ -1176,6 +1182,20 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    mesg_move_project: (mesg) =>
+        if not @account_id?
+            @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
+            return
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return # error handled in get_project
+            project.move_project
+                cb : (err, ok) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        @push_to_client(message.project_moved(id:mesg.id, location:project.location))
+
     mesg_create_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
@@ -1434,6 +1454,7 @@ class Client extends EventEmitter
                 project_id   : mesg.project_id
                 session_uuid : mesg.session_uuid
                 cb           : (err, session) =>
+                    #winston.debug("in mesg_codemirror_get_session: project.get_codemirror_session (project_id=#{mesg.project_id}, path=#{mesg.path}) -- returned (err=#{err})")
                     if err
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
@@ -2215,7 +2236,21 @@ class CodeMirrorDiffSyncClient
     sync_ready: () =>
         @send_mesg(message.codemirror_diffsync_ready(session_uuid: @cm_session.session_uuid))
 
-class CodeMirrorSession
+_new_codemirror_session_creation = {}
+new_codemirror_session = (opts) ->
+    key = opts.project_id + opts.path
+    c = _new_codemirror_session_creation[key]
+    if not c?
+        _new_codemirror_session_creation[key] = [opts.cb]
+        opts.cb = (err, obj) ->
+            for cb in _new_codemirror_session_creation[key]
+                cb(err, obj)
+            delete _new_codemirror_session_creation[key]
+        new CodeMirrorSession(opts)
+    else
+        c.push(opts.cb)
+
+class CodeMirrorSession  # call new_codemirror_session above instead of using new CodeMirrorSession
     constructor: (opts) ->
         opts = defaults opts,
             local_hub    : required
@@ -2229,26 +2264,37 @@ class CodeMirrorSession
         @project_id   = opts.project_id
         @path         = opts.path
 
-        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect')
+        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:9, min_interval:200, exp_factor:1.4)
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
-        @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync')
+        @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync',  max_tries:10)
 
         # The downstream (web browser) clients of this hub
         @diffsync_clients = {}
 
-        codemirror_sessions.by_path[@project_id + @path] = @
         @connect (err) =>
             if err
+                @remove_from_cache()
                 opts.cb(err)
             else
                 opts.cb(false, @)
+
+    remove_from_cache: () =>
+        delete codemirror_sessions.by_path[@project_id + @path]
+        if @session_uuid?
+            delete codemirror_sessions.by_uuid[@session_uuid]
+
+    destroy: () =>
+        @remove_from_cache()
+        # TODO: make more destructive.
 
     _connect: (cb) =>
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
                 if err
-                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{resp}, trying to connect to #{@path} in #{@project_id}.")
+                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
+                    if resp?.path? and resp?.path.indexOf("sage_server.port") != -1
+                        err = "The Sage Worksheet server is not running.  You may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or just contact wstein@uw.edu for help."
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
@@ -2267,6 +2313,7 @@ class CodeMirrorSession
                     @session_uuid = resp.session_uuid
 
                     codemirror_sessions.by_uuid[@session_uuid] = @
+                    codemirror_sessions.by_path[@project_id + @path] = @
 
                     if @_last_sync?
                         # We have sync'd before.
@@ -2329,7 +2376,7 @@ class CodeMirrorSession
     client_disconnect: (client, mesg) =>
         # Explicitly disconnect the given client from this session.
         delete @diffsync_clients[client.id]
-        client.push_to_client(message.success(id:mesg.id))
+        client.push_to_client(message.success(id:mesg?.id))
         winston.debug("Disconnected a client from session #{@session_uuid}; there are now #{misc.len(@diffsync_clients)} clients.")
 
     client_diffsync: (client, mesg) =>
@@ -2572,14 +2619,8 @@ new_local_hub = (opts) ->    # cb(err, hub)
             )
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@username, @host, @port, @project, cb) ->  # NOTE @project may be undefined.
+    constructor: (username, host, port, @project, cb) ->  # NOTE @project may be undefined.
         winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
-        assert @username? and @host? and @port? and cb?
-
-        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
-            # This is used when starting the local hub server daemon.
-            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
-
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
             # Do not timeout when doing development, since the enclosing project would already timeout... and
@@ -2587,6 +2628,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             # @timeout = 0  # 0 means "don't timeout"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
+        @connect(username, host, port, cb)
+
+    connect: (username, host, port, cb) =>
+        if not username? or not host? or not port?
+            cb("all of username, host, port must be defined"); return
+
+        @username = username; @host = host; @port = port
+
+        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
+            # This is used when starting the local hub server daemon.
+            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
+
         @address = "#{username}@#{host}"
         @id = "#{@address} -p#{@port}"  # string that uniquely identifies this local hub -- useful for other code, e.g., sessions
         @_sockets = {}
@@ -2595,7 +2648,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if err
                 @restart (err) =>
                     if err
-                        cb("Unable to start and connect to local hub #{@address} -- #{err}")
+                        m = "Unable to start and connect to local hub #{@address} -- #{err}"
+                        winston.debug(m)
+                        cb(m)
                     else
                         @local_hub_socket (err) =>
                             cb(err, @)
@@ -2612,6 +2667,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         created_remote_lock = false
         location = {username:@username, host:@host, port:@port}
         lockfile = @SAGEMATHCLOUD + '.lock'
+
+        # Delete all cached synchronized editing sessions
+        for k, session of codemirror_sessions.by_path
+            session.destroy()
+
         async.series([
             (cb) =>
                 winston.debug("local_hub restart: creating a lock")
@@ -2973,19 +3033,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         if opts.session_uuid?
             session = codemirror_sessions.by_uuid[opts.session_uuid]
             if session?
+                #winston.debug("local_hub get_codemirror_session: got session #{opts.session_uuid} from cache")
                 opts.cb(false, session)
                 return
         if opts.path? and opts.project_id?
             session = codemirror_sessions.by_path[opts.project_id + opts.path]
             if session?
+                #winston.debug("local_hub get_codemirror_session: got session '#{opts.path}' from cache")
                 opts.cb(false, session)
                 return
         if not (opts.path? and opts.project_id?)
+            winston.debug("local_hub get_codemirror_session: reconnect error -- we need the path or project_id")
             opts.cb("reconnect")  # caller should  send path when it tries next.
             return
 
         # Create a new session object.
-        new CodeMirrorSession
+        new_codemirror_session
             local_hub   : @
             project_id  : opts.project_id
             path        : opts.path
@@ -3198,12 +3261,20 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
-        if @_status.local_hub and @_status.sage_server and @_status.console_server
+        if @_status.local_hub and @_status.console_server
+            # NOTE! we do *not* check for @_status.sage_server, since it is easy for a user to mess that up.
+            # If they mess up console_server and local_hub (which should be very hard), they couldn't fix it
+            # anyways -- but messing up the sage server is fixable via the console or file editor.
             cb()
         else
             # TODO: it would be better just to force start only the daemons that need to be started -- doing this is
             # just a first brutal minimum way to do this!
-            winston.debug("Not all daemons are running -- restart required -- #{@username}@#{@host}")
+            bad = ''
+            if not @_status.local_hub
+                bad += ' local_hub'
+            if not @_status.console_server
+                bad += ' console_server'
+            winston.debug("Not all daemons are running (not running: #{bad}) -- restart required -- #{@username}@#{@host}")
             @_restart_local_hub_daemons (err) =>
                 if err
                     cb(err)
@@ -3356,6 +3427,7 @@ get_project_location = (opts) ->
 
     error = true
     location = undefined
+    unset_project_location = false
 
     async.series([
         (cb) ->
@@ -3389,6 +3461,7 @@ get_project_location = (opts) ->
                     else
                         cb() # more to do
         (cb) ->
+            unset_project_location = true
             database.set_project_location
                 project_id : opts.project_id
                 location   : "deploying"
@@ -3403,11 +3476,16 @@ get_project_location = (opts) ->
                             project_id : opts.project_id
                             location   : ""
                             cb         : () =>
+                                unset_project_location = false
                                 cb("project location not defined -- and allocating new one led to error -- #{err}")
                     else
                         location = _location
                         cb()
         (cb) ->
+            if program.local  # SMC in SMC development...
+                # special case for development -- don't want to overwrite everything, etc.
+                cb()
+                return
             # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
             # hence blocks letting the user do other things with the project.   I tried not locking
             # on this and it is confusing (and terrifying!) as a user to see "no files" at the beginning.
@@ -3432,12 +3510,14 @@ get_project_location = (opts) ->
                     if loc == "deploying"
                         # Contents in database are as expected (no race); we set new location.
                         # Finally set the project location.
+                        unset_project_location = false
                         database.set_project_location
                             project_id : opts.project_id
                             location   : location
                             cb         : cb
                     else
                         winston.debug("Project #{opts.project_id} somehow magically got deployed by another hub.")
+                        unset_project_location = false
                         # Let other project win.
                         # We absolutely don't want two hubs simultaneously believing a project
                         # is in two locations, since that would potentially lead to data loss
@@ -3448,6 +3528,11 @@ get_project_location = (opts) ->
                         location = loc
                         cb()
         ], (err) ->
+            if unset_project_location
+                database.set_project_location
+                    project_id : opts.project_id
+                    location   : ""
+
             if err  # early termination of above steps
                 if error   # genuine error -- just report it
                     opts.cb?(error, err)
@@ -3470,6 +3555,9 @@ class Project
             @SAGEMATHCLOUD = ".sagemathcloud-local"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
+        @deploy(cb)
+
+    deploy: (cb) =>
         async.series([
             (cb) =>
                 winston.debug("Getting project #{@project_id} location.")
@@ -3483,17 +3571,20 @@ class Project
 
             # Get a connection to the local hub
             (cb) =>
-                new_local_hub
-                    username : @location.username
-                    host     : @location.host
-                    port     : @location.port
-                    project  : @
-                    cb       : (err, hub) =>
-                        if err
-                            cb(err)
-                        else
-                            @local_hub = hub
-                            cb()
+                if @local_hub?
+                    @local_hub.connect(@location.username, @location.host, @location.port, cb)
+                else
+                    new_local_hub
+                        username : @location.username
+                        host     : @location.host
+                        port     : @location.port
+                        project  : @
+                        cb       : (err, hub) =>
+                            if err
+                                cb(err)
+                            else
+                                @local_hub = hub
+                                cb()
             # Write the project id to the local hub unix account, since it is useful to
             # have there (for various services).
             (cb) =>
@@ -3555,6 +3646,18 @@ class Project
             cb         : opts.cb
         @local_hub.killall()  # might as well do this to conserve resources
 
+    move_project: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        async.series([
+            (cb) =>
+                database.set_project_location
+                    project_id  : @project_id
+                    location    : ""
+                    cb          : cb
+            (cb) =>
+                @deploy(cb)
+        ], opts.cb)
 
     undelete_project: (opts) =>
         opts = defaults opts,
