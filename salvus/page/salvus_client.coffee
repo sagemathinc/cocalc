@@ -2,6 +2,9 @@
 # connection to Salvus hub
 ############################################
 
+if window.location.hash.length > 1
+    window.salvus_target = decodeURIComponent(window.location.hash.slice(1))
+
 if not window.salvus_base_url?
     window.salvus_base_url = ""
 

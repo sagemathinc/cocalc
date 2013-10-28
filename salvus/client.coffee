@@ -936,6 +936,24 @@ class exports.Connection extends EventEmitter
             timeout : opts.timeout
             cb : opts.cb
 
+    move_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            timeout    : 60*15  # 15 minutes -- since moving a project is potentially time consuming.
+            cb         : undefined          # cb(err, new_location)
+        @call
+            message :
+                message.move_project
+                    project_id  : opts.project_id
+            timeout : opts.timeout
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(false, resp.location)
+
     write_text_file_to_project: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1401,7 +1419,7 @@ class exports.Connection extends EventEmitter
             path       : '.'
             time       : false
             start      : 0
-            limit      : 200
+            limit      : 999999999 # effectively unlimited by default -- get what you can in the time you have...
             timeout    : 60
             hidden     : false
             cb         : required

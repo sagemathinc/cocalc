@@ -747,7 +747,7 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
       are 'ex'.  A string that specifies any valid HTML units (e.g., '100px', '3em')
       is also allowed [SALVUS only].
     - ``icon`` -- None or string name of any icon listed at the font
-      awesome website (http://fortawesome.github.com/Font-Awesome/), e.g., 'icon-repeat'
+      awesome website (http://fortawesome.github.com/Font-Awesome/), e.g., 'fa-repeat'
 
     EXAMPLES::
 
@@ -762,8 +762,8 @@ def button(default=None, label=None, classes=None, width=None, icon=None):
     Some buttons with icons::
 
         @interact
-        def f(n=button('repeat', icon='icon-repeat'),
-              m=button('see?', icon="icon-eye-open", classes="btn-large")):
+        def f(n=button('repeat', icon='fa-repeat'),
+              m=button('see?', icon="fa-eye", classes="btn-large")):
             print interact.changed()
     """
     return control(
@@ -887,8 +887,8 @@ def input_grid(nrows, ncols, default=0, label=None, to_value=None, width=5):
     Squaring an editable and randomizable matrix::
 
         @interact
-        def f(reset  = button('Randomize', classes="btn-primary", icon="icon-th"),
-              square = button("Square", icon="icon-external-link"),
+        def f(reset  = button('Randomize', classes="btn-primary", icon="fa-th"),
+              square = button("Square", icon="fa-external-link"),
               m      = input_grid(4,4,default=0, width=5, label="m =", to_value=matrix)):
             if 'reset' in interact.changed():
                 print "randomize"
@@ -1564,7 +1564,7 @@ def cython(code=None, **kwds):
             html_filename = os.path.join(path, n)
     if html_filename is not None:
         html_url = salvus.file(html_filename, show=False)
-        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code &nbsp;<i class='icon-external-link'></i></a>"%html_url)
+        salvus.html("<a href='%s' target='_new' class='btn btn-small '>Show auto-generated code &nbsp;<i class='fa fa-external-link'></i></a>"%html_url)
 
 cython.__doc__ += sage.misc.cython.cython.__doc__
 
@@ -1994,7 +1994,14 @@ fork = Fork()
 ####################################################
 
 from sage.misc.all import tmp_filename
+from sage.plot.animate import Animation
 import matplotlib.figure
+
+def show_animation(obj, **kwds):
+    t = tmp_filename(ext='.gif')
+    obj.gif(savefile=t, **kwds)
+    salvus.file(t)
+    os.unlink(t)
 
 def show_2d_plot_using_matplotlib(obj, svg, **kwds):
     if 'events' in kwds:
@@ -2012,18 +2019,20 @@ def show_2d_plot_using_matplotlib(obj, svg, **kwds):
         else:
             obj.save(t, **kwds)
         salvus.file(t)
+        os.unlink(t)
 
 def show_3d_plot_using_tachyon(obj, **kwds):
     t = tmp_filename(ext = '.png')
     obj.save(t, **kwds)
     salvus.file(t)
+    os.unlink(t)
 
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 
 def show(obj, svg=False, **kwds):
     """
-    Show a 2d or 3d graphics object or matplotlib figure, or show an
+    Show a 2d or 3d graphics object, animation, or matplotlib figure, or show an
     expression typeset nicely using LaTeX.
 
        - display: (default: True); if true use display math for expression (big and centered).
@@ -2035,6 +2044,12 @@ def show(obj, svg=False, **kwds):
        - events: if given, {'click':foo, 'mousemove':bar}; each time the user clicks,
          the function foo is called with a 2-tuple (x,y) where they clicked.  Similarly
          for mousemove.  This works for Sage 2d graphics and matplotlib figures.
+
+    For animations, there are two options::
+
+       - ``delay`` - (default: 20) delay in hundredths of a second between frames
+
+       - ``iterations`` - integer (default: 0); number of iterations of animation. If 0, loop forever.
 
 
     EXAMPLES:
@@ -2058,6 +2073,8 @@ def show(obj, svg=False, **kwds):
     import graphics
     if isinstance(obj, (Graphics, GraphicsArray, matplotlib.figure.Figure)):
         show_2d_plot_using_matplotlib(obj, svg=svg, **kwds)
+    elif isinstance(obj, Animation):
+        show_animation(obj, **kwds)
     elif isinstance(obj, Graphics3d):
         if kwds.get('viewer') == 'tachyon':
             show_3d_plot_using_tachyon(obj, **kwds)
@@ -2071,6 +2088,7 @@ def show(obj, svg=False, **kwds):
 # Make it so plots plot themselves correctly when they call their repr.
 Graphics.show = show
 GraphicsArray.show = show
+Animation.show = show
 
 ###################################################
 # %auto -- automatically evaluate a cell on load
@@ -2304,7 +2322,7 @@ def exercise(code):
 
     the_times = []
     @interact(layout=[[('go',1), ('title',11,'')],[('')], [('times',12, "<b>Times:</b>")]], flicker=True)
-    def h(go    = button("&nbsp;"*5 + "Go" + "&nbsp;"*7, label='', icon='icon-refresh', classes="btn-large btn-success"),
+    def h(go    = button("&nbsp;"*5 + "Go" + "&nbsp;"*7, label='', icon='fa-refresh', classes="btn-large btn-success"),
           title = title_control(title),
           times = text_control('')):
         c = interact.changed()
@@ -2701,7 +2719,7 @@ matplotlib.pyplot.show = _show_pyplot
 _system_sys_displayhook = sys.displayhook
 
 def displayhook(obj):
-    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure)):
+    if isinstance(obj, (Graphics3d, Graphics, GraphicsArray, matplotlib.figure.Figure, Animation)):
         show(obj)
     else:
         _system_sys_displayhook(obj)
