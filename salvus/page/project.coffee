@@ -1176,10 +1176,11 @@ class ProjectPage
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
         path = @current_path.join('/')
-        if path.length > 0 and path[path.length-1] != '/'
-            path += '/'
-
-        @push_state('files/' + path)
+        
+        url_path = path
+        if url_path.length > 0 and url_path[path.length-1] != '/'
+            url_path += '/'
+        @push_state('files/' + url_path)
 
         salvus_client.project_directory_listing
             project_id : @project.project_id
