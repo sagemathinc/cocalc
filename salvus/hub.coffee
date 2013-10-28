@@ -2264,7 +2264,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         @project_id   = opts.project_id
         @path         = opts.path
 
-        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:3)
+        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:9, min_interval:200, exp_factor:1.4)
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
         @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync',  max_tries:10)
 
