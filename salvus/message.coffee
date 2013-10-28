@@ -962,6 +962,17 @@ message
 
 # client --> hub
 message
+    event      : 'move_project'
+    id         : undefined
+    project_id : required
+
+message
+    event      : 'project_moved'
+    id         : undefined
+    location   : required  # new location
+
+# client --> hub
+message
     event      : 'undelete_project'
     id         : undefined
     project_id : required

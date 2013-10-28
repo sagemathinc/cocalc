@@ -125,7 +125,7 @@ class ProjectPage
         @container.top_navbar
             id    : @project.project_id
             label : @project.project_id
-            icon  : 'icon-edit'
+            icon  : 'fa-edit'
             onclose : () =>
                 @editor?.close_all_open_files()
                 @save_browser_local_data()
@@ -134,6 +134,7 @@ class ProjectPage
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
+                    @push_state()
                 @editor?.refresh()
 
             onfullscreen: (entering) =>
@@ -189,10 +190,14 @@ class ProjectPage
         @init_add_collaborators()
         @init_add_noncloud_collaborator()
 
+        @init_move_project()
+
         # Set the project id
         @container.find(".project-id").text(@project.project_id)
         if window.salvus_base_url != "" # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
+
+        @set_location()
 
         if @project.size? and @project.size
             @container.find(".project-size").text(human_readable_size(@project.size))
@@ -287,7 +292,59 @@ class ProjectPage
 
         @init_file_sessions()
 
+    push_state: (url) =>
+        if not url?
+            url = @_last_history_state
+        if not url?
+            url = ''
+        @_last_history_state = url
+        #if @project.name? and @project.owner?
+            #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
+        # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
+        # I can extend to the above later in another release, without any harm.
+        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + url)
 
+
+    #  files/....
+    #  recent
+    #  new
+    #  log
+    #  settings
+    #  search
+    load_target: (target, foreground=true) =>
+        #console.log("project -- load_target=#{target}")
+        segments = target.split('/')
+        switch segments[0]
+            when 'recent'
+                @display_tab("project-editor")
+            when 'files'
+                if target[target.length-1] == '/'
+                    # open a directory
+                    @display_tab("project-file-listing")
+                    @current_path = target.slice(0,target.length-1).split('/').slice(1)
+                    @update_file_list_tab()
+                else
+                    # open a file
+                    @display_tab("project-editor")
+                    @open_file(path:segments.slice(1).join('/'), foreground:foreground)
+                    @current_path = segments.slice(1, segments.length-1)
+            when 'new'
+                @current_path = segments.slice(1)
+                @display_tab("project-new-file")
+            when 'log'
+                @display_tab("project-activity")
+            when 'settings'
+                @display_tab("project-settings")
+            when 'search'
+                @current_path = segments.slice(1)
+                @display_tab("project-search")
+
+    set_location: () =>
+        if @project.location? and @project.location.username?
+            x = @project.location.username + "@" + @project.location.host
+        else
+            x = ""
+        @container.find(".project-location").text(x)
 
     window_resize: () =>
         if @current_tab.name == "project-file-listing"
@@ -730,12 +787,18 @@ class ProjectPage
                     that.editor.onshow()
             else if name == "project-new-file"
                 tab.onshow = () ->
+                    that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
+            else if name == "project-activity"
+                tab.onshow = () ->
+                    that.push_state('log')
             else if name == "project-settings"
                 tab.onshow = () ->
+                    that.push_state('settings')
                     that.update_topbar()
             else if name == "project-search"
                 tab.onshow = () ->
+                    that.push_state('search/' + that.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 
         @display_tab("project-file-listing")
@@ -1113,6 +1176,11 @@ class ProjectPage
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
         path = @current_path.join('/')
+        if path.length > 0 and path[path.length-1] != '/'
+            path += '/'
+
+        @push_state('files/' + path)
+
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
@@ -1192,7 +1260,7 @@ class ProjectPage
                     if parent == ""
                         parent = "."
                     t.data('name', parent)
-                    t.find(".project-directory-name").html("<i class='icon-reply'> </i> Parent Directory")
+                    t.find(".project-directory-name").html("<i class='fa fa-reply'> </i> Parent Directory")
                     t.find("input").hide()  # hide checkbox, etc.
                     # Clicking to open the directory
                     t.click () ->
@@ -1200,7 +1268,7 @@ class ProjectPage
                         that.update_file_list_tab()
                         return false
                     t.droppable(drop:file_dropped_on_directory, scope:'files')
-                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".icon-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
+                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     file_or_listing.append(t)
 
                 # Show the files
@@ -1231,7 +1299,7 @@ class ProjectPage
                         if ext != ''
                             t.find(".project-file-name-extension").text('.' + ext)
                             if file_associations[ext]? and file_associations[ext].icon?
-                                t.find(".project-file-icon").removeClass("icon-file").addClass(file_associations[ext].icon)
+                                t.find(".project-file-icon").removeClass("fa-file").addClass(file_associations[ext].icon)
                         if obj.mtime?
                             date = (new Date(obj.mtime*1000)).toISOString()
                             t.find(".project-file-last-mod-date").attr('title', date).timeago()
@@ -1263,7 +1331,7 @@ class ProjectPage
                         axis           : 'y'
                         scope          : 'files'
 
-                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".icon-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
+                    t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     # Finally add our new listing entry to the list:
                     directory_is_empty = false
                     file_or_listing.append(t)
@@ -1567,7 +1635,10 @@ class ProjectPage
         page = @container.find(".project-activity")
         page.find("h1").icon_spin(start:true, delay:500)
         @_project_activity_log = page.find(".project-activity-log")
-        LOG_FILE = '.sagemathcloud.log'
+        if window.salvus_base_url
+            LOG_FILE = '.sagemathcloud-local.log'
+        else
+            LOG_FILE = '.sagemathcloud.log'
         async.series([
             (cb) =>
                 @ensure_file_exists
@@ -1750,7 +1821,7 @@ class ProjectPage
         else
             @container.find(".project-settings-delete").show()
         link = @container.find("a[href=#delete-project]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -1782,7 +1853,7 @@ class ProjectPage
 
         link = @container.find("a[href=#undelete-project]")
 
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -1807,7 +1878,7 @@ class ProjectPage
 
     init_make_public: () =>
         link = @container.find("a[href=#make-public]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Public</h4>Are you sure you want to make this project public?"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Make Public</h4>Are you sure you want to make this project public?"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -1830,7 +1901,7 @@ class ProjectPage
 
     init_make_private: () =>
         link = @container.find("a[href=#make-private]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='icon-warning-sign'></i>  Make Private</h4>Are you sure you want to make this project private?"
+        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Make Private</h4>Are you sure you want to make this project private?"
         link.click () =>
             bootbox.confirm m, (result) =>
                 if result
@@ -1877,6 +1948,31 @@ class ProjectPage
             dialog.find("form").submit(submit)
             dialog.find(".btn-submit").click(submit)
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+            return false
+
+    init_move_project: () =>
+        button = @container.find(".project-settings-move").find("a")
+        button.click () =>
+            dialog = $(".project-move-dialog").clone()
+            dialog.modal()
+            dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+            dialog.find(".btn-submit").click () =>
+                button.icon_spin(start:true)
+                @container.find(".project-location").text("moving...").icon_spin(start:true)
+                alert_message(timeout:3, message:"Started moving project '#{@project.title}'. This could take around 1 minute per gigabyte...")
+                dialog.modal('hide')
+                salvus_client.move_project
+                    project_id : @project.project_id
+                    cb         : (err, location) =>
+                        @container.find(".project-location").icon_spin(false)
+                        button.icon_spin(false)
+                        if err
+                            alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
+                        else
+                            alert_message(timeout:3, message:"Moved project '#{@project.title}'...")
+                            @project.location = location
+                            @set_location()
+
             return false
 
     init_add_collaborators: () =>
@@ -1990,7 +2086,6 @@ class ProjectPage
             for y in select.find(":selected")
                 x = $(y)
                 name = x.attr('label')
-                console.log("name = ", name)
                 salvus_client.project_invite_collaborator
                     project_id : @project.project_id
                     account_id : x.attr("value")
@@ -2019,14 +2114,14 @@ class ProjectPage
         # Restart worksheet server
         link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            #link.find("i").addClass('icon-spin')
+            #link.find("i").addClass('fa-spin')
             link.icon_spin(start:true)
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
                 timeout    : 10
                 cb         : (err, output) =>
-                    #link.find("i").removeClass('icon-spin')
+                    #link.find("i").removeClass('fa-spin')
                     link.icon_spin(false)
                     if err
                         alert_message
@@ -2053,7 +2148,7 @@ class ProjectPage
                         else
                             cb(true)
                 (cb) =>
-                    #link.find("i").addClass('icon-spin')
+                    #link.find("i").addClass('fa-spin')
                     link.icon_spin(start:true)
                     alert_message
                         type    : "info"
@@ -2063,7 +2158,7 @@ class ProjectPage
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
-                    #link.find("i").removeClass('icon-spin')
+                    #link.find("i").removeClass('fa-spin')
                     link.icon_spin(false)
                     alert_message
                         type    : "success"
@@ -2088,7 +2183,7 @@ class ProjectPage
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='icon-trash pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id
@@ -2373,7 +2468,6 @@ transform_get_url = (url) ->  # returns something like {command:'wget', args:['h
         args = [url]
 
     return {command:command, args:args}
-
 
 
 

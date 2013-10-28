@@ -91,7 +91,7 @@ class Worksheet extends EventEmitter
         @_init_autosave()
 
         @_last_path = @opts.path
-        @element.find("a[href=#restart]").find(".icon-spin").hide()
+        @element.find("a[href=#restart]").find(".fa-spin").hide()
 
     chdir: (path, cb) =>
         @opts.session.execute_code
@@ -401,9 +401,9 @@ class Worksheet extends EventEmitter
         else
             @_check_all_last = true
         if @_check_all_last
-            $("a[href=#check-all]").find('i').addClass('icon-check').removeClass('icon-check-empty')
+            $("a[href=#check-all]").find('i').addClass('fa-check').removeClass('fa-check-empty')
         else
-            $("a[href=#check-all]").find('i').addClass('icon-check-empty').removeClass('icon-check')
+            $("a[href=#check-all]").find('i').addClass('fa-check-empty').removeClass('fa-check')
         for c in @cells()
             c.checkbox(@_check_all_last)
 
@@ -680,7 +680,7 @@ class Worksheet extends EventEmitter
     #######################################################################
 
     restart: () =>
-        #spinner = @element.find("a[href=#restart]").find(".icon-spin").show()
+        #spinner = @element.find("a[href=#restart]").find(".fa-spin").show()
         @opts.session.restart()
         # TODO -- the restart function takes like 10 seconds to call its callback, but the session restarts almost instantly
         f = () =>

@@ -257,7 +257,7 @@ Notes about the file: <input type=text name=note><br>
 </form>-->
                             <input type=submit value=Press> to upload the file!
 -->
-        label += "<a href='' style='margin:5px'><i class='icon-folder-open-alt'> </i></a>"
+        label += "<a href='' style='margin:5px'><i class='icon-folder-open-o'> </i></a>"
         label += "<a href='' style='margin:5px'><i class='icon-search'> </i></a>"
         label += "<a href='' style='margin:5px'><i class='icon-cog'> </i></a>"
 

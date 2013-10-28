@@ -30,10 +30,14 @@
 
 .projects-title {
     font-weight: bold;
+    max-height: 7em;
+    overflow-y: auto;
 }
 
 .projects-last_edited, .projects-description {
     color: #666;
+    max-height: 7em;
+    overflow-y: auto;
 }
 
 .projects-find-input {
