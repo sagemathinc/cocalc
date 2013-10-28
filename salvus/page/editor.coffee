@@ -3492,7 +3492,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("getting or starting ipython server (5-10 seconds)")
+                @status("getting or starting ipython server (wait about 30 seconds)")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     path       : @path

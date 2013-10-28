@@ -48,7 +48,8 @@ update_project_list = exports.update_project_list = (cb) ->
 
             if project_list?
                 for p in project_list
-                    p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
+                    if p.owner?
+                        p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
                 compute_search_data()
                 update_project_view()
 

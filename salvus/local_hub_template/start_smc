@@ -23,10 +23,9 @@ cmd("local_hub start --timeout=%s"%args.timeout)
 # we redirect to /dev/null to detach file descriptors so remote ssh terminates without waiting for these.
 cmd("console_server start  </dev/null >/dev/null 2>&1 &")
 
-# For now we do NOT background the sage server, since we run into serious problems if a session is requested, but the server isn't started.
-cmd("sage_server    start  </dev/null >/dev/null 2>&1 ")
+cmd("sage_server    start  </dev/null >/dev/null 2>&1 &")
 
-port_files = ["%s/data/%s.port"%(SAGEMATHCLOUD, s) for s in ['local_hub', 'console_server', 'sage_server']]
+port_files = ["%s/data/%s.port"%(SAGEMATHCLOUD, s) for s in ['local_hub', 'console_server']]
 
 def started():
     for p in port_files:
@@ -35,13 +34,17 @@ def started():
     return True
 
 # wait (up to 15 seconds) until the port files get created
+
+# We *do not* worry about 'sage_server' above, since a user could easily mess up a custom Sage (or Python) install,
+# and that would make it impossible to start the sage server... which would make it impossible to fix!
+
 i=0
 while not started():
     time.sleep(0.1)
     i += 1
     print i
     if i >= 150:
-        sys.stderr.write("Error allocating network port\n")
+        sys.stderr.write("Error allocating network ports for local hub or console server -- giving up after 15 seconds.\n")
         sys.exit(1)
 
 
