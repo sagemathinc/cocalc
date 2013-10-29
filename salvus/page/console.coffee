@@ -199,13 +199,17 @@ class Console extends EventEmitter
         init_mesg = () =>
             #console.log("init_mesg")
             @terminal.on 'mesg', (mesg) =>
-                #console.log("got the message '#{mesg}', length=#{mesg.length}")
+                #console.log("got message '#{mesg}', length=#{mesg.length}")
                 try
                     mesg = from_json(mesg)
                     switch mesg.event
                         when 'open_file'
-                            #console.log("now opening #{mesg.filename}...", @opts.editor)
-                            @opts.editor?.project_page.open_file(path:mesg.filename, foreground:true)
+                            #console.log("now opening #{mesg.name}...", @opts.editor)
+                            @opts.editor?.project_page.open_file(path:mesg.name, foreground:true)
+                        when 'open_directory'
+                            #console.log("changing to directory #{mesg.name}")
+                            @opts.editor?.project_page.chdir(mesg.name)
+                            @opts.editor?.project_page.display_tab("project-file-listing")
                 catch e
                     console.log("issue parsing message -- ", e)
 

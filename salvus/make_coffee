@@ -13,7 +13,7 @@ os.chdir(path)
 version = open("node_modules/salvus_version.js").read().split('=')[1].strip()
 
 def cmd(s):
-    print s
+    #print s
     if os.system(s):
          sys.exit(1)
 

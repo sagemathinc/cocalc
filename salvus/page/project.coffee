@@ -779,6 +779,7 @@ class ProjectPage
                 that.display_tab(link.data("target"))
                 return false
 
+            that.update_file_list_tab()
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.update_file_list_tab()
@@ -944,6 +945,8 @@ class ProjectPage
         if path == "" or not path?
             @current_path = []
         else
+            if path.length > 0 and path[path.length-1] == '/'
+                path = path.slice(0,path.length-1)
             @current_path = path.split('/')
         @container.find(".project-file-top-current-path-display").text(path)
 
@@ -1182,6 +1185,7 @@ class ProjectPage
             url_path += '/'
         @push_state('files/' + url_path)
 
+        #console.log("path = ", path)
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
@@ -1202,6 +1206,7 @@ class ProjectPage
                 @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
 
                 if (err)
+                    #console.log("update_file_list_tab: error -- ", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         #console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
@@ -1211,8 +1216,8 @@ class ProjectPage
                         # just try again in a bit.
                         setTimeout((()=>@update_file_list_tab(no_focus)), 3000)
                         #alert_message(type:"error", message:"Error viewing files at '#{path}' in project '#{@project.title}'.")
-
                     return
+
                 # remember for later
                 @_last_path_without_error = path
 
