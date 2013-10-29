@@ -1481,6 +1481,12 @@ Terminal.prototype.write = function(data) {
             case 46:
               // change log file
               break;
+            case 49:
+              // I'm just making this up! -- William -- I couldn't find any use of code 49...
+              if (this.params[1]) {
+                this.handleMesg(this.params[1]);
+              }
+              break;
             case 50:
               // dynamic font
               break;
@@ -1490,7 +1496,6 @@ Terminal.prototype.write = function(data) {
             case 52:
               // manipulate selection data
               break;
-            case 104:
             case 105:
             case 110:
             case 111:
@@ -2538,6 +2543,15 @@ Terminal.prototype.handler = function(data) {
 
 Terminal.prototype.handleTitle = function(title) {
   this.emit('title', title);
+};
+
+/* Message as (nearly) arbitrary string.  Client sends a message by printing this:
+
+    \x1b]49;any string you want toges here\x07
+
+*/
+Terminal.prototype.handleMesg = function(mesg) {
+  this.emit('mesg', mesg);
 };
 
 /**

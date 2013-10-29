@@ -1176,7 +1176,7 @@ class ProjectPage
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
         path = @current_path.join('/')
-        
+
         url_path = path
         if url_path.length > 0 and url_path[path.length-1] != '/'
             url_path += '/'
@@ -1208,7 +1208,9 @@ class ProjectPage
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
                         @update_file_list_tab(no_focus)
                     else
-                        alert_message(type:"error", message:"Error viewing files at '#{path}' in project '#{@project.title}'.")
+                        # just try again in a bit.
+                        setTimeout((()=>@update_file_list_tab(no_focus)), 3000)
+                        #alert_message(type:"error", message:"Error viewing files at '#{path}' in project '#{@project.title}'.")
 
                     return
                 # remember for later

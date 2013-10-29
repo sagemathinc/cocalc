@@ -15,7 +15,7 @@ $.extend $.fn,
 
 {EventEmitter} = require('events')
 {alert_message} = require('alerts')
-{copy, filename_extension, required, defaults, to_json, uuid} = require('misc')
+{copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('misc')
 
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
@@ -70,6 +70,7 @@ class Console extends EventEmitter
             rows        : 16
             cols        : 80
             resizable   : false
+            editor      : undefined  # needed for some actions, e.g., opening a file
             close       : undefined  # if defined, called when close button clicked.
             reconnect   : undefined  # if defined, opts.reconnect?() is called when session console wants to reconnect; this should call set_session.
 
@@ -195,6 +196,19 @@ class Console extends EventEmitter
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
 
+        init_mesg = () =>
+            #console.log("init_mesg")
+            @terminal.on 'mesg', (mesg) =>
+                #console.log("got the message '#{mesg}', length=#{mesg.length}")
+                try
+                    mesg = from_json(mesg)
+                    switch mesg.event
+                        when 'open_file'
+                            #console.log("now opening #{mesg.filename}...", @opts.editor)
+                            @opts.editor?.project_page.open_file(path:mesg.filename, foreground:true)
+                catch e
+                    console.log("issue parsing message -- ", e)
+
         @reset()
         @resize_terminal()
 
@@ -206,6 +220,7 @@ class Console extends EventEmitter
                     # On first write we ignore any queued terminal attributes responses that result.
                     @terminal.queue = ''
                     @resize()
+                    init_mesg()
 
                 @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
 

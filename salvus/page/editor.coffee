@@ -411,11 +411,11 @@ class exports.Editor
 
     open: (filename, cb) =>   # cb(err, actual_opened_filename)
         if not filename?
-            cb("BUG -- open(undefined) makes no sense")
+            cb?("BUG -- open(undefined) makes no sense")
             return
 
         if filename == ".sagemathcloud.log"
-            cb("You can only edit '.sagemathcloud.log' via the terminal.")
+            cb?("You can only edit '.sagemathcloud.log' via the terminal.")
             return
 
         if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
@@ -424,7 +424,7 @@ class exports.Editor
                 if not err
                     @open(sagews_filename, cb)
                 else
-                    cb("Error converting Sage Notebook sws file -- #{err}")
+                    cb?("Error converting Sage Notebook sws file -- #{err}")
             return
 
         if filename_extension(filename).toLowerCase() == "docx"   # Microsoft Word Document
@@ -433,13 +433,13 @@ class exports.Editor
                 if not err
                     @open(new_filename, cb)
                 else
-                    cb("Error converting Microsoft Docx file -- #{err}")
+                    cb?("Error converting Microsoft Docx file -- #{err}")
             return
 
         if not @tabs[filename]?   # if it is defined, then nothing to do -- file already loaded
             @tabs[filename] = @create_tab(filename:filename)
 
-        cb(false, filename)
+        cb?(false, filename)
 
     convert_sagenb_worksheet: (filename, cb) =>
         salvus_client.exec
@@ -2886,6 +2886,7 @@ class Terminal extends FileEditor
                         rows    : @opts.rows
                         resizable: false
                         close   : () => @editor.project_page.display_tab("project-file-listing")
+                        editor  : @editor
                         #reconnect    : @connect_to_server  # -- doesn't work yet!
                     @console = elt.data("console")
                     @element = @console.element
