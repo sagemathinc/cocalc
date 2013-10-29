@@ -5,6 +5,8 @@ path = os.path.split(os.path.realpath(__file__))[0]
 
 os.chdir(path)
 
+version = open("node_modules/salvus_version.js").read().split('=')[1].strip()
+
 ##################################
 # generate static/index.html
 
@@ -14,7 +16,7 @@ out = open("static/index.html","w")
 
 for X in open("page/index.html").readlines():
     if ".html" in X:
-       out.write(open(os.path.join("page/", X.strip())).read())
+       out.write(open(os.path.join("page/", X.strip())).read().replace("__SALVUS_VERSION__",version))
     else:
        out.write(X)
 
