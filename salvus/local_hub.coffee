@@ -503,6 +503,10 @@ class DiffSyncFile_server extends diffsync.DiffSync
         if @_autosave?
             clearInterval(@_autosave)
 
+        # be sure to clean this up, or -- after 11 times -- it will suddenly be impossible for
+        # the user to open a file without restarting their project server! (NOT GOOD)
+        fs.unwatchFile(@path, @_watcher)
+
     _watcher: (event) =>
         winston.debug("watch: file '#{@path}' modified.")
         if not @_do_watch
