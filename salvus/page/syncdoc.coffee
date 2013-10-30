@@ -3,6 +3,8 @@ Synchronized Documents
 
 A merge map, with the arrows pointing upstream:
 
+        else
+            @editor._set("Loading...")
 
      [client]s.. ---> [hub] ---> [local hub] <--- [hub] <--- [client] <--- YOU ARE HERE
                       /|\             |
@@ -398,11 +400,9 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         @editor.save = @save
         @codemirror  = @editor.codemirror
-        if misc.filename_extension(@filename) == "sagews"
-            @editor._set("Loading and connecting to Sage session...  (if this fails, try restarting your Worksheet server in settings)")
-        else
-            @editor._set("Loading...")
+        @editor._set("Loading...")
         @codemirror.setOption('readOnly', true)
+        @editor.codemirror1.setOption('readOnly', true)
         @element     = @editor.element
 
         @init_cursorActivity_event()
@@ -463,7 +463,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     cb(err); return
 
                 @session_uuid = resp.session_uuid
-
                 if @_last_sync?
                     # We have sync'd before.
                     synced_before = true
@@ -473,8 +472,16 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     @_last_sync   = DiffSyncDoc(string:resp.content)
                     synced_before = false
                     @codemirror.setOption('readOnly', false)
+                    @editor.codemirror1.setOption('readOnly', false)
                     @editor._set(resp.content)
-                    @codemirror.clearHistory()  # so undo history doesn't start with "empty document"
+                    @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
+                    @editor.codemirror1.clearHistory()
+                    # I saw one case once where the above clearHistory didn't work -- i.e., we were
+                    # still able to undo to the empty document; I don't understand how that is possible,
+                    # since it should be totally synchronous.  So just in case, I'm doing another clearHistory
+                    # 1 second after the document loads -- this means everything the user types
+                    # in the first 1 second of editing can't be undone, which seems acceptable.
+                    setTimeout( ( () => @codemirror.clearHistory(); @editor.codemirror1.clearHistory() ), 1000)
 
                 @dsync_client = codemirror_diffsync_client(@, resp.content)
 
