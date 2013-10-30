@@ -367,6 +367,10 @@ Terminal.bindKeys = function(client_keydown) {
        return;
     }
 
+    if (ev.metaKey && isMac) { // totally ignore meta=command key on Mac's.
+      return false;
+    }
+
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
       return false;
     }
@@ -374,6 +378,7 @@ Terminal.bindKeys = function(client_keydown) {
     if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 86) {  // paste
       return false;
     }
+
 
     if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
 	  return false;
