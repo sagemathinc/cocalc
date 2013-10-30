@@ -5238,6 +5238,32 @@ exports.start_server = start_server = () ->
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
+###
+# Command line admin stuff -- should maybe be moved to another program?
+###
+add_user_to_project = (email_address, project_id, cb) ->
+     account_id = undefined
+     async.series([
+         # ensure database object is initialized
+         (cb) ->
+             connect_to_database(cb)
+         # find account id corresponding to email address
+         (cb) ->
+             database.account_exists 
+                 email_address : email_address
+                 cb            : (err, _account_id) ->
+                     account_id = _account_id
+                     cb(err)
+         # add user to that project as a collaborator
+         (cb) ->
+             database.add_user_to_project
+                 project_id : project_id
+                 account_id : account_id
+                 group      : 'collaborator'
+                 cb         : cb
+     ], cb)
+
+
 #############################################
 # Process command line arguments
 #############################################
@@ -5251,6 +5277,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--add_user [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .parse(process.argv)
@@ -5269,7 +5296,16 @@ if program._name.slice(0,3) == 'hub'
 
     if program.passwd
         console.log("Resetting password")
-        reset_password program.passwd, (err) -> process.exit()
+        reset_password(program.passwd, (err) -> process.exit())
+    else if program.add_user
+        console.log("Adding user to project")
+        v = program.add_user.split(',')  
+        add_user_to_project v[0], v[1], (err) -> 
+            if err
+                 console.log("Failed to add user: #{err}")
+            else
+                 console.log("User added to project.") 
+            process.exit()
     else
         console.log("Running web server; pidfile=#{program.pidfile}")
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
