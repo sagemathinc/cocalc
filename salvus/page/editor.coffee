@@ -3123,17 +3123,25 @@ class Image extends FileEditor
                 refresh.icon_spin(false)
             return false
 
+        @element.find("a[href=#close]").click () =>
+            @editor.project_page.display_tab("project-file-listing")
+            return false
+
         if url?
+            @element.find(".salvus-editor-image-container").find("span").hide()
             @element.find("img").attr('src', url)
         else
             @update()
 
     update: (cb) =>
+        @element.find("a[href=#refresh]").icon_spin(start:true)
         salvus_client.read_file_from_project
             project_id : @editor.project_id
             timeout    : 30
             path       : @filename
             cb         : (err, mesg) =>
+                @element.find("a[href=#refresh]").icon_spin(false)
+                @element.find(".salvus-editor-image-container").find("span").hide()
                 if err
                     alert_message(type:"error", message:"Communications issue loading #{@filename} -- #{err}")
                     cb?(err)
@@ -3144,9 +3152,9 @@ class Image extends FileEditor
                     @element.find("img").attr('src', mesg.url)
                     cb?()
 
-    focus: () =>
+    show: () =>
+        @element.show()
         @element.maxheight()
-        @element.find(".salvus-editor-image-container").maxheight()
 
 
 #**************************************************
