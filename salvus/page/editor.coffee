@@ -3264,11 +3264,13 @@ class IPythonNotebook extends FileEditor
             cursor_interval : 2000
         @element = templates.find(".salvus-ipython-notebook").clone()
 
+        @_start_time = misc.walltime()
         if window.salvus_base_url != ""
             # TODO: having a base_url doesn't imply necessarily that we're in a dangerous devel mode...
             # (this is just a warning).
             # The solutiion for this issue will be to set a password whenever ipython listens on localhost.
             @element.find(".salvus-ipython-notebook-danger").show()
+            setTimeout( ( () => @element.find(".salvus-ipython-notebook-danger").hide() ), 3000)
 
         @status_element = @element.find(".salvus-ipython-notebook-status-messages")
         @init_buttons()
@@ -3298,6 +3300,8 @@ class IPythonNotebook extends FileEditor
     status: (text) =>
         if not text?
             text = ""
+        else if false
+            text += " (started at #{Math.round(misc.walltime(@_start_time))}s)"
         @status_element.html(text)
 
     setup: (cb) =>
@@ -3489,6 +3493,7 @@ class IPythonNotebook extends FileEditor
             clearInterval(@_autosync_interval)
         @element.remove()
         @doc?.disconnect_from_session()
+        @_dead = true
 
     get_ids: (cb) =>   # cb(err); if no error, sets @kernel_id and @notebook_id, though @kernel_id will be null if not started
         if not @server?
@@ -3508,7 +3513,7 @@ class IPythonNotebook extends FileEditor
     initialize: (cb) =>
         async.series([
             (cb) =>
-                @status("getting or starting ipython server (wait about 30 seconds)")
+                @status("getting or starting ipython server")
                 ipython_notebook_server
                     project_id : @editor.project_id
                     path       : @path
@@ -3535,10 +3540,13 @@ class IPythonNotebook extends FileEditor
                 setTimeout(f, 250)
         ], cb)
 
-
+    # Initialize the embedded iframe and wait until the notebook object in it is initialized.
+    # If this returns (calls cb) without an error, then the @nb attribute must be defined.
     _init_iframe: (cb) =>
+        #console.log("* starting _init_iframe**")
         if not @notebook_id?
             # assumes @notebook_id has been set
+            #console.log("exit _init_iframe 1")
             cb("must first call get_ids"); return
 
         @status("initializing iframe")
@@ -3547,6 +3555,7 @@ class IPythonNotebook extends FileEditor
             cb  : (err) =>
                 if err
                     @status()
+                    #console.log("exit _init_iframe 2")
                     cb(err); return
                 @iframe_uuid = misc.uuid()
 
@@ -3556,26 +3565,42 @@ class IPythonNotebook extends FileEditor
                 @notebook.html('').append(@iframe)
                 @show()
 
-                # Monkey patch the IPython html so clicking on the IPython logo pops up a a new tab with the dashboard,
+                # Monkey patch the IPython html so clicking on the IPython logo pops up a new tab with the dashboard,
                 # instead of messing up our embedded view.
                 attempts = 0
+                delay = 25
+                start_time = misc.walltime()
+                # What f does below is purely inside the browser DOM -- not the network, so doing it frequently is not a serious
+                # problem for the server.
                 f = () =>
-                    #console.log("kernel = ", @frame?.IPython?.notebook?.kernel)
+                    #console.log("(attempt #{attempts}, time #{misc.walltime(start_time)}): @frame.ipython=#{@frame?.IPython?}, notebook = #{@frame?.IPython?.notebook?}, kernel= #{@frame?.IPython?.notebook?.kernel?}")
+                    if @_dead?
+                        cb("dead"); return
                     attempts += 1
-                    if attempts >= 40
-                        # just give up -- this isn't at all critical; don't want to waste resources
-                        @status()
-                        cb()
+                    if delay <= 300  # exponential backoff up to 300ms.
+                        delay *= 1.2
+                    if attempts >= 250
+                        # give up after this much time.
+                        msg = "failed to load IPython notebook"
+                        @status(msg)
+                        #console.log("exit _init_iframe 3")
+                        cb(msg)
                         return
                     @frame = window.frames[@iframe_uuid]
                     if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
-                        setTimeout(f, 250)
+                        setTimeout(f, delay)
                     else
                         a = @frame.$("#ipython_notebook").find("a")
                         if a.length == 0
-                            setTimeout(f, 250)
+                            setTimeout(f, delay)
                         else
                             @ipython = @frame.IPython
+                            if not @ipython.notebook?
+                                msg = "something went wrong -- notebook object not defined in IPython frame"
+                                @status(msg)
+                                #console.log("exit _init_iframe 4")
+                                cb(msg)
+                                return
                             @nb = @ipython.notebook
 
                             a.click () =>
@@ -3593,12 +3618,8 @@ class IPythonNotebook extends FileEditor
                             for cmd in ['new', 'open', 'copy', 'rename']
                                 @frame.$("#" + cmd + "_notebook").remove()
                             @frame.$("#kill_and_exit").remove()
-                            #@frame.$("#save_checkpoint").remove()
-                            #@frame.$("#restore_checkpoint").remove()
                             @frame.$("#menus").find("li:first").find(".divider").remove()
 
-                            #@frame.$("#autosave_status").remove()
-                            #@frame.$("#checkpoint_status").remove()
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
                             @nb._save_checkpoint = @nb.save_checkpoint
                             @nb.save_checkpoint = @save
@@ -3612,7 +3633,7 @@ class IPythonNotebook extends FileEditor
                             @status()
                             cb()
 
-                setTimeout(f, 100)
+                setTimeout(f, delay)
 
     # although highly unlikely, this could happen if something else steals our port before we can restart...
     check_for_moved_server: () =>
@@ -3683,10 +3704,10 @@ class IPythonNotebook extends FileEditor
         if @_reloading
             return
         @_reloading = true
-        @reload_button.icon_spin(true)
+        @reload_button.find("i").addClass('fa-spin')
         @setup (e) =>
             @_reloading = false
-            @reload_button.icon_spin(false)
+            @reload_button.find("i").removeClass('fa-spin')
 
     init_buttons: () =>
         @element.find("a").tooltip()
@@ -3719,6 +3740,7 @@ class IPythonNotebook extends FileEditor
             @nb.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
 
+    # WARNING: Do not call this before @nb is defined!
     to_obj: () =>
         #console.log("to_obj: start"); t = misc.mswalltime()
         obj = @nb.toJSON()
@@ -3844,6 +3866,13 @@ class IPythonNotebook extends FileEditor
         #console.log("goal='#{doc}'")
         #console.log("live='#{@to_doc()}'")
         #console.log("from_doc: start"); tm = misc.mswalltime()
+        if not nb?
+            # The live notebook is not currently initialized -- there's nothing to be done for now.
+            # This can happen if reconnect (to hub) happens at the same time that user is reloading
+            # the ipython notebook frame itself.   The doc will get set properly at the end of the
+            # reload anyways, so no need to set it here.
+            return
+
         goal = doc.split('\n')
         live = @to_doc().split('\n')
         @nb.metadata.name  = goal[0].notebook_name

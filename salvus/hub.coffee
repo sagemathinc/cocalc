@@ -461,7 +461,7 @@ init_http_proxy_server = () =>
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 winston.debug("location = #{misc.to_json(location)}")
-                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}")
+                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}", timeout:0)
                 proxy.web(req, res) #, buffer:buffer}
 
     http_proxy_server.listen(program.proxy_port, program.host)
@@ -473,7 +473,7 @@ init_http_proxy_server = () =>
                 winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
             else
                 winston.debug("attempting websocket upgrade -- ws://#{location.host}:#{location.port}")
-                proxy = httpProxy.createProxyServer(ws:true, target:"ws://#{location.host}:#{location.port}")
+                proxy = httpProxy.createProxyServer(ws:true, target:"ws://#{location.host}:#{location.port}", timeout:0)
                 proxy.ws(req, socket, head)
                 #http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
 
@@ -5249,7 +5249,7 @@ add_user_to_project = (email_address, project_id, cb) ->
              connect_to_database(cb)
          # find account id corresponding to email address
          (cb) ->
-             database.account_exists 
+             database.account_exists
                  email_address : email_address
                  cb            : (err, _account_id) ->
                      account_id = _account_id
@@ -5299,12 +5299,12 @@ if program._name.slice(0,3) == 'hub'
         reset_password(program.passwd, (err) -> process.exit())
     else if program.add_user_to_project
         console.log("Adding user to project")
-        v = program.add_user_to_project.split(',')  
-        add_user_to_project v[0], v[1], (err) -> 
+        v = program.add_user_to_project.split(',')
+        add_user_to_project v[0], v[1], (err) ->
             if err
                  console.log("Failed to add user: #{err}")
             else
-                 console.log("User added to project.") 
+                 console.log("User added to project.")
             process.exit()
     else
         console.log("Running web server; pidfile=#{program.pidfile}")
