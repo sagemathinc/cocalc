@@ -371,12 +371,15 @@ Terminal.bindKeys = function(client_keydown) {
       return false;
     }
 
-    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
-      return false;
-    }
+    if (!isMac) {
+      // we handle metaKey on OS X above; also, on OS X ctrl-C does *not* copy, so we don't need to do this.
+      if (ev.ctrlKey && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
+        return false;
+      }
 
-    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 86) {  // paste
-      return false;
+      if (ev.ctrlKey && ev.keyCode == 86) {  // paste
+        return false;
+      }
     }
 
 
