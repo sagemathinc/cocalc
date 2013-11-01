@@ -190,6 +190,7 @@ class AbstractSynchronizedDoc extends EventEmitter
         @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
         @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
 
+        #console.log("connect: constructor")
         @connect (err) =>
             opts.cb(err, @)
 
@@ -229,6 +230,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                     # This just doesn't work yet -- not really implemented in the hub -- so we force
                     # a full reconnect, which is safe.
                     #@session_uuid = mesg.mesg.new_session_uuid
+                    #console.log("connect: update_session_uuid")
                     @connect()
                 when 'cursor'
                     @_receive_cursor(mesg)
@@ -239,6 +241,7 @@ class AbstractSynchronizedDoc extends EventEmitter
         # The main websocket to the remote server died then came back, so we
         # setup a new syncdoc session with the remote hub.  This will work fine,
         # even if we connect to a different hub.
+        #console.log("connect: __reconnect")
         @connect (err) =>
 
     _apply_patch_to_live: (patch) =>
@@ -255,6 +258,7 @@ class AbstractSynchronizedDoc extends EventEmitter
     # "sync(cb)": keep trying to synchronize until success; then do cb()
     # _sync(cb) -- try once to sync; on any error cb(err).
     _sync: (cb) =>
+        #console.log("_sync")
         @_presync?()
         snapshot = @live()
         @dsync_client.push_edits (err) =>
@@ -263,7 +267,10 @@ class AbstractSynchronizedDoc extends EventEmitter
                     # This is normal -- it's because the diffsync algorithm only allows sync with
                     # one client (and upstream) at a time.
                     cb?(err)
+                else if err == 'reloading'
+                    cb?(err)
                 else  # all other errors should reconnect first.
+                    #console.log("connect: due to sync error: #{err}")
                     @connect () =>
                         cb?(err)
             else
@@ -330,7 +337,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
     _connect: (cb) =>
         @_remove_listeners()
         delete @session_uuid
-        #console.log("getting new session... -- '#{@filename}'")
+        #console.log("_connect -- '#{@filename}'")
         @call
             timeout : 30     # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
@@ -419,6 +426,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @on 'sync', () =>
             @ui_synced(true)
 
+        #console.log("connect: constructor")
         @connect (err) =>
             if err
                 bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - #{err}", () =>
@@ -448,6 +456,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
     _connect: (cb) =>
         @_remove_listeners()
+        @other_cursors = {}
         delete @session_uuid
         @ui_loading()
         @call
@@ -463,6 +472,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     cb(err); return
 
                 @session_uuid = resp.session_uuid
+                @codemirror.setOption('readOnly', false)
+                @editor.codemirror1.setOption('readOnly', false)
                 if @_last_sync?
                     # We have sync'd before.
                     synced_before = true
@@ -471,8 +482,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     # This initialiation is the first sync.
                     @_last_sync   = DiffSyncDoc(string:resp.content)
                     synced_before = false
-                    @codemirror.setOption('readOnly', false)
-                    @editor.codemirror1.setOption('readOnly', false)
                     @editor._set(resp.content)
                     @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
                     @editor.codemirror1.clearHistory()
@@ -517,6 +526,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         # The main websocket to the remote server died then came back, so we
         # setup a new syncdoc session with the remote hub.  This will work fine,
         # even if we connect to a different hub.
+        #console.log("connect: __reconnect")
         @connect (err) =>
 
     disconnect_from_session: (cb) =>

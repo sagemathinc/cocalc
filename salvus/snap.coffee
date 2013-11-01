@@ -820,7 +820,7 @@ monitor_snapshot_queue = () ->
         (cb) ->
             winston.debug("monitor_snapshot_queue: getting a list of the interesting modified files for #{project_id}")
             # We use the --one-file-system option below so that sshfs-mounted filesystems don't get sucked up into our snapshots,
-            # as they could be huge and contain private information users don't want snapshotted. 
+            # as they could be huge and contain private information users don't want snapshotted.
             misc_node.execute_code
                 command : "/usr/bin/bup on #{user} index --one-file-system -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
                 timeout : 30  # should be very fast no matter what.
@@ -1456,7 +1456,7 @@ snapshot_active_projects = (cb) ->
                     project_ids = (r[0] for r in results)
                     cb(err)
         (cb) ->
-            winston.debug("recently modified projects: #{misc.to_json(project_ids)}")
+            winston.debug("recently modified projects: #{project_ids.length} of them")
 
             v = []
             for id in project_ids
@@ -1508,7 +1508,7 @@ exports.start_server = start_server = () ->
                 cb()
         (cb) ->
             monitor_snapshot_queue()
-            setInterval(ensure_snapshot_queue_working, 60000) 
+            setInterval(ensure_snapshot_queue_working, 60000)
             cb()
         (cb) ->
             setInterval(register_with_database, 1000*registration_interval_seconds)
