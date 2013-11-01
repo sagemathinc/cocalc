@@ -3289,7 +3289,7 @@ class IPythonNotebook extends FileEditor
         @setup () =>
             # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
             # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
-            # when the notebook is dirty.
+            # when the notebook is dirty. (TODO: fix all this via upstream patches.)
             # Also, note there are cases where IPython doesn't set the dirty flag
             # even though the output has changed.   For example, if you type "123" in a cell, run, then
             # comment out the line and shift-enter again, the empty output doesn't get sync'd out until you do
@@ -3310,9 +3310,7 @@ class IPythonNotebook extends FileEditor
             return  # already setting up
         @_setting_up = true
         @con.show().icon_spin(start:true)
-
-        # Delete all the cached cursors in the DOM
-        delete @_cursors
+        delete @_cursors   # Delete all the cached cursors in the DOM
         delete @nb
         delete @frame
 
@@ -3367,14 +3365,21 @@ class IPythonNotebook extends FileEditor
         )
 
     _init_doc: (cb) =>
-        console.log("_init_doc: connecting to sync session")
+        #console.log("_init_doc: connecting to sync session")
         @status("connecting to sync session")
+        if @doc?
+            # already initialized
+            @doc.sync () =>
+                @set_live_from_syncdoc()
+                @iframe.animate(opacity:1)
+                cb?()
+            return
         @doc = syncdoc.synchronized_string
             project_id : @editor.project_id
             filename   : @syncdoc_filename
             sync_interval : @opts.sync_interval
             cb         : (err) =>
-                console.log("_init_doc returned: err=#{err}")
+                #console.log("_init_doc returned: err=#{err}")
                 @status()
                 if err
                     cb?("Unable to connect to synchronized document server -- #{err}")
@@ -3396,7 +3401,7 @@ class IPythonNotebook extends FileEditor
         @iframe.animate(opacity:1)
 
         @doc._presync = () =>
-            if not @nb?
+            if not @nb? or @_reloading
                 # no point -- reinitializing the notebook frame right now...
                 return
             @doc.live(@to_doc())
@@ -3406,6 +3411,9 @@ class IPythonNotebook extends FileEditor
         apply_edits2 = (patch, cb) =>
             #console.log("_apply_edits_to_live ")#-- #{JSON.stringify(patch)}")
             before =  @to_doc()
+            if not before?
+                cb?("reloading")
+                return
             @doc.dsync_client.live = before
             apply_edits(patch)
             if @doc.dsync_client.live != before
@@ -3433,6 +3441,9 @@ class IPythonNotebook extends FileEditor
             id = color + name
             cursor_data = @_cursors[id]
             if not cursor_data?
+                if not @frame?.$?
+                    # do nothing in case initialization is incomplete
+                    return
                 cursor = templates.find(".salvus-editor-codemirror-cursor").clone().show()
                 # craziness -- now move it into the iframe!
                 cursor = @frame.$("<div>").html(cursor.html())
@@ -3468,7 +3479,7 @@ class IPythonNotebook extends FileEditor
             cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label").stop().show().animate(opacity:1).fadeOut(duration:16000)
             # Then fade the cursor out (a non-active cursor is a waste of space).
             cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
-            @nb.get_cell(pos.index).code_mirror.addWidget(
+            @nb?.get_cell(pos.index)?.code_mirror.addWidget(
                       {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
         @status()
 
@@ -3479,6 +3490,8 @@ class IPythonNotebook extends FileEditor
             return
         index = @nb.get_selected_index()
         cell  = @nb.get_cell(index)
+        if not cell?
+            return
         pos   = cell.code_mirror.getCursor()
         s = misc.to_json(pos)
         if s != @_last_cursor_pos
@@ -3562,14 +3575,14 @@ class IPythonNotebook extends FileEditor
 
                 @status("loading iframe")
 
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.3').attr('src', @server.url + @notebook_id)
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").css('opacity','.01').attr('src', @server.url + @notebook_id)
                 @notebook.html('').append(@iframe)
                 @show()
 
                 # Monkey patch the IPython html so clicking on the IPython logo pops up a new tab with the dashboard,
                 # instead of messing up our embedded view.
                 attempts = 0
-                delay = 25
+                delay = 200
                 start_time = misc.walltime()
                 # What f does below is purely inside the browser DOM -- not the network, so doing it frequently is not a serious
                 # problem for the server.
@@ -3578,9 +3591,9 @@ class IPythonNotebook extends FileEditor
                     if @_dead?
                         cb("dead"); return
                     attempts += 1
-                    if delay <= 300  # exponential backoff up to 300ms.
+                    if delay <= 750  # exponential backoff up to 300ms.
                         delay *= 1.2
-                    if attempts >= 250
+                    if attempts >= 80
                         # give up after this much time.
                         msg = "failed to load IPython notebook"
                         @status(msg)
@@ -3588,7 +3601,7 @@ class IPythonNotebook extends FileEditor
                         cb(msg)
                         return
                     @frame = window.frames[@iframe_uuid]
-                    if not @frame? or not @frame.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
+                    if not @frame? or not @frame?.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
                         setTimeout(f, delay)
                     else
                         a = @frame.$("#ipython_notebook").find("a")
@@ -3654,7 +3667,8 @@ class IPythonNotebook extends FileEditor
 
     autosync: () =>
         @check_for_moved_server()  # only bother if document being changed.
-        if @frame?.IPython?.notebook?.dirty
+        if @frame?.IPython?.notebook?.dirty and not @_reloading
+            #console.log("causing sync")
             @save_button.removeClass('disabled')
             @sync()
             @nb.dirty = false
@@ -3681,6 +3695,8 @@ class IPythonNotebook extends FileEditor
         if not @doc?.dsync_client?  # could be re-initializing
             return
         current = @to_doc()
+        if not current?
+            return
         if @doc.dsync_client.live != current
             @from_doc(@doc.dsync_client.live)
 
@@ -3698,6 +3714,8 @@ class IPythonNotebook extends FileEditor
             t += "<h4>Pure IPython notebooks</h4>"
             t += "You can also directly use an <a target='_blank' href='#{@server.url}'>unmodified version of the IPython Notebook server</a> (this link works for all project collaborators).  "
             t += "<br><br>To start your own unmodified IPython Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
+            t += "<h4>Known Issues</h4>"
+            t += "If two people edit the same <i>cell</i> simultaneously, the cursor will jump to the start of the cell."
         bootbox.alert(t)
         return false
 
@@ -3705,10 +3723,13 @@ class IPythonNotebook extends FileEditor
         if @_reloading
             return
         @_reloading = true
+        @_cursors = {}
         @reload_button.find("i").addClass('fa-spin')
-        @setup (e) =>
-            @_reloading = false
-            @reload_button.find("i").removeClass('fa-spin')
+        @initialize (err) =>
+            @_init_doc () =>
+                @_reloading = false
+                @status('')
+                @reload_button.find("i").removeClass('fa-spin')
 
     init_buttons: () =>
         @element.find("a").tooltip()
@@ -3732,18 +3753,21 @@ class IPythonNotebook extends FileEditor
             return false
 
         @element.find("a[href=#execute]").click () =>
-            @nb.execute_selected_cell()
+            @nb?.execute_selected_cell()
             return false
         @element.find("a[href=#interrupt]").click () =>
-            @nb.kernel.interrupt()
+            @nb?.kernel.interrupt()
             return false
         @element.find("a[href=#tab]").click () =>
-            @nb.get_cell(@nb?.get_selected_index()).completer.startCompletion()
+            @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
 
     # WARNING: Do not call this before @nb is defined!
     to_obj: () =>
         #console.log("to_obj: start"); t = misc.mswalltime()
+        if not @nb?
+            # can't get obj
+            return undefined
         obj = @nb.toJSON()
         obj.metadata.name  = @nb.notebook_name
         obj.nbformat       = @nb.nbformat
@@ -3753,6 +3777,8 @@ class IPythonNotebook extends FileEditor
 
     from_obj: (obj) =>
         #console.log("from_obj: start"); t = misc.mswalltime()
+        if not @nb?
+            return
         i = @nb.get_selected_index()
         st = @nb.element.scrollTop()
         @nb.fromJSON(obj)
@@ -3765,6 +3791,8 @@ class IPythonNotebook extends FileEditor
     to_doc: () =>
         #console.log("to_doc: start"); t = misc.mswalltime()
         obj = @to_obj()
+        if not obj?
+            return
         doc = misc.to_json({notebook_name:obj.metadata.name})
         for cell in obj.worksheets[0].cells
             doc += '\n' + misc.to_json(cell)
@@ -3792,14 +3820,18 @@ class IPythonNotebook extends FileEditor
     ###
 
     delete_cell: (index) =>
-        @nb.delete_cell(index)
+        @nb?.delete_cell(index)
 
     insert_cell: (index, cell_data) =>
+        if not @nb?
+            return
         new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
         new_cell.fromJSON(cell_data)
 
     set_cell: (index, cell_data) =>
         #console.log("set_cell: start"); t = misc.mswalltime()
+        if not @nb?
+            return
 
         cell = @nb.get_cell(index)
 
@@ -3875,7 +3907,10 @@ class IPythonNotebook extends FileEditor
             return
 
         goal = doc.split('\n')
-        live = @to_doc().split('\n')
+        live = @to_doc()?.split('\n')
+        if not live?
+            # reloading...
+            return
         @nb.metadata.name  = goal[0].notebook_name
 
         v0    = live.slice(1)
