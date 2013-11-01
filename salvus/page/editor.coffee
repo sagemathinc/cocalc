@@ -3367,14 +3367,14 @@ class IPythonNotebook extends FileEditor
         )
 
     _init_doc: (cb) =>
-        console.log("_init_doc: connecting to sync session")
+        #console.log("_init_doc: connecting to sync session")
         @status("connecting to sync session")
         @doc = syncdoc.synchronized_string
             project_id : @editor.project_id
             filename   : @syncdoc_filename
             sync_interval : @opts.sync_interval
             cb         : (err) =>
-                console.log("_init_doc returned: err=#{err}")
+                #console.log("_init_doc returned: err=#{err}")
                 @status()
                 if err
                     cb?("Unable to connect to synchronized document server -- #{err}")
