@@ -3353,8 +3353,8 @@ class IPythonNotebook extends FileEditor
             (cb) =>
                 @initialize(cb)
             (cb) =>
-                @init_autosave()
                 @_init_doc(cb)
+                @init_autosave()
         ], (err) =>
             @con.show().icon_spin(false).hide()
             @_setting_up = false
@@ -3367,13 +3367,14 @@ class IPythonNotebook extends FileEditor
         )
 
     _init_doc: (cb) =>
-        #console.log("_init_doc")
+        console.log("_init_doc: connecting to sync session")
         @status("connecting to sync session")
         @doc = syncdoc.synchronized_string
             project_id : @editor.project_id
             filename   : @syncdoc_filename
             sync_interval : @opts.sync_interval
             cb         : (err) =>
+                console.log("_init_doc returned: err=#{err}")
                 @status()
                 if err
                     cb?("Unable to connect to synchronized document server -- #{err}")
@@ -3866,7 +3867,7 @@ class IPythonNotebook extends FileEditor
         #console.log("goal='#{doc}'")
         #console.log("live='#{@to_doc()}'")
         #console.log("from_doc: start"); tm = misc.mswalltime()
-        if not nb?
+        if not @nb?
             # The live notebook is not currently initialized -- there's nothing to be done for now.
             # This can happen if reconnect (to hub) happens at the same time that user is reloading
             # the ipython notebook frame itself.   The doc will get set properly at the end of the
