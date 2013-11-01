@@ -386,6 +386,8 @@ def build_cassandra():
 
         print "building python library"
         cmd("cd pylib && python setup.py install", path)
+
+        print "CASSANDRA IMPORTANT -- you might need to apply the patch from https://issues.apache.org/jira/browse/CASSANDRA-5895    !?!?"
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
