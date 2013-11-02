@@ -653,6 +653,8 @@ snapshot_project = (opts) ->
 
 repository_is_corrupt = false
 
+monitor_snapshot_queue_last_run = undefined
+
 monitor_snapshot_queue = () ->
     monitor_snapshot_queue_last_run = misc.walltime()
     if snapshot_queue.length == 0
