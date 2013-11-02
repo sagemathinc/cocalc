@@ -281,6 +281,7 @@ class Console extends EventEmitter
         Terminal.colors[257] = Terminal.defaultColors.fg
 
     client_keydown: (ev) =>
+        #console.log("client_keydown")
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
                 when 190       # "control-shift->"
@@ -290,7 +291,8 @@ class Console extends EventEmitter
                     @_decrease_font_size()
                     return false
         if (ev.metaKey or ev.ctrlKey) and (ev.keyCode in [17, 91, 93, 223])  # command or control key (could be a paste coming)
-            # clear the hidden textarea pastebin, since otherwise the
+            #console.log("clear hidden text area paste bin")
+            # clear the hidden textarea pastebin, since otherwise
             # everything that the user typed before pasting appears
             # in the paste, which is very, very bad.
             # NOTE: we could do this on all keystrokes.  WE restrict as above merely for efficiency purposes.
