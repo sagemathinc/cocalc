@@ -2874,6 +2874,9 @@ class Terminal extends FileEditor
                     alert_message(type:"error", message: "Error connecting to console server.")
                 else
                     # New session or connect to session
+                    if result.content? and result.content.length < 36
+                        # empty/corrupted -- messed up by bug in early version of SMC...
+                        delete result.content
                     opts = @opts = defaults opts,
                         session_uuid : result.content
                         rows         : 24
