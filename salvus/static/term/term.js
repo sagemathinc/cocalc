@@ -1460,7 +1460,7 @@ Terminal.prototype.write = function(data) {
 
           this.params.push(this.currentParam);
 
-          #console.log("code=", this.params[0]);
+          // console.log("code=", this.params[0]);
 
           switch (this.params[0]) {
             case 0:
