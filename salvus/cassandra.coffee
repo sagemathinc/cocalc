@@ -531,7 +531,7 @@ class exports.Cassandra extends EventEmitter
         where = @_where(opts.where, vals)
         @cql("DELETE FROM #{opts.table} WHERE #{where}", vals, opts.cb)
 
-    select: (opts={}) ->
+    select: (opts={}) =>
         opts = defaults opts,
             table     : required    # string -- the table to query
             columns   : required    # list -- columns to extract
@@ -566,7 +566,7 @@ class exports.Cassandra extends EventEmitter
     # Exactly like select (above), but gives an error if there is not exactly one
     # row in the table that matches the condition.  Also, this returns the one
     # rather than an array of length 0.
-    select_one: (opts={}) ->
+    select_one: (opts={}) =>
         cb = opts.cb
         opts.cb = (err, results) ->
             if err
