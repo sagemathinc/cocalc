@@ -3507,6 +3507,8 @@ class IPythonNotebook extends FileEditor
             clearInterval(@_cursor_interval)
         if @_autosync_interval?
             clearInterval(@_autosync_interval)
+        if @_reconnect_interval?
+            clearInterval(@_reconnect_interval)
         @element.remove()
         @doc?.disconnect_from_session()
         @_dead = true
@@ -3645,6 +3647,14 @@ class IPythonNotebook extends FileEditor
                             @nb.load_notebook_success = (data,status,xhr) =>
                                 @nb._load_notebook_success(data,status,xhr)
                                 @sync()
+
+                            # Periodically reconnect the IPython websocket.  This is LAME to have to do, but if I don't do this,
+                            # then the thing hangs and reconnecting then doesn't work (the user has to do a full frame refresh).
+                            # TODO: understand this and fix it properly.  This is entirely related to the complicated proxy server
+                            # stuff in SMC, not sync!
+                            websocket_reconnect = () =>
+                                @nb?.kernel?.start_channels()
+                            @_reconnect_interval = setInterval(websocket_reconnect, 15000)
 
                             @status()
                             cb()
