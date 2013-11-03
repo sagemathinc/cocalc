@@ -1419,13 +1419,21 @@ class Services(object):
             print cmd
             self._hosts(hostname, cmd, sudo=True, timeout=10, wait=False)
 
+
+            # Use iptables directly -- *not* ufw -- to drop incoming traffic within compute machines!  This is critical to make
+            # servers-with-passwords that users start listening on the vpn safe, such as ipython.
+            cmd = 'iptables -I INPUT --src %s -p tcp --dport 1025:65535 -j DROP'%(','.join(self._hosts.ip_addresses('compute')))
+            print cmd
+            self._hosts(hostname, cmd, sudo=True, timeout=10, wait=False)
+
             commands = (['allow proto tcp from %s to any port 1:65535'%ip for ip in self._hosts['hub admin']] +  # allow access from hub/admin
                         ['allow proto udp from %s to any port 1:65535'%ip for ip in self._hosts['hub admin']] +
                         ['deny proto tcp to any port 1025:65535'] +          # deny access to user ports (except from hub) - CRITICAL so users
                         ['deny proto udp to any port 1025:65535'])           # can safely open a server on localhost
 
-            # This would firewall the compute machines in various additional ways, which we've decided not to do for now.  E.g., this
-            # makes things like github, etc., not work with cloud, which is not worth restricting. 
+            # This would firewall the compute machines in various additional ways, which we've decided not to do for now.  E.g., this in various additional ways, which we've decided not to do for now.  E.g., this
+            # makes things like github, etc., not work with cloud, which is not worth restricting.
+            # makes things like github, etc., not work with cloud, which is not worth restricting.
             #commands = (['default deny outgoing'] + ['allow %s'%p for p in [22,655]] + ['allow out %s'%p for p in [22,53,655]] +
             #            ['allow proto tcp from %s to any port %s'%(ip, y[1]) for ip in self._hosts['hub admin'] for y in COMPUTE_SERVER_PORTS.iteritems()]+
             #            ['deny proto tcp to any port 1:65535', 'deny proto udp to any port 1:65535']
