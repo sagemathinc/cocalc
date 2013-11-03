@@ -772,9 +772,10 @@ monitor_snapshot_queue = () ->
 
         (cb) ->
             winston.debug("monitor_snapshot_queue: get deployed location of project (which can change at any time!)")
-            database.get_project_location
+            database._get_project_location
                 project_id : project_id
                 cb         : (err, _location) ->
+                    winston.debug("monitor_snapshot_queue: returned from get_project_location with result=#{err}, #{misc.to_json(_location)}")
                     if err
                         cb(err)
                     else
@@ -980,8 +981,8 @@ monitor_snapshot_queue = () ->
 # 30 minutes.
 ensure_snapshot_queue_working = () ->
     if monitor_snapshot_queue_last_run?
-        if misc.walltime() - monitor_snapshot_queue_last_run > 60*30
-            winston.debug("BUG/ERROR ** monitor_snapshot_queue has not been called in over 30 minutes -- restarting, but you need to fix this. check logs!")
+        if misc.walltime() - monitor_snapshot_queue_last_run > 60*15
+            winston.debug("BUG/ERROR ** monitor_snapshot_queue has not been called in over 15 minutes -- restarting, but you need to fix this. check logs!")
             monitor_snapshot_queue()
 
 # snapshot all projects in the given input array, and call opts.cb on completion.
