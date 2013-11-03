@@ -2890,7 +2890,6 @@ class Terminal extends FileEditor
                         resizable: false
                         close   : () => @editor.project_page.display_tab("project-file-listing")
                         editor  : @editor
-                        #reconnect    : @connect_to_server  # -- doesn't work yet!
                     @console = elt.data("console")
                     @element = @console.element
                     @connect_to_server()

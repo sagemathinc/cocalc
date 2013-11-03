@@ -198,7 +198,10 @@ class Console extends EventEmitter
 
         init_mesg = () =>
             #console.log("init_mesg")
+            @_ignore_mesg = false
             @terminal.on 'mesg', (mesg) =>
+                if @_ignore_mesg
+                    return
                 #console.log("got message '#{mesg}', length=#{mesg.length}")
                 try
                     mesg = from_json(mesg)
@@ -218,9 +221,11 @@ class Console extends EventEmitter
 
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
+            #console.log("got #{data.length} data")
             try
                 @terminal.write(data)
                 if @value == ""
+                    #console.log("empty value")
                     # On first write we ignore any queued terminal attributes responses that result.
                     @terminal.queue = ''
                     @resize()
@@ -239,7 +244,11 @@ class Console extends EventEmitter
                 # the whole terminal just be broken.
 
         @session.on 'reconnect', () =>
+            #console.log("reconnect")
+            @value = ""
+            @_ignore_mesg = true
             @reset()
+            @terminal.showCursor()
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
@@ -248,7 +257,7 @@ class Console extends EventEmitter
 
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.
-        $(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
+        #$(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
         @value = ''
         @scrollbar_nlines = 0
         @terminal.reset()
@@ -487,6 +496,8 @@ class Console extends EventEmitter
             return false
 
         @element.find("a[href=#refresh]").click () =>
+            if @session?
+                @session.reconnect()
             @resize()
             @opts.reconnect?()
             return false
