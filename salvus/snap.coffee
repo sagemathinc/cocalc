@@ -982,8 +982,11 @@ monitor_snapshot_queue = () ->
 ensure_snapshot_queue_working = () ->
     if monitor_snapshot_queue_last_run?
         if misc.walltime() - monitor_snapshot_queue_last_run > 60*15
-            winston.debug("BUG/ERROR ** monitor_snapshot_queue has not been called in over 15 minutes -- restarting, but you need to fix this. check logs!")
-            monitor_snapshot_queue()
+            winston.debug("ensure_snapshot_queue_working: BUG/ERROR ** monitor_snapshot_queue has not been called in over 15 minutes -- restarting, but you need to fix this. check logs!")
+            winston.debug("ensure_snapshot_queue_working: connecting to database")
+            connect_to_database (err) =>
+                winston.debug("ensure_snapshot_queue_working: connect_to_databasegot back err=#{err}")
+                monitor_snapshot_queue()
 
 # snapshot all projects in the given input array, and call opts.cb on completion.
 snapshot_projects = (opts) ->
