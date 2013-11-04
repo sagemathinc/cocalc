@@ -4,6 +4,9 @@
 #
 ######################################################
 
+# IMPORTANT - this file is no longer used!!!!
+
+
 {EventEmitter} = require('events')
 
 {IS_MOBILE}    = require("feature")

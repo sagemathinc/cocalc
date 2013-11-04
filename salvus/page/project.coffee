@@ -1016,7 +1016,7 @@ class ProjectPage
                     s += '.' + ext
             return s
 
-        @new_file_tab.find("a[href=#new-terminal]").click () =>
+        create_terminal = () =>
             p = path('term')
             if p.length == 0
                 @new_file_tab_input.focus()
@@ -1025,6 +1025,8 @@ class ProjectPage
             tab = @editor.create_tab(filename:p, content:"")
             @editor.display_tab(path:p)
             return false
+
+        @new_file_tab.find("a[href=#new-terminal]").click(create_terminal)
 
         @new_file_tab.find("a[href=#new-worksheet]").click () =>
             create_file('sagews')
@@ -1043,6 +1045,11 @@ class ProjectPage
         create_file = (ext) =>
             p = path(ext)
             ext = misc.filename_extension(p)
+
+            if ext == 'term'
+                create_terminal()
+                return false
+
             if ext in BANNED_FILE_TYPES
                 alert_message(type:"error", message:"Creation of #{ext} files not supported.", timeout:3)
                 return false

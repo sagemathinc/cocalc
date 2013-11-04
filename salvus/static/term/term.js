@@ -367,6 +367,12 @@ Terminal.bindKeys = function(client_keydown) {
        return;
     }
 
+
+    if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
+	  return false;
+    }
+
+
     if (ev.metaKey && isMac) { // totally ignore meta=command key on Mac's.
       return false;
     }
@@ -382,10 +388,6 @@ Terminal.bindKeys = function(client_keydown) {
       }
     }
 
-
-    if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
-	  return false;
-    }
 
     /* term -- handle the keystroke via the xterm . */
     if (typeof Terminal.focus === 'object') {
@@ -1457,6 +1459,8 @@ Terminal.prototype.write = function(data) {
           if (ch === '\x1b') i++;
 
           this.params.push(this.currentParam);
+
+          // console.log("code=", this.params[0]);
 
           switch (this.params[0]) {
             case 0:

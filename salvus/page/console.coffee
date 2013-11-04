@@ -198,7 +198,10 @@ class Console extends EventEmitter
 
         init_mesg = () =>
             #console.log("init_mesg")
+            @_ignore_mesg = false
             @terminal.on 'mesg', (mesg) =>
+                if @_ignore_mesg
+                    return
                 #console.log("got message '#{mesg}', length=#{mesg.length}")
                 try
                     mesg = from_json(mesg)
@@ -218,9 +221,11 @@ class Console extends EventEmitter
 
         # The remote server sends data back to us to display:
         @session.on 'data',  (data) =>
+            #console.log("got #{data.length} data")
             try
                 @terminal.write(data)
                 if @value == ""
+                    #console.log("empty value")
                     # On first write we ignore any queued terminal attributes responses that result.
                     @terminal.queue = ''
                     @resize()
@@ -239,7 +244,11 @@ class Console extends EventEmitter
                 # the whole terminal just be broken.
 
         @session.on 'reconnect', () =>
+            #console.log("reconnect")
+            @value = ""
+            @_ignore_mesg = true
             @reset()
+            @terminal.showCursor()
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
@@ -248,7 +257,7 @@ class Console extends EventEmitter
 
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.
-        $(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
+        #$(@terminal.element).css('opacity':'0.5').animate(opacity:1, duration:500)
         @value = ''
         @scrollbar_nlines = 0
         @terminal.reset()
@@ -281,6 +290,7 @@ class Console extends EventEmitter
         Terminal.colors[257] = Terminal.defaultColors.fg
 
     client_keydown: (ev) =>
+        #console.log("client_keydown", ev)
         if ev.ctrlKey and ev.shiftKey
             switch ev.keyCode
                 when 190       # "control-shift->"
@@ -289,8 +299,10 @@ class Console extends EventEmitter
                 when 188       # "control-shift-<"
                     @_decrease_font_size()
                     return false
-        if (ev.metaKey or ev.ctrlKey) and (ev.keyCode in [17, 91, 93, 223])  # command or control key (could be a paste coming)
-            # clear the hidden textarea pastebin, since otherwise the
+        if (ev.metaKey or ev.ctrlKey) and (ev.keyCode in [17, 86, 91, 93, 223, 224])  # command or control key (could be a paste coming)
+            #console.log("resetting hidden textarea")
+            #console.log("clear hidden text area paste bin")
+            # clear the hidden textarea pastebin, since otherwise
             # everything that the user typed before pasting appears
             # in the paste, which is very, very bad.
             # NOTE: we could do this on all keystrokes.  WE restrict as above merely for efficiency purposes.
@@ -484,6 +496,8 @@ class Console extends EventEmitter
             return false
 
         @element.find("a[href=#refresh]").click () =>
+            if @session?
+                @session.reconnect()
             @resize()
             @opts.reconnect?()
             return false
