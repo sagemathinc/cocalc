@@ -677,7 +677,7 @@ monitor_snapshot_queue = () ->
         return
 
     user = undefined
-    winston.debug("monitor_snapshot_queue: snapshot_queue = #{misc.to_json(snapshot_queue)}")
+    winston.debug("monitor_snapshot_queue...")
 
     # the code below handles exactly one project that is currently in the snapshot queue.
     {project_id, cbs} = snapshot_queue.shift()
