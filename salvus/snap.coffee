@@ -616,11 +616,13 @@ rollback_last_save = (opts) ->
 
     async.series([
         (cb) ->
+            winston.debug("rollback_last_save: restoring refs/heads/master")
             if info.master?
                 fs.writeFile("#{info.bup_dir}/refs/heads/master", info.master, cb)
             else
                 cb()
         (cb) ->
+            winston.debug("rollback_last_save: removing newly created pack files")
             fs.readdir "#{info.bup_dir}/objects/pack", (err, files) ->
                 if err
                     cb(err)
@@ -631,6 +633,15 @@ rollback_last_save = (opts) ->
                         else
                             c()
                     async.map(files, f, cb)
+        (cb) ->
+            winston.debug("removing refs/heads/master.lock if present")
+            lock = "#{info.bup_dir}/refs/heads/master.lock"
+            fs.exists lock, (exists) ->
+                if exists
+                    fs.unlink(lock, cb)
+                else
+                    cb()
+
     ], opts.cb)
 
 
@@ -778,6 +789,15 @@ monitor_snapshot_queue = () ->
                     winston.debug("monitor_snapshot_queue: no rollback file")
                     cb()
 
+        (cb) ->
+            # In some very, very rare cases this file could get left around (probably impossible, but just in case...)
+            winston.debug("monitor_snapshot_queue: checking for refs/heads/master.lock")
+            lock = bup_active + 'refs/heads/master.lock'
+            fs.exists lock, (exists) ->
+                if exists
+                    fs.unlink(lock, cb)
+                else
+                    cb()
         (cb) ->
             winston.debug("monitor_snapshot_queue: getting info in case we end up having to rollback this attempt")
             get_rollback_info
