@@ -79,6 +79,7 @@ bup = (opts) ->
         args    : opts.args
         timeout : opts.timeout
         env     : {BUP_DIR : opts.bup_dir}
+        err_on_exit : true
         cb      : opts.cb
 
 ##------------------------------------------
@@ -634,7 +635,7 @@ rollback_last_save = (opts) ->
                             c()
                     async.map(files, f, cb)
         (cb) ->
-            winston.debug("removing refs/heads/master.lock if present")
+            winston.debug("rollback_last_save: removing refs/heads/master.lock if present")
             lock = "#{info.bup_dir}/refs/heads/master.lock"
             fs.exists lock, (exists) ->
                 if exists
@@ -642,6 +643,29 @@ rollback_last_save = (opts) ->
                 else
                     cb()
 
+        (cb) ->
+            winston.debug("rollback_last_save: testing that bup ls works, so head commit is valid")
+            bup
+                args    : ['ls']
+                bup_dir : info.bup_dir
+                cb      : (err, output) ->
+                    if not err # repo works fine
+                        cb()
+                    if err
+                        # revert to the previously specified commit, as in the log.
+                        fs.readFile "#{info.bup_dir}/logs/HEAD", (err, data) ->
+                            if err
+                                cb(err); return
+                            v = data.toString().split('\n')
+                            commit = v[v.length-1].split(' ')[0]
+                            fs.writeFile("#{info.bup_dir}/refs/heads/master", commit, cb)
+
+        (cb) ->
+            winston.debug("rollback_last_save: test again that bup ls works, so head commit is valid and rollback worked")
+            bup
+                args    : ['ls']
+                bup_dir : info.bup_dir
+                cb      : cb
     ], opts.cb)
 
 
@@ -1017,8 +1041,8 @@ monitor_snapshot_queue = () ->
 # 30 minutes.
 ensure_snapshot_queue_working = () ->
     if monitor_snapshot_queue_last_run?
-        if misc.walltime() - monitor_snapshot_queue_last_run > 60*15
-            winston.debug("ensure_snapshot_queue_working: BUG/ERROR ** monitor_snapshot_queue has not been called in over 15 minutes -- restarting, but you need to fix this. check logs!")
+        if misc.walltime() - monitor_snapshot_queue_last_run > DEFAULT_TIMEOUT*1.2
+            winston.debug("ensure_snapshot_queue_working: BUG/ERROR ** monitor_snapshot_queue has not been called in too long -- restarting, but you need to fix this. check logs!")
             winston.debug("ensure_snapshot_queue_working: connecting to database")
             connect_to_database (err) =>
                 winston.debug("ensure_snapshot_queue_working: connect_to_databasegot back err=#{err}")
