@@ -729,6 +729,7 @@ monitor_snapshot_queue = () ->
     rollback_info  = undefined
     rollback_file  = undefined
     modified_files = undefined
+    utc_seconds_epoch = undefined
 
     async.series([
         (cb) ->
@@ -885,7 +886,7 @@ monitor_snapshot_queue = () ->
             # We use the --one-file-system option below so that sshfs-mounted filesystems don't get sucked up into our snapshots,
             # as they could be huge and contain private information users don't want snapshotted.
             misc_node.execute_code
-                command : "/usr/bin/bup on #{user} index --one-file-system -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
+                command : "/usr/bin/bup on #{user} index --one-file-system -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v ^./.sage/temp | grep -v '^./$' | grep -v '^Warning: '"
                 timeout : 30  # should be very fast no matter what.
                 bash    : true
                 env     : {BUP_DIR : bup_active}
@@ -918,7 +919,7 @@ monitor_snapshot_queue = () ->
         (cb) ->
             winston.debug("monitor_snapshot_queue: doing the actual bup save...")
             t = misc.walltime()
-            d = Math.ceil(misc.walltime())
+            utc_seconds_epoch = d = Math.ceil(misc.walltime())
             bup
                 args    : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', 'master', '.']
                 bup_dir : bup_active
@@ -997,7 +998,7 @@ monitor_snapshot_queue = () ->
             _last_snapshot_cache[project_id] = t
             database.update
                 table : 'snap_commits'
-                set   : {size: size, repo_id:repo_id, modified_files:modified_files}
+                set   : {size: size, repo_id:repo_id, modified_files:modified_files, utc_seconds_epoch:utc_seconds_epoch}
                 json  : ['modified_files']
                 where :
                     server_id  : server_id
