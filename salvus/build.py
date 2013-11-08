@@ -46,6 +46,8 @@ Before building, do:
 
          update-alternatives --config java  # select "oracle java 6"    # NOT 7!
 
+         chmod a+rw /dev/fuse
+
 
    3. Additional packages (mainly for users, not building).
 
