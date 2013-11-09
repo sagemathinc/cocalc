@@ -868,7 +868,7 @@ monitor_snapshot_queue = () ->
             winston.debug("monitor_snapshot_queue: creating index for #{project_id}")
             t = misc.walltime()
             bup
-                args    : ['on', user, 'index', '--one-file-system', '.']        # --one-file-system option below so that sshfs-mounted filesystems (etc.) don't get sucked up.
+                args    : ['on', user, 'index', '--one-file-system', '.']        # --one-file-system option below so that sshfs-mounted filesystems (etc.) don't get suckedup.
                 bup_dir : bup_active
                 cb      : (err) ->
                     winston.debug("monitor_snapshot_queue: time to index #{project_id}: #{misc.walltime(t)} s")
@@ -897,7 +897,7 @@ monitor_snapshot_queue = () ->
                         cb(err)
                     else
                         modified_files = (x.slice(2) for x in output.stdout.trim().split('\n'))
-                        modified_files = (x for x in modified_files when x != "")
+                        modified_files = (x for x in modified_files when (x != "" and x != ".sage/"))
                         n = modified_files.length
                         winston.debug("monitor_snapshot_queue: #{n} modified files for #{project_id}; modified files = #{misc.trunc(misc.to_json(modified_files),512)}")
                         if n == 0

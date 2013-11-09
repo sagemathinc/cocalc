@@ -968,6 +968,18 @@ class Salvus(object):
     def typeset_mode(self, on=True):
         sage_salvus.typeset_mode(on)
 
+    def project_info(self):
+        """
+        Return a dictionary with information about the project in which this code is running.
+
+        EXAMPLES::
+
+            sage: salvus.project_info()
+            {"stdout":"{u'project_id': u'...', u'location': {u'username': u'teaAuZ9M', u'path': u'.', u'host': u'localhost', u'port': 22}, u'base_url': u'/...'}\n"}
+        """
+        return info
+
+
 Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
 
 def execute(conn, id, code, data, preparse, message_queue):
