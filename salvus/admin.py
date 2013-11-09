@@ -1194,14 +1194,63 @@ class Monitor(object):
         self._hosts = hosts
 
     def snap(self):
-        cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s ."
+        """
+        Return information about the current active snap repo status.
+        """
+        cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s . && du -s .. && df -h /mnt/snap"
+        ans = []
         for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
-            d = {'host':k[0], 'success':not v['exit_status'] and 'error' not in (v['stderr'] + v['stdout']).lower()}
-            if d['success']:
-                d['time'] = float(v['stderr'].split()[0])
+            d = {'service':'snap', 'host':k[0], 'status':'up' if (not v['exit_status'] and 'error' not in (v['stderr'] + v['stdout']).lower()) else 'down'}
+            if d['status'] == 'up':
+                print v['stdout'].split()
+                d['ls_time'] = float(v['stderr'].split()[0])
                 d['commits'] = int(v['stdout'].split()[0])
-                d['size_GB'] = int(int(v['stdout'].split()[1])/10.**6)
-            print d
+                d['active_GB'] = int(int(v['stdout'].split()[1])/10.**6)
+                d['bup_GB'] = int(int(v['stdout'].split()[3])/10.**6)
+                d['use%'] = int(v['stdout'].split()[16][:-1])
+            ans.append(d)
+        return ans
+
+    def cassandra(self):
+        """
+        Return information about the cassandra nodes.
+        """
+        # Determine up/down status using a random node
+        import random
+        hosts = self._hosts['cassandra']
+        v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False)
+        r = v[v.keys()[0]]
+        status = {}
+        for z in [x for x in r['stdout'].splitlines() if '%' in x]:
+            w = z.split()
+            status[w[1]] = 'up' if w[0] == "UN" else 'down'
+        ans = []
+        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False).iteritems():
+            ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status[k[0]]})
+        return ans
+
+    def compute(self):
+        hosts = self._hosts['cassandra']
+        ans = []
+        for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g', wait=True, parallel=True).iteritems():
+            d = {'host':k[0], 'service':'compute'}
+            m = v['stdout'].splitlines()
+            if v['exit_status'] != 0 or len(m) != 8:
+                d['status'] = 'down'
+            else:
+                d['nproc']  = int(m[0])
+                z = m[1].replace(',','').split()
+                d['load1']  = float(z[-3]) / d['nproc']
+                d['load5']  = float(z[-2]) / d['nproc']
+                d['load15'] = float(z[-1]) / d['nproc']
+                z = m[3].split()
+                d['use_GB'] =  int(z[2][:-1]) if z[2][-1] == 'G' else 1
+                d['use%']   = z[4][:-1]
+                z = m[5].split()
+                d['ram_used_GB'] = int(z[2])
+                d['ram_free_GB'] = int(z[3])
+                ans.append(d)
+        return ans
 
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
