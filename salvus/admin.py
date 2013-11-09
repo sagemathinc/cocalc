@@ -1021,10 +1021,10 @@ class Hosts(object):
     def ip_addresses(self, hostname):
         return [socket.gethostbyname(h) for h in self[hostname]]
 
-    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True):
+    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True, verbose=True):
         def f(hostname):
             try:
-                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait)
+                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, verbose=verbose)
             except Exception, msg:
                 return {'stdout':None, 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
         return dict(self.map(f, hostname=hostname, parallel=parallel))
@@ -1034,14 +1034,15 @@ class Hosts(object):
         >>> self(hostname, command)
         """
         result = self.exec_command(*args, **kwds)
-        for h,v in result.iteritems():
-            print '%s :'%(h,),
-            print v['stdout'],
-            print v['stderr'],
-            print
+        if kwds.get('verbose',True):
+            for h,v in result.iteritems():
+                print '%s :'%(h,),
+                print v['stdout'],
+                print v['stderr'],
+                print
         return result
 
-    def _exec_command(self, command, hostname, sudo, timeout, wait):
+    def _exec_command(self, command, hostname, sudo, timeout, wait, verbose=True):
         if not self._passwd:
             # never use sudo if self._passwd is false...
             sudo = False
@@ -1188,6 +1189,20 @@ class Hosts(object):
             except:
                 pass # file doesn't exist
 
+class Monitor(object):
+    def __init__(self, hosts):
+        self._hosts = hosts
+
+    def snap(self):
+        cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s ."
+        for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
+            d = {'host':k[0], 'success':not v['exit_status'] and 'error' not in (v['stderr'] + v['stdout']).lower()}
+            if d['success']:
+                d['time'] = float(v['stderr'].split()[0])
+                d['commits'] = int(v['stdout'].split()[0])
+                d['size_GB'] = int(int(v['stdout'].split()[1])/10.**6)
+            print d
+
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
         """
@@ -1201,6 +1216,8 @@ class Services(object):
 
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
+
+        self.monitor = Monitor(self._hosts)
 
         # this is the canonical list of options, expanded out by service and host.
         def hostopts(service, query='all', copy=True):
