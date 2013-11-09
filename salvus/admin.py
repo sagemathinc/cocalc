@@ -1238,6 +1238,7 @@ class Monitor(object):
             if v['exit_status'] != 0 or len(m) != 8:
                 d['status'] = 'down'
             else:
+                d['status'] = 'up'
                 d['nproc']  = int(m[0])
                 z = m[1].replace(',','').split()
                 d['load1']  = float(z[-3]) / d['nproc']
@@ -1251,6 +1252,28 @@ class Monitor(object):
                 d['ram_free_GB'] = int(z[3])
                 ans.append(d)
         return ans
+
+    def load(self):
+        """
+        Return normalized load on *everything*, sorted by highest current load first.
+        """
+        ans = []
+        for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True).iteritems():
+            d = {'host':k[0]}
+            m = v['stdout'].splitlines()
+            if v['exit_status'] != 0 or len(m) < 2:
+                d['status'] = 'down'
+            else:
+                d['status'] = 'up'
+                d['nproc'] = int(m[0])
+                z = m[1].replace(',','').split()
+                d['load1'] = float(z[-3])/d['nproc']
+                d['load5'] = float(z[-2])/d['nproc']
+                d['load15'] = float(z[-1])/d['nproc']
+                ans.append(d)
+        w = [(-d['load1'], d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
 
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
