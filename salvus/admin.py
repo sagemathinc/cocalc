@@ -1202,14 +1202,16 @@ class Monitor(object):
         for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
             d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v['stdout']).lower()) else 'down'}
             if d['status'] == 'up':
-                print v['stdout'].split()
                 d['ls_time_s'] = float(v['stderr'].split()[0])
                 d['commits'] = int(v['stdout'].split()[0])
                 d['active_GB'] = int(int(v['stdout'].split()[1])/10.**6)
                 d['bup_GB'] = int(int(v['stdout'].split()[3])/10.**6)
                 d['use%'] = int(v['stdout'].split()[16][:-1])
             ans.append(d)
-        return ans
+
+        w = [(-d.get('ls_time_s',100000), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
 
     def cassandra(self):
         """
@@ -1226,16 +1228,22 @@ class Monitor(object):
             status[w[1]] = 'up' if w[0] == "UN" else 'down'
         ans = []
         for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False).iteritems():
-            ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status[k[0]]})
-        return ans
+            if v.get('exit_status',1):
+                ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
+            else:
+                ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status[k[0]]})
+
+        w = [((d['status'],d.get('use%','')), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
 
     def compute(self):
         hosts = self._hosts['cassandra']
         ans = []
-        for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g', wait=True, parallel=True).iteritems():
+        for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
             m = v['stdout'].splitlines()
-            if v.get('exit_status',1) != 0 or len(m) != 8:
+            if v.get('exit_status',1) != 0 or len(m) != 9:
                 d['status'] = 'down'
             else:
                 d['status'] = 'up'
@@ -1250,8 +1258,11 @@ class Monitor(object):
                 z = m[5].split()
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
+                d['nprojects'] = int(m[8])
                 ans.append(d)
-        return ans
+        w = [(-d['load1'], d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
 
     def load(self):
         """
@@ -1289,12 +1300,66 @@ class Monitor(object):
                 d['status'] = 'up'
                 d['time_s'] = float(v['stderr'].strip())
             ans.append(d)
-        w = [(-d['time_s'], d) for d in ans]
+        w = [(-d.get('time_s',10000), d) for d in ans]
         w.sort()
         return [y for x,y in w]
         return ans
 
+    def all(self):
+        return {
+            'timestamp' : time.time(),
+            'dns'       : self.dns(),
+            'load'      : self.load(),
+            'snap'      : self.snap(),
+            'cassandra' : self.cassandra(),
+            'compute'   : self.compute()
+        }
 
+    def status(self, n=5):
+        all = self.all()
+        print "DNS"
+        for x in all['dns'][:n]:
+            print x
+
+        print "LOAD"
+        for x in all['load'][:n]:
+            print x
+
+        print "SNAP"
+        for x in all['snap'][:n]:
+            print x
+
+        print "CASSANDRA"
+        for x in all['cassandra'][:n]:
+            print x
+
+        print "COMPUTE"
+        vcompute = all['compute']
+        print "%s projects running"%(sum([x['nprojects'] for x in vcompute]))
+        for x in all['compute'][:n]:
+            print x
+
+    def update_db(self, all=None):
+        if all is None:
+            all = self.all()
+        import cassandra, json
+        t = all['timestamp']
+        d = {}
+        for k, v in all.iteritems():
+            d[k] = json.dumps(v, separators=(',',':'))
+
+        d['day']       = time.strftime("%Y-%m-%d")
+        d['hour']      = int(time.strftime("%H"))
+        d['minute']    = int(time.strftime("%M"))
+        d['timestamp'] = int(time.time())
+        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
+
+    def go(self, wait=61):
+        while True:
+            self.update_db()
+            import time
+            time.sleep(wait)
 
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
@@ -1310,7 +1375,7 @@ class Services(object):
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
 
-        self.monitor = Monitor(self._hosts)
+        self.monitor = Monitor(Hosts(os.path.join(path, 'hosts'), username=username, passwd=False))
 
         # this is the canonical list of options, expanded out by service and host.
         def hostopts(service, query='all', copy=True):
@@ -1347,7 +1412,7 @@ class Services(object):
                 self._cassandra = ['%s:%s'%(h, native_transport_port) for h in self._hosts['cassandra']]
                 import cassandra
                 cassandra.KEYSPACE = self._keyspace
-                cassandra.set_nodes(self._cassandra)
+                cassandra.set_nodes(self._hosts['cassandra'])
             except ValueError:
                 print "WARNING: no cassandra hosts -- severly degraded functionality!"
 
