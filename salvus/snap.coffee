@@ -14,6 +14,12 @@
 
 DEFAULT_TIMEOUT   = 60*15   # time in seconds; max time we would ever wait to "bup index" or "bup save"
 
+# The repo size cuttoff, so the repo won't be much bigger than this.
+# 25GB -- typically takes <=1.5s max to do a listing, etc., on a commit,
+# which is about as long as we want to wait.  Bigger is more efficient
+# overall, because of much better de-duplication, but smaller means
+# faster access.
+REPO_SIZE_CUTOFF_BYTES=25000000
 
 SALVUS_HOME=process.cwd()
 
@@ -73,6 +79,7 @@ bup = (opts) ->
         args    : opts.args
         timeout : opts.timeout
         env     : {BUP_DIR : opts.bup_dir}
+        err_on_exit : true
         cb      : opts.cb
 
 ##------------------------------------------
@@ -610,11 +617,13 @@ rollback_last_save = (opts) ->
 
     async.series([
         (cb) ->
+            winston.debug("rollback_last_save: restoring refs/heads/master")
             if info.master?
                 fs.writeFile("#{info.bup_dir}/refs/heads/master", info.master, cb)
             else
                 cb()
         (cb) ->
+            winston.debug("rollback_last_save: removing newly created pack files")
             fs.readdir "#{info.bup_dir}/objects/pack", (err, files) ->
                 if err
                     cb(err)
@@ -625,6 +634,38 @@ rollback_last_save = (opts) ->
                         else
                             c()
                     async.map(files, f, cb)
+        (cb) ->
+            winston.debug("rollback_last_save: removing refs/heads/master.lock if present")
+            lock = "#{info.bup_dir}/refs/heads/master.lock"
+            fs.exists lock, (exists) ->
+                if exists
+                    fs.unlink(lock, cb)
+                else
+                    cb()
+
+        (cb) ->
+            winston.debug("rollback_last_save: testing that bup ls works, so head commit is valid")
+            bup
+                args    : ['ls']
+                bup_dir : info.bup_dir
+                cb      : (err, output) ->
+                    if not err # repo works fine
+                        cb()
+                    if err
+                        # revert to the previously specified commit, as in the log.
+                        fs.readFile "#{info.bup_dir}/logs/HEAD", (err, data) ->
+                            if err
+                                cb(err); return
+                            v = data.toString().split('\n')
+                            commit = v[v.length-1].split(' ')[0]
+                            fs.writeFile("#{info.bup_dir}/refs/heads/master", commit, cb)
+
+        (cb) ->
+            winston.debug("rollback_last_save: test again that bup ls works, so head commit is valid and rollback worked")
+            bup
+                args    : ['ls']
+                bup_dir : info.bup_dir
+                cb      : cb
     ], opts.cb)
 
 
@@ -671,7 +712,7 @@ monitor_snapshot_queue = () ->
         return
 
     user = undefined
-    winston.debug("monitor_snapshot_queue: snapshot_queue = #{misc.to_json(snapshot_queue)}")
+    winston.debug("monitor_snapshot_queue...")
 
     # the code below handles exactly one project that is currently in the snapshot queue.
     {project_id, cbs} = snapshot_queue.shift()
@@ -688,6 +729,7 @@ monitor_snapshot_queue = () ->
     rollback_info  = undefined
     rollback_file  = undefined
     modified_files = undefined
+    utc_seconds_epoch = undefined
 
     async.series([
         (cb) ->
@@ -724,6 +766,16 @@ monitor_snapshot_queue = () ->
                 winston.debug("monitor_snapshot_queue: -- usage: err=#{err}, #{usage} bytes")
                 size_before = usage
                 cb(err)
+
+        # if disk usage exceeds REPO_SIZE_CUTOFF_BYTES, then we remove the active file,
+        # so that next time around we'll use a new repo.
+        (cb) ->
+            winston.debug("monitor_snapshot_queue: comparing REPO_SIZE_CUTOFF_BYTES=#{REPO_SIZE_CUTOFF_BYTES} with usage")
+            if size_before >= REPO_SIZE_CUTOFF_BYTES
+                winston.debug("monitor_snapshot_queue: size exceed -- will switch to new active bup repo.")
+                fs.unlink "#{bup_dir}/active", cb
+            else
+                cb()
 
         # check for a leftover rollback file; this will be left around when the
         # server is killed while making a backup.
@@ -762,6 +814,15 @@ monitor_snapshot_queue = () ->
                     winston.debug("monitor_snapshot_queue: no rollback file")
                     cb()
 
+        (cb) ->
+            # In some very, very rare cases this file could get left around (probably impossible, but just in case...)
+            winston.debug("monitor_snapshot_queue: checking for refs/heads/master.lock")
+            lock = bup_active + 'refs/heads/master.lock'
+            fs.exists lock, (exists) ->
+                if exists
+                    fs.unlink(lock, cb)
+                else
+                    cb()
         (cb) ->
             winston.debug("monitor_snapshot_queue: getting info in case we end up having to rollback this attempt")
             get_rollback_info
@@ -825,7 +886,7 @@ monitor_snapshot_queue = () ->
             # We use the --one-file-system option below so that sshfs-mounted filesystems don't get sucked up into our snapshots,
             # as they could be huge and contain private information users don't want snapshotted.
             misc_node.execute_code
-                command : "/usr/bin/bup on #{user} index --one-file-system -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v '^./$'"
+                command : "/usr/bin/bup on #{user} index --one-file-system -m . 2>&1 | grep -v ^./.forever |grep -v ^./.sagemathcloud|grep -v ^./.sage/temp | grep -v '^./$' | grep -v '^Warning: '"
                 timeout : 30  # should be very fast no matter what.
                 bash    : true
                 env     : {BUP_DIR : bup_active}
@@ -858,7 +919,7 @@ monitor_snapshot_queue = () ->
         (cb) ->
             winston.debug("monitor_snapshot_queue: doing the actual bup save...")
             t = misc.walltime()
-            d = Math.ceil(misc.walltime())
+            utc_seconds_epoch = d = Math.ceil(misc.walltime())
             bup
                 args    : ['on', user, 'save', '-d', d, '--strip', '-q', '-n', 'master', '.']
                 bup_dir : bup_active
@@ -937,7 +998,7 @@ monitor_snapshot_queue = () ->
             _last_snapshot_cache[project_id] = t
             database.update
                 table : 'snap_commits'
-                set   : {size: size, repo_id:repo_id, modified_files:modified_files}
+                set   : {size: size, repo_id:repo_id, modified_files:modified_files, utc_seconds_epoch:utc_seconds_epoch}
                 json  : ['modified_files']
                 where :
                     server_id  : server_id
@@ -981,8 +1042,8 @@ monitor_snapshot_queue = () ->
 # 30 minutes.
 ensure_snapshot_queue_working = () ->
     if monitor_snapshot_queue_last_run?
-        if misc.walltime() - monitor_snapshot_queue_last_run > 60*15
-            winston.debug("ensure_snapshot_queue_working: BUG/ERROR ** monitor_snapshot_queue has not been called in over 15 minutes -- restarting, but you need to fix this. check logs!")
+        if misc.walltime() - monitor_snapshot_queue_last_run > DEFAULT_TIMEOUT*1.2
+            winston.debug("ensure_snapshot_queue_working: BUG/ERROR ** monitor_snapshot_queue has not been called in too long -- restarting, but you need to fix this. check logs!")
             winston.debug("ensure_snapshot_queue_working: connecting to database")
             connect_to_database (err) =>
                 winston.debug("ensure_snapshot_queue_working: connect_to_databasegot back err=#{err}")
