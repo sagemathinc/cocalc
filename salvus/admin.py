@@ -1200,10 +1200,10 @@ class Monitor(object):
         cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s . && du -s .. && df -h /mnt/snap"
         ans = []
         for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
-            d = {'service':'snap', 'host':k[0], 'status':'up' if (not v['exit_status'] and 'error' not in (v['stderr'] + v['stdout']).lower()) else 'down'}
+            d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v['stdout']).lower()) else 'down'}
             if d['status'] == 'up':
                 print v['stdout'].split()
-                d['ls_time'] = float(v['stderr'].split()[0])
+                d['ls_time_s'] = float(v['stderr'].split()[0])
                 d['commits'] = int(v['stdout'].split()[0])
                 d['active_GB'] = int(int(v['stdout'].split()[1])/10.**6)
                 d['bup_GB'] = int(int(v['stdout'].split()[3])/10.**6)
@@ -1235,7 +1235,7 @@ class Monitor(object):
         for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g', wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
             m = v['stdout'].splitlines()
-            if v['exit_status'] != 0 or len(m) != 8:
+            if v.get('exit_status',1) != 0 or len(m) != 8:
                 d['status'] = 'down'
             else:
                 d['status'] = 'up'
@@ -1261,7 +1261,7 @@ class Monitor(object):
         for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True).iteritems():
             d = {'host':k[0]}
             m = v['stdout'].splitlines()
-            if v['exit_status'] != 0 or len(m) < 2:
+            if v.get('exit_status',1) != 0 or len(m) < 2:
                 d['status'] = 'down'
             else:
                 d['status'] = 'up'
@@ -1274,6 +1274,27 @@ class Monitor(object):
         w = [(-d['load1'], d) for d in ans]
         w.sort()
         return [y for x,y in w]
+
+    def dns(self):
+        """
+        Verify that DNS is working well on all machines.
+        """
+        cmd = '/usr/bin/time -f "%e" ' + '&&'.join(["host -v google.com > /dev/null && host -v trac.sagemath.org >/dev/null && host -v www.sagemath.org >/dev/null && host -v github.com >/dev/null"]*6)
+        ans = []
+        for k, v in self._hosts('all', cmd, parallel=True, wait=True, timeout=15).iteritems():
+            d = {'host':k[0], 'service':'dns'}
+            if v.get('exit_status',1) != 0:
+                d['status'] = 'down'
+            else:
+                d['status'] = 'up'
+                d['time_s'] = float(v['stderr'].strip())
+            ans.append(d)
+        w = [(-d['time_s'], d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+        return ans
+
+
 
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
