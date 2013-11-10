@@ -518,6 +518,9 @@ class Salvus(object):
             This will only work if the file is not deleted; however, arbitrarily
             large files can be streamed this way.
 
+        NOTE: If the filename ends in webm, raw=True is always used, since raw=False
+        doesn't work properly with some browsers.
+
         This function creates an output message {file:...}; if the user saves
         a worksheet containing this message, then any referenced blobs are made
         permanent in the database.
@@ -526,9 +529,10 @@ class Salvus(object):
         function sage_server.uuidsha1).  Any two files with the same content have the
         same Sha1 hash.
         """
+        if os.path.splitext(filename)[1] == '.webm':
+            raw = True
+
         if raw:
-            if show:
-                raise NotImplementedError("show=True not implemented yet for raw=True; use show=False")
             info = self.project_info()
             path = os.path.abspath(filename)
             home = os.environ['HOME'] + '/'
@@ -537,7 +541,12 @@ class Salvus(object):
             else:
                 raise ValueError("can only send raw files in your home directory")
             url  = os.path.join('/',info['base_url'].strip('/'), info['project_id'], 'raw', path.lstrip('/'))
-            return url
+            if show:
+                self._flush_stdio()
+                self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events))
+                return
+            else:
+                return TemporaryURL(url=url, ttl=0)
 
         file_uuid = self._conn.send_file(filename)
 
