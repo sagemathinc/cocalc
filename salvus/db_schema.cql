@@ -440,3 +440,19 @@ CREATE TABLE counts (
     count counter  /* see http://www.datastax.com/documentation/cql/3.0/webhelp/cql/cql_using/use_counter_t.html */
 );
 
+CREATE TABLE monitor (
+    day varchar,
+    hour int,
+    minute int,
+
+    timestamp int,  /* seconds since epoch */
+    dns varchar,   /* JSON */
+    load varchar,  /* JSON */
+    snap varchar,  /* JSON */
+    cassandra varchar,  /* JSON */
+    compute varchar,    /* JSON */
+
+    PRIMARY KEY(day, hour, minute)
+);
+
+

@@ -4874,9 +4874,23 @@ save_blob = (opts) ->
 
 get_blob = (opts) ->
     opts = defaults opts,
-        uuid : required
-        cb   : required
-    database.uuid_blob_store(name:"blobs").get(opts)
+        uuid        : required
+        cb          : required
+        max_retries : 5
+            # if blob isn't in the database yet, we retry up to max_retries many times, after waiting 300ms for it.
+            # We do this since Cassandra is only eventually consistent, and clients can be querying other nodes.
+    database.uuid_blob_store(name:"blobs").get
+        uuid : opts.uuid
+        cb   : (err, result) ->
+            if err
+                opts.cb(err)
+            else if not result? and opts.max_retries >= 1
+                f = () ->
+                    get_blob(uuid:opts.uuid, cb:opts.cb, max_retries:opts.max_retries-1)
+                setTimeout(f, 300)
+            else
+                opts.cb(false, result)
+
 
 # For each element of the array blob_ids, remove its ttl.
 _make_blobs_permanent_cache = {}
