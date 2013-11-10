@@ -1026,7 +1026,7 @@ class Hosts(object):
             try:
                 return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, verbose=verbose)
             except Exception, msg:
-                return {'stdout':None, 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
+                return {'stdout':'', 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
         return dict(self.map(f, hostname=hostname, parallel=parallel))
 
     def __call__(self, *args, **kwds):
@@ -1037,8 +1037,8 @@ class Hosts(object):
         if kwds.get('verbose',True):
             for h,v in result.iteritems():
                 print '%s :'%(h,),
-                print v['stdout'],
-                print v['stderr'],
+                print v.get('stdout',''),
+                print v.get('stderr',''),
                 print
         return result
 
@@ -1122,7 +1122,7 @@ class Hosts(object):
     def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120):
         for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait).iteritems():
             print k
-            print v['stdout']
+            print v.get('stdout','')
 
     def update_hub_repos(self, parallel=True, wait=False):
         return self('hub','cd salvus/salvus; git pull 10.1.1.3:salvus && ./make_coffee ', parallel=parallel, wait=wait)
@@ -1200,7 +1200,7 @@ class Monitor(object):
         cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s . && du -s .. && df -h /mnt/snap"
         ans = []
         for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
-            d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v['stdout']).lower()) else 'down'}
+            d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v.get('stdout','error')).lower()) else 'down'}
             if d['status'] == 'up':
                 d['ls_time_s'] = float(v['stderr'].split()[0])
                 d['commits'] = int(v['stdout'].split()[0])
@@ -1228,7 +1228,7 @@ class Monitor(object):
             status[w[1]] = 'up' if w[0] == "UN" else 'down'
         ans = []
         for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False).iteritems():
-            if v.get('exit_status',1):
+            if v.get('exit_status',1) or 'stdout' not in v:
                 ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
             else:
                 ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status[k[0]]})
@@ -1242,7 +1242,7 @@ class Monitor(object):
         ans = []
         for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
-            m = v['stdout'].splitlines()
+            m = v.get('stdout','').splitlines()
             if v.get('exit_status',1) != 0 or len(m) != 9:
                 d['status'] = 'down'
             else:
@@ -1271,7 +1271,7 @@ class Monitor(object):
         ans = []
         for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True).iteritems():
             d = {'host':k[0]}
-            m = v['stdout'].splitlines()
+            m = v.get('stdout','').splitlines()
             if v.get('exit_status',1) != 0 or len(m) < 2:
                 d['status'] = 'down'
             else:
@@ -1315,8 +1315,9 @@ class Monitor(object):
             'compute'   : self.compute()
         }
 
-    def status(self, n=5):
-        all = self.all()
+    def status(self, all=None, n=5):
+        if all is None:
+            all = self.all( )
         print "DNS"
         for x in all['dns'][:n]:
             print x
@@ -1356,9 +1357,11 @@ class Monitor(object):
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
 
     def go(self, wait=61):
+        import time
         while True:
-            self.update_db()
-            import time
+            all = self.all()
+            self.update_db(all=all)
+            self.status(all=all)
             time.sleep(wait)
 
 class Services(object):
