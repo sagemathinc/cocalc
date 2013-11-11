@@ -925,6 +925,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
         opts = defaults opts,
             signal : 2
             cb     : undefined
+        if not @session_uuid?
+            opts.cb("session_uuid must be set before sending a signal")
+            return
         salvus_client.call
             message: message.codemirror_send_signal
                 signal : opts.signal
@@ -1237,9 +1240,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.file?
             val = mesg.file
             if not val.show? or val.show
-                target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
+                if val.url?
+                    target = val.url
+                else
+                    target = "#{window.salvus_base_url}/blobs/#{val.filename}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)
-                    # TODO: harden DOM creation below
+                    # TODO: harden DOM creation below?
+                    when 'webm'
+                        video = $("<video src='#{target}' class='sagews-output-video' preload controls loop>")
+                        output.append(video)
+
                     when 'svg', 'png', 'gif', 'jpg'
                         img = $("<img src='#{target}' class='sagews-output-image'>")
                         output.append(img)

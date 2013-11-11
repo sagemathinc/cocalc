@@ -486,7 +486,7 @@ class Salvus(object):
     #def open_project(self, project_id):
     #def close_project(self, project_id):
 
-    def file(self, filename, show=True, done=False, download=False, once=False, events=None):
+    def file(self, filename, show=True, done=False, download=False, once=False, events=None, raw=False):
         """
         Display or provide a link to the given file.  Raises a RuntimeError if this
         is not possible, e.g, if the file is too large.
@@ -501,10 +501,25 @@ class Salvus(object):
         Also, T.ttl is the time to live (in seconds) of the object.  A ttl of
         0 means the object is permanently available.
 
-        If you use the URL
-               /blobs/filename?uuid=the_uuid&download
-        then the server will include a header that tells the browser to
-        download the file to disk instead of displaying it.
+        raw=False (the default):
+            If you use the URL
+                   /blobs/filename?uuid=the_uuid&download
+            then the server will include a header that tells the browser to
+            download the file to disk instead of displaying it.  Only relatively
+            small files can be made available this way.  However, they remain
+            available (for a day) even *after* the file is deleted.
+            NOTE: It is safe to delete the file immediately after this
+            function (salvus.file) returns.
+
+        raw=True:
+            Instead, the URL is to the raw file, which is served directly
+            from the project:
+                   /project-id/raw/path/to/filename
+            This will only work if the file is not deleted; however, arbitrarily
+            large files can be streamed this way.
+
+        NOTE: If the filename ends in webm, raw=True is always used, since raw=False
+        doesn't work properly with some browsers.
 
         This function creates an output message {file:...}; if the user saves
         a worksheet containing this message, then any referenced blobs are made
@@ -514,6 +529,25 @@ class Salvus(object):
         function sage_server.uuidsha1).  Any two files with the same content have the
         same Sha1 hash.
         """
+        if os.path.splitext(filename)[1] == '.webm':
+            raw = True
+
+        if raw:
+            info = self.project_info()
+            path = os.path.abspath(filename)
+            home = os.environ['HOME'] + '/'
+            if path.startswith(home):
+                path = path[len(home):]
+            else:
+                raise ValueError("can only send raw files in your home directory")
+            url  = os.path.join('/',info['base_url'].strip('/'), info['project_id'], 'raw', path.lstrip('/'))
+            if show:
+                self._flush_stdio()
+                self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events))
+                return
+            else:
+                return TemporaryURL(url=url, ttl=0)
+
         file_uuid = self._conn.send_file(filename)
 
         mesg = None
@@ -967,6 +1001,18 @@ class Salvus(object):
 
     def typeset_mode(self, on=True):
         sage_salvus.typeset_mode(on)
+
+    def project_info(self):
+        """
+        Return a dictionary with information about the project in which this code is running.
+
+        EXAMPLES::
+
+            sage: salvus.project_info()
+            {"stdout":"{u'project_id': u'...', u'location': {u'username': u'teaAuZ9M', u'path': u'.', u'host': u'localhost', u'port': 22}, u'base_url': u'/...'}\n"}
+        """
+        return info
+
 
 Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
 

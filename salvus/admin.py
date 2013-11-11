@@ -1021,12 +1021,12 @@ class Hosts(object):
     def ip_addresses(self, hostname):
         return [socket.gethostbyname(h) for h in self[hostname]]
 
-    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True):
+    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True, verbose=True):
         def f(hostname):
             try:
-                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait)
+                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, verbose=verbose)
             except Exception, msg:
-                return {'stdout':None, 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
+                return {'stdout':'', 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
         return dict(self.map(f, hostname=hostname, parallel=parallel))
 
     def __call__(self, *args, **kwds):
@@ -1034,14 +1034,15 @@ class Hosts(object):
         >>> self(hostname, command)
         """
         result = self.exec_command(*args, **kwds)
-        for h,v in result.iteritems():
-            print '%s :'%(h,),
-            print v['stdout'],
-            print v['stderr'],
-            print
+        if kwds.get('verbose',True):
+            for h,v in result.iteritems():
+                print '%s :'%(h,),
+                print v.get('stdout',''),
+                print v.get('stderr',''),
+                print
         return result
 
-    def _exec_command(self, command, hostname, sudo, timeout, wait):
+    def _exec_command(self, command, hostname, sudo, timeout, wait, verbose=True):
         if not self._passwd:
             # never use sudo if self._passwd is false...
             sudo = False
@@ -1121,7 +1122,7 @@ class Hosts(object):
     def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120):
         for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait).iteritems():
             print k
-            print v['stdout']
+            print v.get('stdout','')
 
     def update_hub_repos(self, parallel=True, wait=False):
         return self('hub','cd salvus/salvus; git pull 10.1.1.3:salvus && ./make_coffee ', parallel=parallel, wait=wait)
@@ -1188,6 +1189,182 @@ class Hosts(object):
             except:
                 pass # file doesn't exist
 
+class Monitor(object):
+    def __init__(self, hosts):
+        self._hosts = hosts
+
+    def snap(self):
+        """
+        Return information about the current active snap repo status.
+        """
+        cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s . && du -s .. && df -h /mnt/snap"
+        ans = []
+        for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
+            d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v.get('stdout','error')).lower()) else 'down'}
+            if d['status'] == 'up':
+                d['ls_time_s'] = float(v['stderr'].split()[0])
+                d['commits'] = int(v['stdout'].split()[0])
+                d['active_GB'] = int(int(v['stdout'].split()[1])/10.**6)
+                d['bup_GB'] = int(int(v['stdout'].split()[3])/10.**6)
+                d['use%'] = int(v['stdout'].split()[16][:-1])
+            ans.append(d)
+
+        w = [(-d.get('ls_time_s',100000), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
+    def cassandra(self):
+        """
+        Return information about the cassandra nodes.
+        """
+        # Determine up/down status using a random node
+        import random
+        hosts = self._hosts['cassandra']
+        v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False)
+        r = v[v.keys()[0]]
+        status = {}
+        for z in [x for x in r['stdout'].splitlines() if '%' in x]:
+            w = z.split()
+            status[w[1]] = 'up' if w[0] == "UN" else 'down'
+        ans = []
+        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False).iteritems():
+            if v.get('exit_status',1) or 'stdout' not in v:
+                ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
+            else:
+                ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status[k[0]]})
+
+        w = [((d['status'],d.get('use%','')), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
+    def compute(self):
+        hosts = self._hosts['cassandra']
+        ans = []
+        for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
+            d = {'host':k[0], 'service':'compute'}
+            m = v.get('stdout','').splitlines()
+            if v.get('exit_status',1) != 0 or len(m) != 9:
+                d['status'] = 'down'
+            else:
+                d['status'] = 'up'
+                d['nproc']  = int(m[0])
+                z = m[1].replace(',','').split()
+                d['load1']  = float(z[-3]) / d['nproc']
+                d['load5']  = float(z[-2]) / d['nproc']
+                d['load15'] = float(z[-1]) / d['nproc']
+                z = m[3].split()
+                d['use_GB'] =  int(z[2][:-1]) if z[2][-1] == 'G' else 1
+                d['use%']   = z[4][:-1]
+                z = m[5].split()
+                d['ram_used_GB'] = int(z[2])
+                d['ram_free_GB'] = int(z[3])
+                d['nprojects'] = int(m[8])
+                ans.append(d)
+        w = [(-d['load1'], d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
+    def load(self):
+        """
+        Return normalized load on *everything*, sorted by highest current load first.
+        """
+        ans = []
+        for k, v in self._hosts('all', 'nproc && uptime', parallel=True, wait=True).iteritems():
+            d = {'host':k[0]}
+            m = v.get('stdout','').splitlines()
+            if v.get('exit_status',1) != 0 or len(m) < 2:
+                d['status'] = 'down'
+            else:
+                d['status'] = 'up'
+                d['nproc'] = int(m[0])
+                z = m[1].replace(',','').split()
+                d['load1'] = float(z[-3])/d['nproc']
+                d['load5'] = float(z[-2])/d['nproc']
+                d['load15'] = float(z[-1])/d['nproc']
+                ans.append(d)
+        w = [(-d['load1'], d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
+    def dns(self):
+        """
+        Verify that DNS is working well on all machines.
+        """
+        cmd = '/usr/bin/time -f "%e" ' + '&&'.join(["host -v google.com > /dev/null && host -v trac.sagemath.org >/dev/null && host -v www.sagemath.org >/dev/null && host -v github.com >/dev/null"]*6)
+        ans = []
+        for k, v in self._hosts('all', cmd, parallel=True, wait=True, timeout=15).iteritems():
+            d = {'host':k[0], 'service':'dns'}
+            if v.get('exit_status',1) != 0:
+                d['status'] = 'down'
+            else:
+                d['status'] = 'up'
+                d['time_s'] = float(v['stderr'].strip())
+            ans.append(d)
+        w = [(-d.get('time_s',10000), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+        return ans
+
+    def all(self):
+        return {
+            'timestamp' : time.time(),
+            'dns'       : self.dns(),
+            'load'      : self.load(),
+            'snap'      : self.snap(),
+            'cassandra' : self.cassandra(),
+            'compute'   : self.compute()
+        }
+
+    def status(self, all=None, n=5):
+        if all is None:
+            all = self.all( )
+        print "DNS"
+        for x in all['dns'][:n]:
+            print x
+
+        print "LOAD"
+        for x in all['load'][:n]:
+            print x
+
+        print "SNAP"
+        for x in all['snap'][:n]:
+            print x
+
+        print "CASSANDRA"
+        for x in all['cassandra'][:n]:
+            print x
+
+        print "COMPUTE"
+        vcompute = all['compute']
+        print "%s projects running"%(sum([x['nprojects'] for x in vcompute]))
+        for x in all['compute'][:n]:
+            print x
+
+    def update_db(self, all=None):
+        if all is None:
+            all = self.all()
+        import cassandra, json
+        t = all['timestamp']
+        d = {}
+        for k, v in all.iteritems():
+            d[k] = json.dumps(v, separators=(',',':'))
+
+        d['day']       = time.strftime("%Y-%m-%d")
+        d['hour']      = int(time.strftime("%H"))
+        d['minute']    = int(time.strftime("%M"))
+        d['timestamp'] = int(time.time())
+        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
+        cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
+
+    def go(self, wait=61):
+        import time
+        while True:
+            all = self.all()
+            self.update_db(all=all)
+            self.status(all=all)
+            time.sleep(wait)
+
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
         """
@@ -1201,6 +1378,8 @@ class Services(object):
 
         self._services, self._ordered_service_names = parse_groupfile(os.path.join(path, 'services'))
         del self._services[None]
+
+        self.monitor = Monitor(Hosts(os.path.join(path, 'hosts'), username=username, passwd=False))
 
         # this is the canonical list of options, expanded out by service and host.
         def hostopts(service, query='all', copy=True):
@@ -1237,7 +1416,7 @@ class Services(object):
                 self._cassandra = ['%s:%s'%(h, native_transport_port) for h in self._hosts['cassandra']]
                 import cassandra
                 cassandra.KEYSPACE = self._keyspace
-                cassandra.set_nodes(self._cassandra)
+                cassandra.set_nodes(self._hosts['cassandra'])
             except ValueError:
                 print "WARNING: no cassandra hosts -- severly degraded functionality!"
 
@@ -1512,78 +1691,6 @@ class Services(object):
                 else:
                     break
         print "All vm's successfully terminated"
-
-    def monitor(self):
-        """
-        Monitor the hub and database, and restart they go bad.
-
-           - Like any node application, the hub could go which sometimes goes into an infinite loop
-             due to a bug.  This would cause it to stop responding to HTTP requests.
-             If this happens for 10 seconds, we restart the hub and make a note in the database.
-
-           - Cassandra 1.2.4 keeps crashing (about once a day) on me, with an out of memory error, despite
-             the host vm having 48GB swap and at least 16GB RAM.  This must be a bug.  In any case,
-             any event that results in cassandra dieing, shound then have it get restarted and
-             logged. Also, the snap servers don't recover gracefully when the database dies, so
-             we restart them too (unfortunately this can leave stale locks around, which mess up backups
-             in progress for 15-30 minutes, at least until I make locking more sophisticated).
-
-        """
-        self._hosts.password()
-        # Get IP addresses of hubs
-        hosts = self._hosts['hub']
-        import  cassandra, sys, urllib2
-        def hub_is_working(ip):
-             try:
-                 t = time.time()
-                 s = urllib2.urlopen('http://%s:%s/stats'%(ip,HUB_PORT), timeout=10).read()
-                 print "ping: %s"%ip, time.time() - t, "   status: ", s
-                 return True
-             except:
-                 return False
-
-        def cassandra_snap_status():
-            try:
-                n = cassandra.cursor_execute("SELECT COUNT(*) FROM snap_servers").fetchone()[0]
-                print "found %s snap servers"%n
-                if n == 0:
-                    return "no running snap servers"
-            except:
-                return "cassandra not working"
-            return ""
-
-        i = 0
-        while True:
-            if i % 80 == 0:
-                print "Monitoring hubs: ", hosts
-            i += 1
-            sys.stdout.flush()
-            for ip in hosts:
-                if not hub_is_working(ip):
-                     print ":-( Restarting %s"%ip
-                     self.restart('hub',host=ip)
-                     try:
-                         message = {'action':'restart', 'reason':'stopped responding to monitor for 10 seconds', 'ip':ip}
-                         cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
-                              {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'hub'})
-                     except:
-                         print "Unable to record log message in database"
-
-            # Next check that there is at least 1 snap server -- and making this check also confirms that
-            # cassandra is up and working.
-            status = cassandra_snap_status()
-            if status:
-                print status
-                self.restart("cassandra", wait=True)
-                self.restart("snap", wait=False, parallel=True)
-                try:
-                     message = {'action':'restart', 'reason':status}
-                     cassandra.cursor().execute("UPDATE admin_log SET message = :message WHERE service = :service AND time = :time",
-                              {'message':cassandra.to_json(message), 'time':cassandra.now().to_cassandra(), 'service':'cassandra'})
-                except Exception:
-                     print "Unable to record log message in database"
-
-            time.sleep(15)
 
     def restart_web(self):
         """
