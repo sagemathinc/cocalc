@@ -2,6 +2,8 @@
 
 import os, sys
 
+copy_to_template = set([x for x in os.listdir(os.environ['SALVUS_ROOT']+'/local_hub_template/node_modules') if x.endswith('.js')])
+
 if '--all' in sys.argv:
     all = True
     sys.argv.remove("--all")
@@ -14,15 +16,20 @@ else:
     out = "node_modules"
 
 v = []
+copy = []
 for src in os.listdir('.'):
     if src.endswith('.coffee'):
         name = src[:-7]
         target = '%s/%s.js'%(out, name)
         if all or (not os.path.exists(target) or os.stat(target).st_mtime < os.stat(src).st_mtime):
             v.append(src)
+            if name+".js" in copy_to_template:
+                copy.append(name+".js")
 
 if v:
     cmd = 'coffee -o %s -c %s'%(out, ' '.join(v))
     print cmd
     if os.system(cmd):
         sys.exit(1)
+    for x in copy:
+        os.system("cp -v node_modules/%s local_hub_template/node_modules/&"%x)
