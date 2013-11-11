@@ -1473,7 +1473,7 @@ class Client extends EventEmitter
                                 content      : snapshot
                             @push_to_client(mesg)
 
-    get_codemirror_session : (mesg, cb) =>
+    get_codemirror_session: (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
         if not session?
             @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not know about a codemirror session with session_uuid='#{mesg.session_uuid}'"))

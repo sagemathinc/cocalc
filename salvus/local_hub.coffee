@@ -356,7 +356,7 @@ class SageSessions
                 if err
                     winston.debug("_new_session: sage session denied connection: #{err}")
                     forget_port('sage')
-                    if not retries? or retries <= 3
+                    if not retries? or retries <= 9
                         if not retries?
                             retries = 1
                         else
