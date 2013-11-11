@@ -356,14 +356,14 @@ class SageSessions
                 if err
                     winston.debug("_new_session: sage session denied connection: #{err}")
                     forget_port('sage')
-                    if not retries? or retries <= 9
+                    if not retries? or retries <= 5
                         if not retries?
                             retries = 1
                         else
                             retries += 1
                         try_again = () =>
                             @_new_session(client_socket, mesg, port, retries)
-                        setTimeout(try_again, (retries-1)*1000)
+                        setTimeout(try_again, 1000)
                     else
                         # give up.
                         client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
