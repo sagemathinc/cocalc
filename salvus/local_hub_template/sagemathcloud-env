@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # directory containing this script
-if [ "$SAGEMATHCLOUD"x = "" ]; then
+if [ "$SAGEMATHCLOUD"x = "x" ]; then
     export SAGEMATHCLOUD="`dirname \`readlink -f $BASH_SOURCE\``"
 fi
 
