@@ -768,7 +768,9 @@ monitor_snapshot_queue = () ->
                 cb(err)
 
         # if disk usage exceeds REPO_SIZE_CUTOFF_BYTES, then we remove the active file,
-        # so that next time around we'll use a new repo.
+        # so that next time around we'll use a new repo.  We still need to use this one
+        # this time, in case there is a rollback file to deal with (also, this makes
+        # the logic simpler).
         (cb) ->
             winston.debug("monitor_snapshot_queue: comparing REPO_SIZE_CUTOFF_BYTES=#{REPO_SIZE_CUTOFF_BYTES} with usage")
             if size_before >= REPO_SIZE_CUTOFF_BYTES
@@ -794,8 +796,8 @@ monitor_snapshot_queue = () ->
                                 winston.debug("monitor_snapshot_queue: rollback info: '#{s}'")
                             catch
                                 # Something went wrong parsing the rollback JSON file; maybe it is corrupt
-                                # or empty.  This would be a good place to take more dramatic measures,
-                                # once they are implemented.
+                                # or empty.  This would be a good place to take more dramatic measures (?).
+                                # If the rollback file is corrupt, then we probably didn't actually do anything though.
                                 winston.debug("monitor_snapshot_queue: rollback file *corrupt* (not using); content='#{s}'")
                                 rollback_info = undefined
 
@@ -926,11 +928,11 @@ monitor_snapshot_queue = () ->
                 cb      : (err) ->
                     winston.debug("monitor_snapshot_queue: time to save snapshot of #{project_id}: #{misc.walltime(t)} s")
 
-                    # If bup is killed during save, then this doesn't get removed, and on use
-                    # we rollback as specified.
-                    fs.unlink("#{bup_active}/rollback")
-
                     if not err
+                        # If bup is killed during save, then this doesn't get removed, and on next use of this repo,
+                        # we use the rollback file to roll back.  Since the bup succeeded, we can remove the rollback.
+                        fs.unlink("#{bup_active}/rollback")
+
                         # used below when creating database entry
                         timestamp = moment(new Date(d*1000)).format('YYYY-MM-DD-HHmmss')
 
