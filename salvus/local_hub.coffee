@@ -636,8 +636,8 @@ class CodeMirrorSession
             (cb) =>
                 # If this is a sagews file, create corresponding sage session.
                 if misc.filename_extension(@path) == 'sagews'
-                    @sage_socket(cb)
                     @process_new_content = @sage_update
+                    @sage_socket(cb)
                 else
                     cb()
             (cb) =>
@@ -858,6 +858,8 @@ class CodeMirrorSession
         opts = defaults opts,
             kill : false    # if true, just remove all running flags.
             auto : false    # if true, run all cells that have the auto flag set
+        if not @content?  # document not initialized
+            return
         # Here we:
         #    - scan the string @content for execution requests.
         #    - also, if we see a cell UUID that we've seen already, we randomly generate

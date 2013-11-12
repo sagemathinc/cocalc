@@ -61,7 +61,7 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                         try
                             obj = JSON.parse(s)
                         catch e
-                            winston.debug("Error parsing JSON message on socket #{desc} -- '#{s}'")
+                            winston.debug("Error parsing JSON message='#{misc.truncate(s,512)}' on socket #{desc}")
                             # TODO -- this throw can seriously mess up the server; handle this
                             # in a better way in production.  This could happen if there is
                             # corruption of the connection.
