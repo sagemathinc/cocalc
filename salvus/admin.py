@@ -466,7 +466,7 @@ class Haproxy(Process):
 
         if nginx_servers:
             random.shuffle(nginx_servers)
-            t = Template('server nginx$n $ip:$port maxconn $maxconn')
+            t = Template('server nginx$n $ip:$port maxconn $maxconn check ')
             nginx_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', NGINX_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(nginx_servers)]))
 
