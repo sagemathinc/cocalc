@@ -1201,12 +1201,17 @@ class Monitor(object):
         ans = []
         for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
             d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v.get('stdout','error')).lower()) else 'down'}
+              
             if d['status'] == 'up':
                 d['ls_time_s'] = float(v['stderr'].split()[0])
                 d['commits'] = int(v['stdout'].split()[0])
                 d['active_GB'] = int(int(v['stdout'].split()[1])/10.**6)
                 d['bup_GB'] = int(int(v['stdout'].split()[3])/10.**6)
                 d['use%'] = int(v['stdout'].split()[16][:-1])
+            else: 
+                # No active file means snap is up but just no active repo.
+                if 'active: No such file or directory' in v['stderr']:
+                    d['status'] = 'up'
             ans.append(d)
 
         w = [(-d.get('ls_time_s',100000), d) for d in ans]
