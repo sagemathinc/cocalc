@@ -70,7 +70,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                     temp = tempfile.mkdtemp(dir=persistent_img_path)
                     os.chdir(temp)
                     run(['guestfish', '-N', 'fs:ext4:%sG'%size, 'quit'],maxtime=120) # creates test1.img in the temp directory
-                    # Change theowner of the new img file.
+                    # Change the owner of the new img file.
                     sh['mkdir', 'mnt']
                     run(['guestmount', '-a', 'test1.img', '-m/dev/vda1', '--rw', 'mnt'], maxtime=120)
                     sh['chown', 'salvus.', 'mnt']
