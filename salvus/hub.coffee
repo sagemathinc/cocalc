@@ -2264,7 +2264,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         @project_id   = opts.project_id
         @path         = opts.path
 
-        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:11, min_interval:500, exp_factor:1.2)
+        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:11, min_interval:1000, exp_factor:1.2)
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
         @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync',  max_tries:10)
 
@@ -2288,6 +2288,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         # TODO: make more destructive.
 
     _connect: (cb) =>
+        winston.debug("CodeMirrorSession: _connect to file '#{@path}' on a local hub")
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
@@ -2646,6 +2647,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_multi_response = {}
         @local_hub_socket  (err) =>
             if err
+                winston.debug("local_hub connect: err=#{err}, so restarting local hub server")
                 @restart (err) =>
                     if err
                         m = "Unable to start and connect to local hub #{@address} -- #{err}"
@@ -2658,7 +2660,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @)
 
     restart: (cb) =>
-        winston.debug("restarting a local hub -- #{@username}@#{@host}")
+        winston.debug("** restarting a local hub -- #{@username}@#{@host} **")
         if @_restart_lock
             winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
@@ -2672,6 +2674,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         for k, session of codemirror_sessions.by_path
             session.destroy()
 
+        did_killall = false
         async.series([
             (cb) =>
                 winston.debug("local_hub restart: creating a lock")
@@ -2690,6 +2693,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb()
                 else
                     @_restart_lock = false
+                    did_killall = true
                     @killall () =>
                         @_restart_lock = true
                         cb()
@@ -2703,8 +2707,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             (cb) =>
                 winston.debug("local_hub restart: Restart the local services...")
                 @_restart_lock = false # so we can call @_exec_on_local_hub
+                cmd = "start_smc --timeout=#{@timeout}"
+                if not did_killall
+                    cmd = "re" + cmd
                 @_exec_on_local_hub
-                    command : "restart_smc --timeout=#{@timeout}"
+                    command : cmd
                     timeout : 45
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
@@ -3119,8 +3126,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         status   = undefined
         async.series([
             (cb) =>
-                @_push_local_hub_code(cb)
-            (cb) =>
                 @_get_local_hub_status (err, _status) =>
                     @_status = _status
                     cb(err)
@@ -3241,7 +3246,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     _restart_local_hub_daemons: (cb) =>
         winston.debug("restarting local_hub daemons -- #{@username}@#{@host}")
         @_exec_on_local_hub
-            command : "restart_smc --timeout=#{@timeout}"
+            command : "start_smc --timeout=#{@timeout}"
             timeout : 30
             cb      : (err, out) =>
                 cb(err)
@@ -3252,7 +3257,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             winston.debug("killall -- skipping since running with --local=true debug mode")
             cb?(); return
         @_exec_on_local_hub
-            command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
+            command : "rm #{@SAGEMATHCLOUD}/data/*.port #{@SAGEMATHCLOUD}/data/*.pid; pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
             cb      : (err, out) =>
@@ -3261,7 +3266,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
-        if @_status.local_hub and @_status.console_server
+        if @_status.local_hub #and @_status.console_server
             # NOTE! we do *not* check for @_status.sage_server, since it is easy for a user to mess that up.
             # If they mess up console_server and local_hub (which should be very hard), they couldn't fix it
             # anyways -- but messing up the sage server is fixable via the console or file editor.

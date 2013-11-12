@@ -1319,6 +1319,9 @@ def serve(port, host):
     t = time.time()
     s.listen(128)
     i = 0
+
+    # Write to file name of port we are now listening on.
+    open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))
     try:
         while True:
             i += 1
@@ -1405,7 +1408,6 @@ if __name__ == "__main__":
         DATA_PATH = os.path.join(os.environ['SAGEMATHCLOUD'], "data")
         if not os.path.exists(DATA_PATH):
             os.makedirs(DATA_PATH)
-        open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))
         del s
 
     if args.portfile:
