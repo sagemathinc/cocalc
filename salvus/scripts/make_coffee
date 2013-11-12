@@ -2,7 +2,7 @@
 
 import os, sys
 
-if os.path.exists('local_hub_template') and 'SALVUS_ROOT' in os.environ:  # only run when building as part of hub, not local hub
+if os.path.exists('local_hub_template/node_modules') and 'SALVUS_ROOT' in os.environ:  # only run when building as part of hub, not local hub
     copy_to_template = set([x for x in os.listdir(os.environ['SALVUS_ROOT']+'/local_hub_template/node_modules') if x.endswith('.js')])
 else:
     copy_to_template = set([])
