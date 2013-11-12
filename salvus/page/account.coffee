@@ -346,10 +346,10 @@ signed_in = (mesg) ->
             if first_login
                 first_login = false
                 if window.salvus_target
-                    require('last').load_target(window.salvus_target)
+                    require('history').load_target(window.salvus_target)
                     window.salvus_target = ''
                 else
-                    require('last').load_target('projects')
+                    require('history').load_target('projects')
 
 
 # Listen for pushed sign_in events from the server.  This is one way that

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
 # directory containing this script
-if [ "$SAGEMATHCLOUD"x = "" ]; then
+if [ "$SAGEMATHCLOUD"x = "x" ]; then
     export SAGEMATHCLOUD="`dirname \`readlink -f $BASH_SOURCE\``"
 fi
 
 P="$SAGEMATHCLOUD"
 
 # If for some reason you ever change this, also possibly change the Python code in "build".
-export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$HOME/bin:$PATH
+export PATH=$P:$P/node_modules/coffee-script/bin/:$P/node_modules/.bin/:$P/data/local/bin:$HOME/bin:$PATH
 export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 
 # For people building Sage from source.

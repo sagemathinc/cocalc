@@ -360,12 +360,17 @@ Editor for files in a project
 .sagews-output-interact {
 }
 
+.salvus-editor-image {
+    position:fixed;
+    width:99%;
+    padding:0px;
+    overflow-y:auto;
+}
+
 .salvus-editor-image-container {
     overflow: auto;
-    margin:1em;
     background-color:#fff;
     border:1px solid #aaa;
-    /* width:95%; */
     box-shadow: 5px 5px 5px 5px #888;
 }
 

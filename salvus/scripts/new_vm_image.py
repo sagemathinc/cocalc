@@ -45,7 +45,7 @@ if os.path.exists(next_path):
 
 cmd("qemu-img create -b %s -f qcow2 %s"%(prev_path, next_path))
 
-cmd("virt-install --cpu host --network user,model=virtio --name %s --vcpus=16 --ram 8192 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
+cmd("virt-install --cpu host --network user,model=virtio --name %s --vcpus=12 --ram 8192 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
 
 cmd("virsh -c qemu:///session qemu-monitor-command --hmp %s 'hostfwd_add ::2222-:22'"%next)
 

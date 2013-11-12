@@ -341,6 +341,7 @@ CREATE TABLE snap_commits (
     server_id  uuid,       /* id into snap_servers table above */
     project_id uuid,       /* id of the project */
     timestamp  varchar,    /* date of commit, in the bup string format */
+    utc_seconds_epoch int, /* timestamp of commit in seconds since the epoch in UTC time */
     size       int,        /* size in kilobytes that making this snapshot increased the total size of the bup archive */
     repo_id    uuid,       /* id of the bup repo that contains this snapshot */
     modified_files varchar, /* JSON list of strings of the paths of the files that were modified in this commit. */
@@ -439,3 +440,33 @@ CREATE TABLE counts (
     count counter  /* see http://www.datastax.com/documentation/cql/3.0/webhelp/cql/cql_using/use_counter_t.html */
 );
 
+
+CREATE TABLE monitor (
+    day varchar,
+    hour int,
+    minute int,
+
+    timestamp int,  /* seconds since epoch */
+    dns varchar,   /* JSON */
+    load varchar,  /* JSON */
+    snap varchar,  /* JSON */
+    cassandra varchar,  /* JSON */
+    compute varchar,    /* JSON */
+
+    PRIMARY KEY(day, hour, minute)
+);
+
+CREATE TABLE monitor_last (
+    dummy boolean  PRIMARY KEY,
+
+    day varchar,
+    hour int,
+    minute int,
+    timestamp int,  /* seconds since epoch */
+    dns varchar,   /* JSON */
+    load varchar,  /* JSON */
+    snap varchar,  /* JSON */
+    cassandra varchar,  /* JSON */
+    compute varchar    /* JSON */
+
+);

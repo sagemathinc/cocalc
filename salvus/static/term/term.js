@@ -367,17 +367,27 @@ Terminal.bindKeys = function(client_keydown) {
        return;
     }
 
-    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
-      return false;
-    }
-
-    if ((ev.metaKey | ev.ctrlKey) && ev.keyCode == 86) {  // paste
-      return false;
-    }
 
     if (typeof client_keydown != "undefined" && (client_keydown(ev) === false)) {
 	  return false;
     }
+
+
+    if (ev.metaKey && isMac) { // totally ignore meta=command key on Mac's.
+      return false;
+    }
+
+    if (!isMac) {
+      // we handle metaKey on OS X above; also, on OS X ctrl-C does *not* copy, so we don't need to do this.
+      if (ev.ctrlKey && ev.keyCode == 67 && getSelectionHtml() != "") {  // copy
+        return false;
+      }
+
+      if (ev.ctrlKey && ev.keyCode == 86) {  // paste
+        return false;
+      }
+    }
+
 
     /* term -- handle the keystroke via the xterm . */
     if (typeof Terminal.focus === 'object') {
@@ -1450,6 +1460,8 @@ Terminal.prototype.write = function(data) {
 
           this.params.push(this.currentParam);
 
+          // console.log("code=", this.params[0]);
+
           switch (this.params[0]) {
             case 0:
             case 1:
@@ -1481,6 +1493,12 @@ Terminal.prototype.write = function(data) {
             case 46:
               // change log file
               break;
+            case 49:
+              // I'm just making this up! -- William -- I couldn't find any use of code 49...
+              if (this.params[1]) {
+                this.handleMesg(this.params[1]);
+              }
+              break;
             case 50:
               // dynamic font
               break;
@@ -1490,7 +1508,6 @@ Terminal.prototype.write = function(data) {
             case 52:
               // manipulate selection data
               break;
-            case 104:
             case 105:
             case 110:
             case 111:
@@ -2538,6 +2555,15 @@ Terminal.prototype.handler = function(data) {
 
 Terminal.prototype.handleTitle = function(title) {
   this.emit('title', title);
+};
+
+/* Message as (nearly) arbitrary string.  Client sends a message by printing this:
+
+    \x1b]49;any string you want toges here\x07
+
+*/
+Terminal.prototype.handleMesg = function(mesg) {
+  this.emit('mesg', mesg);
 };
 
 /**

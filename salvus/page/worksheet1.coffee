@@ -2,6 +2,8 @@
 # First prototype of a worksheet editor -- code is a mess
 ##########################################################
 
+# IMPORTANT - this file is no longer used!!!!
+
 {IS_MOBILE}        = require("feature")
 {salvus_client}    = require('salvus_client')
 {top_navbar}       = require('top_navbar')

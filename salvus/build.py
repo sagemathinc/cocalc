@@ -46,10 +46,12 @@ Before building, do:
 
          update-alternatives --config java  # select "oracle java 6"    # NOT 7!
 
+         chmod a+rw /dev/fuse
+
 
    3. Additional packages (mainly for users, not building).
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools
 
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor
@@ -310,16 +312,6 @@ def build_python():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
-#
-# About the node version.
-#   The node-http-proxy library (as of Aug 30, 2013) is completely broken for websocket proxying with Node v0.10.x, etc.
-#   so we use node-0.8.25, but with a patch (which I had to modify/backport!) to node-v.0.8.25.
-#   *Also* pty.js resizing doesn't work with node-v.0.10.x either (as of a few months ago at least), so we use the older
-#   version of node in local_hub_template.py.
-#   So... take care when upgrading to a new node version eventually.  Test that that the proxy stuff is fixed.
-#   Watch this url: https://github.com/nodejitsu/node-http-proxy/issues/444
-#   Here's a test that the hex conversion is good (this should be fast): buf = Buffer(0x1000000); a=buf.toString('hex');b=0;
-
 def build_node():
     log.info('building node'); start = time.time()
     try:
@@ -396,6 +388,8 @@ def build_cassandra():
 
         print "building python library"
         cmd("cd pylib && python setup.py install", path)
+
+        print "CASSANDRA IMPORTANT -- you might need to apply the patch from https://issues.apache.org/jira/browse/CASSANDRA-5895    !?!?"
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
@@ -420,11 +414,18 @@ def build_bup():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
+def build_node_proxy():
+    log.info('building node-proxy module'); start = time.time()
+    try:
+        cmd('git clone https://github.com/nodejitsu/node-http-proxy.git -b caronte; npm install node-http-proxy/; rm -rf node-http-proxy', PWD)
+    finally:
+        log.info("total time: %.2f seconds", time.time()-start)
+        return time.time()-start
+
 def build_node_modules():
     log.info('building node_modules'); start = time.time()
     try:
         cmd('npm install %s'%(' '.join(NODE_MODULES)), PWD)
-        cmd('git clone https://github.com/nodejitsu/node-http-proxy.git -b caronte; npm install node-http-proxy/; rm -rf node-http-proxy')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
@@ -460,6 +461,9 @@ if __name__ == "__main__":
     parser.add_argument('--build_node_modules', dest='build_node_modules', action='store_const', const=True, default=False,
                         help="install all node packages")
 
+    parser.add_argument('--build_node_proxy', dest='build_node_proxy', action='store_const', const=True, default=False,
+                        help="install proxy node module")
+
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="install all Python packages")
 
@@ -481,6 +485,9 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_node_modules:
             times['node_modules'] = build_node_modules()
+
+        if args.build_all or args.build_node_proxy:
+            times['node_proxy'] = build_node_proxy()
 
         if args.build_all or args.build_nginx:
             times['nginx'] = build_nginx()

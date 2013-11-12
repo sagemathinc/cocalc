@@ -72,29 +72,30 @@ class Time(float):
 
 
 pool = {}
-def connect(keyspace=None, use_cache=True):
+def connect(keyspace=None, use_cache=True, user=None, password=None):
+    key = (keyspace, user)
     if keyspace is None:
         keyspace = KEYSPACE
-    if use_cache and pool.has_key(keyspace):
-        return pool[keyspace]
+    if use_cache and pool.has_key(key):
+        return pool[key]
     for i in range(len(NODES)):
         try:
             node = get_node()
-            con = cql.connect(node, keyspace=keyspace, cql_version='3.0.0')
+            con = cql.connect(node, keyspace=keyspace, cql_version='3.0.0', user=user, password=password)
             print "Connected to %s"%node
-            pool[keyspace] = con
+            pool[key] = con
             return con
         except Exception, msg:
             print msg  # TODO -- logger
     raise RuntimeError("no cassandra nodes are up!! (selecting from %s)"%NODES)
 
-def cursor(keyspace=None, use_cache=True):
+def cursor(keyspace=None, use_cache=True, user=None, password=None):
     if keyspace is None:
         keyspace = KEYSPACE
-    return connect(keyspace=keyspace, use_cache=use_cache).cursor()
+    return connect(keyspace=keyspace, use_cache=use_cache, user=user, password=password).cursor()
 
 import signal
-def cursor_execute(query, param_dict=None, keyspace=None, timeout=1):
+def cursor_execute(query, param_dict=None, keyspace=None, timeout=1, user=None, password=None):
     if keyspace is None:
         keyspace = KEYSPACE
     if param_dict is None: param_dict = {}
@@ -107,11 +108,11 @@ def cursor_execute(query, param_dict=None, keyspace=None, timeout=1):
         signal.signal(signal.SIGALRM, f)
         signal.alarm(timeout)
         try:
-            cur = cursor(keyspace=keyspace)
+            cur = cursor(keyspace=keyspace, user=user, password=password)
             cur.execute(query, param_dict)
         except (KeyboardInterrupt, Exception), msg:
             print msg
-            cur = cursor(keyspace=keyspace, use_cache=False)
+            cur = cursor(keyspace=keyspace, use_cache=False, user=user, password=password)
             cur.execute(query, param_dict)
     finally:
         signal.signal(signal.SIGALRM, signal.SIG_IGN)
