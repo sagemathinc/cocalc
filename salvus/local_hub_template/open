@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import json, os, sys
+
+home = os.environ['HOME']
+
+if 'TMUX' in os.environ:
+    prefix = '\x1bPtmux;\x1b'
+    postfix = '\x1b\\'
+else:
+    prefix = ''
+    postfix = ''
+
+def process(arg):
+    filename = os.path.abspath(arg)
+
+    # determine name relative to home directory
+    if filename.startswith(home):
+        name = filename[len(home)+1:]
+    else:
+        name = filename
+
+    # Is it a file or directory
+    if os.path.exists(filename) and os.path.isdir(filename):
+        mesg = {"event":"open_directory","name":name}
+    else:
+        mesg = {"event":"open_file","name":name}
+    #print mesg
+
+    print prefix + '\x1b]49;%s\x07'%json.dumps(mesg,separators=(',',':')) + postfix
+
+if len(sys.argv) == 1:
+    print "Usage: open [filenames] "
+    print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
+    print "If the named file doesn't exist, it is created."
+else:
+    for arg in sys.argv[1:]:
+        process(arg)

@@ -39,4 +39,6 @@ help.coffee
 
 social.coffee
 
+history.coffee
+
 last.coffee

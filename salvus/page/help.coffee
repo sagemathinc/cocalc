@@ -6,8 +6,10 @@ top_navbar.on "switch_to_page-salvus-help", () ->
     update_stats()
 
 update_stats = () ->
+    $(".salvus-stats").find("i").addClass('fa-spin')
     salvus_client.server_stats
         cb : (err, stats) ->
+            $(".salvus-stats").find("i").removeClass('fa-spin')
             if err
                 return
             X = $(".salvus-stats").show()
@@ -23,3 +25,9 @@ update_stats = () ->
             else
                 n = (x['clients'] for x in stats.hub_servers).reduce((s,t) -> s+t)
             X.find(".salvus-stats-number-of-clients").text(n)
+
+$(".salvus-stats").find("a[href=#refresh-status]").click () ->
+    update_stats()
+    return false
+
+
