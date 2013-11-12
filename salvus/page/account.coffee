@@ -310,11 +310,13 @@ sign_in = () ->
                     alert_message(type:"error", message: "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
 first_login = true
+hub = undefined
 signed_in = (mesg) ->
     _gaq.push(['_trackEvent', 'account', 'signed_in'])  # custom google analytic event -- user signed in
 
     # Record which hub we're connected to.
-    $("#connection_bars").find("i").tooltip('destroy').tooltip(title:"Hub: #{mesg.hub}", delay:1000, placement:'left')
+    hub = mesg.hub
+    $("#connection_bars").find("i").tooltip('destroy').tooltip(title:"Hub: #{hub}", delay:1000, placement:'left')
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
@@ -801,3 +803,30 @@ setTimeout(version_check, 15000)  # quick check on first connection too.
 
 setInterval(version_check, 3*60*1000)  # check once every three minutes; may increase time later as usage grows (?)
 
+
+# Connection information dialog
+
+$(".salvus-connection-status").click () ->
+    show_connection_information()
+    return false
+
+$("#connection_bars").click () ->
+    show_connection_information()
+    return false
+
+show_connection_information = () ->
+    dialog = $(".salvus-connection-info")
+    dialog.modal('show')
+    if hub?
+        dialog.find(".salvus-connection-hub").show().find('pre').text(hub)
+        dialog.find(".salvus-connection-nohub").hide()
+    else
+        dialog.find(".salvus-connection-nohub").show()
+        dialog.find(".salvus-connection-hub").hide()
+    s = require('salvus_client')
+    dialog.find(".salvus-connection-type").text(s.protocol())
+    
+    if s.ping_time()
+        dialog.find(".salvus-connection-ping").show().find('pre').text((s.ping_time()*1000).toFixed(0) + "ms")
+    else
+        dialog.find(".salvus-connection-ping").hide()
