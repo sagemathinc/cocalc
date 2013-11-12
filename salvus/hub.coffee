@@ -2264,18 +2264,22 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         @project_id   = opts.project_id
         @path         = opts.path
 
-        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:11, min_interval:1000, exp_factor:1.2)
+        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:11, min_interval:1000, exp_factor:1.2)  # 26 seconds
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
         @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync',  max_tries:10)
 
         # The downstream (web browser) clients of this hub
         @diffsync_clients = {}
 
+        winston.debug("CodeMirrorSession (path=#{@path}) -- connect")
+        t = misc.walltime()
         @connect (err) =>
             if err
+                winston.debug("CodeMirrorSession (path=#{@path}) -- connect -- FAIL (time=#{misc.walltime(t)} seconds) -- #{err}")
                 @remove_from_cache()
                 opts.cb(err)
             else
+                winston.debug("CodeMirrorSession (path=#{@path}) -- connect -- success (time=#{misc.walltime(t)} seconds)")
                 opts.cb(false, @)
 
     remove_from_cache: () =>
@@ -2288,19 +2292,18 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         # TODO: make more destructive.
 
     _connect: (cb) =>
-        winston.debug("CodeMirrorSession: _connect to file '#{@path}' on a local hub")
+        winston.debug("CodeMirrorSession: _connect to file '#{@path}' on a local hub (time=#{misc.walltime()})")
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
                 if err
                     winston.debug("local_hub --> hub: (connect) error -- #{err}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
                     if resp?.path? and resp?.path.indexOf("sage_server.port") != -1
-                        err = "The Sage Worksheet server is not running.  You may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or just contact wstein@uw.edu for help."
+                        err = "The Sage Worksheet server is not running.  The system may be very heavily loaded, you may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or contact <a href='mailto:wstein@uw.edu' target='_blank'>wstein@uw.edu</a> for help."
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
                 else
-
                     if @session_uuid?
                         # Send a broadcast message to all connected
                         # clients informing them of the new session id.
@@ -3244,12 +3247,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
-        winston.debug("restarting local_hub daemons -- #{@username}@#{@host}")
-        @_exec_on_local_hub
-            command : "start_smc --timeout=#{@timeout}"
-            timeout : 30
-            cb      : (err, out) =>
-                cb(err)
+        winston.debug("_restart_local_hub_daemon-- #{@username}@#{@host}")
+        winston.debug("_restart_local_hub_daemon: first push latest version of code to remote machine...")
+        @_push_local_hub_code (err) =>
+            if err
+                winston.debug("local hub code push -- failed #{err}")
+            @_exec_on_local_hub
+                command : "start_smc --timeout=#{@timeout}"
+                timeout : 30
+                cb      : cb
 
     killall: (cb) =>
         winston.debug("kill all processes running on a local hub (including the local hub itself)")

@@ -11,7 +11,7 @@
 #
 #
 # NOTE: For local debugging, run this way, since it gives better stack
-# traces.
+# traces.CodeMirrorSession: _connect to file
 #
 #         make_coffee && echo "require('local_hub').start_server()" | coffee
 #
@@ -636,8 +636,8 @@ class CodeMirrorSession
             (cb) =>
                 # If this is a sagews file, create corresponding sage session.
                 if misc.filename_extension(@path) == 'sagews'
-                    @sage_socket(cb)
                     @process_new_content = @sage_update
+                    @sage_socket(cb)
                 else
                     cb()
             (cb) =>
@@ -680,7 +680,7 @@ class CodeMirrorSession
                 winston.debug("sage_socket: fail -- #{err}.")
                 cb(err)
             else
-                winston.debug("Successfully opened a Sage session for worksheet '#{@path}'")
+                winston.debug("sage_socket: successfully opened a Sage session for worksheet '#{@path}'")
                 @_sage_socket = socket
 
                 # Set path to be the same as the file.
@@ -858,6 +858,8 @@ class CodeMirrorSession
         opts = defaults opts,
             kill : false    # if true, just remove all running flags.
             auto : false    # if true, run all cells that have the auto flag set
+        if not @content?  # document not initialized
+            return
         # Here we:
         #    - scan the string @content for execution requests.
         #    - also, if we see a cell UUID that we've seen already, we randomly generate
