@@ -1,12 +1,12 @@
 # services
 
-base='salvus-2013-11-01-0617'
+base='salvus-2013-11-11-0958'
 cassandra_ram = 4
 cassandra_cpu = 1
 web_ram       = 1
 web_cpu       = 1
-compute_ram   = 3
-compute_cpu   = 1
+compute_ram   = 4
+compute_cpu   = 2
 
 [vm] {'base':base}
 # Cassandra
