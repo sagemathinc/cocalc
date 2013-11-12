@@ -321,6 +321,9 @@ class RetryUntilSuccess
             max_tries    : undefined
             min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
             logname      : undefined
+        if @opts.min_interval?
+            if @opts.start_delay < @opts.min_interval
+                @opts.start_delay = @opts.min_interval
         @f = @opts.f
 
     call: (cb, retry_delay) =>

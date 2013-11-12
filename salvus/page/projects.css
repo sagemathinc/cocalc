@@ -8,6 +8,7 @@
     background-color:#ffffff;
     margin-top:0px;
     margin-bottom:0px;
+    margin-right:2em;
 
     padding-top: 1.5em;
     padding-bottom: 1.5em;
@@ -55,6 +56,9 @@
 
 .projects-describe-listing {
     margin-bottom: 1em;
+    margin-top: 1.5em;
+    font-weight:bold;
+    font-size:12pt;
 }
 
 .projects-users {

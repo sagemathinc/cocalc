@@ -57,8 +57,7 @@ Editor for files in a project
             <div class="salvus-editor-codemirror-button-container">
                 <span class="not-big">
                     <span class="btn-group">
-                        <a href="#close" class="btn btn-large "><i class="fa fa-toggle-up"></i> <span class="not-small">Files...</span>
-                            <!--<span class="not-small">Close</span>--> </a>
+                        <a href="#close" class="btn btn-large "><i class="fa fa-toggle-up"></i> <span class="not-small">Files...</span> </a>
                         <a href="#save" class="btn  btn-success btn-large">
                             <i class="fa fa-save"></i>
                             <span class="not-small">Save</span>
@@ -198,10 +197,18 @@ Editor for files in a project
     <div class="salvus-editor-codemirror-cursor"><span class="salvus-editor-codemirror-cursor-label"></span><div class="salvus-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>
 
     <!-- Image viewer -->
-    <div class="salvus-editor-image">
-        <a class="btn" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
+    <div class="salvus-editor-image"  style="margin-left: 1ex;">
+        <span class="not-big">
+            <span class="btn-group">
+                <a href="#close" class="btn btn-large"><i class="fa fa-toggle-up"></i> <span class="not-small">Files...</span></a>
+                <a class="btn btn-large" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
+            </span>
+        </span>
+        <span class="big-only">
+            <a class="btn" href="#refresh"><i class="fa fa-refresh"></i>  Refresh</a>
+        </span>
         <div class="salvus-editor-image-title pull-right"> The title </div>
-        <div class="salvus-editor-image-container"><img></div>
+        <div class="salvus-editor-image-container"><img><span>Loading...</span></div>
     </div>
 
 

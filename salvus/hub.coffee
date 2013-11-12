@@ -461,7 +461,7 @@ init_http_proxy_server = () =>
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
                 winston.debug("location = #{misc.to_json(location)}")
-                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}")
+                proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}", timeout:0)
                 proxy.web(req, res) #, buffer:buffer}
 
     http_proxy_server.listen(program.proxy_port, program.host)
@@ -473,7 +473,7 @@ init_http_proxy_server = () =>
                 winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
             else
                 winston.debug("attempting websocket upgrade -- ws://#{location.host}:#{location.port}")
-                proxy = httpProxy.createProxyServer(ws:true, target:"ws://#{location.host}:#{location.port}")
+                proxy = httpProxy.createProxyServer(ws:true, target:"ws://#{location.host}:#{location.port}", timeout:0)
                 proxy.ws(req, socket, head)
                 #http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
 
@@ -1473,7 +1473,7 @@ class Client extends EventEmitter
                                 content      : snapshot
                             @push_to_client(mesg)
 
-    get_codemirror_session : (mesg, cb) =>
+    get_codemirror_session: (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
         if not session?
             @push_to_client(message.reconnect(id:mesg.id, reason:"Global hub does not know about a codemirror session with session_uuid='#{mesg.session_uuid}'"))
@@ -2264,18 +2264,22 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         @project_id   = opts.project_id
         @path         = opts.path
 
-        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:9, min_interval:200, exp_factor:1.4)
+        @connect      = misc.retry_until_success_wrapper(f:@_connect, logname:'connect', max_tries:11, min_interval:1000, exp_factor:1.2)  # 26 seconds
         # min_interval: to avoid possibly DOS's a local hub -- not sure what best choice is here.
         @sync         = misc.retry_until_success_wrapper(f:@_sync, min_interval:200, logname:'localhub_sync',  max_tries:10)
 
         # The downstream (web browser) clients of this hub
         @diffsync_clients = {}
 
+        winston.debug("CodeMirrorSession (path=#{@path}) -- connect")
+        t = misc.walltime()
         @connect (err) =>
             if err
+                winston.debug("CodeMirrorSession (path=#{@path}) -- connect -- FAIL (time=#{misc.walltime(t)} seconds) -- #{err}")
                 @remove_from_cache()
                 opts.cb(err)
             else
+                winston.debug("CodeMirrorSession (path=#{@path}) -- connect -- success (time=#{misc.walltime(t)} seconds)")
                 opts.cb(false, @)
 
     remove_from_cache: () =>
@@ -2288,18 +2292,18 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         # TODO: make more destructive.
 
     _connect: (cb) =>
+        winston.debug("CodeMirrorSession: _connect to file '#{@path}' on a local hub (time=#{misc.walltime()})")
         @local_hub.call
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
                 if err
                     winston.debug("local_hub --> hub: (connect) error -- #{err}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
                     if resp?.path? and resp?.path.indexOf("sage_server.port") != -1
-                        err = "The Sage Worksheet server is not running.  You may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or just contact wstein@uw.edu for help."
+                        err = "The Sage Worksheet server is not running.  The system may be very heavily loaded, you may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or contact <a href='mailto:wstein@uw.edu' target='_blank'>wstein@uw.edu</a> for help."
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
                 else
-
                     if @session_uuid?
                         # Send a broadcast message to all connected
                         # clients informing them of the new session id.
@@ -2646,6 +2650,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_multi_response = {}
         @local_hub_socket  (err) =>
             if err
+                winston.debug("local_hub connect: err=#{err}, so restarting local hub server")
                 @restart (err) =>
                     if err
                         m = "Unable to start and connect to local hub #{@address} -- #{err}"
@@ -2658,7 +2663,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(false, @)
 
     restart: (cb) =>
-        winston.debug("restarting a local hub -- #{@username}@#{@host}")
+        winston.debug("** restarting a local hub -- #{@username}@#{@host} **")
         if @_restart_lock
             winston.debug("local hub restart -- hit a lock")
             cb("already restarting")
@@ -2672,6 +2677,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         for k, session of codemirror_sessions.by_path
             session.destroy()
 
+        did_killall = false
         async.series([
             (cb) =>
                 winston.debug("local_hub restart: creating a lock")
@@ -2690,6 +2696,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb()
                 else
                     @_restart_lock = false
+                    did_killall = true
                     @killall () =>
                         @_restart_lock = true
                         cb()
@@ -2703,8 +2710,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             (cb) =>
                 winston.debug("local_hub restart: Restart the local services...")
                 @_restart_lock = false # so we can call @_exec_on_local_hub
+                cmd = "start_smc --timeout=#{@timeout}"
+                if not did_killall
+                    cmd = "re" + cmd
                 @_exec_on_local_hub
-                    command : "restart_smc --timeout=#{@timeout}"
+                    command : cmd
                     timeout : 45
                     cb      : (err, output) =>
                         #winston.debug("result: #{err}, #{misc.to_json(output)}")
@@ -3119,8 +3129,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         status   = undefined
         async.series([
             (cb) =>
-                @_push_local_hub_code(cb)
-            (cb) =>
                 @_get_local_hub_status (err, _status) =>
                     @_status = _status
                     cb(err)
@@ -3239,12 +3247,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
-        winston.debug("restarting local_hub daemons -- #{@username}@#{@host}")
-        @_exec_on_local_hub
-            command : "restart_smc --timeout=#{@timeout}"
-            timeout : 30
-            cb      : (err, out) =>
-                cb(err)
+        winston.debug("_restart_local_hub_daemon-- #{@username}@#{@host}")
+        winston.debug("_restart_local_hub_daemon: first push latest version of code to remote machine...")
+        @_push_local_hub_code (err) =>
+            if err
+                winston.debug("local hub code push -- failed #{err}")
+            @_exec_on_local_hub
+                command : "start_smc --timeout=#{@timeout}"
+                timeout : 30
+                cb      : cb
 
     killall: (cb) =>
         winston.debug("kill all processes running on a local hub (including the local hub itself)")
@@ -3252,7 +3263,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             winston.debug("killall -- skipping since running with --local=true debug mode")
             cb?(); return
         @_exec_on_local_hub
-            command : "pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
+            command : "rm #{@SAGEMATHCLOUD}/data/*.port #{@SAGEMATHCLOUD}/data/*.pid; pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
             cb      : (err, out) =>
@@ -3261,7 +3272,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
-        if @_status.local_hub and @_status.console_server
+        if @_status.local_hub #and @_status.console_server
             # NOTE! we do *not* check for @_status.sage_server, since it is easy for a user to mess that up.
             # If they mess up console_server and local_hub (which should be very hard), they couldn't fix it
             # anyways -- but messing up the sage server is fixable via the console or file editor.
@@ -4874,9 +4885,23 @@ save_blob = (opts) ->
 
 get_blob = (opts) ->
     opts = defaults opts,
-        uuid : required
-        cb   : required
-    database.uuid_blob_store(name:"blobs").get(opts)
+        uuid        : required
+        cb          : required
+        max_retries : 5
+            # if blob isn't in the database yet, we retry up to max_retries many times, after waiting 300ms for it.
+            # We do this since Cassandra is only eventually consistent, and clients can be querying other nodes.
+    database.uuid_blob_store(name:"blobs").get
+        uuid : opts.uuid
+        cb   : (err, result) ->
+            if err
+                opts.cb(err)
+            else if not result? and opts.max_retries >= 1
+                f = () ->
+                    get_blob(uuid:opts.uuid, cb:opts.cb, max_retries:opts.max_retries-1)
+                setTimeout(f, 300)
+            else
+                opts.cb(false, result)
+
 
 # For each element of the array blob_ids, remove its ttl.
 _make_blobs_permanent_cache = {}
@@ -5238,6 +5263,32 @@ exports.start_server = start_server = () ->
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
+###
+# Command line admin stuff -- should maybe be moved to another program?
+###
+add_user_to_project = (email_address, project_id, cb) ->
+     account_id = undefined
+     async.series([
+         # ensure database object is initialized
+         (cb) ->
+             connect_to_database(cb)
+         # find account id corresponding to email address
+         (cb) ->
+             database.account_exists
+                 email_address : email_address
+                 cb            : (err, _account_id) ->
+                     account_id = _account_id
+                     cb(err)
+         # add user to that project as a collaborator
+         (cb) ->
+             database.add_user_to_project
+                 project_id : project_id
+                 account_id : account_id
+                 group      : 'collaborator'
+                 cb         : cb
+     ], cb)
+
+
 #############################################
 # Process command line arguments
 #############################################
@@ -5251,6 +5302,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .parse(process.argv)
@@ -5269,7 +5321,16 @@ if program._name.slice(0,3) == 'hub'
 
     if program.passwd
         console.log("Resetting password")
-        reset_password program.passwd, (err) -> process.exit()
+        reset_password(program.passwd, (err) -> process.exit())
+    else if program.add_user_to_project
+        console.log("Adding user to project")
+        v = program.add_user_to_project.split(',')
+        add_user_to_project v[0], v[1], (err) ->
+            if err
+                 console.log("Failed to add user: #{err}")
+            else
+                 console.log("User added to project.")
+            process.exit()
     else
         console.log("Running web server; pidfile=#{program.pidfile}")
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)

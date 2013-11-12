@@ -55,6 +55,13 @@ update_project_list = exports.update_project_list = (cb) ->
 
             cb?()
 
+project_refresh_button = $("#projects").find("a[href=#refresh-projects]").click () ->
+    project_refresh_button.addClass('fa-spin')
+    update_project_list () ->
+        project_refresh_button.removeClass('fa-spin')
+    return false
+
+
 
 
 # update caused by update happenin on some other client
@@ -297,21 +304,21 @@ $("#projects-create_project-button-cancel").click((event) -> close_create_projec
 
 create_project.on("shown", () -> $("#projects-create_project-title").focus())
 
-$("#projects-create_project-button-create_project").click (event) ->
+new_project_button = $("#projects-create_project-button-create_project").click (event) ->
     title = $("#projects-create_project-title").val()
     if title == ""
         title = $("#projects-create_project-title").attr("placeholder")
     description = $("#projects-create_project-description").val()
     if description == ""
         description = $("#projects-create_project-description").attr("placeholder")
-    spinner = $(".projects-create-new-spinner").show().spin()
 
+    new_project_button.icon_spin(start:true)
     salvus_client.create_project
         title       : title
         description : description
         public      : $("#projects-create_project-public").is(":checked")
         cb : (error, mesg) ->
-            spinner.spin(false).hide()
+            new_project_button.icon_spin(false)
             if error
                 alert_messgae(type:"error", message:"Unable to connect to server to create new project '#{title}'; please try again later.")
             else if mesg.event == "error"
@@ -319,6 +326,7 @@ $("#projects-create_project-button-create_project").click (event) ->
             else
                 update_project_list()
     close_create_project()
+    return false
 
 
 

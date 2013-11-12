@@ -11,7 +11,7 @@
 #
 #
 # NOTE: For local debugging, run this way, since it gives better stack
-# traces.
+# traces.CodeMirrorSession: _connect to file
 #
 #         make_coffee && echo "require('local_hub').start_server()" | coffee
 #
@@ -260,6 +260,7 @@ get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
                 cb    : (err, _socket) =>
                     if err
                         forget_port('sage')
+                        winston.debug("unlock socket: _new_session: sage session denied connection: #{err}")
                         cb("_new_session: sage session denied connection: #{err}")
                         return
                     sage_socket = _socket
@@ -347,7 +348,7 @@ class SageSessions
                     @_new_session(client_socket, mesg, port)
 
     _new_session: (client_socket, mesg, port, retries) =>
-        winston.debug("Creating new sage session")
+        winston.debug("_new_session: creating new sage session (retries=#{retries})")
         # Connect to port, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
             port  : port
@@ -356,14 +357,14 @@ class SageSessions
                 if err
                     winston.debug("_new_session: sage session denied connection: #{err}")
                     forget_port('sage')
-                    if not retries? or retries <= 3
+                    if not retries? or retries <= 5
                         if not retries?
                             retries = 1
                         else
                             retries += 1
                         try_again = () =>
                             @_new_session(client_socket, mesg, port, retries)
-                        setTimeout(try_again, (retries-1)*1000)
+                        setTimeout(try_again, 1000)
                     else
                         # give up.
                         client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
@@ -503,6 +504,10 @@ class DiffSyncFile_server extends diffsync.DiffSync
         if @_autosave?
             clearInterval(@_autosave)
 
+        # be sure to clean this up, or -- after 11 times -- it will suddenly be impossible for
+        # the user to open a file without restarting their project server! (NOT GOOD)
+        fs.unwatchFile(@path, @_watcher)
+
     _watcher: (event) =>
         winston.debug("watch: file '#{@path}' modified.")
         if not @_do_watch
@@ -629,19 +634,21 @@ class CodeMirrorSession
 
         async.series([
             (cb) =>
-                # The *actual* file on disk.
+                # If this is a sagews file, create corresponding sage session.
+                if misc.filename_extension(@path) == 'sagews'
+                    @process_new_content = @sage_update
+                    @sage_socket(cb)
+                else
+                    cb()
+            (cb) =>
+                # The *actual* file on disk.  It's important to create this
+                # after successfully getting the sage socket, since if we fail to
+                # get the sage socket we end up creating too many fs.watch's on this file...
                 @diffsync_fileserver = new DiffSyncFile_server @, (err, content) =>
                     if err
                         cb(err); return
                     @content = content
                     @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
-                    cb()
-            (cb) =>
-                # If this is a sagews file, create corresponding sage session.
-                if misc.filename_extension(@path) == 'sagews'
-                    @sage_socket(cb)
-                    @process_new_content = @sage_update
-                else
                     cb()
         ], (err) => cb?(err, @))
 
@@ -660,7 +667,7 @@ class CodeMirrorSession
                 @_sage_socket = undefined
                 @sage_update(kill:true)
 
-        winston.debug("Opening a Sage session.")
+        winston.debug("sage_socket: Opening a Sage session.")
 
         # Ensure that no cells appear to be running.  This is important
         # because the worksheet file that we just loaded could have had some
@@ -670,9 +677,10 @@ class CodeMirrorSession
         # Connect to the local Sage server.
         get_sage_socket (err, socket) =>
             if err
+                winston.debug("sage_socket: fail -- #{err}.")
                 cb(err)
             else
-                winston.debug("Successfully opened a Sage session for worksheet '#{@path}'")
+                winston.debug("sage_socket: successfully opened a Sage session for worksheet '#{@path}'")
                 @_sage_socket = socket
 
                 # Set path to be the same as the file.
@@ -850,6 +858,8 @@ class CodeMirrorSession
         opts = defaults opts,
             kill : false    # if true, just remove all running flags.
             auto : false    # if true, run all cells that have the auto flag set
+        if not @content?  # document not initialized
+            return
         # Here we:
         #    - scan the string @content for execution requests.
         #    - also, if we see a cell UUID that we've seen already, we randomly generate
@@ -1734,7 +1744,7 @@ daemon  = require("start-stop-daemon")
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
     .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
-    .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, '')
+    .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--timeout [number]', 'kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 
