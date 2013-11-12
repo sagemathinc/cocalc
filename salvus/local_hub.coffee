@@ -11,7 +11,7 @@
 #
 #
 # NOTE: For local debugging, run this way, since it gives better stack
-# traces.
+# traces.CodeMirrorSession: _connect to file
 #
 #         make_coffee && echo "require('local_hub').start_server()" | coffee
 #
@@ -680,7 +680,7 @@ class CodeMirrorSession
                 winston.debug("sage_socket: fail -- #{err}.")
                 cb(err)
             else
-                winston.debug("Successfully opened a Sage session for worksheet '#{@path}'")
+                winston.debug("sage_socket: successfully opened a Sage session for worksheet '#{@path}'")
                 @_sage_socket = socket
 
                 # Set path to be the same as the file.
