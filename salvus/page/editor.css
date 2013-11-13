@@ -174,7 +174,7 @@ Editor for files in a project
     background-color:#fff;
     border:1px solid #aaa;
     box-shadow: 5px 5px 5px 5px #888;
-    max-width: 160%;
+    max-width: 160%;   /* hard coded in the line @zoom_width = 160 in editor.coffee */
     width:160%;
     margin-left: -30%;
 }

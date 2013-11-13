@@ -1921,8 +1921,9 @@ class PDF_Preview extends FileEditor
             return # nothing to do
 
         if opts.delta?
-            max_width = images.css('max-width')
-            max_width = parseInt(max_width.slice(0, max_width.length-1))
+            if not @zoom_width?
+                @zoom_width = 160   # NOTE: hardcoded also in editor.css class .salvus-editor-pdf-preview-image
+            max_width = @zoom_width#images.css('max-width')
             max_width += opts.delta
         else if opts.width?
             max_width = opts.width
