@@ -1789,7 +1789,24 @@ class Services(object):
                 self.start('cassandra', host=host, wait=False)
                 print "time: ", time.time()-t
 
+    def update_nginx_from_dev_repo(self):
+        """
+        Pull from the devel repo on all web machines and update coffeescript, etc., but do not
+        update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
+        changes that aren't at all critical for users to see immediately.
+        """
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; ./make_coffee --all'%ver, parallel=True, timeout=30)
+        self.restart('nginx')
 
+    def update_web_servers_from_dev_repo(self):
+        """
+        Pull from the devel repo on all web machines, update version uniformly
+        across all machines, then restart all nginx and hub servers, in serial.
+        """
+        import time; ver = int(time.time())
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=30)
+        self.restart('nginx')
+        self.restart('hub')
 
 
 
