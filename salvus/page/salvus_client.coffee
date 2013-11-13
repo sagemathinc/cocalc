@@ -27,12 +27,14 @@ salvus_client.on "connecting", () ->
     $("#ping_time").html('')
     connection_protocol = ''
     last_ping_time = ''
+    $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
 
 salvus_client.on "connected", (protocol) ->
     connection_protocol = protocol
     $("#connection_status").html("")
     $("#connection_protocol").html(protocol.slice(0,9))   # more than 9 characters takes too much space.
     $("#connection_bars").show()
+    $("a[href=#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
 
 salvus_client.on "ping", (ping_time) ->
     last_ping_time = ping_time

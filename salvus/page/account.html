@@ -23,7 +23,7 @@
 <div class="modal hide salvus-connection-info" data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-            <h3><i class="fa fa-signal" style="margin-right:1em"></i> Connection</h3>
+            <h3><i class="fa fa-signal" style="margin-right:1em"></i> Persistent Connection</h3>
         </div>
         <div class="modal-body">
             <div class="salvus-connection-hub">
@@ -31,8 +31,11 @@
                     <div class="span2">
                         <h4>Hub</h4>
                     </div>
-                    <div class="span10">
+                    <div class="span6">
                         <pre></pre>
+                    </div>
+                    <div class="span4 lighten">
+                        (Delete SERVERID cookie to change.)
                     </div>
                 </div>
                 <div class="salvus-connection-nohub">
@@ -43,15 +46,18 @@
                 <div class="span2">
                     <h4>Type</h4>
                 </div>
-                <div class="span10">
+                <div class="span6">
                     <pre class="salvus-connection-type"></pre>
+                </div>
+                <div class="span3 offset1">
+                    <a href="#salvus-connection-reconnect" class='btn btn-warning' style="margin-top: .8ex;"><i class="fa fa-repeat"> </i> Reconnect</a>
                 </div>
             </div>
             <div class="row-fluid salvus-connection-ping">
                 <div class="span2">
                     <h4>Ping</h4>
                 </div>
-                <div class="span10">
+                <div class="span6">
                     <pre></pre>
                 </div>
             </div>

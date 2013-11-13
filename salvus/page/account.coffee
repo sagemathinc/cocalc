@@ -814,6 +814,10 @@ $("#connection_bars").click () ->
     show_connection_information()
     return false
 
+$("a[href=#salvus-connection-reconnect]").click () ->
+    salvus_client._fix_connection()
+    return false
+
 show_connection_information = () ->
     dialog = $(".salvus-connection-info")
     dialog.modal('show')
@@ -825,7 +829,7 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-hub").hide()
     s = require('salvus_client')
     dialog.find(".salvus-connection-type").text(s.protocol())
-    
+
     if s.ping_time()
         dialog.find(".salvus-connection-ping").show().find('pre').text((s.ping_time()*1000).toFixed(0) + "ms")
     else
