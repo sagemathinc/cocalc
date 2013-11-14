@@ -17,3 +17,6 @@ if not $.browser?
 $.browser.chrome = /chrom(e|ium)/.test(navigator.userAgent.toLowerCase());
 
 exports.IS_MOBILE = exports.isMobile.any()
+
+if $.browser.chrome
+    $(".salvus-chrome-only").show()
