@@ -1201,12 +1201,17 @@ class Monitor(object):
         ans = []
         for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
             d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v.get('stdout','error')).lower()) else 'down'}
+
             if d['status'] == 'up':
                 d['ls_time_s'] = float(v['stderr'].split()[0])
                 d['commits'] = int(v['stdout'].split()[0])
                 d['active_GB'] = int(int(v['stdout'].split()[1])/10.**6)
                 d['bup_GB'] = int(int(v['stdout'].split()[3])/10.**6)
                 d['use%'] = int(v['stdout'].split()[16][:-1])
+            else:
+                # No active file means snap is up but just no active repo.
+                if 'active: No such file or directory' in v['stderr']:
+                    d['status'] = 'up'
             ans.append(d)
 
         w = [(-d.get('ls_time_s',100000), d) for d in ans]
@@ -1709,3 +1714,100 @@ class Services(object):
         self.wait_until_up(' '.join(web_hosts))
         for service in services.split():
             self.start(service, parallel=True, wait=True)
+
+    def gentle_restart(self, services='stunnel haproxy web compute cassandra'):
+        """
+          - (~1 minute) restart each stunnel, one at a time.
+          - (~5 seconds) restart each haproxy, one at a time.
+          - (~20 minutes = 1 minute per vm) for each web machine, one at time.
+               - stop snap
+               - stop nginx
+               - stop hub
+               - restart the vm
+               - start hub
+               - start nginx
+               - start snap
+       (*)  - broadcast message to all clients "system maintenance -- The project servers are restarting and will be unavailable for up to 1 minute."...
+         - (~1 minute) restart all compute machine simultaneously (if projects moved then we would do differently)
+         - for each cassandra machine, one a time:
+               - stop cassandra
+               - restart the vm
+               - start cassandra
+        """
+        if isinstance(services, str):
+            services = services.split()
+        services = set(services)
+        t = time.time()
+        if 'stunnel' in services:
+            print "Restarting STUNNEL"
+            self.restart('stunnel')
+
+        print "time: ", time.time()-t
+        if 'haproxy' in services:
+            print "Restarting HAPROXY"
+            self.restart('haproxy')
+
+        print "time: ", time.time()-t
+
+        if 'web' in services:
+            print "Restarting web server hosts"
+            # We are assuming that snap/nginx/hub are all on the same VM's.
+            v = self._hosts['snap']
+            for i, host in enumerate(v):
+                print "*"*70
+                print "web HOST (%s of %s): %s"%(i+1, len(v), host)
+                print "*"*70
+                self.stop('snap', host=host, wait=True)
+                self.stop('nginx', host=host, wait=True)
+                self.stop('hub', host=host, wait=True)
+                print "resting vm..."
+                self.restart('vm',ip_address=host, wait=True)
+                print "WAITING FOR -- web HOST (%s of %s): %s"%(i, len(v), host)
+                self.wait_until_up(host)
+                self.start('hub', host=host, wait=False)
+                self.start('nginx', host=host, wait=False)
+                self.start('snap', host=host, wait=False)
+                print "time: ", time.time()-t
+
+        if 'compute' in services:
+            print "Restarting compute VM's"
+            print [self.restart('vm', ip_address=host, wait=False) for host in self._hosts['compute']]
+            self.wait_until_up('compute')
+            print "time: ", time.time()-t
+
+        if 'cassandra' in services:
+            print "Restarting cassandra hosts"
+            v = self._hosts['cassandra']
+            for i, host in enumerate(v):
+                print "*"*70
+                print "cassandra HOST (%s of %s): %s"%(i+1, len(v), host)
+                print "*"*70
+                self.stop('cassandra', host=host, wait=True)
+                self.restart('vm', ip_address=host, wait=True)
+                self.wait_until_up(host)
+                print "WAITING FOR -- cassandra HOST (%s of %s): %s"%(i, len(v), host)
+                self.start('cassandra', host=host, wait=False)
+                print "time: ", time.time()-t
+
+    def update_nginx_from_dev_repo(self):
+        """
+        Pull from the devel repo on all web machines and update coffeescript, etc., but do not
+        update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
+        changes that aren't at all critical for users to see immediately.
+        """
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
+        self.restart('nginx')
+
+    def update_web_servers_from_dev_repo(self):
+        """
+        Pull from the devel repo on all web machines, update version uniformly
+        across all machines, then restart all nginx and hub servers, in serial.
+        """
+        import time; ver = int(time.time())
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=30)
+        self.restart('nginx')
+        self.restart('hub')
+
+
+
+
