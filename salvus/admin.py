@@ -1308,7 +1308,7 @@ class Monitor(object):
             else:
                 d['status'] = 'up'
             ans.append(d)
-        w = [(-d.get('time_s',10000), d) for d in ans]
+        w = [((d.get('status','down'),d['host']),d) for d in ans]
         w.sort()
         return [y for x,y in w]
         return ans
