@@ -2308,6 +2308,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
                     winston.debug("local_hub --> hub: (connect) error -- #{err}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
                     if resp?.path? and resp?.path.indexOf("sage_server.port") != -1
                         err = "The Sage Worksheet server is not running.  The system may be very heavily loaded, you may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or contact <a href='mailto:wstein@uw.edu' target='_blank'>wstein@uw.edu</a> for help."
+                    #@local_hub.reconnect()
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
@@ -2632,7 +2633,7 @@ new_local_hub = (opts) ->    # cb(err, hub)
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
     constructor: (username, host, port, @project, cb) ->  # NOTE @project may be undefined.
-        winston.debug("Creating LocalHub(#{@username}, #{@host}, #{@port}, ...)")
+        winston.debug("Creating LocalHub(#{username}, #{host}, #{port}, ...)")
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
             # Do not timeout when doing development, since the enclosing project would already timeout... and
@@ -2641,6 +2642,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
         @connect(username, host, port, cb)
+
+    reconnect:  (cb) =>
+        winston.debug("local_hub reconnect #{@username}, #{@host}, #{@port}")
+        @connect(@username, @host, @port, (err) -> cb?(err))
 
     connect: (username, host, port, cb) =>
         if not username? or not host? or not port?
