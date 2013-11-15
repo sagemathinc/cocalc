@@ -183,7 +183,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
             virsh('destroy', hostname)
 
     finally:
-        try: 
+        try:
             os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
         except: pass
         try:
