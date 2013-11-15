@@ -1449,6 +1449,7 @@ class Client extends EventEmitter
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
+
             project.get_codemirror_session
                 path         : mesg.path
                 project_id   : mesg.project_id
@@ -1472,6 +1473,13 @@ class Client extends EventEmitter
                                 path         : session.path
                                 content      : snapshot
                             @push_to_client(mesg)
+                            ###
+                            database.file_access_log
+                                account_id : ?
+                                project_id : mesg.project_id
+                                filename   : session.path
+                            ###
+
 
     get_codemirror_session: (mesg, cb) =>
         session = codemirror_sessions.by_uuid[mesg.session_uuid]
