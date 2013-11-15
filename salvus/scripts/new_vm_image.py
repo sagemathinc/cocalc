@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, os, sys, time 
+import argparse, os, sys, time
 VM_PATH = os.path.join(os.environ['HOME'], 'vm/images/base/')
 
 def cmd(s):
@@ -9,11 +9,11 @@ def cmd(s):
         raise RuntimeError("error executing '%s'"%s)
 
 cmd("ls -lth %s|head -5"%VM_PATH)
-                                                                                                                                        
-parser = argparse.ArgumentParser(description="Create a new VM image.")                                                         
+
+parser = argparse.ArgumentParser(description="Create a new VM image.")
 parser.add_argument("--prev", dest="prev", type=str, help="previous vm image name", default="")
 parser.add_argument("--next", dest="next",  type=str, help="new vm image name", default="")                                     
-args = parser.parse_args()                                                                                                              
+args = parser.parse_args()
 
 prev = args.prev
 next = args.next
@@ -23,7 +23,7 @@ if prev == "":
    prev = os.popen("ls -1t ~/vm/images/base/*.img|head -1").read().strip().rstrip('.img')
 
 if next == "":
-   # make image name salvus-date   
+   # make image name salvus-date
    next = time.strftime("salvus-%Y-%m-%d-%H%M")
 
 
@@ -75,7 +75,7 @@ You probably want to do something like this:
 
  Then
 
-    virsh_undefine %s 
+    virsh_undefine %s
     cd vm/images/base/
     ./push
 
