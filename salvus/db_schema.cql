@@ -470,3 +470,16 @@ CREATE TABLE monitor_last (
     compute varchar    /* JSON */
 
 );
+
+
+CREATE TABLE file_access_log (
+    day        varchar,
+    hour       int,
+    minute     int,
+    account_id uuid,
+    project_id uuid,
+    filename   varchar,
+    timestamp  timestamp,
+    PRIMARY KEY(day, hour, minute, account_id, project_id, filename)
+);
+
