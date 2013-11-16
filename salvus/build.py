@@ -56,6 +56,11 @@ Before building, do:
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor
 
+Systemwide Python packages not through apt:
+
+   umask 022; /usr/bin/pip install -U scikit-learn theano
+
+
 NOTE: With ubuntu 12.04 I do this:
 
           apt-add-repository ppa:texlive-backports/ppa
