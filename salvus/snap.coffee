@@ -1030,8 +1030,9 @@ monitor_snapshot_queue = () ->
                     cb(err)
 
     ], (err) ->
-        # wait 3 seconds, to ensure uniqueness of time stamp, not be too aggressive checking locks, etc.
-        setTimeout(monitor_snapshot_queue, 3000)
+        # wait random interval up to 15 seconds between snasphots, to ensure uniqueness of
+        # time stamp, not be too aggressive checking locks, etc.
+        setTimeout(monitor_snapshot_queue, misc.randint(3000,15000))
         if nothing_to_do
             err = undefined
         if not retry_later
