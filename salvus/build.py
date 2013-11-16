@@ -212,6 +212,7 @@ r packages could be automated like so:
 
 """
 
+TINC_VERSION='1.0.23'       # options here -- http://tinc-vpn.org/packages/
 CASSANDRA_VERSION='1.2.9'   # options here -- http://downloads.datastax.com/community/
 NODE_VERSION='0.10.21'      # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 
@@ -298,6 +299,10 @@ def extract_package(basename):
 def build_tinc():
     log.info('building tinc'); start = time.time()
     try:
+        target = 'tinc-%s.tar.gz'%TINC_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd("rm -f tinc-*.tar.*", SRC)
+            download("http://tinc-vpn.org/packages/tinc-%s.tar.gz"%TINC_VERSION)
         path = extract_package('tinc')
         cmd('./configure --prefix="%s"'%PREFIX, path)
         cmd('make -j %s'%NCPU, path)
