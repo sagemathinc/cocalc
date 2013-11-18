@@ -11,14 +11,16 @@ def sagews_to_pdf(filename):
 
 class Cell(object):
     def __init__(self, s):
-        self._s = s
-        v = s.split(MARKERS['output'])
+        self.raw = s
+        v = s.split('\n' + MARKERS['output'])
         if len(v) > 0:
-            w = v[0].split(MARKERS['cell'])
-            self.input_uuid = w[0]
+            w = v[0].split(MARKERS['cell']+'\n')
+            self.input_uuid = w[0].lstrip(MARKERS['cell'])
             self.input = w[1]
-        self.output_uuid = v[1] if len(v) > 1 else ''
-        self.output = v[2] if len(v) > 2 else ''
+        if len(v) > 1:
+            w = v[1].split(MARKERS['output'])
+            self.output_uuid = w[0] if len(w) > 0 else ''
+            self.output = [json.loads(x) for x in w[1:] if x]
 
 class Worksheet(object):
     def __init__(self, filename=None, s=None):
