@@ -9,6 +9,50 @@ def sagews_to_pdf(filename):
     pdf  = base + ".pdf"
     print "converting: %s --> %s"%(filename, pdf)
 
+class Cell(object):
+    def __init__(self, s):
+        self._s = s
+        v = s.split(MARKERS['output'])
+        if len(v) > 0:
+            w = v[0].split(MARKERS['cell'])
+            self.input_uuid = w[0]
+            self.input = w[1]
+        self.output_uuid = v[1] if len(v) > 1 else ''
+        self.output = v[2] if len(v) > 2 else ''
+
+class Worksheet(object):
+    def __init__(self, filename=None, s=None):
+        """
+        The worksheet defined by the given filename or UTF unicode string s.
+        """
+        if filename is not None:
+            self._init_from(open(filename).read().decode('utf8'))
+        elif s is not None:
+            self._init_from(s)
+        else:
+            raise ValueError("filename or s must be defined")
+
+    def _init_from(self, s):
+
+        self._cells = [Cell(x) for x in s.split('\n'+MARKERS['cell'])]
+
+    def __getitem__(self, i):
+        return self._cells[i]
+
+    def __len__(self):
+        return len(self._cells)
+
+
+
+
+
+def parse_sagews(s):
+    """
+    Given a sagews file as a string s, return a list of cell objects.
+    """
+
+
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
