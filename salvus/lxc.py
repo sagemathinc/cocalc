@@ -12,7 +12,12 @@ import logging, os, shutil, socket, tempfile, time
 from admin import run, sh
 conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 
-def run_lxc(ip_address, base='base'):
+def run_lxc(ip_address, hostname, base='base'):
+    # Create the container
+    s = ["sudo", "lxc-clone", "-s", "-B", "overlayfs", "-o", base, "-n", hostname]
+    run(s, maxtime=10)
+
+
     while True:
         log.info("doing nothing...")
         time.sleep(1)
@@ -25,7 +30,7 @@ if __name__ == "__main__":
                         help="daemon mode (default: False)")
     parser.add_argument("--ip_address", dest="ip_address", type=str, required=True,
                         help="ip address of the virtual machine on the VPN")
-    parser.add_argument("--hostname", dest="hostname", type=str, default='',
+    parser.add_argument("--hostname", dest="hostname", type=str, required=True,
                         help="hostname of the virtual machine on the VPN")
     parser.add_argument("--vcpus", dest="vcpus", type=str, default="2",
                         help="number of virtual cpus")
@@ -39,7 +44,7 @@ if __name__ == "__main__":
                         help="store log in this file (default: '' = don't log to a file)")
     parser.add_argument("--bind", dest="bind", type=str, default="",
                         help="bind directories")
-    parser.add_argument('--base', dest='base', type=str, default='salvus',
+    parser.add_argument('--base', dest='base', type=str, default='base',
                         help="template container on which to base this container.")
 
     args = parser.parse_args()
@@ -76,10 +81,12 @@ if __name__ == "__main__":
         if args.pidfile:
             open(args.pidfile,'w').write(str(os.getpid()))
 
-        run_lxc(ip_address=args.ip_address, base=args.base)
+        run_lxc(ip_address=args.ip_address, hostname=args.hostname, base=args.base)
 
     try:
         if args.daemon:
+            if not args.pidfile:
+                raise ValueError("in daemon mode, the pidfile must be specified")
             import daemon
             daemon.daemonize(args.pidfile)
             main()

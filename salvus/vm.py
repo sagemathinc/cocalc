@@ -175,7 +175,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
             ##########################################################################
             while virsh('domstate', hostname) == 'running':
                  # TODO: this is polling, which violates an axiom.  We absolutely
-                 # must rewrite this to be event driven!!!
+                 # must rewrite this to be event driven!!!?
                 time.sleep(1)
         finally:
             # clean up
