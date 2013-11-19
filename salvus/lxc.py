@@ -2,6 +2,10 @@
 """
 lxc.py -- create and run an ephemeral LXC containers with the given memory, cpus, and other
           limitations.   When this script terminates, the LXC container vanishes.
+
+EXAMPLE:
+
+   sudo ./lxc.py -d --ip_address=10.10.10.4 --hostname=test2 --pidfile=b.pid --logfile=b.log --base=project
 """
 
 #######################################################################
@@ -13,25 +17,69 @@ from admin import run, sh
 conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 
 def run_lxc(ip_address, hostname, base='base'):
+    if len(hostname.split()) != 1 or not hostname.strip():
+        raise ValueError("hostname must not have whitespace")
+
     # If the container already exists, exit with an error
-    if run(['sudo', 'lxc-ls', hostname]).strip():
+    if run(['lxc-ls', hostname]).strip():
         raise RuntimeError("there is already a container %s"%hostname)
 
-    # Create the ephemeral container
-    run(["sudo", "lxc-clone", "-s", "-B", "overlayfs", "-o", base, "-n", hostname])
-
-    # [ ] Configure the tinc network
-
-    # Start the container
-    s = ["sudo", "lxc-start", "-d", "-n", hostname]
-    run(s, maxtime=10)
-
     try:
+        ephemeral_tinc_key = False
+
+        # Create the ephemeral container
+        run(["lxc-clone", "-s", "-B", "overlayfs", "-o", base, "-n", hostname])
+
+        path = os.path.join("/var/lib/lxc/", hostname)
+        root = os.path.join(path, "delta0")
+        tinc_path = os.path.join(root, 'etc/tinc/smc')
+        if not os.path.exists(path):
+            raise RuntimeError("error creating lxc container -- missing files")
+        # Configure the tinc network:
+        #   - create all the relevant files in delta0/etc/tinc
+        tincname = hostname.replace('-','_')
+        vmhost_tincname = socket.gethostname().replace('-','_')
+
+        os.makedirs(os.path.join(tinc_path,'hosts'))
+        shutil.copyfile(os.path.join("/etc/tinc/hosts/",vmhost_tincname), os.path.join(tinc_path,'hosts',vmhost_tincname))
+
+        open(os.path.join(tinc_path, 'tinc-up'),'w').write(
+            "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.192.0.0"%ip_address)
+        open(os.path.join(tinc_path, 'tinc.conf'),'w').write(
+            "Name = %s\nConnectTo = %s"%(tincname, vmhost_tincname))
+
+        rsa_key_priv = os.path.join(tinc_path, 'rsa_key.priv')
+        rsa_key_pub = os.path.join(tinc_path, 'hosts', tincname)
+        run(["tincd", "-K", "-c", tinc_path])
+
+        host_file = os.path.join(tinc_path, 'hosts', tincname)
+        public_key = open(rsa_key_pub).read().strip()
+        open(host_file,'w').write("Subnet = %s/32\n%s"%(ip_address, public_key))
+        # put the tinc public key in host config, so that the vm can connect to host.
+        ephemeral_tinc_key = os.path.join("/etc/tinc/hosts/", tincname)
+        shutil.copyfile(host_file, os.path.join("/etc/tinc/hosts/", tincname))
+
+        os.makedirs(os.path.join(root, 'dev/net'))
+        run(["mknod", os.path.join(root, 'dev/net/tun'), "c", "10", "200"])
+        run(['chmod', 'a+x', os.path.join(tinc_path, 'tinc-up')])
+
+        f = open(os.path.join(root, 'etc/tinc/nets.boot'),'w')
+        f.write('smc')
+        f.close()
+
+        # Start the container
+        s = ["lxc-start", "-d", "-n", hostname]
+        run(s, maxtime=10)
+
         # Wait for the container to stop
-        run(['sudo', 'lxc-wait', '-n', hostname, '-s', 'STOPPED'], maxtime=0)
+        run(['lxc-wait', '-n', hostname, '-s', 'STOPPED'], maxtime=0)
     finally:
         # Stop and remove the container.
-        run(['sudo', 'lxc-destroy', '-f', '-n', hostname])
+        try:
+            run(['lxc-destroy', '-f', '-n', hostname])
+        finally:
+            if ephemeral_tinc_key and os.path.exists(ephemeral_tinc_key):
+                os.unlink(ephemeral_tinc_key)
 
 
 
