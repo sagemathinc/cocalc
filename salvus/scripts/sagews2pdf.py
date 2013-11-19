@@ -2,12 +2,62 @@
 
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 
-import cPickle, json, os, sys
+# TODO: this needs to use salvus.project_info() or an environment variable or something!
+site = 'https://cloud.sagemath.com'
+
+import cPickle, json, os, shutil, sys, textwrap, HTMLParser
 
 def sagews_to_pdf(filename):
     base = os.path.splitext(filename)[0]
     pdf  = base + ".pdf"
     print "converting: %s --> %s"%(filename, pdf)
+
+def wrap(s, c=90):
+    return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
+
+# create a subclass and override the handler methods
+
+class Parser(HTMLParser.HTMLParser):
+    def handle_starttag(self, tag, attrs):
+        if tag == 'h1':
+            self.result += '\\section{'
+        elif tag == 'h2':
+            self.result += '\\subsection{'
+        elif tag == 'h3':
+            self.result += '\\subsubsection{'
+        elif tag == 'i':
+            self.result += '\\textemph{'
+        elif tag == 'div':
+            self.result += '\n\n{'
+        elif tag == 'ul':
+            self.result += '\\begin{itemize}'
+        elif tag == 'ol':
+            self.result += '\\begin{enumerate}'
+        elif tag == 'hr':
+            self.result += '\n\n' + '-'*80 + '\n\n'  #TODO
+        elif tag == 'li':
+            self.result += '\\item{'
+        else:
+            self.result += '{'  # fallback
+
+    def handle_endtag(self, tag):
+        if tag == 'ul':
+            self.result += '\\end{itemize}'
+        elif tag == 'ol':
+            self.result += '\\end{enumerate}'
+        elif tag == 'hr':
+            self.result += ''
+        else:
+            self.result += '}'  # fallback
+
+    def handle_data(self, data):
+        self.result += data
+
+def html2tex(doc):
+    parser = Parser()
+    parser.result = ''
+    parser.feed(doc)
+    return parser.result
 
 class Cell(object):
     def __init__(self, s):
@@ -46,11 +96,13 @@ class Cell(object):
             return s
         for x in self.output:
             if 'stdout' in x:
-                s += "\\begin{verbatim}" + x['stdout'] + "\\end{verbatim}"
+                s += "\\begin{verbatim}" + wrap(x['stdout']) + "\\end{verbatim}"
+                #s += "\\begin{lstlisting}" + x['stdout'] + "\\end{lstlisting}"
             if 'stderr' in x:
-                s += "{\\color{dredcolor}\\begin{verbatim}" + x['stderr'] + "\\end{verbatim}}"
+                s += "{\\color{dredcolor}\\begin{verbatim}" + wrap(x['stderr']) + "\\end{verbatim}}"
+                #s += "\\begin{lstlisting}" + x['stderr'] + "\\end{lstlisting}"
             if 'html' in x:
-                s += "\\begin{verbatim}" + x['html'] + "\\end{verbatim}"
+                s += html2tex(x['html'])
             if 'interact' in x:
                 pass
             if 'tex' in x:
@@ -63,8 +115,42 @@ class Cell(object):
                 val = x['file']
                 if 'url' in val:
                     target = val['url']
+                    filename = os.path.split(target)[-1]
                 else:
-                    target = "/blobs/%s?uuid=%s"%(val['filename'], val['uuid'])
+                    filename = os.path.split(val['filename'])[-1]
+                    target = "%s/blobs/%s?uuid=%s"%(site, filename, val['uuid'])
+
+                base, ext = os.path.splitext(filename)
+                ext = ext.lower()[1:]
+                if ext in ['jpg', 'png', 'eps', 'pdf', 'svg']:
+                    img = ''
+                    i = target.find("/raw/")
+                    if i != -1:
+                        src = os.path.join(os.environ['HOME'], target[i+5:])
+                        if os.path.abspath(src) != os.path.abspath(filename):
+                            print "COPY!"
+                            shutil.copyfile(src, filename)
+                        img = filename
+                    else:
+                        cmd = 'rm "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
+                        print cmd
+                        if os.system(cmd) == 0:
+                            if ext == 'svg':
+                                # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
+                                cmd = 'rm "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
+                                os.system(cmd)
+                                filename = base+'.png'
+                            img = filename
+                    if img:
+                        s += '\\includegraphics[width=\\textwidth]{%s}'%img
+                    else:
+                        s += "(problem loading \\verb|'%s'|)"%filename
+                else:
+                    if target.startswith('http'):
+                        s += '\\url{%s}'%target
+                    else:
+                        s += '\\begin{verbatim}['+target+']\\end{verbatim}'
+
         return s
 
 class Worksheet(object):
@@ -91,13 +177,16 @@ class Worksheet(object):
     def latex_preamble(self,title='',author=''):
         s=r"""
 \documentclass{article}
-
+\usepackage{fullpage}
 \usepackage{amsmath}
 \usepackage{amssymb}
+\usepackage{graphicx}
 \usepackage{etoolbox}
+\usepackage{url}
+\usepackage{hyperref}
 \makeatletter
 \preto{\@verbatim}{\topsep=0pt \partopsep=0pt }
-\makeatother\usepackage{fullpage}
+\makeatother
 \usepackage{listings}
 \lstdefinelanguage{Sage}[]{Python}
 {morekeywords={True,False,sage,singular},
@@ -113,7 +202,9 @@ sensitive=true}
   language = Sage,
   basicstyle={\ttfamily},
   aboveskip=1em,
-  belowskip=0em,
+  belowskip=0.1em,
+  breaklines=true,
+  prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\backslash}},
   %frame=single
 }
 \usepackage{color}
@@ -127,7 +218,8 @@ sensitive=true}
         s += "\\title{%s}\n"%title
         s += "\\author{%s}\n"%author
         s += "\\begin{document}\n"
-        s += "\\maketitle"
+        s += "\\maketitle\n"
+        s += "\\tableofcontents\n"
         return s
 
 
