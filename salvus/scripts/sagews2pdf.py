@@ -15,7 +15,9 @@ class Cell(object):
         v = s.split('\n' + MARKERS['output'])
         if len(v) > 0:
             w = v[0].split(MARKERS['cell']+'\n')
-            self.input_uuid = w[0].lstrip(MARKERS['cell'])
+            n = w[0].lstrip(MARKERS['cell'])
+            self.input_uuid = n[:36]
+            self.input_codes = n[36:]
             self.input = w[1]
         else:
             self.input_uuid = self.input = ''
@@ -31,6 +33,8 @@ class Cell(object):
         return self.latex_input() + self.latex_output()
 
     def latex_input(self):
+        if 'i' in self.input_codes:   # hide input
+            return "\\begin{lstlisting}\n\\end{lstlisting}"
         if self.input.strip():
             return "\\begin{lstlisting}\n%s\n\\end{lstlisting}"%self.input
         else:
@@ -38,11 +42,29 @@ class Cell(object):
 
     def latex_output(self):
         s = ''
+        if 'o' in self.input_codes:  # hide output
+            return s
         for x in self.output:
             if 'stdout' in x:
                 s += "\\begin{verbatim}" + x['stdout'] + "\\end{verbatim}"
             if 'stderr' in x:
                 s += "{\\color{dredcolor}\\begin{verbatim}" + x['stderr'] + "\\end{verbatim}}"
+            if 'html' in x:
+                s += "\\begin{verbatim}" + x['html'] + "\\end{verbatim}"
+            if 'interact' in x:
+                pass
+            if 'tex' in x:
+                val = x['tex']
+                if 'display' in val:
+                    s += "$$%s$$"%val['tex']
+                else:
+                    s += "$%s$"%val['tex']
+            if 'file' in x:
+                val = x['file']
+                if 'url' in val:
+                    target = val['url']
+                else:
+                    target = "/blobs/%s?uuid=%s"%(val['filename'], val['uuid'])
         return s
 
 class Worksheet(object):
@@ -58,7 +80,6 @@ class Worksheet(object):
             raise ValueError("filename or s must be defined")
 
     def _init_from(self, s):
-
         self._cells = [Cell(x) for x in s.split('\n'+MARKERS['cell'])]
 
     def __getitem__(self, i):
@@ -71,6 +92,8 @@ class Worksheet(object):
         s=r"""
 \documentclass{article}
 
+\usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{etoolbox}
 \makeatletter
 \preto{\@verbatim}{\topsep=0pt \partopsep=0pt }
