@@ -13,14 +13,27 @@ from admin import run, sh
 conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 
 def run_lxc(ip_address, hostname, base='base'):
-    # Create the container
-    s = ["sudo", "lxc-clone", "-s", "-B", "overlayfs", "-o", base, "-n", hostname]
+    # If the container already exists, exit with an error
+    if run(['sudo', 'lxc-ls', hostname]).strip():
+        raise RuntimeError("there is already a container %s"%hostname)
+
+    # Create the ephemeral container
+    run(["sudo", "lxc-clone", "-s", "-B", "overlayfs", "-o", base, "-n", hostname])
+
+    # [ ] Configure the tinc network
+
+    # Start the container
+    s = ["sudo", "lxc-start", "-d", "-n", hostname]
     run(s, maxtime=10)
 
+    try:
+        # Wait for the container to stop
+        run(['sudo', 'lxc-wait', '-n', hostname, '-s', 'STOPPED'], maxtime=0)
+    finally:
+        # Stop and remove the container.
+        run(['sudo', 'lxc-destroy', '-f', '-n', hostname])
 
-    while True:
-        log.info("doing nothing...")
-        time.sleep(1)
+
 
 if __name__ == "__main__":
     import argparse
