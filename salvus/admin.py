@@ -81,10 +81,12 @@ def run(args, maxtime=30, verbose=True):
         return '\n'.join([str(run(a, maxtime=maxtime,verbose=verbose)) for a in args])
 
     args = [str(x) for x in args]
-    def timeout(*a):
-        raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
-    signal.signal(signal.SIGALRM, timeout)
-    signal.alarm(maxtime)
+
+    if maxtime:
+        def timeout(*a):
+            raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
+        signal.signal(signal.SIGALRM, timeout)
+        signal.alarm(maxtime)
     if verbose:
         log.info("running '%s'", ' '.join(args))
     try:
@@ -94,7 +96,8 @@ def run(args, maxtime=30, verbose=True):
             log.info("output '%s'", out)
         return out
     finally:
-        signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
+        if maxtime:
+            signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
 # A convenience object "sh":
 #      sh['list', 'of', ..., 'arguments'] to run a shell command
