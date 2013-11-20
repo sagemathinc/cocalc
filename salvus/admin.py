@@ -1791,6 +1791,15 @@ class Services(object):
                 print "WAITING FOR -- cassandra HOST (%s of %s): %s"%(i, len(v), host)
                 self.start('cassandra', host=host, wait=False)
                 print "time: ", time.time()-t
+    
+
+    def update_from_dev_repo(self):
+        """
+        Pull from the devel repo on all web machines and update coffeescript, etc., but do not
+        update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
+        changes that aren't at all critical for users to see immediately.
+        """
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
 
     def update_nginx_from_dev_repo(self):
         """
@@ -1798,7 +1807,7 @@ class Services(object):
         update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
         changes that aren't at all critical for users to see immediately.
         """
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
+        self.update_from_dev_repo()
         self.restart('nginx')
 
     def update_web_servers_from_dev_repo(self):
