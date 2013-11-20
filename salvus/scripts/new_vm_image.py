@@ -12,7 +12,7 @@ cmd("ls -lth %s|head -5"%VM_PATH)
 
 parser = argparse.ArgumentParser(description="Create a new VM image.")
 parser.add_argument("--prev", dest="prev", type=str, help="previous vm image name", default="")
-parser.add_argument("--next", dest="next",  type=str, help="new vm image name", default="")                                     
+parser.add_argument("--next", dest="next",  type=str, help="new vm image name", default="")
 args = parser.parse_args()
 
 prev = args.prev
@@ -44,16 +44,25 @@ if os.path.exists(next_path):
     raise ValueError("next vm image already exists -- " + next_path)
 
 cmd("qemu-img create -b %s -f qcow2 %s"%(prev_path, next_path))
+cmd("chgrp kvm %s; chmod g+rw %s"%(next_path, next_path))
 
-cmd("virt-install --cpu host --network user,model=virtio --name %s --vcpus=12 --ram 8192 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
+cmd("virt-install --connect qemu:///system --cpu host --network network:default,model=virtio --name %s --vcpus=12 --ram 8192 --import --disk %s,device=disk,bus=virtio,format=qcow2,cache=writeback --noautoconsole --graphics vnc,port=12101"%(next,next_path))
 
-cmd("virsh -c qemu:///session qemu-monitor-command --hmp %s 'hostfwd_add ::2222-:22'"%next)
+print "Booting..."
 
-print "To connect, do\n\t\t ssh localhost -p 2222"
+while True:
+    ip = os.popen("kvm_addresses.py %s"%next).read().strip()
+    if not ip:
+        print "waiting for ip address..."
+        time.sleep(2)
+    else:
+        print "The ip address is: '%s'"%ip
+        break
 
 print """
 You probably want to do something like this:
 
+    ssh %s
     cd salvus/salvus
     . salvus-env
     git pull
@@ -64,19 +73,13 @@ You probably want to do something like this:
     # Build new sage; if so, delete notebook() line from local/bin/sage-banner
 
     reboot -h now
-    ssh localhost -p 2222
+    ssh %s
     sudo shutdown -h now
-
- For the console, do this on your laptop:
-
-    ssh -X -L 5900:localhost:12101 salvus@cloud1
-
- then connect to localhost:5900 in your VNC viewer (such as krdc).
 
  Then
 
-    virsh_undefine %s
+    virsh undefine %s
     cd vm/images/base/
     ./push
 
-"""%next
+"""%(ip, ip, next)
