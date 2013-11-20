@@ -1,6 +1,6 @@
 # services
 
-base='salvus-2013-11-11-1909'
+base='salvus-2013-11-20-0617'
 cassandra_ram = 4
 cassandra_cpu = 1
 web_ram       = 1

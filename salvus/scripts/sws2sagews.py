@@ -198,7 +198,7 @@ if __name__ == "__main__":
         sys.stderr.write("""
 Convert a Sage Notebook sws file to a SageMath Cloud sagews file.
 
-    Usage: %s path/to/filename.sws
+    Usage: %s path/to/filename.sws [path/to/filename2.sws] ...
 
 Creates corresponding file path/to/filename.sagews, if it doesn't exist.
 Also, a data/ directory may be created in the current directory, which contains
