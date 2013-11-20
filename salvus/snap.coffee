@@ -15,11 +15,11 @@
 DEFAULT_TIMEOUT   = 60*15   # time in seconds; max time we would ever wait to "bup index" or "bup save"
 
 # The repo size cuttoff, so the repo won't be much bigger than this.
-# 25GB -- typically takes <=1.5s max to do a listing, etc., on a commit,
+# 50GB -- typically takes <=2s max to do a listing, etc., on a commit,
 # which is about as long as we want to wait.  Bigger is more efficient
 # overall, because of much better de-duplication, but smaller means
 # faster access.
-REPO_SIZE_CUTOFF_BYTES=25000000
+REPO_SIZE_CUTOFF_BYTES=50000000
 
 SALVUS_HOME=process.cwd()
 
@@ -27,7 +27,7 @@ SALVUS_HOME=process.cwd()
 # This is the max size of an individual snapshot; if exceeded, then project is black listed.
 # This is for one single snapshot, not all of them in sum.
 gigabyte = 1000*1000*1000
-MAX_SNAPSHOT_SIZE = 6*gigabyte
+MAX_SNAPSHOT_SIZE = 10*gigabyte
 
 secret_key_length             = 128
 registration_interval_seconds = 15
@@ -1030,8 +1030,9 @@ monitor_snapshot_queue = () ->
                     cb(err)
 
     ], (err) ->
-        # wait 3 seconds, to ensure uniqueness of time stamp, not be too aggressive checking locks, etc.
-        setTimeout(monitor_snapshot_queue, 3000)
+        # wait random interval up to 15 seconds between snasphots, to ensure uniqueness of
+        # time stamp, not be too aggressive checking locks, etc.
+        setTimeout(monitor_snapshot_queue, misc.randint(3000,15000))
         if nothing_to_do
             err = undefined
         if not retry_later
