@@ -81,10 +81,12 @@ def run(args, maxtime=30, verbose=True):
         return '\n'.join([str(run(a, maxtime=maxtime,verbose=verbose)) for a in args])
 
     args = [str(x) for x in args]
-    def timeout(*a):
-        raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
-    signal.signal(signal.SIGALRM, timeout)
-    signal.alarm(maxtime)
+
+    if maxtime:
+        def timeout(*a):
+            raise KeyboardInterrupt("running '%s' took more than %s seconds, so killed"%(' '.join(args), maxtime))
+        signal.signal(signal.SIGALRM, timeout)
+        signal.alarm(maxtime)
     if verbose:
         log.info("running '%s'", ' '.join(args))
     try:
@@ -94,7 +96,8 @@ def run(args, maxtime=30, verbose=True):
             log.info("output '%s'", out)
         return out
     finally:
-        signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
+        if maxtime:
+            signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
 # A convenience object "sh":
 #      sh['list', 'of', ..., 'arguments'] to run a shell command
@@ -472,13 +475,13 @@ class Haproxy(Process):
 
         if hub_servers:
             random.shuffle(hub_servers)
-            t = Template('server hub$n $ip:$port cookie server:$ip:$port check maxconn $maxconn')
+            t = Template('server hub$n $ip:$port cookie server:$ip:$port check inter 4000 maxconn $maxconn')
             hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(hub_servers)]))
 
         if proxy_servers:
             random.shuffle(proxy_servers)
-            t = Template('server proxy$n $ip:$port cookie server:$ip:$port check maxconn $maxconn')
+            t = Template('server proxy$n $ip:$port cookie server:$ip:$port check inter 4000 maxconn $maxconn')
             proxy_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('proxy_port', HUB_PROXY_PORT), maxconn=x.get('maxconn',100)) for
                                                      n, x in enumerate(proxy_servers)]))
 
@@ -1236,7 +1239,7 @@ class Monitor(object):
             if v.get('exit_status',1) or 'stdout' not in v:
                 ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
             else:
-                ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status[k[0]]})
+                ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status.get(k[0],'down')})
 
         w = [((d['status'],d.get('use%','')), d) for d in ans]
         w.sort()
@@ -1291,21 +1294,24 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def dns(self):
+    def dns(self, hosts='all', rounds=3):
         """
         Verify that DNS is working well on all machines.
         """
-        cmd = '/usr/bin/time -f "%e" ' + '&&'.join(["host -v google.com > /dev/null && host -v trac.sagemath.org >/dev/null && host -v www.sagemath.org >/dev/null && host -v github.com >/dev/null"]*6)
+        cmd = '&&'.join(["host -v google.com > /dev/null && host -v trac.sagemath.org >/dev/null && host -v www.sagemath.org >/dev/null && host -v github.com >/dev/null"]*rounds) + "; echo $?"
         ans = []
-        for k, v in self._hosts('all', cmd, parallel=True, wait=True, timeout=15).iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=5+4*rounds).iteritems():
             d = {'host':k[0], 'service':'dns'}
-            if v.get('exit_status',1) != 0:
+            exit_code = v.get('stdout','').strip()
+            if exit_code == '':
+                exit_code = '1'
+            if exit_code=='1' or v.get('exit_status',1) != 0:
                 d['status'] = 'down'
+                print k,v
             else:
                 d['status'] = 'up'
-                d['time_s'] = float(v['stderr'].strip())
             ans.append(d)
-        w = [(-d.get('time_s',10000), d) for d in ans]
+        w = [((d.get('status','down'),d['host']),d) for d in ans]
         w.sort()
         return [y for x,y in w]
         return ans
@@ -1788,6 +1794,15 @@ class Services(object):
                 print "WAITING FOR -- cassandra HOST (%s of %s): %s"%(i, len(v), host)
                 self.start('cassandra', host=host, wait=False)
                 print "time: ", time.time()-t
+    
+
+    def update_from_dev_repo(self):
+        """
+        Pull from the devel repo on all web machines and update coffeescript, etc., but do not
+        update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
+        changes that aren't at all critical for users to see immediately.
+        """
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
 
     def update_nginx_from_dev_repo(self):
         """
@@ -1795,7 +1810,7 @@ class Services(object):
         update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
         changes that aren't at all critical for users to see immediately.
         """
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
+        self.update_from_dev_repo()
         self.restart('nginx')
 
     def update_web_servers_from_dev_repo(self):

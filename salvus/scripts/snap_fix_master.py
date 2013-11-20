@@ -32,13 +32,16 @@ def fix(path):
     def repo_is_working():
         return 'error: refs/heads/master does not point to a valid object!' not in cmd("bup ls")
 
-    # Move the head back one, which should fix the repo.
+    # Move the head back up to 3 times, which should be enough to fix the repo.
     def move_head_back():
         if os.path.exists('logs/HEAD'):
-            # Easy case
             log = open('logs/HEAD').readlines()
-            previous_head = log[-1].split()[0]
-            open('refs/heads/master','w').write(previous_head)
+            i = -1
+            while not repo_is_working() and i >= -3 and abs(i) >= len(log):
+                print "Trying head %s"%i
+                previous_head = log[i].split()[0]
+                open('refs/heads/master','w').write(previous_head)
+                i -= 1
         else:
             print "Repo cannot be fixed -- very likely that there are no valid commits at all."
             # Hard case -- no logs/H

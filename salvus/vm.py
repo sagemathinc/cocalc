@@ -23,7 +23,8 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 ###########################################
 
 def virsh(command, name):
-    return run(['virsh', '--connect', 'qemu:///session', command, name], verbose=False).strip()
+    #return run(['virsh', '--connect', 'qemu:///session', command, name], verbose=False).strip()
+    return run(['virsh', '--connect', 'qemu:///system', command, name], verbose=False).strip()
 
 def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
     #################################
@@ -70,7 +71,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                     temp = tempfile.mkdtemp(dir=persistent_img_path)
                     os.chdir(temp)
                     run(['guestfish', '-N', 'fs:ext4:%sG'%size, 'quit'],maxtime=120) # creates test1.img in the temp directory
-                    # Change theowner of the new img file.
+                    # Change the owner of the new img file.
                     sh['mkdir', 'mnt']
                     run(['guestmount', '-a', 'test1.img', '-m/dev/vda1', '--rw', 'mnt'], maxtime=120)
                     sh['chown', 'salvus.', 'mnt']
@@ -78,6 +79,8 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                     sh['rmdir', 'mnt']
                     # Move image file to have correct name.
                     shutil.move('test1.img', img)
+                    sh['chgrp', 'kvm', img]
+                    sh['chmod', 'g+rw', img]
                 finally:
                     if temp is not None:
                         shutil.rmtree(temp)
@@ -151,8 +154,9 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
         #################################
         try:
             cmd = ['virt-install',
+                   '--connect', 'qemu:///system',
                    '--cpu', 'host',
-                   '--network', 'user,model=virtio',
+                   '--network', 'network:default,model=virtio',
                    '--name', hostname,
                    '--vcpus', vcpus,
                    '--ram', 1024*ram,
@@ -166,7 +170,12 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
             for x in persistent_images:
                 cmd.extend(['--disk', '%s,bus=virtio,cache=writeback'%x[0]])
 
-            run(cmd, maxtime=120)
+            os.system("ls -lh %s"%new_img)
+            sh['chgrp', 'kvm', new_img]
+            sh['chmod', 'g+rw', new_img]
+            os.system("ls -lh %s"%new_img)
+
+            log.info(run(cmd, maxtime=120))
 
             log.info("created new virtual machine in %s seconds -- now running", time.time()-t); t = time.time()
 
@@ -175,15 +184,18 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
             ##########################################################################
             while virsh('domstate', hostname) == 'running':
                  # TODO: this is polling, which violates an axiom.  We absolutely
-                 # must rewrite this to be event driven!!!
+                 # must rewrite this to be event driven!!!?
                 time.sleep(1)
+        except Exception, e:
+            log.info("error creating virtual machine -- %s"%e)
         finally:
             # clean up
             virsh('undefine', hostname)
             virsh('destroy', hostname)
+            pass
 
     finally:
-        try: 
+        try:
             os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
         except: pass
         try:

@@ -59,11 +59,11 @@ uuid = sage_salvus.uuid
 # were to try to use this server outside of cloud.sagemath.com.
 _info_path = os.path.join(os.environ['SAGEMATHCLOUD'], 'info.json')
 if os.path.exists(_info_path):
-    info = json.loads(open(_info_path).read())
+    INFO = json.loads(open(_info_path).read())
 else:
-    info = {}
-if 'base_url' not in info:
-    info['base_url'] = ''
+    INFO = {}
+if 'base_url' not in INFO:
+    INFO['base_url'] = ''
 
 
 # Configure logging
@@ -565,6 +565,7 @@ class Salvus(object):
         self._flush_stdio()
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events))
         if not show:
+            info = self.project_info()
             url = "%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
             if download:
                 url += '?download'
@@ -1011,7 +1012,7 @@ class Salvus(object):
             sage: salvus.project_info()
             {"stdout":"{u'project_id': u'...', u'location': {u'username': u'teaAuZ9M', u'path': u'.', u'host': u'localhost', u'port': 22}, u'base_url': u'/...'}\n"}
         """
-        return info
+        return INFO
 
 
 Salvus.pdf.__func__.__doc__ = sage_salvus.show_pdf.__doc__
