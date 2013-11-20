@@ -1,7 +1,5 @@
 # services
-#base = 'salvus-2013-11-08-0930'
-#base = 'salvus-2013-11-03-1231'
-base = 'salvus-2013-11-11-2146'
+base = 'salvus-2013-11-18-0800'
 
 cassandra_ram = 8
 cassandra_cpu = 2
