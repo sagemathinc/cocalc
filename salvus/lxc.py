@@ -7,6 +7,8 @@ EXAMPLE:
 
    sudo ./lxc.py -d --ip_address=10.10.10.4 --hostname=test2
 
+   sudo ./lxc.py -d --ip_address=10.10.10.4 --project=/projects/4a5f0542-5873-4eed-a85c-a18c706e8bcd
+
    sudo ./lxc.py -d --ip_address=10.10.10.4 --hostname=test2 --pidfile=b.pid --logfile=b.log --base=base
 
 """
@@ -21,7 +23,7 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 
 
 
-def run_lxc(ip_address, hostname, base='base'):
+def run_lxc(ip_address, hostname, base='base', project=None):
     if len(hostname.split()) != 1 or not hostname.strip():
         raise ValueError("hostname must not have whitespace")
 
@@ -36,6 +38,7 @@ def run_lxc(ip_address, hostname, base='base'):
         ephemeral_tinc_key = False
 
         # Create the ephemeral container
+
         run(["lxc-clone", "-s", "-B", "overlayfs", "-o", base, "-n", hostname])
 
         path = os.path.join("/var/lib/lxc/", hostname)
@@ -43,6 +46,8 @@ def run_lxc(ip_address, hostname, base='base'):
         tinc_path = os.path.join(root, 'etc/tinc/smc')
         if not os.path.exists(path):
             raise RuntimeError("error creating lxc container -- missing files")
+
+        ################################################################
         # Configure the tinc network:
         #   - create all the relevant files in delta0/etc/tinc
         tincname = hostname.replace('-','_')
@@ -75,6 +80,18 @@ def run_lxc(ip_address, hostname, base='base'):
         f.write('smc')
         f.close()
 
+        ################################################################
+        # project user
+        if project:
+            log.info("bind mounting the project files to their home directory")
+            fstab_line = "%s home/project none bind 0 0\n"%os.path.abspath(project)
+            fstab = os.path.join(path, "fstab")
+            v = open(fstab).readlines()
+            v.append(fstab_line)
+            log.info("remove salvus from fstab and disable salvus login")
+            v = [x for x in v if 'home/salvus' not in x]
+            open(fstab,'w').write(''.join(v))
+
         # Start the container
         s = ["lxc-start", "-d", "-n", hostname]
         run(s, maxtime=10)
@@ -105,28 +122,32 @@ if __name__ == "__main__":
                         help="daemon mode (default: False)")
     parser.add_argument("--ip_address", dest="ip_address", type=str, required=True,
                         help="ip address of the virtual machine on the VPN")
-    parser.add_argument("--hostname", dest="hostname", type=str, required=True,
-                        help="hostname of the virtual machine on the VPN")
     parser.add_argument("--vcpus", dest="vcpus", type=str, default="2",
                         help="number of virtual cpus")
     parser.add_argument("--ram", dest="ram", type=int, default=4,
-                        help="Gigabytes of ram")
+                        help="gigabytes of ram")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
                         help="store pid in this file (default to hostname.pid in deamon mode)")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: hostname.log in deamon mode)")
+    parser.add_argument('--project', dest='project', type=str, default='',
+                        help="path to project files; if given, then that path is mounted to /home/project and salvus user is disabled")
+    parser.add_argument("--hostname", dest="hostname", type=str, default='',
+                        help="hostname of the virtual machine on the VPN")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
-    parser.add_argument("--bind", dest="bind", type=str, default="",
-                        help="bind directories")
     parser.add_argument('--base', dest='base', type=str, default="",
                         help="template container on which to base this container (default: the most recent base container)")
 
     args = parser.parse_args()
 
+    if not args.hostname and args.project:
+        args.hostname = 'project-' + os.path.split(args.project)[-1]
+
     if args.ip_address.count('.') != 3 or not args.ip_address.startswith('10.'):
         sys.stderr.write("%s: invalid ip address %s"%(sys.argv[0], args.ip_address))
         sys.exit(1)
+
     args.hostname = args.hostname if args.hostname else args.ip_address.replace('.','dot')
 
     if not args.base:
@@ -165,7 +186,7 @@ if __name__ == "__main__":
         if args.pidfile:
             open(args.pidfile,'w').write(str(os.getpid()))
 
-        run_lxc(ip_address=args.ip_address, hostname=args.hostname, base=args.base)
+        run_lxc(ip_address=args.ip_address, hostname=args.hostname, base=args.base, project=args.project)
 
     try:
         if args.daemon:
