@@ -5,12 +5,7 @@ MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
 site = 'https://cloud.sagemath.com'
 
-import cPickle, json, os, shutil, sys, textwrap, HTMLParser
-
-def sagews_to_pdf(filename):
-    base = os.path.splitext(filename)[0]
-    pdf  = base + ".pdf"
-    print "converting: %s --> %s"%(filename, pdf)
+import argparse, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile
 
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
@@ -128,8 +123,10 @@ class Cell(object):
                     if i != -1:
                         src = os.path.join(os.environ['HOME'], target[i+5:])
                         if os.path.abspath(src) != os.path.abspath(filename):
-                            print "COPY!"
-                            shutil.copyfile(src, filename)
+                            try:
+                                shutil.copyfile(src, filename)
+                            except Exception, msg:
+                                print msg
                         img = filename
                     else:
                         cmd = 'rm "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
@@ -158,7 +155,9 @@ class Worksheet(object):
         """
         The worksheet defined by the given filename or UTF unicode string s.
         """
+        self._default_title = ''
         if filename is not None:
+            self._default_title = filename
             self._init_from(open(filename).read().decode('utf8'))
         elif s is not None:
             self._init_from(s)
@@ -175,6 +174,8 @@ class Worksheet(object):
         return len(self._cells)
 
     def latex_preamble(self,title='',author=''):
+        title = title.replace('_','\_')
+        author = author.replace('_','\_')
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
@@ -222,33 +223,37 @@ sensitive=true}
         s += "\\tableofcontents\n"
         return s
 
-
     def latex(self, title='', author=''):
+        if not title:
+            title = self._default_title
         return self.latex_preamble(title, author) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
 
 
-
-
-def parse_sagews(s):
-    """
-    Given a sagews file as a string s, return a list of cell objects.
-    """
-
-
-
+def sagews_to_pdf(filename, title='', author=''):
+    base = os.path.splitext(filename)[0]
+    pdf  = base + ".pdf"
+    print "converting: %s --> %s"%(filename, pdf)
+    W = Worksheet(filename)
+    temp = ''
+    try:
+        temp = tempfile.mkdtemp()
+        cur = os.path.abspath('.')
+        os.chdir(temp)
+        open('tmp.tex','w').write(W.latex(title=title, author=author))
+        os.system('pdflatex -interact=nonstopmode tmp.tex; pdflatex -interact=nonstopmode tmp.tex')
+        if os.path.exists('tmp.pdf'):
+            shutil.move('tmp.pdf',os.path.join(cur, pdf))
+            print "Created", os.path.join(cur, pdf)
+    finally:
+        if temp:
+            shutil.rmtree(temp)
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        sys.stderr.write("""
-Convert a Sagemath Cloud sagews file to a pdf file.
 
-    Usage: %s [path/to/filename.sagews] [path/to/filename2.sagews] ...
+    parser = argparse.ArgumentParser(description="convert a sagews worksheet to a pdf file via latex")
+    parser.add_argument("filename", help="name of sagews file (required)", type=str)
+    parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
+    parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
 
-Creates corresponding file path/to/filename.sagews, if it doesn't exist.
-Also, a data/ directory may be created in the current directory, which contains
-the contents of the data path in filename.sws.
-"""%sys.argv[0])
-        sys.exit(1)
-
-    for path in sys.argv[1:]:
-        sagews_to_pdf(path)
+    args = parser.parse_args()
+    sagews_to_pdf(args.filename, title=args.title, author=args.author)
