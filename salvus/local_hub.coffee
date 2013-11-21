@@ -1387,7 +1387,7 @@ read_file_from_project = (socket, mesg) ->
     archive = undefined
     async.series([
         (cb) ->
-            winston.debug("Determine whether the path '#{path}' is a directory or file.")
+            #winston.debug("Determine whether the path '#{path}' is a directory or file.")
             fs.stat path, (err, stats) ->
                 if err
                     cb(err)
@@ -1400,7 +1400,7 @@ read_file_from_project = (socket, mesg) ->
                     cb("The only supported directory archive format is tar.bz2")
                     return
                 target  = temp.path(suffix:'.' + mesg.archive)
-                winston.debug("'#{path}' is a directory, so archive it to '#{target}', change path, and read that file")
+                #winston.debug("'#{path}' is a directory, so archive it to '#{target}', change path, and read that file")
                 archive = mesg.archive
                 if path[path.length-1] == '/'  # common nuisance with paths to directories
                     path = path.slice(0,path.length-1)
@@ -1408,7 +1408,7 @@ read_file_from_project = (socket, mesg) ->
                 path = target
                 # same patterns also in project.coffee (TODO)
                 args = ["--exclude=.sagemathcloud*", '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', '-jcf', target, split.tail]
-                winston.debug("tar #{args.join(' ')}")
+                #winston.debug("tar #{args.join(' ')}")
                 child_process.execFile 'tar', args, {cwd:split.head}, (err, stdout, stderr) ->
                     if err
                         winston.debug("Issue creating tarball: #{err}, #{stdout}, #{stderr}")
@@ -1416,17 +1416,17 @@ read_file_from_project = (socket, mesg) ->
                     else
                         cb()
             else
-                winston.debug("It is a file.")
+                #winston.debug("It is a file.")
                 cb()
 
         (cb) ->
-            winston.debug("Read the file into memory.")
+            #winston.debug("Read the file into memory.")
             fs.readFile path, (err, _data) ->
                 data = _data
                 cb(err)
 
         (cb) ->
-            winston.debug("Compute hash of file.")
+            #winston.debug("Compute hash of file.")
             id = misc_node.uuidsha1(data)
             winston.debug("Hash = #{id}")
             cb()
@@ -1441,7 +1441,7 @@ read_file_from_project = (socket, mesg) ->
         #     cb()
 
         (cb) ->
-            winston.debug("Finally, we send the file as a blob back to the hub.")
+            #winston.debug("Finally, we send the file as a blob back to the hub.")
             socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id, archive:archive)
             socket.write_mesg 'blob', {uuid:id, blob:data}
             cb()
@@ -1467,14 +1467,14 @@ write_file_to_project = (socket, mesg) ->
                 (cb) ->
                     ensure_containing_directory_exists(path, cb)
                 (cb) ->
-                    winston.debug('writing the file')
+                    #winston.debug('writing the file')
                     fs.writeFile(path, value.blob, cb)
             ], (err) ->
                 if err
-                    winston.debug("error writing file -- #{err}")
+                    #winston.debug("error writing file -- #{err}")
                     socket.write_mesg 'json', message.error(id:mesg.id, error:err)
                 else
-                    winston.debug("wrote file '#{path}' fine")
+                    #winston.debug("wrote file '#{path}' fine")
                     socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
             )
     socket.on 'mesg', write_file
@@ -1511,7 +1511,7 @@ project_exec = (socket, mesg) ->
                     error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
                 socket.write_mesg('json', err_mesg)
             else
-                winston.debug(json(out))
+                #winston.debug(json(out))
                 socket.write_mesg 'json', message.project_exec_output
                     id        : mesg.id
                     stdout    : out.stdout
@@ -1744,7 +1744,7 @@ daemon  = require("start-stop-daemon")
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
     .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
-    .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, '')
+    .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--timeout [number]', 'kill all processes if there is no activity for this many *seconds* (use 0 to disable, which is the default)', Number, 0)
     .parse(process.argv)
 

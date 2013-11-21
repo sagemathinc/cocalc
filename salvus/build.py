@@ -31,34 +31,24 @@ Before building, do:
          ln -s libcblas.so.3gf libcblas.so
          ln -s libf77blas.so.3gf libf77blas.so
 
-   This line is in the .sagemathcloud env, so building sage is fast for users.
+   This line is in the .sagemathcloud env, so building sage is fast for users (though not as performant)
 
          export SAGE_ATLAS_LIB="/usr/lib/"
 
 
-
    2. Install critical packages:
 
-         sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre
-
-# old java times...
-         sudo apt-get install iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev oracle-java6-installer libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc
-
-         update-alternatives --config java  # select "oracle java 6"    # NOT 7!
+         sudo apt-get install git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre
 
          chmod a+rw /dev/fuse
 
 
    3. Additional packages (mainly for users, not building).
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-de vlibnetcdf-de vpython-netcdf python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-devs sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools
 
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor
-
-Systemwide Python packages not through apt:
-
-   umask 022; /usr/bin/pip install -U scikit-learn theano
 
 
 NOTE: With ubuntu 12.04 I do this:
@@ -73,6 +63,7 @@ NOTE: With ubuntu 12.04 I do this:
    4. Ensure tmux is at least 1.8 and if not:
 
        wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install
+
 
    5. Dropbox -- so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
 
@@ -140,6 +131,11 @@ pip install --upgrade rpy2
     sage -sh
     wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz; tar xf basemap-1.0.7.tar.gz; cd basemap-1.0.7; python setup.py install; cd ..; rm -rf basemap-1.0.7*
 
+# System-wide Python packages not through apt:
+
+   umask 022; /usr/bin/pip install -U scikit-learn theano
+
+
 # Also, edit the banner:
 
   local/bin/sage-banner
@@ -196,8 +192,7 @@ r packages could be automated like so:
   texhash
 
 
-
-# Update to ipython 1.0.0
+# Update to ipython 1.1.0
 
    pip install --upgrade ipython
    http://wstein.org/home/wstein/tmp/trac-14713.patch

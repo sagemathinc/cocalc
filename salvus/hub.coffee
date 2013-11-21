@@ -2478,9 +2478,9 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
                         winston.debug("sync: reconnecting...")
                         @connect () =>
                             cb(err); return # still an error even if connect works.
-                    else if err.indexOf("timed out") != -1
-                        @local_hub.restart () =>
-                            cb(err); return
+                    #else if err.indexOf("timed out") != -1
+                    #    @local_hub.restart () =>
+                    #        cb(err); return
                 cb(err)
             else
                 @set_content(after)
