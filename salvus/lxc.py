@@ -5,16 +5,19 @@ lxc.py -- create and run an ephemeral LXC containers with the given memory, cpus
 
 EXAMPLE:
 
-   sudo ./lxc.py -d --ip_address=10.10.10.4 --hostname=test2 --pidfile=b.pid --logfile=b.log --base=project
+   sudo ./lxc.py -d --ip_address=10.10.10.4 --hostname=test2 --pidfile=b.pid --logfile=b.log --base=base
+
 """
 
 #######################################################################
 # Copyright (c) William Stein, 2013.  Not open source or free.
 #######################################################################
 
-import logging, os, shutil, socket, tempfile, time
+import logging, os, shutil, signal, socket, sys, tempfile, time
 from admin import run, sh
 conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
+
+
 
 def run_lxc(ip_address, hostname, base='base'):
     if len(hostname.split()) != 1 or not hostname.strip():
@@ -71,16 +74,22 @@ def run_lxc(ip_address, hostname, base='base'):
         s = ["lxc-start", "-d", "-n", hostname]
         run(s, maxtime=10)
 
+        def clean(*args):
+            try:
+                run(['lxc-destroy', '-f', '-n', hostname])
+            finally:
+                if ephemeral_tinc_key and os.path.exists(ephemeral_tinc_key):
+                    os.unlink(ephemeral_tinc_key)
+            sys.exit(0)
+
+        signal.signal(signal.SIGTERM, clean)
+
         # Wait for the container to stop
         run(['lxc-wait', '-n', hostname, '-s', 'STOPPED'], maxtime=0)
+        log.info("container has stopped")
     finally:
-        # Stop and remove the container.
-        try:
-            run(['lxc-destroy', '-f', '-n', hostname])
-        finally:
-            if ephemeral_tinc_key and os.path.exists(ephemeral_tinc_key):
-                os.unlink(ephemeral_tinc_key)
-
+        log.info("stop and remove the container.")
+        clean()
 
 
 if __name__ == "__main__":
