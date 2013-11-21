@@ -5,6 +5,8 @@ lxc.py -- create and run an ephemeral LXC containers with the given memory, cpus
 
 EXAMPLE:
 
+   sudo ./lxc.py -d --ip_address=10.10.10.4 --hostname=test2
+
    sudo ./lxc.py -d --ip_address=10.10.10.4 --hostname=test2 --pidfile=b.pid --logfile=b.log --base=base
 
 """
@@ -26,6 +28,9 @@ def run_lxc(ip_address, hostname, base='base'):
     # If the container already exists, exit with an error
     if run(['lxc-ls', hostname]).strip():
         raise RuntimeError("there is already a container %s"%hostname)
+
+    def clean(*args):
+        return
 
     try:
         ephemeral_tinc_key = False
@@ -107,27 +112,36 @@ if __name__ == "__main__":
     parser.add_argument("--ram", dest="ram", type=int, default=4,
                         help="Gigabytes of ram")
     parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
-                        help="store pid in this file")
+                        help="store pid in this file (default to hostname.pid in deamon mode)")
+    parser.add_argument("--logfile", dest="logfile", type=str, default='',
+                        help="store log in this file (default: hostname.log in deamon mode)")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
-    parser.add_argument("--logfile", dest="logfile", type=str, default='',
-                        help="store log in this file (default: '' = don't log to a file)")
     parser.add_argument("--bind", dest="bind", type=str, default="",
                         help="bind directories")
-    parser.add_argument('--base', dest='base', type=str, default='base',
-                        help="template container on which to base this container.")
+    parser.add_argument('--base', dest='base', type=str, default="",
+                        help="template container on which to base this container (default: the most recent base container)")
 
     args = parser.parse_args()
+
+    if args.ip_address.count('.') != 3 or not args.ip_address.startswith('10.'):
+        sys.stderr.write("%s: invalid ip address %s"%(sys.argv[0], args.ip_address))
+        sys.exit(1)
+    args.hostname = args.hostname if args.hostname else args.ip_address.replace('.','dot')
+
+    if not args.base:
+        args.base = [x for x in sorted(run(['lxc-ls']).split()) if x.startswith('base')][-1]
+
+    if args.daemon:
+        if not args.logfile:
+            args.logfile = args.hostname + '.log'
+        if not args.pidfile:
+            args.pidfile = args.hostname + '.pid'
 
     if args.logfile:
         args.logfile = os.path.abspath(args.logfile)
     if args.pidfile:
         args.pidfile = os.path.abspath(args.pidfile)
-    if args.ip_address.count('.') != 3 or not args.ip_address.startswith('10.'):
-        sys.stderr.write("%s: invalid ip address %s"%(sys.argv[0], args.ip_address))
-        sys.exit(1)
-
-    args.hostname = args.hostname if args.hostname else args.ip_address.replace('.','dot')
 
     def main():
         global log
