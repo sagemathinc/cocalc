@@ -996,8 +996,35 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             timeout    : DEFAULT_TIMEOUT
-            archive    : 'tar.bz2'   # when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
+            archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : required
+
+        #console.log("read_file_from_project")
+        base = window?.salvus_base_url  # will be defined in web browser
+        if not base?
+            base = ''
+        if opts.path[0] == '/'
+            # absolute path to the root
+            if base != ''
+                opts.path = '.sagemathcloud-local/root' + opts.path  # use root symlink, which is created by start_smc
+            else
+                opts.path = '.sagemathcloud/root' + opts.path  # use root symlink, which is created by start_smc
+
+            # TODO: this is temporary code *only* until the project servers get restarted
+            if not @_created_root_link?
+                @exec
+                    project_id : opts.project_id
+                    command    : 'cd "$SAGEMATHCLOUD"; ln -s / root'
+                    bash       : true
+                    cb         : (err, output) =>   # ignored
+                        #console.log("create root link: ", err, output)
+                        @_created_root_link = true
+
+        url = "#{base}/#{opts.project_id}/raw/#{opts.path}"
+        #console.log(url)
+        opts.cb(false, {url:url})
+        # This is the old hub/database version -- too slow, and loads the database/server, way way too much.
+        ###
         @call
             timeout : opts.timeout
             message :
@@ -1006,6 +1033,7 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
                     archive    : opts.archive
             cb : opts.cb
+        ###
 
     move_file_in_project: (opts) ->
         opts = defaults opts,
@@ -1125,6 +1153,7 @@ class exports.Connection extends EventEmitter
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
 
+        #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
         @call
             message : message.project_exec
                 project_id : opts.project_id
@@ -1137,6 +1166,7 @@ class exports.Connection extends EventEmitter
                 err_on_exit : opts.err_on_exit
             timeout : opts.network_timeout
             cb      : (err, mesg) ->
+                #console.log("Executing #{opts.command}, #{misc.to_json(opts.args)} -- got back: #{err}, #{misc.to_json(mesg)}")
                 if err
                     opts.cb(err, mesg)
                 else if mesg.event == 'error'

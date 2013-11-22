@@ -30,14 +30,21 @@ def fix(path):
 
     # Check to see if the repo is working
     def repo_is_working():
-        return 'error: refs/heads/master does not point to a valid object!' not in cmd("bup ls")
+        c = cmd("bup ls")
+        if 'error: refs/heads/master does not point to a valid object!' in c:
+            return False
+        if 'is far too short to be a pack' in c:
+            return False
+        return True
 
     # Move the head back up to 3 times, which should be enough to fix the repo.
     def move_head_back():
+        print "Moving head back"
         if os.path.exists('logs/HEAD'):
             log = open('logs/HEAD').readlines()
+            print "log exists and has length %s"%(len(log))
             i = -1
-            while not repo_is_working() and i >= -3 and abs(i) >= len(log):
+            while not repo_is_working() and i >= -4 and abs(i) <= len(log):
                 print "Trying head %s"%i
                 previous_head = log[i].split()[0]
                 open('refs/heads/master','w').write(previous_head)

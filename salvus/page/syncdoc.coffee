@@ -470,7 +470,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 if resp.event == 'error'
                     err = resp.error
                 if err
-                    cb(err); return
+                    cb?(err); return
 
                 @session_uuid = resp.session_uuid
                 @codemirror.setOption('readOnly', false)
@@ -508,7 +508,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
                 @emit 'connect'    # successful connection
 
-                cb()
+                cb?()
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()

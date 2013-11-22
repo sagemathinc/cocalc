@@ -1452,26 +1452,44 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
 # LateX Editor
 ###############################################
 
-# Make a temporary uuid-named directory in path.
-tmp_dir = (project_id, path, cb) ->      # cb(err, directory_name)
+# Make a (server-side) self-destructing temporary uuid-named directory in path.
+tmp_dir = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : '/tmp/'
+        ttl        : 120            # self destruct in this many seconds
+        cb         : required       # cb(err, directory_name)
     name = "." + uuid()   # hidden
+    if "'" in opts.path
+        opts.cb("there is a disturbing ' in the path: '#{opts.path}'")
+        return
+    remove_tmp_dir
+        project_id : opts.project_id
+        path       : opts.path
+        tmp_dir    : name
+        ttl        : opts.ttl
     salvus_client.exec
-        project_id : project_id
-        path       : path
+        project_id : opts.project_id
+        path       : opts.path
         command    : "mkdir"
         args       : [name]
         cb         : (err, output) =>
             if err
-                cb("Problem creating temporary PDF preview path.")
+                opts.cb("Problem creating temporary directory in '#{path}'")
             else
-                cb(false, name)
+                opts.cb(false, name)
 
-remove_tmp_dir = (project_id, path, tmp_dir, cb) ->
+remove_tmp_dir = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required
+        tmp_dir    : required
+        ttl        : 120            # run in this many seconds (even if client disconnects)
+        cb         : undefined
     salvus_client.exec
-        project_id : project_id
-        path       : path
-        command    : "rm"
-        args       : ['-rf', tmp_dir]
+        project_id : opts.project_id
+        command    : "sleep #{opts.ttl} && rm -rf '#{opts.path}/#{opts.tmp_dir}'"
+        timeout    : 10 + opts.ttl
         cb         : (err, output) =>
             cb?(err)
 
@@ -1793,6 +1811,8 @@ class PDFLatexDocument
             if opts.last_page == 0
                 opts.last_page = 99999
 
+        #console.log("opts.last_page = ", opts.last_page)
+
         if opts.first_page <= 0
             opts.first_page = 1
 
@@ -1804,11 +1824,24 @@ class PDFLatexDocument
         tmp = undefined
         sha1_changed = []
         changed_pages = []
+        pdf = undefined
         async.series([
             (cb) =>
-                tmp_dir @project_id, "/tmp", (err, _tmp) =>
-                    tmp = "/tmp/#{_tmp}"
-                    cb(err)
+                tmp_dir
+                    project_id : @project_id
+                    path       : "/tmp"
+                    ttl        : 180
+                    cb         : (err, _tmp) =>
+                        tmp = "/tmp/#{_tmp}"
+                        cb(err)
+            (cb) =>
+                pdf = "#{tmp}/#{@filename_pdf}"
+                @_exec
+                    command : 'cp'
+                    args    : [@filename_pdf, pdf]
+                    timeout : 15
+                    err_on_exit : true
+                    cb      : cb
             (cb) =>
                 if @image_type == "png"
                     args = ["-r#{opts.resolution}",
@@ -1818,7 +1851,7 @@ class PDFLatexDocument
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
                                "-dDownScaleFactor=#{opts.png_downscale}",
-                               @filename_pdf]
+                               pdf]
                 else if @image_type == "jpg"
                     args = ["-r#{opts.resolution}",
                                '-dBATCH', '-dNOPAUSE',
@@ -1827,7 +1860,7 @@ class PDFLatexDocument
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
                                "-dJPEGQ=#{opts.jpeg_quality}",
-                               @filename_pdf]
+                               pdf]
                 else
                     cb("unknown image type #{@image_type}")
                     return
@@ -1837,6 +1870,7 @@ class PDFLatexDocument
                     command : 'gs'
                     args    : args
                     err_on_exit : true
+                    timeout : 120
                     cb      : (err, output) ->
                         cb(err)
 
@@ -1846,6 +1880,7 @@ class PDFLatexDocument
                     command : "sha1sum *.png *.jpg"
                     bash    : true
                     path    : tmp
+                    timeout : 15
                     cb      : (err, output) =>
                         if err
                             cb(err); return
@@ -1884,7 +1919,6 @@ class PDFLatexDocument
                                 cb()
                 async.mapSeries(sha1_changed, update, cb)
         ], (err) =>
-            remove_tmp_dir(@project_id, "/", tmp)
             opts.cb?(err, changed_pages)
         )
 
@@ -2152,7 +2186,12 @@ class PDF_Preview extends FileEditor
 
                 @last_page = n
             img =  page.find("img")
+            #console.log("setting an img src to", url)
             img.attr('src', url).data('resolution', resolution)
+            load_error = () ->
+                img.off('error', load_error)
+                setTimeout((()->img.attr('src',url)), 2000)
+            img.on('error', load_error)
 
             if @zoom_width?
                 max_width = @zoom_width
