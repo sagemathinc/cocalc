@@ -42,6 +42,7 @@ codemirror_associations =
     h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
     java   : 'text/x-java'
+    jl     : 'text/x-julia'
     js     : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
