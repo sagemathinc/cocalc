@@ -90,18 +90,18 @@ NOTE: With ubuntu 12.04 I do this:
 
 Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
-  wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb
-  wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
-  sudo apt-get install libntl-5.4.2 libpari-gmp3
-  sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
+    wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb
+    wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
+    sudo apt-get install libntl-5.4.2 libpari-gmp3
+    sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
 
 # Build Sage (as usual)
 
-umask 022   # always do this so that the resulting build is usable without painful permission hacking.
+    umask 022   # always do this so that the resulting build is usable without painful permission hacking.
 
-export SAGE_ATLAS_LIB=/usr/lib/
-export MAKE="make -j20"
-make
+    export SAGE_ATLAS_LIB=/usr/lib/
+    export MAKE="make -j20"
+    make
 
 # Workaround bugs in Sage
 
@@ -111,9 +111,8 @@ make
 
 # Non-sage Python packages into Sage
 
-./sage -sh
-
-easy_install pip
+    ./sage -sh
+    easy_install pip
 
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
@@ -123,8 +122,13 @@ easy_install pip
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
 # We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
-pip install --upgrade rpy2
+    pip install --upgrade rpy2
 
+# Install Julia
+
+    git clone git://github.com/JuliaLang/julia.git
+    cd julia
+    make
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
@@ -178,28 +182,28 @@ r packages could be automated like so:
 # 4ti2 into sage: until the optional spkg gets fixed:
 
 
-  ./sage -sh
-  cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
-  make install      # this *must* be a separate step!!
-  cd ..; rm -rf 4ti2*
+    ./sage -sh
+    cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
+    make install      # this *must* be a separate step!!
+    cd ..; rm -rf 4ti2*
 
 
 # Copy over the newest SageTex, so it actually works (only do this with the default sage):
 
-  sudo su
-  umask 022
-  cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/
-  texhash
+    sudo su
+    umask 022
+    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/
+    texhash
 
 
 # Update to ipython 1.1.0
 
-   pip install --upgrade ipython
-   http://wstein.org/home/wstein/tmp/trac-14713.patch
+    pip install --upgrade ipython
+    http://wstein.org/home/wstein/tmp/trac-14713.patch
 
 # Fix permissions, just in case!
 
-  cd /usr/local/sage/current; chmod -R a+r *
+    cd /usr/local/sage/current; chmod -R a+r *
 
 # Run sage one last time
 
