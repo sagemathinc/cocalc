@@ -21,9 +21,13 @@ Supported Platform: Ubuntu 12.04
 
 Before building, do:
 
-   0. Change this line in /etc/login.defs:  "UMASK           077"
+# For a full machine with shared users:
 
-   1. ATLAS:
+    Change this line in /etc/login.defs:  "UMASK           077"
+
+  Don't bother for LXC.
+
+# ATLAS:
 
          apt-get install libatlas3gf-base liblapack-dev
          cd /usr/lib/
@@ -36,23 +40,31 @@ Before building, do:
          export SAGE_ATLAS_LIB="/usr/lib/"
 
 
-   2. Install critical packages:
+# Install critical packages:
 
-         sudo apt-get install git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre
+         sudo apt-get install tinc git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre
 
          chmod a+rw /dev/fuse
 
 
-   3. Additional packages (mainly for users, not building).
+# Additional packages (mainly for users, not building).
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools
+On Ubuntu 13.10
 
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool
+
+On Debian 7 (Google)
+
+apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool
+
+
+# Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor
 
 
-NOTE: With ubuntu 12.04 I do this:
 
+NOTE: With ubuntu 12.04 I do this:
           apt-add-repository ppa:texlive-backports/ppa
           apt-get update; apt-get dist-upgrade
        - upgrade to octave 3.6:
@@ -60,12 +72,13 @@ NOTE: With ubuntu 12.04 I do this:
           apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
 
 
-   4. Ensure tmux is at least 1.8 and if not:
+# Tmux -- Ensure tmux is at least 1.8 and if not:
 
        wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install
 
 
-   5. Dropbox -- so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
+# Dropbox --
+  so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
 
       Get it here: https://www.dropbox.com/install?os=lnx
 
@@ -79,10 +92,10 @@ NOTE: With ubuntu 12.04 I do this:
 
   # From http://www.polymake.org/doku.php/howto/install
 
-  * sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
+     sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
 
   # Then... get latest from http://www.polymake.org/doku.php/download/start and do
-  * ./configure; make -j32; sudo make install
+      ./configure; make -j32; sudo make install
 
   # Then delete the polymake build directory.
 
@@ -92,7 +105,10 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
     wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb
     wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
-    sudo apt-get install libntl-5.4.2 libpari-gmp3
+    sudo apt-get install libntl-5.4.2 libpari-gmp3  # ubuntu 12.04
+    OR
+    apt-get install libntl-dev libntl0  libpari-gmp3 # ubuntu 13.10
+
     sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
 
 # Build Sage (as usual)
@@ -122,13 +138,12 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
 # We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
+
     pip install --upgrade rpy2
 
 # Install Julia
 
-    git clone git://github.com/JuliaLang/julia.git
-    cd julia
-    make
+    git clone git://github.com/JuliaLang/julia.git; cd julia; make install
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
@@ -152,7 +167,13 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 # OPTIONAL SAGE PACKAGES
 
-./sage -i biopython-1.61  database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq
+./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq stein-watkins-ecdb
+
+
+Delete stupidly wasted space:
+
+   rm spkg/optional/*
+
 
 # R Packages:
 
@@ -160,6 +181,7 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields"), repos='http://cran.us.r-project.org')
 
 r packages could be automated like so:
+
                 0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$cat r-install-packages.R
                 #! /usr/bin/Rscript --vanilla
                 options(repos="http://cran.ru.ac.za/")
@@ -168,15 +190,6 @@ r packages could be automated like so:
                 if(inherits(res, "try-error")) q(status=1) else q()
                 0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$
 
-
-# EXPERIMENTAL PACKAGES
-
-   ./sage -i chomp
-
-
-# Then delete stupidly wasted space
-
-   rm spkg/optional/*
 
 
 # 4ti2 into sage: until the optional spkg gets fixed:
