@@ -63,7 +63,10 @@ class Cell(object):
             n = w[0].lstrip(MARKERS['cell'])
             self.input_uuid = n[:36]
             self.input_codes = n[36:]
-            self.input = w[1]
+            if len(w) > 1:
+                self.input = w[1]
+            else:
+                self.input = ''
         else:
             self.input_uuid = self.input = ''
         if len(v) > 1:
