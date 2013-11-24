@@ -1455,6 +1455,11 @@ class Client extends EventEmitter
             if err
                 return
 
+            database.log_file_access
+                project_id : mesg.project_id
+                account_id : @account_id
+                filename   : mesg.path
+
             project.get_codemirror_session
                 path         : mesg.path
                 project_id   : mesg.project_id

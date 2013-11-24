@@ -558,7 +558,6 @@ class exports.Cassandra extends EventEmitter
 
         if opts.allow_filtering
             query += " ALLOW FILTERING"
-        console.log(query)
         @cql query, vals, opts.consistency, (error, results) =>
             if opts.objectify
                 x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
