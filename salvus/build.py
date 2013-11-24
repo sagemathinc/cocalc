@@ -196,7 +196,7 @@ r packages could be automated like so:
 
 
     ./sage -sh
-    cd /tmp; wget http://wstein.org/home/wstein/cloud/4ti2-1.5.tar.gz && tar xf 4ti2-1.5.tar.gz && cd 4ti2-1.5 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
+    cd /tmp; wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz && tar xf 4ti2-1.6.tar.gz && cd 4ti2-1.6 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
     make install      # this *must* be a separate step!!
     cd ..; rm -rf 4ti2*
 
