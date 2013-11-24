@@ -1455,11 +1455,6 @@ class Client extends EventEmitter
             if err
                 return
 
-            database.log_file_access
-                project_id : mesg.project_id
-                account_id : @account_id
-                filename   : mesg.path
-
             project.get_codemirror_session
                 path         : mesg.path
                 project_id   : mesg.project_id
@@ -1469,6 +1464,10 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
+                        database.log_file_access
+                            project_id : mesg.project_id
+                            account_id : @account_id
+                            filename   : mesg.path
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
