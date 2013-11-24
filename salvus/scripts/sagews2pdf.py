@@ -32,6 +32,8 @@ class Parser(HTMLParser.HTMLParser):
             self.result += '\n\n' + '-'*80 + '\n\n'  #TODO
         elif tag == 'li':
             self.result += '\\item{'
+        elif tag == 'a':
+            self.result += '\\url{'
         else:
             self.result += '{'  # fallback
 
@@ -199,7 +201,7 @@ sensitive=true}
   showtabs=False,
   showspaces=False,
   showstringspaces=False,
-  commentstyle={\ttfamily\color{dredcolor}},
+  commentstyle={\ttfamily\color{dbrowncolor}},
   keywordstyle={\ttfamily\color{dbluecolor}\bfseries},
   stringstyle ={\ttfamily\color{dgraycolor}\bfseries},
   backgroundcolor=\color{lightyellow},
@@ -215,7 +217,7 @@ sensitive=true}
 \definecolor{lightyellow}{rgb}{1,1,.92}
 \definecolor{dblackcolor}{rgb}{0.0,0.0,0.0}
 \definecolor{dbluecolor}{rgb}{.01,.02,0.7}
-\definecolor{dredcolor}{rgb}{0.8,0,0}
+\definecolor{dbrowncolor}{rgb}{0.625,0.3125,0}
 \definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
 \definecolor{graycolor}{rgb}{0.35,0.35,0.35}
 """
