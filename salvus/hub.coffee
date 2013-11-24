@@ -1464,10 +1464,17 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
-                        database.log_file_access
-                            project_id : mesg.project_id
-                            account_id : @account_id
-                            filename   : mesg.path
+                        if not @_file_access?
+                            @_file_access = {}
+                        if not @_file_access[mesg.project_id + mesg.path]?
+                            database.log_file_access
+                                project_id : mesg.project_id
+                                account_id : @account_id
+                                filename   : mesg.path
+                            @_file_access[mesg.project_id + mesg.path] = true
+                            f = () =>
+                                delete @_file_access[mesg.path]
+                            setTimeout(f, 60000)
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
@@ -1482,12 +1489,6 @@ class Client extends EventEmitter
                                 path         : session.path
                                 content      : snapshot
                             @push_to_client(mesg)
-                            ###
-                            database.file_access_log
-                                account_id : ?
-                                project_id : mesg.project_id
-                                filename   : session.path
-                            ###
 
 
     get_codemirror_session: (mesg, cb) =>
