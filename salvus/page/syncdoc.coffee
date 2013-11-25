@@ -199,6 +199,9 @@ class AbstractSynchronizedDoc extends EventEmitter
 
     _add_listeners: () =>
         # We *have* to wrapper all the listeners
+        if @_listeners?
+            # if we already added listeners before (for a prior connection?), remove them before re-adding them?
+            @_remove_listeners()
         @_listeners =
             codemirror_diffsync_ready : ((mesg) => @__diffsync_ready(mesg))
             codemirror_bcast          : ((mesg) => @__receive_broadcast(mesg))
