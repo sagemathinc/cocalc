@@ -791,8 +791,12 @@ class ProjectPage
                     that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
             else if name == "project-activity"
-                tab.onshow = () ->
+                tab.onshow = () =>
                     that.push_state('log')
+                    @render_project_activity_log()
+                    if not IS_MOBILE
+                        @container.find(".salvus-project-activity-search").focus()
+
             else if name == "project-settings"
                 tab.onshow = () ->
                     that.push_state('settings')
@@ -1654,6 +1658,16 @@ class ProjectPage
             LOG_FILE = '.sagemathcloud-local.log'
         else
             LOG_FILE = '.sagemathcloud.log'
+
+        @container.find(".salvus-project-activity-search").keyup () =>
+            @_project_activity_log_page = 0
+            @render_project_activity_log()
+
+        @container.find(".salvus-project-activity-search-clear").click () =>
+            @container.find(".salvus-project-activity-search").val('')
+            @_project_activity_log_page = 0
+            @render_project_activity_log()
+
         async.series([
             (cb) =>
                 @ensure_file_exists
@@ -1743,6 +1757,8 @@ class ProjectPage
             setTimeout(f, delay)
 
     render_project_activity_log: () =>
+        if not @project_log? or @current_tab?.name != 'project-activity'
+            return
         log = @project_log.live()
         if @_render_project_activity_log_last? and @_render_project_activity_log == log
             return
@@ -1754,9 +1770,37 @@ class ProjectPage
 
         @_project_activity_log.html('')
 
+        y = $.trim(@container.find(".salvus-project-activity-search").val())
+        if y.length > 0
+            search = (x.toLowerCase() for x in y.split(/[ ]+/))
+        else
+            search = []
+
         lines = log.split('\n')
-        start = Math.max(0, lines.length - (page+1)*items_per_page)
-        stop  = lines.length - page*items_per_page
+        lines.reverse()
+        start = page*items_per_page
+        stop  = (page+1)*items_per_page
+
+        if search.length > 0
+            if search.length == 1
+                s = search[0]
+                f = (x) ->
+                    x.toLowerCase().indexOf(s) != -1
+            else
+                f = (x) ->
+                    y = x.toLowerCase()
+                    for k in search
+                        if y.indexOf(k) == -1
+                            return false
+                    return true
+            z = []
+            for x in lines
+                if f(x)
+                    z.push(x)
+                    if z.length > stop
+                        break
+            lines = z
+
         lines = lines.slice(start, stop)
 
         template = $(".project-activity-templates")
@@ -1769,7 +1813,7 @@ class ProjectPage
             @container.find(".project-activity-older").removeClass('disabled')
 
         for e in lines
-            if $.trim(e).length == 0
+            if not $.trim(e)
                 continue
             try
                 entry = JSON.parse(e)
@@ -1813,7 +1857,7 @@ class ProjectPage
                 else
                     x.find(".project-activity-date").hide()
 
-                @_project_activity_log.prepend(x)
+                @_project_activity_log.append(x)
 
 
     init_project_download: () =>
