@@ -1044,8 +1044,6 @@ class CodeMirrorEditor extends FileEditor
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
-        @element.find("a[href=#print]").hide()  # TODO: only until we implement print for any document (very soon)
-
         @element.data('editor', @)
 
         @init_save_button()
@@ -1290,7 +1288,18 @@ class CodeMirrorEditor extends FileEditor
             setTimeout(focus, 100)
 
     print: () =>
-        console.log('print')
+        dialog = templates.find(".salvus-file-print-dialog").clone()
+        submit = () =>
+            # nothing yet
+        dialog.find(".salvus-file-print-filename").text(@filename)
+        dialog.find(".salvus-file-print-title").text(@filename)
+        dialog.find(".salvus-file-print-author").text(require('account').account_settings.fullname())
+        dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
+        dialog.find(".btn-submit").click(submit)
+        dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+        if @filename.slice(@filename.length-7) == ".sagews"
+            dialog.find(".salvus-file-options-sagews").show()
+        dialog.modal('show')
 
     init_close_button: () =>
         @element.find("a[href=#close]").click () =>
@@ -1452,7 +1461,6 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
             E.action_key = E.syncdoc.action
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
-            E.element.find("a[href=#print]").show().css('display':'inline-block') # because print button is implemented for worksheets, only
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E
