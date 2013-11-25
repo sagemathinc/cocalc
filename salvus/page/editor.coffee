@@ -14,6 +14,7 @@ feature = require("feature")
 IS_MOBILE = feature.IS_MOBILE
 
 misc = require('misc')
+misc_page = require('misc_page')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
@@ -1289,15 +1290,85 @@ class CodeMirrorEditor extends FileEditor
 
     print: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
+        p = misc.path_split(@filename)
+        v = p.tail.split('.')
+        if v.length <= 1
+            ext = ''
+            base = p.tail
+        else
+            ext = v[v.length-1]
+            base = v.slice(0,v.length-1).join('.')
+
+        if ext != 'sagews'
+            alert_message(type:'info', message:'Only printing of Sage Worksheets is currently implemented.')
+            return
+
+        #console.log("p=",p)
+        #console.log("base=",base)
+        #console.log("ext=",ext)
         submit = () =>
-            # nothing yet
+            tmp = undefined
+            pdf = undefined
+            dialog.find(".salvus-file-printing-progress").show()
+            dialog.find(".salvus-file-printing-link").hide()
+            async.series([
+                (cb) =>
+                    tmp_dir
+                        ttl        : 60
+                        path       : "/tmp"
+                        project_id : @project_id
+                        cb         : (err, _tmp) =>
+                            if err
+                                cb(err)
+                            else
+                                tmp = "/tmp/" + _tmp
+                                pdf = tmp + '/' + base + '.pdf'
+                                #console.log("tmp=",tmp)
+                                #console.log("pdf=",pdf)
+                                cb()
+                (cb) =>
+                    salvus_client.exec
+                        project_id  : @project_id
+                        path        : p.head
+                        command     : 'sagews2pdf.py'
+                        args        : [p.tail, '--outfile', pdf,
+                                               '--title',   dialog.find(".salvus-file-print-title").text(),
+                                               '--author',  dialog.find(".salvus-file-print-author").text(),
+                                               '--date',    dialog.find(".salvus-file-print-date").text()]
+                        timeout     : 60*5  # link will be valid for 5 minutes
+                        err_on_exit : false
+                        bash        : false
+                        cb          : (err, output) =>
+                            #console.log(output)
+                            if err
+                                cb(err)
+                            else
+                                cb(output.exit_code)
+                (cb) =>
+                    salvus_client.read_file_from_project
+                        project_id : @project_id
+                        path       : pdf
+                        cb         : (err, mesg) =>
+                            if err
+                                cb(err)
+                            else
+                                window.open(mesg.url,'_blank')
+                                dialog.find(".salvus-file-printing-link").attr('href', mesg.url).text(pdf).show()
+                                cb()
+            ], (err) =>
+                dialog.find(".salvus-file-printing-progress").hide()
+                if err
+                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{err}")
+            )
+            return false
+
         dialog.find(".salvus-file-print-filename").text(@filename)
         dialog.find(".salvus-file-print-title").text(@filename)
         dialog.find(".salvus-file-print-author").text(require('account').account_settings.fullname())
         dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
         dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
-        if @filename.slice(@filename.length-7) == ".sagews"
+        if ext == "sagews"
             dialog.find(".salvus-file-options-sagews").show()
         dialog.modal('show')
 
@@ -1474,7 +1545,7 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
 tmp_dir = (opts) ->
     opts = defaults opts,
         project_id : required
-        path       : '/tmp/'
+        path       : required
         ttl        : 120            # self destruct in this many seconds
         cb         : required       # cb(err, directory_name)
     name = "." + uuid()   # hidden

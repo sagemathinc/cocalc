@@ -15,7 +15,7 @@ diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
-{scroll_top, human_readable_size}    = require('misc_page')
+{scroll_top, human_readable_size, download_file} = require('misc_page')
 
 MAX_TITLE_LENGTH = 15
 
@@ -2305,10 +2305,10 @@ class ProjectPage
             path    : required
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts.
+
         url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
-        iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-        setTimeout((() -> iframe.remove()), 30000)
-        bootbox.alert("Your file <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        download_file(url)
+        bootbox.alert("If <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
         opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>

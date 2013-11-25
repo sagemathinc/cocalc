@@ -178,7 +178,7 @@ class Worksheet(object):
     def __len__(self):
         return len(self._cells)
 
-    def latex_preamble(self,title='',author=''):
+    def latex_preamble(self, title='',author='', date=''):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
         s=r"""
@@ -217,26 +217,32 @@ sensitive=true}
 \definecolor{lightyellow}{rgb}{1,1,.92}
 \definecolor{dblackcolor}{rgb}{0.0,0.0,0.0}
 \definecolor{dbluecolor}{rgb}{.01,.02,0.7}
+\definecolor{dredcolor}{rgb}{1,0,0}
 \definecolor{dbrowncolor}{rgb}{0.625,0.3125,0}
 \definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
 \definecolor{graycolor}{rgb}{0.35,0.35,0.35}
 """
         s += "\\title{%s}\n"%title
         s += "\\author{%s}\n"%author
+        if date:
+            s += "\\date{%s}\n"%date
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
         s += "\\tableofcontents\n"
         return s
 
-    def latex(self, title='', author=''):
+    def latex(self, title='', author='', date=''):
         if not title:
             title = self._default_title
-        return self.latex_preamble(title, author) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
+        return self.latex_preamble(title, author, date) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
 
 
-def sagews_to_pdf(filename, title='', author=''):
+def sagews_to_pdf(filename, title='', author='', date='', outfile=''):
     base = os.path.splitext(filename)[0]
-    pdf  = base + ".pdf"
+    if not outfile:
+        pdf = base + ".pdf"
+    else:
+        pdf = outfile
     print "converting: %s --> %s"%(filename, pdf)
     W = Worksheet(filename)
     temp = ''
@@ -244,7 +250,7 @@ def sagews_to_pdf(filename, title='', author=''):
         temp = tempfile.mkdtemp()
         cur = os.path.abspath('.')
         os.chdir(temp)
-        open('tmp.tex','w').write(W.latex(title=title, author=author))
+        open('tmp.tex','w').write(W.latex(title=title, author=author, date=date))
         os.system('pdflatex -interact=nonstopmode tmp.tex; pdflatex -interact=nonstopmode tmp.tex')
         if os.path.exists('tmp.pdf'):
             shutil.move('tmp.pdf',os.path.join(cur, pdf))
@@ -259,6 +265,8 @@ if __name__ == "__main__":
     parser.add_argument("filename", help="name of sagews file (required)", type=str)
     parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
     parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
+    parser.add_argument("--date", dest="date", help="date for printout", type=str, default="")
+    parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
 
     args = parser.parse_args()
-    sagews_to_pdf(args.filename, title=args.title, author=args.author)
+    sagews_to_pdf(args.filename, title=args.title, author=args.author, outfile=args.outfile, date=args.date)
