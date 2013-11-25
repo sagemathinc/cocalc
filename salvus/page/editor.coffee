@@ -1043,6 +1043,9 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
+
+        @element.find("a[href=#print]").hide()  # TODO: only until we implement print for any document (very soon)
+
         @element.data('editor', @)
 
         @init_save_button()
@@ -1203,7 +1206,7 @@ class CodeMirrorEditor extends FileEditor
     init_edit_buttons: () =>
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
-                     'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
+                     'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
             e = @element.find("a[href=##{name}]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
@@ -1248,6 +1251,8 @@ class CodeMirrorEditor extends FileEditor
                 @change_font_size(cm, -1)
             when 'goto-line'
                 @goto_line(cm)
+            when 'print'
+                @print()
 
     change_font_size: (cm, delta) =>
         elt = $(cm.getWrapperElement())
@@ -1283,6 +1288,9 @@ class CodeMirrorEditor extends FileEditor
                 info = cm.getScrollInfo()
                 cm.scrollIntoView(pos, info.clientHeight/2)
             setTimeout(focus, 100)
+
+    print: () =>
+        console.log('print')
 
     init_close_button: () =>
         @element.find("a[href=#close]").click () =>
@@ -1444,6 +1452,7 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
             E.action_key = E.syncdoc.action
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
+            E.element.find("a[href=#print]").show().css('display':'inline-block') # because print button is implemented for worksheets, only
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
     return E
@@ -3000,7 +3009,10 @@ class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             session_uuid : undefined
+
         @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
+
+
         if content?
             @_set(content)
         else
