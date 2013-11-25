@@ -1466,15 +1466,17 @@ class Client extends EventEmitter
                     else
                         if not @_file_access?
                             @_file_access = {}
-                        if not @_file_access[mesg.project_id + mesg.path]?
+                        key = mesg.project_id + @account_id + mesg.path
+                        if not @_file_access[key]?
                             database.log_file_access
                                 project_id : mesg.project_id
                                 account_id : @account_id
                                 filename   : mesg.path
-                            @_file_access[mesg.project_id + mesg.path] = true
+                            @_file_access[key] = true
                             f = () =>
-                                delete @_file_access[mesg.path]
-                            setTimeout(f, 60000)
+                                delete @_file_access[key]
+                            setTimeout(f, 5*60000)  # record particular file open by a user at most once every 5 minutes
+
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
