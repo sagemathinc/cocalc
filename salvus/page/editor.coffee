@@ -1311,6 +1311,7 @@ class CodeMirrorEditor extends FileEditor
             pdf = undefined
             dialog.find(".salvus-file-printing-progress").show()
             dialog.find(".salvus-file-printing-link").hide()
+            dialog.find(".btn-submit").icon_spin(start:true)
             async.series([
                 (cb) =>
                     tmp_dir
@@ -1327,14 +1328,17 @@ class CodeMirrorEditor extends FileEditor
                                 #console.log("pdf=",pdf)
                                 cb()
                 (cb) =>
+                    @save(cb)
+                (cb) =>
                     salvus_client.exec
                         project_id  : @project_id
                         path        : p.head
                         command     : 'sagews2pdf.py'
-                        args        : [p.tail, '--outfile', pdf,
-                                               '--title',   dialog.find(".salvus-file-print-title").text(),
-                                               '--author',  dialog.find(".salvus-file-print-author").text(),
-                                               '--date',    dialog.find(".salvus-file-print-date").text()]
+                        args        : [p.tail, '--outfile',  pdf,
+                                               '--title',    dialog.find(".salvus-file-print-title").text(),
+                                               '--author',   dialog.find(".salvus-file-print-author").text(),
+                                               '--date',     dialog.find(".salvus-file-print-date").text(),
+                                               '--contents', dialog.find(".salvus-file-print-contents").is(":checked")]
                         timeout     : 60*5  # link will be valid for 5 minutes
                         err_on_exit : false
                         bash        : false
@@ -1343,7 +1347,10 @@ class CodeMirrorEditor extends FileEditor
                             if err
                                 cb(err)
                             else
-                                cb(output.exit_code)
+                                if output.exit_code
+                                    cb(output.stderr)
+                                else
+                                    cb()
                 (cb) =>
                     salvus_client.read_file_from_project
                         project_id : @project_id
@@ -1356,6 +1363,7 @@ class CodeMirrorEditor extends FileEditor
                                 dialog.find(".salvus-file-printing-link").attr('href', mesg.url).text(pdf).show()
                                 cb()
             ], (err) =>
+                dialog.find(".btn-submit").icon_spin(false)
                 dialog.find(".salvus-file-printing-progress").hide()
                 if err
                     alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{err}")
@@ -1363,7 +1371,7 @@ class CodeMirrorEditor extends FileEditor
             return false
 
         dialog.find(".salvus-file-print-filename").text(@filename)
-        dialog.find(".salvus-file-print-title").text(@filename)
+        dialog.find(".salvus-file-print-title").text(base)
         dialog.find(".salvus-file-print-author").text(require('account').account_settings.fullname())
         dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
