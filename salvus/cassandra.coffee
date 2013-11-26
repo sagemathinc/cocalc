@@ -11,7 +11,9 @@
 #
 # (c) 2013 William Stein, University of Washington
 #
-# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], user:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['10.1.1.2:9160'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+# fs=require('fs'); a = new (require("cassandra").Salvus)(keyspace:'salvus', hosts:['localhost:8403'], username:'salvus', password:fs.readFileSync('data/secrets/cassandra/salvus').toString().trim(), cb:console.log)
+
 #
 #########################################################################
 
@@ -1395,6 +1397,48 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults(columns:[], cb:undefined)
         @select(table:'plans', columns:opts.columns, where:{current:true}, cb:opts.cb)
 
+
+    #############
+    # Tracking file access
+    ############
+    log_file_access: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            filename   : required
+            cb         : undefined
+        date = new Date()
+        @update
+            table : 'file_access_log'
+            set   :
+                filename : opts.filename
+            where :
+                day        : date.toISOString().slice(0,10)
+                timestamp  : to_iso(date)
+                project_id : opts.project_id
+                account_id : opts.account_id
+            cb : opts.cb
+
+    # Get all files accessed in all projects
+    get_file_access: (opts) =>
+        opts = defaults opts,
+            day    : required    # GMT string year-month-day
+            start  : undefined   # start time on that day in iso format
+            end    : undefined   # end time on that day in iso format
+            cb     : required
+        where = {day:opts.day, timestamp:{}}
+        if opts.start?
+            where.timestamp['>='] = opts.start
+        if opts.end?
+            where.timestamp['<='] = opts.end
+        if misc.len(where.timestamp) == 0
+            delete where.timestamp
+        console.log("where = #{misc.to_json(where)}")
+        @select
+            table   : 'file_access_log'
+            columns : ['day', 'timestamp', 'account_id', 'project_id', 'filename']
+            where   : where
+            cb      : opts.cb
 
 
     #############

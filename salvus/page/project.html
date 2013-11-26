@@ -280,11 +280,17 @@
                 <div class="row">
                     <div class="well" style="margin-left:3em; margin-right:3em;">
                         <div class="row-fluid">
-                            <div class="span10">
-                                <textarea rows=1 placeholder="What are you doing?" class="well project-activity-well project-activity-chat" style="width:92%"></textarea>
+                            <div class="span3">
+                                <input class="salvus-project-activity-search search-query" style="width:75%" type="search" placeholder="Search...">
+                                 <i class="salvus-project-activity-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                             </div>
+                            <div class="span9">
+                                <textarea rows=1 placeholder="Write something..." class="well project-activity-well project-activity-chat" style="width:92%"></textarea>
+                            </div>
+                            <!--
                             <div class="span2  well  project-activity-well project-activity-current-users">
                             </div>
+                            -->
                         </div>
                         <div class="row-fluid">
                             <div class='btn-group'>
@@ -318,7 +324,7 @@
                     <div class="well" style="margin-left:3em; margin-right:3em;">
                         <div class="row-fluid">
                             <div class="span6 well project-heading-well">
-                                <h4>Title and Description <span class="lighten">(click to edit)</span></h4>
+                                <h4>Title and Description <span class="lighten"> (click to edit)</span></h4>
                                 <!-- Title of the project (editable) -->
                                 <h4>
                                     <span class="project-public"><i class="fa fa-eye">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -611,7 +617,7 @@
         <div class="span" style="width: 10px;">
             <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
         </div>
-        <div class="span pull-right" style="width:60px">
+        <div class="span pull-right" style="width:100px">
             <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
                 <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file"><i class="fa fa-edit"> </i> </a>
                 <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file"><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>

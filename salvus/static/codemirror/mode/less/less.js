@@ -70,7 +70,9 @@ CodeMirror.defineMode("less", function(config) {
       stream.eatWhile(/[\a-zA-Z0-9\-_]/);
       if(stream.peek() === " ")stream.eatSpace();
       if(stream.peek() === ")" || type === ":")return ret("number", "unit");//rgba(0,0,0,.25);
-      else if(state.stack[state.stack.length-1] === "rule" && stream.peek().match(/{|,|\+|\(/) === null)return ret("number", "unit");
+      else if(stream.current().length >1){
+        if(state.stack[state.stack.length-1] === "rule" && stream.peek().match(/{|,|\+|\(/) === null)return ret("number", "unit");
+      }
       return ret("tag", "tag");
     } else if (ch == "#") {
       //we don't eat white-space, we want the hex color and or id only
@@ -204,7 +206,7 @@ CodeMirror.defineMode("less", function(config) {
         else if(type === "unit" && state.stack[state.stack.length-1] === "rule")return ret(null, "unit");
         else if(type === "unit" && state.stack[state.stack.length-1] === ";")return ret(null, "unit");
         else if(type === ")" && state.stack[state.stack.length-1] === "rule")return ret(null, "unit");
-        else if(type.match("@") !== null  && state.stack[state.stack.length-1] === "rule")return ret(null, "unit");
+        else if(type && type.match("@") !== null  && state.stack[state.stack.length-1] === "rule")return ret(null, "unit");
         //else if(type === "unit" && state.stack[state.stack.length-1] === "rule")return ret(null, stream.current());
 
         else if((type === ";" || type === "}" || type === ",") && state.stack[state.stack.length-1] === ";")return ret("tag", stream.current());

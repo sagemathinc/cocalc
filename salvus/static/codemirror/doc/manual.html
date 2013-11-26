@@ -208,6 +208,19 @@
       indentation (only works if the mode supports indentation).
       Default is true.</dd>
 
+      <dt id="option_specialChars"><code><strong>specialChars</strong>: RegExp</code></dt>
+      <dd>A regular expression used to determine which characters
+      should be replaced by a
+      special <a href="#option_specialCharPlaceholder">placeholder</a>.
+      Mostly useful for non-printing special characters. The default
+      is <code>/[\u0000-\u0019\u00ad\u200b\u2028\u2029\ufeff]/</code>.</dd>
+      <dt id="option_specialCharPlaceholder"><code><strong>specialCharPlaceholder</strong>: function(char) → Element</code></dt>
+      <dd>A function that, given a special character identified by
+      the <a href="#option_specialChars"><code>specialChars</code></a>
+      option, produces a DOM node that is used to represent the
+      character. By default, a red dot (<span style="color: red">•</span>)
+      is shown, with a title tooltip to indicate the character code.</dd>
+
       <dt id="option_rtlMoveVisually"><code><strong>rtlMoveVisually</strong>: boolean</code></dt>
       <dd>Determines whether horizontal cursor movement through
       right-to-left (Arabic, Hebrew) text is visual (pressing the left
@@ -1576,6 +1589,9 @@
       given an argument), or sets the overwrite mode to a specific
       state (when given an argument).</dd>
 
+      <dt id="execCommand"><code><strong>cm.execCommand</strong>(name: string)</code></dt>
+      <dd>Runs the <a href="#commands">command</a> with the given name on the editor.</dd>
+
       <dt id="posFromIndex"><code><strong>doc.posFromIndex</strong>(index: integer) → {line, ch}</code></dt>
       <dd>Calculates and returns a <code>{line, ch}</code> object for a
       zero-based <code>index</code> who's value is relative to the start of the
@@ -1615,13 +1631,14 @@
 
       <dt id="fromTextArea"><code><strong>CodeMirror.fromTextArea</strong>(textArea: TextAreaElement, ?config: object)</code></dt>
       <dd>
-        The method provides another way to initialize an editor. It takes a
-        textarea DOM node as first argument and an optional configuration
-        object as second. It will replace the textarea with a CodeMirror
-        instance, and wire up the form of that textarea (if any) to make
-        sure the editor contents are put into the textarea when the form
-        is submitted. A CodeMirror instance created this way has three
-        additional methods:
+        The method provides another way to initialize an editor. It
+        takes a textarea DOM node as first argument and an optional
+        configuration object as second. It will replace the textarea
+        with a CodeMirror instance, and wire up the form of that
+        textarea (if any) to make sure the editor contents are put
+        into the textarea when the form is submitted. The text in the
+        textarea will provide the content for the editor. A CodeMirror
+        instance created this way has three additional methods:
         <dl>
           <dt id="save"><code><strong>cm.save</strong>()</code></dt>
           <dd>Copy the content of the editor into the textarea.</dd>
@@ -1704,11 +1721,14 @@
     <dl>
       <dt id="addon_dialog"><a href="../addon/dialog/dialog.js"><code>dialog/dialog.js</code></a></dt>
       <dd>Provides a very simple way to query users for text input.
-      Adds an <code>openDialog</code> method to CodeMirror instances,
-      which can be called with an HTML fragment that provides the
-      prompt (should include an <code>input</code> tag), and a
-      callback function that is called when text has been entered.
-      Depends on <code>addon/dialog/dialog.css</code>.</dd>
+      Adds an <strong><code>openDialog</code></strong> method to
+      CodeMirror instances, which can be called with an HTML fragment
+      or a detached DOM node that provides the prompt (should include
+      an <code>input</code> tag), and a callback function that is called
+      when text has been entered. Also adds
+      an <strong><code>openNotification</code></strong> function that
+      simply shows an HTML fragment as a notification. Depends
+      on <code>addon/dialog/dialog.css</code>.</dd>
 
       <dt id="addon_searchcursor"><a href="../addon/search/searchcursor.js"><code>search/searchcursor.js</code></a></dt>
       <dd>Adds the <code>getSearchCursor(query, start, caseFold) →

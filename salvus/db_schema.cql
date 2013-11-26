@@ -462,7 +462,7 @@ CREATE TABLE monitor_last (
     day varchar,
     hour int,
     minute int,
-    timestamp int,  /* seconds since epoch */
+    timestamp int,  /* UTC seconds since epoch */
     dns varchar,   /* JSON */
     load varchar,  /* JSON */
     snap varchar,  /* JSON */
@@ -472,14 +472,14 @@ CREATE TABLE monitor_last (
 );
 
 
+
 CREATE TABLE file_access_log (
     day        varchar,
-    hour       int,
-    minute     int,
+    timestamp  timestamp,
     account_id uuid,
     project_id uuid,
     filename   varchar,
-    timestamp  timestamp,
-    PRIMARY KEY(day, hour, minute, account_id, project_id, filename)
+    PRIMARY KEY(day, timestamp, account_id, project_id)
 );
+
 
