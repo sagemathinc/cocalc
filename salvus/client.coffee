@@ -1010,16 +1010,6 @@ class exports.Connection extends EventEmitter
             else
                 opts.path = '.sagemathcloud/root' + opts.path  # use root symlink, which is created by start_smc
 
-            # TODO: this is temporary code *only* until the project servers get restarted
-            if not @_created_root_link?
-                @exec
-                    project_id : opts.project_id
-                    command    : 'cd "$SAGEMATHCLOUD"; ln -s / root'
-                    bash       : true
-                    cb         : (err, output) =>   # ignored
-                        #console.log("create root link: ", err, output)
-                        @_created_root_link = true
-
         url = "#{base}/#{opts.project_id}/raw/#{opts.path}"
         #console.log(url)
         opts.cb(false, {url:url})
