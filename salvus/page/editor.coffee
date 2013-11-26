@@ -1211,6 +1211,10 @@ class CodeMirrorEditor extends FileEditor
                 that.click_edit_button($(@).data('name'))
                 return false
 
+        # TODO: implement printing for other file types
+        if @filename.slice(@filename.length-7) != '.sagews'
+            @element.find("a[href=#print]").hide()
+
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
         if not cm?
