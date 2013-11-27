@@ -19,7 +19,7 @@ DEFAULT_TIMEOUT   = 60*15   # time in seconds; max time we would ever wait to "b
 # which is about as long as we want to wait.  Bigger is more efficient
 # overall, because of much better de-duplication, but smaller means
 # faster access.
-REPO_SIZE_CUTOFF_BYTES=50000000
+REPO_SIZE_CUTOFF_BYTES=35000000
 
 SALVUS_HOME=process.cwd()
 
