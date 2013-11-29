@@ -51,23 +51,22 @@ Before building, do:
 
 On Ubuntu 13.10
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf
 
 
 On Debian 7 (Google)
 
-apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc
+apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf
 
 
 # Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
    sudo add-apt-repository ppa:pippijn/ppa
    sudo apt-get update; sudo apt-get install aldor
 
-
-
 NOTE: With ubuntu 12.04 I do this:
           apt-add-repository ppa:texlive-backports/ppa
           apt-get update; apt-get dist-upgrade
+
        - upgrade to octave 3.6:
           apt-add-repository ppa:dr-graef/octave-3.6.precise
           apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
@@ -75,7 +74,7 @@ NOTE: With ubuntu 12.04 I do this:
 
 # Tmux -- Ensure tmux is at least 1.8 and if not:
 
-       wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install
+       wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install &&  cd .. && rm -rf tmux-1.8*
 
 
 # Dropbox --
@@ -88,12 +87,14 @@ NOTE: With ubuntu 12.04 I do this:
 # lsyncd --
 
    sudo su
-   git clone https://github.com/axkibe/lsyncd/; cd lsyncd; ./autogen.sh; ./configure --prefix=/usr/local; make; make install
+   cd /tmp; git clone https://github.com/axkibe/lsyncd/; cd lsyncd; ./autogen.sh; ./configure --prefix=/usr/local; make; make install; rm -rf /tmp/lsyncd
 
 
 
 # SAGE SCRIPTS:
-  Do "install_scripts('/usr/local/bin/')" from within Sage (as root).
+  Do from within Sage (as root):
+
+      install_scripts('/usr/local/bin/')
 
 # POLYMAKE system-wide:
 
@@ -101,22 +102,28 @@ NOTE: With ubuntu 12.04 I do this:
 
      sudo apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc
 
-  # Then... get latest from http://www.polymake.org/doku.php/download/start and do
-      ./configure; make -j32; sudo make install
+  # Then... get latest from http://www.polymake.org/doku.php/download/start and build:
+      sudo su
+      cd /tmp/; wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.12-rc3.tar.bz2; tar xvf polymake-2.12-rc3.tar.bz2; cd polymake-2.12; ./configure; make -j4; sudo make install; rm -rf /tmp/polymake*
 
-  # Then delete the polymake build directory.
 
 # MACAULAY2:
 
 Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
-    wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb
-    wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
-    sudo apt-get install libntl-5.4.2 libpari-gmp3  # ubuntu 12.04
-    OR
-    apt-get install libntl-dev libntl0  libpari-gmp3 # ubuntu 13.10
+## Ubuntu:
 
-    sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb
+    sudo su
+    # apt-get install libntl-5.4.2 libpari-gmp3  # ubuntu 12.04
+    apt-get install libntl-dev libntl0  libpari-gmp3 # ubuntu 13.10
+    cd /tmp/; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb; sudo dpkg -i Macaulay2-1.6-common.deb Macaulay2-1.6-amd64-Linux-Ubuntu-12.04.deb; rm *.deb
+
+## Debian
+
+    sudo su
+    apt-get install libntl-dev libntl0  libpari-gmp3
+    cd /tmp/; rm Macaulay2*.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Debian/Macaulay2-1.6-amd64-Linux-Debian-7.0.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb;  sudo dpkg -i Macaulay2*.deb; rm Macaulay2*.deb
+
 
 # Build Sage (as usual)
 
@@ -129,12 +136,12 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 # Workaround bugs in Sage
 
    - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
-     (just put f=filename in /usr/local/sage/sage-5.11/local/lib/python2.7/site-packages/pexpect.py)
+     (just put f=filename in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
 
 
 # Non-sage Python packages into Sage
 
-    ./sage -sh
+    sage -sh
     easy_install pip
 
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
@@ -150,21 +157,26 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 # Neuron -- requested by Jose Guzman
 
-   umask 022; sage -sh; cd /tmp
-   hg clone http://www.neuron.yale.edu/hg/neuron/iv; hg clone http://www.neuron.yale.edu/hg/neuron/nrn
-   cd iv; ./build.sh; ./configure --prefix=/usr/local/; make -j16; sudo make install
-   cd ../nrn; ./build.sh; ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython
-   make -j16; sudo make install   # ignore python error (?)
-   cd src/nrnpython/; python setup.py install
+   umask 022; sage -sh
+   cd /tmp; hg clone http://www.neuron.yale.edu/hg/neuron/iv; hg clone http://www.neuron.yale.edu/hg/neuron/nrn
+   cd /tmp/iv; ./build.sh; ./configure --prefix=/usr/local/; make -j16; sudo make install
+   # the make install below ends in an error, but it seems to work for people who care.
+   cd /tmp/nrn; ./build.sh; ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython; make -j16; sudo make install; cd src/nrnpython/; python setup.py install
+   rm -rf /tmp/iv /tmp/nrn
+
+Test with "import neuron".
 
 # Install Julia
 
-   umask 022; cd /usr/local/; git clone git://github.com/JuliaLang/julia.git; cd julia; make -j16 install;  cd /usr/local/bin; ln -s /usr/local/julia/julia .
+   sudo su
+   umask 022; cd /usr/local/; git clone git://github.com/JuliaLang/julia.git; cd julia; make -j4 install;  cd /usr/local/bin; ln -s /usr/local/julia/julia .
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
     sage -sh
     wget http://downloads.sourceforge.net/project/matplotlib/matplotlib-toolkits/basemap-1.0.7/basemap-1.0.7.tar.gz; tar xf basemap-1.0.7.tar.gz; cd basemap-1.0.7; python setup.py install; cd ..; rm -rf basemap-1.0.7*
+
+## TEST:   echo "from mpl_toolkits.basemap import Basemap" | python
 
 # System-wide Python packages not through apt:
 
@@ -183,7 +195,7 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
 # OPTIONAL SAGE PACKAGES
 
-./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq stein-watkins-ecdb
+    ./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq stein-watkins-ecdb
 
 
 Delete stupidly wasted space:
@@ -214,21 +226,22 @@ r packages could be automated like so:
     ./sage -sh
     cd /tmp; wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz && tar xf 4ti2-1.6.tar.gz && cd 4ti2-1.6 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
     make install      # this *must* be a separate step!!
-    cd ..; rm -rf 4ti2*
+    rm -rf /tmp/4ti2*
 
 
 # Copy over the newest SageTex, so it actually works (only do this with the default sage):
 
     sudo su
     umask 022
-    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/
-    texhash
+    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/; texhash
 
 
 # Update to ipython 1.1.0
 
+    sage -sh
     pip install --upgrade ipython
-    http://wstein.org/home/wstein/tmp/trac-14713.patch
+    cd $SAGE_ROOT/devel/sage; wget http://wstein.org/home/wstein/tmp/trac-14713.patch; hg import trac-14713.patch
+    cd $SAGE_ROOT/; ./sage -br
 
 # Fix permissions, just in case!
 
@@ -237,6 +250,19 @@ r packages could be automated like so:
 # Run sage one last time
 
   ./sage
+
+# Setup /usr/local/bin/skel
+
+   rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
+   cd ~/.sagemathcloud
+   . sagemathcloud-env
+   ./build.py
+
+   cd /usr/local/bin/
+   sudo ln -s /usr/local/salvus/salvus/salvus/scripts/skel/ .
+
+   cd ~/salvus/salvus/scripts/skel/
+   mv ~/.sagemathcloud .
 
 """
 
