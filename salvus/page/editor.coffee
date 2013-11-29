@@ -1279,18 +1279,43 @@ class CodeMirrorEditor extends FileEditor
         focus = () =>
             @focus()
             cm.focus()
-        bootbox.prompt "Goto line... (1-#{cm.lineCount()} or n%)", (result) =>
-            if result != null
-                result = result.trim()
-                if result.length >= 1 and result[result.length-1] == '%'
-                    line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
-                else
-                    line = parseInt(result)-1
-                pos = {line:line, ch:0}
-                cm.setCursor(pos)
-                info = cm.getScrollInfo()
-                cm.scrollIntoView(pos, info.clientHeight/2)
-            setTimeout(focus, 100)
+
+        dialog = templates.find(".salvus-goto-line-dialog")
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        input = dialog.find(".salvus-goto-line-input")
+        input.val(cm.getCursor().line+1)  # +1 since line is 0-based
+        dialog.find(".salvus-goto-line-range").text("1-#{cm.lineCount()} or n%")
+        dialog.find(".salvus-goto-line-input").focus().select()
+        submit = () =>
+            dialog.modal('hide')
+            result = input.val().trim()
+            if result.length >= 1 and result[result.length-1] == '%'
+                line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
+            else
+                line = Math.min(parseInt(result)-1)
+            if line >= cm.lineCount()
+                line = cm.lineCount() - 1
+            if line <= 0
+                line = 0
+            pos = {line:line, ch:0}
+            cm.setCursor(pos)
+            info = cm.getScrollInfo()
+            cm.scrollIntoView(pos, info.clientHeight/2)
+            setTimeout(focus, 50)
+        dialog.find(".btn-submit").off('click').click(submit)
+        input.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                setTimeout(focus, 50)
+                dialog.modal('hide')
+                return false
+
 
     print: () =>
         dialog = templates.find(".salvus-file-print-dialog").clone()
