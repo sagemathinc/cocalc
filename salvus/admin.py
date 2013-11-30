@@ -65,6 +65,29 @@ CASSANDRA_NATIVE_PORT = 9042
 CASSANDRA_INTERNODE_PORTS = [7000, 7001]
 CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_NATIVE_PORT]
 
+
+####################
+# Sending an email (useful for monitoring script)
+# See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
+####################
+
+def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@gmail.com', fromaddr='salvusmath@gmail.com'):
+    log.info("sending email to %s", toaddrs)
+    username = 'salvusmath'
+    password = open(os.path.join(os.environ['HOME'],'salvus/salvus/data/secrets/salvusmath_email_password')
+                    ).read().strip()
+    import smtplib
+    from email.mime.text import MIMEText
+    msg = MIMEText(msg)
+    msg['Subject'] = subject
+    msg['From'] = fromaddr
+    msg['To'] = toaddrs
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.starttls()
+    server.login(username,password)
+    server.sendmail(fromaddr, toaddrs, msg.as_string())
+    server.quit()
+
 ####################
 # Running a subprocess
 ####################
@@ -1262,13 +1285,13 @@ class Monitor(object):
                 d['load15'] = float(z[-1]) / d['nproc']
                 z = m[3].split()
                 d['use_GB'] =  int(z[2][:-1]) if z[2][-1] == 'G' else 1
-                d['use%']   = z[4][:-1]
+                d['use%']   = int(z[4][:-1])
                 z = m[5].split()
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
                 d['nprojects'] = int(m[8])
                 ans.append(d)
-        w = [(-d['load1'], d) for d in ans]
+        w = [(-d['use%'], d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1294,13 +1317,13 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def dns(self, hosts='all', rounds=3):
+    def dns(self, hosts='all', rounds=1):
         """
         Verify that DNS is working well on all machines.
         """
-        cmd = '&&'.join(["host -v google.com > /dev/null && host -v trac.sagemath.org >/dev/null && host -v www.sagemath.org >/dev/null && host -v github.com >/dev/null"]*rounds) + "; echo $?"
+        cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=5+4*rounds).iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1327,29 +1350,42 @@ class Monitor(object):
         }
 
     def status(self, all=None, n=5):
+        down = []
         if all is None:
             all = self.all( )
         print "DNS"
         for x in all['dns'][:n]:
             print x
+            if x.get('status',None) == 'down':
+                down.append(x)
 
         print "LOAD"
         for x in all['load'][:n]:
             print x
+            if x.get('status',None) == 'down':
+                down.append(x)
 
         print "SNAP"
         for x in all['snap'][:n]:
             print x
+            if x.get('status',None) == 'down':
+                down.append(x)
 
         print "CASSANDRA"
         for x in all['cassandra'][:n]:
             print x
+            if x.get('status',None) == 'down':
+                down.append(x)
 
         print "COMPUTE"
         vcompute = all['compute']
         print "%s projects running"%(sum([x['nprojects'] for x in vcompute]))
         for x in all['compute'][:n]:
             print x
+            if x.get('status',None) == 'down':
+                down.append(x)
+
+        return down
 
     def update_db(self, all=None):
         if all is None:
@@ -1373,7 +1409,9 @@ class Monitor(object):
         while True:
             all = self.all()
             self.update_db(all=all)
-            self.status(all=all)
+            down = self.status(all=all)
+            if down:
+                email("The following are down: %s"%down, subject="SMC admin -- stuff down!")
             time.sleep(wait)
 
 class Services(object):
@@ -1794,7 +1832,7 @@ class Services(object):
                 print "WAITING FOR -- cassandra HOST (%s of %s): %s"%(i, len(v), host)
                 self.start('cassandra', host=host, wait=False)
                 print "time: ", time.time()-t
-    
+
 
     def update_from_dev_repo(self):
         """
