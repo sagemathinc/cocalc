@@ -133,8 +133,7 @@ class ConsoleSessions
     connect: (client_socket, mesg) =>
         session = @_sessions[mesg.session_uuid]
         if session? and session.status == 'running'
-            client_socket.write_mesg('json', session.desc)
-            client_socket.write(session.history)
+            client_socket.write_mesg('json', {desc:session.desc, history:session.history.toString()})
             plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
@@ -163,7 +162,8 @@ class ConsoleSessions
                 console_socket.write_mesg('json', mesg)
                 # Read one JSON message back, which describes the session
                 console_socket.once 'mesg', (type, desc) =>
-                    client_socket.write_mesg('json', desc)
+                    history = new Buffer(0)
+                    client_socket.write_mesg('json', {desc:desc, history:history.toString()})  # in future, history could be read from a file
                     # Disable JSON mesg protocol, since it isn't used further
                     misc_node.disable_mesg(console_socket)
                     misc_node.disable_mesg(client_socket)
@@ -173,7 +173,7 @@ class ConsoleSessions
                         desc    : desc,
                         status  : 'running',
                         clients : [client_socket],
-                        history : new Buffer(0)
+                        history : history
                         session_uuid : mesg.session_uuid
                         project_id   : mesg.project_id
 
@@ -207,9 +207,9 @@ class ConsoleSessions
                         session.amount_of_data += data.length
                         n = session.history.length
                         if n > 400000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
-                            session.history = session.history.slice(300000)
+                            session.history = session.history.slice(session.history.length - 300000)
 
-                        # Never push more than 20000 characters at once to hub, since that could overwhelm...
+                        # Never push more than 20000 characters at once to client hub, since that could overwhelm...
                         if data.length > 20000
                             data = "[...]"+data.slice(data.length-20000)
 

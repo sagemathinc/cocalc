@@ -2932,7 +2932,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         # create a new session with that uuid and plug this socket into it.
         async.series([
             (cb) =>
-                winston.debug("getting new socket to a local_hub")
+                winston.debug("getting new socket connectionto a local_hub")
                 @new_socket (err, _socket) =>
                     if err
                         cb(err)
@@ -2957,6 +2957,20 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     else
                         # We will now only use this socket for binary communications.
                         misc_node.disable_mesg(socket)
+                        socket.history = resp.history
+
+                        # Keep our own copy of the console history (in this global hub), so when clients (re-)connect
+                        # we do not have to get the whole history from the local hub.
+                        socket.on 'data', (data) =>
+                            # DO NOT Record in database that there was activity in this project, since
+                            # this is *way* too frequent -- a tmux session make it always on for no reason.
+                            # database.touch_project(project_id:opts.project_id)
+                            socket.history += data
+                            n = socket.history.length
+                            if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                                # take last 300000 characters
+                                socket.history = socket.history.slice(socket.history.length-300000)
+
                         cb()
                 socket.once 'mesg', f
                 timed_out = () =>
@@ -2973,10 +2987,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
                 @_socket?.destroy()
                 delete @_status; delete @_socket
-
             else if socket?
                 @_sockets[opts.session_uuid] = socket
-                socket.history = undefined
                 opts.cb(false, socket)
         )
 
@@ -3022,39 +3034,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
                     data_channel : channel
+                    history      : console_socket.history
                 opts.cb(false, mesg)
-
-                history = console_socket.history
 
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
                 # client over the channel we just created.
-                if history?
-                    opts.client.push_data_to_client(channel, history)
-                    console_socket.on 'data', (data) ->
-                        opts.client.push_data_to_client(channel, data)
-
-                        # Record in database that there was activity in this project.
-                        # This is *way* too frequent -- a tmux session make it always on for no reason.
-                        # database.touch_project(project_id:opts.project_id)
-
-                else
-                    console_socket.history = ''
-                    console_socket.on 'data', (data) ->
-                        console_socket.history += data
-                        n = console_socket.history.length
-                        if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                            console_socket.history = console_socket.history.slice(300000)
-
-                        # Never push more than 20000 characters at once to client, since display is slow, etc.
-                        if data.length > 20000
-                            data = "[...]"+data.slice(data.length-20000)
-
-                        opts.client.push_data_to_client(channel, data)
-
-                        # See comment above.
-                        #database.touch_project(project_id:opts.project_id)
-
+                console_socket.on 'data', (data) ->
+                    # Never push more than 20000 characters at once to client, since display is slow, etc.
+                    if data.length > 20000
+                        data = "[...]" + data.slice(data.length-20000)
+                    opts.client.push_data_to_client(channel, data)
 
     #########################################
     # CodeMirror sessions
