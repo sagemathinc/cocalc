@@ -146,9 +146,9 @@ class ConsoleSessions
                     winston.debug("can't determine console server port; probably console server not running")
                     client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
                 else
-                    @_new_session(client_socket, mesg, port)
+                    @_new_session(client_socket, mesg, port, session?.history)
 
-    _new_session: (client_socket, mesg, port) =>
+    _new_session: (client_socket, mesg, port, history) =>
         winston.debug("_new_session: defined by #{json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
@@ -165,7 +165,8 @@ class ConsoleSessions
                 console_socket.write_mesg('json', mesg)
                 # Read one JSON message back, which describes the session
                 console_socket.once 'mesg', (type, desc) =>
-                    history = new Buffer(0)
+                    if not history?
+                        history = new Buffer(0)                        
                     client_socket.write_mesg('json', {desc:desc, history:history.toString()})  # in future, history could be read from a file
                     # Disable JSON mesg protocol, since it isn't used further
                     misc_node.disable_mesg(console_socket)
