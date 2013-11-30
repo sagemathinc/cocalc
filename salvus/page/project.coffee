@@ -1000,7 +1000,7 @@ class ProjectPage
         dz_container.append(dz)
         dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
-            url: "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
+            url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 10 # in megabytes
 
     init_new_file_tab: () =>
