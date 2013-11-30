@@ -131,14 +131,17 @@ class ConsoleSessions
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the console session with mesg.session_uuid.
     connect: (client_socket, mesg) =>
+        winston.debug("connect to console session #{mesg.session_uuid}")
         session = @_sessions[mesg.session_uuid]
         if session? and session.status == 'running'
+            winston.debug("console session exists and is running")
             client_socket.write_mesg('json', {desc:session.desc, history:session.history.toString()})
             plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
+            winston.debug("console session does not exist or is not running, so we make a new session")
             get_port 'console', (err, port) =>
-                winston.debug("Got console server port = #{port}")
+                winston.debug("got console server port = #{port}")
                 if err
                     winston.debug("can't determine console server port; probably console server not running")
                     client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
@@ -218,10 +221,11 @@ class ConsoleSessions
                     @_sessions[mesg.session_uuid] = session
 
                 console_socket.on 'end', () =>
+                    winston.debug("console session #{mesg.session_uuid} ended")
                     session = @_sessions[mesg.session_uuid]
                     if session?
                         session.status = 'done'
-                    # TODO: should we close client_socket here?
+                    client_socket.end()
 
     # Return object that describes status of all Console sessions
     info: (project_id) =>

@@ -2971,6 +2971,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                                 # take last 300000 characters
                                 socket.history = socket.history.slice(socket.history.length-300000)
 
+                        socket.on 'end', () =>
+                            winston.debug("console session #{opts.session_uuid} -- socket connection to local_hub closed")
+                            delete @_sockets[opts.session_uuid]
+
                         cb()
                 socket.once 'mesg', f
                 timed_out = () =>
