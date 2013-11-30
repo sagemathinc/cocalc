@@ -241,7 +241,8 @@ init_http_server = () ->
                                         else
                                             winston.debug("user has write access to project.")
                                             cb()
-                            # TODO: we *should* stream the file, not write to disk/read/etc.... but that is more work and I don't have time now.
+                            # TODO: we *should* stream the file, not write to disk/read/etc.... but that is
+                            # more work and I don't have time now.
                             # get the file itself
                             (cb) ->
                                 winston.debug(misc.to_json(files))
