@@ -2239,7 +2239,7 @@ class ProjectPage
                     if not err
                         last_snapshot.attr('title', (new Date(1000*time)).toISOString()).timeago()
         update()
-        @_update_last_snapshot_time = setInterval(update, 5000) #60000)
+        @_update_last_snapshot_time = setInterval(update, 60000)
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
