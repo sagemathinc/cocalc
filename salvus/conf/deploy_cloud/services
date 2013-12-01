@@ -1,5 +1,7 @@
 # services
-base = 'salvus-2013-11-20-0617'
+#base = 'salvus-2013-11-20-1239'
+#base = 'salvus-2013-11-16-1205'
+base = 'salvus-2013-11-26-1533'
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -7,7 +9,7 @@ cassandra_cpu = 2
 web_ram       = 8
 web_cpu       = 2
 
-compute_ram   = 40
+compute_ram   = 32
 compute_cpu   = 12   # DO *NOT* change this willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
                      # sage: n=1000;import numpy; a=numpy.random.randn(n,n);
@@ -66,7 +68,7 @@ cloud5   {'hostname':'compute5a',  'vcpus':compute_cpu,   'ram':compute_ram,   '
 cloud6   {'hostname':'compute6a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
 cloud7   {'hostname':'compute7a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
 cloud10  {'hostname':'compute10a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
-cloud11  {'hostname':'compute11a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
+cloud11  {'hostname':'compute11a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024', 'vnc':'7000'}
 cloud12  {'hostname':'compute12a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
 cloud13  {'hostname':'compute13a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
 cloud14  {'hostname':'compute14a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024'}
@@ -115,6 +117,6 @@ hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
 
-[snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*4}
+[snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*5}
 snap
 
