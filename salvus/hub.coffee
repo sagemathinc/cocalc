@@ -1827,7 +1827,7 @@ snap_last_snapshot = (opts) ->
                     if err
                         cb(err)
                     else
-                        results.sort((a,b) -> a.utc_seconds_epoch - b.utc_seconds_epoch)
+                        results.sort((a,b) -> b.utc_seconds_epoch - a.utc_seconds_epoch)
                         opts.cb(false, results)
     ], opts.cb)
 
