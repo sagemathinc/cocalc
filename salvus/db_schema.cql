@@ -266,6 +266,7 @@ CREATE TABLE projects (
      invited_collaborator set<uuid>,   // accounts that have been invited to collaborate
      viewer               set<uuid>,   // accounts who are viewers
      invited_viewer       set<uuid>    // accounts who have been invited to view.
+
 );
 
 /* no real reason to use this -- since all projects owned by a given user isn't really interesting --
@@ -347,6 +348,23 @@ CREATE TABLE snap_commits (
     modified_files varchar, /* JSON list of strings of the paths of the files that were modified in this commit. */
     PRIMARY KEY(server_id, project_id, timestamp)
 );
+
+
+/* Basically this is the most recent entry per server in snap_commits above, but
+   designed to provide easy access based on the project_id.
+   To use this, client queries table based on project_id, then takes the
+   entries such that the given server is up, and sorts by timestamp.
+   This is mainly useful for recovering or moving projects.  */
+CREATE TABLE last_snapshot (
+    project_id uuid,
+    server_id  uuid,
+    repo_id    uuid,
+    timestamp  varchar,
+    utc_seconds_epoch int,
+    PRIMARY KEY(project_id, server_id)
+);
+
+
 
 /* This would be very slow... but note that we do not do this query during any normal website ops.
    This is something that was just meant for maybe offline stuff... */
