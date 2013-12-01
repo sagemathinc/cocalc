@@ -1454,7 +1454,7 @@ class exports.Connection extends EventEmitter
                 else if resp.event == 'error'
                     opts.cb(resp.error)
                 else
-                    opts.cb(false, resp.list[0].utc_seconds_epoch)
+                    opts.cb(false, resp.list[0]?.utc_seconds_epoch)
 
     project_directory_listing: (opts) =>
         opts = defaults opts,

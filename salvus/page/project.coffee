@@ -2236,7 +2236,7 @@ class ProjectPage
             salvus_client.project_last_snapshot_time
                 project_id : @project.project_id
                 cb         : (err, time) =>
-                    if not err
+                    if not err and time?
                         last_snapshot.attr('title', (new Date(1000*time)).toISOString()).timeago()
         update()
         @_update_last_snapshot_time = setInterval(update, 60000)
