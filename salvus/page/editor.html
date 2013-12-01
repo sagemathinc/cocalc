@@ -118,8 +118,8 @@ Editor for files in a project
                     <a href="#decrease-font" class='btn btn-small'  data-container="body" data-toggle="tooltip" data-placement="bottom" title="Decrease text size"><i class="fa fa-font" style="font-size:7pt"> </i> </a>
                     <a href="#increase-font" class='btn btn-small'  data-container="body" data-toggle="tooltip" data-placement="bottom" title="Increase text size"><i class="fa fa-font" style="font-size:12pt"> </i> </a>
                     <a href="#goto-line" class='btn btn-small'  data-container="body" data-toggle="tooltip" data-placement="bottom" title="Go to line"><i class="fa fa-bolt"> </i> </a>
+                    <a href="#print" class='btn btn-small'  data-container="body" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                 </span>
-
 
                 <span>&nbsp;</span>
 
@@ -340,5 +340,55 @@ Editor for files in a project
         <h3 class="salvus-ipython-notebook-connecting hide" style="margin-left:2em">Connecting to IPython Notebook Server...</h3>
         <div class="salvus-ipython-notebook-notebook"></div>
     </div>
+
+
+    <div class="modal hide salvus-file-print-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close btn-close" aria-hidden="true">
+                <span style="font-size:20pt;">×</span>
+            </button>
+            <h3><i class="fa fa-print"> </i>  Printable PDF version of <span class="salvus-file-print-filename"></span></h3>
+        </div>
+        <div class="well">
+            <h4>Heading<span class="lighten"> (click to edit)</span></h4>
+            <div class="well" style="background-color:white; text-align:center">
+                <h4 class="salvus-file-print-title" contenteditable="true"></h4>
+                <h5 class="salvus-file-print-author" contenteditable="true"></h5>
+                <h5 class="salvus-file-print-date" contenteditable="true"></h5>
+            </div>
+            <div class="salvus-file-options-sagews hide">
+                <h4>Worksheet Options</h4>
+                <div class="well" style="background-color:white">
+                    <label class="checkbox"  rel="tooltip" title="Table of contents">
+                        <input type="checkbox" checked="checked" class="salvus-file-print-contents" rel="tooltip">Table of contents
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-large btn-close pull-left">Close</button>
+            <button class="btn btn-large btn-primary btn-submit pull-left"><i class="fa fa-bolt"> </i> Generate PDF</button>
+            <span class="salvus-file-printing-progress hide">Preparing PDF version...</span>
+            <a class="salvus-file-printing-link hide" target="_blank">link to PDF version</a>
+        </div>
+    </div>
+
+    <div class="modal hide salvus-goto-line-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close btn-close" aria-hidden="true">
+                <span style="font-size:20pt;">×</span>
+            </button>
+            <h3><i class="fa fa-bolt"> </i>  Goto Line</h3>
+        </div>
+        <div class="well" style="margin:1em">
+            <div class="lighten">Enter <span class="salvus-goto-line-range"></span></div>
+            <input class="salvus-goto-line-input" style="width:95%; margin-top: 1ex;" type="text" placeholder="">
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-close">Cancel</button>
+            <button class="btn btn-primary btn-submit">OK</button>
+        </div>
+    </div>
+
 
 </div>

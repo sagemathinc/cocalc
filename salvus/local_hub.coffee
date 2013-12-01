@@ -131,22 +131,24 @@ class ConsoleSessions
     # Connect to (if 'running'), restart (if 'dead'), or create (if
     # non-existing) the console session with mesg.session_uuid.
     connect: (client_socket, mesg) =>
+        winston.debug("connect to console session #{mesg.session_uuid}")
         session = @_sessions[mesg.session_uuid]
         if session? and session.status == 'running'
-            client_socket.write_mesg('json', session.desc)
-            client_socket.write(session.history)
+            winston.debug("console session exists and is running")
+            client_socket.write_mesg('json', {desc:session.desc, history:session.history.toString()})
             plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
+            winston.debug("console session does not exist or is not running, so we make a new session")
             get_port 'console', (err, port) =>
-                winston.debug("Got console server port = #{port}")
+                winston.debug("got console server port = #{port}")
                 if err
                     winston.debug("can't determine console server port; probably console server not running")
                     client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
                 else
-                    @_new_session(client_socket, mesg, port)
+                    @_new_session(client_socket, mesg, port, session?.history)
 
-    _new_session: (client_socket, mesg, port) =>
+    _new_session: (client_socket, mesg, port, history) =>
         winston.debug("_new_session: defined by #{json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
@@ -163,7 +165,9 @@ class ConsoleSessions
                 console_socket.write_mesg('json', mesg)
                 # Read one JSON message back, which describes the session
                 console_socket.once 'mesg', (type, desc) =>
-                    client_socket.write_mesg('json', desc)
+                    if not history?
+                        history = new Buffer(0)                        
+                    client_socket.write_mesg('json', {desc:desc, history:history.toString()})  # in future, history could be read from a file
                     # Disable JSON mesg protocol, since it isn't used further
                     misc_node.disable_mesg(console_socket)
                     misc_node.disable_mesg(client_socket)
@@ -173,7 +177,7 @@ class ConsoleSessions
                         desc    : desc,
                         status  : 'running',
                         clients : [client_socket],
-                        history : new Buffer(0)
+                        history : history
                         session_uuid : mesg.session_uuid
                         project_id   : mesg.project_id
 
@@ -207,9 +211,9 @@ class ConsoleSessions
                         session.amount_of_data += data.length
                         n = session.history.length
                         if n > 400000  # TODO: totally arbitrary; also have to change the same thing in hub.coffee
-                            session.history = session.history.slice(300000)
+                            session.history = session.history.slice(session.history.length - 300000)
 
-                        # Never push more than 20000 characters at once to hub, since that could overwhelm...
+                        # Never push more than 20000 characters at once to client hub, since that could overwhelm...
                         if data.length > 20000
                             data = "[...]"+data.slice(data.length-20000)
 
@@ -218,10 +222,11 @@ class ConsoleSessions
                     @_sessions[mesg.session_uuid] = session
 
                 console_socket.on 'end', () =>
+                    winston.debug("console session #{mesg.session_uuid} ended")
                     session = @_sessions[mesg.session_uuid]
                     if session?
                         session.status = 'done'
-                    # TODO: should we close client_socket here?
+                    client_socket.end()
 
     # Return object that describes status of all Console sessions
     info: (project_id) =>

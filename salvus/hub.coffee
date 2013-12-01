@@ -29,15 +29,17 @@ DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*12  # time in seconds; 0 to disable
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
 MESG_QUEUE_INTERVAL_MS  = 50
+#MESG_QUEUE_INTERVAL_MS  = 20
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
 MESG_QUEUE_MAX_COUNT    = 25
-# Any messages larger than this is not allowed (it could take a long time to handle, etc.).
+#MESG_QUEUE_MAX_COUNT    = 200
+# Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 5
 
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24    # 24 hours
+BLOB_TTL = 60*60*24*30   # 1 month
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -239,7 +241,8 @@ init_http_server = () ->
                                         else
                                             winston.debug("user has write access to project.")
                                             cb()
-                            # TODO: we *should* stream the file, not write to disk/read/etc.... but that is more work and I don't have time now.
+                            # TODO: we *should* stream the file, not write to disk/read/etc.... but that is
+                            # more work and I don't have time now.
                             # get the file itself
                             (cb) ->
                                 winston.debug(misc.to_json(files))
@@ -699,6 +702,7 @@ class Client extends EventEmitter
     ######################################################################
 
     handle_data_from_client: (data) =>
+        #winston.debug("handle_data_from_client(#{data.slice(0,100)})")
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
         # e.g., users storing a multi-gigabyte worksheet title,
@@ -753,8 +757,10 @@ class Client extends EventEmitter
                 return
 
             # drop oldest message to keep
-            while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
-                @_handle_data_queue.shift()
+            if @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
+                winston.debug("MESG_QUEUE_MAX_COUNT(=#{MESG_QUEUE_MAX_COUNT}) exceeded (=#{@_handle_data_queue.length}) -- drop oldest messages")
+                while @_handle_data_queue.length > MESG_QUEUE_MAX_COUNT
+                    @_handle_data_queue.shift()
 
             # get task
             task = @_handle_data_queue.shift()
@@ -1459,6 +1465,19 @@ class Client extends EventEmitter
                     if err
                         @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
                     else
+                        if not @_file_access?
+                            @_file_access = {}
+                        key = mesg.project_id + @account_id + mesg.path
+                        if not @_file_access[key]?
+                            database.log_file_access
+                                project_id : mesg.project_id
+                                account_id : @account_id
+                                filename   : mesg.path
+                            @_file_access[key] = true
+                            f = () =>
+                                delete @_file_access[key]
+                            setTimeout(f, 5*60000)  # record particular file open by a user at most once every 5 minutes
+
                         # It is critical that we initialize the
                         # diffsync objects on both sides with exactly
                         # the same document.
@@ -1473,12 +1492,6 @@ class Client extends EventEmitter
                                 path         : session.path
                                 content      : snapshot
                             @push_to_client(mesg)
-                            ###
-                            database.file_access_log
-                                account_id : ?
-                                project_id : mesg.project_id
-                                filename   : session.path
-                            ###
 
 
     get_codemirror_session: (mesg, cb) =>
@@ -2478,9 +2491,9 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
                         winston.debug("sync: reconnecting...")
                         @connect () =>
                             cb(err); return # still an error even if connect works.
-                    else if err.indexOf("timed out") != -1
-                        @local_hub.restart () =>
-                            cb(err); return
+                    #else if err.indexOf("timed out") != -1
+                    #    @local_hub.restart () =>
+                    #        cb(err); return
                 cb(err)
             else
                 @set_content(after)
@@ -2919,7 +2932,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         # create a new session with that uuid and plug this socket into it.
         async.series([
             (cb) =>
-                winston.debug("getting new socket to a local_hub")
+                winston.debug("getting new socket connectionto a local_hub")
                 @new_socket (err, _socket) =>
                     if err
                         cb(err)
@@ -2944,6 +2957,24 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     else
                         # We will now only use this socket for binary communications.
                         misc_node.disable_mesg(socket)
+                        socket.history = resp.history
+
+                        # Keep our own copy of the console history (in this global hub), so when clients (re-)connect
+                        # we do not have to get the whole history from the local hub.
+                        socket.on 'data', (data) =>
+                            # DO NOT Record in database that there was activity in this project, since
+                            # this is *way* too frequent -- a tmux session make it always on for no reason.
+                            # database.touch_project(project_id:opts.project_id)
+                            socket.history += data
+                            n = socket.history.length
+                            if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                                # take last 300000 characters
+                                socket.history = socket.history.slice(socket.history.length-300000)
+
+                        socket.on 'end', () =>
+                            winston.debug("console session #{opts.session_uuid} -- socket connection to local_hub closed")
+                            delete @_sockets[opts.session_uuid]
+
                         cb()
                 socket.once 'mesg', f
                 timed_out = () =>
@@ -2960,10 +2991,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
                 @_socket?.destroy()
                 delete @_status; delete @_socket
-
             else if socket?
                 @_sockets[opts.session_uuid] = socket
-                socket.history = undefined
                 opts.cb(false, socket)
         )
 
@@ -3009,39 +3038,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
                     data_channel : channel
+                    history      : console_socket.history
                 opts.cb(false, mesg)
-
-                history = console_socket.history
 
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
                 # client over the channel we just created.
-                if history?
-                    opts.client.push_data_to_client(channel, history)
-                    console_socket.on 'data', (data) ->
-                        opts.client.push_data_to_client(channel, data)
-
-                        # Record in database that there was activity in this project.
-                        # This is *way* too frequent -- a tmux session make it always on for no reason.
-                        # database.touch_project(project_id:opts.project_id)
-
-                else
-                    console_socket.history = ''
-                    console_socket.on 'data', (data) ->
-                        console_socket.history += data
-                        n = console_socket.history.length
-                        if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                            console_socket.history = console_socket.history.slice(300000)
-
-                        # Never push more than 20000 characters at once to client, since display is slow, etc.
-                        if data.length > 20000
-                            data = "[...]"+data.slice(data.length-20000)
-
-                        opts.client.push_data_to_client(channel, data)
-
-                        # See comment above.
-                        #database.touch_project(project_id:opts.project_id)
-
+                console_socket.on 'data', (data) ->
+                    # Never push more than 20000 characters at once to client, since display is slow, etc.
+                    if data.length > 20000
+                        data = "[...]" + data.slice(data.length-20000)
+                    opts.client.push_data_to_client(channel, data)
 
     #########################################
     # CodeMirror sessions
@@ -4859,6 +4866,8 @@ exports.send_email = send_email = (opts={}) ->
 MAX_BLOB_SIZE = 12000000
 MAX_BLOB_SIZE_HUMAN = "12MB"
 
+blobs = {}
+
 save_blob = (opts) ->
     opts = defaults opts,
         uuid  : undefined  # if not given, is generated; function always returns the uuid that was used
@@ -4866,6 +4875,13 @@ save_blob = (opts) ->
         value : undefined
         cb    : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds; if there is already something,  in blobstore with longer ttl, we leave it; undefined = infinite ttl
+
+    if false  # this and the one below can be commented out for testing -- HOWEVEr, don't do this in production with
+              # more than one hub, or things will break in subtle ways.
+        blobs[opts.uuid] = opts.value
+        opts.cb()
+        winston.debug("save_blob #{opts.uuid}")
+        return
 
     if not opts.value?
         err = "BUG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined value"
@@ -4903,6 +4919,10 @@ get_blob = (opts) ->
         max_retries : 5
             # if blob isn't in the database yet, we retry up to max_retries many times, after waiting 300ms for it.
             # We do this since Cassandra is only eventually consistent, and clients can be querying other nodes.
+    if false
+        opts.cb(false, blobs[opts.uuid])
+        winston.debug("get_blob #{opts.uuid}")
+        return
     database.uuid_blob_store(name:"blobs").get
         uuid : opts.uuid
         cb   : (err, result) ->

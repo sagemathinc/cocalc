@@ -65,6 +65,29 @@ CASSANDRA_NATIVE_PORT = 9042
 CASSANDRA_INTERNODE_PORTS = [7000, 7001]
 CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_NATIVE_PORT]
 
+
+####################
+# Sending an email (useful for monitoring script)
+# See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
+####################
+
+def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@gmail.com', fromaddr='salvusmath@gmail.com'):
+    log.info("sending email to %s", toaddrs)
+    username = 'salvusmath'
+    password = open(os.path.join(os.environ['HOME'],'salvus/salvus/data/secrets/salvusmath_email_password')
+                    ).read().strip()
+    import smtplib
+    from email.mime.text import MIMEText
+    msg = MIMEText(msg)
+    msg['Subject'] = subject
+    msg['From'] = fromaddr
+    msg['To'] = toaddrs
+    server = smtplib.SMTP('smtp.gmail.com:587')
+    server.starttls()
+    server.login(username,password)
+    server.sendmail(fromaddr, toaddrs, msg.as_string())
+    server.quit()
+
 ####################
 # Running a subprocess
 ####################
@@ -1262,13 +1285,13 @@ class Monitor(object):
                 d['load15'] = float(z[-1]) / d['nproc']
                 z = m[3].split()
                 d['use_GB'] =  int(z[2][:-1]) if z[2][-1] == 'G' else 1
-                d['use%']   = z[4][:-1]
+                d['use%']   = int(z[4][:-1])
                 z = m[5].split()
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
                 d['nprojects'] = int(m[8])
                 ans.append(d)
-        w = [(-d['load1'], d) for d in ans]
+        w = [(-d['use%'], d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1294,13 +1317,13 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def dns(self, hosts='all', rounds=3):
+    def dns(self, hosts='all', rounds=1):
         """
         Verify that DNS is working well on all machines.
         """
-        cmd = '&&'.join(["host -v google.com > /dev/null && host -v trac.sagemath.org >/dev/null && host -v www.sagemath.org >/dev/null && host -v github.com >/dev/null"]*rounds) + "; echo $?"
+        cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=5+4*rounds).iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1326,9 +1349,20 @@ class Monitor(object):
             'compute'   : self.compute()
         }
 
-    def status(self, all=None, n=5):
+    def down(self, all):
+        # Make a list of down services
+        down = []
+        for service, v in all.iteritems():
+            if isinstance(v, list):
+                for x in v:
+                    if x.get('status','') == 'down':
+                        down.append(x)
+        return down
+
+    def print_status(self, all=None, n=5):
         if all is None:
             all = self.all( )
+
         print "DNS"
         for x in all['dns'][:n]:
             print x
@@ -1368,13 +1402,32 @@ class Monitor(object):
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 
-    def go(self, wait=61):
+    def _go(self, last_down):
+        all = self.all()
+        self.update_db(all=all)
+        self.print_status(all=all)
+        down = set(self.down(all=all))
+        down2 = down.intersection(last_down)
+        if len(down2) > 0:
+            email("The following are down: %s"%down2, subject="SMC admin -- stuff down!")
+        return down
+
+    def go(self, interval=5, residue=0):
+        """
+        Run a full monitor scan when the current time in *minutes* since the epoch
+        is congruent to residue modulo interval.
+        """
         import time
+        last_down = set([])
+        last_time = 0
         while True:
-            all = self.all()
-            self.update_db(all=all)
-            self.status(all=all)
-            time.sleep(wait)
+            now = int(time.time()/60)  # minutes since epoch
+            if now != last_time:
+                #print "%s minutes since epoch"%now
+                if now % interval == residue:
+                    last_time = now
+                    last_down = self._go(last_down)
+            time.sleep(20)
 
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
@@ -1794,7 +1847,7 @@ class Services(object):
                 print "WAITING FOR -- cassandra HOST (%s of %s): %s"%(i, len(v), host)
                 self.start('cassandra', host=host, wait=False)
                 print "time: ", time.time()-t
-    
+
 
     def update_from_dev_repo(self):
         """
@@ -1802,7 +1855,7 @@ class Services(object):
         update version number.  Also, restart nginx.  Use this for pushing out HTML/Javascript/CSS
         changes that aren't at all critical for users to see immediately.
         """
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%5))); ./pull_from_dev_project; ./make_coffee --all', parallel=True, timeout=30)
 
     def update_nginx_from_dev_repo(self):
         """
@@ -1819,7 +1872,7 @@ class Services(object):
         across all machines, then restart all nginx and hub servers, in serial.
         """
         import time; ver = int(time.time())
-        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $(($RANDOM%5)); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=30)
+        self._hosts('hub', 'cd salvus/salvus; . salvus-env; sleep $((($RANDOM%%5))); ./pull_from_dev_project; echo "exports.version=%s" > node_modules/salvus_version.js; ./make_coffee --all'%ver, parallel=True, timeout=30)
         self.restart('nginx')
         self.restart('hub')
 

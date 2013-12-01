@@ -14,6 +14,7 @@ feature = require("feature")
 IS_MOBILE = feature.IS_MOBILE
 
 misc = require('misc')
+misc_page = require('misc_page')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
 
@@ -42,6 +43,7 @@ codemirror_associations =
     h      : 'text/x-c++hdr'
     html   : 'htmlmixed'
     java   : 'text/x-java'
+    jl     : 'text/x-julia'
     js     : 'javascript'
     lua    : 'lua'
     m      : 'text/x-octave'
@@ -1042,6 +1044,7 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
+
         @element.data('editor', @)
 
         @init_save_button()
@@ -1202,11 +1205,15 @@ class CodeMirrorEditor extends FileEditor
     init_edit_buttons: () =>
         that = @
         for name in ['search', 'next', 'prev', 'replace', 'undo', 'redo', 'autoindent',
-                     'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line' ]
+                     'shift-left', 'shift-right', 'split-view','increase-font', 'decrease-font', 'goto-line', 'print' ]
             e = @element.find("a[href=##{name}]")
             e.data('name', name).tooltip(delay:{ show: 500, hide: 100 }).click (event) ->
                 that.click_edit_button($(@).data('name'))
                 return false
+
+        # TODO: implement printing for other file types
+        if @filename.slice(@filename.length-7) != '.sagews'
+            @element.find("a[href=#print]").hide()
 
     click_edit_button: (name) =>
         cm = @codemirror_with_last_focus
@@ -1247,6 +1254,8 @@ class CodeMirrorEditor extends FileEditor
                 @change_font_size(cm, -1)
             when 'goto-line'
                 @goto_line(cm)
+            when 'print'
+                @print()
 
     change_font_size: (cm, delta) =>
         elt = $(cm.getWrapperElement())
@@ -1270,18 +1279,135 @@ class CodeMirrorEditor extends FileEditor
         focus = () =>
             @focus()
             cm.focus()
-        bootbox.prompt "Goto line... (1-#{cm.lineCount()} or n%)", (result) =>
-            if result != null
-                result = result.trim()
-                if result.length >= 1 and result[result.length-1] == '%'
-                    line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
-                else
-                    line = parseInt(result)-1
-                pos = {line:line, ch:0}
-                cm.setCursor(pos)
-                info = cm.getScrollInfo()
-                cm.scrollIntoView(pos, info.clientHeight/2)
-            setTimeout(focus, 100)
+
+        dialog = templates.find(".salvus-goto-line-dialog")
+        dialog.modal('show')
+        dialog.find(".btn-close").off('click').click () ->
+            dialog.modal('hide')
+            setTimeout(focus, 50)
+            return false
+        input = dialog.find(".salvus-goto-line-input")
+        input.val(cm.getCursor().line+1)  # +1 since line is 0-based
+        dialog.find(".salvus-goto-line-range").text("1-#{cm.lineCount()} or n%")
+        dialog.find(".salvus-goto-line-input").focus().select()
+        submit = () =>
+            dialog.modal('hide')
+            result = input.val().trim()
+            if result.length >= 1 and result[result.length-1] == '%'
+                line = Math.floor( cm.lineCount() * parseInt(result.slice(0,result.length-1)) / 100.0)
+            else
+                line = Math.min(parseInt(result)-1)
+            if line >= cm.lineCount()
+                line = cm.lineCount() - 1
+            if line <= 0
+                line = 0
+            pos = {line:line, ch:0}
+            cm.setCursor(pos)
+            info = cm.getScrollInfo()
+            cm.scrollIntoView(pos, info.clientHeight/2)
+            setTimeout(focus, 50)
+        dialog.find(".btn-submit").off('click').click(submit)
+        input.keydown (evt) =>
+            if evt.which == 13 # enter
+                submit()
+                return false
+            if evt.which == 27 # escape
+                setTimeout(focus, 50)
+                dialog.modal('hide')
+                return false
+
+
+    print: () =>
+        dialog = templates.find(".salvus-file-print-dialog").clone()
+        p = misc.path_split(@filename)
+        v = p.tail.split('.')
+        if v.length <= 1
+            ext = ''
+            base = p.tail
+        else
+            ext = v[v.length-1]
+            base = v.slice(0,v.length-1).join('.')
+
+        if ext != 'sagews'
+            alert_message(type:'info', message:'Only printing of Sage Worksheets is currently implemented.')
+            return
+
+        #console.log("p=",p)
+        #console.log("base=",base)
+        #console.log("ext=",ext)
+        submit = () =>
+            tmp = undefined
+            pdf = undefined
+            dialog.find(".salvus-file-printing-progress").show()
+            dialog.find(".salvus-file-printing-link").hide()
+            dialog.find(".btn-submit").icon_spin(start:true)
+            async.series([
+                (cb) =>
+                    tmp_dir
+                        ttl        : 60
+                        path       : "/tmp"
+                        project_id : @project_id
+                        cb         : (err, _tmp) =>
+                            if err
+                                cb(err)
+                            else
+                                tmp = "/tmp/" + _tmp
+                                pdf = tmp + '/' + base + '.pdf'
+                                #console.log("tmp=",tmp)
+                                #console.log("pdf=",pdf)
+                                cb()
+                (cb) =>
+                    @save(cb)
+                (cb) =>
+                    salvus_client.exec
+                        project_id  : @project_id
+                        path        : p.head
+                        command     : 'sagews2pdf.py'
+                        args        : [p.tail, '--outfile',  pdf,
+                                               '--title',    dialog.find(".salvus-file-print-title").text(),
+                                               '--author',   dialog.find(".salvus-file-print-author").text(),
+                                               '--date',     dialog.find(".salvus-file-print-date").text(),
+                                               '--contents', dialog.find(".salvus-file-print-contents").is(":checked")]
+                        timeout     : 60*5  # link will be valid for 5 minutes
+                        err_on_exit : false
+                        bash        : false
+                        cb          : (err, output) =>
+                            #console.log(output)
+                            if err
+                                cb(err)
+                            else
+                                if output.exit_code
+                                    cb(output.stderr)
+                                else
+                                    cb()
+                (cb) =>
+                    salvus_client.read_file_from_project
+                        project_id : @project_id
+                        path       : pdf
+                        cb         : (err, mesg) =>
+                            if err
+                                cb(err)
+                            else
+                                window.open(mesg.url,'_blank')
+                                dialog.find(".salvus-file-printing-link").attr('href', mesg.url).text(pdf).show()
+                                cb()
+            ], (err) =>
+                dialog.find(".btn-submit").icon_spin(false)
+                dialog.find(".salvus-file-printing-progress").hide()
+                if err
+                    alert_message(type:"error", message:"problem printing '#{p.tail}' -- #{err}")
+            )
+            return false
+
+        dialog.find(".salvus-file-print-filename").text(@filename)
+        dialog.find(".salvus-file-print-title").text(base)
+        dialog.find(".salvus-file-print-author").text(require('account').account_settings.fullname())
+        dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
+        dialog.find(".btn-submit").click(submit)
+        dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+        if ext == "sagews"
+            dialog.find(".salvus-file-options-sagews").show()
+        dialog.modal('show')
 
     init_close_button: () =>
         @element.find("a[href=#close]").click () =>
@@ -1452,26 +1578,44 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
 # LateX Editor
 ###############################################
 
-# Make a temporary uuid-named directory in path.
-tmp_dir = (project_id, path, cb) ->      # cb(err, directory_name)
+# Make a (server-side) self-destructing temporary uuid-named directory in path.
+tmp_dir = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required
+        ttl        : 120            # self destruct in this many seconds
+        cb         : required       # cb(err, directory_name)
     name = "." + uuid()   # hidden
+    if "'" in opts.path
+        opts.cb("there is a disturbing ' in the path: '#{opts.path}'")
+        return
+    remove_tmp_dir
+        project_id : opts.project_id
+        path       : opts.path
+        tmp_dir    : name
+        ttl        : opts.ttl
     salvus_client.exec
-        project_id : project_id
-        path       : path
+        project_id : opts.project_id
+        path       : opts.path
         command    : "mkdir"
         args       : [name]
         cb         : (err, output) =>
             if err
-                cb("Problem creating temporary PDF preview path.")
+                opts.cb("Problem creating temporary directory in '#{path}'")
             else
-                cb(false, name)
+                opts.cb(false, name)
 
-remove_tmp_dir = (project_id, path, tmp_dir, cb) ->
+remove_tmp_dir = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        path       : required
+        tmp_dir    : required
+        ttl        : 120            # run in this many seconds (even if client disconnects)
+        cb         : undefined
     salvus_client.exec
-        project_id : project_id
-        path       : path
-        command    : "rm"
-        args       : ['-rf', tmp_dir]
+        project_id : opts.project_id
+        command    : "sleep #{opts.ttl} && rm -rf '#{opts.path}/#{opts.tmp_dir}'"
+        timeout    : 10 + opts.ttl
         cb         : (err, output) =>
             cb?(err)
 
@@ -1793,6 +1937,8 @@ class PDFLatexDocument
             if opts.last_page == 0
                 opts.last_page = 99999
 
+        #console.log("opts.last_page = ", opts.last_page)
+
         if opts.first_page <= 0
             opts.first_page = 1
 
@@ -1804,11 +1950,24 @@ class PDFLatexDocument
         tmp = undefined
         sha1_changed = []
         changed_pages = []
+        pdf = undefined
         async.series([
             (cb) =>
-                tmp_dir @project_id, "/tmp", (err, _tmp) =>
-                    tmp = "/tmp/#{_tmp}"
-                    cb(err)
+                tmp_dir
+                    project_id : @project_id
+                    path       : "/tmp"
+                    ttl        : 180
+                    cb         : (err, _tmp) =>
+                        tmp = "/tmp/#{_tmp}"
+                        cb(err)
+            (cb) =>
+                pdf = "#{tmp}/#{@filename_pdf}"
+                @_exec
+                    command : 'cp'
+                    args    : [@filename_pdf, pdf]
+                    timeout : 15
+                    err_on_exit : true
+                    cb      : cb
             (cb) =>
                 if @image_type == "png"
                     args = ["-r#{opts.resolution}",
@@ -1818,7 +1977,7 @@ class PDFLatexDocument
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
                                "-dDownScaleFactor=#{opts.png_downscale}",
-                               @filename_pdf]
+                               pdf]
                 else if @image_type == "jpg"
                     args = ["-r#{opts.resolution}",
                                '-dBATCH', '-dNOPAUSE',
@@ -1827,7 +1986,7 @@ class PDFLatexDocument
                                "-dFirstPage=#{opts.first_page}",
                                "-dLastPage=#{opts.last_page}",
                                "-dJPEGQ=#{opts.jpeg_quality}",
-                               @filename_pdf]
+                               pdf]
                 else
                     cb("unknown image type #{@image_type}")
                     return
@@ -1837,6 +1996,7 @@ class PDFLatexDocument
                     command : 'gs'
                     args    : args
                     err_on_exit : true
+                    timeout : 120
                     cb      : (err, output) ->
                         cb(err)
 
@@ -1846,6 +2006,7 @@ class PDFLatexDocument
                     command : "sha1sum *.png *.jpg"
                     bash    : true
                     path    : tmp
+                    timeout : 15
                     cb      : (err, output) =>
                         if err
                             cb(err); return
@@ -1884,7 +2045,6 @@ class PDFLatexDocument
                                 cb()
                 async.mapSeries(sha1_changed, update, cb)
         ], (err) =>
-            remove_tmp_dir(@project_id, "/", tmp)
             opts.cb?(err, changed_pages)
         )
 
@@ -2152,7 +2312,12 @@ class PDF_Preview extends FileEditor
 
                 @last_page = n
             img =  page.find("img")
+            #console.log("setting an img src to", url)
             img.attr('src', url).data('resolution', resolution)
+            load_error = () ->
+                img.off('error', load_error)
+                setTimeout((()->img.attr('src',url)), 2000)
+            img.on('error', load_error)
 
             if @zoom_width?
                 max_width = @zoom_width
@@ -2960,7 +3125,10 @@ class Worksheet extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         opts = @opts = defaults opts,
             session_uuid : undefined
+
         @element = $("<div>Opening worksheet...</div>")  # TODO -- make much nicer
+
+
         if content?
             @_set(content)
         else

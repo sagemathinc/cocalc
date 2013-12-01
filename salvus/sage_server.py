@@ -360,6 +360,8 @@ class TemporaryURL:
         self.url = url
         self.ttl = ttl
     def __repr__(self):
+        return repr(self.url)
+    def __str__(self):
         return self.url
 
 namespace = Namespace({})
@@ -529,18 +531,19 @@ class Salvus(object):
         function sage_server.uuidsha1).  Any two files with the same content have the
         same Sha1 hash.
         """
-        if os.path.splitext(filename)[1] == '.webm':
+        filename = unicode(filename,'utf8')
+        if os.path.splitext(filename)[1] == u'.webm':
             raw = True
 
         if raw:
             info = self.project_info()
             path = os.path.abspath(filename)
-            home = os.environ['HOME'] + '/'
+            home = os.environ[u'HOME'] + u'/'
             if path.startswith(home):
                 path = path[len(home):]
             else:
-                raise ValueError("can only send raw files in your home directory")
-            url  = os.path.join('/',info['base_url'].strip('/'), info['project_id'], 'raw', path.lstrip('/'))
+                raise ValueError(u"can only send raw files in your home directory")
+            url  = os.path.join(u'/',info['base_url'].strip('/'), info['project_id'], u'raw', path.lstrip('/'))
             if show:
                 self._flush_stdio()
                 self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events))
@@ -566,9 +569,9 @@ class Salvus(object):
         self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events))
         if not show:
             info = self.project_info()
-            url = "%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
+            url = u"%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
             if download:
-                url += '?download'
+                url += u'?download'
             return TemporaryURL(url=url, ttl=mesg['ttl'])
 
     def default_mode(self, mode=None):

@@ -10,12 +10,17 @@ args = parser.parse_args()
 SAGEMATHCLOUD=os.path.abspath(os.path.dirname(__file__))
 os.environ['SAGEMATHCLOUD'] = SAGEMATHCLOUD
 
+
 os.chdir(os.environ['HOME'])
 
 def cmd(s):
     print s
     if os.system(". '%s'/sagemathcloud-env && "%SAGEMATHCLOUD + s):
        sys.exit(1)
+
+root_link = os.path.join(SAGEMATHCLOUD, "root")
+if not os.path.exists(root_link):
+    cmd("cd '%s'; ln -s / root"%SAGEMATHCLOUD)
 
 cmd("cd '%s' && ./make_coffee"%SAGEMATHCLOUD)
 
