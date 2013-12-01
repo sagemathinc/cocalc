@@ -1402,15 +1402,13 @@ class Monitor(object):
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 
-    def _go(self, last_down):
+    def _go(self):
         all = self.all()
         self.update_db(all=all)
         self.print_status(all=all)
-        down = set(self.down(all=all))
-        down2 = down.intersection(last_down)
-        if len(down2) > 0:
-            email("The following are down: %s"%down2, subject="SMC admin -- stuff down!")
-        return down
+        down = self.down(all=all)
+        if len(down) > 0:
+            email("The following are down: %s"%down, subject="SMC admin -- stuff down!")
 
     def go(self, interval=5, residue=0):
         """
@@ -1418,7 +1416,6 @@ class Monitor(object):
         is congruent to residue modulo interval.
         """
         import time
-        last_down = set([])
         last_time = 0
         while True:
             now = int(time.time()/60)  # minutes since epoch
@@ -1426,7 +1423,7 @@ class Monitor(object):
                 #print "%s minutes since epoch"%now
                 if now % interval == residue:
                     last_time = now
-                    last_down = self._go(last_down)
+                    self._go()
             time.sleep(20)
 
 class Services(object):
