@@ -741,7 +741,7 @@ message
 message
     event          : 'snap'
     id             : undefined
-    command        : required    # 'ls', 'restore', 'log'
+    command        : required    # 'ls', 'restore', 'log', 'last'
     project_id     : required
     # if snapshot not given, then command must be "ls", and server returns a list of available snapshots in reverse order
     snapshot       : undefined

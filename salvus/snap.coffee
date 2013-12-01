@@ -1029,6 +1029,16 @@ monitor_snapshot_queue = () ->
 
                     cb(err)
 
+            # Update the last_snapshot table at the same time -- not an error if this doesn't work for some reason,
+            # so we don't bother with callback, etc.
+            database.update
+                table : 'last_snapshot'
+                set   : {repo_id:repo_id, timestamp:timestamp, utc_seconds_epoch:utc_seconds_epoch}
+                where :
+                    server_id  : server_id
+                    project_id : project_id
+
+
     ], (err) ->
         # wait random interval up to 15 seconds between snasphots, to ensure uniqueness of
         # time stamp, not be too aggressive checking locks, etc.

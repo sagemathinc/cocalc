@@ -1438,6 +1438,23 @@ class exports.Connection extends EventEmitter
                                 files.push({name:name, snapshot:snapshot})
                     opts.cb(false, {files:files})
 
+    # return the time in seconds since epoch UTC of the last snapshot.
+    project_last_snapshot_time: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required     # cb(err, utc_seconds_epoch)
+        @call
+            message:
+                message.snap
+                    command    : 'last'
+                    project_id : opts.project_id
+            cb : (err, resp) ->
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(false, resp.list[0].utc_seconds_epoch)
 
     project_directory_listing: (opts) =>
         opts = defaults opts,

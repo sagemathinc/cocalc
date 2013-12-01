@@ -131,6 +131,7 @@ class ProjectPage
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
                 @project_log?.disconnect_from_session()
+                clearInterval(@_update_last_snapshot_time)
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
@@ -2230,6 +2231,15 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
+        last_snapshot = @container.find(".project-snapshot-last-timeago").find('span')
+        update = () =>
+            salvus_client.project_last_snapshot_time
+                project_id : @project.project_id
+                cb         : (err, time) =>
+                    if not err
+                        last_snapshot.attr('title', (new Date(1000*time)).toISOString()).timeago()
+        update()
+        @_update_last_snapshot_time = setInterval(update, 5000) #60000)
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
