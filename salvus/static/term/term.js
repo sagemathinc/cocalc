@@ -2501,6 +2501,10 @@ Terminal.prototype.eraseRight = function(x, y) {
   var line = this.lines[this.ybase + y]
     , ch = [this.curAttr, ' ']; // xterm
 
+  if (!(typeof line !== "undefined" && line !== null)) {
+      return;
+  }
+
   for (; x < this.cols; x++) {
     line[x] = ch;
   }
