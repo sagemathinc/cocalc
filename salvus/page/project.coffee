@@ -2173,15 +2173,15 @@ class ProjectPage
         # Restart worksheet server
         link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            #link.find("i").addClass('fa-spin')
-            link.icon_spin(start:true)
+            link.find("i").addClass('fa-spin')
+            #link.icon_spin(start:true)
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
                 timeout    : 10
                 cb         : (err, output) =>
-                    #link.find("i").removeClass('fa-spin')
-                    link.icon_spin(false)
+                    link.find("i").removeClass('fa-spin')
+                    #link.icon_spin(false)
                     if err
                         alert_message
                             type    : "error"
@@ -2207,8 +2207,8 @@ class ProjectPage
                         else
                             cb(true)
                 (cb) =>
-                    #link.find("i").addClass('fa-spin')
-                    link.icon_spin(start:true)
+                    link.find("i").addClass('fa-spin')
+                    #link.icon_spin(start:true)
                     alert_message
                         type    : "info"
                         message : "Restarting project server..."
@@ -2217,8 +2217,8 @@ class ProjectPage
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
-                    #link.find("i").removeClass('fa-spin')
-                    link.icon_spin(false)
+                    link.find("i").removeClass('fa-spin')
+                    #link.icon_spin(false)
                     alert_message
                         type    : "success"
                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
