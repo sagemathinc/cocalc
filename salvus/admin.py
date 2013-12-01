@@ -1323,7 +1323,7 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20).iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1349,43 +1349,41 @@ class Monitor(object):
             'compute'   : self.compute()
         }
 
-    def status(self, all=None, n=5):
+    def down(self, all):
+        # Make a list of down services
         down = []
+        for service, v in all.iteritems():
+            if isinstance(v, list):
+                for x in v:
+                    if x.get('status','') == 'down':
+                        down.append(x)
+        return down
+
+    def print_status(self, all=None, n=5):
         if all is None:
             all = self.all( )
+
         print "DNS"
         for x in all['dns'][:n]:
             print x
-            if x.get('status',None) == 'down':
-                down.append(x)
 
         print "LOAD"
         for x in all['load'][:n]:
             print x
-            if x.get('status',None) == 'down':
-                down.append(x)
 
         print "SNAP"
         for x in all['snap'][:n]:
             print x
-            if x.get('status',None) == 'down':
-                down.append(x)
 
         print "CASSANDRA"
         for x in all['cassandra'][:n]:
             print x
-            if x.get('status',None) == 'down':
-                down.append(x)
 
         print "COMPUTE"
         vcompute = all['compute']
         print "%s projects running"%(sum([x['nprojects'] for x in vcompute]))
         for x in all['compute'][:n]:
             print x
-            if x.get('status',None) == 'down':
-                down.append(x)
-
-        return down
 
     def update_db(self, all=None):
         if all is None:
@@ -1404,15 +1402,32 @@ class Monitor(object):
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 
-    def go(self, wait=61):
+    def _go(self, last_down):
+        all = self.all()
+        self.update_db(all=all)
+        self.print_status(all=all)
+        down = set(self.down(all=all))
+        down2 = down.intersection(last_down)
+        if len(down2) > 0:
+            email("The following are down: %s"%down2, subject="SMC admin -- stuff down!")
+        return down
+
+    def go(self, interval=5, residue=0):
+        """
+        Run a full monitor scan when the current time in *minutes* since the epoch
+        is congruent to residue modulo interval.
+        """
         import time
+        last_down = set([])
+        last_time = 0
         while True:
-            all = self.all()
-            self.update_db(all=all)
-            down = self.status(all=all)
-            if down:
-                email("The following are down: %s"%down, subject="SMC admin -- stuff down!")
-            time.sleep(wait)
+            now = int(time.time()/60)  # minutes since epoch
+            if now != last_time:
+                #print "%s minutes since epoch"%now
+                if now % interval == residue:
+                    last_time = now
+                    last_down = self._go(last_down)
+            time.sleep(20)
 
 class Services(object):
     def __init__(self, path, username=whoami, keyspace='salvus', passwd=True):
