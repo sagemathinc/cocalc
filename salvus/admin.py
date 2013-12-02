@@ -1407,7 +1407,7 @@ class Monitor(object):
         self.update_db(all=all)
         self.print_status(all=all)
         down = self.down(all=all)
-        if len(down) > 0:
+        if len([x for x in down if x.get('service','') != 'dns']) > 0:
             email("The following are down: %s"%down, subject="SMC admin -- stuff down!")
 
     def go(self, interval=5, residue=0):
