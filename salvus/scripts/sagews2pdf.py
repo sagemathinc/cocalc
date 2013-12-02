@@ -169,6 +169,10 @@ class Worksheet(object):
         The worksheet defined by the given filename or UTF unicode string s.
         """
         self._default_title = ''
+        if filename:
+            self._filename = os.path.abspath(filename)
+        else:
+            self._filename = None
         if filename is not None:
             self._default_title = filename
             self._init_from(open(filename).read().decode('utf8'))
@@ -189,6 +193,7 @@ class Worksheet(object):
     def latex_preamble(self, title='',author='', date='', contents=True):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
+#\usepackage{attachfile}
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
@@ -236,6 +241,9 @@ sensitive=true}
             s += "\\date{%s}\n"%date
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
+        if self._filename:
+            s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
+
         if contents:
             s += "\\tableofcontents\n"
         return s
