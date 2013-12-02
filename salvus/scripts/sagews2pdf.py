@@ -74,7 +74,15 @@ class Cell(object):
         if len(v) > 1:
             w = v[1].split(MARKERS['output'])
             self.output_uuid = w[0] if len(w) > 0 else ''
-            self.output = [json.loads(x) for x in w[1:] if x]
+            self.output = []
+            for x in w[1:]:
+                try:
+                    self.output.append(json.loads(x))
+                except ValueError:
+                    try:
+                        print "**WARNING:** Unable to de-json '%s'"%x
+                    except:
+                        print "Unable to de-json some output"
         else:
             self.output = self.output_uuid = ''
 
@@ -251,7 +259,7 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
         temp = tempfile.mkdtemp()
         cur = os.path.abspath('.')
         os.chdir(temp)
-        open('tmp.tex','w').write(W.latex(title=title, author=author, date=date, contents=contents))
+        open('tmp.tex','w').write(W.latex(title=title, author=author, date=date, contents=contents).encode('utf8'))
         os.system('pdflatex -interact=nonstopmode tmp.tex')
         if contents:
             os.system('pdflatex -interact=nonstopmode tmp.tex')
