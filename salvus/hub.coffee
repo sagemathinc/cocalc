@@ -1691,7 +1691,7 @@ class Client extends EventEmitter
     # Project snapshots -- interface to the snap servers
     ################################################
     mesg_snap: (mesg) =>
-        if mesg.command not in ['ls', 'restore', 'log']
+        if mesg.command not in ['ls', 'restore', 'log', 'last']
             @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
             return
         user_has_write_access_to_project
@@ -1782,9 +1782,54 @@ snap_command = (opts) ->
             snap_command_ls(opts)
         when 'restore', 'log'
             snap_command_restore_or_log(opts)
+        when 'last'
+            snap_last_snapshot
+                project_id : opts.project_id
+                cb         : opts.cb
         else
             opts.cb("invalid snap command #{opts.command}")
 
+_snap_server_ids = undefined
+snap_server_ids = (cb) ->   # cb(err, server_ids)
+    if _snap_server_ids?
+        cb(false, _snap_server_ids)
+        return
+    database.snap_servers
+        columns : ['id']
+        cb      : (err, results) ->
+            if err
+                cb(err)
+            else
+                _snap_server_ids = (r.id for r in results)
+                f = () ->
+                    _snap_server_ids = undefined
+                setTimeout(f, 30000)
+                cb(false, _snap_server_ids)
+
+snap_last_snapshot = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+
+    server_ids = undefined
+    async.series([
+        (cb) ->
+            snap_server_ids (err, _server_ids) ->
+                server_ids = _server_ids
+                cb(err)
+        (cb) ->
+            database.select
+                table      : 'last_snapshot'
+                columns    : ['server_id', 'repo_id', 'timestamp', 'utc_seconds_epoch']
+                where      : {project_id : opts.project_id, server_id : {'in':server_ids}}
+                objectify  : true
+                cb         : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        results.sort((a,b) -> b.utc_seconds_epoch - a.utc_seconds_epoch)
+                        opts.cb(false, results)
+    ], opts.cb)
 
 snap_command_restore_or_log = (opts) ->
     opts = defaults opts,
@@ -1901,16 +1946,11 @@ snap_command_ls = (opts) ->
         server_ids = undefined
         commits = undefined
         async.series([
-            # query database for id's of the active snap_servers
+            # get id's of the active snap_servers
             (cb) ->
-                database.snap_servers
-                    columns : ['id']
-                    cb      : (err, results) ->
-                        if err
-                            cb(err)
-                        else
-                            server_ids = (r.id for r in results)
-                            cb()
+                snap_server_ids (err, _server_ids) ->
+                    server_ids = _server_ids
+                    cb(err)
             # query database for snapshots of this project on any of the active snap servers
             (cb) ->
                 database.snap_commits
@@ -2951,7 +2991,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # Now we wait for a response for opt.timeout seconds
                 f = (type, resp) =>
                     clearTimeout(timer)
-                    winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
+                    #winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
                     if resp.event == 'error'
                         cb(resp.error)
                     else
@@ -3771,8 +3811,12 @@ user_owns_project = (opts) ->
 user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
         project_id : required
-        account_id : required
+        account_id : undefined
         cb : required        # cb(err, true or false)
+    if not opts.account_id?
+        # we can have a client *without* account_id that is requesting access to a project.  Just say no.
+        opts.cb(false, false) # do not have access
+        return
     opts.groups = ['owner', 'collaborator']
     database.user_is_in_project_group(opts)
 

@@ -253,7 +253,10 @@ class Console extends EventEmitter
             @reset()
             if @session.init_history?
                 #console.log("writing history")
-                @terminal.write(@session.init_history)
+                try
+                    @terminal.write(@session.init_history)
+                catch e
+                    console.log(e)
                 #console.log("recording history for copy/paste buffer")
                 @append_to_value(@session.init_history)
 
@@ -267,7 +270,10 @@ class Console extends EventEmitter
 
         #console.log("session -- history='#{@session.init_history}'")
         if @session.init_history?
-            @terminal.write(@session.init_history)
+            try
+                @terminal.write(@session.init_history)
+            catch e
+                console.log(e)
             # On first write we ignore any queued terminal attributes responses that result.
             @terminal.queue = ''
             @append_to_value(@session.init_history)
