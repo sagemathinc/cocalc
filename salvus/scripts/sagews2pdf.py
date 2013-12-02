@@ -246,7 +246,7 @@ sensitive=true}
         return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
 
 
-def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True):
+def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True):
     base = os.path.splitext(filename)[0]
     if not outfile:
         pdf = base + ".pdf"
@@ -267,8 +267,10 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
             shutil.move('tmp.pdf',os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)
     finally:
-        if temp:
+        if temp and remove_tmpdir:
             shutil.rmtree(temp)
+        else:
+            print "Leaving latex files in '%s'"%temp
 
 if __name__ == "__main__":
 
@@ -277,8 +279,9 @@ if __name__ == "__main__":
     parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
     parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
     parser.add_argument("--date", dest="date", help="date for printout", type=str, default="")
-    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: true)", type=str, default='true')
+    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: 'true')", type=str, default='true')
     parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
+    parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory (default: 'true')", type=str, default='true')
 
     args = parser.parse_args()
     if args.contents == 'true':
@@ -286,4 +289,10 @@ if __name__ == "__main__":
     else:
         args.contents = False
 
-    sagews_to_pdf(args.filename, title=args.title, author=args.author, outfile=args.outfile, date=args.date, contents=args.contents)
+    if args.remove_tmpdir == 'true':
+        args.remove_tmpdir = True
+    else:
+        args.remove_tmpdir = False
+
+    sagews_to_pdf(args.filename, title=args.title, author=args.author, outfile=args.outfile,
+                  date=args.date, contents=args.contents, remove_tmpdir=args.remove_tmpdir)
