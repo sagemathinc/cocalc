@@ -2231,13 +2231,15 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
-        last_snapshot = @container.find(".project-snapshot-last-timeago").find('span')
         update = () =>
             salvus_client.project_last_snapshot_time
                 project_id : @project.project_id
                 cb         : (err, time) =>
                     if not err and time?
-                        last_snapshot.attr('title', (new Date(1000*time)).toISOString()).timeago()
+                        # critical to use replaceWith!
+                        c = @container.find(".project-snapshot-last-timeago span")
+                        d = $("<span>").attr('title',(new Date(1000*time)).toISOString()).timeago()
+                        c.replaceWith(d)
         update()
         @_update_last_snapshot_time = setInterval(update, 60000)
 
