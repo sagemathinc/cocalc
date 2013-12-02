@@ -2991,7 +2991,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # Now we wait for a response for opt.timeout seconds
                 f = (type, resp) =>
                     clearTimeout(timer)
-                    winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
+                    #winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
                     if resp.event == 'error'
                         cb(resp.error)
                     else
@@ -3811,8 +3811,12 @@ user_owns_project = (opts) ->
 user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
         project_id : required
-        account_id : required
+        account_id : undefined
         cb : required        # cb(err, true or false)
+    if not opts.account_id?
+        # we can have a client *without* account_id that is requesting access to a project.  Just say no.
+        opts.cb(false, false) # do not have access
+        return
     opts.groups = ['owner', 'collaborator']
     database.user_is_in_project_group(opts)
 
