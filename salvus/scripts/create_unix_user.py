@@ -1,11 +1,19 @@
 #!/usr/bin/env python
 
 """
-Create a unix user, setup ssh keys, impose quota, etc.
+Create a unix user and setup ssh keys.   Usage:
+
+    create_unix_user.py [username]
+
+If the username is not given, then a random 8-character alpha-numeric username is chosen.
+
+If the username is given, then any -'s and characters passed the 32nd are removed from the given username.
+Thus if the username is a V4 uuid, e.g., 36 characters with -'s, then the dashes are removed, giving a 32
+character username, which is uniquely determined by the V4 uuid.
 
 You should put the following in visudo:
 
-            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/create_unix_user.py ""
+            salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/create_unix_user.py *
             salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/delete_unix_user.py *
 
 ALSO **IMPORTANT** put a locally built copy of .sagemathcloud (with secret deleted) in
@@ -19,6 +27,12 @@ BASE_DIR='/mnt/home'
 
 from subprocess import Popen, PIPE
 import os, random, string, sys, uuid
+
+if len(sys.argv) > 2:
+    sys.stderr.write("Usage: sudo %s [optional username]\n"%sys.argv[0])
+    sys.stderr.flush()
+    sys.exit(1)
+
 # os.system('whoami')
 
 skel = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'skel')
@@ -41,10 +55,12 @@ def cmd(args):
         sys.exit(e)
     return {'stdout':stdout, 'stderr':stderr}
 
-# Using a random username helps to massively reduce the chances of race conditions...
-# Also, it means this sudo script doesn't have to take arguments (which are a security risk).
-alpha    =  string.ascii_letters + string.digits
-username =  ''.join([random.choice(alpha) for _ in range(8)])
+if len(sys.argv) == 2:
+    username = sys.argv[1].replace('-','')[:32]
+else:
+    # Using a random username helps to massively reduce the chances of race conditions...
+    alpha    =  string.ascii_letters + string.digits
+    username =  ''.join([random.choice(alpha) for _ in range(8)])
 
 out = cmd(['useradd', '-b', BASE_DIR, '-m', '-U', '-k', skel, username])
 
