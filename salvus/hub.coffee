@@ -1324,7 +1324,7 @@ class Client extends EventEmitter
                                 push_to_clients
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
-
+    # not used
     mesg_save_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1335,6 +1335,7 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    # not used
     mesg_close_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -2675,7 +2676,6 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     socket.on 'data', (data) ->
         misc_node.keep_portforward_alive(opts.port)
 
-
 _local_hub_cache = {}
 new_local_hub = (opts) ->    # cb(err, hub)
     opts = defaults opts,
@@ -3583,7 +3583,8 @@ get_project_location = (opts) ->
 
         (cb) ->
             # To reduce the probability of a very rare possibility of a database race
-            # condition, at this point we check to make sure the project didn't somehow
+            # condition (Cassandra is only eventually consistent),
+            # at this point we check to make sure the project didn't somehow
             # get deployed by another hub, which would cause database.get_project_location
             # to not return "deploying".  In this case, we instead return where that deploy
             # is, and delete the account we just made.
@@ -3797,6 +3798,7 @@ class Project
         @local_hub.terminate_session(opts)
 
     # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
+    # NOTE USED
     save: (cb) =>
         winston.debug("project2-save-stub")
         cb?()
@@ -3804,12 +3806,6 @@ class Project
     close: (cb) =>
         winston.debug("project2-close-stub")
         cb?()
-
-    # TODO -- pointless, just exec on remote
-    size_of_local_copy: (cb) =>
-        winston.debug("project2-size_of_local_copy-stub")
-        cb(false, 0)
-
 
 ########################################
 # Permissions related to projects
