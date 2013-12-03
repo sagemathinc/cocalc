@@ -3540,8 +3540,9 @@ get_project_location = (opts) ->
                 cb         : cb
 
         (cb) ->
-            new_random_unix_user
-                cb : (err, _location) =>
+            create_unix_user
+                project_id : opts.project_id
+                cb         : (err, _location) =>
                     if err
                         database.set_project_location
                             project_id : opts.project_id
@@ -4153,69 +4154,10 @@ delete_unix_user = (opts) ->
                 winston.debug("failed to delete unix user #{misc.to_json(opts.location)} -- #{err}")
             opts.cb?(err)
 
-# Create a unix user with some random user name on some compute vm.
-new_random_unix_user = (opts) ->
+create_unix_user = (opts) ->
     opts = defaults opts,
-        cb          : required
-    # NOT USING THE CACHE.
-    new_random_unix_user_no_cache(opts)
-    return
-
-    cache = new_random_unix_user.cache
-
-    if cache.length > 0
-        user = cache.shift()
-        opts.cb(false, user)
-    else
-        # Just make a user without involving the cache at all.
-        new_random_unix_user_no_cache(opts)
-
-    # Now replenish the cache for next time.
-    replenish_random_unix_user_cache()
-
-# This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
-new_random_unix_user_cache_target_size = 1
-if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
-    new_random_unix_user_cache_target_size = 0
-
-new_random_unix_user.cache = []
-replenish_random_unix_user_cache = () ->
-    return # NOT USING CACHE.
-    cache = new_random_unix_user.cache
-    if cache.length < new_random_unix_user_cache_target_size
-        winston.debug("New unix user cache has size #{cache.length}, which is less than target size #{new_random_unix_user_cache_target_size}, so we create a new account.")
-        new_random_unix_user_no_cache
-            cb : (err, user) =>
-                if err
-                    winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
-                    # try again in 5 seconds
-                    setTimeout(replenish_random_unix_user_cache, 5000)
-                else
-                    winston.debug("New unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
-                    new_local_hub
-                        username : user.username
-                        host     : user.host
-                        port     : user.port
-                        cb       : (err) =>
-                            if err
-                                winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
-                                # try again in 5 seconds
-                                setTimeout(replenish_random_unix_user_cache, 5000)
-                            else
-                                # only save user if we succeed in starting a local hub.
-                                cache.push(user)
-                                winston.debug("SUCCESS -- created a new unix user for cache, which now has size #{cache.length}")
-                                replenish_random_unix_user_cache()
-
-new_random_unix_user_no_cache = (opts) ->
-    opts = defaults opts,
-        cb          : required
-
-    if program.local  # development use
-        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
-        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
-        return
-
+        project_id : required
+        cb         : required
     host = undefined
     username = undefined
     async.series([
@@ -4233,7 +4175,7 @@ new_random_unix_user_no_cache = (opts) ->
             # ssh to that computer and create account using script
             misc_node.execute_code
                 command : 'ssh'
-                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py']
+                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py', opts.project_id]
                 timeout : 45
                 bash    : false
                 err_on_exit: true
@@ -4249,7 +4191,6 @@ new_random_unix_user_no_cache = (opts) ->
                         else
                             winston.debug("created new user #{username} on #{host}")
                             cb()
-
     ], (err) ->
         if err
             opts.cb(err)
@@ -5336,7 +5277,6 @@ exports.start_server = start_server = () ->
             init_sockjs_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
-            replenish_random_unix_user_cache()
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 

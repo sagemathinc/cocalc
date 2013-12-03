@@ -62,7 +62,12 @@ else:
     alpha    =  string.ascii_letters + string.digits
     username =  ''.join([random.choice(alpha) for _ in range(8)])
 
-out = cmd(['useradd', '-b', BASE_DIR, '-m', '-U', '-k', skel, username])
+if os.path.exists(os.path.join(BASE_DIR, username)):
+    # "creating" an existing user is fine -- really the point of this script is to ensure the
+    # user exists.
+    pass
+else:
+    out = cmd(['useradd', '-b', BASE_DIR, '-m', '-U', '-k', skel, username])
 
 # coffeescript to determine
 # BLOCK_SIZE = 4096   # units = bytes; This is used by the quota command via the conversion below.
