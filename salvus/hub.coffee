@@ -1873,7 +1873,7 @@ snap_command_restore_or_log = (opts) ->
 snap_command_ls = (opts) ->
     opts = defaults opts,
         project_id : required
-        snapshot   : undefined
+        snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
         path       : '.'
         timeout    : 60
         cb         : required   # cb(err, list of results when meaningful)
@@ -1984,49 +1984,63 @@ connect_to_snap_server = (server, cb) ->
                     _snap_server_socket_cache[key] = socket
                 cb(err, socket)
 
-
+# Restore the given project to the given location using the
+# most recent *working* snapshot.  If a snapshot is not availabe
+# we skip it, and if one fails, we try the next oldest one until
+# we succeed or run out of snapshots (trying up to max_tries
+# snapshots).
 restore_project_from_most_recent_snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
         location   : required
+        max_tries  : 20
         cb         : undefined
 
-    timestamp = "nothing to do"
     winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} --> #{misc.to_json(opts.location)}")
+    snapshots = undefined
     async.series([
         (cb) ->
-            # We get a list of *all* currently available snapshots, since right now there
-            # is now way to get just the most recent one.
+            # We get a list of *all* available snapshots.
             snap_command
                 command    : "ls"
                 project_id : opts.project_id
-                cb         : (err, results) ->
+                cb         : (err, x) ->
                     if err
                         cb(err)
                     else
-                        if results.length == 0
-                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no snapshots; nothing to do")
-                        else
-                            timestamp = results[0]
+                        snapshots = x
                         cb()
         (cb) ->
-            if timestamp == "nothing to do"
+            if snapshots.length == 0
                 # nothing to do
                 cb()
             else
-                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- started the restore")
-                snap_command
-                    command : "restore"
-                    project_id : opts.project_id
-                    location   : opts.location
-                    snapshot   : timestamp
-                    timeout    : 1800
-                    cb         : (err) ->
-                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- finished restore")
-                        if err
-                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- BUG restore #{timestamp} error -- #{err}")
-                        cb(err)
-
+                i = 0
+                f = () ->
+                    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id}; trying #{i}th snapshot...")
+                    if i >= snapshots.length
+                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no valid snapshots left to try")
+                        cb()
+                        return
+                    snap_command
+                        command    : "restore"
+                        project_id : opts.project_id
+                        location   : opts.location
+                        snapshot   : snapshots[i]
+                        timeout    : 1800
+                        cb         : (err) ->
+                            if err
+                                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- failed -- #{err}")
+                                i = i + 1
+                                if i < opts.max_tries
+                                    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- failed, so trying again")
+                                    f()
+                                else
+                                    cb("failed to restore project from any snapshot up to the limit")
+                            else
+                                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- succeeded")
+                                cb()
+                f()
     ], (err) -> opts.cb?(err))
 
 # Make some number of snapshots on some minimum distinct number

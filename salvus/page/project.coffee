@@ -2015,8 +2015,14 @@ class ProjectPage
         button.click () =>
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
-            if @_last_snapshot_time?
-                dialog.find(".project-move-snapshot-last-timeago").attr('title',(new Date(1000*@_last_snapshot_time)).toISOString()).timeago()
+            salvus_client.project_last_snapshot_time
+                project_id : @project.project_id
+                cb         : (err, time) =>
+                    if err or not time?
+                        time = @_last_snapshot_time
+                    if @_last_snapshot_time?
+                        d = dialog.find(".project-move-snapshot-last-timeago")
+                        d.attr('title',(new Date(1000*@_last_snapshot_time)).toISOString()).timeago()
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
             dialog.find(".btn-submit").click () =>
                 @container.find(".project-location").text("moving...")
