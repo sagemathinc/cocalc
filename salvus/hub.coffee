@@ -1324,7 +1324,7 @@ class Client extends EventEmitter
                                 push_to_clients
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
-
+    # not used
     mesg_save_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1335,6 +1335,7 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    # not used
     mesg_close_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1873,7 +1874,7 @@ snap_command_restore_or_log = (opts) ->
 snap_command_ls = (opts) ->
     opts = defaults opts,
         project_id : required
-        snapshot   : undefined
+        snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
         path       : '.'
         timeout    : 60
         cb         : required   # cb(err, list of results when meaningful)
@@ -1984,49 +1985,63 @@ connect_to_snap_server = (server, cb) ->
                     _snap_server_socket_cache[key] = socket
                 cb(err, socket)
 
-
+# Restore the given project to the given location using the
+# most recent *working* snapshot.  If a snapshot is not availabe
+# we skip it, and if one fails, we try the next oldest one until
+# we succeed or run out of snapshots (trying up to max_tries
+# snapshots).
 restore_project_from_most_recent_snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
         location   : required
+        max_tries  : 20
         cb         : undefined
 
-    timestamp = "nothing to do"
     winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} --> #{misc.to_json(opts.location)}")
+    snapshots = undefined
     async.series([
         (cb) ->
-            # We get a list of *all* currently available snapshots, since right now there
-            # is now way to get just the most recent one.
+            # We get a list of *all* available snapshots.
             snap_command
                 command    : "ls"
                 project_id : opts.project_id
-                cb         : (err, results) ->
+                cb         : (err, x) ->
                     if err
                         cb(err)
                     else
-                        if results.length == 0
-                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no snapshots; nothing to do")
-                        else
-                            timestamp = results[0]
+                        snapshots = x
                         cb()
         (cb) ->
-            if timestamp == "nothing to do"
+            if snapshots.length == 0
                 # nothing to do
                 cb()
             else
-                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- started the restore")
-                snap_command
-                    command : "restore"
-                    project_id : opts.project_id
-                    location   : opts.location
-                    snapshot   : timestamp
-                    timeout    : 1800
-                    cb         : (err) ->
-                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- finished restore")
-                        if err
-                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- BUG restore #{timestamp} error -- #{err}")
-                        cb(err)
-
+                i = 0
+                f = () ->
+                    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id}; trying #{i}th snapshot...")
+                    if i >= snapshots.length
+                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no valid snapshots left to try")
+                        cb()
+                        return
+                    snap_command
+                        command    : "restore"
+                        project_id : opts.project_id
+                        location   : opts.location
+                        snapshot   : snapshots[i]
+                        timeout    : 1800
+                        cb         : (err) ->
+                            if err
+                                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- failed -- #{err}")
+                                i = i + 1
+                                if i < opts.max_tries
+                                    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- failed, so trying again")
+                                    f()
+                                else
+                                    cb("failed to restore project from any snapshot up to the limit")
+                            else
+                                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- succeeded")
+                                cb()
+                f()
     ], (err) -> opts.cb?(err))
 
 # Make some number of snapshots on some minimum distinct number
@@ -2660,7 +2675,6 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
 
     socket.on 'data', (data) ->
         misc_node.keep_portforward_alive(opts.port)
-
 
 _local_hub_cache = {}
 new_local_hub = (opts) ->    # cb(err, hub)
@@ -3540,8 +3554,9 @@ get_project_location = (opts) ->
                 cb         : cb
 
         (cb) ->
-            new_random_unix_user
-                cb : (err, _location) =>
+            create_unix_user
+                project_id : opts.project_id
+                cb         : (err, _location) =>
                     if err
                         database.set_project_location
                             project_id : opts.project_id
@@ -3568,7 +3583,8 @@ get_project_location = (opts) ->
 
         (cb) ->
             # To reduce the probability of a very rare possibility of a database race
-            # condition, at this point we check to make sure the project didn't somehow
+            # condition (Cassandra is only eventually consistent),
+            # at this point we check to make sure the project didn't somehow
             # get deployed by another hub, which would cause database.get_project_location
             # to not return "deploying".  In this case, we instead return where that deploy
             # is, and delete the account we just made.
@@ -3782,6 +3798,7 @@ class Project
         @local_hub.terminate_session(opts)
 
     # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
+    # NOTE USED
     save: (cb) =>
         winston.debug("project2-save-stub")
         cb?()
@@ -3789,12 +3806,6 @@ class Project
     close: (cb) =>
         winston.debug("project2-close-stub")
         cb?()
-
-    # TODO -- pointless, just exec on remote
-    size_of_local_copy: (cb) =>
-        winston.debug("project2-size_of_local_copy-stub")
-        cb(false, 0)
-
 
 ########################################
 # Permissions related to projects
@@ -4153,69 +4164,10 @@ delete_unix_user = (opts) ->
                 winston.debug("failed to delete unix user #{misc.to_json(opts.location)} -- #{err}")
             opts.cb?(err)
 
-# Create a unix user with some random user name on some compute vm.
-new_random_unix_user = (opts) ->
+create_unix_user = (opts) ->
     opts = defaults opts,
-        cb          : required
-    # NOT USING THE CACHE.
-    new_random_unix_user_no_cache(opts)
-    return
-
-    cache = new_random_unix_user.cache
-
-    if cache.length > 0
-        user = cache.shift()
-        opts.cb(false, user)
-    else
-        # Just make a user without involving the cache at all.
-        new_random_unix_user_no_cache(opts)
-
-    # Now replenish the cache for next time.
-    replenish_random_unix_user_cache()
-
-# This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
-new_random_unix_user_cache_target_size = 1
-if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
-    new_random_unix_user_cache_target_size = 0
-
-new_random_unix_user.cache = []
-replenish_random_unix_user_cache = () ->
-    return # NOT USING CACHE.
-    cache = new_random_unix_user.cache
-    if cache.length < new_random_unix_user_cache_target_size
-        winston.debug("New unix user cache has size #{cache.length}, which is less than target size #{new_random_unix_user_cache_target_size}, so we create a new account.")
-        new_random_unix_user_no_cache
-            cb : (err, user) =>
-                if err
-                    winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
-                    # try again in 5 seconds
-                    setTimeout(replenish_random_unix_user_cache, 5000)
-                else
-                    winston.debug("New unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
-                    new_local_hub
-                        username : user.username
-                        host     : user.host
-                        port     : user.port
-                        cb       : (err) =>
-                            if err
-                                winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
-                                # try again in 5 seconds
-                                setTimeout(replenish_random_unix_user_cache, 5000)
-                            else
-                                # only save user if we succeed in starting a local hub.
-                                cache.push(user)
-                                winston.debug("SUCCESS -- created a new unix user for cache, which now has size #{cache.length}")
-                                replenish_random_unix_user_cache()
-
-new_random_unix_user_no_cache = (opts) ->
-    opts = defaults opts,
-        cb          : required
-
-    if program.local  # development use
-        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
-        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
-        return
-
+        project_id : required
+        cb         : required
     host = undefined
     username = undefined
     async.series([
@@ -4233,7 +4185,7 @@ new_random_unix_user_no_cache = (opts) ->
             # ssh to that computer and create account using script
             misc_node.execute_code
                 command : 'ssh'
-                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py']
+                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py', opts.project_id]
                 timeout : 45
                 bash    : false
                 err_on_exit: true
@@ -4249,7 +4201,6 @@ new_random_unix_user_no_cache = (opts) ->
                         else
                             winston.debug("created new user #{username} on #{host}")
                             cb()
-
     ], (err) ->
         if err
             opts.cb(err)
@@ -5336,7 +5287,6 @@ exports.start_server = start_server = () ->
             init_sockjs_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
-            replenish_random_unix_user_cache()
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
