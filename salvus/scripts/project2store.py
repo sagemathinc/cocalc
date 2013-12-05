@@ -29,23 +29,26 @@ def project2store(src, store, project_id, size, verbose):
         cmd("zfs set dedup=on project-%s"%project_id)
 
     # sync data over
-    cmd("time rsync -axH%s --delete --exclude .forever --exclude .bup %s/ /mnt/projects/%s/"%('v' if verbose else '', src, project_id), exit_on_error=False)
+    cmd("time rsync -axH%s --delete --exclude .forever --exclude .bup %s/ /mnt/projects/%s/"%(
+                                  'v' if verbose else '', src, project_id), exit_on_error=False)
     cmd("time chown 1001:1001 -R /mnt/projects/%s"%project_id)
     cmd("df -h /mnt/projects/%s; zfs get compressratio project-%s; zpool get dedupratio project-%s"%(project_id, project_id, project_id))
-    # cmd("zpool export project-%s"%project_id)
+    cmd("zpool export project-%s"%project_id)
 
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Migrate or update project image file.")
-    parser.add_argument("src", help="the current project home directory", type=str)
     parser.add_argument("--store", help="the directory where project image directories get stored", type=str)
     parser.add_argument("--project_id", dest="project_id", help="id of the project (if not given, looks for info.json)", type=str, default="")
     parser.add_argument("--size", help="initial size of zfs image (default: 4G)", type=str, default="4G")
     parser.add_argument("--verbose", help="be very verbose (default: False)", default=False, action="store_const", const=True)
+    parser.add_argument("src", help="the current project home directory", type=str, nargs="+")
 
     args = parser.parse_args()
 
-    project2store(src=args.src, store=args.store, project_id=args.project_id, size=args.size, verbose=args.verbose)
+    args.src = [os.path.abspath(x) for x in args.src]
+    for src in args.src:
+        project2store(src=src, store=args.store, project_id=args.project_id, size=args.size, verbose=args.verbose)
 
 
 
