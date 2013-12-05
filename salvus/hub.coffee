@@ -1324,7 +1324,7 @@ class Client extends EventEmitter
                                 push_to_clients
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
-
+    # not used
     mesg_save_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1335,6 +1335,7 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.success(id:mesg.id))
 
+    # not used
     mesg_close_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -1691,7 +1692,7 @@ class Client extends EventEmitter
     # Project snapshots -- interface to the snap servers
     ################################################
     mesg_snap: (mesg) =>
-        if mesg.command not in ['ls', 'restore', 'log']
+        if mesg.command not in ['ls', 'restore', 'log', 'last']
             @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
             return
         user_has_write_access_to_project
@@ -1782,9 +1783,54 @@ snap_command = (opts) ->
             snap_command_ls(opts)
         when 'restore', 'log'
             snap_command_restore_or_log(opts)
+        when 'last'
+            snap_last_snapshot
+                project_id : opts.project_id
+                cb         : opts.cb
         else
             opts.cb("invalid snap command #{opts.command}")
 
+_snap_server_ids = undefined
+snap_server_ids = (cb) ->   # cb(err, server_ids)
+    if _snap_server_ids?
+        cb(false, _snap_server_ids)
+        return
+    database.snap_servers
+        columns : ['id']
+        cb      : (err, results) ->
+            if err
+                cb(err)
+            else
+                _snap_server_ids = (r.id for r in results)
+                f = () ->
+                    _snap_server_ids = undefined
+                setTimeout(f, 30000)
+                cb(false, _snap_server_ids)
+
+snap_last_snapshot = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+
+    server_ids = undefined
+    async.series([
+        (cb) ->
+            snap_server_ids (err, _server_ids) ->
+                server_ids = _server_ids
+                cb(err)
+        (cb) ->
+            database.select
+                table      : 'last_snapshot'
+                columns    : ['server_id', 'repo_id', 'timestamp', 'utc_seconds_epoch']
+                where      : {project_id : opts.project_id, server_id : {'in':server_ids}}
+                objectify  : true
+                cb         : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        results.sort((a,b) -> b.utc_seconds_epoch - a.utc_seconds_epoch)
+                        opts.cb(false, results)
+    ], opts.cb)
 
 snap_command_restore_or_log = (opts) ->
     opts = defaults opts,
@@ -1828,7 +1874,7 @@ snap_command_restore_or_log = (opts) ->
 snap_command_ls = (opts) ->
     opts = defaults opts,
         project_id : required
-        snapshot   : undefined
+        snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
         path       : '.'
         timeout    : 60
         cb         : required   # cb(err, list of results when meaningful)
@@ -1901,16 +1947,11 @@ snap_command_ls = (opts) ->
         server_ids = undefined
         commits = undefined
         async.series([
-            # query database for id's of the active snap_servers
+            # get id's of the active snap_servers
             (cb) ->
-                database.snap_servers
-                    columns : ['id']
-                    cb      : (err, results) ->
-                        if err
-                            cb(err)
-                        else
-                            server_ids = (r.id for r in results)
-                            cb()
+                snap_server_ids (err, _server_ids) ->
+                    server_ids = _server_ids
+                    cb(err)
             # query database for snapshots of this project on any of the active snap servers
             (cb) ->
                 database.snap_commits
@@ -1944,49 +1985,63 @@ connect_to_snap_server = (server, cb) ->
                     _snap_server_socket_cache[key] = socket
                 cb(err, socket)
 
-
+# Restore the given project to the given location using the
+# most recent *working* snapshot.  If a snapshot is not availabe
+# we skip it, and if one fails, we try the next oldest one until
+# we succeed or run out of snapshots (trying up to max_tries
+# snapshots).
 restore_project_from_most_recent_snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
         location   : required
+        max_tries  : 20
         cb         : undefined
 
-    timestamp = "nothing to do"
     winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} --> #{misc.to_json(opts.location)}")
+    snapshots = undefined
     async.series([
         (cb) ->
-            # We get a list of *all* currently available snapshots, since right now there
-            # is now way to get just the most recent one.
+            # We get a list of *all* available snapshots.
             snap_command
                 command    : "ls"
                 project_id : opts.project_id
-                cb         : (err, results) ->
+                cb         : (err, x) ->
                     if err
                         cb(err)
                     else
-                        if results.length == 0
-                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no snapshots; nothing to do")
-                        else
-                            timestamp = results[0]
+                        snapshots = x
                         cb()
         (cb) ->
-            if timestamp == "nothing to do"
+            if snapshots.length == 0
                 # nothing to do
                 cb()
             else
-                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- started the restore")
-                snap_command
-                    command : "restore"
-                    project_id : opts.project_id
-                    location   : opts.location
-                    snapshot   : timestamp
-                    timeout    : 1800
-                    cb         : (err) ->
-                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- finished restore")
-                        if err
-                            winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- BUG restore #{timestamp} error -- #{err}")
-                        cb(err)
-
+                i = 0
+                f = () ->
+                    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id}; trying #{i}th snapshot...")
+                    if i >= snapshots.length
+                        winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- no valid snapshots left to try")
+                        cb()
+                        return
+                    snap_command
+                        command    : "restore"
+                        project_id : opts.project_id
+                        location   : opts.location
+                        snapshot   : snapshots[i]
+                        timeout    : 1800
+                        cb         : (err) ->
+                            if err
+                                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- failed -- #{err}")
+                                i = i + 1
+                                if i < opts.max_tries
+                                    winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- failed, so trying again")
+                                    f()
+                                else
+                                    cb("failed to restore project from any snapshot up to the limit")
+                            else
+                                winston.debug("restore_project_from_most_recent_snapshot: #{opts.project_id} -- succeeded")
+                                cb()
+                f()
     ], (err) -> opts.cb?(err))
 
 # Make some number of snapshots on some minimum distinct number
@@ -2621,7 +2676,6 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     socket.on 'data', (data) ->
         misc_node.keep_portforward_alive(opts.port)
 
-
 _local_hub_cache = {}
 new_local_hub = (opts) ->    # cb(err, hub)
     opts = defaults opts,
@@ -2932,7 +2986,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         # create a new session with that uuid and plug this socket into it.
         async.series([
             (cb) =>
-                winston.debug("getting new socket to a local_hub")
+                winston.debug("getting new socket connectionto a local_hub")
                 @new_socket (err, _socket) =>
                     if err
                         cb(err)
@@ -2951,12 +3005,30 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # Now we wait for a response for opt.timeout seconds
                 f = (type, resp) =>
                     clearTimeout(timer)
-                    winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
+                    #winston.debug("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
                     if resp.event == 'error'
                         cb(resp.error)
                     else
                         # We will now only use this socket for binary communications.
                         misc_node.disable_mesg(socket)
+                        socket.history = resp.history
+
+                        # Keep our own copy of the console history (in this global hub), so when clients (re-)connect
+                        # we do not have to get the whole history from the local hub.
+                        socket.on 'data', (data) =>
+                            # DO NOT Record in database that there was activity in this project, since
+                            # this is *way* too frequent -- a tmux session make it always on for no reason.
+                            # database.touch_project(project_id:opts.project_id)
+                            socket.history += data
+                            n = socket.history.length
+                            if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
+                                # take last 300000 characters
+                                socket.history = socket.history.slice(socket.history.length-300000)
+
+                        socket.on 'end', () =>
+                            winston.debug("console session #{opts.session_uuid} -- socket connection to local_hub closed")
+                            delete @_sockets[opts.session_uuid]
+
                         cb()
                 socket.once 'mesg', f
                 timed_out = () =>
@@ -2973,10 +3045,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
                 @_socket?.destroy()
                 delete @_status; delete @_socket
-
             else if socket?
                 @_sockets[opts.session_uuid] = socket
-                socket.history = undefined
                 opts.cb(false, socket)
         )
 
@@ -3022,39 +3092,17 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
                     data_channel : channel
+                    history      : console_socket.history
                 opts.cb(false, mesg)
-
-                history = console_socket.history
 
                 # console --> client:
                 # When data comes in from the socket, we push it on to the connected
                 # client over the channel we just created.
-                if history?
-                    opts.client.push_data_to_client(channel, history)
-                    console_socket.on 'data', (data) ->
-                        opts.client.push_data_to_client(channel, data)
-
-                        # Record in database that there was activity in this project.
-                        # This is *way* too frequent -- a tmux session make it always on for no reason.
-                        # database.touch_project(project_id:opts.project_id)
-
-                else
-                    console_socket.history = ''
-                    console_socket.on 'data', (data) ->
-                        console_socket.history += data
-                        n = console_socket.history.length
-                        if n > 400000   # TODO: totally arbitrary; also have to change the same thing in local_hub.coffee
-                            console_socket.history = console_socket.history.slice(300000)
-
-                        # Never push more than 20000 characters at once to client, since display is slow, etc.
-                        if data.length > 20000
-                            data = "[...]"+data.slice(data.length-20000)
-
-                        opts.client.push_data_to_client(channel, data)
-
-                        # See comment above.
-                        #database.touch_project(project_id:opts.project_id)
-
+                console_socket.on 'data', (data) ->
+                    # Never push more than 20000 characters at once to client, since display is slow, etc.
+                    if data.length > 20000
+                        data = "[...]" + data.slice(data.length-20000)
+                    opts.client.push_data_to_client(channel, data)
 
     #########################################
     # CodeMirror sessions
@@ -3506,8 +3554,9 @@ get_project_location = (opts) ->
                 cb         : cb
 
         (cb) ->
-            new_random_unix_user
-                cb : (err, _location) =>
+            create_unix_user
+                project_id : opts.project_id
+                cb         : (err, _location) =>
                     if err
                         database.set_project_location
                             project_id : opts.project_id
@@ -3534,7 +3583,8 @@ get_project_location = (opts) ->
 
         (cb) ->
             # To reduce the probability of a very rare possibility of a database race
-            # condition, at this point we check to make sure the project didn't somehow
+            # condition (Cassandra is only eventually consistent),
+            # at this point we check to make sure the project didn't somehow
             # get deployed by another hub, which would cause database.get_project_location
             # to not return "deploying".  In this case, we instead return where that deploy
             # is, and delete the account we just made.
@@ -3748,6 +3798,7 @@ class Project
         @local_hub.terminate_session(opts)
 
     # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
+    # NOTE USED
     save: (cb) =>
         winston.debug("project2-save-stub")
         cb?()
@@ -3755,12 +3806,6 @@ class Project
     close: (cb) =>
         winston.debug("project2-close-stub")
         cb?()
-
-    # TODO -- pointless, just exec on remote
-    size_of_local_copy: (cb) =>
-        winston.debug("project2-size_of_local_copy-stub")
-        cb(false, 0)
-
 
 ########################################
 # Permissions related to projects
@@ -3777,8 +3822,12 @@ user_owns_project = (opts) ->
 user_has_write_access_to_project = (opts) ->
     opts = defaults opts,
         project_id : required
-        account_id : required
+        account_id : undefined
         cb : required        # cb(err, true or false)
+    if not opts.account_id?
+        # we can have a client *without* account_id that is requesting access to a project.  Just say no.
+        opts.cb(false, false) # do not have access
+        return
     opts.groups = ['owner', 'collaborator']
     database.user_is_in_project_group(opts)
 
@@ -4115,69 +4164,10 @@ delete_unix_user = (opts) ->
                 winston.debug("failed to delete unix user #{misc.to_json(opts.location)} -- #{err}")
             opts.cb?(err)
 
-# Create a unix user with some random user name on some compute vm.
-new_random_unix_user = (opts) ->
+create_unix_user = (opts) ->
     opts = defaults opts,
-        cb          : required
-    # NOT USING THE CACHE.
-    new_random_unix_user_no_cache(opts)
-    return
-
-    cache = new_random_unix_user.cache
-
-    if cache.length > 0
-        user = cache.shift()
-        opts.cb(false, user)
-    else
-        # Just make a user without involving the cache at all.
-        new_random_unix_user_no_cache(opts)
-
-    # Now replenish the cache for next time.
-    replenish_random_unix_user_cache()
-
-# This cache potentially wastes a few megs in disk space, but makes the new project user experience much, much better...
-new_random_unix_user_cache_target_size = 1
-if program.keyspace == "test" or program.host == "127.0.0.1" or program.host == "localhost"
-    new_random_unix_user_cache_target_size = 0
-
-new_random_unix_user.cache = []
-replenish_random_unix_user_cache = () ->
-    return # NOT USING CACHE.
-    cache = new_random_unix_user.cache
-    if cache.length < new_random_unix_user_cache_target_size
-        winston.debug("New unix user cache has size #{cache.length}, which is less than target size #{new_random_unix_user_cache_target_size}, so we create a new account.")
-        new_random_unix_user_no_cache
-            cb : (err, user) =>
-                if err
-                    winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
-                    # try again in 5 seconds
-                    setTimeout(replenish_random_unix_user_cache, 5000)
-                else
-                    winston.debug("New unix user for cache '#{misc.to_json(user)}'. Now firing up its local hub.")
-                    new_local_hub
-                        username : user.username
-                        host     : user.host
-                        port     : user.port
-                        cb       : (err) =>
-                            if err
-                                winston.debug("Failed to create a new unix user for cache -- #{err}; trying again soon.")
-                                # try again in 5 seconds
-                                setTimeout(replenish_random_unix_user_cache, 5000)
-                            else
-                                # only save user if we succeed in starting a local hub.
-                                cache.push(user)
-                                winston.debug("SUCCESS -- created a new unix user for cache, which now has size #{cache.length}")
-                                replenish_random_unix_user_cache()
-
-new_random_unix_user_no_cache = (opts) ->
-    opts = defaults opts,
-        cb          : required
-
-    if program.local  # development use
-        # all projects are just run as the same local user as the server (special local single-user debug/devel mode)
-        opts.cb(false, {host:'localhost', username:process.env['USER'], port:22, path:'.'})
-        return
-
+        project_id : required
+        cb         : required
     host = undefined
     username = undefined
     async.series([
@@ -4195,7 +4185,7 @@ new_random_unix_user_no_cache = (opts) ->
             # ssh to that computer and create account using script
             misc_node.execute_code
                 command : 'ssh'
-                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py']
+                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py', opts.project_id]
                 timeout : 45
                 bash    : false
                 err_on_exit: true
@@ -4211,7 +4201,6 @@ new_random_unix_user_no_cache = (opts) ->
                         else
                             winston.debug("created new user #{username} on #{host}")
                             cb()
-
     ], (err) ->
         if err
             opts.cb(err)
@@ -5298,7 +5287,6 @@ exports.start_server = start_server = () ->
             init_sockjs_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
-            replenish_random_unix_user_cache()
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 

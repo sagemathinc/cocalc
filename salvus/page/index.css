@@ -21,7 +21,11 @@ top_navbar.css
 3d.css
 
 .hide {
-    display:none;
+    display: none;
+}
+
+.tt {
+    font-family: monospace;
 }
 
 .lighten {

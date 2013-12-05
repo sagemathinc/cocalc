@@ -74,7 +74,15 @@ class Cell(object):
         if len(v) > 1:
             w = v[1].split(MARKERS['output'])
             self.output_uuid = w[0] if len(w) > 0 else ''
-            self.output = [json.loads(x) for x in w[1:] if x]
+            self.output = []
+            for x in w[1:]:
+                try:
+                    self.output.append(json.loads(x))
+                except ValueError:
+                    try:
+                        print "**WARNING:** Unable to de-json '%s'"%x
+                    except:
+                        print "Unable to de-json some output"
         else:
             self.output = self.output_uuid = ''
 
@@ -161,6 +169,10 @@ class Worksheet(object):
         The worksheet defined by the given filename or UTF unicode string s.
         """
         self._default_title = ''
+        if filename:
+            self._filename = os.path.abspath(filename)
+        else:
+            self._filename = None
         if filename is not None:
             self._default_title = filename
             self._init_from(open(filename).read().decode('utf8'))
@@ -181,6 +193,7 @@ class Worksheet(object):
     def latex_preamble(self, title='',author='', date='', contents=True):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
+#\usepackage{attachfile}
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
@@ -228,6 +241,9 @@ sensitive=true}
             s += "\\date{%s}\n"%date
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
+        if self._filename:
+            s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
+
         if contents:
             s += "\\tableofcontents\n"
         return s
@@ -238,7 +254,7 @@ sensitive=true}
         return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
 
 
-def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True):
+def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True):
     base = os.path.splitext(filename)[0]
     if not outfile:
         pdf = base + ".pdf"
@@ -251,7 +267,7 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
         temp = tempfile.mkdtemp()
         cur = os.path.abspath('.')
         os.chdir(temp)
-        open('tmp.tex','w').write(W.latex(title=title, author=author, date=date, contents=contents))
+        open('tmp.tex','w').write(W.latex(title=title, author=author, date=date, contents=contents).encode('utf8'))
         os.system('pdflatex -interact=nonstopmode tmp.tex')
         if contents:
             os.system('pdflatex -interact=nonstopmode tmp.tex')
@@ -259,8 +275,10 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
             shutil.move('tmp.pdf',os.path.join(cur, pdf))
             print "Created", os.path.join(cur, pdf)
     finally:
-        if temp:
+        if temp and remove_tmpdir:
             shutil.rmtree(temp)
+        else:
+            print "Leaving latex files in '%s'"%temp
 
 if __name__ == "__main__":
 
@@ -269,8 +287,9 @@ if __name__ == "__main__":
     parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
     parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
     parser.add_argument("--date", dest="date", help="date for printout", type=str, default="")
-    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: true)", type=str, default='true')
+    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: 'true')", type=str, default='true')
     parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
+    parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory (default: 'true')", type=str, default='true')
 
     args = parser.parse_args()
     if args.contents == 'true':
@@ -278,4 +297,10 @@ if __name__ == "__main__":
     else:
         args.contents = False
 
-    sagews_to_pdf(args.filename, title=args.title, author=args.author, outfile=args.outfile, date=args.date, contents=args.contents)
+    if args.remove_tmpdir == 'true':
+        args.remove_tmpdir = True
+    else:
+        args.remove_tmpdir = False
+
+    sagews_to_pdf(args.filename, title=args.title, author=args.author, outfile=args.outfile,
+                  date=args.date, contents=args.contents, remove_tmpdir=args.remove_tmpdir)

@@ -87,12 +87,13 @@
         <h3><i class="fa fa-external-link-square"> </i>  Move Project to a Different Server</h3>
     </div>
     <div class="well">
-        If the server on which your project is running is heavily loaded or not available,
-        click the "Move Project" button below to move your project to a different randomly
-        chosen server.  This copies all files from the last snapshot of your project.
+        If the computer on which your project is deployed is not working,
+        click the "Move Project" button below to move your project to a different
+        computer.  This copies all files from the most recent snapshot of your project,
+        which was taken <span class="project-move-snapshot-last-timeago">(unknown?)</span>.
         <!--, which was taken
         <span class="project-move-last-snapshot">(loading...)</span>.-->
-        This will take about one minute per gigabyte of data in your project.
+        <!--This will take about one minute per gigabyte of data in your project-->
     </div>
     <div class="modal-footer">
         <button class="btn btn-large btn-close">Cancel</button>
@@ -157,6 +158,10 @@
                         <div class="project-file-listing-current_path"></div>
                     </div>
 
+                    <!-- Snapshots link -->
+                    <div class="project-snapshot pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
+                        <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files."  style="margin-left: 1ex;"><i class="fa fa-camera-retro"> </i> <span style="font-size:14px">&nbsp;Snapshots</span><div class="project-snapshot-last-timeago"><span></span></div></a>
+                    </div>
 
                     <!-- Trash can link -->
                     <div class="project-trash-can pull-right" style="padding-top:4px; font-size:14pt">
@@ -164,10 +169,6 @@
                         <a href="#empty-trash" class="hide btn btn-danger"  data-toggle="tooltip" data-placement="left" title="Empty the trash."><i class="fa fa-trash-o"></i>&nbsp;</a>
                     </div>
 
-                    <!-- Snapshots link -->
-                    <div class="project-snapshot pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                        <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files."><i class="fa fa-camera-retro"> </i></a>
-                    </div>
 
                     <!-- Hide/show hidden files -->
                     <div class="project-hidden-files pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
@@ -339,28 +340,21 @@
                             <div class="span6 well project-settings-well">
                                 <!-- The project id -->
                                 <div class="row-fluid project-settings-move" style="margin-top:1ex">
-                                    <div class="span2">
+                                    <div class="span3">
                                         <h4>Project id</h4>
                                     </div>
-                                    <div class="span10">
+                                    <div class="span9">
                                         <pre class="project-id">loading...</pre>
                                     </div>
                                 </div>
 
                                 <div class="row-fluid project-settings-move" style="margin-top:1ex">
-                                    <!-- Move the project -->
-                                    <div class="span2">
-                                        <h4>Location </h4>
+                                    <!-- Current location of the project -->
+                                    <div class="span3">
+                                        <h4 class="project-location-heading">Location </h4>
                                     </div>
-                                    <div class="span6">
-                                        <pre class="project-location">loading...</pre>
-                                    </div>
-                                    <!-- MOVE DISABLED UNTIL FULLY IMPLEMENTED, TESTED, and SAFE -->
-                                    <div class="span4 pull-right hide">
-                                        <a href="#move-project" class="btn btn-warning pull-right"
-                                            data-toggle="tooltip" data-placement="right" title="Move this project.">
-                                            <i class="fa fa-external-link-square"> </i> Move Project
-                                        </a>
+                                    <div class="span9">
+                                        <pre><a class="project-location">loading...</a></pre>
                                     </div>
                                 </div>
 

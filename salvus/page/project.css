@@ -312,10 +312,9 @@
 }
 
 .project-location {
-    color:#666;
-    margin-right:2ex;
-    font-size:9pt;
-    font-family:monospace;
+    font-size   : 9pt;
+    font-family : monospace;
+    cursor      : pointer;
 }
 
 .project-commit-message-input {
@@ -429,3 +428,16 @@
 .project-home-icon {
     font-size: 16pt;
 }
+
+.project-snapshot-last-timeago {
+    font-size: 9pt;
+    margin-left: 1em;
+}
+
+.project-move-snapshot-last-timeago {
+    font-style: italic;
+    font-weight: bold;
+}
+
+
+

@@ -25,7 +25,7 @@ def cmd(args, exit_on_error=True):
         sys.stdout.flush(); sys.stderr.flush()
         if exit_on_error:
            sys.exit(e)
-       
+
 
 def deluser(username):
     if len(username) != 8:
