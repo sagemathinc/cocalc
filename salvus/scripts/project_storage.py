@@ -9,7 +9,7 @@ def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
             print "Error running '%s' -- terminating"%s
             sys.exit(1)
 
-def migrate_project_to_storage(src, storage, size, verbose):
+def migrate_project_to_storage(src, storage, size, new_only, verbose):
     info_json = os.path.join(src,'.sagemathcloud','info.json')
     if not os.path.exists(info_json):
         if verbose:
@@ -18,6 +18,10 @@ def migrate_project_to_storage(src, storage, size, verbose):
     project_id = json.loads(open(info_json).read())['project_id']
     target = os.path.join(storage, project_id)
     if os.path.exists(target):
+        if new_only:
+            if verbose:
+                print "skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id)
+            return
         mount_project(storage=storage, project_id=project_id, verbose=verbose)
     else:
         # create
@@ -28,9 +32,10 @@ def migrate_project_to_storage(src, storage, size, verbose):
         cmd("zfs set compression=gzip project-%s"%project_id, verbose=verbose)
         cmd("zfs set dedup=on project-%s"%project_id, verbose=verbose)
 
-    # sync data over
+    # rsync data over
+    double_verbose = False
     cmd("time rsync -axH%s --delete --exclude .forever --exclude .bup %s/ /mnt/projects/%s/"%(
-                                  'v' if verbose else '', src, project_id), exit_on_error=False, verbose=verbose)
+                                  'v' if double_verbose else '', src, project_id), exit_on_error=False, verbose=verbose)
     cmd("time chown 1001:1001 -R /mnt/projects/%s"%project_id, verbose=verbose)
     cmd("df -h /mnt/projects/%s; zfs get compressratio project-%s; zpool get dedupratio project-%s"%(project_id, project_id, project_id), verbose=verbose)
     unmount_project(project_id=project_id, verbose=verbose)
@@ -59,6 +64,8 @@ def info_json(path, verbose):
             location = json.loads(location.strip())
             project_id = project_id.strip()
             if location['host'] == host:
+                if location['username'] in db:
+                    print "WARNING: collision -- %s, %s"%(location, project_id)
                 db[location['username']] = {'location':location, 'project_id':project_id, 'base_url':''}
     v = [os.path.abspath(x) for x in path]
     for i, path in enumerate(v):
@@ -86,7 +93,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Project storage")
     parser.add_argument("--storage", help="the directory where project image directories are stored (default: /mnt/storage)",
-                        type=str, default="/mnt/glusterfs/projects/")
+                        type=str, default="/mnt/storage/")
     parser.add_argument("--verbose", help="be very verbose (default: False)", default=False, action="store_const", const=True)
 
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -96,10 +103,11 @@ if __name__ == "__main__":
         for i, src in enumerate(v):
             if args.verbose:
                 print "\n** %s of %s"%(i+1, len(v))
-            migrate_project_to_storage(src=src, storage=args.storage, size=args.size, verbose=args.verbose)
+            migrate_project_to_storage(src=src, storage=args.storage, size=args.size, new_only=args.new_only, verbose=args.verbose)
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate to or update project in storage pool')
-    parser_migrate.add_argument("--size", help="initial size of zfs image (default: 4G)", type=str, default="4G")
+    parser_migrate.add_argument("--size", help="size of zfs image (default: 4G)", type=str, default="4G")
+    parser_migrate.add_argument("--new_only", help="if image already created, do nothing (default: False)", default=False, action="store_const", const=True)
     parser_migrate.add_argument("src", help="the current project home directory", type=str, nargs="+")
     parser_migrate.set_defaults(func=migrate)
 
