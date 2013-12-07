@@ -870,7 +870,7 @@ monitor_snapshot_queue = () ->
             winston.debug("monitor_snapshot_queue: creating index for #{project_id}")
             t = misc.walltime()
             bup
-                args    : ['on', user, 'index', '--one-file-system', '.']        # --one-file-system option below so that sshfs-mounted filesystems (etc.) don't get suckedup.
+                args    : ['on', user, 'index', '--one-file-system', '.']        # --one-file-system option below so that sshfs-mounted filesystems (etc.) don't get sucked up.
                 bup_dir : bup_active
                 cb      : (err) ->
                     winston.debug("monitor_snapshot_queue: time to index #{project_id}: #{misc.walltime(t)} s")

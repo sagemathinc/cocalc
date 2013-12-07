@@ -44,7 +44,7 @@ def fix(path):
             log = open('logs/HEAD').readlines()
             print "log exists and has length %s"%(len(log))
             i = -1
-            while not repo_is_working() and i >= -4 and abs(i) <= len(log):
+            while not repo_is_working() and i >= -20 and abs(i) <= len(log):
                 print "Trying head %s"%i
                 previous_head = log[i].split()[0]
                 open('refs/heads/master','w').write(previous_head)

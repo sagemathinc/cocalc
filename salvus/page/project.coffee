@@ -344,7 +344,7 @@ class ProjectPage
         if @project.location? and @project.location.username?
             x = @project.location.username + "@" + @project.location.host
         else
-            x = ""
+            x = "(not deployed)"
         @container.find(".project-location").text(x)
 
     window_resize: () =>
@@ -2015,21 +2015,28 @@ class ProjectPage
         button.click () =>
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
+            salvus_client.project_last_snapshot_time
+                project_id : @project.project_id
+                cb         : (err, time) =>
+                    if err or not time?
+                        time = @_last_snapshot_time
+                    if @_last_snapshot_time?
+                        d = dialog.find(".project-move-snapshot-last-timeago")
+                        d.attr('title',(new Date(1000*@_last_snapshot_time)).toISOString()).timeago()
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
             dialog.find(".btn-submit").click () =>
-                button.icon_spin(start:true)
-                @container.find(".project-location").text("moving...").icon_spin(start:true)
-                alert_message(timeout:3, message:"Started moving project '#{@project.title}'. This could take around 1 minute per gigabyte...")
+                @container.find(".project-location").text("moving...")
+                @container.find(".project-location-heading").icon_spin(start:true)
+                alert_message(timeout:10, message:"Started moving project '#{@project.title}'.  This should take 30 seconds plus around 1 minute per gigabyte.")
                 dialog.modal('hide')
                 salvus_client.move_project
                     project_id : @project.project_id
                     cb         : (err, location) =>
-                        @container.find(".project-location").icon_spin(false)
-                        button.icon_spin(false)
+                        @container.find(".project-location-heading").icon_spin(false)
                         if err
                             alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
                         else
-                            alert_message(timeout:3, message:"Moved project '#{@project.title}'...")
+                            alert_message(timeout:5, message:"Moved project '#{@project.title}'...")
                             @project.location = location
                             @set_location()
 
@@ -2236,6 +2243,7 @@ class ProjectPage
                 project_id : @project.project_id
                 cb         : (err, time) =>
                     if not err and time?
+                        @_last_snapshot_time = time
                         # critical to use replaceWith!
                         c = @container.find(".project-snapshot-last-timeago span")
                         d = $("<span>").attr('title',(new Date(1000*time)).toISOString()).timeago()
