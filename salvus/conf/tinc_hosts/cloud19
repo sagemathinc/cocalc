@@ -1,4 +1,4 @@
-Cipher = aes-256-cbc
+Cipher = aes-128-cbc
 Address = 128.208.178.218
 Subnet = 10.1.19.1/32
 
