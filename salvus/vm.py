@@ -126,7 +126,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 sh['tincd', '--config', tinc_path, '-K']
                 host_file = os.path.join(tinc_path, 'hosts', tincname)
                 public_key = open(rsa_key_pub).read().strip()
-                open(host_file,'w').write("Cipher = aes-256-cbc\nSubnet = %s/32\n%s"%(ip_address, public_key))
+                open(host_file,'w').write("Cipher = aes-128-cbc\nSubnet = %s/32\n%s"%(ip_address, public_key))
                 # put the tinc public key in our local db, so that the vm can connect to host.
                 shutil.copyfile(host_file, os.path.join(conf_path, 'tinc_hosts', tincname))
 
