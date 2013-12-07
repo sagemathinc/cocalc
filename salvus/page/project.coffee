@@ -15,7 +15,7 @@ diffsync        = require('diffsync')
 account         = require('account')
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage} = require('editor')
-{scroll_top, human_readable_size}    = require('misc_page')
+{scroll_top, human_readable_size, download_file} = require('misc_page')
 
 MAX_TITLE_LENGTH = 15
 
@@ -131,6 +131,7 @@ class ProjectPage
                 @save_browser_local_data()
                 delete project_pages[@project.project_id]
                 @project_log?.disconnect_from_session()
+                clearInterval(@_update_last_snapshot_time)
             onshow: () =>
                 if @project?
                     document.title = "Project - #{@project.title}"
@@ -343,7 +344,7 @@ class ProjectPage
         if @project.location? and @project.location.username?
             x = @project.location.username + "@" + @project.location.host
         else
-            x = ""
+            x = "(not deployed)"
         @container.find(".project-location").text(x)
 
     window_resize: () =>
@@ -791,8 +792,12 @@ class ProjectPage
                     that.push_state('new/' + that.current_path.join('/'))
                     that.show_new_file_tab()
             else if name == "project-activity"
-                tab.onshow = () ->
+                tab.onshow = () =>
                     that.push_state('log')
+                    @render_project_activity_log()
+                    if not IS_MOBILE
+                        @container.find(".salvus-project-activity-search").focus()
+
             else if name == "project-settings"
                 tab.onshow = () ->
                     that.push_state('settings')
@@ -996,7 +1001,7 @@ class ProjectPage
         dz_container.append(dz)
         dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
-            url: "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
+            url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 10 # in megabytes
 
     init_new_file_tab: () =>
@@ -1654,6 +1659,16 @@ class ProjectPage
             LOG_FILE = '.sagemathcloud-local.log'
         else
             LOG_FILE = '.sagemathcloud.log'
+
+        @container.find(".salvus-project-activity-search").keyup () =>
+            @_project_activity_log_page = 0
+            @render_project_activity_log()
+
+        @container.find(".salvus-project-activity-search-clear").click () =>
+            @container.find(".salvus-project-activity-search").val('')
+            @_project_activity_log_page = 0
+            @render_project_activity_log()
+
         async.series([
             (cb) =>
                 @ensure_file_exists
@@ -1743,6 +1758,8 @@ class ProjectPage
             setTimeout(f, delay)
 
     render_project_activity_log: () =>
+        if not @project_log? or @current_tab?.name != 'project-activity'
+            return
         log = @project_log.live()
         if @_render_project_activity_log_last? and @_render_project_activity_log == log
             return
@@ -1754,9 +1771,37 @@ class ProjectPage
 
         @_project_activity_log.html('')
 
+        y = $.trim(@container.find(".salvus-project-activity-search").val())
+        if y.length > 0
+            search = (x.toLowerCase() for x in y.split(/[ ]+/))
+        else
+            search = []
+
         lines = log.split('\n')
-        start = Math.max(0, lines.length - (page+1)*items_per_page)
-        stop  = lines.length - page*items_per_page
+        lines.reverse()
+        start = page*items_per_page
+        stop  = (page+1)*items_per_page
+
+        if search.length > 0
+            if search.length == 1
+                s = search[0]
+                f = (x) ->
+                    x.toLowerCase().indexOf(s) != -1
+            else
+                f = (x) ->
+                    y = x.toLowerCase()
+                    for k in search
+                        if y.indexOf(k) == -1
+                            return false
+                    return true
+            z = []
+            for x in lines
+                if f(x)
+                    z.push(x)
+                    if z.length > stop
+                        break
+            lines = z
+
         lines = lines.slice(start, stop)
 
         template = $(".project-activity-templates")
@@ -1769,7 +1814,7 @@ class ProjectPage
             @container.find(".project-activity-older").removeClass('disabled')
 
         for e in lines
-            if $.trim(e).length == 0
+            if not $.trim(e)
                 continue
             try
                 entry = JSON.parse(e)
@@ -1813,7 +1858,7 @@ class ProjectPage
                 else
                     x.find(".project-activity-date").hide()
 
-                @_project_activity_log.prepend(x)
+                @_project_activity_log.append(x)
 
 
     init_project_download: () =>
@@ -1970,21 +2015,28 @@ class ProjectPage
         button.click () =>
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
+            salvus_client.project_last_snapshot_time
+                project_id : @project.project_id
+                cb         : (err, time) =>
+                    if err or not time?
+                        time = @_last_snapshot_time
+                    if @_last_snapshot_time?
+                        d = dialog.find(".project-move-snapshot-last-timeago")
+                        d.attr('title',(new Date(1000*@_last_snapshot_time)).toISOString()).timeago()
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
             dialog.find(".btn-submit").click () =>
-                button.icon_spin(start:true)
-                @container.find(".project-location").text("moving...").icon_spin(start:true)
-                alert_message(timeout:3, message:"Started moving project '#{@project.title}'. This could take around 1 minute per gigabyte...")
+                @container.find(".project-location").text("moving...")
+                @container.find(".project-location-heading").icon_spin(start:true)
+                alert_message(timeout:10, message:"Started moving project '#{@project.title}'.  This should take 30 seconds plus around 1 minute per gigabyte.")
                 dialog.modal('hide')
                 salvus_client.move_project
                     project_id : @project.project_id
                     cb         : (err, location) =>
-                        @container.find(".project-location").icon_spin(false)
-                        button.icon_spin(false)
+                        @container.find(".project-location-heading").icon_spin(false)
                         if err
                             alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
                         else
-                            alert_message(timeout:3, message:"Moved project '#{@project.title}'...")
+                            alert_message(timeout:5, message:"Moved project '#{@project.title}'...")
                             @project.location = location
                             @set_location()
 
@@ -2129,15 +2181,15 @@ class ProjectPage
         # Restart worksheet server
         link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
-            #link.find("i").addClass('fa-spin')
-            link.icon_spin(start:true)
+            link.find("i").addClass('fa-spin')
+            #link.icon_spin(start:true)
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
                 timeout    : 10
                 cb         : (err, output) =>
-                    #link.find("i").removeClass('fa-spin')
-                    link.icon_spin(false)
+                    link.find("i").removeClass('fa-spin')
+                    #link.icon_spin(false)
                     if err
                         alert_message
                             type    : "error"
@@ -2163,8 +2215,8 @@ class ProjectPage
                         else
                             cb(true)
                 (cb) =>
-                    #link.find("i").addClass('fa-spin')
-                    link.icon_spin(start:true)
+                    link.find("i").addClass('fa-spin')
+                    #link.icon_spin(start:true)
                     alert_message
                         type    : "info"
                         message : "Restarting project server..."
@@ -2173,8 +2225,8 @@ class ProjectPage
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
-                    #link.find("i").removeClass('fa-spin')
-                    link.icon_spin(false)
+                    link.find("i").removeClass('fa-spin')
+                    #link.icon_spin(false)
                     alert_message
                         type    : "success"
                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
@@ -2186,6 +2238,18 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
+        update = () =>
+            salvus_client.project_last_snapshot_time
+                project_id : @project.project_id
+                cb         : (err, time) =>
+                    if not err and time?
+                        @_last_snapshot_time = time
+                        # critical to use replaceWith!
+                        c = @container.find(".project-snapshot-last-timeago span")
+                        d = $("<span>").attr('title',(new Date(1000*time)).toISOString()).timeago()
+                        c.replaceWith(d)
+        update()
+        @_update_last_snapshot_time = setInterval(update, 60000)
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
@@ -2261,10 +2325,10 @@ class ProjectPage
             path    : required
             timeout : 45
             cb      : undefined   # cb(err) when file download from browser starts.
+
         url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
-        iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
-        setTimeout((() -> iframe.remove()), 30000)
-        bootbox.alert("Your file <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        download_file(url)
+        bootbox.alert("If <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
         opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>

@@ -57,6 +57,7 @@ class Session extends EventEmitter
             session_uuid : required
             params       : undefined
             data_channel : undefined    # optional extra channel that is used for raw data
+            init_history : undefined    # used for console
 
         @start_time   = misc.walltime()
         @conn         = opts.conn
@@ -64,6 +65,7 @@ class Session extends EventEmitter
         @project_id   = opts.project_id
         @session_uuid = opts.session_uuid
         @data_channel = opts.data_channel
+        @init_history = opts.init_history
         @emit("open")
 
         if @reconnect?
@@ -93,6 +95,7 @@ class Session extends EventEmitter
                             new_channel  : reply.data_channel
                             session      : @
                         @data_channel = reply.data_channel
+                        @init_history = reply.history
                         @emit("reconnect")
                         cb?()
                     else
@@ -448,6 +451,7 @@ class exports.Connection extends EventEmitter
                             project_id   : opts.project_id
                             session_uuid : opts.session_uuid
                             data_channel : reply.data_channel
+                            init_history : reply.history
                             params       : opts.params
                             cb           : opts.cb
                     else
@@ -493,6 +497,7 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             data_channel : undefined
             params       : undefined
+            init_history : undefined
             cb           : required
 
         session_opts =
@@ -500,6 +505,7 @@ class exports.Connection extends EventEmitter
             project_id   : opts.project_id
             session_uuid : opts.session_uuid
             data_channel : opts.data_channel
+            init_history : opts.init_history
             params       : opts.params
 
         switch opts.type
@@ -996,8 +1002,25 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : required
             timeout    : DEFAULT_TIMEOUT
-            archive    : 'tar.bz2'   # when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
+            archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : required
+
+        #console.log("read_file_from_project")
+        base = window?.salvus_base_url  # will be defined in web browser
+        if not base?
+            base = ''
+        if opts.path[0] == '/'
+            # absolute path to the root
+            if base != ''
+                opts.path = '.sagemathcloud-local/root' + opts.path  # use root symlink, which is created by start_smc
+            else
+                opts.path = '.sagemathcloud/root' + opts.path  # use root symlink, which is created by start_smc
+
+        url = "#{base}/#{opts.project_id}/raw/#{opts.path}"
+        #console.log(url)
+        opts.cb(false, {url:url})
+        # This is the old hub/database version -- too slow, and loads the database/server, way way too much.
+        ###
         @call
             timeout : opts.timeout
             message :
@@ -1006,6 +1029,7 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
                     archive    : opts.archive
             cb : opts.cb
+        ###
 
     move_file_in_project: (opts) ->
         opts = defaults opts,
@@ -1125,6 +1149,7 @@ class exports.Connection extends EventEmitter
         if not opts.network_timeout?
             opts.network_timeout = opts.timeout * 1.5
 
+        #console.log("Executing -- #{opts.command}, #{misc.to_json(opts.args)} in '#{opts.path}'")
         @call
             message : message.project_exec
                 project_id : opts.project_id
@@ -1137,6 +1162,7 @@ class exports.Connection extends EventEmitter
                 err_on_exit : opts.err_on_exit
             timeout : opts.network_timeout
             cb      : (err, mesg) ->
+                #console.log("Executing #{opts.command}, #{misc.to_json(opts.args)} -- got back: #{err}, #{misc.to_json(mesg)}")
                 if err
                     opts.cb(err, mesg)
                 else if mesg.event == 'error'
@@ -1412,6 +1438,23 @@ class exports.Connection extends EventEmitter
                                 files.push({name:name, snapshot:snapshot})
                     opts.cb(false, {files:files})
 
+    # return the time in seconds since epoch UTC of the last snapshot.
+    project_last_snapshot_time: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required     # cb(err, utc_seconds_epoch)
+        @call
+            message:
+                message.snap
+                    command    : 'last'
+                    project_id : opts.project_id
+            cb : (err, resp) ->
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(false, resp.list[0]?.utc_seconds_epoch)
 
     project_directory_listing: (opts) =>
         opts = defaults opts,

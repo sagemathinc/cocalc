@@ -48,7 +48,7 @@
 10.1.7.4 kvm       compute         compute7a
 
 # DC0:RAC0   cloud10   
-10.1.10.1 kvm-host  edge            cloud10    # 64gb ram; 16 cores; 2tb disk
+10.1.10.1 kvm-host  edge     admin       cloud10    # 64gb ram; 16 cores; 2tb disk
 10.1.10.2 kvm           cassandra10    cassandra 
 10.1.10.3 kvm       hub nginx snap  web10
 10.1.10.4 kvm       compute         compute10a
