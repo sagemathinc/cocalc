@@ -127,6 +127,8 @@ class Console extends EventEmitter
             cols: @opts.cols
             rows: @opts.rows
 
+        @init_mesg()
+
         # The first time Terminal.bindKeys is called, it makes Terminal
         # listen on *all* keystrokes for the rest of the program.  It
         # only has to be done once -- any further times are ignored.
@@ -181,13 +183,38 @@ class Console extends EventEmitter
         if opts.session?
             @set_session(opts.session)
 
+    append_to_value: (data) =>
+        # this @value is used for copy/paste of the session history.
+        @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
+
+    init_mesg: () =>
+        #console.log("init_mesg")
+        @_ignore_mesg = false
+        @terminal.on 'mesg', (mesg) =>
+            if @_ignore_mesg
+                return
+            #console.log("got message '#{mesg}', length=#{mesg.length}")
+            try
+                mesg = from_json(mesg)
+                switch mesg.event
+                    when 'open_file'
+                        #console.log("now opening #{mesg.name}...", @opts.editor)
+                        @opts.editor?.project_page.open_file(path:mesg.name, foreground:true)
+                    when 'open_directory'
+                        #console.log("changing to directory #{mesg.name}")
+                        @opts.editor?.project_page.chdir(mesg.name)
+                        @opts.editor?.project_page.display_tab("project-file-listing")
+            catch e
+                console.log("issue parsing message -- ", e)
+
     set_session: (session) =>
         # Store the remote session, which is a connection to a HUB
         # that is in turn connected to a console_server:
         @session = session
 
-        # Plug the remote session into the terminal.
+        @_ignore_mesg = true
 
+        # Plug the remote session into the terminal.
         # Output from the terminal to the remote pty: usually caused by the user typing,
         # but can also be the result of a device attributes request, etc.
         @terminal.on 'data',  (data) =>
@@ -195,26 +222,6 @@ class Console extends EventEmitter
 
         # The terminal receives a 'set my title' message.
         @terminal.on 'title', (title) => @set_title(title)
-
-        init_mesg = () =>
-            #console.log("init_mesg")
-            @_ignore_mesg = false
-            @terminal.on 'mesg', (mesg) =>
-                if @_ignore_mesg
-                    return
-                #console.log("got message '#{mesg}', length=#{mesg.length}")
-                try
-                    mesg = from_json(mesg)
-                    switch mesg.event
-                        when 'open_file'
-                            #console.log("now opening #{mesg.name}...", @opts.editor)
-                            @opts.editor?.project_page.open_file(path:mesg.name, foreground:true)
-                        when 'open_directory'
-                            #console.log("changing to directory #{mesg.name}")
-                            @opts.editor?.project_page.chdir(mesg.name)
-                            @opts.editor?.project_page.display_tab("project-file-listing")
-                catch e
-                    console.log("issue parsing message -- ", e)
 
         @reset()
         @resize_terminal()
@@ -226,12 +233,8 @@ class Console extends EventEmitter
                 @terminal.write(data)
                 if @value == ""
                     #console.log("empty value")
-                    # On first write we ignore any queued terminal attributes responses that result.
-                    @terminal.queue = ''
                     @resize()
-                    init_mesg()
-
-                @value += data.replace(/\x1b\[.{1,5}m|\x1b\].*0;|\x1b\[.*~|\x1b\[?.*l/g,'')
+                @append_to_value(data)
 
                 if @scrollbar_nlines < @terminal.ybase
                     @update_scrollbar()
@@ -245,15 +248,38 @@ class Console extends EventEmitter
 
         @session.on 'reconnect', () =>
             #console.log("reconnect")
-            @value = ""
             @_ignore_mesg = true
+            @value = ""
             @reset()
+            if @session.init_history?
+                #console.log("writing history")
+                try
+                    @terminal.write(@session.init_history)
+                catch e
+                    console.log(e)
+                #console.log("recording history for copy/paste buffer")
+                @append_to_value(@session.init_history)
+
+            # On first write we ignore any queued terminal attributes responses that result.
+            @terminal.queue = ''
             @terminal.showCursor()
+            @_ignore_mesg = false
 
         # Initialize pinging the server to keep the console alive
         @_init_session_ping()
 
+        #console.log("session -- history='#{@session.init_history}'")
+        if @session.init_history?
+            try
+                @terminal.write(@session.init_history)
+            catch e
+                console.log(e)
+            # On first write we ignore any queued terminal attributes responses that result.
+            @terminal.queue = ''
+            @append_to_value(@session.init_history)
+
         @terminal.showCursor()
+        @_ignore_mesg = false
 
     reset: () =>
         # reset the terminal to clean; need to do this on connect or reconnect.
@@ -504,7 +530,7 @@ class Console extends EventEmitter
 
         @element.find("a[href=#paste]").click () =>
             id = uuid()
-            s = "<h2>Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='width:97%' id='#{id}' rows=10></textarea>"
+            s = "<h2><i class='fa fa-credit-card'></i> Terminal Copy and Paste</h2>Copy and paste in terminals works as usual: to copy, highlight text then press ctrl+c (or command+c); press ctrl+v (or command+v) to paste. <br><br><span class='lighten'>NOTE: When no text is highlighted, ctrl+c sends the usual interrupt signal.</span><br><hr>You can copy the terminal history from here:<br><br><textarea readonly style='font-size: 6pt;font-family: monospace;line-height: 8pt;width:97%' id='#{id}' rows=10></textarea>"
             bootbox.alert(s)
             elt = $("##{id}")
             elt.val(@value).scrollTop(elt[0].scrollHeight)

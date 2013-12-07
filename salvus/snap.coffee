@@ -19,7 +19,7 @@ DEFAULT_TIMEOUT   = 60*15   # time in seconds; max time we would ever wait to "b
 # which is about as long as we want to wait.  Bigger is more efficient
 # overall, because of much better de-duplication, but smaller means
 # faster access.
-REPO_SIZE_CUTOFF_BYTES=50000000
+REPO_SIZE_CUTOFF_BYTES=35000000
 
 SALVUS_HOME=process.cwd()
 
@@ -870,7 +870,7 @@ monitor_snapshot_queue = () ->
             winston.debug("monitor_snapshot_queue: creating index for #{project_id}")
             t = misc.walltime()
             bup
-                args    : ['on', user, 'index', '--one-file-system', '.']        # --one-file-system option below so that sshfs-mounted filesystems (etc.) don't get suckedup.
+                args    : ['on', user, 'index', '--one-file-system', '.']        # --one-file-system option below so that sshfs-mounted filesystems (etc.) don't get sucked up.
                 bup_dir : bup_active
                 cb      : (err) ->
                     winston.debug("monitor_snapshot_queue: time to index #{project_id}: #{misc.walltime(t)} s")
@@ -1028,6 +1028,16 @@ monitor_snapshot_queue = () ->
                             winston.debug("monitor_snapshot_queue: finished recording snap_modified_files for project #{project_id}, time = #{misc.walltime(t)}")
 
                     cb(err)
+
+            # Update the last_snapshot table at the same time -- not an error if this doesn't work for some reason,
+            # so we don't bother with callback, etc.
+            database.update
+                table : 'last_snapshot'
+                set   : {repo_id:repo_id, timestamp:timestamp, utc_seconds_epoch:utc_seconds_epoch}
+                where :
+                    server_id  : server_id
+                    project_id : project_id
+
 
     ], (err) ->
         # wait random interval up to 15 seconds between snasphots, to ensure uniqueness of

@@ -390,6 +390,11 @@ CodeMirror.defineExtension 'showIntrospect', (opts) ->
     return element
 
 
+exports.download_file = (url) ->
+    iframe = $("<iframe>").addClass('hide').attr('src', url).appendTo($("body"))
+    setTimeout((() -> iframe.remove()), 30000)
+
+
 ###
 # This doesn't work yet, since it can only work when this is a
 # Chrome Extension, which I haven't done yet.  See http://www.pakzilla.com/2012/03/20/how-to-copy-to-clipboard-in-chrome-extension/

@@ -5,12 +5,7 @@ MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
 site = 'https://cloud.sagemath.com'
 
-import cPickle, json, os, shutil, sys, textwrap, HTMLParser
-
-def sagews_to_pdf(filename):
-    base = os.path.splitext(filename)[0]
-    pdf  = base + ".pdf"
-    print "converting: %s --> %s"%(filename, pdf)
+import argparse, cPickle, json, os, shutil, sys, textwrap, HTMLParser, tempfile
 
 def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
@@ -37,6 +32,8 @@ class Parser(HTMLParser.HTMLParser):
             self.result += '\n\n' + '-'*80 + '\n\n'  #TODO
         elif tag == 'li':
             self.result += '\\item{'
+        elif tag == 'a':
+            self.result += '\\url{'
         else:
             self.result += '{'  # fallback
 
@@ -68,13 +65,24 @@ class Cell(object):
             n = w[0].lstrip(MARKERS['cell'])
             self.input_uuid = n[:36]
             self.input_codes = n[36:]
-            self.input = w[1]
+            if len(w) > 1:
+                self.input = w[1]
+            else:
+                self.input = ''
         else:
             self.input_uuid = self.input = ''
         if len(v) > 1:
             w = v[1].split(MARKERS['output'])
             self.output_uuid = w[0] if len(w) > 0 else ''
-            self.output = [json.loads(x) for x in w[1:] if x]
+            self.output = []
+            for x in w[1:]:
+                try:
+                    self.output.append(json.loads(x))
+                except ValueError:
+                    try:
+                        print "**WARNING:** Unable to de-json '%s'"%x
+                    except:
+                        print "Unable to de-json some output"
         else:
             self.output = self.output_uuid = ''
 
@@ -128,8 +136,10 @@ class Cell(object):
                     if i != -1:
                         src = os.path.join(os.environ['HOME'], target[i+5:])
                         if os.path.abspath(src) != os.path.abspath(filename):
-                            print "COPY!"
-                            shutil.copyfile(src, filename)
+                            try:
+                                shutil.copyfile(src, filename)
+                            except Exception, msg:
+                                print msg
                         img = filename
                     else:
                         cmd = 'rm "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
@@ -158,7 +168,13 @@ class Worksheet(object):
         """
         The worksheet defined by the given filename or UTF unicode string s.
         """
+        self._default_title = ''
+        if filename:
+            self._filename = os.path.abspath(filename)
+        else:
+            self._filename = None
         if filename is not None:
+            self._default_title = filename
             self._init_from(open(filename).read().decode('utf8'))
         elif s is not None:
             self._init_from(s)
@@ -174,7 +190,10 @@ class Worksheet(object):
     def __len__(self):
         return len(self._cells)
 
-    def latex_preamble(self,title='',author=''):
+    def latex_preamble(self, title='',author='', date='', contents=True):
+        title = title.replace('_','\_')
+        author = author.replace('_','\_')
+#\usepackage{attachfile}
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
@@ -195,7 +214,7 @@ sensitive=true}
   showtabs=False,
   showspaces=False,
   showstringspaces=False,
-  commentstyle={\ttfamily\color{dredcolor}},
+  commentstyle={\ttfamily\color{dbrowncolor}},
   keywordstyle={\ttfamily\color{dbluecolor}\bfseries},
   stringstyle ={\ttfamily\color{dgraycolor}\bfseries},
   backgroundcolor=\color{lightyellow},
@@ -211,44 +230,77 @@ sensitive=true}
 \definecolor{lightyellow}{rgb}{1,1,.92}
 \definecolor{dblackcolor}{rgb}{0.0,0.0,0.0}
 \definecolor{dbluecolor}{rgb}{.01,.02,0.7}
-\definecolor{dredcolor}{rgb}{0.8,0,0}
+\definecolor{dredcolor}{rgb}{1,0,0}
+\definecolor{dbrowncolor}{rgb}{0.625,0.3125,0}
 \definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
 \definecolor{graycolor}{rgb}{0.35,0.35,0.35}
 """
         s += "\\title{%s}\n"%title
         s += "\\author{%s}\n"%author
+        if date:
+            s += "\\date{%s}\n"%date
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
-        s += "\\tableofcontents\n"
+        if self._filename:
+            s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
+
+        if contents:
+            s += "\\tableofcontents\n"
         return s
 
-
-    def latex(self, title='', author=''):
-        return self.latex_preamble(title, author) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
-
-
-
-
-def parse_sagews(s):
-    """
-    Given a sagews file as a string s, return a list of cell objects.
-    """
+    def latex(self, title='', author='', date='', contents=True):
+        if not title:
+            title = self._default_title
+        return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(c.latex() for c in self._cells) + r"\end{document}"
 
 
-
+def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True):
+    base = os.path.splitext(filename)[0]
+    if not outfile:
+        pdf = base + ".pdf"
+    else:
+        pdf = outfile
+    print "converting: %s --> %s"%(filename, pdf)
+    W = Worksheet(filename)
+    temp = ''
+    try:
+        temp = tempfile.mkdtemp()
+        cur = os.path.abspath('.')
+        os.chdir(temp)
+        open('tmp.tex','w').write(W.latex(title=title, author=author, date=date, contents=contents).encode('utf8'))
+        os.system('pdflatex -interact=nonstopmode tmp.tex')
+        if contents:
+            os.system('pdflatex -interact=nonstopmode tmp.tex')
+        if os.path.exists('tmp.pdf'):
+            shutil.move('tmp.pdf',os.path.join(cur, pdf))
+            print "Created", os.path.join(cur, pdf)
+    finally:
+        if temp and remove_tmpdir:
+            shutil.rmtree(temp)
+        else:
+            print "Leaving latex files in '%s'"%temp
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        sys.stderr.write("""
-Convert a Sagemath Cloud sagews file to a pdf file.
 
-    Usage: %s [path/to/filename.sagews] [path/to/filename2.sagews] ...
+    parser = argparse.ArgumentParser(description="convert a sagews worksheet to a pdf file via latex")
+    parser.add_argument("filename", help="name of sagews file (required)", type=str)
+    parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
+    parser.add_argument("--title", dest="title", help="title for printout", type=str, default="")
+    parser.add_argument("--date", dest="date", help="date for printout", type=str, default="")
+    parser.add_argument("--contents", dest="contents", help="include a table of contents 'true' or 'false' (default: 'true')", type=str, default='true')
+    parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
+    parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory (default: 'true')", type=str, default='true')
 
-Creates corresponding file path/to/filename.sagews, if it doesn't exist.
-Also, a data/ directory may be created in the current directory, which contains
-the contents of the data path in filename.sws.
-"""%sys.argv[0])
-        sys.exit(1)
+    args = parser.parse_args()
+    if args.contents == 'true':
+        args.contents = True
+    else:
+        args.contents = False
 
-    for path in sys.argv[1:]:
-        sagews_to_pdf(path)
+    if args.remove_tmpdir == 'true':
+        args.remove_tmpdir = True
+    else:
+        args.remove_tmpdir = False
+
+    sagews_to_pdf(args.filename, title=args.title, author=args.author, outfile=args.outfile,
+                  date=args.date, contents=args.contents, remove_tmpdir=args.remove_tmpdir)

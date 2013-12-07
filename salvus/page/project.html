@@ -87,12 +87,13 @@
         <h3><i class="fa fa-external-link-square"> </i>  Move Project to a Different Server</h3>
     </div>
     <div class="well">
-        If the server on which your project is running is heavily loaded or not available,
-        click the "Move Project" button below to move your project to a different randomly
-        chosen server.  This copies all files from the last snapshot of your project.
+        If the computer on which your project is deployed is not working,
+        click the "Move Project" button below to move your project to a different
+        computer.  This copies all files from the most recent snapshot of your project,
+        which was taken <span class="project-move-snapshot-last-timeago">(unknown?)</span>.
         <!--, which was taken
         <span class="project-move-last-snapshot">(loading...)</span>.-->
-        This will take about one minute per gigabyte of data in your project.
+        <!--This will take about one minute per gigabyte of data in your project-->
     </div>
     <div class="modal-footer">
         <button class="btn btn-large btn-close">Cancel</button>
@@ -157,6 +158,10 @@
                         <div class="project-file-listing-current_path"></div>
                     </div>
 
+                    <!-- Snapshots link -->
+                    <div class="project-snapshot pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
+                        <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files."  style="margin-left: 1ex;"><i class="fa fa-camera-retro"> </i> <span style="font-size:14px">&nbsp;Snapshots</span><div class="project-snapshot-last-timeago"><span></span></div></a>
+                    </div>
 
                     <!-- Trash can link -->
                     <div class="project-trash-can pull-right" style="padding-top:4px; font-size:14pt">
@@ -164,10 +169,6 @@
                         <a href="#empty-trash" class="hide btn btn-danger"  data-toggle="tooltip" data-placement="left" title="Empty the trash."><i class="fa fa-trash-o"></i>&nbsp;</a>
                     </div>
 
-                    <!-- Snapshots link -->
-                    <div class="project-snapshot pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                        <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Recover  past versions of your files."><i class="fa fa-camera-retro"> </i></a>
-                    </div>
 
                     <!-- Hide/show hidden files -->
                     <div class="project-hidden-files pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
@@ -237,13 +238,13 @@
                                 <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
                                 <br><br>
                                 <span style="width:100%">
-                                    <a class="btn btn-primary" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> File</a>
-                                    <a class="btn btn-warning" href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder"></i> Folder</a>
-                                    <a class="btn btn-info" href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new terminal (open this to reconnect later)"><i class="fa fa-credit-card"></i> Terminal</a>
-                                    <a class="btn btn-info" href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="fa fa-superscript"></i> LaTeX</a>
-                                    <a class="btn btn-info" href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="fa fa-file-o"> </i> Sage Worksheet</a>
-                                    <a class="btn btn-info" href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="fa fa-file-o"></i> IPython Notebook</a>
-                                    <a class="btn" href="#new-download" data-toggle="tooltip" data-placement="top" title="Download a file or directory from the web"><i class="fa fa-cloud"></i> From Web</a>
+                                    <a class="btn btn-primary" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> File</a>
+                                    <a class="btn btn-warning"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder"></i> Folder</a>
+                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new terminal (open this to reconnect later)"><i class="fa fa-credit-card"></i> Terminal</a>
+                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="fa fa-superscript"></i> LaTeX</a>
+                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="fa fa-file-o"> </i> Sage Worksheet</a>
+                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="fa fa-file-o"></i> IPython Notebook</a>
+                                    <a class="btn"  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="top" title="Download a file or directory from the web"><i class="fa fa-cloud"></i> From Web</a>
                                     <!--<a class="btn btn-small" href="#old-worksheet"><i class="fa fa-file-o"> </i> (Old Worksheet)</a>-->
                                 </span>
                             </div>
@@ -253,7 +254,7 @@
                             <div class="span3">
                                 <h4><i class="fa fa-cloud-upload"> </i> From your computer </h4>
                             </div>
-                            <div class="span8 project-dropzone" style="overflow-y:auto; background-color: #eeeeee;">
+                            <div class="span8 project-dropzone" style="margin-bottom: 2em; overflow-y:auto; background-color: #eeeeee;">
                             </div>
                         </div>
                         <!--<hr>
@@ -280,11 +281,17 @@
                 <div class="row">
                     <div class="well" style="margin-left:3em; margin-right:3em;">
                         <div class="row-fluid">
-                            <div class="span10">
-                                <textarea rows=1 placeholder="What are you doing?" class="well project-activity-well project-activity-chat" style="width:92%"></textarea>
+                            <div class="span3">
+                                <input class="salvus-project-activity-search search-query" style="width:75%" type="search" placeholder="Search...">
+                                 <i class="salvus-project-activity-search-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
                             </div>
+                            <div class="span9">
+                                <textarea rows=1 placeholder="Write something..." class="well project-activity-well project-activity-chat" style="width:92%"></textarea>
+                            </div>
+                            <!--
                             <div class="span2  well  project-activity-well project-activity-current-users">
                             </div>
+                            -->
                         </div>
                         <div class="row-fluid">
                             <div class='btn-group'>
@@ -318,7 +325,7 @@
                     <div class="well" style="margin-left:3em; margin-right:3em;">
                         <div class="row-fluid">
                             <div class="span6 well project-heading-well">
-                                <h4>Title and Description <span class="lighten">(click to edit)</span></h4>
+                                <h4>Title and Description <span class="lighten"> (click to edit)</span></h4>
                                 <!-- Title of the project (editable) -->
                                 <h4>
                                     <span class="project-public"><i class="fa fa-eye">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -333,28 +340,21 @@
                             <div class="span6 well project-settings-well">
                                 <!-- The project id -->
                                 <div class="row-fluid project-settings-move" style="margin-top:1ex">
-                                    <div class="span2">
+                                    <div class="span3">
                                         <h4>Project id</h4>
                                     </div>
-                                    <div class="span10">
+                                    <div class="span9">
                                         <pre class="project-id">loading...</pre>
                                     </div>
                                 </div>
 
                                 <div class="row-fluid project-settings-move" style="margin-top:1ex">
-                                    <!-- Move the project -->
-                                    <div class="span2">
-                                        <h4>Location </h4>
+                                    <!-- Current location of the project -->
+                                    <div class="span3">
+                                        <h4 class="project-location-heading">Location </h4>
                                     </div>
-                                    <div class="span6">
-                                        <pre class="project-location">loading...</pre>
-                                    </div>
-                                    <!-- MOVE DISABLED UNTIL FULLY IMPLEMENTED, TESTED, and SAFE -->
-                                    <div class="span4 pull-right hide">
-                                        <a href="#move-project" class="btn btn-warning pull-right"
-                                            data-toggle="tooltip" data-placement="right" title="Move this project.">
-                                            <i class="fa fa-external-link-square"> </i> Move Project
-                                        </a>
+                                    <div class="span9">
+                                        <pre><a class="project-location">loading...</a></pre>
                                     </div>
                                 </div>
 
@@ -611,7 +611,7 @@
         <div class="span" style="width: 10px;">
             <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
         </div>
-        <div class="span pull-right" style="width:60px">
+        <div class="span pull-right" style="width:100px">
             <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
                 <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file"><i class="fa fa-edit"> </i> </a>
                 <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file"><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
@@ -638,7 +638,7 @@
             <span class="project-file-size">
             </span>
         </div>
-        <div class="big-only span4 lighten smallish">
+        <div class="big-only span3 lighten smallish">
             <span class="project-file-last-commit-date-container"><span class="project-file-last-commit-date"></span></span>
             (<a class="project-file-last-commit-message lighten"></a>)
         </div>
