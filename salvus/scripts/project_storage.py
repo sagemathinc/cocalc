@@ -106,7 +106,7 @@ if __name__ == "__main__":
             migrate_project_to_storage(src=src, storage=args.storage, size=args.size, new_only=args.new_only, verbose=args.verbose)
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate to or update project in storage pool')
-    parser_migrate.add_argument("--size", help="size of zfs image (default: 4G)", type=str, default="4G")
+    parser_migrate.add_argument("--size", help="size of zfs image (default: 1G)", type=str, default="1G")
     parser_migrate.add_argument("--new_only", help="if image already created, do nothing (default: False)", default=False, action="store_const", const=True)
     parser_migrate.add_argument("src", help="the current project home directory", type=str, nargs="+")
     parser_migrate.set_defaults(func=migrate)
