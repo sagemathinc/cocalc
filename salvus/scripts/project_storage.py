@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import argparse, json, os, sys
+import argparse, json, os, sys, time
 
 def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
     print s
@@ -87,7 +87,76 @@ def info_json(path, verbose):
                 if verbose:
                     print "writing '%s': '%s'"%(f,s)
                 open(f,'w').write(s)
+                os.system('chmod a+rw %s'%f)
 
+def copy_efficiently(src, dest, verbose):
+    # This for now -- later we might use a different method when the file is above a certain
+    # size threshhold (?)
+    s0, s1 = os.path.split(dest)
+    dest0 = os.path.join(s0, ".tmp-%s"%s1)
+    if verbose:
+        print("sync: %s --> %s"%(src, dest))
+        t = time.time()
+    try:
+        cmd("cp -av '%s' '%s'"%(src, dest0), verbose=verbose)
+        cmd("mv -v '%s' '%s'"%(dest0, dest), verbose=verbose)
+    except:
+        # remove the tmp file instead of leaving it there all corrupted.
+        os.unlink(dest0)
+        raise
+    if verbose:
+        print "time: %s"%(time.time()-t)
+
+def sync(src, dest, verbose):
+    src = os.path.abspath(src)
+    dest = os.path.abspath(dest)
+    import stat
+    def walktree(top):
+        v = os.listdir(top)
+        v.sort()
+        for i, f in enumerate(v):
+            if f == '.glusterfs':
+                # skip the glusterfs meta-data
+                continue
+            if verbose:
+                if len(v)>10:
+                    print("%s/%s: %s"%(i+1,len(v),f))
+            pathname = os.path.join(top, f)
+
+            src_name  = os.path.join(src, pathname)
+            dest_name = os.path.join(dest, pathname)
+
+            st = os.stat(src_name)
+
+            if st.st_mode == 33280:
+                # glusterfs meta-info file to indicate a move...
+                continue
+
+            if stat.S_ISDIR(st.st_mode):
+                # It's a directory: create in target if necessary, then recurse
+                if not os.path.exists(dest_name):
+                    try:
+                        os.mkdir(dest_name)
+                    except OSError:
+                        if not os.path.exists(dest_name):
+                            raise RuntimeError("unable to make directory '%s'"%dest_name)
+                walktree(pathname)
+
+            elif stat.S_ISREG(st.st_mode):
+                # It's a file: cp if target doesn't exist or is older
+                if not os.path.exists(dest_name):
+                    copy_efficiently(src_name, dest_name, verbose=verbose)
+                else:
+                    # exists, so check mtime -- int due to gluster having less precision
+                    if int(os.stat(dest_name).st_mtime) < int(st.st_mtime):
+                        # target is older, so copy
+                        copy_efficiently(src_name, dest_name, verbose=verbose)
+            else:
+                # Unknown file type, print a message
+                raise RuntimeError("unknown file type: %s"%pathname)
+
+    os.chdir(src)
+    walktree('.')
 
 if __name__ == "__main__":
 
@@ -129,6 +198,12 @@ if __name__ == "__main__":
     parser_migrate.add_argument("path", help="path to a project home directory (old non-pooled)", type=str, nargs="+")
     parser_migrate.set_defaults(func=_info_json)
 
+    def _sync(args):
+        sync(src=args.src, dest=args.dest, verbose=args.verbose)
+    parser_sync = subparsers.add_parser('sync', help='Cross data center project sync: simply uses the local "cp" command and local mounts of the glusterfs, but provides massive speedups due to sparseness of image files')
+    parser_sync.add_argument("src", help="source directory", type=str)
+    parser_sync.add_argument("dest", help="destination directory", type=str)
+    parser_sync.set_defaults(func=_sync)
 
     args = parser.parse_args()
     args.func(args)
