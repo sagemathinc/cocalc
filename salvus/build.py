@@ -27,6 +27,16 @@ Before building, do:
 
   Don't bother for LXC.
 
+# On glusterfs server machines:
+
+    I've increased this to 10,000,000 on all hosts by putting this in /etc/sysctl.conf:
+
+        fs.inotify.max_user_watches=10000000
+
+    and also did this once on the command line:
+
+        sudo sysctl fs.inotify.max_user_watches=10000000
+
 # ATLAS:
 
          apt-get install libatlas3gf-base liblapack-dev

@@ -253,17 +253,63 @@ Doing cross-data center sync:
 
     - Testing it out:
 
-            # run this on cloud1, 3, 5, 7 -- for redundancy, would want to somehow run on all replicas though...
-            time /tmp/project_storage.py --verbose sync /home/salvus/vm/images/gluster/projects/ /mnt/gluster/4545/projects
+            # run this on cloud1, 2, 5, 7 -- for redundancy, would want to somehow run on all replicas though...
+            time /tmp/project_storage.py --verbose sync /home/salvus/vm/images/gluster/projects/ /mnt/gluster/4545/projects > a
 
             # OR on any node this, which is significantly slower, but definitely comprehensive -- it takes 4 minutes
             # just to figure out what to copy for 4000 projects.
             time /tmp/project_storage.py --verbose sync /mnt/gluster/padelford/projects /mnt/gluster/4545/projects
 
             # run this on cloud10, 12, 14, 16, 18, 20
-            time /tmp/project_storage.py --verbose sync /home/salvus/vm/images/gluster/projects/ /mnt/gluster/padelford/projects
+            time /tmp/project_storage.py --verbose sync /home/salvus/vm/images/gluster/projects/ /mnt/gluster/padelford/projects > a
+
+    This is working, and now that I've fixed clocks (with ntp -- see https://www.digitalocean.com/community/articles/how-to-set-up-time-synchronization-on-ubuntu-12-04), it is stabilizing.
+
+    However, to make this scalable, I *need* to make a script/daemon that runs using inotify:
+
+        https://github.com/seb-m/pyinotify
+
+    For our application, we must massively increase the number of watches allowed:
+
+        http://unix.stackexchange.com/questions/13751/kernel-inotify-watch-limit-reached
+
+    I've increased this to 10,000,000 on all hosts by putting this in /etc/sysctl.conf:
+
+        fs.inotify.max_user_watches=10000000
+
+    and also did this once on the command line:
+
+        sudo sysctl fs.inotify.max_user_watches=10000000
 
 ---
+import pyinotify, time
+
+wm = pyinotify.WatchManager()  # Watch Manager
+mask = pyinotify.IN_CREATE | pyinotify.IN_MOVED_TO | pyinotify.IN_MODIFY | pyinotify.IN_CLOSE_WRITE
+
+class EventHandler(pyinotify.ProcessEvent):
+    def process_IN_CREATE(self, event):
+        print "Creating:", event.pathname
+    def process_IN_MOVED_TO(self, event):
+        print "File moved to:", event.pathname
+    def process_IN_MODIFY(self, event):
+        print "Modified:", event.pathname
+    def process_IN_CLOSE_WRITE(self, event):
+        print "Close write:", event.pathname
+
+handler = EventHandler()
+notifier = pyinotify.Notifier(wm, handler)
+
+t = time.time()
+print "adding watch..."
+
+wdd = wm.add_watch('/home/salvus/vm/images/gluster/projects/', mask, rec=True, exclude_filter=pyinotify.ExcludeFilter(['^/home/salvus/vm/images/gluster/projects/.glusterfs/']))
+
+print "watch added (%s seconds).  Now listening"%(time.time() - t)
+notifier.loop()
+ ---
+
+
 
 
 Interesting stat -- with *most* (not all yet!) projects together in one place, and the 1GB usage quota (some projects will need more), the space usage is 240GB.    Not bad.
