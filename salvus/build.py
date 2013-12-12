@@ -482,8 +482,9 @@ def build_python_packages():
     try:
         path = extract_package('distribute')
         cmd('python setup.py install', path)
+        cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:
-            cmd('easy_install %s'%pkg, '/tmp')
+            cmd('pip install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
