@@ -52,9 +52,18 @@ Before building, do:
 
 # Install critical packages:
 
-         sudo apt-get install tinc git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre
+         add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.4
+         apt-add-repository --yes ppa:zfs-native/stable
+
+         apt-get update
+
+         apt-get install tinc vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre glusterfs-server ubuntu-zfs ipython 
+
+# For VM hosts (??)
 
          chmod a+rw /dev/fuse
+
+# Gluster
 
 
 # Additional packages (mainly for users, not building).

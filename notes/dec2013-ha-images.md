@@ -72,7 +72,7 @@ server-quorum-type=server
 2. gluster volume set projects group group-virt.example
 
 
-### [ ] geo-replication?
+### [ ] geo-replication? -- BAD
 
     # on cloud10
     ssh-keygen -f /var/lib/glusterd/geo-replication/secret.pem
@@ -143,10 +143,7 @@ to benefit from upgrades and kernel improvements.   How about this:
 
 ---
 
-- [ ] lxc container project that can mount project and run it with a given ip address:  lxc container
-     - a base image, which is easy to move forward
-     - mounts the zfs /home/project directory
-     - datasets volume (sync it somehow to other dc's when adding new data)
+
 
 - [ ] migrate all projects
 
