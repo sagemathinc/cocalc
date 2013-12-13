@@ -67,7 +67,8 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                     # Unfortunately, guestfish doesn't support xfs.
                     sh['qemu-img', 'create', '-f', format, img, '%sG'%size]
                     # See salvus/salvus/scripts/salvus_nbd_format.py
-                    sh['sudo', '/usr/local/bin/salvus_nbd_format.py', fstype, img]
+                    log.info("WARNING: formatting filesystem can take a long time...")
+                    run(['sudo', '/usr/local/bin/salvus_nbd_format.py', fstype, img], maxtime=1800)
                     sh['chgrp', 'kvm', img]
                     sh['chmod', 'g+rw', img]
                 finally:
@@ -124,7 +125,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 try:
                     f = open(fstab,'a')
                     for i,x in enumerate(persistent_images):
-                        f.write("\n/dev/vd%s1   /mnt/%s   %s   defaults,usrquota,grpquota   0   1\n"%(chr(98+i),x[1],x[2]))
+                        f.write("\n/dev/vd%s1   /mnt/%s   %s   defaults   0   2\n"%(chr(98+i),x[1],x[2]))
                         mnt_point = os.path.join(tmp_path, 'mnt/%s'%x[1])
                         os.makedirs(mnt_point)
                 finally:

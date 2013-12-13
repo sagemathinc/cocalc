@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Put this in visudo and make damned sure only root can edit this script:
+Put this in visudo and make damned sure only root can edit this script.  This only should be in the VM hosts not the actual VM's.
 
     salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/salvus_nbd_format.py *
 """
@@ -56,7 +56,12 @@ def fdisk(dev):
         raise RuntimeError(x)
  
 def mkfs(dev):
-    cmd("mkfs.%s -f %sp1"%(format, dev))
+    # WARNING: this takes a long time, especially with xfs
+    if format == 'xfs':
+        cmd("mkfs.%s -f %sp1"%(format, dev))
+    else:
+        cmd("mkfs.%s %sp1"%(format, dev))
+   
 
 def nbd_disconnect(dev):
     cmd("qemu-nbd -d %s"%dev)
