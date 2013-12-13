@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 """
 Put this in visudo and make damned sure only root can edit this script.  This only should be in the VM hosts not the actual VM's.
