@@ -27,6 +27,16 @@ Before building, do:
 
   Don't bother for LXC.
 
+# On glusterfs server machines:
+
+    I've increased this to 10,000,000 on all hosts by putting this in /etc/sysctl.conf:
+
+        fs.inotify.max_user_watches=10000000
+
+    and also did this once on the command line:
+
+        sudo sysctl fs.inotify.max_user_watches=10000000
+
 # ATLAS:
 
          apt-get install libatlas3gf-base liblapack-dev
@@ -42,9 +52,29 @@ Before building, do:
 
 # Install critical packages:
 
-         sudo apt-get install tinc git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre
+         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl apt-get install software-properties-common  libevent-dev
 
-         chmod a+rw /dev/fuse
+
+         # hosts -- on ubuntu
+         add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.4; apt-get update; apt-get install glusterfs-server
+         apt-add-repository --yes ppa:zfs-native/stable; apt-get update; apt-get install ubuntu-zfs
+
+         # hosts -- on google (debian)
+
+         ## GLUSTER -- http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/
+         wget -O - http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/pubkey.gpg | apt-key add -
+         echo deb http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/apt wheezy main > /etc/apt/sources.list.d/gluster.list
+         apt-get update; apt-get install glusterfs-server
+         ## ZFS -- http://zfsonlinux.org/debian.html
+         wget http://archive.zfsonlinux.org/debian/pool/main/z/zfsonlinux/zfsonlinux_2%7Ewheezy_all.deb
+         dpkg -i zfsonlinux_2~wheezy_all.deb
+         apt-get update
+         apt-get install debian-zfs
+
+
+# For VM hardware hosts only (?):  chmod a+rw /dev/fuse
+
+# Gluster
 
 
 # Additional packages (mainly for users, not building).
@@ -56,23 +86,25 @@ On Ubuntu 13.10
 
 On Debian 7 (Google)
 
-apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf
+apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf spell
 
 
 # Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
    sudo add-apt-repository ppa:pippijn/ppa
-   sudo apt-get update; sudo apt-get install aldor
+   sudo apt-get update; sudo apt-get install aldor open-axiom*
 
 NOTE: With ubuntu 12.04 I do this:
           apt-add-repository ppa:texlive-backports/ppa
           apt-get update; apt-get dist-upgrade
 
-       - upgrade to octave 3.6:
+# upgrade to octave 3.6 -- Only on ubuntu 12.04!
           apt-add-repository ppa:dr-graef/octave-3.6.precise
           apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
 
 
 # Tmux -- Ensure tmux is at least 1.8 and if not:
+
+tmux -V
 
        wget http://downloads.sourceforge.net/tmux/tmux-1.8.tar.gz && tar xvf tmux-1.8.tar.gz && cd tmux-1.8/ &&  ./configure && make -j40 && sudo make install &&  cd .. && rm -rf tmux-1.8*
 
@@ -81,14 +113,6 @@ NOTE: With ubuntu 12.04 I do this:
   so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
 
       Get it here: https://www.dropbox.com/install?os=lnx
-
-
-
-# lsyncd --
-
-   sudo su
-   cd /tmp; git clone https://github.com/axkibe/lsyncd/; cd lsyncd; ./autogen.sh; ./configure --prefix=/usr/local; make; make install; rm -rf /tmp/lsyncd
-
 
 
 # SAGE SCRIPTS:
@@ -104,12 +128,13 @@ NOTE: With ubuntu 12.04 I do this:
 
   # Then... get latest from http://www.polymake.org/doku.php/download/start and build:
       sudo su
-      cd /tmp/; wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.12-rc3.tar.bz2; tar xvf polymake-2.12-rc3.tar.bz2; cd polymake-2.12; ./configure; make -j4; sudo make install; rm -rf /tmp/polymake*
+      cd /tmp/; wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.12-rc3.tar.bz2; tar xvf polymake-2.12-rc3.tar.bz2; cd polymake-2.12; ./configure; make -j4; make install
+      rm -rf /tmp/polymake*
 
 
 # MACAULAY2:
 
-Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
+   Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
 
 ## Ubuntu:
 
@@ -129,7 +154,7 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 
     umask 022   # always do this so that the resulting build is usable without painful permission hacking.
 
-    export SAGE_ATLAS_LIB=/usr/lib/
+    #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
     export MAKE="make -j20"
     make
 
@@ -147,7 +172,7 @@ Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Down
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-[os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
+[os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
@@ -243,7 +268,7 @@ r packages could be automated like so:
     cd $SAGE_ROOT/devel/sage; wget http://wstein.org/home/wstein/tmp/trac-14713.patch; hg import trac-14713.patch
     cd $SAGE_ROOT/; ./sage -br
 
-# Fix permissions, just in case!
+# Fix permissions, just in case.
 
     cd /usr/local/sage/current; chmod -R a+r *
 
@@ -310,7 +335,8 @@ PYTHON_PACKAGES = [
     'cql',                # interface to Cassandra
     'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
     'pyxattr',            # used by bup
-    'pylibacl'            # used by bup
+    'pylibacl',           # used by bup
+    'pyinotify'
     ]
 
 if not os.path.exists(BUILD):
@@ -463,8 +489,9 @@ def build_python_packages():
     try:
         path = extract_package('distribute')
         cmd('python setup.py install', path)
+        cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:
-            cmd('easy_install %s'%pkg, '/tmp')
+            cmd('pip install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
