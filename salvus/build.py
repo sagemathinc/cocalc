@@ -310,7 +310,8 @@ PYTHON_PACKAGES = [
     'cql',                # interface to Cassandra
     'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
     'pyxattr',            # used by bup
-    'pylibacl'            # used by bup
+    'pylibacl',           # used by bup
+    'pyinotify'
     ]
 
 if not os.path.exists(BUILD):
