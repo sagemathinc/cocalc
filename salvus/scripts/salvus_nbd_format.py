@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+"""
+Put this in visudo and make damned sure only root can edit this script:
+
+    salvus ALL=(ALL)   NOPASSWD:  /usr/local/bin/salvus_nbd_format.py *
+"""
+
 import os, random, sys
 from subprocess import Popen, PIPE
 
@@ -25,7 +31,10 @@ def cmd(s):
 
 def cmd2(s):
     print s
-    out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    if isinstance(s, str):
+       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    else: 
+       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
     e = out.wait()
     x = out.stdout.read() + out.stderr.read()
     return x,e
@@ -34,8 +43,10 @@ max_part = 64
 def nbd(n):
     cmd("modprobe nbd max_part=%s"%max_part)
     dev = '/dev/nbd%s'%n 
-    cmd("qemu-nbd -c %s '%s'"%(dev,image))
-    return dev
+    if cmd2(['qemu-nbd', '-c', dev, image])[1]:
+        raise RuntimeError(out.stdout.read() + out.stderr.read())
+    else:
+        return dev
 
 def fdisk(dev):
     x,e = cmd2('echo "n\np\n1\n\n\n\nw" | fdisk %s'%dev)
