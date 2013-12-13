@@ -48,6 +48,6 @@ if os.path.exists('/mnt/home/'):
     # Scratch is persistent but not backed up.
     os.system("mkdir -p /mnt/home/scratch; mkdir -p /scratch; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/scratch /scratch;  chmod a+rwx /mnt/home/scratch/")
 
-if os.path.exists("/mnt/gluster/glusterd"):
-    os.system("mount -o bind /mnt/gluster/glusterd /var/lib/glusterd") 
+if os.path.exists("/mnt/glusterd"):
+    os.system("mount -o bind /mnt/glusterd /var/lib/glusterd") 
     os.system("service glusterfs-server restart")
