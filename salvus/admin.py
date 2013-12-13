@@ -115,8 +115,8 @@ def run(args, maxtime=30, verbose=True):
     try:
         out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE).stdout.read()
-        if False and verbose:
-            log.info("output '%s'", out)
+        if verbose:
+            log.info("output '%s'", out[:256])
         return out
     finally:
         if maxtime:
@@ -1408,7 +1408,10 @@ class Monitor(object):
         self.print_status(all=all)
         down = self.down(all=all)
         if len([x for x in down if x.get('service','') != 'dns']) > 0:
-            email("The following are down: %s"%down, subject="SMC admin -- stuff down!")
+            try:
+                email("The following are down: %s"%down, subject="SMC admin -- stuff down!")
+            except Exception,msg:
+                print "nonfatal -- failed to send email! -- %s"%str(msg)
 
     def go(self, interval=5, residue=0):
         """
