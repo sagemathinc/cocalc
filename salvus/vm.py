@@ -57,28 +57,17 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
         log.info("created %s in %s seconds", new_img, time.time()-t); t = time.time()
         # Persistent image(s)
         persistent_images = []
-        for name, size in disk:
-            persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(hostname, name)), name))
+        for name, size, fstype, format in disk:
+            persistent_images.append((os.path.join(persistent_img_path, '%s-%s.img'%(hostname, name)), name, fstype, format))
             img = persistent_images[-1][0]
             if not os.path.exists(img):
                 os.chdir(persistent_img_path)
                 temp = None
                 try:
-                    # We create image using guestfish in a temporary
-                    # subdirectory to avoid filename conflicts, since
-                    # guestfish does not support specifying the output
-                    # image filename.
-                    temp = tempfile.mkdtemp(dir=persistent_img_path)
-                    os.chdir(temp)
-                    run(['guestfish', '-N', 'fs:ext4:%sG'%size, 'quit'],maxtime=120) # creates test1.img in the temp directory
-                    # Change the owner of the new img file.
-                    sh['mkdir', 'mnt']
-                    run(['guestmount', '-a', 'test1.img', '-m/dev/vda1', '--rw', 'mnt'], maxtime=120)
-                    sh['chown', 'salvus.', 'mnt']
-                    sh['fusermount', '-u', 'mnt']
-                    sh['rmdir', 'mnt']
-                    # Move image file to have correct name.
-                    shutil.move('test1.img', img)
+                    # Unfortunately, guestfish doesn't support xfs.
+                    sh['qemu-img', 'create', '-f', format, img, '%sG'%size]
+                    # See salvus/salvus/scripts/salvus_nbd_format.py
+                    sh['sudo', '/usr/local/bin/salvus_nbd_format.py', fstype, img]
                     sh['chgrp', 'kvm', img]
                     sh['chmod', 'g+rw', img]
                 finally:
@@ -135,7 +124,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 try:
                     f = open(fstab,'a')
                     for i,x in enumerate(persistent_images):
-                        f.write("\n/dev/vd%s1   /mnt/%s   ext4   defaults,usrquota,grpquota   0   1\n"%(chr(98+i),x[1]))
+                        f.write("\n/dev/vd%s1   /mnt/%s   %s   defaults,usrquota,grpquota   0   1\n"%(chr(98+i),x[1],x[2]))
                         mnt_point = os.path.join(tmp_path, 'mnt/%s'%x[1])
                         os.makedirs(mnt_point)
                 finally:
@@ -168,7 +157,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 cmd.extend(['--graphics', 'vnc,port=%s'%vnc])
 
             for x in persistent_images:
-                cmd.extend(['--disk', '%s,bus=virtio,cache=writeback'%x[0]])
+                cmd.extend(['--disk', '%s,bus=virtio,cache=writeback,format=%s'%(x[0],x[3])])
 
             os.system("ls -lh %s"%new_img)
             sh['chgrp', 'kvm', new_img]
@@ -231,7 +220,7 @@ if __name__ == "__main__":
     parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
                         help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--disk", dest="disk", type=str, default="",
-                        help="persistent disks: '--disk=cassandra:64,backup:10' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, both formated ext4, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.")
+                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[raw|qcow2]:[ext4|xfs]")
     parser.add_argument('--base', dest='base', type=str, default='salvus',
                         help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")
 
@@ -253,9 +242,20 @@ if __name__ == "__main__":
     args.hostname = args.hostname if args.hostname else args.ip_address.replace('.','dot')
 
     try:
-        disk = [x.split(':') for x in args.disk.split(',')] if args.disk else []
+        disk = []
+        if args.disk:
+            for x in args.disk.split(','):
+                a = x.split(':')
+                if len(a) == 1:
+                    a.append('1')
+                if len(a) == 2:
+                    a.append('ext4')  # default filesystem type
+                if len(a) == 3:
+                    a.append('raw')
+                assert len(a) == 4
+                disk.append(a)
     except (IndexError, ValueError):
-        raise RuntimeError("--disk option must be of the form 'name1:size1,name2:size2,...', with size in gigabytes")
+        raise RuntimeError("--disk option must be of the form 'name1:size1[:fstype][:format],name2:size2[:fstype][:format],...', with size in gigabytes")
 
     def main():
         global log

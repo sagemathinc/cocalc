@@ -115,8 +115,8 @@ def run(args, maxtime=30, verbose=True):
     try:
         out = subprocess.Popen(args, stdin=subprocess.PIPE, stdout = subprocess.PIPE,
                                 stderr=subprocess.PIPE).stdout.read()
-        if False and verbose:
-            log.info("output '%s'", out)
+        if verbose:
+            log.info("output '%s'", out[:256])
         return out
     finally:
         if maxtime:
