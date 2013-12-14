@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import argparse, json, os, pyinotify, sys, time
+import argparse, json, os, sys, time
 from uuid import UUID
 
 def check_uuid(uuid):
@@ -12,13 +12,31 @@ def uid(uuid):
     return UUID(uuid).int % (2**31)
 
 def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
-    print s
+    if verbose:
+        print s
     t = time.time()
     if os.system(s):
         if exit_on_error:
             print "Error running '%s' -- terminating"%s
             sys.exit(1)
-    print "time: %s seconds"%(time.time() - t)
+    if verbose:
+        print "time: %s seconds"%(time.time() - t)
+
+def cmd2(s, verbose=True):
+    if verbose:
+        print s
+    from subprocess import Popen, PIPE
+    if isinstance(s, str):
+       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    else:
+       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+    e = out.wait()
+    x = out.stdout.read() + out.stderr.read()
+    if verbose:
+        print x
+    return x,e
+
+
 
 def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
     info_json = os.path.join(src,'.sagemathcloud','info.json')
@@ -41,7 +59,10 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
             os.makedirs(target)
             os.chdir(target)
             current_size_mb = int(os.popen("du -s '%s'"%src).read().split()[0])//1000 + 1
+            #print "min_size_mb =", min_size_mb
+            #print "current_size_mb =", current_size_mb
             size = max(min_size_mb, 2*current_size_mb)
+            #print "new size =", size
             cmd("truncate -s %sM 0.img"%size, verbose=verbose)
             cmd("zpool create -m /home/%s project-%s %s/0.img"%(projectid, project_id, target), verbose=verbose)
             cmd("zfs set compression=gzip project-%s"%project_id, verbose=verbose)
@@ -57,14 +78,21 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
     finally:
         unmount_project(project_id=project_id, verbose=verbose)
 
-def mount_project(storage, project_id, verbose):
+def mount_project(storage, project_id, force, verbose):
     check_uuid(project_id)
     id = uid(project_id)
     target = os.path.join(storage, project_id)
-    cmd("zpool import project-%s -d %s"%(project_id, target), exit_on_error=False, verbose=verbose)
+    out, e = cmd2("zpool import %s project-%s -d %s"%('-f' if force else '', project_id, target), verbose=verbose)
+    if e:
+        if 'a pool with that name is already created' in out:
+            # no problem
+            pass
+        else:
+            print "could not get pool"
+            sys.exit(1)
     projectid = project_id.replace('-','')
     # the -o makes it so in the incredibly unlikely event of a collision, no big deal.
-    cmd("groupadd -g %s -o %s"%(id, projectid))
+    cmd("groupadd -g %s -o %s"%(id, projectid), exit_on_error=False)
     cmd("useradd -u %s -g %s -o -d /home/%s/  %s"%(id, id, projectid, projectid), exit_on_error=False)  # error if user already exists is fine.
 
 def unmount_project(project_id, verbose):
@@ -73,7 +101,13 @@ def unmount_project(project_id, verbose):
     cmd("pkill -9 -u %s"%projectid, exit_on_error=False)
     cmd("deluser --force %s"%projectid, exit_on_error=False)
     time.sleep(.5)
-    cmd("zpool export project-%s"%project_id, verbose=verbose)
+    out, e = cmd2("zpool export project-%s"%project_id, verbose=verbose)
+    if e:
+        if 'no such pool' not in out:
+            # not just a problem due to pool not being mounted.
+            print "Error unmounting pool -- %s"%out
+            sys.exit(1)
+
 
 def tinc_address():
     return os.popen('ifconfig tun0|grep "inet addr"').read().split()[1].split(':')[1].strip()
@@ -245,6 +279,7 @@ def sync_watch(src, dest, verbose):
                 last_sync[path] = time.time()
         modified_dirs.clear()
 
+    import pyinotify
     wm   = pyinotify.WatchManager()  # Watch Manager
     mask = pyinotify.IN_CREATE | pyinotify.IN_MOVED_TO | pyinotify.IN_MODIFY | pyinotify.IN_CLOSE_WRITE
 
@@ -313,14 +348,15 @@ if __name__ == "__main__":
     parser_migrate.set_defaults(func=migrate)
 
     def mount(args):
-        mount_project(storage=args.storage, project_id=args.project_id, verbose=args.verbose)
+        mount_project(storage=args.storage, project_id=args.project_id, force=args.f, verbose=args.verbose)
     parser_mount = subparsers.add_parser('mount', help='mount a project that is available in the storage pool')
     parser_mount.add_argument("project_id", help="the project id", type=str)
+    parser_mount.add_argument("-f", help="force (default: False)", default=False, action="store_const", const=True)
     parser_mount.set_defaults(func=mount)
 
     def unmount(args):
         unmount_project(project_id=args.project_id, verbose=args.verbose)
-    parser_unmount = subparsers.add_parser('unmount', help='unmount a project that is available in the storage pool')
+    parser_unmount = subparsers.add_parser('umount', help='unmount a project that is available in the storage pool')
     parser_unmount.add_argument("project_id", help="the project id", type=str)
     parser_unmount.set_defaults(func=unmount)
 
