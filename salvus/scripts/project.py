@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import argparse, json, os, sys, time
+import argparse, hashlib, json, os, sys, time
 from uuid import UUID
 
 def check_uuid(uuid):
@@ -9,7 +9,10 @@ def check_uuid(uuid):
         raise RuntimeError("invalid uuid")
 
 def uid(uuid):
-    return UUID(uuid).int % (2**31)
+    # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
+    # user could somehow generate an account id of their choosing, this wouldn't help them get the
+    # same uid as another user.
+    return hash(hashlib.sha512(uuid).digest()) % (2**31)
 
 def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
     if verbose:
@@ -73,7 +76,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
         cmd("time rsync -axH%s --delete --exclude .forever --exclude .bup %s/ /home/%s/"%(
                                       'v' if double_verbose else '', src, projectid), exit_on_error=False, verbose=verbose)
         id = uid(project_id)
-        cmd("chown %s:%s -R /home/%s/"%(id, id, projectid))
+        cmd("chown %s:%s -R /home/%s/"%(id, id, projectid), verbose=verbose)
         cmd("df -h /home/%s; zfs get compressratio project-%s; zpool get dedupratio project-%s"%(projectid, project_id, project_id), verbose=verbose)
     finally:
         unmount_project(project_id=project_id, verbose=verbose)
@@ -92,14 +95,14 @@ def mount_project(storage, project_id, force, verbose):
             sys.exit(1)
     projectid = project_id.replace('-','')
     # the -o makes it so in the incredibly unlikely event of a collision, no big deal.
-    cmd("groupadd -g %s -o %s"%(id, projectid), exit_on_error=False)
-    cmd("useradd -u %s -g %s -o -d /home/%s/  %s"%(id, id, projectid, projectid), exit_on_error=False)  # error if user already exists is fine.
+    cmd("groupadd -g %s -o %s"%(id, projectid), exit_on_error=False, verbose=verbose)
+    cmd("useradd -u %s -g %s -o -d /home/%s/  %s"%(id, id, projectid, projectid), exit_on_error=False, verbose=verbose)  # error if user already exists is fine.
 
 def unmount_project(project_id, verbose):
     check_uuid(project_id)
     projectid = project_id.replace('-','')
-    cmd("pkill -9 -u %s"%projectid, exit_on_error=False)
-    cmd("deluser --force %s"%projectid, exit_on_error=False)
+    cmd("pkill -9 -u %s"%projectid, exit_on_error=False, verbose=verbose)
+    cmd("deluser --force %s"%projectid, exit_on_error=False, verbose=verbose)
     time.sleep(.5)
     out, e = cmd2("zpool export project-%s"%project_id, verbose=verbose)
     if e:
