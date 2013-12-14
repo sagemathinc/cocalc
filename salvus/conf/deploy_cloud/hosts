@@ -80,7 +80,7 @@
 10.1.13.2 kvm           cassandra13    cassandra 
 #10.1.13.3 kvm       hub nginx snap  web13
 10.1.13.4 kvm       compute         compute13a
-10.1.13.5 kvm       gluster         gluster13
+#10.1.13.5 kvm       gluster         gluster13
 
 # DC0:RAC0   cloud14   
 10.1.14.1 kvm-host  edge            cloud14    # 64gb ram; 16 cores; 2tb disk
