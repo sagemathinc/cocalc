@@ -40,11 +40,15 @@ def mount_conf():
 def conf():
     # assuming /mnt/conf got mounted, do the configuration.
 
-    # stop services whose conf might change
     if os.path.exists("/mnt/conf/pre"):
         cmd("/mnt/conf/pre")
 
+    # stop services whose conf might change
     cmd("service glusterfs-server  stop")
+
+    if os.path.exists("/mnt/conf/glusterd"):
+        cmd("mount -o bind /mnt/conf/glusterd /var/lib/glusterd")
+
     if os.path.exists("/mnt/conf/fstab"):
         # mkdir each mount point
         for x in open("/mnt/conf/fstab").readlines():
@@ -68,6 +72,7 @@ def conf():
     if os.path.exists('/mnt/conf/tinc'):
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/etc/tinc")
         cmd("mount -o bind /mnt/conf/tinc /home/salvus/salvus/salvus/data/local/etc/tinc") 
+        cmd("cp /mnt/conf/tinc/hosts.0/* /mnt/conf/tinc/hosts/")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
