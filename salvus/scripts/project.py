@@ -18,6 +18,8 @@ def uid(uuid):
 def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
     if verbose:
         print s
+    else:
+        s += ' &>/dev/null'
     t = time.time()
     if os.system(s):
         if exit_on_error:
@@ -37,7 +39,8 @@ def cmd2(s, verbose=True):
         print x
     return x,e
 
-
+def path_to_project(storage, project_id):
+    return os.path.join(storage, project_id[:2], project_id[2:4], project_id)
 
 def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
     info_json = os.path.join(src,'.sagemathcloud','info.json')
@@ -47,7 +50,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
         return
     project_id = json.loads(open(info_json).read())['project_id']
     projectid = project_id.replace('-','')
-    target = os.path.join(storage, project_id)
+    target = path_to_project(storage, project_id)
     try:
         if os.path.exists(target):
             if new_only:
@@ -82,7 +85,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
 def mount_project(storage, project_id, force, verbose):
     check_uuid(project_id)
     id = uid(project_id)
-    target = os.path.join(storage, project_id)
+    target = path_to_project(storage, project_id)
     out, e = cmd2("zpool import %s project-%s -d %s"%('-f' if force else '', project_id, target), verbose=verbose)
     if e:
         if 'a pool with that name is already created' in out:
@@ -332,13 +335,13 @@ def sync_watch(src, dests, verbose):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Project storage")
-    parser.add_argument("--storage", help="the directory where project image directories are stored (default: /mnt/projects/)",
-                        type=str, default="/mnt/projects/")
     parser.add_argument("--verbose", help="be very verbose (default: False)", default=False, action="store_const", const=True)
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
     def migrate(args):
+        if not args.storage:
+            args.storage = os.environ['SALVUS_STORAGE']
         v = [os.path.abspath(x) for x in args.src]
         for i, src in enumerate(v):
             if args.verbose:
@@ -347,14 +350,21 @@ if __name__ == "__main__":
                                        new_only=args.new_only, verbose=args.verbose)
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate to or update project in storage pool')
+    parser_migrate.add_argument("--storage", help="the directory where project image directories are stored (default: $SALVUS_STORAGE enviro var)",
+                                type=str, default='')
     parser_migrate.add_argument("--min_size_mb", help="min size of zfs image in megabytes (default: 512)", type=int, default=512)
     parser_migrate.add_argument("--new_only", help="if image already created, do nothing (default: False)", default=False, action="store_const", const=True)
     parser_migrate.add_argument("src", help="the current project home directory", type=str, nargs="+")
     parser_migrate.set_defaults(func=migrate)
 
     def mount(args):
+        if not args.storage:
+            args.storage = os.environ['SALVUS_STORAGE']
         mount_project(storage=args.storage, project_id=args.project_id, force=args.f, verbose=args.verbose)
     parser_mount = subparsers.add_parser('mount', help='mount a project that is available in the storage pool')
+    parser_mount.add_argument("--storage", help="the directory where project image directories are stored (default: $SALVUS_STORAGE enviro var)",
+                                type=str, default='')
+
     parser_mount.add_argument("project_id", help="the project id", type=str)
     parser_mount.add_argument("-f", help="force (default: False)", default=False, action="store_const", const=True)
     parser_mount.set_defaults(func=mount)
