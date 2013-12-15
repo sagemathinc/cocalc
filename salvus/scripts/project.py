@@ -12,7 +12,8 @@ def uid(uuid):
     # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
     # user could somehow generate an account id of their choosing, this wouldn't help them get the
     # same uid as another user.
-    return hash(hashlib.sha512(uuid).digest()) % (2**31)
+    n = hash(hashlib.sha512(uuid).digest()) % (4294967294-1000)    # 2^32-2=max uid, as keith determined by a program + experimentation.
+    return n + 1001
 
 def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
     if verbose:
@@ -29,10 +30,7 @@ def cmd2(s, verbose=True):
     if verbose:
         print s
     from subprocess import Popen, PIPE
-    if isinstance(s, str):
-       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-    else:
-       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+    out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
     e = out.wait()
     x = out.stdout.read() + out.stderr.read()
     if verbose:
@@ -56,7 +54,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
                 if verbose:
                     print "skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id)
                 return
-            mount_project(storage=storage, project_id=project_id, verbose=verbose)
+            mount_project(storage=storage, project_id=project_id, force=False, verbose=verbose)
         else:
             # create
             os.makedirs(target)
@@ -64,7 +62,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
             current_size_mb = int(os.popen("du -s '%s'"%src).read().split()[0])//1000 + 1
             #print "min_size_mb =", min_size_mb
             #print "current_size_mb =", current_size_mb
-            size = max(min_size_mb, 2*current_size_mb)
+            size = max(min_size_mb, int(1.5*current_size_mb))
             #print "new size =", size
             cmd("truncate -s %sM 0.img"%size, verbose=verbose)
             cmd("zpool create -m /home/%s project-%s %s/0.img"%(projectid, project_id, target), verbose=verbose)
@@ -159,6 +157,8 @@ def copy_efficiently(src, dest, verbose):
     # size threshhold (?)
     import uuid
     s0, s1 = os.path.split(dest)
+    if not os.path.exists(s0):
+        os.makedirs(s0)
     dest0 = os.path.join(s0, ".tmp-%s-%s"%(str(uuid.uuid4()), s1))
     if verbose:
         print("sync: %s --> %s"%(src, dest))
@@ -234,7 +234,7 @@ def sync(src, dest, verbose):
     os.chdir(src)
     walktree('.')
 
-def sync_watch(src, dest, verbose):
+def sync_watch(src, dests, verbose):
     """
     watch src/ filesystem tree and on modification or creation, cp file from src/ to dest/.
 
@@ -242,11 +242,11 @@ def sync_watch(src, dest, verbose):
     that are allowed!  "sudo sysctl fs.inotify.max_user_watches=10000000" and in /etc/sysctl.conf:
         fs.inotify.max_user_watches=10000000
 
-    - src/ = underyling *brick* path for some glusterfs host
-    - dest/ = remote mounted glusterfs filesystem
+    - src   = underyling *brick* path for some glusterfs host
+    - dests = list of paths of remote mounted glusterfs filesystems
     """
     src = os.path.abspath(src)
-    dest = os.path.abspath(dest)
+    dests = [os.path.abspath(dest) for dest in dests]
 
     min_sync_time = 10 # never sync a file more frequently than this many seconds.
 
@@ -275,10 +275,11 @@ def sync_watch(src, dest, verbose):
             if path not in last_sync or now - last_sync[path] >= min_sync_time:
                 if not path.startswith(src):
                     raise RuntimeError("path=(%s) must be under %s"%(path, src))
-                dest_path = os.path.join(dest, path[len(src)+1:])
-                if verbose:
-                    print "sync('%s', '%s')"%(path, dest_path)
-                sync(path, dest_path, verbose)
+                for dest in dests:
+                    dest_path = os.path.join(dest, path[len(src)+1:])
+                    if verbose:
+                        print "sync('%s', '%s')"%(path, dest_path)
+                    sync(path, dest_path, verbose)
                 last_sync[path] = time.time()
         modified_dirs.clear()
 
@@ -309,7 +310,8 @@ def sync_watch(src, dest, verbose):
     if verbose:
         print "adding watches to '%s' (this could take several minutes)..."%src
 
-    dot_gluster = os.path.join(src, '.glusterfs/')
+    dot_gluster = os.path.join(src, '.glusterfs')
+    print "dot_gluster='%s'"%dot_gluster
     wdd = wm.add_watch(src, mask, rec=True, exclude_filter=pyinotify.ExcludeFilter(['^'+dot_gluster]))
 
     if verbose:
@@ -371,13 +373,14 @@ if __name__ == "__main__":
 
     def _sync(args):
         if args.watch:
-            sync_watch(src=args.src, dest=args.dest, verbose=args.verbose)
+            sync_watch(src=args.src, dests=args.dest, verbose=args.verbose)
         else:
-            sync(src=args.src, dest=args.dest, verbose=args.verbose)
+            for dest in args.dest:
+                sync(src=args.src, dest=dest, verbose=args.verbose)
     parser_sync = subparsers.add_parser('sync', help='Cross data center project sync: simply uses the local "cp" command and local mounts of the glusterfs, but provides massive speedups due to sparseness of image files')
     parser_sync.add_argument("--watch", help="use inotify to watch for changes to the src filesystem and cp when they occur", default=False, action="store_const", const=True)
-    parser_sync.add_argument("src", help="source directory", type=str)
-    parser_sync.add_argument("dest", help="destination directory", type=str)
+    parser_sync.add_argument("src", help="path to a brick (a directory)", type=str)
+    parser_sync.add_argument("dest", help="mounted remote gluster volumes (1 or more)", type=str, nargs="+")
     parser_sync.set_defaults(func=_sync)
 
     args = parser.parse_args()
