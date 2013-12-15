@@ -17,37 +17,39 @@ compute_cpu   = 12   # DO *NOT* change this willy-nilly; if you change it, you m
                      # sage: %timeit b=numpy.linalg.inv(a)
                      # 1 loops, best of 3: 183 ms per loop
 
+fstab_brick1 = '/dev/gluster/brick1 /mnt/brick1 ext4 nobootwait 0 2\n'
+fstab_brick2 = '/dev/gluster/brick2 /mnt/brick2 ext4 nobootwait 0 2\n'
+
 [vm]
 # gluster nodes
-cloud1    {'hostname':'gluster1', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2,brick2:256:xfs:qcow2', 'vnc':12101}
+cloud1    {'hostname':'gluster1', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2,brick2:256:none:qcow2', 'fstab':fstab_brick1+fstab_brick2}
 
-cloud2    {'hostname':'gluster2', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud3    {'hostname':'gluster3', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud2    {'hostname':'gluster2', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud3    {'hostname':'gluster3', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
-cloud4    {'hostname':'gluster4', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud5    {'hostname':'gluster5', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud4    {'hostname':'gluster4', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud5    {'hostname':'gluster5', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
-cloud6    {'hostname':'gluster6', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud7    {'hostname':'gluster7', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud6    {'hostname':'gluster6', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud7    {'hostname':'gluster7', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
+cloud10    {'hostname':'gluster10', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud11    {'hostname':'gluster11', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
-cloud10    {'hostname':'gluster10', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud11    {'hostname':'gluster11', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud12    {'hostname':'gluster12', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud12    {'hostname':'gluster13', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}  # will move later
 
-cloud12    {'hostname':'gluster12', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud12    {'hostname':'gluster13', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud14    {'hostname':'gluster14', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud15    {'hostname':'gluster15', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
-cloud14    {'hostname':'gluster14', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud15    {'hostname':'gluster15', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud16    {'hostname':'gluster16', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud17    {'hostname':'gluster17', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
-cloud16    {'hostname':'gluster16', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud17    {'hostname':'gluster17', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud18    {'hostname':'gluster18', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud19    {'hostname':'gluster19', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
-cloud18    {'hostname':'gluster18', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud19    {'hostname':'gluster19', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-
-cloud20    {'hostname':'gluster20', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
-cloud21    {'hostname':'gluster21', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud20    {'hostname':'gluster20', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
+cloud21    {'hostname':'gluster21', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:none:qcow2', 'fstab':fstab_brick1}
 
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
@@ -140,18 +142,22 @@ cassandra21    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
 edge
+web1gce1
 
 [haproxy] {'sudo':True, 'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
 edge
+web1gce1 {'hub_servers':[{'ip':'10.3.1.3','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.3.1.3','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.3.1.3','maxconn':100,'proxy_port':'5001'}]}
 
 [nginx]
 nginx
+web1gce1
 
 [hub]
 hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
 hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
+web1gce1 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.1.3.2:9042'}
 
 [snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*5}
 snap
