@@ -1,13 +1,13 @@
 # services
-base = 'salvus-2013-12-13-0750'
+base = 'salvus-2013-12-14-1740'
 
-cassandra_ram = 8
+cassandra_ram = 6
 cassandra_cpu = 2
 
-web_ram       = 8
+web_ram       = 6
 web_cpu       = 2
 
-gluster_ram  = 4
+gluster_ram  = 2
 gluster_cpu  = 1
 
 compute_ram   = 32
@@ -19,25 +19,35 @@ compute_cpu   = 12   # DO *NOT* change this willy-nilly; if you change it, you m
 
 [vm]
 # gluster nodes
-cloud1    {'hostname':'gluster1', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2,brick2:128:xfs:qcow2', 'vnc':12101}
-cloud2    {'hostname':'gluster2', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2,brick2:128:xfs:qcow2', 'vnc':12101}
-cloud3    {'hostname':'gluster3', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2,brick2:128:xfs:qcow2', 'vnc':12101}
-cloud4    {'hostname':'gluster4', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2,brick2:128:xfs:qcow2', 'vnc':12101}
-cloud5    {'hostname':'gluster5', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2,brick2:128:xfs:qcow2', 'vnc':12101}
-cloud6    {'hostname':'gluster6', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud7    {'hostname':'gluster7', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
+cloud1    {'hostname':'gluster1', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2,brick2:256:xfs:qcow2', 'vnc':12101}
 
-cloud10    {'hostname':'gluster10', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2,brick2:128:xfs:qcow2', 'vnc':12101}
-cloud11    {'hostname':'gluster11', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud12    {'hostname':'gluster12', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud14    {'hostname':'gluster14', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud15    {'hostname':'gluster15', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud16    {'hostname':'gluster16', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud17    {'hostname':'gluster17', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud18    {'hostname':'gluster18', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud19    {'hostname':'gluster19', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud20    {'hostname':'gluster20', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
-cloud21    {'hostname':'gluster21', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:128:xfs:qcow2', 'vnc':12101}
+cloud2    {'hostname':'gluster2', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud3    {'hostname':'gluster3', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+cloud4    {'hostname':'gluster4', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud5    {'hostname':'gluster5', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+cloud6    {'hostname':'gluster6', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud7    {'hostname':'gluster7', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+
+cloud10    {'hostname':'gluster10', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud11    {'hostname':'gluster11', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+cloud12    {'hostname':'gluster12', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud12    {'hostname':'gluster13', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+cloud14    {'hostname':'gluster14', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud15    {'hostname':'gluster15', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+cloud16    {'hostname':'gluster16', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud17    {'hostname':'gluster17', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+cloud18    {'hostname':'gluster18', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud19    {'hostname':'gluster19', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+
+cloud20    {'hostname':'gluster20', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
+cloud21    {'hostname':'gluster21', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,brick1:256:xfs:qcow2', 'vnc':12101}
 
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
