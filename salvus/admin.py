@@ -1569,7 +1569,12 @@ class Services(object):
         if 'id' not in options:
             options['id'] = 0
 
-        cmd = "import admin; print admin.%s(%s, **%r).%s()"%(name, db_string, options, action)
+        if 'monitor_database' in options: 
+            db_string=''
+        else:
+            db_string = db_string + ', '
+
+        cmd = "import admin; print admin.%s(%s**%r).%s()"%(name, db_string, options, action)
 
         if name == "Cassandra":
             self.cassandra_firewall(address, action)
