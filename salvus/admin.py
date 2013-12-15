@@ -723,7 +723,7 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class Vm(Process):
-    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine'):
+    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine', fstab=''):
         """
         INPUT:
 
@@ -755,6 +755,7 @@ class Vm(Process):
                      '--pidfile', pidfile, '--logfile', logfile,
                      '--vcpus', vcpus, '--ram', ram,
                      '--vnc', vnc,
+                     '--fstab', fstab,
                      '--vm_type', vm_type, '--base', base] + \
                      (['--disk', disk] if self._disk else []) + \
                      (['--hostname', self._hostname] if self._hostname else [])
