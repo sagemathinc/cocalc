@@ -52,7 +52,7 @@ Before building, do:
 
 # Install critical packages:
 
-         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl apt-get install software-properties-common  libevent-dev
+         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl apt-get install software-properties-common  libevent-dev xfsprogs
 
 
          # hosts -- on ubuntu
@@ -74,7 +74,10 @@ Before building, do:
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
 
-# Gluster
+
+# Add this to /etc/ssh/sshd_config
+
+MaxStartups 128
 
 
 # Additional packages (mainly for users, not building).
@@ -335,7 +338,8 @@ PYTHON_PACKAGES = [
     'cql',                # interface to Cassandra
     'fuse-python',        # used by bup: Python bindings to "filesystem in user space"
     'pyxattr',            # used by bup
-    'pylibacl'            # used by bup
+    'pylibacl',           # used by bup
+    'pyinotify'
     ]
 
 if not os.path.exists(BUILD):

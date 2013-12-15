@@ -1,51 +1,116 @@
 #!/usr/bin/env python
 
-import argparse, json, os, pyinotify, sys, time
+
+import argparse, hashlib, json, os, sys, time
+from uuid import UUID
+
+def check_uuid(uuid):
+    if UUID(uuid).version != 4:
+        raise RuntimeError("invalid uuid")
+
+def uid(uuid):
+    # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
+    # user could somehow generate an account id of their choosing, this wouldn't help them get the
+    # same uid as another user.
+    return hash(hashlib.sha512(uuid).digest()) % (2**31)
 
 def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
-    print s
+    if verbose:
+        print s
+    t = time.time()
     if os.system(s):
         if exit_on_error:
             print "Error running '%s' -- terminating"%s
             sys.exit(1)
+    if verbose:
+        print "time: %s seconds"%(time.time() - t)
 
-def migrate_project_to_storage(src, storage, size, new_only, verbose):
+def cmd2(s, verbose=True):
+    if verbose:
+        print s
+    from subprocess import Popen, PIPE
+    if isinstance(s, str):
+       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+    else:
+       out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=False)
+    e = out.wait()
+    x = out.stdout.read() + out.stderr.read()
+    if verbose:
+        print x
+    return x,e
+
+
+
+def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
     info_json = os.path.join(src,'.sagemathcloud','info.json')
     if not os.path.exists(info_json):
         if verbose:
             print "Skipping since %s does not exist"%info_json
         return
     project_id = json.loads(open(info_json).read())['project_id']
+    projectid = project_id.replace('-','')
     target = os.path.join(storage, project_id)
-    if os.path.exists(target):
-        if new_only:
-            if verbose:
-                print "skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id)
-            return
-        mount_project(storage=storage, project_id=project_id, verbose=verbose)
-    else:
-        # create
-        os.makedirs(target)
-        os.chdir(target)
-        cmd("truncate -s %s 0.img"%size, verbose=verbose)
-        cmd("zpool create -m /mnt/projects/%s project-%s %s/0.img"%(project_id, project_id, target), verbose=verbose)
-        cmd("zfs set compression=gzip project-%s"%project_id, verbose=verbose)
-        cmd("zfs set dedup=on project-%s"%project_id, verbose=verbose)
+    try:
+        if os.path.exists(target):
+            if new_only:
+                if verbose:
+                    print "skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id)
+                return
+            mount_project(storage=storage, project_id=project_id, verbose=verbose)
+        else:
+            # create
+            os.makedirs(target)
+            os.chdir(target)
+            current_size_mb = int(os.popen("du -s '%s'"%src).read().split()[0])//1000 + 1
+            #print "min_size_mb =", min_size_mb
+            #print "current_size_mb =", current_size_mb
+            size = max(min_size_mb, 2*current_size_mb)
+            #print "new size =", size
+            cmd("truncate -s %sM 0.img"%size, verbose=verbose)
+            cmd("zpool create -m /home/%s project-%s %s/0.img"%(projectid, project_id, target), verbose=verbose)
+            cmd("zfs set compression=gzip project-%s"%project_id, verbose=verbose)
+            cmd("zfs set dedup=on project-%s"%project_id, verbose=verbose)
 
-    # rsync data over
-    double_verbose = False
-    cmd("time rsync -axH%s --delete --exclude .forever --exclude .bup %s/ /mnt/projects/%s/"%(
-                                  'v' if double_verbose else '', src, project_id), exit_on_error=False, verbose=verbose)
-    cmd("time chown 1001:1001 -R /mnt/projects/%s"%project_id, verbose=verbose)
-    cmd("df -h /mnt/projects/%s; zfs get compressratio project-%s; zpool get dedupratio project-%s"%(project_id, project_id, project_id), verbose=verbose)
-    unmount_project(project_id=project_id, verbose=verbose)
+        # rsync data over
+        double_verbose = False
+        cmd("time rsync -axH%s --delete --exclude .forever --exclude .bup %s/ /home/%s/"%(
+                                      'v' if double_verbose else '', src, projectid), exit_on_error=False, verbose=verbose)
+        id = uid(project_id)
+        cmd("chown %s:%s -R /home/%s/"%(id, id, projectid), verbose=verbose)
+        cmd("df -h /home/%s; zfs get compressratio project-%s; zpool get dedupratio project-%s"%(projectid, project_id, project_id), verbose=verbose)
+    finally:
+        unmount_project(project_id=project_id, verbose=verbose)
 
-def mount_project(storage, project_id, verbose):
+def mount_project(storage, project_id, force, verbose):
+    check_uuid(project_id)
+    id = uid(project_id)
     target = os.path.join(storage, project_id)
-    cmd("zpool import project-%s -d %s"%(project_id, target), exit_on_error=False, verbose=verbose)
+    out, e = cmd2("zpool import %s project-%s -d %s"%('-f' if force else '', project_id, target), verbose=verbose)
+    if e:
+        if 'a pool with that name is already created' in out:
+            # no problem
+            pass
+        else:
+            print "could not get pool"
+            sys.exit(1)
+    projectid = project_id.replace('-','')
+    # the -o makes it so in the incredibly unlikely event of a collision, no big deal.
+    cmd("groupadd -g %s -o %s"%(id, projectid), exit_on_error=False, verbose=verbose)
+    cmd("useradd -u %s -g %s -o -d /home/%s/  %s"%(id, id, projectid, projectid), exit_on_error=False, verbose=verbose)  # error if user already exists is fine.
 
 def unmount_project(project_id, verbose):
-    cmd("zpool export project-%s"%project_id, verbose=verbose)
+    check_uuid(project_id)
+    projectid = project_id.replace('-','')
+    cmd("pkill -9 -u %s"%projectid, exit_on_error=False, verbose=verbose)
+    cmd("deluser --force %s"%projectid, exit_on_error=False, verbose=verbose)
+    time.sleep(.5)
+    out, e = cmd2("zpool export project-%s"%project_id, verbose=verbose)
+    if e:
+        if 'no such pool' not in out:
+            # not just a problem due to pool not being mounted.
+            print "Error unmounting pool -- %s"%out
+            sys.exit(1)
+
 
 def tinc_address():
     return os.popen('ifconfig tun0|grep "inet addr"').read().split()[1].split(':')[1].strip()
@@ -217,6 +282,7 @@ def sync_watch(src, dest, verbose):
                 last_sync[path] = time.time()
         modified_dirs.clear()
 
+    import pyinotify
     wm   = pyinotify.WatchManager()  # Watch Manager
     mask = pyinotify.IN_CREATE | pyinotify.IN_MOVED_TO | pyinotify.IN_MODIFY | pyinotify.IN_CLOSE_WRITE
 
@@ -264,8 +330,8 @@ def sync_watch(src, dest, verbose):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Project storage")
-    parser.add_argument("--storage", help="the directory where project image directories are stored (default: /mnt/storage)",
-                        type=str, default="/mnt/storage/")
+    parser.add_argument("--storage", help="the directory where project image directories are stored (default: /mnt/projects/)",
+                        type=str, default="/mnt/projects/")
     parser.add_argument("--verbose", help="be very verbose (default: False)", default=False, action="store_const", const=True)
 
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -275,23 +341,25 @@ if __name__ == "__main__":
         for i, src in enumerate(v):
             if args.verbose:
                 print "\n** %s of %s"%(i+1, len(v))
-            migrate_project_to_storage(src=src, storage=args.storage, size=args.size, new_only=args.new_only, verbose=args.verbose)
+            migrate_project_to_storage(src=src, storage=args.storage, min_size_mb=args.min_size_mb,
+                                       new_only=args.new_only, verbose=args.verbose)
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate to or update project in storage pool')
-    parser_migrate.add_argument("--size", help="size of zfs image (default: 1G)", type=str, default="1G")
+    parser_migrate.add_argument("--min_size_mb", help="min size of zfs image in megabytes (default: 512)", type=int, default=512)
     parser_migrate.add_argument("--new_only", help="if image already created, do nothing (default: False)", default=False, action="store_const", const=True)
     parser_migrate.add_argument("src", help="the current project home directory", type=str, nargs="+")
     parser_migrate.set_defaults(func=migrate)
 
     def mount(args):
-        mount_project(storage=args.storage, project_id=args.project_id, verbose=args.verbose)
+        mount_project(storage=args.storage, project_id=args.project_id, force=args.f, verbose=args.verbose)
     parser_mount = subparsers.add_parser('mount', help='mount a project that is available in the storage pool')
     parser_mount.add_argument("project_id", help="the project id", type=str)
+    parser_mount.add_argument("-f", help="force (default: False)", default=False, action="store_const", const=True)
     parser_mount.set_defaults(func=mount)
 
     def unmount(args):
         unmount_project(project_id=args.project_id, verbose=args.verbose)
-    parser_unmount = subparsers.add_parser('unmount', help='unmount a project that is available in the storage pool')
+    parser_unmount = subparsers.add_parser('umount', help='unmount a project that is available in the storage pool')
     parser_unmount.add_argument("project_id", help="the project id", type=str)
     parser_unmount.set_defaults(func=unmount)
 
@@ -310,9 +378,7 @@ if __name__ == "__main__":
     parser_sync.add_argument("--watch", help="use inotify to watch for changes to the src filesystem and cp when they occur", default=False, action="store_const", const=True)
     parser_sync.add_argument("src", help="source directory", type=str)
     parser_sync.add_argument("dest", help="destination directory", type=str)
-
     parser_sync.set_defaults(func=_sync)
-
 
     args = parser.parse_args()
     args.func(args)
