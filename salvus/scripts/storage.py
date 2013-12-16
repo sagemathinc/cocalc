@@ -275,21 +275,22 @@ def sync(src, dest):
     os.chdir(src)
     walktree('.')
 
-def sync_watch(src, dests, min_sync_time):
+def sync_watch(sources, dests, min_sync_time):
     """
-    watch src/ filesystem tree and on modification or creation, cp file from src/ to dest/.
+    Watch filesystem trees and on modification or creation, cp file, possibly creating directories.
+    The frequency of copying is limited in various ways.
 
     This uses inotify so that it is event driven.   You must increase the number of watched files
     that are allowed!  "sudo sysctl fs.inotify.max_user_watches=10000000" and in /etc/sysctl.conf:
         fs.inotify.max_user_watches=10000000
 
-    - src   = underyling *brick* path for some glusterfs host
+    - sources   = list of underyling *brick* path for some glusterfs host
     - dests = list of paths of remote mounted glusterfs filesystems
     - min_sync_time = never sync a file more frequently than this many seconds; no matter what, we
       also wait at least twice the time it takes to sync out the file before syncing it again.
     """
-    src = os.path.abspath(src)
-    dests = [os.path.abspath(dest) for dest in dests]
+    sources = [os.path.abspath(src) for src in sources]
+    dests   = [os.path.abspath(dest) for dest in dests]
 
     next_sync = {}  # soonest time when may again sync a given file
 
@@ -311,11 +312,16 @@ def sync_watch(src, dests, min_sync_time):
             return
         now = time.time()
         for path in modified_dirs:
-            if path == src:  # ignore changes to the src directory itself...
+            if path in sources:  # ignore changes to the sources directories
                 continue
             if path not in next_sync or now >= next_sync[path]:
-                if not path.startswith(src):
-                    log.warning("skipping: path=(%s) must be under %s"%(path, src))
+                src = None
+                for s in sources:
+                    if path.startswith(s):
+                        src = s
+                        break
+                if not src:
+                    log.warning("skipping: path=(%s) must be under a source: %s"%(path, sources))
                     return
                 t0 = time.time()
                 for dest in dests:
@@ -355,13 +361,14 @@ def sync_watch(src, dests, min_sync_time):
     notifier = pyinotify.Notifier(wm, handler, timeout=1)
 
     t = time.time()
-    log.info("adding watches to '%s' (this could take several minutes)..."%src)
 
-    dot_gluster = os.path.join(src, '.glusterfs')
-    print "dot_gluster='%s'"%dot_gluster
-    wdd = wm.add_watch(src, mask, rec=True, exclude_filter=pyinotify.ExcludeFilter(['^'+dot_gluster]))
+    watchers = []
+    for src in sources:
+        log.info("adding watches to '%s' (this could take several minutes)..."%src)
+        dot_gluster = os.path.join(src, '.glusterfs')
+        watchers.append(wm.add_watch(src, mask, rec=True, exclude_filter=pyinotify.ExcludeFilter(['^'+dot_gluster])))
+        log.info("watch added (%s seconds): listening for file events..."%(time.time() - t))
 
-    log.info("watch added (%s seconds).  Now listening"%(time.time() - t))
     def check_for_events():
         #print "check_for_events"
         notifier.process_events()
@@ -464,9 +471,14 @@ if __name__ == "__main__":
     parser_migrate.set_defaults(func=_info_json)
 
     def _sync(args):
+        volume_name = 'projects'
+        if not args.dest:
+            args.dest = mount_target_volumes(volume_name)
+        if not args.src:
+            args.src  = find_bricks(volume_name)
         if args.watch:
             def main():
-                sync_watch(src=args.src.split(','), dests=args.dest.split(','), min_sync_time=args.min_sync_time)
+                sync_watch(sources=args.src.split(','), dests=args.dest.split(','), min_sync_time=args.min_sync_time)
             if args.daemon:
                 if not args.pidfile:
                     raise RuntimeError("in --daemon mode you *must* specify --pidfile")
