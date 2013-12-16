@@ -4,6 +4,10 @@
 import argparse, hashlib, json, os, sys, time
 from uuid import UUID
 
+# This is so we can import salvus/salvus/daemon.py
+sys.path.append('/home/salvus/salvus/salvus/')
+
+
 def check_uuid(uuid):
     if UUID(uuid).version != 4:
         raise RuntimeError("invalid uuid")
@@ -164,7 +168,10 @@ def info_json(path, verbose):
                 os.system('chmod a+rw %s'%f)
 
 def modtime(f):
-    return os.stat(f).st_mtime
+    try:
+        return os.stat(f).st_mtime
+    except:
+        return 0 # 1970...
 
 def copy_file_efficiently(src, dest, verbose):
     """
@@ -306,6 +313,8 @@ def sync_watch(src, dests, min_sync_time, verbose):
     modified_dirs = set([])
 
     def add(pathname):
+        if verbose:
+            print "inotify: %s"%pathname
         if os.path.isdir(pathname):
             modified_dirs.add(pathname)
         elif os.path.isfile(pathname):
@@ -336,8 +345,9 @@ def sync_watch(src, dests, min_sync_time, verbose):
                         print "WARNING: problem syncing %s to %s! -- %s"%(path, dest_path, msg)
                 # no matter what, we wait at least twice the time (from now) that it takes to sync out the file before syncing it again.
                 next_sync[path] = time.time() + max(2*(time.time() - t0), min_sync_time)
-                print time.time()
-                print next_sync
+            else:
+                if verbose:
+                    print "skipping since too frequenct: %s"%path
         modified_dirs.clear()
 
     import pyinotify
@@ -437,13 +447,24 @@ if __name__ == "__main__":
 
     def _sync(args):
         if args.watch:
-            sync_watch(src=args.src, dests=args.dest, min_sync_time=args.min_sync_time, verbose=args.verbose)
+            def main():
+                sync_watch(src=args.src, dests=args.dest, min_sync_time=args.min_sync_time, verbose=args.verbose)
+            if args.daemon:
+                if not args.pidfile:
+                    raise RuntimeError("in --daemon mode you *must* specify --pidfile")
+                import daemon
+                daemon.daemonize(args.pidfile)
+            main()
         else:
             for dest in args.dest:
                 sync(src=args.src, dest=dest, verbose=args.verbose)
     parser_sync = subparsers.add_parser('sync', help='Cross data center project sync: simply uses the local "cp" command and local mounts of the glusterfs, but provides massive speedups due to sparseness of image files')
     parser_sync.add_argument("--watch", help="after running once, use inotify to watch for changes to the src filesystem and cp when they occur", default=False, action="store_const", const=True)
-    parser_sync.add_argument("--min_sync_time", help="never copy a file more frequently than this (default: 30 seconds)", type=int, default=30)
+    parser_sync.add_argument("--min_sync_time", help="never copy a file more frequently than this (default: 30 seconds)",
+                             type=int, default=30)
+    parser_sync.add_argument("--daemon", help="daemon mode -- only makes sense with --watch (default: False)",
+                             dest="daemon", default=False, action="store_const", const=True)
+    parser_sync.add_argument("--pidfile", dest="pidfile", type=str, default='',  help="store pid in this file when daemonized")
     parser_sync.add_argument("src", help="path to a brick (a directory)", type=str)
     parser_sync.add_argument("dest", help="mounted remote gluster volumes (1 or more)", type=str, nargs="+")
     parser_sync.set_defaults(func=_sync)
