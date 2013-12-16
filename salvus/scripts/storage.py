@@ -375,17 +375,26 @@ def sync_watch(src, dests, min_sync_time):
         handle_modified_dirs()
         time.sleep(1)
 
+def volume_info_json():
+    # parse 'gluster volume info' as a python object.
+    s, e = cmd2('gluster volume info')
+    if e:
+        raise RuntimeError(e)
+    v = []
+    cur = {}
+    volumes = s.split("\nVolume Name: ")
+    return volumes
 
-def setup_log(args):
+def setup_log(loglevel='DEBUG', logfile=''):
     logging.basicConfig()
     global log
     log = logging.getLogger('storage')
-    if args.loglevel:
-        level = getattr(logging, args.loglevel.upper())
+    if loglevel:
+        level = getattr(logging, loglevel.upper())
         log.setLevel(level)
 
-    if args.logfile:
-        log.addHandler(logging.FileHandler(args.logfile))
+    if logfile:
+        log.addHandler(logging.FileHandler(logfile))
 
     import admin   # take over the admin logger
     admin.log = log
@@ -472,6 +481,9 @@ if __name__ == "__main__":
     setup_log(args)
 
     args.func(args)
+
+else:
+    setup_log()
 
 
 
