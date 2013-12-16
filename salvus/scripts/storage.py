@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 
-import argparse, hashlib, json, os, sys, time
+import argparse, hashlib, json, logging, os, sys, time
 from uuid import UUID
+
+log = None
 
 # This is so we can import salvus/salvus/daemon.py
 sys.path.append('/home/salvus/salvus/salvus/')
-
 
 def check_uuid(uuid):
     if UUID(uuid).version != 4:
@@ -19,38 +20,31 @@ def uid(uuid):
     n = hash(hashlib.sha512(uuid).digest()) % (4294967294-1000)    # 2^32-2=max uid, as keith determined by a program + experimentation.
     return n + 1001
 
-def cmd(s, exit_on_error=True, verbose=True):  # TODO: verbose ignored right now
-    if verbose:
-        print s
-    else:
-        s += ' &>/dev/null'
+def cmd(s, exit_on_error=True):
+    log.debug(s)
+    #s += ' &>/dev/null'
     t = time.time()
     if os.system(s):
         if exit_on_error:
-            print "Error running '%s' -- terminating"%s
-            sys.exit(1)
-    if verbose:
-        print "time: %s seconds"%(time.time() - t)
+            raise RuntimeError("Error running '%s'"%s)
+    log.debug("time: %s seconds"%(time.time() - t))
 
-def cmd2(s, verbose=True):
-    if verbose:
-        print s
+def cmd2(s):
+    log.debug(s)
     from subprocess import Popen, PIPE
     out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
     e = out.wait()
     x = out.stdout.read() + out.stderr.read()
-    if verbose:
-        print x
+    log.debug(x)
     return x,e
 
 def path_to_project(storage, project_id):
     return os.path.join(storage, project_id[:2], project_id[2:4], project_id)
 
-def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
+def migrate_project_to_storage(src, storage, min_size_mb, new_only):
     info_json = os.path.join(src,'.sagemathcloud','info.json')
     if not os.path.exists(info_json):
-        if verbose:
-            print "Skipping since %s does not exist"%info_json
+        log.debug("Skipping since %s does not exist"%info_json)
         return
     project_id = json.loads(open(info_json).read())['project_id']
     projectid = project_id.replace('-','')
@@ -58,10 +52,9 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
     try:
         if os.path.exists(target):
             if new_only:
-                if verbose:
-                    print "skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id)
+                log.debug("skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id))
                 return
-            mount_project(storage=storage, project_id=project_id, force=False, verbose=verbose)
+            mount_project(storage=storage, project_id=project_id, force=False)
         else:
             # create
             os.makedirs(target)
@@ -73,32 +66,32 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only, verbose):
             #img_size_mb = 128
             #images = ['%s/%s.img'%(target, i) for i in range(size//img_size_mb + 1)]
             #for img in images:
-            #    cmd("truncate -s %sM %s"%(img_size_mb,img), verbose=verbose)
+            #    cmd("truncate -s %sM %s"%(img_size_mb,img))
             #images = ' '.join(images)
 
 
             images = '%s/%s.img'%(target,0)
-            cmd("truncate -s %sM %s"%(size, images), verbose=verbose)
+            cmd("truncate -s %sM %s"%(size, images))
 
-            cmd("zpool create -m /home/%s project-%s %s"%(projectid, project_id, images), verbose=verbose)
-            cmd("zfs set compression=gzip project-%s"%project_id, verbose=verbose)
-            cmd("zfs set dedup=on project-%s"%project_id, verbose=verbose)
+            cmd("zpool create -m /home/%s project-%s %s"%(projectid, project_id, images))
+            cmd("zfs set compression=gzip project-%s"%project_id)
+            cmd("zfs set dedup=on project-%s"%project_id)
 
         # rsync data over
         double_verbose = False
         cmd("time rsync -axH%s --delete --exclude .forever --exclude .bup %s/ /home/%s/"%(
-                                      'v' if double_verbose else '', src, projectid), exit_on_error=False, verbose=verbose)
+                                      'v' if double_verbose else '', src, projectid), exit_on_error=False)
         id = uid(project_id)
-        cmd("chown %s:%s -R /home/%s/"%(id, id, projectid), verbose=verbose)
-        cmd("df -h /home/%s; zfs get compressratio project-%s; zpool get dedupratio project-%s"%(projectid, project_id, project_id), verbose=verbose)
+        cmd("chown %s:%s -R /home/%s/"%(id, id, projectid))
+        cmd("df -h /home/%s; zfs get compressratio project-%s; zpool get dedupratio project-%s"%(projectid, project_id, project_id))
     finally:
-        unmount_project(project_id=project_id, verbose=verbose)
+        unmount_project(project_id=project_id)
 
-def mount_project(storage, project_id, force, verbose):
+def mount_project(storage, project_id, force):
     check_uuid(project_id)
     id = uid(project_id)
     target = path_to_project(storage, project_id)
-    out, e = cmd2("zpool import %s project-%s -d %s"%('-f' if force else '', project_id, target), verbose=verbose)
+    out, e = cmd2("zpool import %s project-%s -d %s"%('-f' if force else '', project_id, target))
     if e:
         if 'a pool with that name is already created' in out:
             # no problem
@@ -108,16 +101,16 @@ def mount_project(storage, project_id, force, verbose):
             sys.exit(1)
     projectid = project_id.replace('-','')
     # the -o makes it so in the incredibly unlikely event of a collision, no big deal.
-    cmd("groupadd -g %s -o %s"%(id, projectid), exit_on_error=False, verbose=verbose)
-    cmd("useradd -u %s -g %s -o -d /home/%s/  %s"%(id, id, projectid, projectid), exit_on_error=False, verbose=verbose)  # error if user already exists is fine.
+    cmd("groupadd -g %s -o %s"%(id, projectid), exit_on_error=False)
+    cmd("useradd -u %s -g %s -o -d /home/%s/  %s"%(id, id, projectid, projectid), exit_on_error=False)  # error if user already exists is fine.
 
-def unmount_project(project_id, verbose):
+def unmount_project(project_id):
     check_uuid(project_id)
     projectid = project_id.replace('-','')
-    cmd("pkill -9 -u %s"%projectid, exit_on_error=False, verbose=verbose)
-    cmd("deluser --force %s"%projectid, exit_on_error=False, verbose=verbose)
+    cmd("pkill -9 -u %s"%projectid, exit_on_error=False)
+    cmd("deluser --force %s"%projectid, exit_on_error=False)
     time.sleep(.5)
-    out, e = cmd2("zpool export project-%s"%project_id, verbose=verbose)
+    out, e = cmd2("zpool export project-%s"%project_id)
     if e:
         if 'no such pool' not in out:
             # not just a problem due to pool not being mounted.
@@ -128,14 +121,13 @@ def unmount_project(project_id, verbose):
 def tinc_address():
     return os.popen('ifconfig tun0|grep "inet addr"').read().split()[1].split(':')[1].strip()
 
-def info_json(path, verbose):
+def info_json(path):
     if not os.path.exists('locations.dat'):
         sys.stderr.write('Please run this from a node with db access to create locations.dat\n\t\techo "select location,project_id from projects limit 30000;" | cqlsh_connect 10.1.3.2 |grep "{" > locations.dat')
         sys.exit(1)
     db = {}
     host = tinc_address()
-    if verbose:
-        print "parsing database..."
+    log.info("parsing database...")
     for x in open('locations.dat').readlines():
         if x.strip():
             location, project_id = x.split('|')
@@ -143,27 +135,23 @@ def info_json(path, verbose):
             project_id = project_id.strip()
             if location['host'] == host:
                 if location['username'] in db:
-                    print "WARNING: collision -- %s, %s"%(location, project_id)
+                    log.warning("WARNING: collision -- %s, %s"%(location, project_id))
                 db[location['username']] = {'location':location, 'project_id':project_id, 'base_url':''}
     v = [os.path.abspath(x) for x in path]
     for i, path in enumerate(v):
-        if verbose:
-            print "** %s of %s"%(i+1, len(v))
+        log.info("** %s of %s"%(i+1, len(v)))
         SMC = os.path.join(path, '.sagemathcloud')
         if not os.path.exists(SMC):
-            if verbose:
-                print "Skipping '%s' since no .sagemathcloud directory"%path
+            log.warning("Skipping '%s' since no .sagemathcloud directory"%path)
             continue
         f = os.path.join(path, '.sagemathcloud', 'info.json')
         username = os.path.split(path)[-1]
         if not os.path.exists(f):
             if username not in db:
-                if verbose:
-                    print "Skipping '%s' since not in database!"%username
+                log.warning("Skipping '%s' since not in database!"%username)
             else:
                 s = json.dumps(db[username], separators=(',', ':'))
-                if verbose:
-                    print "writing '%s': '%s'"%(f,s)
+                log.info("writing '%s': '%s'"%(f,s))
                 open(f,'w').write(s)
                 os.system('chmod a+rw %s'%f)
 
@@ -171,9 +159,10 @@ def modtime(f):
     try:
         return os.stat(f).st_mtime
     except:
+        log.warning("file %s vanished before stat"%f)
         return 0 # 1970...
 
-def copy_file_efficiently(src, dest, verbose):
+def copy_file_efficiently(src, dest):
     """
     Copy a possibly sparse file from a brick to a mounted glusterfs volume.
 
@@ -203,16 +192,15 @@ def copy_file_efficiently(src, dest, verbose):
             return
 
     dest_modtime = modtime(dest)
-    if verbose:
-        print("sync: %s --> %s"%(src, dest))
-        t = time.time()
+    log.info("sync: %s --> %s"%(src, dest))
+    t = time.time()
     try:
-        cmd("touch '%s'; cp -av '%s' '%s'"%(lock, src, dest0), verbose=verbose, exit_on_error=False)
+        cmd("touch '%s'; cp -av '%s' '%s'"%(lock, src, dest0), exit_on_error=False)
         # check that modtime of dest is *still* older, i.e., that somehow somebody didn't
         # just step in and change it.
         if modtime(dest) == dest_modtime:
             # modtime was unchanged.
-            cmd("mv -v '%s' '%s'"%(dest0, dest), verbose=verbose, exit_on_error=False)
+            cmd("mv -v '%s' '%s'"%(dest0, dest), exit_on_error=False)
 
     finally:
         # remove the tmp file instead of leaving it there all corrupted.
@@ -222,11 +210,10 @@ def copy_file_efficiently(src, dest, verbose):
             os.unlink(lock)
 
     total_time = time.time() - t
-    if verbose:
-        print "time: %s"%total_time
+    log.info("time: %s"%total_time)
     return total_time
 
-def sync(src, dest, verbose):
+def sync(src, dest):
     """
     copy all older files from src/ to dest/.
 
@@ -236,22 +223,19 @@ def sync(src, dest, verbose):
     src = os.path.abspath(src)
     dest = os.path.abspath(dest)
 
-    if verbose:
-        print "sync: '%s' --> '%s'"%(src, dest)
+    log.info("sync: '%s' --> '%s'"%(src, dest))
 
     import stat
     def walktree(top):
-        if verbose:
-            print top
+        log.info(top)
         v = os.listdir(top)
         v.sort()
         for i, f in enumerate(v):
             if f == '.glusterfs':
                 # skip the glusterfs meta-data
                 continue
-            if verbose:
-                if len(v)>10:
-                    print("%s/%s: %s"%(i+1,len(v),f))
+            if len(v)>10:
+                log.info("%s/%s: %s"%(i+1,len(v),f))
             pathname = os.path.join(top, f)
 
             src_name  = os.path.join(src, pathname)
@@ -276,7 +260,7 @@ def sync(src, dest, verbose):
             elif stat.S_ISREG(st.st_mode):
                 # It's a file: cp if target doesn't exist or is older
                 if not os.path.exists(dest_name):
-                    copy_file_efficiently(src_name, dest_name, verbose=verbose)
+                    copy_file_efficiently(src_name, dest_name)
                 else:
                     # exists, so check mtime -- int due to gluster having less precision
                     # if the dest file is older, overwrite.  The clock of the destination
@@ -284,7 +268,7 @@ def sync(src, dest, verbose):
                     # in sync.  Run ntp!
                     if int(os.stat(dest_name).st_mtime) < int(st.st_mtime):
                         # target is older, so copy
-                        copy_file_efficiently(src_name, dest_name, verbose=verbose)
+                        copy_file_efficiently(src_name, dest_name)
             else:
                 # Unknown file type, print a message
                 raise RuntimeError("unknown file type: %s"%pathname)
@@ -292,7 +276,7 @@ def sync(src, dest, verbose):
     os.chdir(src)
     walktree('.')
 
-def sync_watch(src, dests, min_sync_time, verbose):
+def sync_watch(src, dests, min_sync_time):
     """
     watch src/ filesystem tree and on modification or creation, cp file from src/ to dest/.
 
@@ -313,8 +297,7 @@ def sync_watch(src, dests, min_sync_time, verbose):
     modified_dirs = set([])
 
     def add(pathname):
-        if verbose:
-            print "inotify: %s"%pathname
+        log.debug("inotify: %s"%pathname)
         if os.path.isdir(pathname):
             modified_dirs.add(pathname)
         elif os.path.isfile(pathname):
@@ -333,21 +316,20 @@ def sync_watch(src, dests, min_sync_time, verbose):
                 continue
             if path not in next_sync or now >= next_sync[path]:
                 if not path.startswith(src):
-                    raise RuntimeError("path=(%s) must be under %s"%(path, src))
+                    log.warning("skipping: path=(%s) must be under %s"%(path, src))
+                    return
                 t0 = time.time()
                 for dest in dests:
                     dest_path = os.path.join(dest, path[len(src)+1:])
-                    if verbose:
-                        print "sync('%s', '%s')"%(path, dest_path)
+                    log.info("sync('%s', '%s')"%(path, dest_path))
                     try:
-                        sync(path, dest_path, verbose)
+                        sync(path, dest_path)
                     except Exception, msg:
-                        print "WARNING: problem syncing %s to %s! -- %s"%(path, dest_path, msg)
+                        log.warning("problem syncing %s to %s! -- %s"%(path, dest_path, msg))
                 # no matter what, we wait at least twice the time (from now) that it takes to sync out the file before syncing it again.
                 next_sync[path] = time.time() + max(2*(time.time() - t0), min_sync_time)
             else:
-                if verbose:
-                    print "skipping since too frequenct: %s"%path
+                log.debug("skipping '%s' for now since too frequent"%path)
         modified_dirs.clear()
 
     import pyinotify
@@ -374,15 +356,13 @@ def sync_watch(src, dests, min_sync_time, verbose):
     notifier = pyinotify.Notifier(wm, handler, timeout=1)
 
     t = time.time()
-    if verbose:
-        print "adding watches to '%s' (this could take several minutes)..."%src
+    log.info("adding watches to '%s' (this could take several minutes)..."%src)
 
     dot_gluster = os.path.join(src, '.glusterfs')
     print "dot_gluster='%s'"%dot_gluster
     wdd = wm.add_watch(src, mask, rec=True, exclude_filter=pyinotify.ExcludeFilter(['^'+dot_gluster]))
 
-    if verbose:
-        print "watch added (%s seconds).  Now listening"%(time.time() - t)
+    log.info("watch added (%s seconds).  Now listening"%(time.time() - t))
     def check_for_events():
         #print "check_for_events"
         notifier.process_events()
@@ -396,10 +376,29 @@ def sync_watch(src, dests, min_sync_time, verbose):
         time.sleep(1)
 
 
+def setup_log(args):
+    logging.basicConfig()
+    global log
+    log = logging.getLogger('storage')
+    if args.loglevel:
+        level = getattr(logging, args.loglevel.upper())
+        log.setLevel(level)
+
+    if args.logfile:
+        log.addHandler(logging.FileHandler(args.logfile))
+
+    import admin   # take over the admin logger
+    admin.log = log
+
+    log.info("logger started")
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Project storage")
-    parser.add_argument("--verbose", help="be very verbose (default: False)", default=False, action="store_const", const=True)
+    parser.add_argument("--loglevel", dest='loglevel', type=str, default='INFO',
+                           help="log level: useful options include INFO, WARNING and DEBUG")
+    parser.add_argument("--logfile", dest="logfile", type=str, default='',
+                        help="store log in this file (default: '' = don't log to a file)")
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
@@ -408,10 +407,9 @@ if __name__ == "__main__":
             args.storage = os.environ['SALVUS_STORAGE']
         v = [os.path.abspath(x) for x in args.src]
         for i, src in enumerate(v):
-            if args.verbose:
-                print "\n** %s of %s"%(i+1, len(v))
+            log.info("\n** %s of %s"%(i+1, len(v)))
             migrate_project_to_storage(src=src, storage=args.storage, min_size_mb=args.min_size_mb,
-                                       new_only=args.new_only, verbose=args.verbose)
+                                       new_only=args.new_only)
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate to or update project in storage pool')
     parser_migrate.add_argument("--storage", help="the directory where project image directories are stored (default: $SALVUS_STORAGE enviro var)",
@@ -424,7 +422,7 @@ if __name__ == "__main__":
     def mount(args):
         if not args.storage:
             args.storage = os.environ['SALVUS_STORAGE']
-        mount_project(storage=args.storage, project_id=args.project_id, force=args.f, verbose=args.verbose)
+        mount_project(storage=args.storage, project_id=args.project_id, force=args.f)
     parser_mount = subparsers.add_parser('mount', help='mount a project that is available in the storage pool')
     parser_mount.add_argument("--storage", help="the directory where project image directories are stored (default: $SALVUS_STORAGE enviro var)",
                                 type=str, default='')
@@ -434,13 +432,13 @@ if __name__ == "__main__":
     parser_mount.set_defaults(func=mount)
 
     def unmount(args):
-        unmount_project(project_id=args.project_id, verbose=args.verbose)
+        unmount_project(project_id=args.project_id)
     parser_unmount = subparsers.add_parser('umount', help='unmount a project that is available in the storage pool')
     parser_unmount.add_argument("project_id", help="the project id", type=str)
     parser_unmount.set_defaults(func=unmount)
 
     def _info_json(args):
-        info_json(path=args.path, verbose=args.verbose)
+        info_json(path=args.path)
     parser_migrate = subparsers.add_parser('info_json', help='query database, then write info.json file if there is none')
     parser_migrate.add_argument("path", help="path to a project home directory (old non-pooled)", type=str, nargs="+")
     parser_migrate.set_defaults(func=_info_json)
@@ -448,7 +446,7 @@ if __name__ == "__main__":
     def _sync(args):
         if args.watch:
             def main():
-                sync_watch(src=args.src, dests=args.dest, min_sync_time=args.min_sync_time, verbose=args.verbose)
+                sync_watch(src=args.src, dests=args.dest, min_sync_time=args.min_sync_time)
             if args.daemon:
                 if not args.pidfile:
                     raise RuntimeError("in --daemon mode you *must* specify --pidfile")
@@ -457,7 +455,7 @@ if __name__ == "__main__":
             main()
         else:
             for dest in args.dest:
-                sync(src=args.src, dest=dest, verbose=args.verbose)
+                sync(src=args.src, dest=dest)
     parser_sync = subparsers.add_parser('sync', help='Cross data center project sync: simply uses the local "cp" command and local mounts of the glusterfs, but provides massive speedups due to sparseness of image files')
     parser_sync.add_argument("--watch", help="after running once, use inotify to watch for changes to the src filesystem and cp when they occur", default=False, action="store_const", const=True)
     parser_sync.add_argument("--min_sync_time", help="never copy a file more frequently than this (default: 30 seconds)",
@@ -470,6 +468,9 @@ if __name__ == "__main__":
     parser_sync.set_defaults(func=_sync)
 
     args = parser.parse_args()
+
+    setup_log(args)
+
     args.func(args)
 
 
