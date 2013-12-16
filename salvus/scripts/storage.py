@@ -381,7 +381,7 @@ def sync_watch(sources, dests, min_sync_time):
         handle_modified_dirs()
         time.sleep(1)
 
-def volume_info_json():
+def volume_info():
     # parse 'gluster volume info' as a python object.
     s, e = cmd2('unset PYTHONPATH; unset PYTHONHOME; gluster volume info')
     if e:
@@ -393,15 +393,40 @@ def volume_info_json():
             name = z[0]
             m = {'bricks':[]}
             for k in z[1:]:
-                a = k.split(':')
-                val = a[1].strip()
+                i = k.find(':')
+                if i == -1:
+                    continue
+                key = k[:i].strip()
+                val = k[i+1:].strip()
                 if val:
-                    if a[0].startswith('Brick'):
+                    if key.startswith('Brick'):
                         m['bricks'].append(val)
                     else:
-                        m[a[0]] = val
+                        m[key] = val
             v[name] = m
     return v
+
+def ip_address(dest):
+    # get the ip address that is used to communicate with the given destination
+    import misc
+    return misc.local_ip_address(dest)
+
+def mount_target_volumes(volume_name):
+    info = volume_info()
+    return []
+
+def find_bricks(volume_name):
+    bricks = []
+    ip = None
+    for name, data in volume_info().iteritems():
+        if name.startswith('dc'):
+            v = name.split('-')
+            if len(v) >= 2 and v[1] == volume_name:
+                for brick in data['bricks']:
+                    brick_ip, path = brick.split(':')
+                    if ip_address(brick_ip) == brick_ip:
+                        bricks.append(path)
+    return bricks
 
 def setup_log(loglevel='DEBUG', logfile=''):
     logging.basicConfig()
@@ -471,11 +496,10 @@ if __name__ == "__main__":
     parser_migrate.set_defaults(func=_info_json)
 
     def _sync(args):
-        volume_name = 'projects'
         if not args.dest:
-            args.dest = mount_target_volumes(volume_name)
+            args.dest = ','.join(mount_target_volumes(args.volume))
         if not args.src:
-            args.src  = find_bricks(volume_name)
+            args.src  = ','.join(find_bricks(args.volume))
         if args.watch:
             def main():
                 sync_watch(sources=args.src.split(','), dests=args.dest.split(','), min_sync_time=args.min_sync_time)
@@ -498,8 +522,9 @@ if __name__ == "__main__":
     parser_sync.add_argument("--daemon", help="daemon mode -- only makes sense with --watch (default: False)",
                              dest="daemon", default=False, action="store_const", const=True)
     parser_sync.add_argument("--pidfile", dest="pidfile", type=str, default='',  help="store pid in this file when daemonized")
-    parser_sync.add_argument("--dest", help="comma separated list of destinations; if not given, all remote gluster volumes are mounted and targeted", type=str, default='')
-    parser_sync.add_argument("--src", help="comma separated paths to bricks; if not given, all local bricks are used", type=str, default='')
+    parser_sync.add_argument("--dest", help="comma separated list of destinations; if not given, all remote gluster volumes with name dc[n]-volume are mounted and targeted", type=str, default='')
+    parser_sync.add_argument("--src", help="comma separated paths to bricks; if not given, local bricks for dc[n]-volume are used", type=str, default='')
+    parser_sync.add_argument("--volume", help="if there are volumes dc0-projects, dc1-projects, dc2-projects, then pass option --volume=projects (default: 'projects')", default='projects')
     parser_sync.set_defaults(func=_sync)
 
     args = parser.parse_args()
