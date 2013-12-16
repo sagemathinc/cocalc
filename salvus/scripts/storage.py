@@ -117,7 +117,6 @@ def unmount_project(project_id):
             print "Error unmounting pool -- %s"%out
             sys.exit(1)
 
-
 def tinc_address():
     return os.popen('ifconfig tun0|grep "inet addr"').read().split()[1].split(':')[1].strip()
 
@@ -377,13 +376,25 @@ def sync_watch(src, dests, min_sync_time):
 
 def volume_info_json():
     # parse 'gluster volume info' as a python object.
-    s, e = cmd2('gluster volume info')
+    s, e = cmd2('unset PYTHONPATH; unset PYTHONHOME; gluster volume info')
     if e:
         raise RuntimeError(e)
-    v = []
-    cur = {}
-    volumes = s.split("\nVolume Name: ")
-    return volumes
+    v = {}
+    for x in s.split("\nVolume Name: "):
+        z = x.strip().splitlines()
+        if z:
+            name = z[0]
+            m = {'bricks':[]}
+            for k in z[1:]:
+                a = k.split(':')
+                val = a[1].strip()
+                if val:
+                    if a[0].startswith('Brick'):
+                        m['bricks'].append(val)
+                    else:
+                        m[a[0]] = val
+            v[name] = m
+    return v
 
 def setup_log(loglevel='DEBUG', logfile=''):
     logging.basicConfig()
@@ -455,7 +466,7 @@ if __name__ == "__main__":
     def _sync(args):
         if args.watch:
             def main():
-                sync_watch(src=args.src, dests=args.dest, min_sync_time=args.min_sync_time)
+                sync_watch(src=args.src.split(','), dests=args.dest.split(','), min_sync_time=args.min_sync_time)
             if args.daemon:
                 if not args.pidfile:
                     raise RuntimeError("in --daemon mode you *must* specify --pidfile")
@@ -463,8 +474,11 @@ if __name__ == "__main__":
                 daemon.daemonize(args.pidfile)
             main()
         else:
-            for dest in args.dest:
-                sync(src=args.src, dest=dest)
+            for src in args.src.split(','):
+                for dest in args.dest.split(','):
+                    sync(src=src, dest=dest)
+
+
     parser_sync = subparsers.add_parser('sync', help='Cross data center project sync: simply uses the local "cp" command and local mounts of the glusterfs, but provides massive speedups due to sparseness of image files')
     parser_sync.add_argument("--watch", help="after running once, use inotify to watch for changes to the src filesystem and cp when they occur", default=False, action="store_const", const=True)
     parser_sync.add_argument("--min_sync_time", help="never copy a file more frequently than this (default: 30 seconds)",
@@ -472,13 +486,13 @@ if __name__ == "__main__":
     parser_sync.add_argument("--daemon", help="daemon mode -- only makes sense with --watch (default: False)",
                              dest="daemon", default=False, action="store_const", const=True)
     parser_sync.add_argument("--pidfile", dest="pidfile", type=str, default='',  help="store pid in this file when daemonized")
-    parser_sync.add_argument("src", help="path to a brick (a directory)", type=str)
-    parser_sync.add_argument("dest", help="mounted remote gluster volumes (1 or more)", type=str, nargs="+")
+    parser_sync.add_argument("--dest", help="comma separated list of destinations; if not given, all remote gluster volumes are mounted and targeted", type=str, default='')
+    parser_sync.add_argument("--src", help="comma separated paths to bricks; if not given, all local bricks are used", type=str, default='')
     parser_sync.set_defaults(func=_sync)
 
     args = parser.parse_args()
 
-    setup_log(args)
+    setup_log(loglevel=args.loglevel, logfile=args.logfile)
 
     args.func(args)
 
