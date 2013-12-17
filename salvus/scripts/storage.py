@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import argparse, cPickle, hashlib, json, logging, os, sys, time
+import argparse, cPickle, hashlib, json, logging, os, sys, time, random
 from uuid import UUID
 
 log = None
@@ -41,7 +41,7 @@ def cmd2(s):
 def path_to_project(storage, project_id):
     return os.path.join(storage, project_id[:2], project_id[2:4], project_id)
 
-def migrate_project_to_storage(src, storage, min_size_mb, new_only):
+def migrate_project_to_storage(src, storage, min_size_mb, max_size_mb, new_only):
     info_json = os.path.join(src,'.sagemathcloud','info.json')
     if not os.path.exists(info_json):
         log.debug("Skipping since %s does not exist"%info_json)
@@ -60,7 +60,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only):
             os.makedirs(target)
             os.chdir(target)
             current_size_mb = int(os.popen("du -s '%s'"%src).read().split()[0])//1000 + 1
-            size = max(min_size_mb, current_size_mb)
+            size = min(max_size_mb, max(min_size_mb, current_size_mb))
 
             # Using many small img files might seem like a good idea.  It isn't, since mount takes massively longer, etc.
             #img_size_mb = 128
@@ -208,6 +208,7 @@ def copy_file_efficiently(src, dest):
     log.info("sync: %s --> %s"%(src, dest))
     t = time.time()
     try:
+        log.info(cmd2('ls -lhs "%s"'%src)[0])
         cmd("touch '%s'; cp -av '%s' '%s'"%(lock, src, dest0), exit_on_error=True)
         # check that modtime of dest is *still* older, i.e., that somehow somebody didn't
         # just step in and change it.
@@ -259,13 +260,13 @@ def sync(src, dest):
     def walktree(top):
         #log.info("scanning '%s'", top)
         v = os.listdir(top)
-        v.sort()
+        random.shuffle(v)
         for i, f in enumerate(v):
             if f == '.glusterfs':
                 # skip the glusterfs meta-data
                 continue
             if len(v)>10:
-                log.info("%s(%s/%s): %s"%(top,i+1,len(v),f))
+                log.debug("%s(%s/%s): %s", top,i+1,len(v),f)
             pathname = os.path.join(top, f)
 
             src_name  = os.path.join(src, pathname)
@@ -312,6 +313,7 @@ def sync(src, dest):
     open(cache_file,'w').write(s)
 
 def sync_watch(sources, dests, min_sync_time):
+    ### WARNING -- this code does not work very well, and is sort of pointless.  AVOID!
     """
     Watch filesystem trees and on modification or creation, cp file, possibly creating directories.
     The frequency of copying is limited in various ways.
@@ -511,9 +513,6 @@ def setup_log(loglevel='DEBUG', logfile=''):
     if logfile:
         log.addHandler(logging.FileHandler(logfile))
 
-    import admin   # take over the admin logger
-    admin.log = log
-
     log.info("logger started")
 
 if __name__ == "__main__":
@@ -532,7 +531,7 @@ if __name__ == "__main__":
         v = [os.path.abspath(x) for x in args.src]
         for i, src in enumerate(v):
             log.info("\n** %s of %s"%(i+1, len(v)))
-            migrate_project_to_storage(src=src, storage=args.storage, min_size_mb=args.min_size_mb,
+            migrate_project_to_storage(src=src, storage=args.storage, min_size_mb=args.min_size_mb, max_size_mb=10000,
                                        new_only=args.new_only)
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate to or update project in storage pool')
@@ -572,32 +571,33 @@ if __name__ == "__main__":
             args.dest = ','.join(mount_target_volumes(args.volume))
         if not args.src:
             args.src  = ','.join(find_bricks(args.volume))
-        if args.watch:
-            def main():
-                while True:
-                    try:
+        def main():
+            while True:
+                try:
+                    if args.watch:
                         sync_watch(sources=args.src.split(','), dests=args.dest.split(','), min_sync_time=args.min_sync_time)
-                    except KeyboardInterrupt:
-                        return
-                    except Exception, mesg:
-                        print mesg
-            if args.daemon:
-                if not args.pidfile:
-                    raise RuntimeError("in --daemon mode you *must* specify --pidfile")
-                import daemon
-                daemon.daemonize(args.pidfile)
-            main()
-        else:
-            for src in args.src.split(','):
-                for dest in args.dest.split(','):
-                    sync(src=src, dest=dest)
+                    else:
+                        for src in args.src.split(','):
+                            for dest in args.dest.split(','):
+                                sync(src=src, dest=dest)
+                except KeyboardInterrupt:
+                    return
+                except Exception, mesg:
+                    print mesg
+                time.sleep(5)
+        if args.daemon:
+            if not args.pidfile:
+                raise RuntimeError("in --daemon mode you *must* specify --pidfile")
+            import daemon
+            daemon.daemonize(args.pidfile)
+        main()
 
 
     parser_sync = subparsers.add_parser('sync', help='Cross data center project sync: simply uses the local "cp" command and local mounts of the glusterfs, but provides massive speedups due to sparseness of image files')
     parser_sync.add_argument("--watch", help="after running once, use inotify to watch for changes to the src filesystem and cp when they occur", default=False, action="store_const", const=True)
     parser_sync.add_argument("--min_sync_time", help="never copy a file more frequently than this (default: 30 seconds)",
                              type=int, default=30)
-    parser_sync.add_argument("--daemon", help="daemon mode -- only makes sense with --watch (default: False)",
+    parser_sync.add_argument("--daemon", help="daemon mode; will repeatedly sync",
                              dest="daemon", default=False, action="store_const", const=True)
     parser_sync.add_argument("--pidfile", dest="pidfile", type=str, default='',  help="store pid in this file when daemonized")
     parser_sync.add_argument("--dest", help="comma separated list of destinations; if not given, all remote gluster volumes with name dc[n]-volume are mounted and targeted", type=str, default='')
