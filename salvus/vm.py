@@ -126,8 +126,8 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
                 try:
                     f = open(fstab_file,'a')
                     for i,x in enumerate(persistent_images):
-                        if x[2] != 'none':
-                            f.write("\n/dev/vd%s1   /mnt/%s   %s   nobootwait   0   2\n"%(chr(98+i),x[1],x[2]))
+                        if x[2] != 'none':   # using defaults instead of nobootwait, since nobootwait causes trouble with firstboot.py
+                            f.write("\n/dev/vd%s1   /mnt/%s   %s   defaults  0   2\n"%(chr(98+i),x[1],x[2]))
                             mnt_point = os.path.join(tmp_path, 'mnt/%s'%x[1])
                             os.makedirs(mnt_point)
                     f.write('\n'+fstab+'\n')
@@ -136,7 +136,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
                         if not x.lstrip().startswith('#') and len(v) >= 2:
                             mnt_point = os.path.join(tmp_path, v[1].lstrip('/'))
                             os.makedirs(mnt_point)
-                             
+
                 finally:
                     f.close()
 
