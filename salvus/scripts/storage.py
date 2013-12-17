@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 
-import argparse, hashlib, json, logging, os, sys, time
+import argparse, cPickle, hashlib, json, logging, os, sys, time
 from uuid import UUID
 
 log = None
@@ -60,7 +60,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, new_only):
             os.makedirs(target)
             os.chdir(target)
             current_size_mb = int(os.popen("du -s '%s'"%src).read().split()[0])//1000 + 1
-            size = max(min_size_mb, int(1.5*current_size_mb))
+            size = max(min_size_mb, current_size_mb)
 
             # Using many small img files might seem like a good idea.  It isn't, since mount takes massively longer, etc.
             #img_size_mb = 128
@@ -156,23 +156,33 @@ def info_json(path):
 
 def modtime(f):
     try:
-        return os.stat(f).st_mtime
+        return int(os.stat(f).st_mtime)
     except:
-        log.warning("file %s vanished before stat"%f)
         return 0 # 1970...
 
 def copy_file_efficiently(src, dest):
     """
-    Copy a possibly sparse file from a brick to a mounted glusterfs volume.
+    Copy a possibly sparse file from a brick to a mounted glusterfs volume, if the dest is older.
 
     This for now -- later we might use a different method when the file is above a certain
     size threshold (?).  However, I can't think of any possible better method, really; anything
     involving computing a diff between the two files would require *reading* them, so already
     takes way too long (in sharp contrast to the ever-clever bup, which uses a blum filter!).
 
+    This will raise a RuntimeError if something goes wrong.
     """
     import uuid
     s0, s1 = os.path.split(dest)
+    if s1.startswith('.glusterfs'):
+        # never copy around/sync any of the temp files we create below.
+        return
+
+    # The clock of the destination is used when doing this copy, so it's
+    # *critical* that the clocks be in sync.  Run ntp!!!!!
+    dest_modtime = modtime(dest)
+    if dest_modtime >= modtime(src):
+        return
+
     if not os.path.exists(s0):
         os.makedirs(s0)
     lock  = os.path.join(s0, ".glusterfs-lock-%s"%s1)
@@ -181,7 +191,7 @@ def copy_file_efficiently(src, dest):
     now = time.time()
     recent = now - 5*60   # recent time = 5 minutes ago
     if os.path.exists(lock):
-        # another daemon is either copying the same file right now (or died).
+        log.debug("another daemon is either copying the same file right now (or died).")
         # If mod time of the lock is recent, just give up.
         t = modtime(lock)
         if t >= recent:
@@ -190,23 +200,33 @@ def copy_file_efficiently(src, dest):
         if os.path.exists(dest0) and modtime(dest0) >= recent:
             return
 
-    dest_modtime = modtime(dest)
+
+    if os.stat(src).st_mode == 33280:
+        log.info("skipping copy since source '%s' suddenly became special link file", src)
+        return
+
     log.info("sync: %s --> %s"%(src, dest))
     t = time.time()
     try:
-        cmd("touch '%s'; cp -av '%s' '%s'"%(lock, src, dest0), exit_on_error=False)
+        cmd("touch '%s'; cp -av '%s' '%s'"%(lock, src, dest0), exit_on_error=True)
         # check that modtime of dest is *still* older, i.e., that somehow somebody didn't
         # just step in and change it.
         if modtime(dest) == dest_modtime:
             # modtime was unchanged.
-            cmd("mv -v '%s' '%s'"%(dest0, dest), exit_on_error=False)
+            cmd("mv -v '%s' '%s'"%(dest0, dest), exit_on_error=True)
 
     finally:
         # remove the tmp file instead of leaving it there all corrupted.
         if os.path.exists(dest0):
-            os.unlink(dest0)
+            try:
+                os.unlink(dest0)
+            except:
+                pass
         if os.path.exists(lock):
-            os.unlink(lock)
+            try:
+                os.unlink(lock)
+            except:
+                pass
 
     total_time = time.time() - t
     log.info("time: %s"%total_time)
@@ -222,11 +242,22 @@ def sync(src, dest):
     src = os.path.abspath(src)
     dest = os.path.abspath(dest)
 
+    cache_file = "/var/lib/glusterd/glustersync/cache.pickle"
+    if not os.path.exists("/var/lib/glusterd/glustersync"):
+        os.makedirs("/var/lib/glusterd/glustersync")
+    if os.path.exists(cache_file):
+        cache_all = cPickle.loads(open(cache_file).read())
+    else:
+        cache_all = {}
+    if dest not in cache_all:
+        cache_all[dest] = {}
+    cache = cache_all[dest]
+
     log.info("sync: '%s' --> '%s'"%(src, dest))
 
     import stat
     def walktree(top):
-        log.info(top)
+        #log.info("scanning '%s'", top)
         v = os.listdir(top)
         v.sort()
         for i, f in enumerate(v):
@@ -234,7 +265,7 @@ def sync(src, dest):
                 # skip the glusterfs meta-data
                 continue
             if len(v)>10:
-                log.info("%s/%s: %s"%(i+1,len(v),f))
+                log.info("%s(%s/%s): %s"%(top,i+1,len(v),f))
             pathname = os.path.join(top, f)
 
             src_name  = os.path.join(src, pathname)
@@ -243,37 +274,42 @@ def sync(src, dest):
             st = os.stat(src_name)
 
             if st.st_mode == 33280:
-                # glusterfs meta-info file to indicate a move...
+                # glusterfs meta-info file to indicate a moved file...
                 continue
 
             if stat.S_ISDIR(st.st_mode):
-                # It's a directory: create in target if necessary, then recurse
-                if not os.path.exists(dest_name):
-                    try:
-                        os.makedirs(dest_name)
-                    except OSError:
-                        if not os.path.exists(dest_name):
-                            raise RuntimeError("unable to make directory '%s'"%dest_name)
-                walktree(pathname)
+                # It's a directory: create in target if necessary, then recurse...
+                ## !! we skip creation; this is potentially expensive and isn't needed for our application.
+                ##if not os.path.exists(dest_name):
+                ##  try:
+                ##        os.makedirs(dest_name)
+                ##    except OSError:
+                ##        if not os.path.exists(dest_name):
+                ##            raise RuntimeError("unable to make directory '%s'"%dest_name)
+                try:
+                    walktree(pathname)
+                except OSError, mesg:
+                    log.warning("error walking '%s': %s", pathname, mesg)
 
             elif stat.S_ISREG(st.st_mode):
-                # It's a file: cp if target doesn't exist or is older
-                if not os.path.exists(dest_name):
-                    copy_file_efficiently(src_name, dest_name)
-                else:
-                    # exists, so check mtime -- int due to gluster having less precision
-                    # if the dest file is older, overwrite.  The clock of the destination
-                    # is used when doing this copy, so it's *critical* that the clocks be
-                    # in sync.  Run ntp!
-                    if int(os.stat(dest_name).st_mtime) < int(st.st_mtime):
-                        # target is older, so copy
-                        copy_file_efficiently(src_name, dest_name)
+                mtime = int(st.st_mtime)
+                if cache.get(src_name, {'mtime':0})['mtime'] >= mtime:
+                    continue
+                try:
+                    copy_file_efficiently(src_name, dest_name)  # checks dest modtime before actually doing copy.
+                    cache[src_name] = {'mtime':mtime, 'size_mb':st.st_blocks//2000}
+                except RuntimeError, mesg:
+                    log.warning("error copying %s to %s; skipping.", src_name, dest_name)
+
             else:
                 # Unknown file type, print a message
-                raise RuntimeError("unknown file type: %s"%pathname)
+                log.warning("unknown file type: %s", pathname)
 
     os.chdir(src)
     walktree('.')
+
+    s = cPickle.dumps(cache_all)
+    open(cache_file,'w').write(s)
 
 def sync_watch(sources, dests, min_sync_time):
     """
@@ -294,25 +330,37 @@ def sync_watch(sources, dests, min_sync_time):
 
     next_sync = {}  # soonest time when may again sync a given file
 
-    modified_dirs = set([])
+    modified_files = set([])
+    received_files = set([])
 
     def add(pathname):
+        try:
+            if os.stat(pathname).st_mode == 33280:
+                # ignore gluster special files
+                log.debug("ignoring gluster special file: '%s'", pathname)
+                return
+        except:
+            pass
         log.debug("inotify: %s"%pathname)
-        if os.path.isdir(pathname):
-            modified_dirs.add(pathname)
-        elif os.path.isfile(pathname):
-            path = os.path.split(pathname)[0]
-            modified_dirs.add(path)
-        else:
-            print "todo -- SKIPPING nonfile/nondirectory -- %s"%pathname
-
-    def handle_modified_dirs():
-        #print "handle_modified_dirs: %s"%modified_dirs
-        if not modified_dirs:
+        s = os.path.split(pathname)
+        if s[1].startswith('.glusterfs-lock-'):
+            received_files.add(os.path.join(s[0], s[1][len('.glusterfs-lock-'):]))
+        elif s[1].startswith('.glusterfs'):
             return
+        elif os.path.isfile(pathname):
+            modified_files.add(pathname)
+
+    def handle_modified_files():
+        if not modified_files:
+            return
+        log.debug("handling modified_files=%s", modified_files)
+        log.debug("received_files=%s", received_files)
         now = time.time()
-        for path in modified_dirs:
+        do_later = []
+        for path in modified_files:
             if path in sources:  # ignore changes to the sources directories
+                continue
+            if path in received_files:   # recently copied to us.
                 continue
             if path not in next_sync or now >= next_sync[path]:
                 src = None
@@ -321,21 +369,25 @@ def sync_watch(sources, dests, min_sync_time):
                         src = s
                         break
                 if not src:
-                    log.warning("skipping: path=(%s) must be under a source: %s"%(path, sources))
-                    return
+                    log.warning("not copying '%s' -- must be under a source: %s"%(path, sources))
+                    continue
                 t0 = time.time()
                 for dest in dests:
                     dest_path = os.path.join(dest, path[len(src)+1:])
-                    log.info("sync('%s', '%s')"%(path, dest_path))
+                    log.info("copy('%s', '%s')"%(path, dest_path))
                     try:
-                        sync(path, dest_path)
+                        copy_file_efficiently(path, dest_path)
                     except Exception, msg:
                         log.warning("problem syncing %s to %s! -- %s"%(path, dest_path, msg))
                 # no matter what, we wait at least twice the time (from now) that it takes to sync out the file before syncing it again.
                 next_sync[path] = time.time() + max(2*(time.time() - t0), min_sync_time)
             else:
-                log.debug("skipping '%s' for now since too frequent"%path)
-        modified_dirs.clear()
+                pass
+                #log.debug("waiting until later to sync (too frequent): '%s' "%path)
+                do_later.append(path)
+        modified_files.clear()
+        received_files.clear()
+        modified_files.update(do_later)
 
     import pyinotify
     wm   = pyinotify.WatchManager()  # Watch Manager
@@ -343,16 +395,19 @@ def sync_watch(sources, dests, min_sync_time):
 
     class EventHandler(pyinotify.ProcessEvent):
         def process_IN_CREATE(self, event):
-            #print "Creating:", event.pathname
+            print "Creating:", event.pathname
+            if os.path.isdir(event.pathname):
+                # created a directory -- add it to the watch list
+                watchers.append(wm.add_watch(event.pathname, mask))
             add(event.pathname)
         def process_IN_MOVED_TO(self, event):
-            #print "File moved to:", event.pathname
+            print "File moved to:", event.pathname
             add(event.pathname)
         def process_IN_MODIFY(self, event):
-            #print "Modified:", event.pathname
+            print "Modified:", event.pathname
             add(event.pathname)
         def process_IN_CLOSE_WRITE(self, event):
-            #print "Close write:", event.pathname
+            print "Close write:", event.pathname
             add(event.pathname)
 
     handler = EventHandler()
@@ -378,7 +433,7 @@ def sync_watch(sources, dests, min_sync_time):
 
     while True:
         check_for_events()
-        handle_modified_dirs()
+        handle_modified_files()
         time.sleep(1)
 
 def volume_info():
@@ -413,7 +468,24 @@ def ip_address(dest):
 
 def mount_target_volumes(volume_name):
     info = volume_info()
-    return []
+    dests = []
+    ip = None
+    for name, data in volume_info().iteritems():
+        if name.startswith('dc'):
+            v = name.split('-')
+            if len(v) >= 2 and v[1] == volume_name:
+                use = True
+                for brick in data['bricks']:
+                    brick_ip, path = brick.split(':')
+                    if ip_address(brick_ip) == brick_ip:
+                        # this volume is partly hosted on this computer, hence not a target.
+                        use = False
+                        break
+                if use:
+                    # ensure volume is mounted and add to list
+                    cmd("mkdir -p '/mnt/%s'; mount -t glusterfs localhost:'/%s' '/mnt/%s'"%(name, name, name))
+                    dests.append('/mnt/%s'%name)
+    return dests
 
 def find_bricks(volume_name):
     bricks = []
@@ -502,7 +574,13 @@ if __name__ == "__main__":
             args.src  = ','.join(find_bricks(args.volume))
         if args.watch:
             def main():
-                sync_watch(sources=args.src.split(','), dests=args.dest.split(','), min_sync_time=args.min_sync_time)
+                while True:
+                    try:
+                        sync_watch(sources=args.src.split(','), dests=args.dest.split(','), min_sync_time=args.min_sync_time)
+                    except KeyboardInterrupt:
+                        return
+                    except Exception, mesg:
+                        print mesg
             if args.daemon:
                 if not args.pidfile:
                     raise RuntimeError("in --daemon mode you *must* specify --pidfile")
