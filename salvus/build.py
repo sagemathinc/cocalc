@@ -52,7 +52,7 @@ Before building, do:
 
 # Install critical packages:
 
-         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl apt-get install software-properties-common  libevent-dev xfsprogs
+         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof
 
 
          # hosts -- on ubuntu
@@ -65,11 +65,11 @@ Before building, do:
          wget -O - http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/pubkey.gpg | apt-key add -
          echo deb http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/apt wheezy main > /etc/apt/sources.list.d/gluster.list
          apt-get update; apt-get install glusterfs-server
-         ## ZFS -- http://zfsonlinux.org/debian.html
-         wget http://archive.zfsonlinux.org/debian/pool/main/z/zfsonlinux/zfsonlinux_2%7Ewheezy_all.deb
-         dpkg -i zfsonlinux_2~wheezy_all.deb
-         apt-get update
-         apt-get install debian-zfs
+
+
+         ## ZFS -- this does *NOT* work:  http://zfsonlinux.org/debian.html
+         # but thes instructions definitely do:
+         http://zfsonlinux.org/generic-deb.html
 
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
@@ -177,6 +177,8 @@ tmux -V
 
 [os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
 
+#('pandas', 'statsmodels', 'lxml')
+
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
 # We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
@@ -208,7 +210,7 @@ Test with "import neuron".
 
 # System-wide Python packages not through apt:
 
-   umask 022; /usr/bin/pip install -U scikit-learn theano
+   umask 022; /usr/bin/pip install -U scikit-learn theano 
 
 
 # Also, edit the banner:
@@ -284,13 +286,18 @@ r packages could be automated like so:
    rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
    cd ~/.sagemathcloud
    . sagemathcloud-env
-   ./build.py
+   ./build
 
    cd /usr/local/bin/
-   sudo ln -s /usr/local/salvus/salvus/salvus/scripts/skel/ .
+   sudo ln -s /home/salvus/salvus/salvus/scripts/skel/ .
 
    cd ~/salvus/salvus/scripts/skel/
    mv ~/.sagemathcloud .
+
+
+# GCE problems:
+   julia fails to build: as above
+   system-wide theano fails to install: /usr/bin/pip install -U theano  # but fine in sage.
 
 """
 

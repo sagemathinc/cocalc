@@ -73,6 +73,7 @@ def conf():
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/etc/tinc")
         cmd("mount -o bind /mnt/conf/tinc /home/salvus/salvus/salvus/data/local/etc/tinc") 
         cmd("cp /mnt/conf/tinc/hosts.0/* /mnt/conf/tinc/hosts/")
+        cmd("mkdir -p /home/salvus/salvus/salvus/data/local/var/run/")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
