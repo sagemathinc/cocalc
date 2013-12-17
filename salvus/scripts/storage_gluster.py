@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-
 import argparse, cPickle, hashlib, json, logging, os, sys, time, random
 from uuid import UUID
 
@@ -76,6 +75,7 @@ def migrate_project_to_storage(src, storage, min_size_mb, max_size_mb, new_only)
             cmd("zpool create -m /home/%s project-%s %s"%(projectid, project_id, images))
             cmd("zfs set compression=gzip project-%s"%project_id)
             cmd("zfs set dedup=on project-%s"%project_id)
+            cmd("zfs set snapdir=visible project-%s"%project_id)
 
         # rsync data over
         double_verbose = False
@@ -472,6 +472,7 @@ def mount_target_volumes(volume_name):
     info = volume_info()
     dests = []
     ip = None
+    mount = cmd2('mount')[0]
     for name, data in volume_info().iteritems():
         if name.startswith('dc'):
             v = name.split('-')
@@ -485,7 +486,8 @@ def mount_target_volumes(volume_name):
                         break
                 if use:
                     # ensure volume is mounted and add to list
-                    cmd("mkdir -p '/mnt/%s'; mount -t glusterfs localhost:'/%s' '/mnt/%s'"%(name, name, name))
+                    if 'mnt/%s'%name not in mount:
+                        cmd("mkdir -p '/mnt/%s'; mount -t glusterfs localhost:'/%s' '/mnt/%s'"%(name, name, name))
                     dests.append('/mnt/%s'%name)
     return dests
 
@@ -584,6 +586,8 @@ if __name__ == "__main__":
                     return
                 except Exception, mesg:
                     print mesg
+                if not args.daemon:
+                    return
                 time.sleep(5)
         if args.daemon:
             if not args.pidfile:
