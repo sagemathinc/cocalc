@@ -109,7 +109,7 @@ def newest_snapshot(project_id, host=None):
     Return most recent snapshot or empty string if none.
     If host is given, does this on a remote host.
     """
-    c = "zfs list -r -t snapshot -o name -s creation %s|tail -1"%dataset_name(project_id)
+    c = "sudo zfs list -r -t snapshot -o name -s creation %s|tail -1"%dataset_name(project_id)
     if host is None:
         v = cmd(c)
     else:
@@ -135,7 +135,7 @@ def send(project_id, dest):
 
     dataset = dataset_name(project_id)
     t = time.time()
-    c = "zfs send -RD %s %s %s | ssh %s zfs recv -F %s"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
+    c = "sudo zfs send -RD %s %s %s | ssh %s sudo zfs recv -F %s"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
     print c
     os.system(c)
     log.info("done (time=%s seconds)", time.time()-t)
