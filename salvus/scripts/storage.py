@@ -104,21 +104,38 @@ def create_user(project_id): # safe to call repeatedly even if user exists
     cmd("groupadd -g %s -o %s"%(id, name))
     cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, home, name))
 
+def newest_snapshot(project_id, host=None):
+    """
+    Return most recent snapshot or empty string if none.
+    If host is given, does this on a remote host.
+    """
+    c = "zfs list -r -t snapshot -o name -s creation %s|tail -1"%dataset_name(project_id)
+    if host is None:
+        v = cmd(c)
+    else:
+        v = cmd('ssh %s %s'%(host, c))
+    if 'dataset does not exist' in v:
+        return ''
+    return v.strip()
 
 def send(project_id, dest):
     log.info("sending %s to %s", project_id, dest)
-    dataset = dataset_name(project_id)
 
-    v = cmd("/bin/ls -t " + os.path.join(path_to_project(project_id), '.zfs', 'snapshot')).split()
-    if len(v) == 0:
-        log.warning("no snapshots of %s", project_id)
+    snap_src  = newest_snapshot(project_id)
+    snap_dest = newest_snapshot(project_id, dest)
+
+    log.debug("src: %s, dest: %s", snap_src, snap_dest)
+
+    if snap_src == snap_dest:
+        log.info("already up to date")
         return
-    s = v[-1]  # most recent snapshot
+
+    dataset = dataset_name(project_id)
     t = time.time()
-    c = "zfs send -RD %s@%s | ssh %s zfs recv -F %s"%(dataset, s, dest, dataset)
+    c = "zfs send -RD -i %s %s | ssh %s zfs recv -F %s"%(snap_dest, snap_src, dest, dataset)
     print c
     os.system(c)
-    log.info("sent -- time=%s seconds", time.time()-t)
+    log.info("done (time=%s seconds)", time.time()-t)
 
 
 def setup_log(loglevel='DEBUG', logfile=''):
