@@ -122,6 +122,9 @@ def send(project_id, dest):
     log.info("sending %s to %s", project_id, dest)
 
     snap_src  = newest_snapshot(project_id)
+    if not snap_src:
+        raise RuntimeError("no local dataset '%s'"%project_id)
+
     snap_dest = newest_snapshot(project_id, dest)
 
     log.debug("src: %s, dest: %s", snap_src, snap_dest)
@@ -132,7 +135,7 @@ def send(project_id, dest):
 
     dataset = dataset_name(project_id)
     t = time.time()
-    c = "zfs send -RD -i %s %s | ssh %s zfs recv -F %s"%(snap_dest, snap_src, dest, dataset)
+    c = "zfs send -RD %s %s %s | ssh %s zfs recv -F %s"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
     print c
     os.system(c)
     log.info("done (time=%s seconds)", time.time()-t)
