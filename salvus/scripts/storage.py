@@ -40,9 +40,8 @@ class MultiHashRing(object):
         self.rings = [(dc, hashring.HashRing(d)) for dc, d in data.iteritems()]
         self.rings.sort()
 
-    def __getitem__(self, key):
+    def __call__(self, key):
         return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
-
 
 def check_uuid(uuid):
     if UUID(uuid).version != 4:
@@ -117,19 +116,19 @@ def migrate_project_to_storage(src, new_only):
     cmd("rsync -Hax --delete --exclude .forever --exclude .bup --exclude .zfs %s/ %s/"%(src, home))
     id = uid(project_id)
 
-    cmd("zfs set snapdir=hidden %s"%dataset)
+    cmd("sudo zfs set snapdir=hidden %s"%dataset)
     cmd("chown %s. -R /%s"%(projectid, home))   # chown with snapdir visible doesn't work; can cause other problems too.
 
     snapshot(project_id)
-    cmd("zfs list %s"%dataset)
+    cmd("sudo zfs list %s"%dataset)
 
     umount(project_id)
 
 def mount(project_id):
-    cmd('zfs set mountpoint=%s %s'%(path_to_project(project_id), dataset_name(project_id)))
+    cmd('sudo zfs set mountpoint=%s %s'%(path_to_project(project_id), dataset_name(project_id)))
 
 def umount(project_id):
-    cmd('zfs set mountpoint=none %s'%dataset_name(project_id))
+    cmd('sudo zfs set mountpoint=none %s'%dataset_name(project_id))
 
 def create_dataset(project_id):
     """
@@ -140,9 +139,9 @@ def create_dataset(project_id):
         return
     dataset = dataset_name(project_id)
     home = path_to_project(project_id)
-    cmd('zfs create %s'%dataset)
-    cmd('zfs set snapdir=hidden %s'%dataset)
-    cmd('zfs set quota=10G %s'%dataset)
+    cmd('sudo zfs create %s'%dataset)
+    cmd('sudo zfs set snapdir=hidden %s'%dataset)
+    cmd('sudo zfs set quota=10G %s'%dataset)
 
 def create_user(project_id):
     """
@@ -181,6 +180,7 @@ def list_snapshots(project_id, host=''):
 
     This is very fast if host=None, and the cost of ssh if host isn't.
     """
+    assert isinstance(project_id, str)
     c = "sudo zfs list -r -t snapshot -o name -s creation %s"%dataset_name(project_id)
     try:
         if not host:
@@ -217,9 +217,24 @@ def newest_snapshot(project_id, host=''):
     else:
         return v[-1]
 
+def ip_address(dest):
+    # get the ip address that is used to communicate with the given destination
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect((dest,80))
+    return s.getsockname()[0]
 
-def send_one(project_id, dest):
+def send_one(project_id, dest, force=True):
     log.info("sending %s to %s", project_id, dest)
+
+    if ip_address(dest) == dest:
+        log.info("send to self: nothing to do")
+        return
+
+    if force:
+        force = "-F"
+    else:
+        force = ''
 
     snap_src  = newest_snapshot(args.project_id)
     if not snap_src:
@@ -235,22 +250,21 @@ def send_one(project_id, dest):
 
     dataset = dataset_name(project_id)
     t = time.time()
-    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv -F %s'"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
+    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
     cmd(c)
     log.info("done (time=%s seconds)", time.time()-t)
 
-def send_multi(project_id, destinations):
+def send_multi(project_id, destinations, force=True):
     # Send to multiple destinations
     log.info("sending %s to %s", project_id, destinations)
 
-    snap_src  = newest_snapshot(args.project_id)
+    snap_src  = newest_snapshot(project_id)
     if not snap_src:
         log.warning("send: no local snapshot for '%s'"%project_id)
         return
 
-    snap_dest = [newest_snapshot(project_id, dest) for dest in destinations]
-    snap_dest.sort()
-    snap_dest = snap_dest[0]  # oldest -- worst case
+    snap_destinations = [newest_snapshot(project_id, dest) for dest in destinations]
+    snap_dest = list(sorted(snap_destinations))[0]  # oldest -- worst case
 
     log.debug("src: %s, dest: %s", snap_src, snap_dest)
 
@@ -261,10 +275,21 @@ def send_multi(project_id, destinations):
     dataset = dataset_name(project_id)
     t = time.time()
     tmp = '/tmp/%s.gz'%uuid4()
+    if force:
+        force = "-F"
+    else:
+        force = ''
     try:
-        cmd("sudo zfs send -RD %s %s %s | gzip > %s"%('-i' if snap_dest else '', tmp))
-        for dest in destinations:
-            cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv -F %s'"%(tmp, snap_dest, snap_src, dest, dataset))
+        cmd("sudo zfs send -RD %s %s %s | gzip > %s"%('-i' if snap_dest else '', snap_dest, snap_src, tmp))
+        log.info(cmd("ls -lh %s"%tmp))
+        for i, dest in enumerate(destinations):
+            if snap_destinations[i] == snap_src:
+                log.info("no update to %s needed", dest)
+            elif ip_address(dest) == dest:
+                log.info("send to self: nothing to do")
+            else:
+                log.info("sending to %s", dest)
+                cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
     finally:
         try:
             os.unlink(tmp)
@@ -272,6 +297,13 @@ def send_multi(project_id, destinations):
             pass
     log.info("done (time=%s seconds)", time.time()-t)
 
+
+def replicate(project_id):
+    assert isinstance(project_id, str)
+    ring = MultiHashRing()
+    destinations = sum([d[1] for d in ring(project_id)], [])
+    log.info("replicating %s out to %s", project_id, destinations)
+    send_multi(project_id, destinations)
 
 def setup_log(loglevel='DEBUG', logfile=''):
     logging.basicConfig()
@@ -308,17 +340,6 @@ if __name__ == "__main__":
     parser_migrate.add_argument("src", help="the current project home directory", type=str, nargs="+")
     parser_migrate.set_defaults(func=migrate)
 
-    def _send(args):
-        if len(args.dest) == 1:
-            send_one(project_id=args.project_id, dest=args.dest[0])
-        else:
-            send_multi(project_id=args.project_id, dest=args.dest)
-
-    parser_send = subparsers.add_parser('send', help='send latest UTC iso date formated snapshot of project to remote storage servers (this overwrites any changes to the targets)')
-    parser_send.add_argument("project_id", help="project id", type=str)
-    parser_send.add_argument("dest", help="ip address of destination", type=str, nargs="+")
-    parser_send.set_defaults(func=_send)
-
     def _snapshot(args):
         snapshot(project_id=args.project_id, name=args.name)
 
@@ -353,6 +374,25 @@ if __name__ == "__main__":
     parser_usage = subparsers.add_parser('umount', help='unmount the filesystem')
     parser_usage.add_argument("project_id", help="project id", type=str)
     parser_usage.set_defaults(func=_umount)
+
+    def _send(args):
+        if len(args.dest) == 1:
+            send_one(project_id=args.project_id, dest=args.dest[0])
+        else:
+            send_multi(project_id=args.project_id, dest=args.dest)
+
+    parser_send = subparsers.add_parser('send', help='send latest UTC iso date formated snapshot of project to remote storage servers (this overwrites any changes to the targets)')
+    parser_send.add_argument("project_id", help="project id", type=str)
+    parser_send.add_argument("dest", help="ip address of destination", type=str, nargs="+")
+    parser_send.set_defaults(func=_send)
+
+    def _replicate(args):
+        for project_id in args.project_id:
+            replicate(project_id = project_id)
+
+    parser_replicate = subparsers.add_parser('replicate', help='replicate project out from here to all its replicas, as defined using consistent hashing')
+    parser_replicate.add_argument("project_id", help="project id", type=str, nargs="+")
+    parser_replicate.set_defaults(func=_replicate)
 
 
     args = parser.parse_args()
