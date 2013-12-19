@@ -72,6 +72,42 @@ Before building, do:
          http://zfsonlinux.org/generic-deb.html
 
 
+# ZFS
+
+
+
+    apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r)
+    apt-get install zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
+
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz
+
+    tar -xzf spl-0.6.2.tar.gz
+    tar -xzf zfs-0.6.2.tar.gz
+
+    # **IMPORTANT**!  See https://github.com/zfsonlinux/zfs/issues/845
+    # comment out line 812 in zfs-0.6.2/lib/libshare/libshare.c so have this:
+    #
+    #      /* update_zfs_shares(impl_handle, NULL); */
+    #
+
+    cd spl-0.6.2
+    ./configure
+    make deb-utils deb-kmod
+    dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3.2.0-56-generic_0.6.2-1_amd64.deb
+
+    cd ../zfs-0.6.2
+
+    dpkg -i */*.deb
+    ./configure
+    make deb-utils deb-kmod
+    cd ..
+
+    dpkg -i */*.deb
+
+
+
+
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
 
 
@@ -84,7 +120,7 @@ MaxStartups 128
 
 On Ubuntu 13.10
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev
 
 
 On Debian 7 (Google)
@@ -151,6 +187,11 @@ tmux -V
     sudo su
     apt-get install libntl-dev libntl0  libpari-gmp3
     cd /tmp/; rm Macaulay2*.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Debian/Macaulay2-1.6-amd64-Linux-Debian-7.0.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb;  sudo dpkg -i Macaulay2*.deb; rm Macaulay2*.deb
+
+
+# Snappy
+
+    umask 022; sage -i http://snappy.computop.org/get/snappy-2.0.3.spkg
 
 
 # Build Sage (as usual)
