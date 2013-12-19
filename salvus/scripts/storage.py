@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, cPickle, hashlib, json, logging, os, sys, time, random
-from uuid import UUID
+from uuid import UUID, uuid4
 from subprocess import Popen, PIPE
 
 def print_json(s):
@@ -79,12 +79,21 @@ def migrate_project_to_storage(src, new_only):
     snapshot(project_id)
     cmd("zfs list %s"%dataset)
 
+    # Unmount
+    cmd('zfs set mountpoint=none %s'%dataset)
+
+def mount(project_id):
+    cmd('zfs set mountpoint=%s %s'%(path_to_project(project_id), dataset_name(project_id)))
+
+def umount(project_id):
+    cmd('zfs set mountpoint=none %s'%dataset_name(project_id))
+
 def create_dataset(project_id):
     check_uuid(project_id)
     home = path_to_project(project_id)
     dataset = home.lstrip('/')
     cmd('zfs create %s'%dataset)
-    cmd('zfs set snapdir=visible %s'%dataset)
+    cmd('zfs set snapdir=hidden %s'%dataset)
     cmd('zfs set quota=10G %s'%dataset)
 
 def create_user(project_id): # safe to call repeatedly even if user exists
@@ -107,14 +116,20 @@ def create_user(project_id): # safe to call repeatedly even if user exists
     cmd("groupadd -g %s -o %s"%(id, name))
     cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, home, name))
 
+def usage(project_id):
+    v = cmd("df %s"%path_to_project(project_id))
+    a, b = v.splitlines()
+    a = a.replace('Mounted on','mounted').split()
+    b = b.split()
+    return dict([(a[i].lower(),b[i]) for i in range(len(a))])
+
 def list_snapshots(project_id, host=''):
     """
     Return sorted list of snapshots of the given project available on the given host.
 
     This is very fast if host=None, and the cost of ssh if host isn't.
     """
-    # see discussion about zfs list being really slow.
-    c = "sudo /bin/ls -1 '%s'"%os.path.join(path_to_project(project_id), '.zfs/snapshot')
+    c = "sudo zfs list -r -t snapshot -o name -s creation %s"%dataset_name(project_id)
     try:
         if not host:
             v = cmd(c)
@@ -149,29 +164,8 @@ def newest_snapshot(project_id, host=''):
     else:
         return v[-1]
 
-def newest_snapshot_zfslist(project_id, host=None):
-    """
-    Return most recent snapshot or empty string if none.
-    If host is given, does this on a remote host.
 
-    This uses the zfs list command, which is REALLY, REALLY slow as
-    soon as there are more than a few thousand datasets.  There
-    are several bug reports about zfs list being slow online,
-    so this may get resolved at some point.  However, just using
-    ls on the .zfs/snapshot directory is super fast, and works
-    for our purposes (see above).  The timestamps of the snapshot
-    directories don't seem useful, but the names are enough.
-    """
-    c = "sudo zfs list -r -t snapshot -o name -s creation %s|tail -1"%dataset_name(project_id)
-    if host is None:
-        v = cmd(c)
-    else:
-        v = cmd('ssh %s %s'%(host, c))
-    if 'dataset does not exist' in v:
-        return ''
-    return v.strip()
-
-def send(project_id, dest, snap_src):
+def send_one(project_id, dest):
     log.info("sending %s to %s", project_id, dest)
 
     snap_src  = newest_snapshot(args.project_id)
@@ -188,9 +182,41 @@ def send(project_id, dest, snap_src):
 
     dataset = dataset_name(project_id)
     t = time.time()
-    c = "sudo zfs send -RD %s %s %s | ssh %s sudo zfs recv -F %s"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
-    print c
-    os.system(c)
+    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv -F %s'"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
+    cmd(c)
+    log.info("done (time=%s seconds)", time.time()-t)
+
+def send_multi(project_id, destinations):
+    # Send to multiple destinations
+    log.info("sending %s to %s", project_id, destinations)
+
+    snap_src  = newest_snapshot(args.project_id)
+    if not snap_src:
+        log.warning("send: no local snapshot for '%s'"%project_id)
+        return
+
+    snap_dest = [newest_snapshot(project_id, dest) for dest in destinations]
+    snap_dest.sort()
+    snap_dest = snap_dest[0]  # oldest -- worst case
+
+    log.debug("src: %s, dest: %s", snap_src, snap_dest)
+
+    if snap_src == snap_dest:
+        log.info("send %s -- all targets are already up to date", project_id)
+        return
+
+    dataset = dataset_name(project_id)
+    t = time.time()
+    tmp = '/tmp/%s.gz'%uuid4()
+    try:
+        cmd("sudo zfs send -RD %s %s %s | gzip > %s"%('-i' if snap_dest else '', tmp))
+        for dest in destinations:
+            cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv -F %s'"%(tmp, snap_dest, snap_src, dest, dataset))
+    finally:
+        try:
+            os.unlink(tmp)
+        except:
+            pass
     log.info("done (time=%s seconds)", time.time()-t)
 
 
@@ -230,8 +256,10 @@ if __name__ == "__main__":
     parser_migrate.set_defaults(func=migrate)
 
     def _send(args):
-        for dest in args.dest:
-            send(project_id=args.project_id, dest=dest)
+        if len(args.dest) == 1:
+            send_one(project_id=args.project_id, dest=args.dest[0])
+        else:
+            send_multi(project_id=args.project_id, dest=args.dest)
 
     parser_send = subparsers.add_parser('send', help='send latest UTC iso date formated snapshot of project to remote storage servers (this overwrites any changes to the targets)')
     parser_send.add_argument("project_id", help="project id", type=str)
@@ -254,6 +282,24 @@ if __name__ == "__main__":
     parser_snapshots.add_argument("host", help="ip address of host (default: ''=localhost)", type=str, default='', nargs='?')
     parser_snapshots.set_defaults(func=_snapshots)
 
+    def _usage(args):
+        print_json({'project_id':args.project_id, 'usage':usage(args.project_id)})
+
+    parser_usage = subparsers.add_parser('usage', help='disk usage information about the project')
+    parser_usage.add_argument("project_id", help="project id", type=str)
+    parser_usage.set_defaults(func=_usage)
+
+    def _mount(args):
+        mount(args.project_id)
+    parser_usage = subparsers.add_parser('mount', help='mount the filesystem')
+    parser_usage.add_argument("project_id", help="project id", type=str)
+    parser_usage.set_defaults(func=_mount)
+
+    def _umount(args):
+        umount(args.project_id)
+    parser_usage = subparsers.add_parser('umount', help='unmount the filesystem')
+    parser_usage.add_argument("project_id", help="project id", type=str)
+    parser_usage.set_defaults(func=_umount)
 
 
     args = parser.parse_args()

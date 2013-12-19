@@ -44,6 +44,9 @@ if os.path.exists('/projects') or os.path.exists('/mnt/home/'):
     # Scratch is persistent but not backed up.
     os.system("mkdir -p /mnt/home/scratch; mkdir -p /scratch; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/scratch /scratch;  chmod a+rwx /mnt/home/scratch/")
 
+    # Import the ZFS pool 
+    os.system("zpool import -Nf projects; mkdir -p /projects; chmod a+rx /projects")
+
 else:
 
     # not a compute node, so no need for the storage account, which provides some potentially dangerous ssh cred's
