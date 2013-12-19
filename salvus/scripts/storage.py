@@ -47,10 +47,22 @@ def users():
     return _users
 
 def path_to_project(project_id):
+    check_uuid(project_id)
     return os.path.join('/projects', project_id)
 
 def dataset_name(project_id):
+    check_uuid(project_id)
     return 'projects/%s'%project_id
+
+def dataset_exists(project_id):
+    try:
+        cmd("sudo zfs list '%s'"%dataset_name(project_id))
+        # exit code of 0... so success
+        return True
+    except RuntimeError, msg:
+        if 'does not exist' in str(msg).lower():
+            return False
+        raise  # something else bad happened.
 
 def migrate_project_to_storage(src, new_only):
     info_json = os.path.join(src, '.sagemathcloud', 'info.json')
@@ -65,9 +77,10 @@ def migrate_project_to_storage(src, new_only):
     if new_only and os.path.exists(home):
         log.info("skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id))
         return
-    if not os.path.exists(home):
-        create_dataset(project_id)
+    create_dataset(project_id)
     create_user(project_id)
+
+    mount(project_id)
 
     # rsync data over
     cmd("rsync -Hax --delete --exclude .forever --exclude .bup --exclude .zfs %s/ %s/"%(src, home))
@@ -79,8 +92,7 @@ def migrate_project_to_storage(src, new_only):
     snapshot(project_id)
     cmd("zfs list %s"%dataset)
 
-    # Unmount
-    cmd('zfs set mountpoint=none %s'%dataset)
+    umount(project_id)
 
 def mount(project_id):
     cmd('zfs set mountpoint=%s %s'%(path_to_project(project_id), dataset_name(project_id)))
@@ -89,14 +101,23 @@ def umount(project_id):
     cmd('zfs set mountpoint=none %s'%dataset_name(project_id))
 
 def create_dataset(project_id):
-    check_uuid(project_id)
+    """
+    Create the dataset the contains the given project data.   It is safe to
+    call this function even if the dataset already exists.
+    """
+    if dataset_exists(project_id):
+        return
+    dataset = dataset_name(project_id)
     home = path_to_project(project_id)
-    dataset = home.lstrip('/')
     cmd('zfs create %s'%dataset)
     cmd('zfs set snapdir=hidden %s'%dataset)
     cmd('zfs set quota=10G %s'%dataset)
 
-def create_user(project_id): # safe to call repeatedly even if user exists
+def create_user(project_id):
+    """
+    Create the user the contains the given project data.   It is safe to
+    call this function even if the user already exists.
+    """
     name = project_id.replace('-','')
     id = uid(project_id)
     u = users().get(name, 0)
