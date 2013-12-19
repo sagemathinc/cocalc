@@ -4,14 +4,14 @@ import argparse, cPickle, hashlib, json, logging, os, sys, time, random
 from uuid import UUID, uuid4
 from subprocess import Popen, PIPE
 
+sys.path.insert(0, os.path.split(os.path.realpath(__file__))[0])
+from hashring import HashRing
+
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
 
 
 log = None
-
-# This is so we can import salvus/salvus/daemon.py
-sys.path.append('/home/salvus/salvus/salvus/')
 
 def check_uuid(uuid):
     if UUID(uuid).version != 4:
@@ -157,11 +157,12 @@ def list_snapshots(project_id, host=''):
         else:
             v = cmd('ssh %s %s'%(host, c))
     except RuntimeError, msg:
-        if 'No such file or directory' in str(msg):
+        if 'dataset does not exist' in str(msg):
             # project isn't available here
             return []
         raise # something else went wrong
     v = v.strip().split()
+    v = [x for x in v if "Warning" not in x]  # eliminate any ssh key warnings.
     v.sort()
     return v
 
