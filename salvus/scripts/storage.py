@@ -4,14 +4,45 @@ import argparse, cPickle, hashlib, json, logging, os, sys, time, random
 from uuid import UUID, uuid4
 from subprocess import Popen, PIPE
 
-sys.path.insert(0, os.path.split(os.path.realpath(__file__))[0])
+CWD = os.path.split(os.path.realpath(__file__))[0]
+sys.path.insert(0, CWD)
 from hashring import HashRing
 
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
 
-
 log = None
+
+class MultiHashRing(object):
+    def __init__(self, topology=None, rep_factor=2):
+        """
+        Read the hashrings from the file topology, which defaults to 'storage-topology'
+        in the same directory as storage.py.
+        """
+        if topology is None:
+            topology = os.path.join(CWD, 'storage-topology')
+        self.topology = topology
+        self._rep_factor = rep_factor
+        self._load()
+
+    def _load(self):
+        v = [x for x in open(self.topology).readlines() if x.strip() and not x.strip().startswith('#')]
+        data = {}
+        for x in v:
+            ip, vnodes, datacenter = x.split()
+            vnodes = int(vnodes)
+            if datacenter not in data:
+                data[datacenter] = {}
+            dc = data[datacenter]
+            dc[ip] = {'vnodes':vnodes}
+        import hashring
+        print data
+        self.rings = [(dc, hashring.HashRing(d)) for dc, d in data.iteritems()]
+        self.rings.sort()
+
+    def __getitem__(self, key):
+        return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
+
 
 def check_uuid(uuid):
     if UUID(uuid).version != 4:

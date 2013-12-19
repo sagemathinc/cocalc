@@ -1,7 +1,15 @@
 """
 Based on https://pypi.python.org/pypi/hash_ring (copyright: 2008 by Amir Salihefendic; license: BSD)
 
-I (William Stein) rewrote all the documentation, fixed some trivial bugs, etc.
+I (William Stein) rewrote all the documentation, fixed some trivial bugs,
+more compatible with node-hashring (e.g., vnode support), etc.  BSD license.
+
+Example:
+
+    import hashring
+    r = hashring.HashRing({'10.1.1.4':{'vnodes':256}, '10.1.2.4':{'vnodes':128}, '10.1.3.4':{'vnodes':128}})
+    r.range('foo')
+    ['10.1.1.4', '10.1.3.4', '10.1.2.4']
 """
 
 import math
@@ -13,7 +21,7 @@ md5_constructor = hashlib.md5
 
 class HashRing(object):
 
-    def __init__(self, nodes=None, weights=1, vnodes=40, replicas=2):
+    def __init__(self, nodes=None, weights=1, vnodes=40, replicas=4):
         """
         `nodes` is a list of objects that have a proper __str__ representation.
         `weights` is dictionary that sets weights to the nodes.  The default
@@ -143,6 +151,7 @@ class HashRing(object):
             if val:
                 yield val
 
+        # wrap around if necessary.
         for i, key in enumerate(self._sorted_keys):
             if i < pos:
                 val = distinct_filter(self.ring[key])
