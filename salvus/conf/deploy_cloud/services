@@ -22,7 +22,7 @@ fstab_brick2 = '/dev/gluster/brick2 /mnt/brick2 ext4 nobootwait 0 2\n'
 
 [vm]
 # gluster nodes
-cloud1    {'hostname':'gluster1', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,1:512:none:qcow2', 'fstab':fstab_brick1+fstab_brick2}
+cloud1    {'hostname':'gluster1', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,1:512:none:qcow2,projects:512:none:qcow2', 'fstab':fstab_brick1+fstab_brick2, 'vnc':12389}
 
 cloud2    {'hostname':'gluster2', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,1:256:none:qcow2', 'fstab':fstab_brick1}
 cloud3    {'hostname':'gluster3', 'vcpus':gluster_cpu, 'ram':gluster_ram, 'base':base, 'disk':'glusterd:1:ext4:qcow2,1:256:none:qcow2', 'fstab':fstab_brick1}
