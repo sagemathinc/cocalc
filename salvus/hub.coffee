@@ -3346,7 +3346,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 cb?()
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
-        if @_status.local_hub #and @_status.console_server
+        if @_status?.local_hub #and @_status.console_server
             # NOTE! we do *not* check for @_status.sage_server, since it is easy for a user to mess that up.
             # If they mess up console_server and local_hub (which should be very hard), they couldn't fix it
             # anyways -- but messing up the sage server is fixable via the console or file editor.
@@ -3355,9 +3355,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             # TODO: it would be better just to force start only the daemons that need to be started -- doing this is
             # just a first brutal minimum way to do this!
             bad = ''
-            if not @_status.local_hub
+            if not @_status?.local_hub
                 bad += ' local_hub'
-            if not @_status.console_server
+            if not @_status?.console_server
                 bad += ' console_server'
             winston.debug("Not all daemons are running (not running: #{bad}) -- restart required -- #{@username}@#{@host}")
             @_restart_local_hub_daemons (err) =>
@@ -3365,7 +3365,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb(err)
                 else
                     # try one more time:
-                    @_get_local_hub_status (err,_status) =>
+                    @_get_local_hub_status (err, _status) =>
                         @_status = _status
                         cb(err)
 

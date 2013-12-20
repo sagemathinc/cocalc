@@ -14,17 +14,13 @@ if socket.gethostname() != "salvus-base":
     # Mount tmp
     os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 
-if os.path.exists('/mnt/home/'):
-    # Compute machine
-    if not os.path.exists('/mnt/home/aquota.group'):
-        os.system("quotacheck -cug /mnt/home")
-        os.system("quotaon -a")
-
-    # disable quotas for now, so that people can do Sage development...
-    os.system('quotaoff -a')
+if os.path.exists('/projects') or os.path.exists('/mnt/home/'):
 
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets')
+
+    # Copy latest version of storage.py script from salvus repo
+    os.system('cp /home/salvus/salvus/salvus/scripts/storage.py /home/storage/bin/; chown storage. /home/storage/bin/storage.py')
 
     # Delete ssh private key not needed for the *compute machines*; not deleting this
     # is a major security risk, since this key could provide access to a database node
@@ -48,6 +44,11 @@ if os.path.exists('/mnt/home/'):
     # Scratch is persistent but not backed up.
     os.system("mkdir -p /mnt/home/scratch; mkdir -p /scratch; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/scratch /scratch;  chmod a+rwx /mnt/home/scratch/")
 
-if os.path.exists("/mnt/gluster/glusterd"):
-    os.system("mount -o bind /mnt/gluster/glusterd /var/lib/glusterd") 
-    os.system("service glusterfs-server restart")
+    # Import the ZFS pool
+    os.system("zpool import -Nf projects; mkdir -p /projects; chmod a+rx /projects")
+
+else:
+
+    # not a compute node, so no need for the storage account, which provides some potentially dangerous ssh cred's
+    os.system('rm -rf /home/storage/')
+
