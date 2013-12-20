@@ -37,8 +37,6 @@ exit_confirmation.coffee
 
 help.coffee
 
-social.coffee
-
 history.coffee
 
 last.coffee

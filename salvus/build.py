@@ -52,7 +52,7 @@ Before building, do:
 
 # Install critical packages:
 
-         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl apt-get install software-properties-common  libevent-dev xfsprogs
+         apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof
 
 
          # hosts -- on ubuntu
@@ -65,11 +65,47 @@ Before building, do:
          wget -O - http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/pubkey.gpg | apt-key add -
          echo deb http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/apt wheezy main > /etc/apt/sources.list.d/gluster.list
          apt-get update; apt-get install glusterfs-server
-         ## ZFS -- http://zfsonlinux.org/debian.html
-         wget http://archive.zfsonlinux.org/debian/pool/main/z/zfsonlinux/zfsonlinux_2%7Ewheezy_all.deb
-         dpkg -i zfsonlinux_2~wheezy_all.deb
-         apt-get update
-         apt-get install debian-zfs
+
+
+         ## ZFS -- this does *NOT* work:  http://zfsonlinux.org/debian.html
+         # but thes instructions definitely do:
+         http://zfsonlinux.org/generic-deb.html
+
+
+# ZFS
+
+
+
+    apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r)
+    apt-get install zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
+
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz
+
+    tar -xzf spl-0.6.2.tar.gz
+    tar -xzf zfs-0.6.2.tar.gz
+
+    # **IMPORTANT**!  See https://github.com/zfsonlinux/zfs/issues/845
+    # comment out line 812 in zfs-0.6.2/lib/libshare/libshare.c so have this:
+    #
+    #      /* update_zfs_shares(impl_handle, NULL); */
+    #
+
+    cd spl-0.6.2
+    ./configure
+    make deb-utils deb-kmod
+    dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3.2.0-56-generic_0.6.2-1_amd64.deb
+
+    cd ../zfs-0.6.2
+
+    dpkg -i */*.deb
+    ./configure
+    make deb-utils deb-kmod
+    cd ..
+
+    dpkg -i */*.deb
+
+
 
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
@@ -84,7 +120,7 @@ MaxStartups 128
 
 On Ubuntu 13.10
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev
 
 
 On Debian 7 (Google)
@@ -153,6 +189,11 @@ tmux -V
     cd /tmp/; rm Macaulay2*.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Debian/Macaulay2-1.6-amd64-Linux-Debian-7.0.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb;  sudo dpkg -i Macaulay2*.deb; rm Macaulay2*.deb
 
 
+# Snappy
+
+    umask 022; sage -i http://snappy.computop.org/get/snappy-2.0.3.spkg
+
+
 # Build Sage (as usual)
 
     umask 022   # always do this so that the resulting build is usable without painful permission hacking.
@@ -176,6 +217,8 @@ tmux -V
 # Execute this inside of sage:
 
 [os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
+
+#('pandas', 'statsmodels', 'lxml')
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
@@ -284,13 +327,18 @@ r packages could be automated like so:
    rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
    cd ~/.sagemathcloud
    . sagemathcloud-env
-   ./build.py
+   ./build
 
    cd /usr/local/bin/
-   sudo ln -s /usr/local/salvus/salvus/salvus/scripts/skel/ .
+   sudo ln -s /home/salvus/salvus/salvus/scripts/skel/ .
 
    cd ~/salvus/salvus/scripts/skel/
    mv ~/.sagemathcloud .
+
+
+# GCE problems:
+   julia fails to build: as above
+   system-wide theano fails to install: /usr/bin/pip install -U theano  # but fine in sage.
 
 """
 

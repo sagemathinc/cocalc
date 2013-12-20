@@ -26,7 +26,7 @@ def virsh(command, name):
     #return run(['virsh', '--connect', 'qemu:///session', command, name], verbose=False).strip()
     return run(['virsh', '--connect', 'qemu:///system', command, name], verbose=False).strip()
 
-def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
+def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
     #################################
     # create the copy-on-write image
     #################################
@@ -67,8 +67,9 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                     # Unfortunately, guestfish doesn't support xfs.
                     sh['qemu-img', 'create', '-f', format, img, '%sG'%size]
                     # See salvus/salvus/scripts/salvus_nbd_format.py
-                    log.info("WARNING: formatting filesystem can take a long time...")
-                    run(['sudo', '/usr/local/bin/salvus_nbd_format.py', fstype, img], maxtime=1800)
+                    if fstype != 'none':
+                        log.info("WARNING: formatting filesystem can take a long time...")
+                        run(['sudo', '/usr/local/bin/salvus_nbd_format.py', fstype, img], maxtime=1800)
                     sh['chgrp', 'kvm', img]
                     sh['chmod', 'g+rw', img]
                 finally:
@@ -121,13 +122,21 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base):
                 shutil.copyfile(host_file, os.path.join(conf_path, 'tinc_hosts', tincname))
 
                 #### persisent disks ####
-                fstab = os.path.join(tmp_path, 'etc/fstab')
+                fstab_file = os.path.join(tmp_path, 'etc/fstab')
                 try:
-                    f = open(fstab,'a')
+                    f = open(fstab_file,'a')
                     for i,x in enumerate(persistent_images):
-                        f.write("\n/dev/vd%s1   /mnt/%s   %s   defaults   0   2\n"%(chr(98+i),x[1],x[2]))
-                        mnt_point = os.path.join(tmp_path, 'mnt/%s'%x[1])
-                        os.makedirs(mnt_point)
+                        if x[2] != 'none':   # using defaults instead of nobootwait, since nobootwait causes trouble with firstboot.py
+                            f.write("\n/dev/vd%s1   /mnt/%s   %s   defaults  0   2\n"%(chr(98+i),x[1],x[2]))
+                            mnt_point = os.path.join(tmp_path, 'mnt/%s'%x[1])
+                            os.makedirs(mnt_point)
+                    f.write('\n'+fstab+'\n')
+                    for x in fstab.splitlines():
+                        v = x.split()
+                        if not x.lstrip().startswith('#') and len(v) >= 2:
+                            mnt_point = os.path.join(tmp_path, v[1].lstrip('/'))
+                            os.makedirs(mnt_point)
+
                 finally:
                     f.close()
 
@@ -221,7 +230,8 @@ if __name__ == "__main__":
     parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
                         help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--disk", dest="disk", type=str, default="",
-                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[raw|qcow2]:[ext4|xfs]")
+                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[raw|qcow2]:[ext4|xfs|none].  If format is none, then the disk is not mounted in fstab.")
+    parser.add_argument("--fstab", dest="fstab", type=str, default="", help="custom string to add to the end of /etc/fstab; each mountpoint in that string will be created if necessary")
     parser.add_argument('--base', dest='base', type=str, default='salvus',
                         help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")
 
@@ -281,8 +291,9 @@ if __name__ == "__main__":
             open(args.pidfile,'w').write(str(os.getpid()))
 
         if args.vm_type == 'kvm':
-            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram, args.vnc, disk, args.base)
+            run_kvm(args.ip_address, args.hostname, args.vcpus, args.ram, args.vnc, disk, args.base, fstab=args.fstab)
         elif args.vm_type == 'virtualbox':
+            raise NotImplementedError
             run_virtualbox(args.ip_address, args.hostname, args.vcpus, args.ram, args.vnc, disk, args.base)
         else:
             print "Unknown vm_type '%s'"%args.vm_type
