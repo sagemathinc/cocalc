@@ -116,8 +116,11 @@ def migrate_project_to_storage(src, new_only):
     cmd("rsync -Hax --delete --exclude .forever --exclude .bup --exclude .zfs %s/ %s/"%(src, home))
     id = uid(project_id)
 
+
+    # chown with snapdir visible doesn't work; can cause other problems too.
     cmd("sudo zfs set snapdir=hidden %s"%dataset)
-    cmd("chown %s. -R /%s"%(projectid, home))   # chown with snapdir visible doesn't work; can cause other problems too.
+    # chown use numeric id, since username=projectid assigned twice in some cases during transition (for new projects)
+    cmd("chown %s:%s -R /%s"%(id, id, projectid, home))
 
     snapshot(project_id)
     cmd("sudo zfs list %s"%dataset)
@@ -224,6 +227,9 @@ def ip_address(dest):
     s.connect((dest,80))
     return s.getsockname()[0]
 
+
+# idea for how to send un-encrypted: http://alblue.bandlem.com/2010/11/moving-data-from-one-zfs-pool-to.html
+
 def send_one(project_id, dest, force=True):
     log.info("sending %s to %s", project_id, dest)
 
@@ -250,7 +256,7 @@ def send_one(project_id, dest, force=True):
 
     dataset = dataset_name(project_id)
     t = time.time()
-    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%('-i' if snap_dest else '', snap_dest, snap_src, dest, dataset)
+    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%('-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
     cmd(c)
     log.info("done (time=%s seconds)", time.time()-t)
 
@@ -297,6 +303,18 @@ def send_multi(project_id, destinations, force=True):
             pass
     log.info("done (time=%s seconds)", time.time()-t)
 
+def all_local_project_ids():
+    """
+    Return list of all ids of projects stored on this computer.
+
+    Takes a few seconds per thousand projects.
+    """
+    v = []
+    for x in os.popen("sudo zfs list").readlines():  # cmd takes too long for some reason given huge output
+        w = x.split()
+        if w[0].startswith('projects/'):
+            v.append(w[0].split('/')[1])
+    return v
 
 def replicate(project_id):
     assert isinstance(project_id, str)
@@ -387,11 +405,19 @@ if __name__ == "__main__":
     parser_send.set_defaults(func=_send)
 
     def _replicate(args):
-        for project_id in args.project_id:
-            replicate(project_id = project_id)
+        if args.all:
+            args.project_id = all_local_project_ids()
+        for i, project_id in enumerate(args.project_id):
+            log.info("REPLICATE (%s/%s):", i+1, len(args.project_id))
+            try:
+                replicate(project_id = project_id)
+            except Exception, mesg:
+                # make errors non-fatal; due to network issues usually; try again later.
+                log.warning("Failed to replicate '%s' -- %s", project_id, str(mesg))
 
     parser_replicate = subparsers.add_parser('replicate', help='replicate project out from here to all its replicas, as defined using consistent hashing')
-    parser_replicate.add_argument("project_id", help="project id", type=str, nargs="+")
+    parser_replicate.add_argument("project_id", help="project id", type=str, nargs="*")
+    parser_replicate.add_argument("--all", help="replicate all locally stored projects", default=False, action="store_const", const=True)
     parser_replicate.set_defaults(func=_replicate)
 
 
