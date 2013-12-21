@@ -11,7 +11,7 @@ def cmd(s):
     out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
     e = out.wait()
     t = out.stdout.read() + out.stderr.read()
-    if e: 
+    if e:
         print t
         #raise RuntimeError(t)
     return t
@@ -31,7 +31,7 @@ def mount_conf():
     # return False if not available
     d = get_disks()
     if '/dev/sdb1' in d:
-        # have a conf partition 
+        # have a conf partition
         cmd("mkdir -p /mnt/conf; chmod og-rwx /mnt/conf; mount /dev/sdb1 /mnt/conf")
         return True
     else:
@@ -57,7 +57,7 @@ def conf():
                 v = x.split()
                 if len(v) >= 2:
                    cmd('mkdir -p "%s"'%v[1])
- 
+
     # append /mnt/conf/fstab to the end of fstab and do "mount -a"
     if os.path.exists('/mnt/conf/fstab'):
         fstab0 = open('/etc/fstab').read()
@@ -71,7 +71,7 @@ def conf():
     # tinc
     if os.path.exists('/mnt/conf/tinc'):
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/etc/tinc")
-        cmd("mount -o bind /mnt/conf/tinc /home/salvus/salvus/salvus/data/local/etc/tinc") 
+        cmd("mount -o bind /mnt/conf/tinc /home/salvus/salvus/salvus/data/local/etc/tinc")
         cmd("cp /mnt/conf/tinc/hosts.0/* /mnt/conf/tinc/hosts/")
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/var/run/")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
@@ -79,14 +79,14 @@ def conf():
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
     cmd("ip link add link eth0 address f0:de:f1:b0:66:8e eth0.1 type macvlan")
     cmd("ip link add link eth0 address 5e:d4:a9:c7:c8:f4 eth0.2 type macvlan")
- 
+
 
     # start services back up
     cmd("service glusterfs-server  start")
 
 
 
-    # run post-configuration script    
+    # run post-configuration script
     if os.path.exists("/mnt/conf/post"):
         cmd("/mnt/conf/post")
 
