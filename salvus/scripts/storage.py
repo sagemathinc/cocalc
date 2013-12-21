@@ -253,13 +253,20 @@ def newest_snapshot(project_id, hosts=None, timeout=10):
         return _newest_snapshot(project_id, hosts)
 
     pool = Pool(processes=len(hosts))
+    start = time.time()
     x = pool.imap(mp_newest_snapshot, [(project_id, dest) for dest in hosts])
     result = []
     while True:
         try:
-            result.append(x.next(timeout))
+            t = timeout - (start-time.time())
+            if t > 0:
+                result.append(x.next(t))
+            else:
+                raise TimeoutError
         except TimeoutError, mesg:
             log.info("timed out connecting to some destination -- %s", mesg)
+            pool.terminate()
+            break
         except StopIteration:
             break
 
@@ -351,7 +358,7 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
         cmd("sudo zfs send -RD %s %s %s | gzip > %s"%('-i' if snap_dest else '', snap_dest, snap_src, tmp))
         diff_size = os.path.getsize(tmp)
         diff_size_mb = diff_size/1000000.0
-        send_timeout = 30 + int(diff_size_mb * 2)
+        send_timeout = 60 + int(diff_size_mb * 2)
         log.info("%sM of data to send (send_timeout=%s seconds)", diff_size_mb, send_timeout)
         work = []
         for dest in destinations:
@@ -365,11 +372,18 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
         if len(work) > 0:
             pool = Pool(processes=len(work))
             x = pool.imap(mp_send_multi_helper, work)
+            start = time.time()
             while True:
                 try:
-                    x.next(timeout = send_timeout)
+                    t = timeout - (start-time.time())
+                    if t > 0:
+                        x.next(timeout = send_timeout - t)
+                    else:
+                        raise TimeoutError
                 except TimeoutError, mesg:
                     log.info("timed out connecting to some destination -- %s", mesg)
+                    pool.terminate()
+                    break
                 except StopIteration:
                     break
     finally:
