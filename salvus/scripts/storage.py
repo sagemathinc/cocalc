@@ -420,6 +420,39 @@ def replicate(project_id, snap_src=None):
     log.info("replicating %s out to %s", project_id, destinations)
     send_multi(project_id, destinations, snap_src=snap_src)
 
+def replicate_many(project_ids, pool_size=10):
+    pids = {}
+    random.shuffle(project_ids)
+    i = 0; n = len(project_ids)
+    while len(project_ids) > 0 or len(pids)>0:
+        # get more work, if necessary and available
+        while len(pids) < pool_size and len(project_ids) > 0:
+            project_id = project_ids.pop()
+            try:
+                i += 1
+                log.info("REPLICATE (%s/%s):", i+1, n)
+                pid = os.fork()
+                if pid:
+                    log.debug("FORKED %s to handle %s"%(pid, project_id))
+                    pids[pid] = project_id
+                else:
+                    # child
+                    try:
+                        replicate(project_id = project_id)
+                    except Exception, mesg:
+                        # make errors non-fatal; due to network issues usually; try again later.
+                        log.warning("Failed to replicate '%s' -- %s", project_id, str(mesg))
+                    return
+            except OSError, mesg:
+                log.warning("ERROR: forking to handle %s failed -- %s", project_id, mesg)
+        if pids:
+            log.debug("checking on %s", pids)
+            for pid in dict(pids):
+                if os.waitpid(pid, os.WNOHANG) != (0,0):
+                    del pids[pid]
+        time.sleep(1)
+
+
 def setup_log(loglevel='DEBUG', logfile=''):
     logging.basicConfig()
     global log
@@ -536,7 +569,7 @@ def replicate_active_watcher(min_time_s=60, active_path='/home/storage/active'):
                 try:
                     pid = os.fork()
                     if pid:
-                        print "FORKED %s to handle %s"%(pid, project_id)
+                        log.debug("FORKED %s to handle %s"%(pid, project_id))
                         pids[pid] = project_id
                     else:
                         # child
@@ -548,16 +581,15 @@ def replicate_active_watcher(min_time_s=60, active_path='/home/storage/active'):
                             replicate(project_id, snap_src=name)
                         except Exception, mesg:
                             open(f,'w')  # create file, so that snapshot & replicate will be attempted again soon.
-                            log.info("ERROR: replicate_active_watcher %s -- %s"%(project_id, mesg))
+                            log.warning("ERROR: replicate_active_watcher %s -- %s"%(project_id, mesg))
                         return
                 except OSError, mesg:
-                    log.info("ERROR: forking to handle %s failed -- %s", project_id, mesg)
+                    log.warning("ERROR: forking to handle %s failed -- %s", project_id, mesg)
         if pids:
-            log.info("checking on %s", pids)
+            log.debug("checking on %s", pids)
             for pid in dict(pids):
                 if os.waitpid(pid, os.WNOHANG) != (0,0):
                     del pids[pid]
-            log.info("Done waiting")
         time.sleep(1)
 
 
@@ -645,13 +677,7 @@ if __name__ == "__main__":
     def _replicate(args):
         if args.all:
             args.project_id = all_local_project_ids()
-        for i, project_id in enumerate(args.project_id):
-            log.info("REPLICATE (%s/%s):", i+1, len(args.project_id))
-            try:
-                replicate(project_id = project_id)
-            except Exception, mesg:
-                # make errors non-fatal; due to network issues usually; try again later.
-                log.warning("Failed to replicate '%s' -- %s", project_id, str(mesg))
+        replicate_many(args.project_id)
 
     parser_replicate = subparsers.add_parser('replicate', help='replicate project out from here to all its replicas, as defined using consistent hashing')
     parser_replicate.add_argument("project_id", help="project id", type=str, nargs="*")
