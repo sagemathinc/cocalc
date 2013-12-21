@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse, cPickle, hashlib, json, logging, os, sys, time, random
+from multiprocessing import Pool, TimeoutError
 from uuid import UUID, uuid4
 from subprocess import Popen, PIPE
 
@@ -251,7 +252,6 @@ def newest_snapshot(project_id, hosts=None, timeout=10):
     if not isinstance(hosts, list):
         return _newest_snapshot(project_id, hosts)
 
-    from multiprocessing import Pool, TimeoutError
     pool = Pool(processes=len(hosts))
     x = pool.imap(mp_newest_snapshot, [(project_id, dest) for dest in hosts])
     result = []
@@ -307,6 +307,11 @@ def send_one(project_id, dest, force=True):
     cmd(c)
     log.info("done (time=%s seconds)", time.time()-t)
 
+def mp_send_multi_helper(x):
+    tmp, dest, force, dataset = x
+    log.info("sending to %s", dest)
+    cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
+
 def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
     """
     Ignore destinations that don't respond within timeout seconds to the initial
@@ -325,7 +330,7 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
     snap_destinations = newest_snapshot(project_id, hosts=destinations, timeout=timeout)
 
     log.debug("src: %s, dest: %s", snap_src, snap_destinations)
-    return
+    snap_dest = list(sorted([x for _,x in snap_destinations.iteritems()]))[0]
 
     if snap_src == snap_dest:
         log.info("send %s -- all targets are already up to date", project_id)
@@ -333,26 +338,40 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
 
     dataset = dataset_name(project_id)
     t = time.time()
+
     tmp = '/tmp/.storage-%s.gz'%project_id
     if os.path.exists(tmp):
         raise RuntimeError("project %s appears to already be being replicated; delete %s to clear lock", project_id, tmp)
+
     if force:
         force = "-F"
     else:
         force = ''
     try:
         cmd("sudo zfs send -RD %s %s %s | gzip > %s"%('-i' if snap_dest else '', snap_dest, snap_src, tmp))
-        log.info(cmd("ls -lh %s"%tmp))
-
-
-        for i, dest in enumerate(destinations):
-            if snap_destinations[i] == snap_src:
+        diff_size = os.path.getsize(tmp)
+        diff_size_mb = diff_size/1000000.0
+        send_timeout = 30 + int(diff_size_mb * 2)
+        log.info("%sM of data to send (send_timeout=%s seconds)", diff_size_mb, send_timeout)
+        work = []
+        for dest in destinations:
+            if snap_destinations[dest] == snap_src:
                 log.info("no update to %s needed", dest)
             elif ip_address(dest) == dest:
                 log.info("send to self: nothing to do")
             else:
                 log.info("sending to %s", dest)
-                cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
+                work.append((tmp, dest, force, dataset))
+        if len(work) > 0:
+            pool = Pool(processes=len(work))
+            x = pool.imap(mp_send_multi_helper, work)
+            while True:
+                try:
+                    x.next(timeout = send_timeout)
+                except TimeoutError, mesg:
+                    log.info("timed out connecting to some destination -- %s", mesg)
+                except StopIteration:
+                    break
     finally:
         try:
             os.unlink(tmp)
