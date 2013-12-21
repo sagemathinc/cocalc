@@ -524,24 +524,40 @@ def replicate_active_watcher(min_time_s=60, active_path='/home/storage/active'):
     the files in active_path in realtime, i.e., "storage.py --activity".
     """
     last_attempt = {}
-
+    pids = {}
     while True:
         if os.path.exists(active_path):
             for project_id in os.listdir(active_path):
                 now = time.time()
-                if last_attempt.get(project_id, 0) + min_time_s >= now:
+                if pids.get(project_id, False) or last_attempt.get(project_id, 0) + min_time_s >= now:
                     continue
                 last_attempt[project_id] = now
                 f = os.path.join(active_path, project_id)
                 try:
-                    # we unlink at the beginning so that if it changes again before we're done,
-                    # then it'll get snapshotted again in the future
-                    os.unlink(f)
-                    name = snapshot(project_id)
-                    replicate(project_id, snap_src=name)
-                except Exception, mesg:
-                    open(f,'w')  # create file, so that snapshot & replicate will be attempted again soon.
-                    log.info("ERROR: replicate_active_watcher %s -- %s"%(project_id, mesg))
+                    pid = os.fork()
+                    if pid:
+                        print "FORKED %s to handle %s"%(pid, project_id)
+                        pids[pid] = project_id
+                    else:
+                        # child
+                        try:
+                            # we unlink at the beginning so that if it changes again before we're done,
+                            # then it'll get snapshotted again in the future
+                            os.unlink(f)
+                            name = snapshot(project_id)
+                            replicate(project_id, snap_src=name)
+                        except Exception, mesg:
+                            open(f,'w')  # create file, so that snapshot & replicate will be attempted again soon.
+                            log.info("ERROR: replicate_active_watcher %s -- %s"%(project_id, mesg))
+                        return
+                except OSError, mesg:
+                    log.info("ERROR: forking to handle %s failed -- %s", project_id, mesg)
+        if pids:
+            log.info("checking on %s", pids)
+            for pid in dict(pids):
+                if os.waitpid(pid, os.WNOHANG) != (0,0):
+                    del pids[pid]
+            log.info("Done waiting")
         time.sleep(1)
 
 
