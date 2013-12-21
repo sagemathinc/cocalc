@@ -321,10 +321,11 @@ def mp_send_multi_helper(x):
 
 def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
     """
-    Ignore destinations that don't respond within timeout seconds to the initial
+    Send to multiple destinations
+
+    -- timeout - Ignore destinations that don't respond within timeout seconds to the initial
     call for the newest snapshot.
     """
-    # Send to multiple destinations
     log.info("sending %s to %s", project_id, destinations)
 
     if snap_src is None:
@@ -337,10 +338,14 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
     snap_destinations = newest_snapshot(project_id, hosts=destinations, timeout=timeout)
 
     log.debug("src: %s, dest: %s", snap_src, snap_destinations)
-    snap_dest = list(sorted([x for _,x in snap_destinations.iteritems()]))[0]
 
-    if snap_src == snap_dest:
-        log.info("send %s -- all targets are already up to date", project_id)
+    for snap_dest in set(snap_destinations.itervalues()):
+        _send_multi(project_id, [dest for dest in snap_destinations if snap_destinations[dest] == snap_dest],
+                    snap_src, snap_dest, timeout, force)
+
+def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
+    if snap_dest == snap_src:
+        log.debug("no update to %s needed", destinations)
         return
 
     dataset = dataset_name(project_id)
@@ -362,9 +367,7 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
         log.info("%sM of data to send (send_timeout=%s seconds)", diff_size_mb, send_timeout)
         work = []
         for dest in destinations:
-            if snap_destinations[dest] == snap_src:
-                log.info("no update to %s needed", dest)
-            elif ip_address(dest) == dest:
+            if ip_address(dest) == dest:
                 log.info("send to self: nothing to do")
             else:
                 log.info("sending to %s", dest)
@@ -616,7 +619,7 @@ if __name__ == "__main__":
         if len(args.dest) == 1:
             send_one(project_id=args.project_id, dest=args.dest[0])
         else:
-            send_multi(project_id=args.project_id, dest=args.dest)
+            send_multi(project_id=args.project_id, destinations=args.dest)
 
     parser_send = subparsers.add_parser('send', help='send latest UTC iso date formated snapshot of project to remote storage servers (this overwrites any changes to the targets)')
     parser_send.add_argument("project_id", help="project id", type=str)
