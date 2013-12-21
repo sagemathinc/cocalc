@@ -55,21 +55,35 @@ Before building, do:
          apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof
 
 
-         # hosts -- on ubuntu
-         add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.4; apt-get update; apt-get install glusterfs-server
-         apt-add-repository --yes ppa:zfs-native/stable; apt-get update; apt-get install ubuntu-zfs
+# Install ZFS (see http://zfsonlinux.org/generic-deb.html)
 
-         # hosts -- on google (debian)
+    apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r) zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
 
-         ## GLUSTER -- http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/
-         wget -O - http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/pubkey.gpg | apt-key add -
-         echo deb http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/apt wheezy main > /etc/apt/sources.list.d/gluster.list
-         apt-get update; apt-get install glusterfs-server
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz
+
+    tar -xzf spl-0.6.2.tar.gz
+    tar -xzf zfs-0.6.2.tar.gz
+
+    # **IMPORTANT**!  See https://github.com/zfsonlinux/zfs/issues/845
+    # comment out line 98 in zfs-0.6.2/lib/libshare/libshare.c so have this:
+    #
+    #      /* update_zfs_shares(impl_handle, NULL); */
+    #
+
+    cd spl-0.6.2
+    ./configure
+    make deb-utils deb-kmod
+    dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb
+
+    cd ../zfs-0.6.2
+    ./configure
+    make deb-utils deb-kmod
+    cd ..
+
+    dpkg -i */*.deb
 
 
-         ## ZFS -- this does *NOT* work:  http://zfsonlinux.org/debian.html
-         # but thes instructions definitely do:
-         http://zfsonlinux.org/generic-deb.html
 
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
@@ -84,7 +98,7 @@ MaxStartups 128
 
 On Ubuntu 13.10
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev
 
 
 On Debian 7 (Google)
@@ -153,6 +167,11 @@ tmux -V
     cd /tmp/; rm Macaulay2*.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Debian/Macaulay2-1.6-amd64-Linux-Debian-7.0.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb;  sudo dpkg -i Macaulay2*.deb; rm Macaulay2*.deb
 
 
+# Snappy
+
+    umask 022; sage -i http://snappy.computop.org/get/snappy-2.0.3.spkg
+
+
 # Build Sage (as usual)
 
     umask 022   # always do this so that the resulting build is usable without painful permission hacking.
@@ -210,7 +229,7 @@ Test with "import neuron".
 
 # System-wide Python packages not through apt:
 
-   umask 022; /usr/bin/pip install -U scikit-learn theano 
+   umask 022; /usr/bin/pip install -U scikit-learn theano
 
 
 # Also, edit the banner:
