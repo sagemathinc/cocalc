@@ -350,16 +350,21 @@ def setup_log(loglevel='DEBUG', logfile=''):
     log.info("logger started")
 
 
-def activity_daemon(active_path='/home/storage/active', ignore_dot=True):
+def activity_watcher(active_path='/home/storage/active', ignore_dot=True):
     """
     Watch the /projects directory, and when any file or path changes,
     touch the file active_path/project_id.
 
     If ignore_dot is true (the default), do not trigger changes when a path
     that begins ~/.somepath changes.
-    """
-    # this *must* be run as root, since otherwise there is no way to use inotify to watch for changes on subdirs.
 
+    NOTES:
+
+     - when this is running projects often can't be unmounted
+
+     - this function *must* be run as root, since otherwise there is no way to use inotify to watch for changes on subdirs.
+
+    """
     import pyinotify
     wm   = pyinotify.WatchManager()
     mask = pyinotify.IN_CREATE | pyinotify.IN_MOVED_TO | pyinotify.IN_MODIFY | pyinotify.IN_CLOSE_WRITE | pyinotify.IN_DELETE
@@ -416,6 +421,10 @@ if __name__ == "__main__":
                            help="log level: useful options include INFO, WARNING and DEBUG")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
+    parser.add_argument("--daemon", help="daemon mode",
+                         dest="daemon", default=False, action="store_const", const=True)
+    parser.add_argument("--pidfile", dest="pidfile", type=str, default='',
+                         help="store pid in this file when daemonized")
 
     subparsers = parser.add_subparsers(help='sub-command help')
 
@@ -492,11 +501,24 @@ if __name__ == "__main__":
     parser_replicate.add_argument("--all", help="replicate all locally stored projects", default=False, action="store_const", const=True)
     parser_replicate.set_defaults(func=_replicate)
 
+    def _activity_watcher(args):
+        activity_watcher()
+
+    parser_activity = subparsers.add_parser('activity',
+                        help='watch the /projects directory, and when any file or path changes, touch the file active_path/project_id.')
+    parser_activity.set_defaults(func=_activity_watcher)
+
 
     args = parser.parse_args()
 
     setup_log(loglevel=args.loglevel, logfile=args.logfile)
 
+    if args.daemon:
+        if not args.pidfile:
+            raise RuntimeError("in --daemon mode you *must* specify --pidfile")
+        import daemon
+        daemon.daemonize(args.pidfile)
+        
     args.func(args)
 
 else:
