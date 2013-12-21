@@ -32,7 +32,8 @@ def mount_conf():
     d = get_disks()
     if '/dev/sdb1' in d:
         # have a conf partition
-        cmd("mkdir -p /mnt/conf; chmod og-rwx /mnt/conf; mount /dev/sdb1 /mnt/conf")
+        # critical to protect visibility, since contains vpn keys.
+        cmd("mkdir -p /mnt/conf; mount /dev/sdb1 /mnt/conf; chmod og-rwx /mnt/conf; chown root. /mnt/conf")
         return True
     else:
         return False
@@ -42,12 +43,6 @@ def conf():
 
     if os.path.exists("/mnt/conf/pre"):
         cmd("/mnt/conf/pre")
-
-    # stop services whose conf might change
-    cmd("service glusterfs-server  stop")
-
-    if os.path.exists("/mnt/conf/glusterd"):
-        cmd("mount -o bind /mnt/conf/glusterd /var/lib/glusterd")
 
     if os.path.exists("/mnt/conf/fstab"):
         # mkdir each mount point
@@ -79,12 +74,6 @@ def conf():
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
     cmd("ip link add link eth0 address f0:de:f1:b0:66:8e eth0.1 type macvlan")
     cmd("ip link add link eth0 address 5e:d4:a9:c7:c8:f4 eth0.2 type macvlan")
-
-
-    # start services back up
-    cmd("service glusterfs-server  start")
-
-
 
     # run post-configuration script
     if os.path.exists("/mnt/conf/post"):
