@@ -58,8 +58,8 @@ def cmd(s, exception_on_error=True):
     log.debug(s)
     t = time.time()
     out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
-    e = out.wait()
     x = out.stdout.read() + out.stderr.read()
+    e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
     log.debug("(%s seconds): %s", time.time()-t, x)
     if e and exception_on_error:
         raise RuntimeError(x)
@@ -177,6 +177,15 @@ def usage(project_id):
     b = b.split()
     return dict([(a[i].lower(),b[i]) for i in range(len(a))])
 
+#def recently_made_snapshots(age_s):
+#    """
+#    Return all snapshots that were *explicitly* made on this machine within the last age_s seconds.
+#
+#    NOTE: Other snapshots could appear due to remote replication. This only returns the ones that
+#    were actually made here using the zfs snapshot command.
+#    """
+#    cmd('sudo zpool history|grep " zfs snapshot projects/"')
+
 def list_snapshots(project_id, host=''):
     """
     Return sorted list of snapshots of the given project available on the given host.
@@ -204,6 +213,7 @@ def snapshot(project_id, name=''):
     """
     Create a new snapshot right now with current ISO timestamp at start of name.
     """
+    log.debug("snapshot: %s", project_id)
     cmd("sudo zfs snapshot %s@%s%s"%(dataset_name(project_id), time.strftime('%Y-%m-%dT%H:%M:%S'), name))
 
 def newest_snapshot(project_id, host=''):
@@ -280,7 +290,9 @@ def send_multi(project_id, destinations, force=True):
 
     dataset = dataset_name(project_id)
     t = time.time()
-    tmp = '/tmp/%s.gz'%uuid4()
+    tmp = '/tmp/.storage-%s.gz'%project_id
+    if os.path.exists(tmp):
+        raise RuntimeError("project %s appears to already be being replicated", project_id)
     if force:
         force = "-F"
     else:
@@ -307,13 +319,14 @@ def all_local_project_ids():
     """
     Return list of all ids of projects stored on this computer.
 
-    Takes a few seconds per thousand projects.
+    Takes a few seconds per thousand projects.  In *random* order (on purpose).
     """
     v = []
     for x in os.popen("sudo zfs list").readlines():  # cmd takes too long for some reason given huge output
         w = x.split()
         if w[0].startswith('projects/'):
             v.append(w[0].split('/')[1])
+    random.shuffle(v)
     return v
 
 def replicate(project_id):
@@ -335,6 +348,65 @@ def setup_log(loglevel='DEBUG', logfile=''):
         log.addHandler(logging.FileHandler(logfile))
 
     log.info("logger started")
+
+
+def activity_daemon(active_path='/home/storage/active', ignore_dot=True):
+    """
+    Watch the /projects directory, and when any file or path changes,
+    touch the file active_path/project_id.
+
+    If ignore_dot is true (the default), do not trigger changes when a path
+    that begins ~/.somepath changes.
+    """
+    # this *must* be run as root, since otherwise there is no way to use inotify to watch for changes on subdirs.
+
+    import pyinotify
+    wm   = pyinotify.WatchManager()
+    mask = pyinotify.IN_CREATE | pyinotify.IN_MOVED_TO | pyinotify.IN_MODIFY | pyinotify.IN_CLOSE_WRITE | pyinotify.IN_DELETE
+
+    last_add = {}
+    def add(pathname):
+        if len(pathname) < 47:
+            return
+        v = pathname.split('/')
+        project_id = v[2]
+        # avoid excessive filesystem touching by ignoring requests for 15 seconds after activity.
+        t = time.time()
+        if last_add.get(project_id) >= t-15:
+            return
+        last_add[project_id] = t
+        log.debug("activity: %s", pathname)
+        active = os.path.join(active_path, v[2])
+        cmd("mkdir -p '%s'; touch '%s'; chown -R storage. '%s'"%(active_path, active, active_path))
+
+    class EventHandler(pyinotify.ProcessEvent):
+        def process_IN_CREATE(self, event):
+            add(event.pathname)
+        def process_IN_DELETE(self, event):
+            add(event.pathname)
+        def process_IN_MOVED_TO(self, event):
+            add(event.pathname)
+        def process_IN_MODIFY(self, event):
+            add(event.pathname)
+        def process_IN_CLOSE_WRITE(self, event):
+            add(event.pathname)
+
+    handler = EventHandler()
+
+    # we receive inotify events for *at most* timeout seconds, then handle them all
+    notifier = pyinotify.Notifier(wm, handler)
+    watchers = []
+    log.info("adding inotify watcher to /projects...")
+    if ignore_dot:
+        def exclude_filter(s):
+            return s[47:].startswith('.')
+    else:
+        def exclude_filter(s):
+            return False
+
+    watchers.append(wm.add_watch('/projects', mask, rec=True, auto_add=True, exclude_filter=exclude_filter))
+    log.info("done: now watching for changes")
+    notifier.loop()
 
 
 if __name__ == "__main__":
