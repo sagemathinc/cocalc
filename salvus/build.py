@@ -55,29 +55,9 @@ Before building, do:
          apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof
 
 
-         # hosts -- on ubuntu
-         add-apt-repository --yes ppa:semiosis/ubuntu-glusterfs-3.4; apt-get update; apt-get install glusterfs-server
-         apt-add-repository --yes ppa:zfs-native/stable; apt-get update; apt-get install ubuntu-zfs
+# Install ZFS (see http://zfsonlinux.org/generic-deb.html)
 
-         # hosts -- on google (debian)
-
-         ## GLUSTER -- http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/
-         wget -O - http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/pubkey.gpg | apt-key add -
-         echo deb http://download.gluster.org/pub/gluster/glusterfs/3.4/3.4.1/Debian/apt wheezy main > /etc/apt/sources.list.d/gluster.list
-         apt-get update; apt-get install glusterfs-server
-
-
-         ## ZFS -- this does *NOT* work:  http://zfsonlinux.org/debian.html
-         # but thes instructions definitely do:
-         http://zfsonlinux.org/generic-deb.html
-
-
-# ZFS
-
-
-
-    apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r)
-    apt-get install zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
+    apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r) zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
 
     wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz
     wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz
@@ -86,7 +66,7 @@ Before building, do:
     tar -xzf zfs-0.6.2.tar.gz
 
     # **IMPORTANT**!  See https://github.com/zfsonlinux/zfs/issues/845
-    # comment out line 812 in zfs-0.6.2/lib/libshare/libshare.c so have this:
+    # comment out line 98 in zfs-0.6.2/lib/libshare/libshare.c so have this:
     #
     #      /* update_zfs_shares(impl_handle, NULL); */
     #
@@ -94,11 +74,9 @@ Before building, do:
     cd spl-0.6.2
     ./configure
     make deb-utils deb-kmod
-    dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3.2.0-56-generic_0.6.2-1_amd64.deb
+    dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb
 
     cd ../zfs-0.6.2
-
-    dpkg -i */*.deb
     ./configure
     make deb-utils deb-kmod
     cd ..
