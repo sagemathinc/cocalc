@@ -212,9 +212,13 @@ def list_snapshots(project_id, host=''):
 def snapshot(project_id, name=''):
     """
     Create a new snapshot right now with current ISO timestamp at start of name.
+
+    Returns the name of the created snapshot.
     """
     log.debug("snapshot: %s", project_id)
-    cmd("sudo zfs snapshot %s@%s%s"%(dataset_name(project_id), time.strftime('%Y-%m-%dT%H:%M:%S'), name))
+    name = "%s@%s%s"%(dataset_name(project_id), time.strftime('%Y-%m-%dT%H:%M:%S'), name)
+    cmd("sudo zfs snapshot %s"%name)
+    return name
 
 def newest_snapshot(project_id, host=''):
     """
@@ -270,11 +274,13 @@ def send_one(project_id, dest, force=True):
     cmd(c)
     log.info("done (time=%s seconds)", time.time()-t)
 
-def send_multi(project_id, destinations, force=True):
+def send_multi(project_id, destinations, force=True, snap_src=None):
     # Send to multiple destinations
     log.info("sending %s to %s", project_id, destinations)
 
-    snap_src  = newest_snapshot(project_id)
+    if snap_src is None:
+        snap_src  = newest_snapshot(project_id)
+
     if not snap_src:
         log.warning("send: no local snapshot for '%s'"%project_id)
         return
@@ -329,12 +335,12 @@ def all_local_project_ids():
     random.shuffle(v)
     return v
 
-def replicate(project_id):
+def replicate(project_id, snap_src=None):
     assert isinstance(project_id, str)
     ring = MultiHashRing()
     destinations = sum([d[1] for d in ring(project_id)], [])
     log.info("replicating %s out to %s", project_id, destinations)
-    send_multi(project_id, destinations)
+    send_multi(project_id, destinations, snap_src=snap_src)
 
 def setup_log(loglevel='DEBUG', logfile=''):
     logging.basicConfig()
@@ -412,6 +418,54 @@ def activity_watcher(active_path='/home/storage/active', ignore_dot=True):
     watchers.append(wm.add_watch('/projects', mask, rec=True, auto_add=True, exclude_filter=exclude_filter))
     log.info("done: now watching for changes")
     notifier.loop()
+
+
+def replicate_active(active_path='/home/storage/active'):
+    """
+    Snapshot and replicate out all files in active_path, deleting
+    each file the moment the replication has completed.
+
+    Use activity_watcher running as *root* (seperately) to generate
+    the files in active_path in realtime.
+    """
+    for project_id in os.listdir(active_path):
+        try:
+            name = snapshot(project_id)
+            replicate(project_id, snap_src=name)
+            os.unlink(os.path.join(active_path, project_id))
+        except Exception, mesg:
+            log.info("ERROR: replicate_active %s -- %s"%(project_id, mesg))
+
+def replicate_active_watcher(min_time_s=60, active_path='/home/storage/active'):
+    """
+    Watch active_path for active projects.  If a project is active which has
+    not been active for at least min_time_s seconds, then snapshot and replicate
+    it out.
+
+    Use activity_watcher running as *root* (seperately) to generate
+    the files in active_path in realtime, i.e., "storage.py --activity".
+    """
+    last_attempt = {}
+
+    while True:
+        if os.path.exists(active_path):
+            for project_id in os.listdir(active_path):
+                now = time.time()
+                if last_attempt.get(project_id, 0) + min_time_s >= now:
+                    continue
+                last_attempt[project_id] = now
+                f = os.path.join(active_path, project_id)
+                try:
+                    # we unlink at the beginning so that if it changes again before we're done,
+                    # then it'll get snapshotted again in the future
+                    os.unlink(f)
+                    name = snapshot(project_id)
+                    replicate(project_id, snap_src=name)
+                except Exception, mesg:
+                    open(f,'w')  # create file, so that snapshot & replicate will be attempted again soon.
+                    log.info("ERROR: replicate_active_watcher %s -- %s"%(project_id, mesg))
+        time.sleep(1)
+
 
 
 if __name__ == "__main__":
@@ -499,6 +553,7 @@ if __name__ == "__main__":
     parser_replicate = subparsers.add_parser('replicate', help='replicate project out from here to all its replicas, as defined using consistent hashing')
     parser_replicate.add_argument("project_id", help="project id", type=str, nargs="*")
     parser_replicate.add_argument("--all", help="replicate all locally stored projects", default=False, action="store_const", const=True)
+
     parser_replicate.set_defaults(func=_replicate)
 
     def _activity_watcher(args):
@@ -507,6 +562,15 @@ if __name__ == "__main__":
     parser_activity = subparsers.add_parser('activity',
                         help='watch the /projects directory, and when any file or path changes, touch the file active_path/project_id.')
     parser_activity.set_defaults(func=_activity_watcher)
+
+
+    def _replicate_watcher(args):
+        replicate_active_watcher(min_time_s = args.min_time_s)
+    parser_replicate_watcher = subparsers.add_parser('replicate_watcher',
+                        help='watch the active directory (created by ./storage.py --activity), and when projects change snapshot them and replicate them.')
+    parser_replicate_watcher.add_argument("--min_time_s", help="min interval between snapshots (default: 120)",
+                                  type=int, default=120)
+    parser_replicate_watcher.set_defaults(func=_replicate_watcher)
 
 
     args = parser.parse_args()
@@ -518,7 +582,7 @@ if __name__ == "__main__":
             raise RuntimeError("in --daemon mode you *must* specify --pidfile")
         import daemon
         daemon.daemonize(args.pidfile)
-        
+
     args.func(args)
 
 else:
