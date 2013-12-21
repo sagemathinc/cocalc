@@ -36,12 +36,18 @@ class MultiHashRing(object):
             dc = data[datacenter]
             dc[ip] = {'vnodes':vnodes}
         import hashring
-        print data
         self.rings = [(dc, hashring.HashRing(d)) for dc, d in data.iteritems()]
         self.rings.sort()
 
     def __call__(self, key):
         return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
+
+_multi_hash_ring = None
+def multi_hash_ring():
+    global _multi_hash_ring
+    if _multi_hash_ring is None:
+        _multi_hash_ring = MultiHashRing()
+    return _multi_hash_ring
 
 def check_uuid(uuid):
     if UUID(uuid).version != 4:
@@ -220,19 +226,45 @@ def snapshot(project_id, name=''):
     cmd("sudo zfs snapshot %s"%name)
     return name
 
-def newest_snapshot(project_id, host=''):
-    """
-    Return most recent snapshot or empty string if none.
-    If host is given, does this on a remote host.
-
-    We *assume* snapshots start with an ISO-formatted name!!!
-    You can put anything after the name.
-    """
+def _newest_snapshot(project_id, host=''):
     v = list_snapshots(project_id=project_id, host=host)
     if len(v) == 0:
         return ''
     else:
         return v[-1]
+
+def mp_newest_snapshot(x):
+    return (x[1], _newest_snapshot(x[0],x[1]))
+
+def newest_snapshot(project_id, hosts=None, timeout=10):
+    """
+    Return most recent snapshot or empty string if none.
+
+    If host is a single ip address, return newest snapshot on that host.
+
+    If hosts is a list of ip addresses (or hostnames),
+    returns a dictionary with keys the entries in hosts
+    and the values the names of the newest snapshots.
+    Hosts that don't respond within timeout seconds are
+    ignored.
+    """
+    if not isinstance(hosts, list):
+        return _newest_snapshot(project_id, hosts)
+
+    from multiprocessing import Pool, TimeoutError
+    pool = Pool(processes=len(hosts))
+    x = pool.imap(mp_newest_snapshot, [(project_id, dest) for dest in hosts])
+    result = []
+    while True:
+        try:
+            result.append(x.next(timeout))
+        except TimeoutError, mesg:
+            log.info("timed out connecting to some destination -- %s", mesg)
+        except StopIteration:
+            break
+
+    return dict(result)
+
 
 def ip_address(dest):
     # get the ip address that is used to communicate with the given destination
@@ -270,11 +302,16 @@ def send_one(project_id, dest, force=True):
 
     dataset = dataset_name(project_id)
     t = time.time()
-    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%('-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
+    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(
+                                  '-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
     cmd(c)
     log.info("done (time=%s seconds)", time.time()-t)
 
-def send_multi(project_id, destinations, force=True, snap_src=None):
+def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
+    """
+    Ignore destinations that don't respond within timeout seconds to the initial
+    call for the newest snapshot.
+    """
     # Send to multiple destinations
     log.info("sending %s to %s", project_id, destinations)
 
@@ -285,10 +322,10 @@ def send_multi(project_id, destinations, force=True, snap_src=None):
         log.warning("send: no local snapshot for '%s'"%project_id)
         return
 
-    snap_destinations = [newest_snapshot(project_id, dest) for dest in destinations]
-    snap_dest = list(sorted(snap_destinations))[0]  # oldest -- worst case
+    snap_destinations = newest_snapshot(project_id, hosts=destinations, timeout=timeout)
 
-    log.debug("src: %s, dest: %s", snap_src, snap_dest)
+    log.debug("src: %s, dest: %s", snap_src, snap_destinations)
+    return
 
     if snap_src == snap_dest:
         log.info("send %s -- all targets are already up to date", project_id)
@@ -298,7 +335,7 @@ def send_multi(project_id, destinations, force=True, snap_src=None):
     t = time.time()
     tmp = '/tmp/.storage-%s.gz'%project_id
     if os.path.exists(tmp):
-        raise RuntimeError("project %s appears to already be being replicated", project_id)
+        raise RuntimeError("project %s appears to already be being replicated; delete %s to clear lock", project_id, tmp)
     if force:
         force = "-F"
     else:
@@ -306,6 +343,8 @@ def send_multi(project_id, destinations, force=True, snap_src=None):
     try:
         cmd("sudo zfs send -RD %s %s %s | gzip > %s"%('-i' if snap_dest else '', snap_dest, snap_src, tmp))
         log.info(cmd("ls -lh %s"%tmp))
+
+
         for i, dest in enumerate(destinations):
             if snap_destinations[i] == snap_src:
                 log.info("no update to %s needed", dest)
@@ -335,10 +374,13 @@ def all_local_project_ids():
     random.shuffle(v)
     return v
 
-def replicate(project_id, snap_src=None):
+def locations(project_id):
     assert isinstance(project_id, str)
-    ring = MultiHashRing()
-    destinations = sum([d[1] for d in ring(project_id)], [])
+    ring = multi_hash_ring()
+    return sum([d[1] for d in ring(project_id)], [])
+
+def replicate(project_id, snap_src=None):
+    destinations = locations(project_id)
     log.info("replicating %s out to %s", project_id, destinations)
     send_multi(project_id, destinations, snap_src=snap_src)
 
@@ -508,6 +550,15 @@ if __name__ == "__main__":
     parser_snapshots.add_argument("project_id", help="project id", type=str)
     parser_snapshots.add_argument("host", help="ip address of host (default: ''=localhost)", type=str, default='', nargs='?')
     parser_snapshots.set_defaults(func=_snapshots)
+
+    def _status(args):
+        v = newest_snapshot(project_id=args.project_id, hosts=locations(args.project_id), timeout=args.timeout)
+        print_json({'project_id':args.project_id, 'newest_snapshots':v})
+
+    parser_status = subparsers.add_parser('status', help='output json object giving newest snapshot on each available host')
+    parser_status.add_argument("project_id", help="project id", type=str)
+    parser_status.add_argument("--timeout", dest='timeout', type=int, default=10, help="timeout to declare host not available")
+    parser_status.set_defaults(func=_status)
 
     def _usage(args):
         print_json({'project_id':args.project_id, 'usage':usage(args.project_id)})
