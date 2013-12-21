@@ -424,33 +424,42 @@ def replicate_many(project_ids, pool_size=10):
     pids = {}
     random.shuffle(project_ids)
     i = 0; n = len(project_ids)
-    while len(project_ids) > 0 or len(pids)>0:
-        # get more work, if necessary and available
-        while len(pids) < pool_size and len(project_ids) > 0:
-            project_id = project_ids.pop()
+    try:
+        while len(project_ids) > 0 or len(pids)>0:
+            # get more work, if necessary and available
+            while len(pids) < pool_size and len(project_ids) > 0:
+                project_id = project_ids.pop()
+                try:
+                    i += 1
+                    log.info("REPLICATE (%s/%s):", i+1, n)
+                    pid = os.fork()
+                    if pid:
+                        log.debug("FORKED %s to handle %s"%(pid, project_id))
+                        pids[pid] = project_id
+                    else:
+                        # child
+                        try:
+                            replicate(project_id = project_id)
+                        except Exception, mesg:
+                            # make errors non-fatal; due to network issues usually; try again later.
+                            log.warning("Failed to replicate '%s' -- %s", project_id, str(mesg))
+                        return
+                except OSError, mesg:
+                    log.warning("ERROR: forking to handle %s failed -- %s", project_id, mesg)
+            if pids:
+                log.debug("checking on %s", pids)
+                for pid in dict(pids):
+                    if os.waitpid(pid, os.WNOHANG) != (0,0):
+                        del pids[pid]
+            time.sleep(1)
+    finally:
+        # send kill signals to any outstanding subprocesses
+        for pid in pids:
             try:
-                i += 1
-                log.info("REPLICATE (%s/%s):", i+1, n)
-                pid = os.fork()
-                if pid:
-                    log.debug("FORKED %s to handle %s"%(pid, project_id))
-                    pids[pid] = project_id
-                else:
-                    # child
-                    try:
-                        replicate(project_id = project_id)
-                    except Exception, mesg:
-                        # make errors non-fatal; due to network issues usually; try again later.
-                        log.warning("Failed to replicate '%s' -- %s", project_id, str(mesg))
-                    return
-            except OSError, mesg:
-                log.warning("ERROR: forking to handle %s failed -- %s", project_id, mesg)
-        if pids:
-            log.debug("checking on %s", pids)
-            for pid in dict(pids):
-                if os.waitpid(pid, os.WNOHANG) != (0,0):
-                    del pids[pid]
-        time.sleep(1)
+                os.kill(pid, 9)
+            except OSError:
+                pass
+
 
 
 def setup_log(loglevel='DEBUG', logfile=''):
@@ -677,10 +686,11 @@ if __name__ == "__main__":
     def _replicate(args):
         if args.all:
             args.project_id = all_local_project_ids()
-        replicate_many(args.project_id)
+        replicate_many(args.project_id, pool_size=args.pool_size)
 
     parser_replicate = subparsers.add_parser('replicate', help='replicate project out from here to all its replicas, as defined using consistent hashing')
     parser_replicate.add_argument("project_id", help="project id", type=str, nargs="*")
+    parser_replicate.add_argument("--pool_size", dest='pool_size', type=int, default=3, help="number of projects to replicate out at once (note that each individual replication is also in parallel)")
     parser_replicate.add_argument("--all", help="replicate all locally stored projects", default=False, action="store_const", const=True)
 
     parser_replicate.set_defaults(func=_replicate)
