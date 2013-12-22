@@ -29,7 +29,7 @@ if os.path.exists('/projects') or os.path.exists('/mnt/home/'):
 
     # Restore existing user accounts
     if os.path.exists('/mnt/home/etc/'):
-        os.system("cp /mnt/home/etc/* /etc/")
+        os.system("cp -rv /mnt/home/etc/* /etc/")
     else:
         os.system("mkdir -p /mnt/home/etc/")
 

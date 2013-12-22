@@ -4,10 +4,14 @@ import argparse, cPickle, hashlib, json, logging, os, sys, time, random
 from multiprocessing import Pool, TimeoutError
 from uuid import UUID, uuid4
 from subprocess import Popen, PIPE
-
 CWD = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, CWD)
 from hashring import HashRing
+
+
+CACHE_PATH = os.path.join(os.environ['HOME'], 'cache')
+if not os.path.exists(CACHE_PATH):
+    os.makedirs(CACHE_PATH)
 
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
@@ -279,7 +283,35 @@ def newest_snapshot(project_id, hosts=None, timeout=10):
     return dict(result)
 
 
-def ip_address(dest):
+def snapshot_cache_file(host=None):
+    if host is None:
+        host = ip_address()
+    return os.path.abspath(os.path.join(CACHE_PATH, 'snapshots-%s.json'%host))
+
+def update_snapshot_cache():
+    cache = snapshot_cache_file()
+    t = time.time()
+    log.info("Updating the snapshot cache %s...", cache)
+    snapshots = {}
+    out = cmd('sudo zfs list -r -t snapshot -o name -s creation projects')
+    log.info("Got list from ZFS (%s seconds); now parsing and saving...", time.time()-t)
+    t = time.time()
+    for x in out.splitlines():
+        if '@' in x:
+            filesystem, snap = x.split('@')
+            project_id = filesystem.split('/')[-1]
+            if project_id not in snapshots:
+                snapshots[project_id] = []
+            snapshots[project_id].append(snap)
+    j = json.dumps(snapshots)
+    open(cache,'w').write(j)
+    log.info("Finished parsing and saving snapshot cache (%s seconds)", time.time()-t)
+
+def snapshot_cache(host=None):
+    return json.loads(open(snapshot_cache_file(host)).read())
+
+
+def ip_address(dest='10.1.1.1'):
     # get the ip address that is used to communicate with the given destination
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -676,6 +708,12 @@ if __name__ == "__main__":
     parser_snapshots.add_argument("project_id", help="project id", type=str)
     parser_snapshots.add_argument("host", help="ip address of host (default: ''=localhost)", type=str, default='', nargs='?')
     parser_snapshots.set_defaults(func=_snapshots)
+
+    def _update_snapshot_cache(args):
+        update_snapshot_cache()
+    parser_snapshots = subparsers.add_parser('update_snapshot_cache', help='regenerate the file ~/cache/snapshots-ip_address.json (on unloaded system, takes about 15 seconds per 1000 projects)')
+    parser_snapshots.set_defaults(func=_update_snapshot_cache)
+
 
     def _status(args):
         v = newest_snapshot(project_id=args.project_id, hosts=locations(args.project_id), timeout=args.timeout)
