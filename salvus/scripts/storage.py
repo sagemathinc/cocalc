@@ -122,12 +122,17 @@ def migrate_project_to_storage(src, new_only):
         return
 
     project_id = json.loads(open(info_json).read())['project_id']
+
+    is_new = not dataset_exists(project_id)
+
+    if new_only and not is_new:
+        log.info("skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id))
+        return
+
     projectid = project_id.replace('-','')
     home = path_to_project(project_id)
     dataset = dataset_name(project_id)
-    if new_only and os.path.exists(home):
-        log.info("skipping %s (%s) since it already exists (and new_only=True)"%(src, project_id))
-        return
+
     create_dataset(project_id)
     create_user(project_id)
 
@@ -135,15 +140,19 @@ def migrate_project_to_storage(src, new_only):
 
     # rsync data over
     cmd("rsync -Hax --delete --exclude .forever --exclude .bup --exclude .zfs %s/ %s/"%(src, home))
-    id = uid(project_id)
 
+    id = uid(project_id)
 
     # chown with snapdir visible doesn't work; can cause other problems too.
     cmd("sudo zfs set snapdir=hidden %s"%dataset)
     # chown use numeric id, since username=projectid assigned twice in some cases during transition (for new projects)
     cmd("chown %s:%s -R %s"%(id, id, home))
 
-    snapshot(project_id)
+    # TODO: only snapshot if there are actual changes.
+    if is_new:
+        snapshot(project_id, force=True)
+    else:
+        snapshot(project_id)
     cmd("sudo zfs list %s"%dataset)
 
     umount(project_id)
@@ -231,13 +240,55 @@ def list_snapshots(project_id, host=''):
     v.sort()
     return v
 
-def snapshot(project_id, name=''):
+
+ZFS_CHANGES={'-':'removed', '+':'created', 'M':'modified', 'R':'renamed'}
+ZFS_FILE_TYPES={'B':'block device', 'C':'character device', '/':'directory',
+                '>':'door', '|':'named pipe', '@':'symbolic link',
+                'P':'event port', '=':'socket', 'F':'regular file'}
+
+def status(project_id, long_format=False, exclude_system=True):
+    """
+    The the files that have changed in the given project since the last snapshot.
+    """
+    log.debug("new_files: %s", project_id)
+    d = dataset_name(project_id)
+    home = path_to_project(project_id)
+    n = len(home)+1
+    c = "sudo zfs diff -H%s `sudo zfs list -r -t snapshot -o name -s creation %s|tail -1` %s"%('Ft' if long_format else '', d, d)
+    if exclude_system:
+        def exclude(x):
+            return x == '' or x.startswith('.forever') or x.startswith('.sagemathcloud')
+    else:
+        def exclude(x):
+            return x != ''
+    if long_format:
+        v = {}
+        for x in cmd(c).splitlines():
+            t, action, typ, filename = x.split()
+            filename = filename[n:]
+            if exclude(filename):
+                continue
+            v[filename] = {'time':t, 'type':ZFS_FILE_TYPES[typ], 'action':ZFS_CHANGES[action]}
+    else:
+        v = [f.split()[1][n:] for f in cmd(c).splitlines()]
+        v = [f for f in v if not exclude(f)]
+    return v
+
+def snapshot(project_id, name='', force=False):
     """
     Create a new snapshot right now with current ISO timestamp at start of name.
 
-    Returns the name of the created snapshot.
+    Returns the name of the created snapshot or '' if no snapshot was created.
+
+    If force is False (the default), no snapshot is made if no files have changed
+    since the last snapshot, except in .forever and .sagemathcloud, which are ignored.
+    Checking this takes (at least a second) hence longer than making a snapshot.
     """
     log.debug("snapshot: %s", project_id)
+    if not force:
+        if len(status(project_id, long_format=False)) == 0:
+            log.debug("no changes -- not snapshotting.")
+            return ''
     name = "%s@%s%s"%(dataset_name(project_id), time.strftime('%Y-%m-%dT%H:%M:%S'), name)
     cmd("sudo zfs snapshot %s"%name)
     return name
@@ -816,12 +867,22 @@ if __name__ == "__main__":
     parser_migrate.set_defaults(func=migrate)
 
     def _snapshot(args):
-        snapshot(project_id=args.project_id, name=args.name)
+        name = snapshot(project_id=args.project_id, name=args.name)
+        print_json({'project_id':args.project_id, 'snapshot':name})
 
-    parser_snapshot = subparsers.add_parser('snapshot', help='make a new snapshot of the given project')
+
+    parser_snapshot = subparsers.add_parser('snapshot', help='make a new snapshot of the given project; if only files in ~/.forever and ~/.sagemathcloud change, no snapshot is created')
     parser_snapshot.add_argument("project_id", help="project id", type=str)
     parser_snapshot.add_argument("name", help="appended to end of snapshot timestamp", type=str, default='', nargs='?')
     parser_snapshot.set_defaults(func=_snapshot)
+
+    def _status(args):
+        print_json(status(project_id=args.project_id, long_format=args.long))
+
+    parser_status = subparsers.add_parser('status', help='the files that have been modified/changed/created since the last snapshot (JSON format)')
+    parser_status.add_argument("--long", help="instead output dictionary {filename:{time:?,type:?,action:?},....}", default=False, action="store_const", const=True)
+    parser_status.add_argument("project_id", help="project id", type=str)
+    parser_status.set_defaults(func=_status)
 
     def _snapshots(args):
         print_json({'project_id':args.project_id, 'snapshots':list_snapshots(project_id=args.project_id, host=args.host)})
@@ -842,14 +903,14 @@ if __name__ == "__main__":
     parser_snapshots_cache.set_defaults(func=_update_snapshot_cache)
 
 
-    def _status(args):
+    def _newest_snapshot(args):
         v = newest_snapshot(project_id=args.project_id, hosts=locations(args.project_id), timeout=args.timeout)
         print_json({'project_id':args.project_id, 'newest_snapshots':v})
 
-    parser_status = subparsers.add_parser('status', help='output json object giving newest snapshot on each available host')
-    parser_status.add_argument("project_id", help="project id", type=str)
-    parser_status.add_argument("--timeout", dest='timeout', type=int, default=10, help="timeout to declare host not available")
-    parser_status.set_defaults(func=_status)
+    parser_newest_snapshot = subparsers.add_parser('newest_snapshot', help='output json object giving newest snapshot on each available host')
+    parser_newest_snapshot.add_argument("project_id", help="project id", type=str)
+    parser_newest_snapshot.add_argument("--timeout", dest='timeout', type=int, default=10, help="timeout to declare host not available")
+    parser_newest_snapshot.set_defaults(func=_newest_snapshot)
 
     def _usage(args):
         print_json({'project_id':args.project_id, 'usage':usage(args.project_id)})
