@@ -47,6 +47,16 @@ class MultiHashRing(object):
     def __call__(self, key):
         return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
 
+    def locations(self, key):
+        return sum(self.partitioned_locations(), [])
+
+    def partitioned_locations(self, key):
+        return [r.range(key, self._rep_factor) for (dc,r) in self.rings]
+
+    def locations_by_dc(self, key):
+        return dict(self(key))
+
+
 _multi_hash_ring = None
 def multi_hash_ring():
     global _multi_hash_ring
@@ -242,7 +252,7 @@ def _newest_snapshot(project_id, host=''):
 def mp_newest_snapshot(x):
     return (x[1], _newest_snapshot(x[0],x[1]))
 
-def newest_snapshot(project_id, hosts=None, timeout=10):
+def newest_snapshot(project_id, hosts=None, timeout=20):
     """
     Return most recent snapshot or empty string if none.
 
@@ -317,6 +327,7 @@ def mp_get_other_snapshot_cache_files(host):
 def get_other_snapshot_cache_files():
     hosts = other_hosts()
     pool  = Pool(processes=len(hosts))
+    log.info("Copying all other snapshot cache files to this host.")
     pool.map(mp_get_other_snapshot_cache_files, hosts)
 
 def all_hosts():
@@ -325,10 +336,8 @@ def all_hosts():
 def update_all_snapshot_caches():
     hosts = all_hosts()
     pool  = Pool(processes=len(hosts))
-    log.info("Updating all snapshot caches on all nodes.  This should take around 5-10 minutes.")
+    log.info("Updating all snapshot caches on all nodes.  This could take up to about 5-10 minutes.")
     pool.map(update_snapshot_cache, hosts)
-
-
 
 def other_hosts():
     v = list(all_hosts())
@@ -337,6 +346,87 @@ def other_hosts():
 
 def snapshot_cache(host=None):
     return json.loads(open(snapshot_cache_file(host)).read())
+
+def global_newest_snapshots_cache():
+    hosts     = all_hosts()
+    c = {}
+    for host in all_hosts():
+        for project_id, snapshots in snapshot_cache(host).iteritems():
+            if project_id not in c:
+                c[project_id] = {}
+            c[project_id][host] = snapshots[-1] if len(snapshots) > 0 else ''
+    return c
+
+def work_to_sync(send=True, destroy=False):
+    """
+    Use the snapshot cache files to determine all work needed to bring the cluster into sync.
+
+    # How to get the number of snaps that need to be sent to a given host.
+    w = storage.work_to_sync()
+    z = [(h,len([x for x in w if x['dest'] ==h])) for h in storage.all_hosts()]
+    """
+    hashring  = multi_hash_ring()
+    work      = []
+    cache     = global_newest_snapshots_cache()
+    n = len(cache)
+    i = 0
+    for project_id, newest in cache.iteritems():
+        i += 1
+        if i%250 == 0:
+            log.info("computing sync work: %s/%s", i, n)
+        newest_snap = ''
+        best_host = ''
+        plocs = hashring.partitioned_locations(project_id)  # partitioned by data center
+        locs  = sum(plocs, [])
+        dests = []  # these will all need to be updated
+        for host, snap in newest.iteritems():
+            if destroy and host not in locs:
+                work.append({'action':'destroy', 'project_id':project_id, 'host':host})
+            if host in locs:
+                locs.remove(host)
+            if snap > newest_snap:
+                if newest_snap and best_host in locs:
+                    dests.append((best_host,newest_snap))
+                best_host   = host
+                newest_snap = snap
+        for host in locs:
+            dests.append((host,''))
+        if dests and send:
+            for dest, snap in dests:
+                work.append({'action':'send', 'project_id':project_id, 'src':best_host, 'dest':dest, 'snap_src':newest_snap, 'snap_dest':snap})
+    return work
+
+def _do_sync_work_helper(x):
+    log.info("doing sync work: %s", x)
+    if x['action'] == 'send':
+        send_one(project_id=x['project_id'], dest=x['dest'], force=True, snap_src=x['snap_src'], snap_dest=x['snap_dest'])
+    else:
+        raise RuntimeError("work action %s not implemented yet"%x['action'])
+
+    return x
+
+def do_sync_work(work, pool_size=5):
+    ip = ip_address()
+    work = [x for x in work if x['src'] == ip]
+    pool = Pool(processes=pool_size)
+    n = len(work)
+    i = 0
+    x = pool.imap(_do_sync_work_helper, work)
+    while True:
+        try:
+            i += 1
+            a = x.next()
+            log.debug("do_sync_work -- (%s/%s): finished %s", i, n, a)
+        except StopIteration:
+            return
+
+
+
+
+
+
+
+
 
 
 def ip_address(dest='10.1.1.1'):
@@ -349,7 +439,7 @@ def ip_address(dest='10.1.1.1'):
 
 # idea for how to send un-encrypted: http://alblue.bandlem.com/2010/11/moving-data-from-one-zfs-pool-to.html
 
-def send_one(project_id, dest, force=True):
+def send_one(project_id, dest, force=True, snap_src=None, snap_dest=None):
     log.info("sending %s to %s", project_id, dest)
 
     if ip_address(dest) == dest:
@@ -362,12 +452,17 @@ def send_one(project_id, dest, force=True):
         force = ''
 
     dataset = dataset_name(project_id)
-    snap_src  = dataset + '@' + newest_snapshot(args.project_id)
+    if snap_src is None:
+        snap_src  = newest_snapshot(args.project_id)
+    if snap_src and '@' not in snap_src:
+        snap_src = dataset + '@' + snap_src
     if not snap_src:
         log.warning("send: no local snapshot for '%s'"%project_id)
         return
-
-    snap_dest = dataset + '@' + newest_snapshot(project_id, dest)
+    if snap_dest is None:
+        snap_dest = newest_snapshot(project_id, dest)
+    if snap_dest and '@' not in snap_dest:
+        snap_dest = dataset + '@' + snap_dest
     log.debug("src: %s, dest: %s", snap_src, snap_dest)
 
     if snap_src == snap_dest:
@@ -395,11 +490,11 @@ def send_one(project_id, dest, force=True):
 
 def mp_send_multi_helper(x):
     tmp, dest, force, dataset = x
-    log.info("sending to %s", dest)
     ## see comment about streams above
     ## cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
     c = "scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
           tmp, dest, tmp, dest, tmp, force, dataset, tmp)
+    log.info("sending to %s", dest)
     cmd(c)
 
 def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
@@ -425,7 +520,7 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
     log.debug("src: %s, dest: %s", snap_src, snap_destinations)
 
     for s in set(snap_destinations.itervalues()):
-        snap_dest = dataset + '@' + s
+        snap_dest = dataset + '@' + s if s else ''
         _send_multi(project_id, [dest for dest in snap_destinations if snap_destinations[dest] == s],
                     snap_src, snap_dest, timeout, force)
 
@@ -454,7 +549,6 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
             if ip_address(dest) == dest:
                 log.info("send to self: nothing to do")
             else:
-                log.info("sending to %s", dest)
                 work.append((tmp, dest, force, dataset))
         if len(work) > 0:
             pool = Pool(processes=len(work))
@@ -516,7 +610,7 @@ def replicate_many(project_ids, pool_size=1):
                 project_id = project_ids.pop()
                 try:
                     i += 1
-                    log.info("REPLICATE (%s/%s):", i+1, n)
+                    log.info("REPLICATE (%s/%s):", i, n)
                     if pool_size > 1:
                         pid = os.fork()
                         if pid:
@@ -738,9 +832,14 @@ if __name__ == "__main__":
     parser_snapshots.set_defaults(func=_snapshots)
 
     def _update_snapshot_cache(args):
-        update_snapshot_cache()
-    parser_snapshots = subparsers.add_parser('update_snapshot_cache', help='regenerate the file ~/cache/snapshots-ip_address.json (on unloaded system, takes about 15 seconds per 1000 projects)')
-    parser_snapshots.set_defaults(func=_update_snapshot_cache)
+        if args.all:
+            update_all_snapshot_caches()
+            get_other_snapshot_cache_files()
+        else:
+            update_snapshot_cache()
+    parser_snapshots_cache = subparsers.add_parser('update_snapshot_cache', help='regenerate the file ~/cache/snapshots-ip_address.json (on unloaded system, takes about 5 seconds per 1000 projects)')
+    parser_snapshots_cache.add_argument("--all", help="update snapshot caches on every node in the cluster and copy the caches back to this host (doesn't copy them to every host)", default=False, action="store_const", const=True)
+    parser_snapshots_cache.set_defaults(func=_update_snapshot_cache)
 
 
     def _status(args):
