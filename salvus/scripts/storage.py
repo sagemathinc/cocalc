@@ -288,7 +288,10 @@ def snapshot_cache_file(host=None):
         host = ip_address()
     return os.path.abspath(os.path.join(CACHE_PATH, 'snapshots-%s.json'%host))
 
-def update_snapshot_cache():
+def update_snapshot_cache(host=None):
+    if host is not None:
+        cmd("ssh %s './storage.py update_snapshot_cache'"%host)
+        return
     cache = snapshot_cache_file()
     t = time.time()
     log.info("Updating the snapshot cache %s...", cache)
@@ -306,6 +309,31 @@ def update_snapshot_cache():
     j = json.dumps(snapshots)
     open(cache,'w').write(j)
     log.info("Finished parsing and saving snapshot cache (%s seconds)", time.time()-t)
+
+def mp_get_other_snapshot_cache_files(host):
+    name = snapshot_cache_file(host)
+    cmd("scp %s:%s %s"%(host, name, name))
+
+def get_other_snapshot_cache_files():
+    hosts = other_hosts()
+    pool  = Pool(processes=len(hosts))
+    pool.map(mp_get_other_snapshot_cache_files, hosts)
+
+def all_hosts():
+    return sum([r[1].nodes for r in multi_hash_ring().rings],[])
+
+def update_all_snapshot_caches():
+    hosts = all_hosts()
+    pool  = Pool(processes=len(hosts))
+    log.info("Updating all snapshot caches on all nodes.  This should take around 5-10 minutes.")
+    pool.map(update_snapshot_cache, hosts)
+
+
+
+def other_hosts():
+    v = list(all_hosts())
+    v.remove(ip_address())
+    return v
 
 def snapshot_cache(host=None):
     return json.loads(open(snapshot_cache_file(host)).read())
