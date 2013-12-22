@@ -270,6 +270,11 @@ def newest_snapshot(project_id, hosts=None, timeout=10):
             break
         except StopIteration:
             break
+        except RuntimeError, mesg:
+            log.info("RuntimeError connecting to destination -- %s", mesg)
+            # usually due to not being able to ssh, e.g., host down, so just
+            # don't include in the result.
+            pass
 
     return dict(result)
 
@@ -310,15 +315,32 @@ def send_one(project_id, dest, force=True):
         return
 
     t = time.time()
-    c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(
-                                  '-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
-    cmd(c)
-    log.info("done (time=%s seconds)", time.time()-t)
+
+    # Doing it in one go is very tempting.  However, it means that the zfs recv *locks* waiting
+    # on the network to behave well, which is a recipe for disaster.  This was the code for that.
+    #c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(
+    #                              '-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
+
+    tmp = '/tmp/.storage-%s-%s.gz'%(project_id, uuid4())
+    try:
+        c = "sudo zfs send -RD %s %s %s | gzip > %s && scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
+               '-i' if snap_dest else '', snap_dest, snap_src, tmp,   tmp, dest, tmp, dest, tmp, force, dataset, tmp)
+        cmd(c)
+        log.info("done (time=%s seconds)", time.time()-t)
+    finally:
+        try:
+            os.unlink(tmp)
+        except:
+            pass
 
 def mp_send_multi_helper(x):
     tmp, dest, force, dataset = x
     log.info("sending to %s", dest)
-    cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
+    ## see comment about streams above
+    ## cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
+    c = "scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
+          tmp, dest, tmp, dest, tmp, force, dataset, tmp)
+    cmd(c)
 
 def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
     """
@@ -355,9 +377,7 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
     dataset = dataset_name(project_id)
     t = time.time()
 
-    tmp = '/tmp/.storage-%s.gz'%project_id
-    if os.path.exists(tmp):
-        raise RuntimeError("project %s appears to already be being replicated; delete %s to clear lock", project_id, tmp)
+    tmp = '/tmp/.storage-%s-%s.gz'%(project_id, uuid4())
 
     if force:
         force = "-F"
@@ -424,7 +444,8 @@ def replicate(project_id, snap_src=None):
     log.info("replicating %s out to %s", project_id, destinations)
     send_multi(project_id, destinations, snap_src=snap_src)
 
-def replicate_many(project_ids, pool_size=10):
+def replicate_many(project_ids, pool_size=1):
+    # NOTE pool_size > 1 seems to not work due to multiprocessing misery.
     pids = {}
     random.shuffle(project_ids)
     i = 0; n = len(project_ids)
@@ -436,24 +457,32 @@ def replicate_many(project_ids, pool_size=10):
                 try:
                     i += 1
                     log.info("REPLICATE (%s/%s):", i+1, n)
-                    pid = os.fork()
-                    if pid:
-                        log.debug("FORKED %s to handle %s"%(pid, project_id))
-                        pids[pid] = project_id
+                    if pool_size > 1:
+                        pid = os.fork()
+                        if pid:
+                            log.debug("FORKED %s to handle %s"%(pid, project_id))
+                            pids[pid] = project_id
+                        else:
+                            # child
+                            try:
+                                replicate(project_id = project_id)
+                            except Exception, mesg:
+                                # make errors non-fatal; due to network issues usually; try again later.
+                                log.warning("Failed to replicate '%s' -- %s"%(project_id, str(mesg)))
+                            return
                     else:
-                        # child
                         try:
                             replicate(project_id = project_id)
                         except Exception, mesg:
                             # make errors non-fatal; due to network issues usually; try again later.
                             log.warning("Failed to replicate '%s' -- %s"%(project_id, str(mesg)))
-                        return
                 except OSError, mesg:
                     log.warning("ERROR: forking to handle %s failed -- %s"%(project_id, mesg))
             if pids:
                 log.debug("checking on %s", pids)
                 for pid in dict(pids):
                     if os.waitpid(pid, os.WNOHANG) != (0,0):
+                        log.debug("%s finished", pid)
                         del pids[pid]
             time.sleep(1)
     finally:
@@ -610,7 +639,7 @@ def replicate_active_watcher(min_time_s=60, active_path='/home/storage/active'):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="ZFS based project storage")
-    parser.add_argument("--loglevel", dest='loglevel', type=str, default='DEBUG',
+    parser.add_argument("--loglevel", dest='loglevel', type=str, default='INFO',
                            help="log level: useful options include INFO, WARNING and DEBUG")
     parser.add_argument("--logfile", dest="logfile", type=str, default='',
                         help="store log in this file (default: '' = don't log to a file)")
@@ -694,7 +723,7 @@ if __name__ == "__main__":
 
     parser_replicate = subparsers.add_parser('replicate', help='replicate project out from here to all its replicas, as defined using consistent hashing')
     parser_replicate.add_argument("project_id", help="project id", type=str, nargs="*")
-    parser_replicate.add_argument("--pool_size", dest='pool_size', type=int, default=3, help="number of projects to replicate out at once (note that each individual replication is also in parallel)")
+    parser_replicate.add_argument("--pool_size", dest='pool_size', type=int, default=1, help="number of projects to replicate out at once (this doesn't work very well due to multiprocessing misery!!)")
     parser_replicate.add_argument("--all", help="replicate all locally stored projects", default=False, action="store_const", const=True)
 
     parser_replicate.set_defaults(func=_replicate)
