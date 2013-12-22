@@ -163,6 +163,27 @@ def mount(project_id):
 def umount(project_id):
     cmd('sudo zfs set mountpoint=none %s'%dataset_name(project_id))
 
+def quota(project_id, new_quota=''):
+    locs    = locations(project_id)
+    dataset = dataset_name(project_id)
+    if new_quota:
+        Pool(processes=len(locs)).map(cmd, ["ssh %s 'sudo zfs set quota=%s %s'"%(host, new_quota, dataset) for host in locs])
+        return new_quota
+    else:
+        try:
+            out = cmd('sudo zfs get quota %s'%dataset)
+        except RuntimeError:
+            out = None
+            for host in locs:
+                try:
+                    out = cmd("ssh %s 'sudo zfs get quota %s'"%(host, dataset))
+                    break
+                except:
+                    pass
+            if out is None:
+                raise RuntimeError("unable to determine quota of %s"%project_id)
+        return out.splitlines()[1].split()[2]
+
 def create_dataset(project_id):
     """
     Create the dataset the contains the given project data.   It is safe to
@@ -945,15 +966,23 @@ if __name__ == "__main__":
 
     def _mount(args):
         mount(args.project_id)
-    parser_usage = subparsers.add_parser('mount', help='mount the filesystem')
-    parser_usage.add_argument("project_id", help="project id", type=str)
-    parser_usage.set_defaults(func=_mount)
+    parser_mount = subparsers.add_parser('mount', help='mount the filesystem')
+    parser_mount.add_argument("project_id", help="project id", type=str)
+    parser_mount.set_defaults(func=_mount)
 
     def _umount(args):
         umount(args.project_id)
-    parser_usage = subparsers.add_parser('umount', help='unmount the filesystem')
-    parser_usage.add_argument("project_id", help="project id", type=str)
-    parser_usage.set_defaults(func=_umount)
+    parser_umount = subparsers.add_parser('umount', help='unmount the filesystem')
+    parser_umount.add_argument("project_id", help="project id", type=str)
+    parser_umount.set_defaults(func=_umount)
+
+    def _quota(args):
+        q = quota(project_id=args.project_id, new_quota=args.new_quota)
+        print_json({'project_id':args.project_id, 'quota':q})
+    parser_quota = subparsers.add_parser('quota', help='get or set the quota for a project')
+    parser_quota.add_argument("project_id", help="project id", type=str)
+    parser_quota.add_argument("--set", dest='new_quota', type=str, default='', help="if given set the quota to this value (e.g., 10G)")
+    parser_quota.set_defaults(func=_quota)
 
     def _send(args):
         if len(args.dest) == 1:
