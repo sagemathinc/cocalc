@@ -127,7 +127,7 @@ def migrate_project_to_storage(src, new_only):
     # chown with snapdir visible doesn't work; can cause other problems too.
     cmd("sudo zfs set snapdir=hidden %s"%dataset)
     # chown use numeric id, since username=projectid assigned twice in some cases during transition (for new projects)
-    cmd("chown %s:%s -R /%s"%(id, id, projectid, home))
+    cmd("chown %s:%s -R %s"%(id, id, home))
 
     snapshot(project_id)
     cmd("sudo zfs list %s"%dataset)
@@ -211,8 +211,9 @@ def list_snapshots(project_id, host=''):
             # project isn't available here
             return []
         raise # something else went wrong
-    v = v.strip().split()
-    v = [x for x in v if "Warning" not in x]  # eliminate any ssh key warnings.
+    v = v.strip().splitlines()
+    n = len(dataset_name(project_id))
+    v = [x[n+1:] for x in v if "Warning" not in x and x.startswith('projects/')]  # eliminate any ssh key warnings.
     v.sort()
     return v
 
@@ -295,19 +296,19 @@ def send_one(project_id, dest, force=True):
     else:
         force = ''
 
-    snap_src  = newest_snapshot(args.project_id)
+    dataset = dataset_name(project_id)
+    snap_src  = dataset + '@' + newest_snapshot(args.project_id)
     if not snap_src:
         log.warning("send: no local snapshot for '%s'"%project_id)
         return
 
-    snap_dest = newest_snapshot(project_id, dest)
+    snap_dest = dataset + '@' + newest_snapshot(project_id, dest)
     log.debug("src: %s, dest: %s", snap_src, snap_dest)
 
     if snap_src == snap_dest:
         log.info("send %s -- already up to date", project_id)
         return
 
-    dataset = dataset_name(project_id)
     t = time.time()
     c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(
                                   '-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
@@ -328,8 +329,10 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
     """
     log.info("sending %s to %s", project_id, destinations)
 
+    dataset = dataset_name(project_id)
+
     if snap_src is None:
-        snap_src  = newest_snapshot(project_id)
+        snap_src  = dataset + '@' + newest_snapshot(project_id)
 
     if not snap_src:
         log.warning("send: no local snapshot for '%s'"%project_id)
@@ -339,8 +342,9 @@ def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
 
     log.debug("src: %s, dest: %s", snap_src, snap_destinations)
 
-    for snap_dest in set(snap_destinations.itervalues()):
-        _send_multi(project_id, [dest for dest in snap_destinations if snap_destinations[dest] == snap_dest],
+    for s in set(snap_destinations.itervalues()):
+        snap_dest = dataset + '@' + s
+        _send_multi(project_id, [dest for dest in snap_destinations if snap_destinations[dest] == s],
                     snap_src, snap_dest, timeout, force)
 
 def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
@@ -442,10 +446,10 @@ def replicate_many(project_ids, pool_size=10):
                             replicate(project_id = project_id)
                         except Exception, mesg:
                             # make errors non-fatal; due to network issues usually; try again later.
-                            log.warning("Failed to replicate '%s' -- %s", project_id, str(mesg))
+                            log.warning("Failed to replicate '%s' -- %s"%(project_id, str(mesg)))
                         return
                 except OSError, mesg:
-                    log.warning("ERROR: forking to handle %s failed -- %s", project_id, mesg)
+                    log.warning("ERROR: forking to handle %s failed -- %s"%(project_id, mesg))
             if pids:
                 log.debug("checking on %s", pids)
                 for pid in dict(pids):
