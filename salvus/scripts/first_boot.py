@@ -49,6 +49,6 @@ if os.path.exists('/projects') or os.path.exists('/mnt/home/'):
 
 else:
 
-    # not a compute node, so no need for the storage account, which provides some potentially dangerous ssh cred's
+    # not a compute node, so no need for the storage account, which provides some ssh equivalence
     os.system('rm -rf /home/storage/')
 
