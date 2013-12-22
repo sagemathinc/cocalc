@@ -79,6 +79,9 @@ def conf():
     if os.path.exists("/mnt/conf/post"):
         cmd("/mnt/conf/post")
 
+    cmd("chmod og-rwx /home/salvus/.ssh/id_rsa")
+    cmd("chmod og-rwx /home/storage/.ssh/id_rsa")
+
 if __name__ == "__main__":
     if mount_conf():
         conf()
