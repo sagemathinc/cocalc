@@ -48,7 +48,7 @@ class MultiHashRing(object):
         return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
 
     def locations(self, key):
-        return sum(self.partitioned_locations(), [])
+        return sum(self.partitioned_locations(key), [])
 
     def partitioned_locations(self, key):
         return [r.range(key, self._rep_factor) for (dc,r) in self.rings]
@@ -427,24 +427,39 @@ def work_to_sync(send=True, destroy=False):
             log.info("computing sync work: %s/%s", i, n)
         newest_snap = ''
         best_host = ''
-        plocs = hashring.partitioned_locations(project_id)  # partitioned by data center
-        locs  = sum(plocs, [])
-        dests = []  # these will all need to be updated
-        for host, snap in newest.iteritems():
-            if destroy and host not in locs:
-                work.append({'action':'destroy', 'project_id':project_id, 'host':host})
-            if host in locs:
-                locs.remove(host)
-            if snap > newest_snap:
-                if newest_snap and best_host in locs:
-                    dests.append((best_host,newest_snap))
-                best_host   = host
-                newest_snap = snap
-        for host in locs:
-            dests.append((host,''))
-        if dests and send:
-            for dest, snap in dests:
+
+        # first figure out what the globally newest known snapshot is
+        newest_snap = max([snap for _,snap in newest.iteritems()])
+
+
+        # make a list of (host, base_snap) pairs that definitely need to be updated
+        stale_hosts = [(host, newest[host]) for host, snap in newest.iteritems() if snap < newest_snap]
+
+        # add to the list each host (as determined by consistent hashing) with no snapshot at all
+        for host in hashring.locations(project_id):
+            if host not in newest:   # newest is a dictionary from hosts that *have* the project to their version (newest snapshot)
+                stale_hosts.append((host,''))
+
+        # hosts whose data is up to date
+        update2date_hosts = [host for host, snap in newest.iteritems() if snap == newest_snap]
+
+        # TODO
+        best_host = update2date_hosts[0]
+
+        # Now make the actual work items.
+        if send:
+            for dest, snap in stale_hosts:
                 work.append({'action':'send', 'project_id':project_id, 'src':best_host, 'dest':dest, 'snap_src':newest_snap, 'snap_dest':snap})
+
+        if destroy and len(stale_hosts) == 0:
+            # Never put in any destroy work items if the project hasn't been fully replicated out first,
+            # since the actual work is run in parallel, not nec. in order!  The destroys will have to happen
+            # in a later pass.
+            locs = set(hashring.locations(project_id))
+            for h in newest:
+                if h not in locs:
+                    work.append({'action':'destroy', 'project_id':project_id,  'src':h})
+
     return work
 
 def _do_sync_work_helper(x):
@@ -456,9 +471,10 @@ def _do_sync_work_helper(x):
 
     return x
 
-def do_sync_work(work, pool_size=5):
+def do_local_sync_work(work=None, pool_size=5):
     ip = ip_address()
     work = [x for x in work if x['src'] == ip]
+    log.info("local work: %s operations", len(work))
     pool = Pool(processes=pool_size)
     n = len(work)
     i = 0
@@ -471,12 +487,13 @@ def do_sync_work(work, pool_size=5):
         except StopIteration:
             return
 
-
-
-
-
-
-
+def repair(pool_size=5, update_cache=True):
+    log.info("initiated repair")
+    if update_cache:
+        update_all_snapshot_caches()
+        get_other_snapshot_cache_files()
+    work = work_to_sync()
+    do_local_sync_work(work, pool_size=pool_size)
 
 
 
@@ -642,7 +659,7 @@ def all_local_project_ids():
 def locations(project_id):
     assert isinstance(project_id, str)
     ring = multi_hash_ring()
-    return sum([d[1] for d in ring(project_id)], [])
+    return ring.locations(project_id)
 
 def replicate(project_id, snap_src=None):
     destinations = locations(project_id)
@@ -902,15 +919,22 @@ if __name__ == "__main__":
     parser_snapshots_cache.add_argument("--all", help="update snapshot caches on every node in the cluster and copy the caches back to this host (doesn't copy them to every host)", default=False, action="store_const", const=True)
     parser_snapshots_cache.set_defaults(func=_update_snapshot_cache)
 
+    def _repair(args):
+        repair(pool_size = args.pool_size, update_cache=not args.no_cache_update)
+    parser_repair = subparsers.add_parser('repair', help='Push out any projects that needs to be pushed out (from here, to at least one node in each data center), and if safe, also deletes projects that no longer need to be here.  Run this one at a time on each machine. ')
+    parser_repair.add_argument("--pool_size", dest='pool_size', type=int, default=6, help="number of projects to simultaneously replicate; this has a major impact on the load repair puts on a machine; (default: 6)")
+    parser_repair.add_argument("--no_cache_update", help="do not update the cache", default=False, action="store_const", const=True)
 
-    def _newest_snapshot(args):
+    parser_repair.set_defaults(func=_repair)
+
+    def _newest_snapshot0(args):
         v = newest_snapshot(project_id=args.project_id, hosts=locations(args.project_id), timeout=args.timeout)
         print_json({'project_id':args.project_id, 'newest_snapshots':v})
 
     parser_newest_snapshot = subparsers.add_parser('newest_snapshot', help='output json object giving newest snapshot on each available host')
     parser_newest_snapshot.add_argument("project_id", help="project id", type=str)
     parser_newest_snapshot.add_argument("--timeout", dest='timeout', type=int, default=10, help="timeout to declare host not available")
-    parser_newest_snapshot.set_defaults(func=_newest_snapshot)
+    parser_newest_snapshot.set_defaults(func=_newest_snapshot0)
 
     def _usage(args):
         print_json({'project_id':args.project_id, 'usage':usage(args.project_id)})
