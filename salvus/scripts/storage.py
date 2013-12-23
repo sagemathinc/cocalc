@@ -478,8 +478,7 @@ def work_to_sync(send=True, destroy=False):
 
     for project_id, newest in cache.iteritems():
         i += 1
-        if i%1000 == 0:
-            log.info("computing sync work: %s/%s", i, n)
+
         newest_snap = ''
         best_host = ''
 
@@ -524,7 +523,8 @@ def work_to_sync(send=True, destroy=False):
 def _do_sync_work_helper(x):
     log.info("doing sync work: %s", x)
     if x['action'] == 'send':
-        send_one(project_id=x['project_id'], dest=x['dest'], force=True, snap_src=x['snap_src'], snap_dest=x['snap_dest'])
+        send_one(project_id=x['project_id'], dest=x['dest'], force=True,
+                 snap_src=x['snap_src'], snap_dest=x['snap_dest'], extra=x['extra'])
     else:
         raise RuntimeError("work action %s not implemented yet"%x['action'])
 
@@ -536,6 +536,12 @@ def do_local_sync_work(work=None, pool_size=5):
     log.info("local work: %s operations", len(work))
     pool = Pool(processes=pool_size)
     n = len(work)
+
+    i = 1
+    for w in work:
+        w['extra'] = '-%sof%s-'%(i,n)
+        i += 1
+
     i = 0
     x = pool.imap(_do_sync_work_helper, work)
     while True:
@@ -566,7 +572,12 @@ def ip_address(dest='10.1.1.1'):
 
 # idea for how to send un-encrypted: http://alblue.bandlem.com/2010/11/moving-data-from-one-zfs-pool-to.html
 
-def send_one(project_id, dest, force=True, snap_src=None, snap_dest=None):
+def send_one(project_id, dest, force=True, snap_src=None, snap_dest=None, extra=''):
+    """
+
+    ...
+       - extra -- put in the filename, since it can be useful for monitoring.
+    """
     log.info("sending %s to %s", project_id, dest)
 
     if ip_address(dest) == dest:
@@ -968,7 +979,10 @@ if __name__ == "__main__":
 
     def _update_snapshot_cache(args):
         if args.all:
-            update_all_snapshot_caches()
+            try:
+                update_all_snapshot_caches()
+            except:
+                pass
             get_other_snapshot_cache_files()
         else:
             update_snapshot_cache()
