@@ -633,7 +633,7 @@ def mp_send_multi_helper(x):
     log.info("sending to %s", dest)
     cmd(c)
 
-def send_multi(project_id, destinations, force=True, snap_src=None, timeout=10):
+def send_multi(project_id, destinations, force=True, snap_src=None, timeout=60):
     """
     Send to multiple destinations
 
@@ -666,7 +666,7 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
         return
 
     dataset = dataset_name(project_id)
-    t = time.time()
+    t0 = time.time()
 
     tmp = '/tmp/.storage-%s-%s'%(project_id, uuid4())
 
@@ -692,11 +692,12 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
             start = time.time()
             while True:
                 try:
-                    t = timeout - (start-time.time())
+                    elapsed_time = time.time() - start
+                    t = timeout - elapsed_time
                     if t > 0:
-                        x.next(timeout = send_timeout - t)
+                        x.next(timeout = t)
                     else:
-                        raise TimeoutError
+                        raise TimeoutError("ran out of time before next fetch")
                 except TimeoutError, mesg:
                     log.info("timed out connecting to some destination -- %s", mesg)
                     pool.terminate()
@@ -708,7 +709,7 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
             os.unlink(tmp)
         except:
             pass
-    log.info("done (time=%s seconds)", time.time()-t)
+    log.info("done (time=%s seconds)", time.time()-t0)
 
 def all_local_project_ids():
     """
@@ -1004,7 +1005,7 @@ if __name__ == "__main__":
 
     parser_newest_snapshot = subparsers.add_parser('newest_snapshot', help='output json object giving newest snapshot on each available host')
     parser_newest_snapshot.add_argument("project_id", help="project id", type=str)
-    parser_newest_snapshot.add_argument("--timeout", dest='timeout', type=int, default=10, help="timeout to declare host not available")
+    parser_newest_snapshot.add_argument("--timeout", dest='timeout', type=int, default=60, help="timeout to declare host not available")
     parser_newest_snapshot.set_defaults(func=_newest_snapshot0)
 
     def _usage(args):
