@@ -360,7 +360,7 @@ NODE_MODULES = [
     'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
     'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'googlediff', 'formidable@latest',
-    'moment', 'underscore', 'read'
+    'moment', 'underscore', 'read', 'hashring'
     ]
 
 PYTHON_PACKAGES = [

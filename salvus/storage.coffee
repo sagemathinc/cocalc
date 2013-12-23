@@ -7,6 +7,7 @@
 #################################################################
 
 winston   = require 'winston'
+HashRing  = require 'hashring'
 fs        = require 'fs'
 cassandra = require 'cassandra'
 async     = require 'async'
@@ -62,6 +63,10 @@ execute_on = (opts) ->
             winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
             opts.cb?(err, output)
 
+###
+# Snapshotting
+###
+
 # Make a snapshot of a given project on a given host and record
 # this in the database.
 exports.snapshot = (opts) ->
@@ -99,10 +104,6 @@ exports.snapshot = (opts) ->
                 project_id : opts.project_id
                 cb         : cb
     ], (err) -> opts.cb?(err))
-
-# Destroy snapshot of a given project on all hosts that have that snapshot,
-# according to the database.  Updates the database to reflect success,
-# when successful.
 
 exports.get_snapshots = get_snapshots = (opts) ->
     opts = defaults opts,
@@ -231,10 +232,13 @@ project_needs_replication = (opts) ->
     # TODO: not sure if I'm going to do anything with this...
     opts.cb?()
 
+
+# Destroy snapshot of a given project on one or all hosts that have that snapshot,
+# according to the database.  Updates the database to reflect success.
 exports.destroy_snapshot = destroy_snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
-        name       : required      # typically 'timestamp[-tag]' but could be anything...
+        name       : required      # typically 'timestamp[-tag]' but could be anything... BUT DON'T!
         host       : undefined     # if not given, attempts to delete snapshot on all hosts
         cb         : undefined
 
@@ -276,6 +280,74 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
                 remove     : true
                 cb         : cb
     ], (err) -> opts.cb?(err))
+
+
+###
+# Replication
+###
+
+hashrings = undefined
+topology = undefined
+exports.init_hashrings = init_hashrings = (cb) ->
+    database.select
+        table   : 'storage_topology'
+        columns : ['data_center', 'host', 'vnodes']
+        cb      : (err, results) ->
+            if err
+                cb(err); return
+            topology = {}
+            for r in results
+                datacenter = r[0]; host = r[1]; vnodes = r[2]
+                if not topology[datacenter]?
+                    topology[datacenter] = {}
+                topology[datacenter][host] = {vnodes:vnodes}
+            winston.debug(misc.to_json(topology))
+            hashrings = {}
+            for dc, obj of topology
+                hashrings[dc] = new HashRing(obj)
+            cb?()
+
+
+exports.locations = locations = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        number     : 4         # number per data center to return
+        cb         : undefined
+
+# Replicate = attempt to make it so that the newest snapshot of the project
+# is available on all copies of the filesystem.
+# This code right now assumes all snapshots are of the form "timestamp[-tag]".
+exports.replicate = replicate = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : undefined
+
+    snaps = undefined
+    goal = undefined
+    locs = locations(project_id:opts.project_id)
+    async.series([
+        (cb) ->
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                    if err
+                        cb(err)
+                    else
+                        snaps = ([s[0], h] for h, s of snapshots)
+                        snaps.sort()
+                        goal = snaps[snaps.length-1][0]
+                        cb()
+       (cb) ->
+            if not goal? or not snap?
+                cb("goal or snap didn't get defined")
+                return
+
+    ], (err) -> opts.cb?(err))
+
+
+
+
+
 
 
 

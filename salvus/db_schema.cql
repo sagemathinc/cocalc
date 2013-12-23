@@ -507,9 +507,12 @@ CREATE TABLE file_access_log (
 
 
 
-
-
-
+CREATE TABLE storage_topology (
+    data_center  varchar,
+    host         varchar,
+    vnodes       int,
+    PRIMARY KEY (data_center, host)
+);
 
 
 

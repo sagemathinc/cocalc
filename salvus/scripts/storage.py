@@ -55,6 +55,7 @@ class MultiHashRing(object):
         data = {}
         for x in v:
             ip, vnodes, datacenter = x.split()
+            print "UPDATE storage_topology set vnodes=%s where data_center='%s' and host='%s';"%(vnodes, datacenter, ip)
             vnodes = int(vnodes)
             if datacenter not in data:
                 data[datacenter] = {}
