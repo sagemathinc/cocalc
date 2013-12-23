@@ -254,7 +254,9 @@ CREATE TABLE projects (
      last_edited      timestamp,// timestamp of last modification of the project
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
-     replicas         map<text, timestamp>, //  {ip_address:last_replicated_snapshot} -- 
+
+     storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
+
      quota            varchar,  // JSON
 
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
