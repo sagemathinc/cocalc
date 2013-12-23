@@ -368,7 +368,7 @@ exports.replicate = replicate = (opts) ->
                 # choose newest in the datacenter -- this one is easiest to get up to date
                 dest = d[0]
                 for i in [1...d.length]
-                    if d[i].version > dest[i].version
+                    if d[i].version > dest.version
                         dest = d[i]
                 send
                     project_id : opts.project_id
@@ -389,8 +389,14 @@ exports.send = send = (opts) ->
         force      : true
         cb         : undefined
 
+    if opts.source.version == opts.dest.version
+        # trivial special case
+        opts.cb()
+        return
+
     tmp = "/home/storage/.storage-#{opts.project_id}-src-#{opts.source.host}-#{opts.source.version}-dest-#{opts.dest.host}-#{opts.dest.version}"
     f = filesystem(opts.project_id)
+    clean_up = false
     async.series([
         (cb) ->
             # check for already-there dump file
@@ -410,11 +416,14 @@ exports.send = send = (opts) ->
         (cb) ->
             # dump range of snapshots
             start = if opts.dest.version then "-i #{f}@#{opts.dest.version}" else ""
+            clean_up = true
             execute_on
                 host    : opts.source.host
                 command : "sudo zfs send -RD #{start} #{f}@#{opts.source.version} | lz4c -  > #{tmp}"
                 cb      : (err, output) ->
                     winston.debug(output)
+                    if output.stderr
+                        err = output.stderr
                     cb(err)
         (cb) ->
             # scp to destination
@@ -432,14 +441,27 @@ exports.send = send = (opts) ->
                 command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}; rm #{tmp}"
                 cb      : (err, output) ->
                     winston.debug(output)
+                    if output.stderr
+                        err = output.stderr
                     cb(err)
+        (cb) ->
+            # update database to reflect the new list of snapshots resulting from this recv
+            # We use repair_snapshots to guarantee that this is correct.
+            repair_snapshots
+                project_id : opts.project_id
+                host       : opts.dest.host
+                cb         : cb
     ], (err) ->
         # remove the lock file
-        execute_on
-            host    : opts.source.host
-            command : "rm #{tmp}"
-            cb      : (err) ->
-                opts.cb?(err)
+        if clean_up
+            execute_on
+                host    : opts.source.host
+                command : "rm #{tmp}"
+                cb      : (ignored) ->
+                    opts.cb?(err)
+        else
+            # no need to clean up -- bailing due to another process lock
+            opts.cb?(err)
     )
 
 
