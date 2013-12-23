@@ -15,7 +15,19 @@ from hashring import HashRing
 # and we're using scp.  Plus tinc is single threaded.
 # Hmm: lz4 is massively faster than everything else, and would be perfect for this, according to
 #   http://pokecraft.first-world.info/wiki/Quick_Benchmark:_Gzip_vs_Bzip2_vs_LZMA_vs_XZ_vs_LZ4_vs_LZO
-COMPRESS = False
+COMPRESS = 'lz4'
+if COMPRESS == 'gzip':
+    compress1 = '| gzip'
+    compress2 = 'gzip -d |'
+elif COMPRESS == 'lz4':
+    compress1 = '| lz4c - '
+    compress2 = 'lz4c -d - |'
+elif COMPRESS == '':
+    compress1 = ''
+    compress2 = ''
+else:
+    raise RuntimeError("unknown compression '%s'"%COMPRESS)
+
 
 CACHE_PATH = os.path.join(os.environ['HOME'], 'cache')
 if not os.path.exists(CACHE_PATH):
@@ -586,19 +598,13 @@ def send_one(project_id, dest, force=True, snap_src=None, snap_dest=None):
 
     t = time.time()
 
-    # Doing it in one go is very tempting.  However, it means that the zfs recv *locks* waiting
-    # on the network to behave well, which is a recipe for disaster.  This was the code for that.
-    #c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(
-    #                              '-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
+    # NOTE: do not use streams between machines; this leads to horrible locking issues.
 
     tmp = '/tmp/.storage-%s-%s'%(project_id, uuid4())
     try:
-        if COMPRESS:
-            c = "sudo zfs send -RD %s %s %s | gzip > %s && scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
-                    '-i' if snap_dest else '', snap_dest, snap_src, tmp,   tmp, dest, tmp, dest, tmp, force, dataset, tmp)
-        else:
-            c = "sudo zfs send -RD %s %s %s > %s && scp %s %s:%s && rm %s && ssh %s 'cat %s | sudo zfs recv %s %s; rm %s'"%(
-                   '-i' if snap_dest else '', snap_dest, snap_src, tmp,   tmp, dest, tmp,  tmp,   dest, tmp, force, dataset, tmp)
+        c = "sudo zfs send -RD %s %s %s  %s  > %s && scp %s %s:%s && rm %s && ssh %s 'cat %s | %s sudo zfs recv %s %s; rm %s'"%(
+               '-i' if snap_dest else '', snap_dest, snap_src,  compress1,  tmp,   tmp, dest, tmp,  tmp,
+               dest, tmp, compress2, force, dataset, tmp)
         cmd(c)
         log.info("done (time=%s seconds)", time.time()-t)
     finally:
@@ -609,15 +615,9 @@ def send_one(project_id, dest, force=True, snap_src=None, snap_dest=None):
 
 def mp_send_multi_helper(x):
     tmp, dest, force, dataset = x
-    ## see comment about streams above
-    ## cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
 
-    if COMPRESS:
-         c = "scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
-               tmp, dest, tmp, dest, tmp, force, dataset, tmp)
-    else:
-         c = "scp %s %s:%s && rm %s && ssh %s 'cat %s  | sudo zfs recv %s %s; rm %s'"%(
-               tmp, dest, tmp, tmp, dest, tmp, force, dataset, tmp)
+    c = "scp %s %s:%s && rm %s && ssh %s 'cat %s  | %s sudo zfs recv %s %s; rm %s'"%(
+           tmp, dest, tmp, tmp, dest, tmp, compress2, force, dataset, tmp)
 
     log.info("sending to %s", dest)
     cmd(c)
@@ -664,7 +664,7 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
     else:
         force = ''
     try:
-        cmd("sudo zfs send -RD %s %s %s  > %s"%('-i' if snap_dest else '', snap_dest, snap_src, tmp))
+        cmd("sudo zfs send -RD %s %s %s  %s > %s"%('-i' if snap_dest else '', snap_dest, snap_src, compress1, tmp))
         diff_size = os.path.getsize(tmp)
         diff_size_mb = diff_size/1000000.0
         send_timeout = 60 + int(diff_size_mb * 2)
