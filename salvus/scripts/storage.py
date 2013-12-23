@@ -562,6 +562,37 @@ def repair(pool_size=5, update_cache=True):
 
 
 
+def dump_to_database(outfile):
+    """
+    Use the snapshot cache files to write a sequence of statements which can
+    be read into cassandra and which will set all the locations and snapshots
+    fields in the projects table of the database.
+    """
+    hashring  = multi_hash_ring()
+    hosts     = all_hosts()
+    c = {}
+    log.info("pass 1 -- locations")
+    for host in all_hosts():
+        for project_id, snapshots in snapshot_cache(host).iteritems():
+            if project_id not in c:
+                c[project_id] = {}
+            c[project_id][host] = list(reversed(sorted([str(x) for x in snapshots])))
+
+    log.info("pass 2 -- generate the CQL")
+    cql = open(outfile,'w')
+    i = 0
+    def j(obj):
+        return json.dumps(obj, separators=(',',':'))
+    for project_id, locations in c.iteritems():
+        i += 1
+        if i % 500 == 0:
+            log.info("%s/%s"%(i, len(c)))
+        x = str(dict([(k,j(v)) for k,v in locations.iteritems()]))
+        cql.write('UPDATE projects SET locations=%s WHERE project_id=%s;\n'%(x, project_id))
+    return c
+
+
+
 def ip_address(dest='10.1.1.1'):
     # get the ip address that is used to communicate with the given destination
     import socket

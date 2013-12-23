@@ -256,6 +256,8 @@ CREATE TABLE projects (
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 
      storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
+     locations        map<text, text>,   // ip_address --> snapshots available there
+
 
      quota            varchar,  // JSON
 
@@ -502,5 +504,22 @@ CREATE TABLE file_access_log (
     filename   varchar,
     PRIMARY KEY(day, timestamp, account_id, project_id)
 );
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
