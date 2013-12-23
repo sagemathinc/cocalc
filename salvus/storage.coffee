@@ -8,11 +8,13 @@
 
 winston   = require 'winston'
 HashRing  = require 'hashring'
+rmdir     = require('rimraf')
 fs        = require 'fs'
 cassandra = require 'cassandra'
 async     = require 'async'
 misc      = require 'misc'
 misc_node = require 'misc_node'
+uuid      = require 'node-uuid'
 {defaults, required} = misc
 
 # Set the log level to debug
@@ -37,28 +39,26 @@ connect_to_database = (cb) ->
                 cb       : (err, db) ->
                     database = db
                     cb(err)
-# TODO
-connect_to_database (err) ->
-    if err
-        winston.info("Error connecting to database -- ", err)
-    else
-        winston.info("Connected to database")
+
 exports.db = () -> database # TODO -- for testing
 
 filesystem = (project_id) -> "projects/#{project_id}"
+
 mountpoint = (project_id) -> "/projects/#{project_id}"
 
 execute_on = (opts) ->
     opts = defaults opts,
         host    : required
         command : required
+        err_on_exit : true
         cb      : undefined
 
+    winston.debug("opts.err_on_exit = ", opts.err_on_exit)
     t0 = misc.walltime()
     misc_node.execute_code
         command     : "ssh"
         args        : ["-o StrictHostKeyChecking=no", "storage@#{opts.host}", opts.command]
-        err_on_exit : true
+        err_on_exit : opts.err_on_exit
         cb          : (err, output) ->
             winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
             opts.cb?(err, output)
@@ -307,12 +307,12 @@ exports.init_hashrings = init_hashrings = (cb) ->
                 hashrings[dc] = new HashRing(obj)
             cb?()
 
-
 exports.locations = locations = (opts) ->
     opts = defaults opts,
         project_id : required
-        number     : 4         # number per data center to return
-        cb         : undefined
+        number     : 2         # number per data center to return
+
+    return (ring.range(opts.project_id, opts.number) for dc, ring of hashrings)
 
 # Replicate = attempt to make it so that the newest snapshot of the project
 # is available on all copies of the filesystem.
@@ -322,31 +322,142 @@ exports.replicate = replicate = (opts) ->
         project_id : required
         cb         : undefined
 
-    snaps = undefined
-    goal = undefined
-    locs = locations(project_id:opts.project_id)
+    snaps   = undefined
+    source  = undefined
+
+    targets = locations(project_id:opts.project_id)
+    num_replicas = targets[0].length
+
+    snapshots = undefined
+
+    versions = []   # will be list {host:?, version:?} of out-of-date objs, grouped by data center.
+
     async.series([
         (cb) ->
+            # Determine information about all known snapshots
+            # of this project, and also the best source for
+            # replicating out (which might not be one of the
+            # locations determined by the hash ring).
             get_snapshots
                 project_id : opts.project_id
-                cb         : (err, snapshots) ->
+                cb         : (err, result) ->
                     if err
                         cb(err)
                     else
+                        snapshots = result
                         snaps = ([s[0], h] for h, s of snapshots)
                         snaps.sort()
-                        goal = snaps[snaps.length-1][0]
+                        x = snaps[snaps.length - 1]
+                        ver = x[0]
+                        source = {version:ver, host:x[1]}
+                        # determine version of each target, ignoring any that are up to date
+                        for k in targets
+                            v = []
+                            for host in k
+                                v.push({version:snapshots[host][0], host:host})
+                            if v.length > 0
+                                versions.push(v)
+                        winston.debug(versions)
                         cb()
        (cb) ->
-            if not goal? or not snap?
-                cb("goal or snap didn't get defined")
-                return
-
+            # STEP 1: do inter data center replications so each data center contains at least one up to date node
+            f = (d, cb) ->
+                if d.length < num_replicas
+                    # there is already one that is up to date in this data center
+                    cb(); return
+                # choose newest in the datacenter -- this one is easiest to get up to date
+                dest = d[0]
+                for i in [1...d.length]
+                    if d[i].version > dest[i].version
+                        dest = d[i]
+                send
+                    project_id : opts.project_id
+                    source     : source
+                    dest       : dest
+                    cb         : cb
+            async.mapSeries(versions, f, cb)
+       (cb) ->
+            # STEP 2: do intra-data center replications to get all data in each data center up to date.
+            cb()
     ], (err) -> opts.cb?(err))
 
+exports.send = send = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        source     : required    # {host:ip_address, version:snapshot_name}
+        dest       : required    # {host:ip_address, version:snapshot_name}
+        force      : true
+        cb         : undefined
+
+    tmp = "/home/storage/.storage-#{opts.project_id}-src-#{opts.source.host}-#{opts.source.version}-dest-#{opts.dest.host}-#{opts.dest.version}"
+    f = filesystem(opts.project_id)
+    async.series([
+        (cb) ->
+            # check for already-there dump file
+            execute_on
+                host    : opts.source.host
+                command : "ls #{tmp}"
+                err_on_exit : false
+                cb      : (err, output) ->
+                    if err
+                        cb(err)
+                    else if output.exit_code == 0
+                        # file exists!
+                        cb("file #{tmp} already exists on #{opts.source.host}")
+                    else
+                        # good to go
+                        cb()
+        (cb) ->
+            # dump range of snapshots
+            start = if opts.dest.version then "-i #{f}@#{opts.dest.version}" else ""
+            execute_on
+                host    : opts.source.host
+                command : "sudo zfs send -RD #{start} #{f}@#{opts.source.version} | lz4c -  > #{tmp}"
+                cb      : (err, output) ->
+                    winston.debug(output)
+                    cb(err)
+        (cb) ->
+            # scp to destination
+            execute_on
+                host    : opts.source.host
+                command : "scp -o StrictHostKeyChecking=no #{tmp} storage@#{opts.dest.host}:#{tmp}; echo ''>#{tmp}"
+                cb      :  (err, output) ->
+                    winston.debug(output)
+                    cb(err)
+        (cb) ->
+            # receive on destination side
+            force = if opts.force then '-F' else ''
+            execute_on
+                host    : opts.dest.host
+                command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}; rm #{tmp}"
+                cb      : (err, output) ->
+                    winston.debug(output)
+                    cb(err)
+    ], (err) ->
+        # remove the lock file
+        execute_on
+            host    : opts.source.host
+            command : "rm #{tmp}"
+            cb      : (err) ->
+                opts.cb?(err)
+    )
 
 
 
+
+###
+# init
+###
+
+exports.init = init = (cb) ->
+    async.series([
+        connect_to_database
+        init_hashrings
+    ], cb)
+
+# TODO
+init (err) ->
+    winston.debug("init -- #{err}")
 
 
 
