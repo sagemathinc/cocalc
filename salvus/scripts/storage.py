@@ -247,7 +247,7 @@ def create_user(project_id):
     # Now make correct user.
     # the -o makes it so in the incredibly unlikely event of a collision, no big deal.
     cmd("groupadd -g %s -o %s"%(id, name))
-    cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, home, name))
+    cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, path_to_project(project_id), name))
 
 def usage(project_id):
     v = cmd("df %s"%path_to_project(project_id))
