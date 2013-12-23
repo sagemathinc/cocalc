@@ -83,7 +83,12 @@ Before building, do:
 
     dpkg -i */*.deb
 
+# LZ4 -- compression
 
+    # on ubuntu:
+    sudo add-apt-repository ppa:gezakovacs/lz4
+    sudo apt-get update
+    sudo apt-get install liblz4-tool
 
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse

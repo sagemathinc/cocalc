@@ -8,6 +8,14 @@ CWD = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, CWD)
 from hashring import HashRing
 
+# I'm not sure whether or not local compression is optimal yet.
+# It will definitely save money when syncing between google data centers or out, since their
+# data transfer rates, per gigabyte, or potentially pretty high.
+# We can't rely on tinc for compression since it can't compress encrypted data,
+# and we're using scp.  Plus tinc is single threaded.
+# Hmm: lz4 is massively faster than everything else, and would be perfect for this, according to
+#   http://pokecraft.first-world.info/wiki/Quick_Benchmark:_Gzip_vs_Bzip2_vs_LZMA_vs_XZ_vs_LZ4_vs_LZO
+COMPRESS = False
 
 CACHE_PATH = os.path.join(os.environ['HOME'], 'cache')
 if not os.path.exists(CACHE_PATH):
@@ -26,12 +34,12 @@ class MultiHashRing(object):
         """
         if topology is None:
             topology = os.path.join(CWD, 'storage-topology')
-        self.topology = topology
+        self._topology_file = topology
         self._rep_factor = rep_factor
         self._load()
 
     def _load(self):
-        v = [x for x in open(self.topology).readlines() if x.strip() and not x.strip().startswith('#')]
+        v = [x for x in open(self._topology_file).readlines() if x.strip() and not x.strip().startswith('#')]
         data = {}
         for x in v:
             ip, vnodes, datacenter = x.split()
@@ -43,6 +51,7 @@ class MultiHashRing(object):
         import hashring
         self.rings = [(dc, hashring.HashRing(d)) for dc, d in data.iteritems()]
         self.rings.sort()
+        self.topology = data
 
     def __call__(self, key):
         return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
@@ -55,6 +64,13 @@ class MultiHashRing(object):
 
     def locations_by_dc(self, key):
         return dict(self(key))
+
+    def datacenter_of(self, host):
+        for d, nodes in self.topology.iteritems():
+            if host in nodes:
+                return d
+        raise RuntimeError("node %s is not in any datacenter"%host)
+
 
 
 _multi_hash_ring = None
@@ -431,7 +447,10 @@ def global_newest_snapshots_cache():
 
 def work_to_sync(send=True, destroy=False):
     """
-    Use the snapshot cache files to determine all work needed to bring the cluster into sync.
+    Use the snapshot cache files to determine a work list for this particular
+    node that will help bring the cluster into sync.   If this is run in series
+    on all nodes, and nothing changes, then the cluster will be in sync.  If
+    it run again, then all old data will also be deleted.
 
     # How to get the number of snaps that need to be sent to a given host.
     w = storage.work_to_sync()
@@ -442,9 +461,12 @@ def work_to_sync(send=True, destroy=False):
     cache     = global_newest_snapshots_cache()
     n = len(cache)
     i = 0
+    src = ip_address()
+    datacenter = hashring.datacenter_of(src)
+
     for project_id, newest in cache.iteritems():
         i += 1
-        if i%250 == 0:
+        if i%1000 == 0:
             log.info("computing sync work: %s/%s", i, n)
         newest_snap = ''
         best_host = ''
@@ -452,25 +474,29 @@ def work_to_sync(send=True, destroy=False):
         # first figure out what the globally newest known snapshot is
         newest_snap = max([snap for _,snap in newest.iteritems()])
 
+        if newest.get(src, '') != newest_snap:
+            # we don't have the newest version on this node, so there's nothing further for us to do for this project.
+            continue
 
         # make a list of (host, base_snap) pairs that definitely need to be updated
         stale_hosts = [(host, newest[host]) for host, snap in newest.iteritems() if snap < newest_snap]
 
-        # add to the list each host (as determined by consistent hashing) with no snapshot at all
+        # also, add to the list each host (as determined by consistent hashing) with no snapshot at all
         for host in hashring.locations(project_id):
             if host not in newest:   # newest is a dictionary from hosts that *have* the project to their version (newest snapshot)
                 stale_hosts.append((host,''))
 
-        # hosts whose data is up to date
-        update2date_hosts = [host for host, snap in newest.iteritems() if snap == newest_snap]
-
-        # TODO
-        best_host = update2date_hosts[0]
 
         # Now make the actual work items.
         if send:
+            # We take all stale hosts in the same data center as us, and at most one from each of the other data centers
+            available_dcs = set(hashring.topology.keys())   # we are still allowed to take a host from these data centers
             for dest, snap in stale_hosts:
-                work.append({'action':'send', 'project_id':project_id, 'src':best_host, 'dest':dest, 'snap_src':newest_snap, 'snap_dest':snap})
+                dc = hashring.datacenter_of(dest)
+                if dc == datacenter or dc in available_dcs:
+                    work.append({'action':'send', 'project_id':project_id, 'src':src, 'dest':dest, 'snap_src':newest_snap, 'snap_dest':snap})
+                    if dc != datacenter:
+                        available_dcs.remove(dc)   # remember not to take any more hosts from this datacenter
 
         if destroy and len(stale_hosts) == 0:
             # Never put in any destroy work items if the project hasn't been fully replicated out first,
@@ -565,10 +591,14 @@ def send_one(project_id, dest, force=True, snap_src=None, snap_dest=None):
     #c = "sudo zfs send -RD %s %s %s | gzip | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(
     #                              '-i' if snap_dest else '', snap_dest, snap_src, dest, force, dataset)
 
-    tmp = '/tmp/.storage-%s-%s.gz'%(project_id, uuid4())
+    tmp = '/tmp/.storage-%s-%s'%(project_id, uuid4())
     try:
-        c = "sudo zfs send -RD %s %s %s | gzip > %s && scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
-               '-i' if snap_dest else '', snap_dest, snap_src, tmp,   tmp, dest, tmp, dest, tmp, force, dataset, tmp)
+        if COMPRESS:
+            c = "sudo zfs send -RD %s %s %s | gzip > %s && scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
+                    '-i' if snap_dest else '', snap_dest, snap_src, tmp,   tmp, dest, tmp, dest, tmp, force, dataset, tmp)
+        else:
+            c = "sudo zfs send -RD %s %s %s > %s && scp %s %s:%s && rm %s && ssh %s 'cat %s | sudo zfs recv %s %s; rm %s'"%(
+                   '-i' if snap_dest else '', snap_dest, snap_src, tmp,   tmp, dest, tmp,  tmp,   dest, tmp, force, dataset, tmp)
         cmd(c)
         log.info("done (time=%s seconds)", time.time()-t)
     finally:
@@ -581,8 +611,14 @@ def mp_send_multi_helper(x):
     tmp, dest, force, dataset = x
     ## see comment about streams above
     ## cmd("cat %s | ssh %s 'gzip -d | sudo zfs recv %s %s'"%(tmp, dest, force, dataset))
-    c = "scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
-          tmp, dest, tmp, dest, tmp, force, dataset, tmp)
+
+    if COMPRESS:
+         c = "scp %s %s:%s && ssh %s 'cat %s | gzip -d | sudo zfs recv %s %s; rm %s'"%(
+               tmp, dest, tmp, dest, tmp, force, dataset, tmp)
+    else:
+         c = "scp %s %s:%s && rm %s && ssh %s 'cat %s  | sudo zfs recv %s %s; rm %s'"%(
+               tmp, dest, tmp, tmp, dest, tmp, force, dataset, tmp)
+
     log.info("sending to %s", dest)
     cmd(c)
 
@@ -621,14 +657,14 @@ def _send_multi(project_id, destinations, snap_src, snap_dest, timeout, force):
     dataset = dataset_name(project_id)
     t = time.time()
 
-    tmp = '/tmp/.storage-%s-%s.gz'%(project_id, uuid4())
+    tmp = '/tmp/.storage-%s-%s'%(project_id, uuid4())
 
     if force:
         force = "-F"
     else:
         force = ''
     try:
-        cmd("sudo zfs send -RD %s %s %s | gzip > %s"%('-i' if snap_dest else '', snap_dest, snap_src, tmp))
+        cmd("sudo zfs send -RD %s %s %s  > %s"%('-i' if snap_dest else '', snap_dest, snap_src, tmp))
         diff_size = os.path.getsize(tmp)
         diff_size_mb = diff_size/1000000.0
         send_timeout = 60 + int(diff_size_mb * 2)
