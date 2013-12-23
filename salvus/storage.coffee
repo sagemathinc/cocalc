@@ -14,6 +14,9 @@ misc      = require 'misc'
 misc_node = require 'misc_node'
 {defaults, required} = misc
 
+# Set the log level to debug
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
 
 SALVUS_HOME=process.cwd()
 
@@ -25,16 +28,21 @@ connect_to_database = (cb) ->
             cb(err)
         else
             new cassandra.Salvus
-                hosts    : ['10.1.3.2','10.1.10.2']  # TODO
+                hosts    : ['10.1.3.2']  # TODO
                 keyspace : 'salvus'                  # TODO
                 username : 'hub'
-                consistency : 1   # for now; later switch to quorum
+                consistency : 1
                 password : password.toString().trim()
                 cb       : (err, db) ->
                     database = db
                     cb(err)
 # TODO
-connect_to_database()
+connect_to_database (err) ->
+    if err
+        winston.info("Error connecting to database -- ", err)
+    else
+        winston.info("Connected to database")
+exports.db = () -> database # TODO -- for testing
 
 filesystem = (project_id) -> "projects/#{project_id}"
 mountpoint = (project_id) -> "/projects/#{project_id}"
@@ -45,11 +53,14 @@ execute_on = (opts) ->
         command : required
         cb      : undefined
 
+    t0 = misc.walltime()
     misc_node.execute_code
         command     : "ssh"
         args        : ["storage@#{opts.host}", opts.command]
         err_on_exit : true
-        cb          : opts.cb
+        cb          : (err, output) ->
+            winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
+            opts.cb?(err)
 
 # Make a snapshot of a given project on a given host and record
 # this in the database.
@@ -59,6 +70,8 @@ exports.snapshot = (opts) ->
         host       : required
         tag        : undefined
         cb         : undefined
+
+    winston.debug("snapshotting #{opts.project_id} on #{opts.host}")
 
     if opts.tag?
         tag = '-' + opts.tag
@@ -91,13 +104,24 @@ exports.snapshot = (opts) ->
 # according to the database.  Updates the database to reflect success,
 # when successful.
 
-exports.destroy_snapshot = (opts) ->
-    opts.cb?(true)
+get_snapshots = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : undefined
+        cb         : required
+    if opts.hosts?
+        return
+        # snapshots on a particular host.
+
 
 record_new_snapshot = (opts) ->
     opts.cb?()
 
 project_needs_replication = (opts) ->
     opts.cb?()
+
+
+exports.destroy_snapshot = (opts) ->
+    opts.cb?(true)
 
 
