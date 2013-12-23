@@ -39,8 +39,21 @@ connect_to_database()
 filesystem = (project_id) -> "projects/#{project_id}"
 mountpoint = (project_id) -> "/projects/#{project_id}"
 
-# Make a snapshot of a given project on a given host
-exports.make_snapshot = (opts) ->
+execute_on = (opts) ->
+    opts = defaults opts,
+        host    : required
+        command : required
+        cb      : undefined
+
+    misc_node.execute_code
+        command     : "ssh"
+        args        : ["storage@#{opts.host}", opts.command]
+        err_on_exit : true
+        cb          : opts.cb
+
+# Make a snapshot of a given project on a given host and record
+# this in the database.
+exports.snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
@@ -55,16 +68,36 @@ exports.make_snapshot = (opts) ->
     name = filesystem(opts.project_id) + '@' + now + tag
     async.series([
         (cb) ->
-            # 1. try to make snapshot
-            misc_node.execute_code
-                command     : "ssh"
-                args        : ["storage@#{opts.host}", "sudo zfs snapshot #{name}"]
-                err_on_exit : true
+            # 1. make snapshot
+            execute_on
+                host    : opts.host
+                command : "sudo zfs snapshot #{name}"
                 cb          : cb
         (cb) ->
             # 2. record in database that snapshot was made
-            cb()
+            record_new_snapshot
+                project_id : opts.project_id
+                host       : opts.host
+                name       : now + tag
+                cb         : cb
         (cb) ->
             # 3. record that project needs to be replicated
-            cb()
-    ], opts.cb)
+            project_needs_replication
+                project_id : opts.project_id
+                cb         : cb
+    ], (err) -> opts.cb?(err))
+
+# Destroy snapshot of a given project on all hosts that have that snapshot,
+# according to the database.  Updates the database to reflect success,
+# when successful.
+
+exports.destroy_snapshot = (opts) ->
+    opts.cb?(true)
+
+record_new_snapshot = (opts) ->
+    opts.cb?()
+
+project_needs_replication = (opts) ->
+    opts.cb?()
+
+
