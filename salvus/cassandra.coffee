@@ -528,10 +528,14 @@ class exports.Cassandra extends EventEmitter
         @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.cb)
 
     delete: (opts={}) ->
-        opts = defaults(opts,  table:undefined, where:{}, cb:undefined)
+        opts = defaults opts,
+            table : undefined
+            where : {}
+            thing : ''
+            cb    : undefined
         vals = []
         where = @_where(opts.where, vals)
-        @cql("DELETE FROM #{opts.table} WHERE #{where}", vals, opts.cb)
+        @cql("DELETE #{opts.thing} FROM #{opts.table} WHERE #{where}", vals, opts.cb)
 
     select: (opts={}) =>
         opts = defaults opts,

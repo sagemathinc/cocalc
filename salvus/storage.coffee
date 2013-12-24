@@ -51,13 +51,13 @@ execute_on = (opts) ->
         host    : required
         command : required
         err_on_exit : true
+        timeout : 7200
         cb      : undefined
-
-    winston.debug("opts.err_on_exit = ", opts.err_on_exit)
     t0 = misc.walltime()
     misc_node.execute_code
         command     : "ssh"
         args        : ["-o StrictHostKeyChecking=no", "storage@#{opts.host}", opts.command]
+        timeout     : opts.timeout
         err_on_exit : opts.err_on_exit
         cb          : (err, output) ->
             winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
@@ -181,8 +181,19 @@ set_snapshots = (opts) ->
         host       : required
         snapshots  : required
         cb         : undefined
+    winston.debug("setting snapshots for #{opts.project_id} to #{misc.to_json(opts.snapshots)}")
 
     x = "locations['#{opts.host}']"
+
+    if opts.snapshots.length == 0
+        # deleting it
+        database.delete
+            thing : x
+            table : 'projects'
+            where : {project_id : opts.project_id}
+            cb    : opts.cb
+        return
+
     v = {}
     v[x] = JSON.stringify(opts.snapshots)
     database.update
@@ -196,8 +207,33 @@ set_snapshots = (opts) ->
 exports.repair_snapshots = repair_snapshots = (opts) ->
     opts = defaults opts,
         project_id : required
-        host       : required
+        host       : undefined
         cb         : undefined
+    if not opts.host?
+        # repair on all hosts that are "reasonable", i.e., anything in the db now.
+        hosts = undefined
+        async.series([
+            (cb) ->
+                get_snapshots
+                    project_id : opts.project_id
+                    cb         : (err, snapshots) ->
+                        if err
+                            cb(err)
+                        else
+                            hosts = misc.keys(snapshots)
+                            cb()
+            (cb) ->
+                f = (host, cb) ->
+                    repair_snapshots
+                        project_id : opts.project_id
+                        host       : host
+                        cb         : cb
+                async.map(hosts, f, cb)
+        ], (err) -> opts.cb?(err))
+        return
+
+    # other case -- a single host.
+
     snapshots = []
     f = filesystem(opts.project_id)
     async.series([
@@ -207,8 +243,14 @@ exports.repair_snapshots = repair_snapshots = (opts) ->
                 host    : opts.host
                 command : "sudo zfs list -r -t snapshot -o name -s creation #{f}"
                 cb      : (err, output) ->
+                    winston.debug(err, output)
                     if err
-                        cb(err)
+                        if output.stderr.indexOf('not exist') != -1
+                            # entire project deleted from this host.
+                            winston.debug("filesystem was deleted from #{opts.host}")
+                            cb()
+                        else
+                            cb(err)
                     else
                         n = f.length
                         for x in output.stdout.split('\n')
@@ -338,6 +380,7 @@ exports.replicate = replicate = (opts) ->
             # of this project, and also the best source for
             # replicating out (which might not be one of the
             # locations determined by the hash ring).
+            tm = misc.walltime()
             get_snapshots
                 project_id : opts.project_id
                 cb         : (err, result) ->
@@ -350,35 +393,63 @@ exports.replicate = replicate = (opts) ->
                         x = snaps[snaps.length - 1]
                         ver = x[0]
                         source = {version:ver, host:x[1]}
-                        # determine version of each target, ignoring any that are up to date
+                        # determine version of each target
                         for k in targets
                             v = []
                             for host in k
                                 v.push({version:snapshots[host][0], host:host})
                             if v.length > 0
                                 versions.push(v)
-                        winston.debug(versions)
+                        winston.debug("replicate (time=#{misc.walltime(tm)})-- status: #{misc.to_json(versions)}")
                         cb()
        (cb) ->
-            # STEP 1: do inter data center replications so each data center contains at least one up to date node
+            # STAGE 1: do inter-data center replications so each data center contains at least one up to date node
             f = (d, cb) ->
-                if d.length < num_replicas
-                    # there is already one that is up to date in this data center
-                    cb(); return
                 # choose newest in the datacenter -- this one is easiest to get up to date
                 dest = d[0]
                 for i in [1...d.length]
                     if d[i].version > dest.version
                         dest = d[i]
-                send
-                    project_id : opts.project_id
-                    source     : source
-                    dest       : dest
-                    cb         : cb
-            async.mapSeries(versions, f, cb)
+                if source.version == dest.version
+                    cb() # already done
+                else
+                    send
+                        project_id : opts.project_id
+                        source     : source
+                        dest       : dest
+                        cb         : (err) ->
+                            if not err
+                                # means that we succeeded in the version update; record this so that
+                                # the code in STAGE 2 below works.
+                                dest.version = source.version
+                            cb(err)
+            async.map(versions, f, cb)
+
        (cb) ->
-            # STEP 2: do intra-data center replications to get all data in each data center up to date.
-            cb()
+            # STAGE 2: do intra-data center replications to get all data in each data center up to date.
+            f = (d, cb) ->
+                # choose last *newest* in the datacenter as source
+                src = d[0]
+                for i in [1...d.length]
+                    if d[i].version > src.version
+                        src = d[i]
+                # crazy-looking nested async maps because we're writing this to handle
+                # having more than 2 replicas per data center, though I have no plans
+                # to actually do that.
+                winston.debug("************************* d=#{misc.to_json(d)}; src=#{misc.to_json(src)} ****************")
+                g = (dest, cb) ->
+                    if src.version == dest.version
+                        cb()
+                    else
+                        send
+                            project_id : opts.project_id
+                            source     : src
+                            dest       : dest
+                            cb         : cb
+                async.map(d, g, cb)
+
+            async.map(versions, f, cb)
+
     ], (err) -> opts.cb?(err))
 
 exports.send = send = (opts) ->
@@ -388,6 +459,8 @@ exports.send = send = (opts) ->
         dest       : required    # {host:ip_address, version:snapshot_name}
         force      : true
         cb         : undefined
+
+    winston.info("** SEND **: #{misc.to_json(opts.source)} --> #{misc.to_json(opts.dest)}")
 
     if opts.source.version == opts.dest.version
         # trivial special case
