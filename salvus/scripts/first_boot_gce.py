@@ -77,6 +77,9 @@ def conf():
     else:
         os.system("mkdir -p /mnt/conf/etc/")
 
+    # Copy over newest version of sudo project creation script, and ensure permissions are right.
+    os.system("cp /home/salvus/salvus/salvus/scripts/create_project_user.py /usr/local/bin/; chmod og-w /usr/local/bin/create_project_user.py; chmod og+rx /usr/local/bin/create_project_user.py")
+
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
     cmd("ip link add link eth0 address f0:de:f1:b0:66:8e eth0.1 type macvlan")
     cmd("ip link add link eth0 address 5e:d4:a9:c7:c8:f4 eth0.2 type macvlan")
