@@ -473,10 +473,10 @@ exports.forward_remote_port_to_localhost = (opts) ->
         host        : required
         ssh_port    : 22
         remote_port : required
-        activity_time : 900 # kill connection if the HUB doesn't
+        activity_time : 2000 # kill connection if the HUB doesn't
                              # actively *receive* something on this
                              # port for this many seconds.
-        keep_alive_time :  5 # network activity every this many
+        keep_alive_time:2000 # network activity every this many
                              # seconds.; lower to more quickly detect
                              # a broken connection; raise to reduce resources
         cb          : required  # cb(err, local_port)
@@ -540,7 +540,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
             new_output = false
 
         # check every few seconds
-        kill_no_output_timer = setInterval(kill_if_no_new_output, 2*1000*opts.keep_alive_time)
+        kill_no_output_timer = setInterval(kill_if_no_new_output, 1000*opts.keep_alive_time)
 
         kill_if_no_new_activity = () ->
             if not r.activity?
