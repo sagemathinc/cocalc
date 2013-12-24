@@ -259,7 +259,10 @@ CREATE TABLE projects (
      locations        map<text, text>,   // ip_address --> snapshots available there
 
 
-     quota            varchar,  // JSON
+     quota            varchar,
+
+     quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
+     usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
 
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
 

@@ -53,6 +53,7 @@ execute_on = (opts) ->
         host        : required
         command     : required
         err_on_exit : true
+        err_on_stderr : true     # if anything appears in stderr then set err=output.stderr, even if the exit code is 0.
         timeout     : TIMEOUT
         user        : 'storage'
         cb          : undefined
@@ -63,6 +64,8 @@ execute_on = (opts) ->
         timeout     : opts.timeout
         err_on_exit : opts.err_on_exit
         cb          : (err, output) ->
+            if not err? and opts.err_on_stderr and output.stderr
+                err = output.stderr
             winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
             opts.cb?(err, output)
 
@@ -89,7 +92,7 @@ exports.quota = quota = (opts) ->
     opts = defaults opts,
         project_id : required
         size       : undefined    # if given, first sets the quota
-        host       : undefined    # if given, only operate on the given host; otherwise operating on all hosts of the project
+        host       : undefined    # if given, only operate on the given host; otherwise operating on all hosts of the project (and save in database if setting)
         cb         : undefined    # cb(err, quota in bytes)
     winston.info("quota -- #{misc.to_json(opts)}")
 
@@ -110,7 +113,7 @@ exports.quota = quota = (opts) ->
                             err = 'no hosts -- quota not defined'
                         cb(err)
             (cb) ->
-                dbg("#{if opts.size then 'set' else 'compute'} quota on all hosts")
+                dbg("#{if opts.size then 'set' else 'compute'} quota on all hosts: #{misc.to_json(hosts)}")
                 f = (host, c) ->
                     quota
                         project_id : opts.project_id
@@ -122,6 +125,7 @@ exports.quota = quota = (opts) ->
                     cb(err)
             (cb) ->
                 if opts.size?
+                    size = opts.size
                     cb()
                     return
                 dbg("checking that all quotas consistent...")
@@ -142,6 +146,13 @@ exports.quota = quota = (opts) ->
                                 host       : host
                                 cb         : c
                     async.map([0...hosts.length], f, cb)
+            (cb) ->
+                dbg("saving in database")
+                database.update
+                    table : 'projects'
+                    where : {project_id : opts.project_id}
+                    set   : {'quota_zfs':"#{size}"}
+                    cb    : cb
         ], (err) ->
             opts.cb?(err, size)
         )
@@ -153,8 +164,6 @@ exports.quota = quota = (opts) ->
             host       : opts.host
             command    : "sudo zfs get -pH -o value quota #{filesystem(opts.project_id)}"
             cb         : (err, output) ->
-                if not err and output.stderr
-                    err = output.stderr
                 if not err
                     size = output.stdout
                     size = parseInt(size)
@@ -165,9 +174,69 @@ exports.quota = quota = (opts) ->
             host       : opts.host
             command    : "sudo zfs set quota=#{opts.size} #{filesystem(opts.project_id)}"
             cb         : (err, output) ->
-                if not err and output.stderr
-                    err = output.stderr
                 opts.cb?(err, opts.size)
+
+exports.updated_host = updated_host = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required   # cb(err, hostname)
+
+    get_snapshots
+        project_id : opts.project_id
+        cb         : (err, snapshots) ->
+            if not err and snapshots.length == 0
+                err = "project doesn't have any data"
+            if err
+                opts.cb(err)
+                return
+            v = ([val[0],host] for host, val of snapshots)
+            v.sort()
+            host = v[v.length-1][1]
+            opts.cb(undefined, host)
+
+
+exports.get_usage = get_usage = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : undefined  # if not given, choos any node with newest snapshot
+        cb         : required   # cb(err, {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
+                                # on success, the quota field in the database for the project is set as well
+    usage = undefined
+    dbg = (m) -> winston.debug("get_usage (#{opts.project_id}): #{m}")
+
+    async.series([
+        (cb) ->
+            if opts.host?
+                cb()
+            else
+                dbg("determine host")
+                updated_host
+                    project_id : opts.project_id
+                    cb         : (err, host) ->
+                        opts.host = host
+                        cb(err)
+        (cb) ->
+            dbg("getting usage on #{opts.host}")
+            execute_on
+                host    : opts.host
+                command : "sudo zfs list -H -o avail,used,usedsnap #{filesystem(opts.project_id)}"
+                cb      : (err, output) ->
+                    if err
+                        cb(err)
+                    else
+                        v = output.stdout.split('\t')
+                        usage = {avail:v[0].trim(), used:v[1].trim(), usedsnap:v[2].trim()}
+                        cb()
+        (cb) ->
+            dbg("updating database with usage = #{usage}")
+            database.update
+                table : 'projects'
+                where : {project_id : opts.project_id}
+                set   : {'usage_zfs':usage}
+                json  : ['usage_zfs']
+                cb    : cb
+    ], (err) -> opts.cb?(err, usage))
+
 
 
 
@@ -258,7 +327,7 @@ exports.get_hosts = get_hosts = (opts) ->
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, (host for host, snaps of snapshots when snaps))
+                opts.cb(undefined, (host for host, snaps of snapshots when snaps?.length > 0))
 
 exports.record_snapshot = record_snapshot = (opts) ->
     opts = defaults opts,
@@ -332,18 +401,22 @@ set_snapshots = (opts) ->
 exports.repair_snapshots = repair_snapshots = (opts) ->
     opts = defaults opts,
         project_id : required
-        host       : undefined
+        host       : undefined   # use "all" for **all** possible hosts on the whole cluster
         cb         : undefined
-    if not opts.host?
-        # repair on all hosts that are "reasonable", i.e., anything in the db now.
+    if not opts.host? or opts.host == 'all'
         hosts = undefined
         async.series([
             (cb) ->
-                get_hosts
-                    project_id : opts.project_id
-                    cb         : (err, r) ->
-                        hosts = r
-                        cb(err)
+                if opts.host == 'all'
+                    hosts = all_hosts
+                    cb()
+                else
+                    # repair on all hosts that are "reasonable", i.e., anything in the db now.
+                    get_hosts
+                        project_id : opts.project_id
+                        cb         : (err, r) ->
+                            hosts = r
+                            cb(err)
             (cb) ->
                 f = (host, cb) ->
                     repair_snapshots
@@ -368,7 +441,7 @@ exports.repair_snapshots = repair_snapshots = (opts) ->
                 cb      : (err, output) ->
                     winston.debug(err, output)
                     if err
-                        if output.stderr.indexOf('not exist') != -1
+                        if output?.stderr? and output.stderr.indexOf('not exist') != -1
                             # entire project deleted from this host.
                             winston.debug("filesystem was deleted from #{opts.host}")
                             cb()
@@ -433,7 +506,7 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
                 timeout : 600
                 cb      : (err, output) ->
                     if err
-                        if output.stderr.indexOf('could not find any snapshots to destroy')
+                        if output?.stderr? and output.stderr.indexOf('could not find any snapshots to destroy')
                             err = undefined
                     cb(err)
         (cb) ->
@@ -467,6 +540,7 @@ exports.diff = diff = (opts) ->
 
 hashrings = undefined
 topology = undefined
+all_hosts = []
 exports.init_hashrings = init_hashrings = (cb) ->
     database.select
         table   : 'storage_topology'
@@ -480,6 +554,7 @@ exports.init_hashrings = init_hashrings = (cb) ->
                 if not topology[datacenter]?
                     topology[datacenter] = {}
                 topology[datacenter][host] = {vnodes:vnodes}
+                all_hosts.push(host)
             winston.debug(misc.to_json(topology))
             hashrings = {}
             for dc, obj of topology
@@ -646,8 +721,6 @@ exports.send = send = (opts) ->
                 command : "sudo zfs send -RD #{start} #{f}@#{opts.source.version} | lz4c -  > #{tmp}"
                 cb      : (err, output) ->
                     winston.debug(output)
-                    if output.stderr
-                        err = output.stderr
                     cb(err)
         (cb) ->
             # scp to destination
@@ -665,7 +738,7 @@ exports.send = send = (opts) ->
                 command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}; rm #{tmp}"
                 cb      : (err, output) ->
                     winston.debug(output)
-                    if output.stderr
+                    if output?.stderr?
                         if output.stderr.indexOf('destination has snapshots') != -1
                             # this is likely caused by the database being stale regarding what snapshots are known,
                             # so we run a repair so that next time it will work.
@@ -706,13 +779,13 @@ exports.destroy_project = destroy_project = (opts) ->
 
     async.series([
         (cb) ->
-            # 1. delete snapshot
+            # 1. delete dataset
             execute_on
                 host    : opts.host
-                command : "sudo zfs destroy #{filesystem(opts.project_id)}"
+                command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
                 cb      : (err, output) ->
                     if err
-                        if output.stderr.indexOf('does not exist')
+                        if output?.stderr? and output.stderr.indexOf('does not exist') != -1
                             err = undefined
                     cb(err)
         (cb) ->
