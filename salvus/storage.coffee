@@ -122,17 +122,20 @@ exports.get_snapshots = get_snapshots = (opts) ->
                 if err
                     opts.cb(err)
                 else if opts.host?
-                    v = result[0][opts.host]
-                    if v?
-                        v = JSON.parse(v)
+                    if not result?
+                        opts.cb(undefined, [])
                     else
-                        v = []
-                    opts.cb(false, v)
+                        v = result[0][opts.host]
+                        if v?
+                            v = JSON.parse(v)
+                        else
+                            v = []
+                        opts.cb(undefined, v)
                 else
                     ans = {}
                     for k, v of result[0]
                         ans[k] = JSON.parse(v)
-                    opts.cb(false, ans)
+                    opts.cb(undefined, ans)
 
 
 exports.record_snapshot = record_snapshot = (opts) ->
@@ -310,9 +313,8 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
                 cb      : (err, output) ->
                     if err
                         if output.stderr.indexOf('could not find any snapshots to destroy')
-                            cb()
-                        else
-                            cb(err)
+                            err = undefined
+                    cb(err)
         (cb) ->
             # 2. success -- so record in database that snapshot was *deleted*
             record_snapshot
@@ -397,7 +399,7 @@ exports.replicate = replicate = (opts) ->
                         for k in targets
                             v = []
                             for host in k
-                                v.push({version:snapshots[host][0], host:host})
+                                v.push({version:snapshots[host]?[0], host:host})
                             if v.length > 0
                                 versions.push(v)
                         winston.debug("replicate (time=#{misc.walltime(tm)})-- status: #{misc.to_json(versions)}")
@@ -436,7 +438,6 @@ exports.replicate = replicate = (opts) ->
                 # crazy-looking nested async maps because we're writing this to handle
                 # having more than 2 replicas per data center, though I have no plans
                 # to actually do that.
-                winston.debug("************************* d=#{misc.to_json(d)}; src=#{misc.to_json(src)} ****************")
                 g = (dest, cb) ->
                     if src.version == dest.version
                         cb()
@@ -515,6 +516,15 @@ exports.send = send = (opts) ->
                 cb      : (err, output) ->
                     winston.debug(output)
                     if output.stderr
+                        if output.stderr.indexOf('destination has snapshots') != -1
+                            # this is likely caused by the database being stale regarding what snapshots are known,
+                            # so we run a repair so that next time it will work.
+                            repair_snapshots
+                                project_id : opts.project_id
+                                host       : opts.dest.host
+                                cb         : (ignore) ->
+                                    cb(err)
+                            return
                         err = output.stderr
                     cb(err)
         (cb) ->
@@ -536,6 +546,32 @@ exports.send = send = (opts) ->
             # no need to clean up -- bailing due to another process lock
             opts.cb?(err)
     )
+
+exports.destroy_project = destroy_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : required
+        cb         : undefined
+
+    async.series([
+        (cb) ->
+            # 1. delete snapshot
+            execute_on
+                host    : opts.host
+                command : "sudo zfs destroy #{filesystem(opts.project_id)}"
+                cb      : (err, output) ->
+                    if err
+                        if output.stderr.indexOf('does not exist')
+                            err = undefined
+                    cb(err)
+        (cb) ->
+            # 2. success -- so record in database that project is no longer on this host.
+            set_snapshots
+                project_id : opts.project_id
+                host       : opts.host
+                snapshots  : []
+                cb         : cb
+    ], (err) -> opts.cb?(err))
 
 
 
