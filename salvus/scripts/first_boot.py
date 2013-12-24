@@ -22,6 +22,9 @@ if os.path.exists('/projects') or os.path.exists('/mnt/home/'):
     # Copy latest version of storage.py script from salvus repo
     os.system('cp /home/salvus/salvus/salvus/scripts/storage.py /home/storage/bin/; chown storage. /home/storage/bin/storage.py')
 
+    # Chown ownership of storage user (temporary)
+    os.system("chown -R storage. -R /home/storage")
+
     # Delete ssh private key not needed for the *compute machines*; not deleting this
     # is a major security risk, since this key could provide access to a database node
     # (say) to a user on the compute node who cracks the salvus account.
@@ -45,7 +48,7 @@ if os.path.exists('/projects') or os.path.exists('/mnt/home/'):
     os.system("mkdir -p /mnt/home/scratch; mkdir -p /scratch; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/scratch /scratch;  chmod a+rwx /mnt/home/scratch/")
 
     # Import the ZFS pool
-    #os.system("zpool import -Nf projects; mkdir -p /projects; chmod a+rx /projects")
+    os.system("zpool import -Nf projects; mkdir -p /projects; chmod a+rx /projects")
 
 else:
 
