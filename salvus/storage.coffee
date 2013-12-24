@@ -72,7 +72,6 @@ execute_on = (opts) ->
 
 
 # if user doesn't exist, create them
-
 exports.create_user = create_user = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -84,6 +83,93 @@ exports.create_user = create_user = (opts) ->
         command : "sudo /usr/local/bin/create_storage_user.py #{opts.project_id}"
         timeout : 60
         cb      : opts.cb
+
+
+exports.quota = quota = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        size       : undefined    # if given, first sets the quota
+        host       : undefined    # if given, only operate on the given host; otherwise operating on all hosts of the project
+        cb         : undefined    # cb(err, quota in bytes)
+    winston.info("quota -- #{misc.to_json(opts)}")
+
+    dbg = (m) -> winston.debug("quota (#{opts.project_id}): #{m}")
+
+    if not opts.host?
+        hosts   = undefined
+        results = undefined
+        size    = undefined
+        async.series([
+            (cb) ->
+                dbg("get list of hosts")
+                get_hosts
+                    project_id : opts.project_id
+                    cb         : (err, h) ->
+                        hosts = h
+                        if not err and hosts.length == 0
+                            err = 'no hosts -- quota not defined'
+                        cb(err)
+            (cb) ->
+                dbg("#{if opts.size then 'set' else 'compute'} quota on all hosts")
+                f = (host, c) ->
+                    quota
+                        project_id : opts.project_id
+                        size       : opts.size
+                        host       : host
+                        cb         : c
+                async.map hosts, f, (err, r) ->
+                    results = r
+                    cb(err)
+            (cb) ->
+                if opts.size?
+                    cb()
+                    return
+                dbg("checking that all quotas consistent...")
+                size = misc.max(results)
+                if misc.min(results) == size
+                    cb()
+                else
+                    winston.info("quota (#{opts.project_id}): self heal -- quota discrepancy, now self healing to max size (=#{size})")
+                    f = (i, c) ->
+                        host = hosts[i]
+                        if results[i] >= size
+                            # already maximal, so no need to set it
+                            c()
+                        else
+                            quota
+                                project_id : opts.project_id
+                                size       : size
+                                host       : host
+                                cb         : c
+                    async.map([0...hosts.length], f, cb)
+        ], (err) ->
+            opts.cb?(err, size)
+        )
+        return
+
+    if not opts.size?
+        dbg("getting quota on #{opts.host}")
+        execute_on
+            host       : opts.host
+            command    : "sudo zfs get -pH -o value quota #{filesystem(opts.project_id)}"
+            cb         : (err, output) ->
+                if not err and output.stderr
+                    err = output.stderr
+                if not err
+                    size = output.stdout
+                    size = parseInt(size)
+                opts.cb?(err, size)
+    else
+        dbg("setting quota on #{opts.host} to #{opts.size}")
+        execute_on
+            host       : opts.host
+            command    : "sudo zfs set quota=#{opts.size} #{filesystem(opts.project_id)}"
+            cb         : (err, output) ->
+                if not err and output.stderr
+                    err = output.stderr
+                opts.cb?(err, opts.size)
+
+
 
 
 ######################
@@ -161,6 +247,18 @@ exports.get_snapshots = get_snapshots = (opts) ->
                         ans[k] = JSON.parse(v)
                     opts.cb(undefined, ans)
 
+# Compute list of all hosts that actually have some version of the project.
+exports.get_hosts = get_hosts = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required  # cb(err, [list of hosts])
+    get_snapshots
+        project_id : opts.project_id
+        cb         : (err, snapshots) ->
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, (host for host, snaps of snapshots when snaps))
 
 exports.record_snapshot = record_snapshot = (opts) ->
     opts = defaults opts,
@@ -241,14 +339,11 @@ exports.repair_snapshots = repair_snapshots = (opts) ->
         hosts = undefined
         async.series([
             (cb) ->
-                get_snapshots
+                get_hosts
                     project_id : opts.project_id
-                    cb         : (err, snapshots) ->
-                        if err
-                            cb(err)
-                        else
-                            hosts = misc.keys(snapshots)
-                            cb()
+                    cb         : (err, r) ->
+                        hosts = r
+                        cb(err)
             (cb) ->
                 f = (host, cb) ->
                     repair_snapshots
