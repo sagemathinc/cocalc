@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Create a user corresponding to a given project_id.
 
@@ -11,7 +10,7 @@ You should put the following in visudo:
 
 """
 
-import argparse, hashlib
+import argparse, hashlib, os
 from subprocess import Popen, PIPE
 
 def uid(uuid):
@@ -59,7 +58,7 @@ def create_user(project_id):
     cmd("groupadd -g %s -o %s"%(id, name))
     cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, os.path.join('/projects', project_id), name))
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     parser = argparse.ArgumentParser(description="create project user")
     parser.add_argument("project_id", help="the uuid of the project", type=str)
     args = parser.parse_args()
