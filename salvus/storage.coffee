@@ -23,6 +23,8 @@ winston.add(winston.transports.Console, level: 'debug')
 
 SALVUS_HOME=process.cwd()
 
+TIMEOUT = 7200  # 2 hours
+
 # Connect to the cassandra database server; sets the global database variable.
 database = undefined
 connect_to_database = (cb) ->
@@ -48,11 +50,11 @@ mountpoint = (project_id) -> "/projects/#{project_id}"
 
 execute_on = (opts) ->
     opts = defaults opts,
-        host    : required
-        command : required
+        host        : required
+        command     : required
         err_on_exit : true
-        timeout : 7200
-        cb      : undefined
+        timeout     : TIMEOUT
+        cb          : undefined
     t0 = misc.walltime()
     misc_node.execute_code
         command     : "ssh"
@@ -376,6 +378,7 @@ exports.replicate = replicate = (opts) ->
 
     versions = []   # will be list {host:?, version:?} of out-of-date objs, grouped by data center.
 
+    new_project = false
     async.series([
         (cb) ->
             # Determine information about all known snapshots
@@ -389,6 +392,14 @@ exports.replicate = replicate = (opts) ->
                     if err
                         cb(err)
                     else
+                        if not result? or misc.len(result) == 0
+                            # project doesn't have any snapshots at all or location.
+                            # this could happen for a new project with no data, or one not migrated.
+                            winston.debug("WARNING: project #{opts.project_id} has no snapshots")
+                            new_project = true
+                            cb(true)
+                            return
+
                         snapshots = result
                         snaps = ([s[0], h] for h, s of snapshots)
                         snaps.sort()
@@ -451,7 +462,12 @@ exports.replicate = replicate = (opts) ->
 
             async.map(versions, f, cb)
 
-    ], (err) -> opts.cb?(err))
+    ], (err) ->
+        if new_project
+            opts.cb?()
+        else
+            opts.cb?(err)
+    )
 
 exports.send = send = (opts) ->
     opts = defaults opts,
@@ -572,6 +588,52 @@ exports.destroy_project = destroy_project = (opts) ->
                 snapshots  : []
                 cb         : cb
     ], (err) -> opts.cb?(err))
+
+# Query database for *all* project's, sort them in alphabetical order,
+# then run replicate on every single one.
+# At the end, all projects should be replicated out to all their locations.
+# Since the actual work happens all over the cluster (none on the machine
+# running this, if it is a web machine), it is reasonable safe to run
+# with a higher limit... maybe.
+exports.replicate_all = replicate_all = (opts) ->
+    opts = defaults opts,
+        limit : 3   # no more than this many projects will be replicated simultaneously
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        cb    : undefined  # cb(err, {project_id:error when replicating that project})
+
+    projects = undefined
+    errors = {}
+    done = 0
+    todo = undefined
+    async.series([
+        (cb) ->
+            database.select
+                table   : 'projects'
+                columns : ['project_id']
+                limit   : if opts.stop? then opts.stop else 1000000       # TODO: change to use paging...
+                cb      : (err, result) ->
+                    if result?
+                        projects = (x[0] for x in result)
+                        projects.sort()
+                        if opts.start? and opts.stop?
+                            projects = projects.slice(opts.start, opts.stop)
+                        todo = projects.length
+                    cb(err)
+        (cb) ->
+            f = (project_id, cb) ->
+                winston.debug("replicate_all -- #{project_id}")
+                replicate
+                    project_id : project_id
+                    cb         : (err) ->
+                        done += 1
+                        winston.info("REPLICATE_ALL STATUS: finished #{done}/#{todo}")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) -> opts.cb?(err, errors))
+
 
 
 
