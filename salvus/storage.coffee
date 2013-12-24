@@ -54,20 +54,41 @@ execute_on = (opts) ->
         command     : required
         err_on_exit : true
         timeout     : TIMEOUT
+        user        : 'storage'
         cb          : undefined
     t0 = misc.walltime()
     misc_node.execute_code
         command     : "ssh"
-        args        : ["-o StrictHostKeyChecking=no", "storage@#{opts.host}", opts.command]
+        args        : ["-o StrictHostKeyChecking=no", "#{opts.user}@#{opts.host}", opts.command]
         timeout     : opts.timeout
         err_on_exit : opts.err_on_exit
         cb          : (err, output) ->
             winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
             opts.cb?(err, output)
 
-###
+######################
+# Users
+######################
+
+
+# if user doesn't exist, create them
+
+exports.create_user = create_user = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : required
+        cb         : undefined
+    winston.info("creating user for #{opts.project_id} on #{opts.host}")
+    execute_on
+        host    : opts.host
+        command : "sudo /usr/local/bin/create_storage_user.py #{opts.project_id}"
+        timeout : 60
+        cb      : opts.cb
+
+
+######################
 # Snapshotting
-###
+######################
 
 # Make a snapshot of a given project on a given host and record
 # this in the database.
@@ -92,6 +113,7 @@ exports.snapshot = (opts) ->
             execute_on
                 host    : opts.host
                 command : "sudo zfs snapshot #{name}"
+                timeout : 300
                 cb      : cb
         (cb) ->
             # 2. record in database that snapshot was made
@@ -247,6 +269,7 @@ exports.repair_snapshots = repair_snapshots = (opts) ->
             execute_on
                 host    : opts.host
                 command : "sudo zfs list -r -t snapshot -o name -s creation #{f}"
+                timeout : 600
                 cb      : (err, output) ->
                     winston.debug(err, output)
                     if err
@@ -312,6 +335,7 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
             execute_on
                 host    : opts.host
                 command : "sudo zfs destroy #{filesystem(opts.project_id)}@#{opts.name}"
+                timeout : 600
                 cb      : (err, output) ->
                     if err
                         if output.stderr.indexOf('could not find any snapshots to destroy')
@@ -327,10 +351,24 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
                 cb         : cb
     ], (err) -> opts.cb?(err))
 
+###
+ZFS_CHANGES={'-':'removed', '+':'created', 'M':'modified', 'R':'renamed'}
+ZFS_FILE_TYPES={'B':'block device', 'C':'character device', '/':'directory',
+                '>':'door', '|':'named pipe', '@':'symbolic link',
+                'P':'event port', '=':'socket', 'F':'regular file'}
+exports.diff = diff = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : required
+        snapshot   : required
+        snapshot2  : undefined   # if undefined, compares with filesystem
+###
 
-###
+
+
+######################
 # Replication
-###
+######################
 
 hashrings = undefined
 topology = undefined
@@ -493,6 +531,7 @@ exports.send = send = (opts) ->
             execute_on
                 host    : opts.source.host
                 command : "ls #{tmp}"
+                timeout : 120
                 err_on_exit : false
                 cb      : (err, output) ->
                     if err
@@ -556,6 +595,7 @@ exports.send = send = (opts) ->
             execute_on
                 host    : opts.source.host
                 command : "rm #{tmp}"
+                timeout : 120
                 cb      : (ignored) ->
                     opts.cb?(err)
         else
