@@ -13,7 +13,6 @@ def cmd(s):
     t = out.stdout.read() + out.stderr.read()
     if e:
         print t
-        #raise RuntimeError(t)
     return t
 
 def get_disks():
@@ -88,8 +87,12 @@ def conf():
     if os.path.exists("/mnt/conf/post"):
         cmd("/mnt/conf/post")
 
+    # Create the storage user in case it doesn't exist
+    cmd("groupadd -g 1001 -o storage")
+    cmd("useradd -u 1001 -g 1001 -o -d /home/storage storage")
+
     cmd("chmod og-rwx /home/salvus/.ssh/id_rsa")
-    cmd("chmod og-rwx /home/storage/.ssh/id_rsa")
+    cmd("chmod og-rwx /home/storage/")
 
 if __name__ == "__main__":
     if mount_conf():

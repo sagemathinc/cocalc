@@ -22,7 +22,8 @@ winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, level: 'debug')
 
 SALVUS_HOME=process.cwd()
-
+STORAGE_USER = 'storage'
+STORAGE_TMP = '/home/storage/'
 TIMEOUT = 7200  # 2 hours
 
 # Connect to the cassandra database server; sets the global database variable.
@@ -47,9 +48,6 @@ exports.db = () -> database # TODO -- for testing
 filesystem = (project_id) -> "projects/#{project_id}"
 
 mountpoint = (project_id) -> "/projects/#{project_id}"
-
-STORAGE_USER = 'salvus'
-STORAGE_TMP = '/home/salvus/storage/'
 
 execute_on = (opts) ->
     opts = defaults opts,
@@ -86,7 +84,8 @@ exports.create_user = create_user = (opts) ->
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
     execute_on
         host    : opts.host
-        command : "sudo /usr/local/bin/create_storage_user.py #{opts.project_id}"
+        command : "sudo /usr/local/bin/create_project_user.py #{opts.project_id}"
+        user    : 'salvus'
         timeout : 60
         cb      : opts.cb
 
