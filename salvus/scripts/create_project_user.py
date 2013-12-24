@@ -58,6 +58,12 @@ def create_user(project_id):
     cmd("groupadd -g %s -o %s"%(id, name))
     cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, os.path.join('/projects', project_id), name))
 
+    # Save account info so it persists through reboots/upgrades/etc. that replaces the ephemeral root fs.
+    if os.path.exists("/mnt/home/etc/"): # UW nodes
+        cmd("cp /etc/passwd /etc/shadow /etc/group /mnt/home/etc/")
+    if os.path.exists("/mnt/conf/etc/"): # GCE nodes
+        cmd("cp /etc/passwd /etc/shadow /etc/group /mnt/conf/etc/")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="create project user")
     parser.add_argument("project_id", help="the uuid of the project", type=str)

@@ -71,6 +71,12 @@ def conf():
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/var/run/")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
+    # restore project user accounts
+    if os.path.exists('/mnt/conf/etc/'):
+        os.system("cp -rv /mnt/conf/etc/* /etc/")
+    else:
+        os.system("mkdir -p /mnt/conf/etc/")
+
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
     cmd("ip link add link eth0 address f0:de:f1:b0:66:8e eth0.1 type macvlan")
     cmd("ip link add link eth0 address 5e:d4:a9:c7:c8:f4 eth0.2 type macvlan")

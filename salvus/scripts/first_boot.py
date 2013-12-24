@@ -14,20 +14,19 @@ if socket.gethostname() != "salvus-base":
     # Mount tmp
     os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 
-if os.path.exists('/projects') or os.path.exists('/mnt/home/'):
+if os.path.exists('/mnt/home/'):
 
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets')
 
-    # Copy latest version of storage.py script from salvus repo
-    os.system('cp /home/salvus/salvus/salvus/scripts/storage.py /home/storage/bin/; chown storage. /home/storage/bin/storage.py')
-
-    # Chown ownership of storage user (temporary)
-    os.system("chown -R storage. -R /home/storage")
-
     # Delete ssh private key not needed for the *compute machines*; not deleting this
-    # is a major security risk, since this key could provide access to a database node
-    # (say) to a user on the compute node who cracks the salvus account.
+    # would be a security risk, since this key could provide access to a database node
+    # (say) to a user on the compute node who cracks the salvus account. As it is, there
+    # is nothing stored on a compute node that directly gives access to any other
+    # nodes.  The one dangerous thing is the tinc vpn private key, which gets the
+    # machine on the VPN.  However, even that is destroyed when the machine is restarted
+    # (at least at UW) and I think being on the vpn doesn't immediately provide a way
+    # to break in; it's just a step.
     os.system('rm -rf /home/salvus/.ssh/id_rsa')
 
     # Restore existing user accounts

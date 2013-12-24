@@ -48,6 +48,9 @@ filesystem = (project_id) -> "projects/#{project_id}"
 
 mountpoint = (project_id) -> "/projects/#{project_id}"
 
+STORAGE_USER = 'salvus'
+STORAGE_TMP = '/home/salvus/storage/'
+
 execute_on = (opts) ->
     opts = defaults opts,
         host        : required
@@ -55,7 +58,7 @@ execute_on = (opts) ->
         err_on_exit : true
         err_on_stderr : true     # if anything appears in stderr then set err=output.stderr, even if the exit code is 0.
         timeout     : TIMEOUT
-        user        : 'storage'
+        user        : STORAGE_USER
         cb          : undefined
     t0 = misc.walltime()
     misc_node.execute_code
@@ -692,7 +695,7 @@ exports.send = send = (opts) ->
         opts.cb()
         return
 
-    tmp = "/home/storage/.storage-#{opts.project_id}-src-#{opts.source.host}-#{opts.source.version}-dest-#{opts.dest.host}-#{opts.dest.version}"
+    tmp = "#{STORAGE_TMP}/.storage-#{opts.project_id}-src-#{opts.source.host}-#{opts.source.version}-dest-#{opts.dest.host}-#{opts.dest.version}.lz4"
     f = filesystem(opts.project_id)
     clean_up = false
     async.series([
@@ -726,7 +729,7 @@ exports.send = send = (opts) ->
             # scp to destination
             execute_on
                 host    : opts.source.host
-                command : "scp -o StrictHostKeyChecking=no #{tmp} storage@#{opts.dest.host}:#{tmp}; echo ''>#{tmp}"
+                command : "scp -o StrictHostKeyChecking=no #{tmp} #{STORAGE_USER}@#{opts.dest.host}:#{tmp}; echo ''>#{tmp}"
                 cb      :  (err, output) ->
                     winston.debug(output)
                     cb(err)
