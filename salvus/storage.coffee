@@ -46,8 +46,8 @@ connect_to_database = (cb) ->
 exports.db = () -> database # TODO -- for testing
 
 filesystem = (project_id) -> "projects/#{project_id}"
-
 mountpoint = (project_id) -> "/projects/#{project_id}"
+username   = (project_id) -> project_id.replace(/-/g,'')
 
 execute_on = (opts) ->
     opts = defaults opts,
@@ -74,13 +74,27 @@ execute_on = (opts) ->
 ######################
 # Health/status
 ######################
-
+###
 # healthy and up  = "zpool list -H projects" responds like this within 5 seconds?
 # projects        508G    227G    281G    44%     2.22x   ONLINE  -
 # Or maybe check that "zpool import" isn't a running process?
+salvus@compute11a:~$ ps ax |grep zpool
+ 1445 ?        S      0:00 sh -c zpool import -Nf projects; mkdir -p /projects; chmod a+rx /projects
+ 1446 ?        D      0:00 zpool import -Nf projects
+
+or this since we don't need "sudo zpool":
+
+    storage@compute11a:~$ sudo zfs list projects
+    NAME       USED  AVAIL  REFER  MOUNTPOINT
+    projects   148G   361G  4.92M  /projects
+    salvus@cloud1:~$ sudo zfs list projects
+    [sudo] password for salvus:
+    cannot open 'projects': dataset does not exist
+
+###
 
 ######################
-# Users
+# Running Projects
 ######################
 
 
@@ -94,9 +108,58 @@ exports.create_user = create_user = (opts) ->
     execute_on
         host    : opts.host
         command : "sudo /usr/local/bin/create_project_user.py #{opts.project_id}"
-        user    : 'salvus'
-        timeout : 60
+        timeout : 30
         cb      : opts.cb
+
+# Open project on the given host.  This mounts the project, ensures the appropriate
+# user exists and that ssh-based login to that user works.
+exports.open_project = open_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : required
+        cb         : required
+    winston.info("opening project #{opts.project_id} on #{opts.host}")
+    dbg = (m) -> winston.debug("open_project(#{opts.project_id},#{opts.host}): #{m}")
+
+    async.series([
+        (cb) ->
+            dbg("mount filesystem")
+            execute_on
+                host    : opts.host
+                timeout : 30
+                command : "sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{filesystem(opts.project_id)}&&sudo zfs mount #{filesystem(opts.project_id)}"
+                cb      : (err, output) ->
+                    if err
+                        if err.indexOf('filesystem already mounted') != -1  or err.indexOf('cannot unmount') # non-fatal: to be expected if fs mounted/busy already
+                            err = undefined
+                    cb(err)
+        (cb) ->
+            dbg("create user")
+            create_user
+                project_id : opts.project_id
+                host       : opts.host
+                cb         : cb
+        (cb) ->
+            dbg("test login")
+            execute_on
+                host    : opts.host
+                timeout : 5
+                user    : username(opts.project_id)
+                command : "pwd"
+                cb      : (err, output) ->
+                    if err
+                        cb(err)
+                    else if output.stdout.indexOf(mountpoint(opts.project_id)) == -1
+                        cb("failed to properly mount project")
+                    else
+                        cb()
+    ], opts.cb)
+
+
+
+######################
+# Managing Projects
+######################
 
 
 exports.quota = quota = (opts) ->
@@ -187,6 +250,7 @@ exports.quota = quota = (opts) ->
             cb         : (err, output) ->
                 opts.cb?(err, opts.size)
 
+# Find a host for this project that has the most recent snapshot
 exports.updated_host = updated_host = (opts) ->
     opts = defaults opts,
         project_id : required
