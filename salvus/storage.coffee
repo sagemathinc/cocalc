@@ -103,13 +103,18 @@ exports.create_user = create_user = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
+        kill       : false   # if true, instead kill any processes by this user
         cb         : undefined
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
     execute_on
         host    : opts.host
-        command : "sudo /usr/local/bin/create_project_user.py #{opts.project_id}"
+        command : "sudo /usr/local/bin/create_project_user.py #{if opts.kill then '--kill' else ''} #{opts.project_id}"
         timeout : 30
         cb      : opts.cb
+
+
+
+
 
 # Open project on the given host.  This mounts the project, ensures the appropriate
 # user exists and that ssh-based login to that user works.
@@ -143,7 +148,7 @@ exports.open_project = open_project = (opts) ->
             dbg("test login")
             execute_on
                 host    : opts.host
-                timeout : 5
+                timeout : 10
                 user    : username(opts.project_id)
                 command : "pwd"
                 cb      : (err, output) ->
@@ -155,6 +160,36 @@ exports.open_project = open_project = (opts) ->
                         cb()
     ], opts.cb)
 
+
+exports.close_project = close_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : required
+        cb         : required
+    winston.info("close project #{opts.project_id} on #{opts.host}")
+    dbg = (m) -> winston.debug("close_project(#{opts.project_id},#{opts.host}): #{m}")
+
+    user = username(opts.project_id)
+    async.series([
+        (cb) ->
+            dbg("killing all processes")
+            create_user
+                project_id : opts.project_id
+                host       : opts.host
+                kill       : true
+                cb         : cb
+        (cb) ->
+            dbg("unmount filesystem")
+            execute_on
+                host    : opts.host
+                timeout : 30
+                command : "sudo zfs set mountpoint=none #{filesystem(opts.project_id)}&&sudo zfs umount #{filesystem(opts.project_id)}"
+                cb      : (err, output) ->
+                    if err
+                        if err.indexOf('not currently mounted') != -1    # non-fatal: to be expected (due to using both mountpoint setting and umount)
+                            err = undefined
+                    cb(err)
+    ], opts.cb)
 
 
 ######################

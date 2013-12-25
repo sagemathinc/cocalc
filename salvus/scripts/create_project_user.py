@@ -88,11 +88,18 @@ def ensure_ssh_access(project_id):
     os.system('chown -R %s. %s'%(username(project_id), ssh_path))
     os.system('chmod og-rwx -R %s'%ssh_path)
 
+def killall_user(project_id):
+    os.system("pkill -u %s"%username(project_id))
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="create project user")
+    parser.add_argument("--kill", help="instead of creating the user, kill all processes owned by the user", default=False, action="store_const", const=True)
     parser.add_argument("project_id", help="the uuid of the project", type=str)
     args = parser.parse_args()
-    create_user(args.project_id)
-    ensure_ssh_access(args.project_id)
+    if args.kill:
+        killall_user(args.project_id)
+    else: 
+        create_user(args.project_id)
+        ensure_ssh_access(args.project_id)
 
 
