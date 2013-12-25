@@ -70,6 +70,15 @@ execute_on = (opts) ->
             winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
             opts.cb?(err, output)
 
+
+######################
+# Health/status
+######################
+
+# healthy and up  = "zpool list -H projects" responds like this within 5 seconds?
+# projects        508G    227G    281G    44%     2.22x   ONLINE  -
+# Or maybe check that "zpool import" isn't a running process?
+
 ######################
 # Users
 ######################

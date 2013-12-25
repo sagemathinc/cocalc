@@ -88,11 +88,11 @@ def conf():
         cmd("/mnt/conf/post")
 
     # Create the storage user in case it doesn't exist
-    cmd("groupadd -g 1001 -o storage")
-    cmd("useradd -u 1001 -g 1001 -o -d /home/storage storage")
+    cmd("groupadd -g 999 -o storage")
+    cmd("useradd -u 999 -g 999 -o -d /home/storage storage")
 
-    cmd("chmod og-rwx /home/salvus/.ssh/id_rsa")
-    cmd("chmod og-rwx /home/storage/")
+    cmd("chmod og-rwx -R /home/salvus/")
+    cmd("chmod og-rwx -R /home/storage/")
 
     # Import the ZFS pool -- without mounting!
     cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")

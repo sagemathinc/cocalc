@@ -53,9 +53,11 @@ if os.path.exists('/mnt/home/'):
     # Copy over newest version of sudo project creation script, and ensure permissions are right.
     os.system("cp /home/salvus/salvus/salvus/scripts/create_project_user.py /usr/local/bin/; chmod og-w /usr/local/bin/create_project_user.py; chmod og+rx /usr/local/bin/create_project_user.py")
 
-    # Create the storage user
-    os.system("groupadd -g 1001 -o storage")
-    os.system("useradd -u 1001 -g 1001 -o -d /home/storage storage")
+    # Re-create the storage user
+    os.system("groupadd -g 999 -o storage")
+    os.system("useradd -u 999 -g 999 -o -d /home/storage storage")
+    os.system("chown -R storage. /home/storage")
+    os.system("chmod og-rwx -R /home/storage/&")
 
     # Import the ZFS pool -- without mounting!
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
@@ -65,8 +67,7 @@ else:
     # not a compute node, so no need for the storage account, which provides some ssh stuff we might not need...
     os.system('rm -rf /home/storage/')
 
-# Lock down some perms a little, just in case.
-cmd("chmod og-rwx /home/salvus/.ssh/id_rsa")
-cmd("chmod og-rwx -R /home/storage/")
+# Lock down some perms a little, just in case I were to mess up somehow at some point
+os.system("chmod og-rwx -R /home/salvus/&")
 
 
