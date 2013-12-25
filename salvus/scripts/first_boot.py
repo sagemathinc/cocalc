@@ -3,16 +3,19 @@
 # This script is run by /etc/rc.local when booting up.  It does special configuration
 # depending on what images are mounted, etc.
 
-import os, socket
+import os, socket, sys
 
 # If hostname isn't "salvus-base", then setup /tmp and swap.
 
-if socket.gethostname() != "salvus-base":
-    # Enable swap
-    if not os.path.exists("/mnt/home/"):
-        os.system("swapon /dev/salvus-base/swap")
-    # Mount tmp
-    os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
+if socket.gethostname() == "salvus-base":
+    sys.exit(0)
+
+# Enable swap
+if not os.path.exists("/mnt/home/"):
+    os.system("swapon /dev/salvus-base/swap")
+
+# Mount tmp
+os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 
 if os.path.exists('/mnt/home/'):
 
