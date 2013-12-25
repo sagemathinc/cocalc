@@ -42,7 +42,7 @@ def create_user(project_id):
     if i != -1:
         r = r[i:]
         i = r.find('\n')
-        u = r[:i].split(':')[2]
+        u = int(r[:i].split(':')[2])
     else:
         u = 0
     if u == id:
@@ -50,8 +50,7 @@ def create_user(project_id):
         return
     if u != 0:
         # there's the username but with wrong id
-        cmd("groupdel %s"%name)
-        cmd("userdel %s"%name)
+        cmd("userdel %s"%name)  # this also deletes the group
 
     # Now make the correct user.  The -o makes it so in the incredibly unlikely
     # event of a collision, no big deal.
