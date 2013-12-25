@@ -46,8 +46,6 @@ if os.path.exists('/mnt/home/'):
     # Scratch is persistent but not backed up.
     os.system("mkdir -p /mnt/home/scratch; mkdir -p /scratch; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/scratch /scratch;  chmod a+rwx /mnt/home/scratch/")
 
-    # Import the ZFS pool -- without mounting!
-    os.system("zpool import -Nf projects; mkdir -p /projects; chmod a+rx /projects")
 
     # Copy over newest version of sudo project creation script, and ensure permissions are right.
     os.system("cp /home/salvus/salvus/salvus/scripts/create_project_user.py /usr/local/bin/; chmod og-w /usr/local/bin/create_project_user.py; chmod og+rx /usr/local/bin/create_project_user.py")
@@ -55,6 +53,9 @@ if os.path.exists('/mnt/home/'):
     # Create the storage user
     os.system("groupadd -g 1001 -o storage")
     os.system("useradd -u 1001 -g 1001 -o -d /home/storage storage")
+
+    # Import the ZFS pool -- without mounting!
+    os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
 else:
 

@@ -94,6 +94,9 @@ def conf():
     cmd("chmod og-rwx /home/salvus/.ssh/id_rsa")
     cmd("chmod og-rwx /home/storage/")
 
+    # Import the ZFS pool -- without mounting!
+    cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
+
 if __name__ == "__main__":
     if mount_conf():
         conf()
