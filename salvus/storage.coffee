@@ -15,6 +15,7 @@ async     = require 'async'
 misc      = require 'misc'
 misc_node = require 'misc_node'
 uuid      = require 'node-uuid'
+_         = require 'underscore'
 {defaults, required} = misc
 
 # Set the log level to debug
@@ -103,17 +104,14 @@ exports.create_user = create_user = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
-        kill       : false   # if true, instead kill any processes by this user
+        action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton)
         cb         : undefined
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
     execute_on
         host    : opts.host
-        command : "sudo /usr/local/bin/create_project_user.py #{if opts.kill then '--kill' else ''} #{opts.project_id}"
+        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} #{opts.project_id}"
         timeout : 30
         cb      : opts.cb
-
-
-
 
 
 # Open project on the given host.  This mounts the project, ensures the appropriate
@@ -142,6 +140,7 @@ exports.open_project = open_project = (opts) ->
             dbg("create user")
             create_user
                 project_id : opts.project_id
+                action     : 'create'
                 host       : opts.host
                 cb         : cb
         (cb) ->
@@ -176,7 +175,7 @@ exports.close_project = close_project = (opts) ->
             create_user
                 project_id : opts.project_id
                 host       : opts.host
-                kill       : true
+                action     : 'kill'
                 cb         : cb
         (cb) ->
             dbg("unmount filesystem")
@@ -190,6 +189,100 @@ exports.close_project = close_project = (opts) ->
                             err = undefined
                     cb(err)
     ], opts.cb)
+
+
+# Creates project with given id on exactly one (random) available host, and
+# returns that host.  This also snapshots the projects, which puts it in the
+# database.  It does not replicate the project out to all hosts. 
+exports.create_project = create_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        quota      : '5G'
+        cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
+
+    winston.info("create project #{opts.project_id}")
+    dbg = (m) -> winston.debug("create_project(#{opts.project_id}): #{m}")
+
+    dbg("check if the project filesystem already exists somewhere")
+    get_hosts
+        project_id : opts.project_id
+        cb         : (err, hosts) ->
+            if err
+                opts.cb(err); return
+            if hosts.length > 0
+                opts.cb(undefined, [hosts[0]]); return
+
+            # according to DB, the project filesystem doesn't exist anywhere, so let's make it somewhere...
+            locs = _.flatten(locations(project_id:opts.project_id))
+
+            # try each host in locs (in random order) until one works
+            done = false
+            fs = filesystem(opts.project_id)
+            host = undefined
+            errors = []
+            f = (i, cb) ->
+                if done
+                    cb(); return
+                dbg("try to allocate project (attempt #{i+1})")
+                host = misc.random_choice(locs)
+                misc.remove(locs, host)
+                async.series([
+                    (c) ->
+                        dbg("creating ZFS filesystem")
+                        execute_on
+                            host    : host
+                            command : "sudo zfs create #{fs} && sudo zfs set snapdir=hidden #{fs} && sudo zfs set quota=#{opts.quota} #{fs}"
+                            timeout : 15
+                            cb      : c
+                    (c) ->
+                        dbg("created fs successfully; now create user")
+                        create_user
+                            project_id : opts.project_id
+                            host       : host
+                            action     : 'create'
+                            cb         : c
+                    (c) ->
+                        dbg("now open the project (so it's mounted)")
+                        open_project
+                            project_id : opts.project_id
+                            host       : host
+                            cb         : c
+                    (c) ->
+                        dbg("copy over the template files, e.g., .sagemathcloud")
+                        create_user
+                            project_id : opts.project_id
+                            action     : 'skel'
+                            host       : host
+                            cb         : c
+                    (c) ->
+                        dbg("close the project ")
+                        close_project
+                            project_id : opts.project_id
+                            host       : host
+                            cb         : c
+                    (c) ->
+                        dbg("snapshot the project")
+                        snapshot
+                            project_id : opts.project_id
+                            host       : host
+                            cb         : c
+                ], (err) ->
+                    if not err
+                        done = true
+                    else
+                        dbg("error #{host} -- #{err}")
+                        errors.push(err)
+                    cb()
+                )
+            async.mapSeries [0...locs.length], f, () ->
+                if done
+                    opts.cb(undefined, host)
+                else
+                    opts.cb(errors)
+
+
+
+
 
 
 ######################
@@ -357,7 +450,7 @@ exports.get_usage = get_usage = (opts) ->
 
 # Make a snapshot of a given project on a given host and record
 # this in the database.
-exports.snapshot = (opts) ->
+exports.snapshot = snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
@@ -403,14 +496,20 @@ exports.get_snapshots = get_snapshots = (opts) ->
         # snapshots on a particular host.
         return
     else
-        database.select_one
+        database.select
             table   : 'projects'
             columns : ['locations']
             where   : {project_id : opts.project_id}
             cb      : (err, result) ->
                 if err
                     opts.cb(err)
-                else if opts.host?
+                    return
+                if result.length == 0 # no record of this project, so no hosts; not an error
+                    opts.cb(undefined, [])
+                    return
+                else
+                    result = result[0]
+                if opts.host?
                     if not result?
                         opts.cb(undefined, [])
                     else
@@ -427,6 +526,7 @@ exports.get_snapshots = get_snapshots = (opts) ->
                     opts.cb(undefined, ans)
 
 # Compute list of all hosts that actually have some version of the project.
+# WARNING: returns an empty list if the project doesn't exist in the database!  *NOT* an error.
 exports.get_hosts = get_hosts = (opts) ->
     opts = defaults opts,
         project_id : required

@@ -89,17 +89,29 @@ def ensure_ssh_access(project_id):
     os.system('chmod og-rwx -R %s'%ssh_path)
 
 def killall_user(project_id):
-    os.system("pkill -u %s"%username(project_id))
+    os.system("pkill -u %s"%uid(project_id))
+
+def copy_skeleton(project_id):
+    h = home(project_id)
+    u = username(project_id)
+    if not os.path.exists(h):
+        raise RuntimeError("home directory %s doesn't exist"%h)
+    os.system("rsync -axvH --update /home/salvus/salvus/salvus/scripts/skel/ %s/"%h)  # update so we don't overwrite newer versions
+    os.system("chown -R %s. %s"%(u, h))
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="create project user")
-    parser.add_argument("--kill", help="instead of creating the user, kill all processes owned by the user", default=False, action="store_const", const=True)
+    parser = argparse.ArgumentParser(description="Project user control script")
+    parser.add_argument("--kill", help="kill all processes owned by the user", default=False, action="store_const", const=True)
+    parser.add_argument("--skel", help="rsync /home/salvus/salvus/salvus/scripts/skel/ to the home directory of the project", default=False, action="store_const", const=True)
+    parser.add_argument("--create", help="create the project user", default=False, action="store_const", const=True)
     parser.add_argument("project_id", help="the uuid of the project", type=str)
     args = parser.parse_args()
-    if args.kill:
-        killall_user(args.project_id)
-    else: 
+    if args.create:
         create_user(args.project_id)
         ensure_ssh_access(args.project_id)
+    if args.skel:
+        copy_skeleton(args.project_id)
+    if args.kill:
+        killall_user(args.project_id)
 
 
