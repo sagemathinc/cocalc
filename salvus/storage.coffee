@@ -67,7 +67,10 @@ execute_on = (opts) ->
         err_on_exit : opts.err_on_exit
         cb          : (err, output) ->
             if not err? and opts.err_on_stderr and output.stderr
-                err = output.stderr
+                # strip out the ssh key warnings, which we'll get the first time connecting to hosts, and which are not errors.
+                x = (y for y in output.stderr.split('\n') when (y.trim().lenth > 0 and y.indexOf('Warning') == -1 and y.indexOf('to the list of known hosts') == -1))
+                if x.length > 0
+                    err = output.stderr
             winston.debug("#{misc.walltime(t0)} seconds to execute '#{opts.command}' on #{opts.host}")
             opts.cb?(err, output)
 
@@ -209,8 +212,8 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                             dbg("nonfatal error attempting to open on #{cur_loc} -- #{err}")
                         cb()
         (cb) ->
-            if host_used?
-                cb(); return # done
+            if host_used?  # done?
+                cb(); return
             dbg("getting and sorting available hosts")
             get_snapshots
                 project_id : opts.project_id
@@ -226,11 +229,12 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                         dbg("hosts = #{misc.to_json(hosts)}")
                         cb()
         (cb) ->
+            if host_used?  # done?
+                cb(); return
             dbg("trying each possible host until one works -- hosts=#{misc.to_json(hosts)}")
             f = (host, c) ->
                 if host_used?
                     c(); return
-
                 dbg("trying to open project on #{host}")
                 open_project
                     project_id : opts.project_id
@@ -244,7 +248,6 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                         c()
 
             async.mapSeries(hosts, f, cb)
-
         (cb) ->
             if host_used? and host_used != cur_loc
                 dbg("record location in database")
@@ -1054,7 +1057,7 @@ exports.send = send = (opts) ->
                 host    : opts.dest.host
                 command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}; rm #{tmp}"
                 cb      : (err, output) ->
-                    winston.debug(output)
+                    winston.debug("(non-fatal)-- #{output}")
                     if output?.stderr?
                         if output.stderr.indexOf('destination has snapshots') != -1
                             # this is likely caused by the database being stale regarding what snapshots are known,
