@@ -517,7 +517,7 @@ class exports.Cassandra extends EventEmitter
     update: (opts={}) ->
         opts = defaults opts,
             table     : required
-            where     : {}
+            where     : required
             set       : {}
             ttl       : 0
             cb        : undefined

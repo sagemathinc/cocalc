@@ -113,14 +113,14 @@ exports.create_user = create_user = (opts) ->
         timeout : 30
         cb      : opts.cb
 
-
 # Open project on the given host.  This mounts the project, ensures the appropriate
 # user exists and that ssh-based login to that user works.
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
-        cb         : required
+        cb         : required   # cb(err, host used)
+
     winston.info("opening project #{opts.project_id} on #{opts.host}")
     dbg = (m) -> winston.debug("open_project(#{opts.project_id},#{opts.host}): #{m}")
 
@@ -159,6 +159,113 @@ exports.open_project = open_project = (opts) ->
                         cb()
     ], opts.cb)
 
+# Open the project on some host, if possible.  First, try the host listed in the location field
+# in the database, if it is set.  If it isn't set, try other locations until success, trying
+# the ones with the newest snasphot, breaking ties at random.
+exports.open_project_somewhere = open_project_somewhere = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required   # cb(err, host used)
+
+    dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id}): #{m}")
+
+    cur_loc   = undefined
+    host_used = undefined
+    hosts     = undefined
+    async.series([
+        (cb) ->
+            dbg("get current location of project from database")
+            database.select_one
+                table   : 'projects'
+                where   : {project_id : opts.project_id}
+                json    : ['location']
+                columns : ['location']
+                cb      : (err, r) ->
+                    if r?[0]?
+                        # e.g., r = [{"host":"10.3.1.4","username":"c1f1dc4adbf04fc69878012020a0a829","port":22,"path":"."}]
+                        if r[0].username != username(opts.project_id)
+                            cb("project #{opts.project_id} not yet migrated?!")
+                        else
+                            cur_loc = r[0]?.host
+                            if cur_loc == ""
+                                cur_loc = undefined
+                            cb()
+                    else
+                        cb(err)
+        (cb) ->
+            if not cur_loc?
+                dbg("no current location")
+                # we'll try all other hosts in the next step
+                cb()
+            else
+                dbg("trying to open at currently set location")
+                open_project
+                    project_id : opts.project_id
+                    host       : cur_loc
+                    cb         : (err) ->
+                        if not err
+                            host_used = cur_loc  # success!
+                        else
+                            dbg("nonfatal error attempting to open on #{cur_loc} -- #{err}")
+                        cb()
+        (cb) ->
+            if host_used?
+                cb(); return # done
+            dbg("getting and sorting available hosts")
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                    if err
+                        cb(err)
+                    else
+                        v = ([snaps[0], host] for host, snaps of snapshots when snaps?.length >=1 and host != cur_loc)
+                        v.sort()
+                        v.reverse()
+                        dbg("v = #{misc.to_json(v)}")
+                        hosts = (x[1] for x in v)
+                        dbg("hosts = #{misc.to_json(hosts)}")
+                        cb()
+        (cb) ->
+            dbg("trying each possible host until one works -- hosts=#{misc.to_json(hosts)}")
+            f = (host, c) ->
+                if host_used?
+                    c(); return
+
+                dbg("trying to open project on #{host}")
+                open_project
+                    project_id : opts.project_id
+                    host       : host
+                    cb         : (err) ->
+                        if not err
+                            dbg("project worked on #{host}")
+                            host_used = host
+                        else
+                            dbg("nonfatal error attempting to open on #{host}")
+                        c()
+
+            async.mapSeries(hosts, f, cb)
+
+        (cb) ->
+            if host_used? and host_used != cur_loc
+                dbg("record location in database")
+                database.update
+                    table : 'projects'
+                    set   : {location:{"host":host_used,"username":username(opts.project_id),"port":22,"path":"."}}
+                    json  : ['location']
+                    where : {project_id : opts.project_id}
+                    cb    : cb
+            else
+                cb()
+    ], (err) ->
+        if err
+            opts.cb(err)
+        else
+            if not host_used?
+                opts.cb("unable to find any host on which to run #{opts.project_id} -- all failed")
+            else
+                opts.cb(undefined, host_used)
+    )
+
 
 exports.close_project = close_project = (opts) ->
     opts = defaults opts,
@@ -193,7 +300,7 @@ exports.close_project = close_project = (opts) ->
 
 # Creates project with given id on exactly one (random) available host, and
 # returns that host.  This also snapshots the projects, which puts it in the
-# database.  It does not replicate the project out to all hosts. 
+# database.  It does not replicate the project out to all hosts.
 exports.create_project = create_project = (opts) ->
     opts = defaults opts,
         project_id : required
