@@ -41,14 +41,17 @@ connect_to_database = (cb) ->
                 consistency : 1
                 password : password.toString().trim()
                 cb       : (err, db) ->
-                    database = db
-                    cb(err)
+                    set_database(db, cb)
+
+exports.set_database = set_database = (db, cb) ->
+    database = db
+    init_hashrings(cb)
 
 exports.db = () -> database # TODO -- for testing
 
 filesystem = (project_id) -> "projects/#{project_id}"
 mountpoint = (project_id) -> "/projects/#{project_id}"
-username   = (project_id) -> project_id.replace(/-/g,'')
+exports.username = username   = (project_id) -> project_id.replace(/-/g,'')
 
 execute_on = (opts) ->
     opts = defaults opts,
@@ -162,6 +165,31 @@ exports.open_project = open_project = (opts) ->
                         cb()
     ], opts.cb)
 
+# Current hostname of computer where project is currently opened.
+exports.get_current_location = get_current_location = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required      # cb(err, hostname or undefined); undefined if project not opened.
+    winston.debug("getting location of #{opts.project_id} from database")
+    database.select_one
+        table   : 'projects'
+        where   : {project_id : opts.project_id}
+        json    : ['location']
+        columns : ['location']
+        cb      : (err, r) ->
+            if r?[0]?
+                # e.g., r = [{"host":"10.3.1.4","username":"c1f1dc4adbf04fc69878012020a0a829","port":22,"path":"."}]
+                if r[0].username != username(opts.project_id)
+                    opts.cb("project #{opts.project_id} not yet migrated?!")
+                else
+                    cur_loc = r[0]?.host
+                    if cur_loc == ""
+                        cur_loc = undefined
+                    opts.cb(undefined, cur_loc)
+            else
+                opts.cb(err)
+
+
 # Open the project on some host, if possible.  First, try the host listed in the location field
 # in the database, if it is set.  If it isn't set, try other locations until success, trying
 # the ones with the newest snasphot, breaking ties at random.
@@ -178,23 +206,11 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
     async.series([
         (cb) ->
             dbg("get current location of project from database")
-            database.select_one
-                table   : 'projects'
-                where   : {project_id : opts.project_id}
-                json    : ['location']
-                columns : ['location']
-                cb      : (err, r) ->
-                    if r?[0]?
-                        # e.g., r = [{"host":"10.3.1.4","username":"c1f1dc4adbf04fc69878012020a0a829","port":22,"path":"."}]
-                        if r[0].username != username(opts.project_id)
-                            cb("project #{opts.project_id} not yet migrated?!")
-                        else
-                            cur_loc = r[0]?.host
-                            if cur_loc == ""
-                                cur_loc = undefined
-                            cb()
-                    else
-                        cb(err)
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    cur_loc = x
+                    cb(err)
         (cb) ->
             if not cur_loc?
                 dbg("no current location")
@@ -221,11 +237,15 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                     if err
                         cb(err)
                     else
-                        v = ([snaps[0], host] for host, snaps of snapshots when snaps?.length >=1 and host != cur_loc)
+                        # The Math.random() makes it so we randomize the order of the hosts with snapshots that tie.
+                        # It's just a simple trick to code something that would otherwise be very awkward.
+                        # TODO: This induces some distribution on the set of permutations, but I don't know if it is the
+                        # uniform distribution (I only thought for a few seconds).  If not, fix it later.
+                        v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1 and host != cur_loc)
                         v.sort()
                         v.reverse()
                         dbg("v = #{misc.to_json(v)}")
-                        hosts = (x[1] for x in v)
+                        hosts = (x[2] for x in v)
                         dbg("hosts = #{misc.to_json(hosts)}")
                         cb()
         (cb) ->
@@ -1171,14 +1191,11 @@ exports.replicate_all = replicate_all = (opts) ->
 ###
 
 exports.init = init = (cb) ->
-    async.series([
-        connect_to_database
-        init_hashrings
-    ], cb)
+    connect_to_database(cb)
 
 # TODO
-init (err) ->
-    winston.debug("init -- #{err}")
+#init (err) ->
+#    winston.debug("init -- #{err}")
 
 
 
