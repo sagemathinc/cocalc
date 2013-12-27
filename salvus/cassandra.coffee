@@ -423,11 +423,11 @@ class exports.Cassandra extends EventEmitter
         for key, val of properties
             if key in json
                 val = to_json(val)
-            if val?  # only consider properties with defined values
+            if val?
                 if misc.is_valid_uuid_string(val)
                     # The Helenus driver is completely totally
                     # broken regarding uuid's (their own UUID type
-                    # doesn't work at all). (as of April 15, 2013)
+                    # doesn't work at all). (as of April 15, 2013)  - TODO: revisit this since I'm not using Helenus anymore.
                     # This is of course scary/dangerous since what if x2 is accidentally a uuid!
                     set += "#{key}=#{val},"
                 else if typeof(val) != 'boolean'
@@ -436,6 +436,8 @@ class exports.Cassandra extends EventEmitter
                 else
                     # TODO: here we work around a driver bug :-(
                     set += "#{key}=#{val},"
+            else
+                set += "#{key}=null,"
         return set.slice(0,-1)
 
     close: () ->
