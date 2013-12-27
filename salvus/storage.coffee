@@ -105,7 +105,7 @@ or this since we don't need "sudo zpool":
 ######################
 
 
-# if user doesn't exist, create them
+# if user doesn't exist on the given host, create them
 exports.create_user = create_user = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -293,8 +293,13 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
 exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         project_id : required
-        host       : required
+        host       : undefined  # defaults to current host; doesn't nothing if not deployed on any host.
         cb         : required
+
+    if not opts.host?
+        use_current_host(close_project, opts)
+        return
+
     winston.info("close project #{opts.project_id} on #{opts.host}")
     dbg = (m) -> winston.debug("close_project(#{opts.project_id},#{opts.host}): #{m}")
 
@@ -318,6 +323,12 @@ exports.close_project = close_project = (opts) ->
                         if err.indexOf('not currently mounted') != -1    # non-fatal: to be expected (due to using both mountpoint setting and umount)
                             err = undefined
                     cb(err)
+        (cb) ->
+            database.update
+                table : 'projects'
+                set   : {location:undefined}
+                where : {project_id : opts.project_id}
+                cb    : cb
     ], opts.cb)
 
 
@@ -578,14 +589,32 @@ exports.get_usage = get_usage = (opts) ->
 # Snapshotting
 ######################
 
+use_current_host = (f, opts) ->
+    get_current_location
+        project_id : opts.project_id
+        cb         : (err, host) ->
+            if err
+                opts.cb(err)
+            else if host?
+                opts.host = host
+                f(opts)
+            else
+                # no current host -- nothing to do
+                opts.cb()
+
+
 # Make a snapshot of a given project on a given host and record
 # this in the database.
 exports.snapshot = snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
-        host       : required
+        host       : undefined    # if not given, use current location (if deployed; if not deployed does nothing)
         tag        : undefined
         cb         : undefined
+
+    if not opts.host?
+        use_current_host(snapshot, opts)
+        return
 
     winston.debug("snapshotting #{opts.project_id} on #{opts.host}")
 
@@ -605,7 +634,7 @@ exports.snapshot = snapshot = (opts) ->
                 cb      : cb
         (cb) ->
             # 2. record in database that snapshot was made
-            record_snapshot
+            record_snapshot_in_db
                 project_id : opts.project_id
                 host       : opts.host
                 name       : now + tag
@@ -622,38 +651,34 @@ exports.get_snapshots = get_snapshots = (opts) ->
         project_id : required
         host       : undefined
         cb         : required
-    if opts.hosts?
-        # snapshots on a particular host.
-        return
-    else
-        database.select
-            table   : 'projects'
-            columns : ['locations']
-            where   : {project_id : opts.project_id}
-            cb      : (err, result) ->
-                if err
-                    opts.cb(err)
-                    return
-                if result.length == 0 # no record of this project, so no hosts; not an error
+    database.select
+        table   : 'projects'
+        columns : ['locations']
+        where   : {project_id : opts.project_id}
+        cb      : (err, result) ->
+            if err
+                opts.cb(err)
+                return
+            if result.length == 0 # no record of this project, so no hosts; not an error
+                opts.cb(undefined, [])
+                return
+            else
+                result = result[0]
+            if opts.host?
+                if not result?
                     opts.cb(undefined, [])
-                    return
                 else
-                    result = result[0]
-                if opts.host?
-                    if not result?
-                        opts.cb(undefined, [])
+                    v = result[0][opts.host]
+                    if v?
+                        v = JSON.parse(v)
                     else
-                        v = result[0][opts.host]
-                        if v?
-                            v = JSON.parse(v)
-                        else
-                            v = []
-                        opts.cb(undefined, v)
-                else
-                    ans = {}
-                    for k, v of result[0]
-                        ans[k] = JSON.parse(v)
-                    opts.cb(undefined, ans)
+                        v = []
+                    opts.cb(undefined, v)
+            else
+                ans = {}
+                for k, v of result[0]
+                    ans[k] = JSON.parse(v)
+                opts.cb(undefined, ans)
 
 # Compute list of all hosts that actually have some version of the project.
 # WARNING: returns an empty list if the project doesn't exist in the database!  *NOT* an error.
@@ -669,7 +694,7 @@ exports.get_hosts = get_hosts = (opts) ->
             else
                 opts.cb(undefined, (host for host, snaps of snapshots when snaps?.length > 0))
 
-exports.record_snapshot = record_snapshot = (opts) ->
+exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
@@ -709,7 +734,7 @@ exports.record_snapshot = record_snapshot = (opts) ->
 
 # Set the list of snapshots for a given project.  The
 # input list is assumed sorted in reverse order (so newest first).
-set_snapshots = (opts) ->
+set_snapshots_in_db = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
@@ -738,7 +763,7 @@ set_snapshots = (opts) ->
 
 # Connect to host, find out the snapshots, and put the definitely
 # correct ordered (newest first) list in the database.
-exports.repair_snapshots = repair_snapshots = (opts) ->
+exports.repair_snapshots_in_db = repair_snapshots_in_db = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined   # use "all" for **all** possible hosts on the whole cluster
@@ -759,7 +784,7 @@ exports.repair_snapshots = repair_snapshots = (opts) ->
                             cb(err)
             (cb) ->
                 f = (host, cb) ->
-                    repair_snapshots
+                    repair_snapshots_in_db
                         project_id : opts.project_id
                         host       : host
                         cb         : cb
@@ -796,19 +821,12 @@ exports.repair_snapshots = repair_snapshots = (opts) ->
                         cb()
         (cb) ->
             # 2. put in database
-            set_snapshots
+            set_snapshots_in_db
                 project_id : opts.project_id
                 host       : opts.host
                 snapshots  : snapshots
                 cb         : cb
     ], (err) -> opts.cb?(err))
-
-
-
-
-project_needs_replication = (opts) ->
-    # TODO: not sure if I'm going to do anything with this...
-    opts.cb?()
 
 
 # Destroy snapshot of a given project on one or all hosts that have that snapshot,
@@ -851,7 +869,7 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
                     cb(err)
         (cb) ->
             # 2. success -- so record in database that snapshot was *deleted*
-            record_snapshot
+            record_snapshot_in_db
                 project_id : opts.project_id
                 host       : opts.host
                 name       : opts.name
@@ -1082,7 +1100,7 @@ exports.send = send = (opts) ->
                         if output.stderr.indexOf('destination has snapshots') != -1
                             # this is likely caused by the database being stale regarding what snapshots are known,
                             # so we run a repair so that next time it will work.
-                            repair_snapshots
+                            repair_snapshots_in_db
                                 project_id : opts.project_id
                                 host       : opts.dest.host
                                 cb         : (ignore) ->
@@ -1093,7 +1111,7 @@ exports.send = send = (opts) ->
         (cb) ->
             # update database to reflect the new list of snapshots resulting from this recv
             # We use repair_snapshots to guarantee that this is correct.
-            repair_snapshots
+            repair_snapshots_in_db
                 project_id : opts.project_id
                 host       : opts.dest.host
                 cb         : cb
@@ -1130,7 +1148,7 @@ exports.destroy_project = destroy_project = (opts) ->
                     cb(err)
         (cb) ->
             # 2. success -- so record in database that project is no longer on this host.
-            set_snapshots
+            set_snapshots_in_db
                 project_id : opts.project_id
                 host       : opts.host
                 snapshots  : []
