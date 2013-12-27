@@ -83,7 +83,13 @@ Before building, do:
 
     dpkg -i */*.deb
 
+# LZ4 -- compression
 
+    # Ubuntu
+    sudo add-apt-repository ppa:gezakovacs/lz4; sudo apt-get update; sudo apt-get install liblz4-tool
+
+    # Debian
+    cd /tmp/; wget https://dl.dropboxusercontent.com/u/59565338/LZ4/lz4-r109.tar.gz; tar xvf lz4-r109.tar.gz; cd lz4-r109; make install; rm -rf /tmp/lz4-r109
 
 
 # For VM hardware hosts only (?):  chmod a+rw /dev/fuse
@@ -354,7 +360,7 @@ NODE_MODULES = [
     'emailjs@0.3.4',   # version hold back because of https://github.com/eleith/emailjs/commits/master
     'cookies', 'htmlparser', 'mime', 'pty.js', 'posix',
     'mkdirp', 'walk', 'temp', 'googlediff', 'formidable@latest',
-    'moment', 'underscore', 'read'
+    'moment', 'underscore', 'read', 'hashring', 'rimraf'
     ]
 
 PYTHON_PACKAGES = [

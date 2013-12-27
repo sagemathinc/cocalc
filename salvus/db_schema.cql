@@ -254,8 +254,15 @@ CREATE TABLE projects (
      last_edited      timestamp,// timestamp of last modification of the project
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
-     replicas         map<text, timestamp>, //  {ip_address:last_replicated_snapshot} -- 
-     quota            varchar,  // JSON
+
+     storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
+     locations        map<text, text>,   // ip_address --> snapshots available there
+
+
+     quota            varchar,
+
+     quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
+     usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
 
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
 
@@ -500,5 +507,25 @@ CREATE TABLE file_access_log (
     filename   varchar,
     PRIMARY KEY(day, timestamp, account_id, project_id)
 );
+
+
+
+CREATE TABLE storage_topology (
+    data_center  varchar,
+    host         varchar,
+    vnodes       int,
+    PRIMARY KEY (data_center, host)
+);
+
+
+
+
+
+
+
+
+
+
+
 
 

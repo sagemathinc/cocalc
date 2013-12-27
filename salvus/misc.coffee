@@ -171,6 +171,15 @@ exports.len = (obj) -> Object.keys(obj).length
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = (obj) -> (key for key of obj)
 
+# remove first occurrence of value (just like in python);
+# throws an exception if val not in list.
+exports.remove = (obj, val) ->
+    for i in [0...obj.length]
+        if obj[i] == val
+            obj.splice(i, 1)
+            return
+    throw "ValueError -- item not in array"
+
 # convert an array of 2-element arrays to an object, e.g., [['a',5], ['xyz','10']] --> {a:5, xyz:'10'}
 exports.pairs_to_obj = (v) ->
     o = {}
