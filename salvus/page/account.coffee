@@ -738,7 +738,7 @@ $("#account-forgot_password-button-submit").click (event) ->
 forgot_password_reset = $("#account-forgot_password_reset")
 url_args = window.location.href.split("#")
 if url_args.length == 2 and url_args[1].slice(0,6) == "forgot"
-    forget_password_reset_key = url_args[1].split('%')[1]
+    forget_password_reset_key = url_args[1].slice(7,7+36)
     forgot_password_reset.modal("show")
 
     # this line is just stupid; but it doesn't matter if it fails
