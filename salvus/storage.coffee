@@ -589,7 +589,11 @@ exports.get_usage = get_usage = (opts) ->
 # Snapshotting
 ######################
 
+# set opts.host to the currently deployed host, then do f(opts).
+# If project not currently deployed, do nothing.
 use_current_host = (f, opts) ->
+    if opts.host?
+        throw("BUG! -- should never call use_best_host with host already set -- infinite recurssion")
     get_current_location
         project_id : opts.project_id
         cb         : (err, host) ->
@@ -601,6 +605,64 @@ use_current_host = (f, opts) ->
             else
                 # no current host -- nothing to do
                 opts.cb()
+
+# Set opts.host to the best host, where best = currently deployed, or if project isn't deployed,
+# it means a randomly selected host with the newest snapshot.  Then does f(opts).
+use_best_host = (f, opts) ->
+    dbg = (m) -> winston.debug("use_best_host(#{misc.to_json(opts)}): #{m}")
+    dbg()
+
+    if opts.host?
+        throw("BUG! -- should never call use_best_host with host already set -- infinite recurssion")
+    snapshots = undefined
+    async.series([
+        (cb) ->
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, host) ->
+                    if err
+                        cb(err)
+                    else if host?
+                        dbg("using currently deployed host")
+                        opts.host = host
+                        cb()
+                    else
+                        dbg("no current deployed host -- choose best one")
+                        cb()
+        (cb) ->
+            if opts.host?
+                cb(); return
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    snapshots = x
+                    cb(err)
+        (cb) ->
+            if opts.host?
+                cb(); return
+            # The Math.random() makes it so we randomize the order of the hosts with snapshots that tie.
+            # It's just a simple trick to code something that would otherwise be very awkward.
+            # TODO: This induces some distribution on the set of permutations, but I don't know if it is the
+            # uniform distribution (I only thought for a few seconds).  If not, fix it later.
+            v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1 and host != cur_loc)
+            v.sort()
+            v.reverse()
+            hosts = (x[2] for x in v)
+            host = hosts[0]
+            if not host?
+                cb("no available host")
+            else
+                dbg("using host = #{misc.to_json(host)}")
+                opts.host = host
+                cb()
+    ], (err) ->
+        if err
+            opts.cb(err)
+        else if opts.host?
+            f(opts)
+        else
+            opts.cb("no available host")
+    )
 
 
 # Make a snapshot of a given project on a given host and record
@@ -878,39 +940,78 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
     ], (err) -> opts.cb?(err))
 
 
-ZFS_CHANGES={'-':'removed', '+':'created', 'M':'modified', 'R':'renamed'}
-
-ZFS_FILE_TYPES={'B':'block device', 'C':'character device', '/':'directory', '>':'door', '|':'named pipe', '@':'symbolic link','P':'event port', '=':'socket', 'F':'regular file'}
-
-exports.diff = diff = (opts) ->
+# WARNING: this function is very, very, very SLOW -- often 15-30 seconds, easily.
+# Hence it is really not suitable to use for anything realtime.
+exports.zfs_diff = zfs_diff = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined   # undefined = currently deployed location; if not deployed, chooses one
         snapshot1  : required
         snapshot2  : undefined   # if undefined, compares with live filesystem
-        timeout    : 120
+                                 # when defined, compares two diffs, which may be be VERY slow (e.g., 30 seconds) if
+                                 # info is not available in the database.
+        timeout    : 300
+        cb         : required    # cb(err, list of filenames)
+
+    dbg = (m) -> winston.debug("diff(#{misc.to_json(opts)}): #{m}")
 
     if not opts.host?
-        get_current_location
-            project_id : opts.project_id
-            cb         : (err, host) ->
-                if err
-                    opts.cb(err)
-                else if host?
-                    opts.host = host
-                    f(opts)
-                else
-                    # no current host -- choose best one -- refactor code from open_project_somewhere
-                    #TODO!!!!                    
-                    opts.cb()
+        use_best_host(zfs_diff, opts)
         return
+
+    fs = filesystem(opts.project_id)
+    two = if opts.snapshot2? then "#{fs}@#{opts.snapshot1}" else fs
 
     execute_on
         host    : opts.host
-        command : "sudo zfs destroy #{filesystem(opts.project_id)}@#{opts.name}"
+        command : "sudo zfs diff -H #{fs}@#{opts.snapshot1} #{two}"
         timeout : opts.timeout
         cb      : (err, output) ->
+            if err
+                opts.cb(err)
+            else
+                n = mountpoint(opts.project_id).length + 1
+                a = []
+                for h in output.stdout.split('\n')
+                    v = h.split('\t')[1]
+                    if v?
+                        a.push(v.slice(n))
+                opts.cb(undefined, a)
 
+
+# Returns a list of files/paths that changed between live and the most recent snapshot.
+# Returns empty list if project not deployed.
+exports.diff = diff = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        timeout    : 60
+        cb         : required    # cb(err, list of filenames)
+
+    get_current_location
+        project_id : opts.project_id
+        cb         : (err, host) ->
+            if err
+                opts.cb(err)
+            else if not host?
+                opts.cb(undefined, [])
+            else
+                # use find command, which is thousands of times faster than "zfs diff".
+                execute_on
+                    host    : host
+                    user    : username(opts.project_id)
+                    command : "find . -xdev -newermt `ls -1 ~/.zfs/snapshot|tail -1` | grep -v '^./.sagemathcloud'|grep -v '^./.forever'|grep -v '^./.bup' | grep -v '^./.sage/temp' "
+                    timeout : opts.timeout
+                    cb      : (err, output) ->
+                        winston.debug("#{err}, #{misc.to_json(output)}")
+                        if err
+                            opts.cb(err)
+                        else
+                            v = []
+                            for h in output.stdout.split('\n')
+                                a = h.slice(2)
+                                if a
+                                    v.push(a)
+                            opts.cb(undefined, v)
 
 
 
