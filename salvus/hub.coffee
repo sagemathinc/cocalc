@@ -4582,7 +4582,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 If you requested this password change, please change your password by
                 following the link below within 15 minutes:
 
-                     https://cloud.sagemath.com#forgot%#{id}
+                     https://cloud.sagemath.com#forgot-#{id}
 
                 If you don't want to change your password, ignore this message.
 
