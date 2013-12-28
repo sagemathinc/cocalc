@@ -877,18 +877,40 @@ exports.destroy_snapshot = destroy_snapshot = (opts) ->
                 cb         : cb
     ], (err) -> opts.cb?(err))
 
-###
+
 ZFS_CHANGES={'-':'removed', '+':'created', 'M':'modified', 'R':'renamed'}
-ZFS_FILE_TYPES={'B':'block device', 'C':'character device', '/':'directory',
-                '>':'door', '|':'named pipe', '@':'symbolic link',
-                'P':'event port', '=':'socket', 'F':'regular file'}
+
+ZFS_FILE_TYPES={'B':'block device', 'C':'character device', '/':'directory', '>':'door', '|':'named pipe', '@':'symbolic link','P':'event port', '=':'socket', 'F':'regular file'}
+
 exports.diff = diff = (opts) ->
     opts = defaults opts,
         project_id : required
-        host       : required
-        snapshot   : required
-        snapshot2  : undefined   # if undefined, compares with filesystem
-###
+        host       : undefined   # undefined = currently deployed location; if not deployed, chooses one
+        snapshot1  : required
+        snapshot2  : undefined   # if undefined, compares with live filesystem
+        timeout    : 120
+
+    if not opts.host?
+        get_current_location
+            project_id : opts.project_id
+            cb         : (err, host) ->
+                if err
+                    opts.cb(err)
+                else if host?
+                    opts.host = host
+                    f(opts)
+                else
+                    # no current host -- choose best one -- refactor code from open_project_somewhere
+                    #TODO!!!!                    
+                    opts.cb()
+        return
+
+    execute_on
+        host    : opts.host
+        command : "sudo zfs destroy #{filesystem(opts.project_id)}@#{opts.name}"
+        timeout : opts.timeout
+        cb      : (err, output) ->
+
 
 
 
