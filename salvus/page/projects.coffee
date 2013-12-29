@@ -184,16 +184,6 @@ create_project_item = (project) ->
     else if project.location == "deploying"
         item.find(".projects-location").append(template_project_deploying.clone())
 
-    ###
-    # This is too cluttered and is somewhat meaningless.
-    if project.location.username?
-        d = "#{project.location.username}@#{project.location.host}"
-        if project.location.path != '.'
-            d += ':' + project.location.path
-        if project.location.port != 22
-            d += " -p#{project.location.port}"
-        item.find(".projects-location").text(d)
-    ###
     item.click (event) ->
         open_project(project, item)
         return false

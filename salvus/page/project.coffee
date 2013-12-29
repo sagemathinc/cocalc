@@ -341,7 +341,7 @@ class ProjectPage
                 @display_tab("project-search")
 
     set_location: () =>
-        if @project.location? and @project.location.username?
+        if @project.location? and @project.location and @project.location.username?
             x = @project.location.username + "@" + @project.location.host
         else
             x = "(not deployed)"
@@ -548,7 +548,10 @@ class ProjectPage
             path_prefix += '/'
 
         @container.find(".project-search-output-command").text(cmd)
-        @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
+        if @project.location?.path?
+            @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
+        else
+            @container.find(".project-search-output-path").text('')
 
         spinner = @container.find(".project-search-spinner")
         timer = setTimeout(( () -> spinner.show().spin()), 300)
@@ -612,20 +615,6 @@ class ProjectPage
     # ...?
     ########################################
 
-    git_commit: (input) =>
-        @container.find(".project-commit-message-output").text("").hide()
-        @container.find(".project-commit-message-spinner").show().spin()
-        salvus_client.save_project
-            project_id : @project.project_id
-            commit_mesg : input.val()
-            cb : (err, mesg) =>
-                @container.find(".project-commit-message-spinner").spin(false).hide()
-                if err
-                    alert_message(type:"error", message:"Connection error saving project.")
-                else if mesg.event == "error"
-                    @container.find(".project-commit-message-output").text(mesg.error).show()
-                else
-                    input.val("")
 
     command_line_exec: () =>
         elt = @container.find(".project-command-line")
@@ -663,7 +652,10 @@ class ProjectPage
                         k = cwd.indexOf('/')
                         if k != -1
                             cwd = cwd.slice(k+1)
-                            path = @project.location.path
+                            if @project.location?.path?
+                                path = @project.location.path
+                            else
+                                path = ''
                             if path == '.'   # not good for our purposes here.
                                 path = ''
                             if path == cwd.slice(0, path.length)
@@ -709,41 +701,6 @@ class ProjectPage
     #     # bash completion on the VM host using pexpect (!).
     #     if not @_last_listing?
     #         return
-
-
-    branch_op: (opts) =>
-        opts = defaults opts,
-            branch : required
-            op     : required
-            cb     : undefined
-        # op must be one of ['create', 'checkout', 'delete', 'merge']
-        branch = opts.branch
-        op = opts.op
-
-        # Quick client-side check for obviously invalid branch name
-        if branch.length == 0 or branch.split(/\s+/g).length != 1
-            alert_message(type:'error', message:"Invalid branch name '#{branch}'")
-            return
-
-        async.series([
-            (c) =>
-                salvus_client.project_branch_op
-                    project_id : @project.project_id
-                    op         : op
-                    branch     : branch
-                    cb         : (err, mesg) ->
-                        if err
-                            alert_message(type:'error', message:err)
-                            c(true) # fail
-                        else if mesg.event == "error"
-                            alert_message(type:'error', message:mesg.error)
-                            c(true) # fail
-                        else
-                            alert_message(message:"#{op} branch '#{branch}'")
-                            c()  # success
-            (c) =>
-                @save_project(cb:c)
-        ], opts.cb)
 
     hide_tabs: () =>
         @container.find(".project-pages").hide()
@@ -834,14 +791,6 @@ class ProjectPage
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
 
-    save_project: (opts={}) =>
-        @save_browser_local_data (err) =>
-            if err
-                return # will have generated its own error message
-            opts.project_id = @project.project_id
-            opts.title = @project.title
-            save_project(opts)
-
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project
             project_id : @project.project_id,
@@ -867,11 +816,7 @@ class ProjectPage
                     alert_message(type:"error", message:mesg.error)
                 else
                     alert_message(type:"success", message: "New file created.")
-                    salvus_client.save_project
-                        project_id : @project.project_id
-                        cb : (err, mesg) =>
-                            if not err and mesg.event != 'error'
-                                @update_file_list_tab()
+                    @update_file_list_tab()
 
     load_from_server: (opts) ->
         opts = defaults opts,
@@ -2203,12 +2148,12 @@ class ProjectPage
 
 
     init_project_restart: () =>
-        # Restart local project server
+        # Close local project
         link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
             async.series([
                 (cb) =>
-                    m = "Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
+                    m = "Are you sure you want to restart the project?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed and the project will probably be moved to another server."
                     bootbox.confirm m, (result) =>
                         if result
                             cb()
@@ -2219,9 +2164,9 @@ class ProjectPage
                     #link.icon_spin(start:true)
                     alert_message
                         type    : "info"
-                        message : "Restarting project server..."
+                        message : "Closing project..."
                         timeout : 4
-                    salvus_client.restart_project_server
+                    salvus_client.close_project
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
@@ -2229,7 +2174,7 @@ class ProjectPage
                     #link.icon_spin(false)
                     alert_message
                         type    : "success"
-                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                        message : "Successfully terminated project server. Your terminal and worksheet processes have been killed."
                         timeout : 2
             ])
             return false
@@ -2455,11 +2400,6 @@ class ProjectPage
                 else
                     cb()
 
-            # Save the project in its current state, so this action is undo-able/safe
-            (cb) =>
-                @save_project
-                    cb          : cb
-
             # Carry out the action
             (cb) =>
                 switch opts.action
@@ -2490,11 +2430,6 @@ class ProjectPage
                                     cb()
                     else
                         cb("unknown path action #{opts.action}")
-
-            # Save after the action.
-            (cb) =>
-                @save_project
-                    cb          : cb
 
             # Reload the files/branches/etc to take into account new commit, file deletions, etc.
             (cb) =>

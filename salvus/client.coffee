@@ -898,16 +898,6 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
             cb : opts.cb
 
-    save_project: (opts) ->
-        opts = defaults opts,
-            project_id  : required
-            cb          : undefined
-        @call
-            message :
-                message.save_project
-                    project_id  : opts.project_id
-            cb : opts.cb
-
     close_project: (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -975,10 +965,8 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
                     content    : opts.content
             timeout : opts.timeout
-            cb : (err, result) =>
-                @save_project(project_id : opts.project_id)
-                opts.cb?(err, result)
-
+            cb : opts.cb
+            
     read_text_file_from_project: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1526,6 +1514,16 @@ class exports.Connection extends EventEmitter
         @call
             message : message.project_restart(project_id:opts.project_id)
             timeout : 30    # should take about 5 seconds, but maybe network is slow (?)
+            cb      : opts.cb
+
+    close_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required    # will keep retrying until it succeeds at which point opts.cb().
+
+        @call
+            message : message.close_project(project_id:opts.project_id)
+            timeout : 120
             cb      : opts.cb
 
 #################################################

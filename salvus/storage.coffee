@@ -244,8 +244,15 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                         v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1 and host != cur_loc)
                         v.sort()
                         v.reverse()
+
+
+
                         dbg("v = #{misc.to_json(v)}")
                         hosts = (x[2] for x in v)
+
+                        ## TODO: FOR TESTING -- restrict to Google
+                        ## hosts = (x for x in hosts when x.slice(0,4) == '10.3')
+
                         dbg("hosts = #{misc.to_json(hosts)}")
                         cb()
         (cb) ->
@@ -604,7 +611,7 @@ use_current_host = (f, opts) ->
                 f(opts)
             else
                 # no current host -- nothing to do
-                opts.cb()
+                opts.cb?()
 
 # Set opts.host to the best host, where best = currently deployed, or if project isn't deployed,
 # it means a randomly selected host with the newest snapshot.  Then does f(opts).
@@ -648,6 +655,7 @@ use_best_host = (f, opts) ->
             v.sort()
             v.reverse()
             hosts = (x[2] for x in v)
+
             host = hosts[0]
             if not host?
                 cb("no available host")
@@ -676,13 +684,16 @@ exports.snapshot = snapshot = (opts) ->
         force      : false        # if false (the default), don't make the snapshot if diff outputs empty list of files
                                   # (note that diff ignores ~/.*), and also don't make a snapshot if one was made within
         min_snapshot_interval_s : 90    # opts.min_snapshot_interval_s seconds.
+        wait_for_replicate : false
         cb         : undefined
 
     if not opts.host?
         use_current_host(snapshot, opts)
         return
 
-    winston.debug("snapshotting #{opts.project_id} on #{opts.host}")
+    dbg = (m) -> winston.debug("snapshot(#{opts.project_id},#{opts.host}): #{m}")
+
+    dbg()
 
     if opts.tag?
         tag = '-' + opts.tag
@@ -696,7 +707,7 @@ exports.snapshot = snapshot = (opts) ->
             if opts.force
                 cb()
             else
-                # get last mod time
+                dbg("get last mod time")
                 database.select_one
                     table      : 'projects'
                     where      : {project_id : opts.project_id}
@@ -716,7 +727,7 @@ exports.snapshot = snapshot = (opts) ->
                                 else
                                     cb()
         (cb) ->
-            # get the diff
+            dbg("get the diff")
             diff
                 project_id : opts.project_id
                 cb         : (err, x) ->
@@ -728,14 +739,14 @@ exports.snapshot = snapshot = (opts) ->
             else
                 cb()
         (cb) ->
-            # make snapshot
+            dbg("make snapshot")
             execute_on
                 host    : opts.host
                 command : "sudo zfs snapshot #{name}"
-                timeout : 300
+                timeout : 10
                 cb      : cb
         (cb) ->
-            # record in database that we made a snapshot
+            dbg("record in database that we made a snapshot")
             record_snapshot_in_db
                 project_id     : opts.project_id
                 host           : opts.host
@@ -743,14 +754,14 @@ exports.snapshot = snapshot = (opts) ->
                 modified_files : modified_files
                 cb             : cb
         (cb) ->
-            # record when we made this recent snapshot (might be slightly off if multiple snapshots at once)
+            dbg("record when we made this recent snapshot (might be slightly off if multiple snapshots at once)")
             database.update
                 table : 'projects'
                 where : {project_id : opts.project_id}
                 set   : {last_snapshot : now}
                 cb    : cb
         (cb) ->
-            # replicate out
+            dbg("replicate")
             replicate
                 project_id : opts.project_id
                 cb         : cb
@@ -934,7 +945,6 @@ exports.repair_snapshots_in_db = repair_snapshots_in_db = (opts) ->
                 command : "sudo zfs list -r -t snapshot -o name -s creation #{f}"
                 timeout : 600
                 cb      : (err, output) ->
-                    winston.debug(err, output)
                     if err
                         if output?.stderr? and output.stderr.indexOf('not exist') != -1
                             # entire project deleted from this host.
@@ -1052,7 +1062,7 @@ exports.zfs_diff = zfs_diff = (opts) ->
 exports.diff = diff = (opts) ->
     opts = defaults opts,
         project_id : required
-        timeout    : 120
+        timeout    : 10
         cb         : required    # cb(err, list of filenames)
 
     get_current_location
@@ -1068,7 +1078,7 @@ exports.diff = diff = (opts) ->
                     host    : host
                     user    : username(opts.project_id)
                     command : "find . -xdev -newermt \"`ls -1 ~/.zfs/snapshot|tail -1 | sed 's/T/ /g'`\" | grep -v '^./\\.'"
-                    timeout : opts.timeout
+                    timeout : opts.timeout  # this should be really fast
                     cb      : (err, output) ->
                         if err and output?.stderr == ''
                             # if the list is empty, grep yields a nonzero error code.
@@ -1140,6 +1150,7 @@ exports.replicate = replicate = (opts) ->
 
     new_project = false
     clear_replicating_lock = false
+    errors = []
     async.series([
         (cb) ->
             # check for lock
@@ -1157,7 +1168,7 @@ exports.replicate = replicate = (opts) ->
                         clear_replicating_lock = true
                         database.update
                             table : 'projects'
-                            ttl   : 3600
+                            ttl   : 300
                             where : {project_id : opts.project_id}
                             set   : {'replicating': true}
                             cb    : (err) ->
@@ -1217,7 +1228,9 @@ exports.replicate = replicate = (opts) ->
                                 # means that we succeeded in the version update; record this so that
                                 # the code in STAGE 2 below works.
                                 dest.version = source.version
-                            cb(err)
+                            else
+                                errors.push(err)
+                            cb()
             async.map(versions, f, cb)
 
        (cb) ->
@@ -1239,12 +1252,19 @@ exports.replicate = replicate = (opts) ->
                             project_id : opts.project_id
                             source     : src
                             dest       : dest
-                            cb         : cb
+                            cb         : (err) ->
+                                if err
+                                    errors.push(err)
+                                cb()
                 async.map(d, g, cb)
 
             async.map(versions, f, cb)
 
-    ], (err) ->
+    ], () ->
+        if errors.length > 0
+            err = errors
+        else
+            err = undefined
         if clear_replicating_lock
             # remove lock
             database.update
@@ -1257,7 +1277,8 @@ exports.replicate = replicate = (opts) ->
                     else
                         opts.cb?(err)
         else
-            opts.cb?(err)
+           opts.cb?(err)
+
     )
 
 exports.send = send = (opts) ->
@@ -1320,8 +1341,8 @@ exports.send = send = (opts) ->
                 host    : opts.dest.host
                 command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}; rm #{tmp}"
                 cb      : (err, output) ->
-                    winston.debug("(non-fatal)-- #{output}")
-                    if output?.stderr?
+                    winston.debug("(non-fatal) -- #{misc.to_json(output)}")
+                    if output?.stderr
                         if output.stderr.indexOf('destination has snapshots') != -1
                             # this is likely caused by the database being stale regarding what snapshots are known,
                             # so we run a repair so that next time it will work.

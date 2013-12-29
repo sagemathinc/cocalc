@@ -367,7 +367,7 @@ init_http_proxy_server = () =>
         project_id = v[1]
         type       = v[2]  # 'port' or 'raw'
         winston.debug("setting up a proxy: #{v}")
-        location   = undefined
+        host       = undefined
         port       = undefined
         async.series([
             (cb) ->
@@ -394,8 +394,18 @@ init_http_proxy_server = () =>
                         if err
                             cb(err)
                         else
-                            location = _location
+                            if _location?
+                                host = _location.host
                             cb()
+            (cb) ->
+                if location?
+                    cb()
+                else
+                    storage.open_project_somewhere
+                        project_id : project_id
+                        cb         : (err, _host) ->
+                            host = _host
+                            cb(err)
             (cb) ->
                 # determine the port
                 if type == 'port'
@@ -425,7 +435,7 @@ init_http_proxy_server = () =>
                 if err
                     cb(err)
                 else
-                    t = {host:location.host, port:port}
+                    t = {host:host, port:port}
                     _target_cache[key] = t
                     # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
                     # but also if the user is suddenly granted permission to the project, or the project server
@@ -1323,27 +1333,6 @@ class Client extends EventEmitter
                                 push_to_clients
                                     where : {project_id:mesg.project_id, account_id:@account_id}
                                     mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
-    # not used
-    mesg_save_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.save (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.success(id:mesg.id))
-
-    # not used
-    mesg_close_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.close (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
 
     mesg_write_text_file_to_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -1447,6 +1436,16 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.success(id:mesg.id))
+
+    mesg_close_project: (mesg) =>
+        @get_project mesg, 'write', (err, project) =>
+            if err
+                return
+            project.local_hub.close (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
 
     ################################################
     # CodeMirror Sessions
@@ -2629,15 +2628,12 @@ new_local_hub = (opts) ->    # cb(err, hub)
         opts.cb(false, H)
     else
         start_time = misc.walltime()
-        H = new LocalHub(opts.project_id, (err) ->
-                   winston.debug("new_local_hub creation: time= #{misc.walltime() - start_time}")
-                   if not err
-                      _local_hub_cache[hash] = H
-                   opts.cb?(err, H)
-            )
+        H = new LocalHub(opts.project_id)
+        _local_hub_cache[hash] = H
+        opts.cb(false, H)
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@project_id, cb) ->  # NOTE @project may be undefined.
+    constructor: (@project_id) ->  # NOTE @project may be undefined.
         @dbg("creating")
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
@@ -2651,10 +2647,61 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
         @path = '.'  # default
         @port = 22
-        @connect(cb)
+        @_sockets = {}
+        @_multi_response = {}
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{m}")
+
+    close: (cb) =>
+        # We snapshot, close project, and update database in order, giving each a *chance*.
+        # If they don't succeed -- e.g., due to host being down, we forge on.
+        dbg = (m) -> winston.debug("local_hub.close(#{@project_id}): #{m}")
+        dbg()
+        if @_close_lock
+            cb?("Already closing..."); return
+        @_close_lock = true
+
+        async.series([
+            (cb) =>
+                if @host?
+                    dbg("killall processes running in the project")
+                    storage.create_user
+                        project_id : @project_id
+                        host       : @host
+                        action     : 'kill'
+                        cb         : () =>
+                            cb()
+                else
+                    cb()
+            (cb) =>
+                dbg("attempt snapshot")
+                storage.snapshot
+                    project_id : @project_id
+                    force      : true
+                    cb         : (err) =>
+                        # we close even if snapshot fails, since closing gives the user the option to
+                        # at least re-open the project somewhere else.
+                        dbg("snapshot output: #{err}")
+                        cb()
+            (cb) =>
+                dbg("close actual deployed project")
+                storage.close_project
+                    project_id : @project_id
+                    cb         : (err) =>
+                        dbg("close output: #{err}")
+                        cb()
+            (cb) =>
+                dbg("update database")
+                @_close_lock = false
+                database.update
+                    table : 'projects'
+                    set   : {location:undefined}
+                    where : {project_id : @project_id}
+                    cb    : cb
+        ], (err) =>
+            @_close_lock = false
+            cb?(err))
 
     reconnect:  (cb) =>
         @dbg("reconnecting")
@@ -2667,16 +2714,18 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @local_hub_socket  (err) =>
             if err
                 @dbg("err=#{err}, so restarting local hub server")
-                @restart (err) =>
-                    if err
-                        m = "unable to start and connect -- err=#{err}"
-                        @dbg(m)
-                        cb(m)
-                    else
-                        @local_hub_socket (err) =>
-                            cb(err, @)
+                f = () =>
+                    @restart (err) =>
+                        if err
+                            m = "unable to start and connect -- err=#{err}"
+                            @dbg(m)
+                            cb?(m)
+                        else
+                            @local_hub_socket (err) =>
+                                cb?(err)
+                setTimeout(f, 3000)
             else
-                cb(false, @)
+                cb?()
 
     update_project_location: (cb) =>
         @dbg("update_project_location")
@@ -3179,7 +3228,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @_status = _status
                     cb(err)
             (cb) =>
-                if not @_status.installed
+                if not @_status?.installed
                     @_exec_on_local_hub
                         command : 'build'
                         timeout : 360
@@ -3288,18 +3337,31 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     opts.cb(err, output)
 
     _get_local_hub_status: (cb) =>
-        @dbg("getting status of remote location")
-        @_exec_on_local_hub
-            command : "status"
-            timeout  : 10
-            cb      : (err, out) =>
-                if out?.stdout?
-                    try
-                        status = misc.from_json(out.stdout)
-                    catch e
-                        cb("error parsing local hub status")
-                        return
-                cb(err, status)
+        if not @_local_hub_status_fails?
+            @_local_hub_status_fails = 0
+        @dbg("getting status of remote location (fails=#{@_local_hub_status_fails})")
+        if @_local_hub_status_fails >= 5
+            @dbg("too many local hub status fails -- instead closing local hub")
+            @_local_hub_status_fails = 0
+            @close()
+            cb("too many local hub fails -- closing")
+        else
+            @_exec_on_local_hub
+                command : "status"
+                timeout  : 10
+                cb      : (err, out) =>
+                    if out?.stdout?
+                        try
+                            status = misc.from_json(out.stdout)
+                        catch e
+                            @_local_hub_status_fails += 1
+                            cb("error parsing local hub status")
+                            return
+                    if err
+                        @_local_hub_status_fails += 1
+                    else
+                        @_local_hub_status_fails = 0
+                    cb(err, status)
 
     _restart_local_hub_daemons: (cb) =>
         @dbg("_restart_local_hub_daemon-- #{@username}@#{@host}")
@@ -3641,8 +3703,8 @@ class Project
             cb         : cb
 
     _fixpath: (obj) =>
-        winston.debug("*****!!!! path=#{@local_hub.path}, obj=#{misc.to_json(obj)} ")
-        if obj?
+        #winston.debug("*****!!!! path=#{@local_hub.path}, obj=#{misc.to_json(obj)} ")
+        if obj? and @local_hub?
             if obj.path?
                 if obj.path[0] != '/'
                     obj.path = @local_hub.path+ '/' + obj.path
@@ -3748,15 +3810,6 @@ class Project
         opts.project_id = @project_id
         @local_hub.terminate_session(opts)
 
-    # Backup the project in various ways (e.g., rsync/rsnapshot/etc.)
-    # NOTE USED
-    save: (cb) =>
-        winston.debug("project2-save-stub")
-        cb?()
-
-    close: (cb) =>
-        winston.debug("project2-close-stub")
-        cb?()
 
 ########################################
 # Permissions related to projects
