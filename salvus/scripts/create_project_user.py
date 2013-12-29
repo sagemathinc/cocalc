@@ -69,6 +69,21 @@ def create_user(project_id):
     if os.path.exists("/mnt/conf/etc/"): # GCE nodes
         cmd("cp /etc/passwd /etc/shadow /etc/group /mnt/conf/etc/")
 
+def write_info_json(project_id, host='', base_url=''):
+    if not host:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('10.1.1.1',80))
+        host = s.getsockname()[0]
+
+    path = os.path.join(home(project_id), '.sagemathcloud' + ('-local' if base_url else ''))
+    info_json = os.path.join(path, 'info.json')
+    if not os.path.exists(path):
+        os.makedirs(path)
+    obj = {"project_id":project_id,"location":{"host":host,"username":username(project_id),"port":22,"path":"."},"base_url":base_url}
+    import json
+    open(info_json,'w').write(json.dumps(obj, separators=(',',':')))
+
 def ensure_ssh_access(project_id):
     # If possible, make some attempts to ensure ssh access to this account.
     h = home(project_id)
@@ -104,10 +119,13 @@ if __name__ == "__main__":
     parser.add_argument("--kill", help="kill all processes owned by the user", default=False, action="store_const", const=True)
     parser.add_argument("--skel", help="rsync /home/salvus/salvus/salvus/scripts/skel/ to the home directory of the project", default=False, action="store_const", const=True)
     parser.add_argument("--create", help="create the project user", default=False, action="store_const", const=True)
+    parser.add_argument("--base_url", help="the base url (default:'')", default="", type=str)
+    parser.add_argument("--host", help="the host ip address on the tinc vpn (default: auto-detect)", default="", type=str)
     parser.add_argument("project_id", help="the uuid of the project", type=str)
     args = parser.parse_args()
     if args.create:
         create_user(args.project_id)
+        write_info_json(project_id=args.project_id, host=args.host, base_url=args.base_url)
         ensure_ssh_access(args.project_id)
     if args.skel:
         copy_skeleton(args.project_id)

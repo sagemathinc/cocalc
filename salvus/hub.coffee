@@ -403,6 +403,7 @@ init_http_proxy_server = () =>
                 else
                     storage.open_project_somewhere
                         project_id : project_id
+                        base_url   : program.base_url
                         cb         : (err, _host) ->
                             host = _host
                             cb(err)
@@ -2740,6 +2741,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @dbg("opening the project somewhere")
                     storage.open_project_somewhere
                         project_id : @project_id
+                        base_url   : program.base_url
                         cb         : (err, host) =>
                             if err
                                 @dbg("opening project failed")
@@ -2833,16 +2835,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 @dbg("restart: error at end = #{err}")
 
             @_restart_lock = false
-
-            if not err
-                # This deals with VERY RARE case where user of project somehow deleted
-                # the info.json file... TODO: move to create_project_user.py script.
-                new_project(@project_id, (err,project) =>
-                    if err
-                        cb(err)
-                    else
-                        project.write_info_json(cb)
-                )
 
             if created_remote_lock
                 snap.remove_lock
@@ -3695,15 +3687,7 @@ class Project
                     @local_hub = hub
                     cb(undefined, @)
 
-    write_info_json: (cb) =>
-        @write_file
-            path       : "#{@SAGEMATHCLOUD}/info.json"
-            project_id : @project_id
-            data       : misc.to_json(project_id:@project_id, location:@local_hub.location, base_url:program.base_url)
-            cb         : cb
-
     _fixpath: (obj) =>
-        #winston.debug("*****!!!! path=#{@local_hub.path}, obj=#{misc.to_json(obj)} ")
         if obj? and @local_hub?
             if obj.path?
                 if obj.path[0] != '/'

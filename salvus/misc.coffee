@@ -160,7 +160,7 @@ exports.from_json = (x) ->
         throw err
 
 # converts a Date object to an ISO string
-# NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within 
+# NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
 # the SMC servers are assumed to be on UTC.
 exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 

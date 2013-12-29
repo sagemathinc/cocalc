@@ -965,7 +965,7 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
                     content    : opts.content
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (err, resp) => opts.cb?(err, resp)
 
     read_text_file_from_project: (opts) ->
         opts = defaults opts,

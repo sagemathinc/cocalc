@@ -111,11 +111,12 @@ exports.create_user = create_user = (opts) ->
         project_id : required
         host       : required
         action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton)
+        base_url   : ''         # used when writing info.json
         cb         : undefined
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
     execute_on
         host    : opts.host
-        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} #{opts.project_id}"
+        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} --base_url=#{opts.base_url} --host=#{opts.host} #{opts.project_id}"
         timeout : 30
         cb      : opts.cb
 
@@ -125,6 +126,7 @@ exports.open_project = open_project = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
+        base_url   : ''
         cb         : required   # cb(err, host used)
 
     winston.info("opening project #{opts.project_id} on #{opts.host}")
@@ -148,6 +150,7 @@ exports.open_project = open_project = (opts) ->
                 project_id : opts.project_id
                 action     : 'create'
                 host       : opts.host
+                base_url   : opts.base_url
                 cb         : cb
         (cb) ->
             dbg("test login")
@@ -196,6 +199,7 @@ exports.get_current_location = get_current_location = (opts) ->
 exports.open_project_somewhere = open_project_somewhere = (opts) ->
     opts = defaults opts,
         project_id : required
+        base_url   : ''
         cb         : required   # cb(err, host used)
 
     dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id}): #{m}")
@@ -221,6 +225,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                 open_project
                     project_id : opts.project_id
                     host       : cur_loc
+                    base_url   : opts.base_url
                     cb         : (err) ->
                         if not err
                             host_used = cur_loc  # success!
@@ -251,7 +256,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                         hosts = (x[2] for x in v)
 
                         ## TODO: FOR TESTING -- restrict to Google
-                        ## hosts = (x for x in hosts when x.slice(0,4) == '10.3')
+                        hosts = (x for x in hosts when x.slice(0,4) == '10.3')
 
                         dbg("hosts = #{misc.to_json(hosts)}")
                         cb()
@@ -266,6 +271,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                 open_project
                     project_id : opts.project_id
                     host       : host
+                    base_url   : opts.base_url
                     cb         : (err) ->
                         if not err
                             dbg("project worked on #{host}")
@@ -346,6 +352,7 @@ exports.create_project = create_project = (opts) ->
     opts = defaults opts,
         project_id : required
         quota      : '5G'
+        base_url   : opts.base_url
         cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
 
     winston.info("create project #{opts.project_id}")
@@ -394,6 +401,7 @@ exports.create_project = create_project = (opts) ->
                         open_project
                             project_id : opts.project_id
                             host       : host
+                            base_url   : opts.base_url
                             cb         : c
                     (c) ->
                         dbg("copy over the template files, e.g., .sagemathcloud")
