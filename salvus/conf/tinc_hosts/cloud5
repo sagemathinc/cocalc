@@ -1,6 +1,7 @@
 Cipher = aes-128-cbc
 Address = 128.208.160.207
 Subnet = 10.1.5.1/32
+Compression = 10
 -----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEAtZadb5xTBTR1DKdmrvu1YC+6fwS7CjBhTst4sKPDwtFMXEhUjS7N
 /nz5EW9MuZkJpTqTh/+tYLq64Jl6oOSh+dDMr5xLL2gSnvf8dbqiPIqLEgwsDC3b

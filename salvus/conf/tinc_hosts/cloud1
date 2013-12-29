@@ -1,6 +1,7 @@
 Address = 128.95.242.135
 Subnet = 10.1.1.1/32
 Cipher = aes-128-cbc
+Compression = 10
 -----BEGIN RSA PUBLIC KEY-----
 MIIBCgKCAQEArxrDr6qoIugjtTE664gvZKRsV4r7oGfZzTAWbq88E16VRRQELQR4
 OZ3HwezGc23ql/bpo1MU/cme+O4+3a2TvzVn6sMBgFuXnZiQSw3mbJB00JsAKyaM
