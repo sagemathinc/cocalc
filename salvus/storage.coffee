@@ -666,12 +666,15 @@ use_best_host = (f, opts) ->
 
 
 # Make a snapshot of a given project on a given host and record
-# this in the database.
+# this in the database; also record in the database the list of (interesting) files
+# that changed in this snapshot (from the last one), according to diff.
 exports.snapshot = snapshot = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined    # if not given, use current location (if deployed; if not deployed does nothing)
         tag        : undefined
+        force      : false        # if false (the default), don't make the snapshot if diff outputs empty list of files.
+                                  # note that diff ignores ~/.*.
         cb         : undefined
 
     if not opts.host?
@@ -686,27 +689,41 @@ exports.snapshot = snapshot = (opts) ->
         tag = ''
     now = misc.to_iso(new Date())
     name = filesystem(opts.project_id) + '@' + now + tag
+    modified_files = undefined
     async.series([
         (cb) ->
-            # 1. make snapshot
+            # get the diff
+            diff
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    modified_files = x
+                    cb(err)
+        (cb) ->
+            if not opts.force and modified_files.length == 0
+                cb('delay')
+            else
+                cb()
+        (cb) ->
+            # make snapshot
             execute_on
                 host    : opts.host
                 command : "sudo zfs snapshot #{name}"
                 timeout : 300
                 cb      : cb
         (cb) ->
-            # 2. record in database that snapshot was made
+            # record in database that snapshot was made
             record_snapshot_in_db
-                project_id : opts.project_id
-                host       : opts.host
-                name       : now + tag
-                cb         : cb
-        (cb) ->
-            # 3. record that project needs to be replicated
-            project_needs_replication
-                project_id : opts.project_id
-                cb         : cb
-    ], (err) -> opts.cb?(err))
+                project_id     : opts.project_id
+                host           : opts.host
+                name           : now + tag
+                modified_files : modified_files
+                cb             : cb
+    ], (err) ->
+        if err == 'delay' and modified_files?.length == 0
+            opts.cb?()
+        else
+            opts.cb?(err)
+    )
 
 exports.get_snapshots = get_snapshots = (opts) ->
     opts = defaults opts,
@@ -758,11 +775,12 @@ exports.get_hosts = get_hosts = (opts) ->
 
 exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
     opts = defaults opts,
-        project_id : required
-        host       : required
-        name       : required
-        remove     : false
-        cb         : undefined
+        project_id     : required
+        host           : required
+        name           : required
+        remove         : false
+        modified_files : undefined   # if given should be a list of (interesting) files that were modified from the previous snapshot to this one
+        cb             : undefined
 
     new_snap_list = undefined
     async.series([
@@ -787,11 +805,24 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
         (cb) ->
             if not new_snap_list?
                 cb(); return
-            set_snapshots
+            set_snapshots_in_db
                 project_id : opts.project_id
                 host       : opts.host
                 snapshots  : new_snap_list
                 cb         : cb
+        (cb) ->
+            if opts.modified_files?
+                v = {}
+                x = "modified_files['#{opts.name}']"
+                v[x] = JSON.stringify(opts.modified_files)
+                database.update
+                    table : 'projects'
+                    where : {project_id : opts.project_id}
+                    set   : v
+                    cb    : cb
+            else
+                cb()
+
     ], (err) -> opts.cb?(err))
 
 # Set the list of snapshots for a given project.  The
@@ -984,7 +1015,7 @@ exports.zfs_diff = zfs_diff = (opts) ->
 exports.diff = diff = (opts) ->
     opts = defaults opts,
         project_id : required
-        timeout    : 60
+        timeout    : 120
         cb         : required    # cb(err, list of filenames)
 
     get_current_location
@@ -999,9 +1030,12 @@ exports.diff = diff = (opts) ->
                 execute_on
                     host    : host
                     user    : username(opts.project_id)
-                    command : "find . -xdev -newermt `ls -1 ~/.zfs/snapshot|tail -1` | grep -v '^./.sagemathcloud'|grep -v '^./.forever'|grep -v '^./.bup' | grep -v '^./.sage/temp' "
+                    command : "find . -xdev -newermt \"`ls -1 ~/.zfs/snapshot|tail -1 | sed 's/T/ /g'`\" | grep -v '^./\\.'"
                     timeout : opts.timeout
                     cb      : (err, output) ->
+                        if err and output?.stderr == ''
+                            # if the list is empty, grep yields a nonzero error code.
+                            err = undefined
                         winston.debug("#{err}, #{misc.to_json(output)}")
                         if err
                             opts.cb(err)
