@@ -889,7 +889,7 @@ set_snapshots_in_db = (opts) ->
         host       : required
         snapshots  : required
         cb         : undefined
-    winston.debug("setting snapshots for #{opts.project_id} to #{misc.to_json(opts.snapshots)}")
+    winston.debug("setting snapshots for #{opts.project_id} to #{misc.to_json(opts.snapshots).slice(0,100)}...")
 
     x = "locations['#{opts.host}']"
 

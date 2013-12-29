@@ -3346,6 +3346,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
     constructor: (@project_id, @path) ->
 
     start_server: (cb) =>
+        #console.log("start_server")
         salvus_client.exec
             project_id : @project_id
             path       : @path
@@ -3393,33 +3394,35 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             cb         : (err, output) =>
                 cb?(err)
 
-# Download a remote URL, possibly retrying repeatedly with exponetial backoff, only failing
-# if the delay until next retry hits max_delay.
+# Download a remote URL, possibly retrying repeatedly with exponetial backoff
+# on the timeout.
 # If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
 get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
-        initial_delay : 50
-        max_delay     : 15000     # once delay hits this, give up
-        factor        : 1.1      # for exponential backoff
+        initial_timeout : 5000
+        max_timeout     : 15000     # once delay hits this, give up
+        factor        : 1.1     # for exponential backoff
         bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url
-    delay = opts.initial_delay
+    timeout = opts.initial_timeout
+    delay   = 50
     f = () =>
-        if delay >= opts.max_delay  # too many attempts
+        if timeout >= opts.max_timeout  # too many attempts
             opts.cb("unable to connect to remote server")
             return
         $.ajax(
             url     : opts.url
-            timeout : 50
+            timeout : timeout
             success : (data) ->
                 if data.indexOf(opts.bad_string) != -1
-                    delay *= opts.factor
+                    timeout *= opts.factor
                     setTimeout(f, delay)
                 else
                     opts.cb(false, data)
         ).fail(() ->
-            delay *= opts.factor
+            timeout *= opts.factor
+            delay   *= opts.factor
             setTimeout(f, delay)
         )
 

@@ -358,15 +358,19 @@ init_http_proxy_server = () =>
 
     _target_cache = {}
     target = (remember_me, url, cb) ->
-        key = remember_me + url
+        v          = url.split('/')
+        project_id = v[1]
+        type       = v[2]  # 'port' or 'raw'
+        key = remember_me + project_id + type
+        if type == 'port'
+            key += v[3]
         t = _target_cache[key]
         if t?
             cb(false, t)
             return
-        v          = url.split('/')
-        project_id = v[1]
-        type       = v[2]  # 'port' or 'raw'
-        winston.debug("setting up a proxy: #{v}")
+
+        tm = misc.walltime()
+        winston.debug("target: setting up proxy: #{v}")
         host       = undefined
         port       = undefined
         async.series([
@@ -398,7 +402,7 @@ init_http_proxy_server = () =>
                                 host = _location.host
                             cb()
             (cb) ->
-                if location?
+                if host?
                     cb()
                 else
                     storage.open_project_somewhere
@@ -433,6 +437,7 @@ init_http_proxy_server = () =>
                 else
                     cb("unknown url type -- #{type}")
             ], (err) ->
+                winston.debug("target: setup proxy; time=#{misc.walltime(tm)} seconds")
                 if err
                     cb(err)
                 else
@@ -467,28 +472,32 @@ init_http_proxy_server = () =>
 
         target remember_me, req_url, (err, location) ->
             if err
-
                 winston.debug("proxy denied -- #{err}")
-
                 res.writeHead(500, {'Content-Type':'text/html'})
                 res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
             else
-                winston.debug("location = #{misc.to_json(location)}")
                 proxy = httpProxy.createProxyServer(ws:false, target:"http://#{location.host}:#{location.port}", timeout:0)
-                proxy.web(req, res) #, buffer:buffer}
+                proxy.web(req, res)
 
     http_proxy_server.listen(program.proxy_port, program.host)
 
+    _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
         req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
         target undefined, req_url, (err, location) ->
             if err
                 winston.debug("websocket upgrade error --  this shouldn't happen since upgrade would only happen after normal thing *worked*. #{err}")
             else
-                winston.debug("attempting websocket upgrade -- ws://#{location.host}:#{location.port}")
-                proxy = httpProxy.createProxyServer(ws:true, target:"ws://#{location.host}:#{location.port}", timeout:0)
+                winston.debug("websocket upgrade -- ws://#{location.host}:#{location.port}")
+                t = "ws://#{location.host}:#{location.port}"
+                proxy = _ws_proxy_servers[t]
+                if not proxy?
+                    winston.debug("websocket upgrade: not using cache")
+                    proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
+                    _ws_proxy_servers[t] = proxy
+                else
+                    winston.debug("websocket upgrade: using cache")
                 proxy.ws(req, socket, head)
-                #http_proxy_server.proxy.proxyWebSocketRequest(req, socket, head, location)
 
 
 
@@ -5254,8 +5263,6 @@ connect_to_database = (cb) ->
 #############################################
 exports.start_server = start_server = () ->
     # the order of init below is important
-    init_http_server()
-    init_http_proxy_server()
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     snap.set_server_id("#{program.host}:#{program.port}")
@@ -5267,6 +5274,8 @@ exports.start_server = start_server = () ->
         max_delay   : 10000
         cb          : () =>
             winston.debug("connected to database.")
+            init_http_server()
+            init_http_proxy_server()
 
             # start updating stats cache every so often -- note: this is cached in the database, so it isn't
             # too big a problem if we call it too frequently...
