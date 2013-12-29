@@ -1601,7 +1601,7 @@ tmp_dir = (opts) ->
         args       : [name]
         cb         : (err, output) =>
             if err
-                opts.cb("Problem creating temporary directory in '#{path}'")
+                opts.cb("Problem creating temporary directory in '#{opts.path}'")
             else
                 opts.cb(false, name)
 
