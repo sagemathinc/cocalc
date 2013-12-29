@@ -258,6 +258,7 @@ CREATE TABLE projects (
      storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
      locations        map<text, text>,   // ip_address --> snapshots available there
      modified_files   map<text, text>,   // snapshot_name --> [list of files changed]
+     last_snapshot    timestamp,  // likely last timestamp of a successful snapshot
 
      quota            varchar,
 

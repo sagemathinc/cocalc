@@ -673,8 +673,9 @@ exports.snapshot = snapshot = (opts) ->
         project_id : required
         host       : undefined    # if not given, use current location (if deployed; if not deployed does nothing)
         tag        : undefined
-        force      : false        # if false (the default), don't make the snapshot if diff outputs empty list of files.
-                                  # note that diff ignores ~/.*.
+        force      : false        # if false (the default), don't make the snapshot if diff outputs empty list of files
+                                  # (note that diff ignores ~/.*), and also don't make a snapshot if one was made within
+        min_snapshot_interval_s : 90    # opts.min_snapshot_interval_s seconds.
         cb         : undefined
 
     if not opts.host?
@@ -691,6 +692,29 @@ exports.snapshot = snapshot = (opts) ->
     name = filesystem(opts.project_id) + '@' + now + tag
     modified_files = undefined
     async.series([
+        (cb) ->
+            if opts.force
+                cb()
+            else
+                # get last mod time
+                database.select_one
+                    table      : 'projects'
+                    where      : {project_id : opts.project_id}
+                    columns    : ['last_snapshot']
+                    cb         : (err, r) ->
+                        if err
+                            cb(err)
+                        else
+                            x = r[0]
+                            if not x?
+                                cb()
+                            else
+                                d = new Date(x)
+                                time_since_s = (new Date() - d)/1000
+                                if time_since_s < opts.min_snapshot_interval_s
+                                    cb('delay')
+                                else
+                                    cb()
         (cb) ->
             # get the diff
             diff
@@ -711,13 +735,20 @@ exports.snapshot = snapshot = (opts) ->
                 timeout : 300
                 cb      : cb
         (cb) ->
-            # record in database that snapshot was made
+            # record in database that we made a snapshot
             record_snapshot_in_db
                 project_id     : opts.project_id
                 host           : opts.host
                 name           : now + tag
                 modified_files : modified_files
                 cb             : cb
+        (cb) ->
+            # record when we made this recent snapshot (might be slightly off if multiple snapshots at once)
+            database.update
+                table : 'projects'
+                where : {project_id : opts.project_id}
+                set   : {last_snapshot : now}
+                cb    : cb
     ], (err) ->
         if err == 'delay' and modified_files?.length == 0
             opts.cb?()
@@ -822,6 +853,7 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
                     cb    : cb
             else
                 cb()
+
 
     ], (err) -> opts.cb?(err))
 
