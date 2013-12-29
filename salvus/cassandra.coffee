@@ -1982,7 +1982,7 @@ class exports.Salvus extends exports.Cassandra
             cb         : required
         @select
             table      : 'projects'
-            columns    : (c for c in PROJECT_COLUMNS if c.indexOf('invited') == -1)
+            columns    : (c for c in PROJECT_COLUMNS when c.indexOf('invited') == -1)
             where      : { project_id : opts.project_id }
             cb         : (err, results) =>
                 if err?

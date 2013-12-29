@@ -872,15 +872,19 @@ class ProjectPage
             @_computing_usage = true
             salvus_client.exec
                 project_id : @project.project_id
-                command    : 'du'
-                args       : ['-sch', '.']
-                timeout    : 360
+                command    : 'df -h $HOME'
+                bash       : true
+                timeout    : 30
                 cb         : (err, output) =>
                     delete @_computing_usage
                     if not err
-                        usage.text(output.stdout.split('\t')[0])
-                    else
-                        usage.text("(timed out running 'du -sch .')")
+                        #usage.text(output.stdout.split('\t')[0])
+                        o = output.stdout.split('\n')[1].split(/\s+/)
+                        usage.show()
+                        usage.find(".salvus-usage-size").text(o[1])
+                        usage.find(".salvus-usage-used").text(o[2])
+                        usage.find(".salvus-usage-avail").text(o[3])
+                        usage.find(".salvus-usage-percent").text(o[4])
 
         return @
 
