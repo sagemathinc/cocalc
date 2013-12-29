@@ -47,6 +47,8 @@ uuid    = require('node-uuid')
 
 moment  = require('moment')
 
+storage = require('storage')
+
 _ = require('underscore')
 
 
@@ -1659,6 +1661,9 @@ class exports.Salvus extends exports.Cassandra
                 delete @_touch_project_cache[id]
 
         @_touch_project_cache[id] = misc.walltime()
+
+        # Try to make a snapshot (will not make them too frequently).
+        storage.snapshot(project_id:opts.project_id)
 
         set = {last_edited: now()}
         if opts.size
