@@ -259,6 +259,7 @@ CREATE TABLE projects (
      locations        map<text, text>,   // ip_address --> snapshots available there
      modified_files   map<text, text>,   // snapshot_name --> [list of files changed]
      last_snapshot    timestamp,  // likely last timestamp of a successful snapshot
+     replicating      boolean,   // set to try with a ttl (of one hour) when we start replicating this project out; will not try again until this lock is removed
 
      quota            varchar,
 

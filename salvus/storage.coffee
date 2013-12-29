@@ -749,6 +749,11 @@ exports.snapshot = snapshot = (opts) ->
                 where : {project_id : opts.project_id}
                 set   : {last_snapshot : now}
                 cb    : cb
+        (cb) ->
+            # replicate out
+            replicate
+                project_id : opts.project_id
+                cb         : cb
     ], (err) ->
         if err == 'delay' and modified_files?.length == 0
             opts.cb?()
@@ -1134,7 +1139,29 @@ exports.replicate = replicate = (opts) ->
     versions = []   # will be list {host:?, version:?} of out-of-date objs, grouped by data center.
 
     new_project = false
+    clear_replicating_lock = false
     async.series([
+        (cb) ->
+            # check for lock
+            database.select_one
+                table   : 'projects'
+                where   : {project_id : opts.project_id}
+                columns : ['replicating']
+                cb      : (err, r) ->
+                    if err
+                        cb(err)
+                    else if r[0]
+                        cb("already replicating")
+                    else
+                        # create lock
+                        clear_replicating_lock = true
+                        database.update
+                            table : 'projects'
+                            ttl   : 3600
+                            where : {project_id : opts.project_id}
+                            set   : {'replicating': true}
+                            cb    : (err) ->
+                                cb(err)
         (cb) ->
             # Determine information about all known snapshots
             # of this project, and also the best source for
@@ -1218,8 +1245,17 @@ exports.replicate = replicate = (opts) ->
             async.map(versions, f, cb)
 
     ], (err) ->
-        if new_project
-            opts.cb?()
+        if clear_replicating_lock
+            # remove lock
+            database.update
+                table : 'projects'
+                where : {project_id : opts.project_id}
+                set   : {'replicating': false}
+                cb    : () ->
+                    if new_project
+                        opts.cb?()
+                    else
+                        opts.cb?(err)
         else
             opts.cb?(err)
     )
