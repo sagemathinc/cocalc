@@ -248,6 +248,7 @@ message
     session_uuid : required
     path         : required    # absolute path
     content      : required
+    readonly     : false       # if true, the file must be treated as "read-only" by the client.
 
 # A list of edits that should be applied, along with the
 # last version of edits received before.

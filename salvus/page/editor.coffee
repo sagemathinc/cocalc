@@ -1164,6 +1164,10 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.setOption('theme', theme)
         @opts.theme = theme
 
+    # add something visual to the UI to suggest that the file is read onl
+    set_readonly_ui: () =>
+        @element.find("a[href=#save]").text('Readonly').addClass('disabled')
+
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
             return

@@ -240,7 +240,7 @@ async          = require('async')
 fs             = require('fs')
 child_process  = require 'child_process'
 
-exports.execute_code = (opts) ->
+exports.execute_code = execute_code = (opts) ->
     opts = defaults opts,
         command    : required
         args       : []
@@ -596,5 +596,30 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
             ], (err) -> cb?(err))
 
 exports.ensure_containing_directory_exists = ensure_containing_directory_exists
+
+
+# Determine if path (file or directory) is writable -- this works even if permissions are right but
+# filesystem is read only, e.g., ~/.zfs/snapshot/...
+# It's an error if the path doesn't exist.
+exports.is_file_readonly = (opts) ->
+    opts = defaults opts,
+        path : required
+        cb   : required    # cb(err, true if read only (false otherwise))
+    readonly = undefined
+    # determine if file is writable
+    execute_code
+        command     : 'find'
+        args        : [opts.path, '-maxdepth', '0', '-writable']
+        err_on_exit : false
+        cb          : (err, output) =>
+            if err
+                opts.cb(err)
+            else if output.stderr or output.exit_code
+                opts.cb("no such path '#{opts.path}'")
+            else
+                readonly = output.stdout.length == 0
+                opts.cb(undefined, readonly)
+
+
 
 

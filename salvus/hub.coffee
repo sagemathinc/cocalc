@@ -1500,6 +1500,7 @@ class Client extends EventEmitter
                                 session_uuid : session.session_uuid
                                 path         : session.path
                                 content      : snapshot
+                                readonly     : session.readonly
                             @push_to_client(mesg)
 
 
@@ -2342,6 +2343,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
                         @broadcast_mesg_to_clients(mesg)
 
                     @session_uuid = resp.session_uuid
+                    @readonly = resp.readonly
 
                     codemirror_sessions.by_uuid[@session_uuid] = @
                     codemirror_sessions.by_path[@project_id + @path] = @

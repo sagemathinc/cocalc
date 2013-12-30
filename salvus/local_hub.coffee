@@ -166,7 +166,7 @@ class ConsoleSessions
                 # Read one JSON message back, which describes the session
                 console_socket.once 'mesg', (type, desc) =>
                     if not history?
-                        history = new Buffer(0)                        
+                        history = new Buffer(0)
                     client_socket.write_mesg('json', {desc:desc, history:history.toString()})  # in future, history could be read from a file
                     # Disable JSON mesg protocol, since it isn't used further
                     misc_node.disable_mesg(console_socket)
@@ -639,8 +639,14 @@ class CodeMirrorSession
 
         async.series([
             (cb) =>
-                # If this is a sagews file, create corresponding sage session.
-                if misc.filename_extension(@path) == 'sagews'
+                misc_node.is_file_readonly
+                    path : @path
+                    cb   : (err, readonly) =>
+                        @readonly = readonly
+                        cb(err)
+            (cb) =>
+                # If this is a non-readonly sagews file, create corresponding sage session.
+                if not @readonly and misc.filename_extension(@path) == 'sagews'
                     @process_new_content = @sage_update
                     @sage_socket(cb)
                 else
@@ -1233,6 +1239,7 @@ class CodeMirrorSessions
                 session_uuid : session.session_uuid
                 path         : session.path
                 content      : session.content
+                readonly     : session.readonly
 
         if mesg.session_uuid?
             session = @_sessions.by_uuid[mesg.session_uuid]
