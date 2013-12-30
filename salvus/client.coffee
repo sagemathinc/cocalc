@@ -1367,7 +1367,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             path       : '.'
             start      : 0
-            limit      : 200
+            limit      : 500
             timeout    : 60
             hidden     : false
             cb         : required
@@ -1392,11 +1392,12 @@ class exports.Connection extends EventEmitter
         @call
             message:
                 message.snap
-                    command    : 'ls'
-                    project_id : opts.project_id
-                    snapshot   : snapshot
-                    path       : path
-                    timeout    : opts.timeout
+                    command         : 'ls'
+                    project_id      : opts.project_id
+                    snapshot        : snapshot
+                    path            : path
+                    timeout         : opts.timeout
+                    timezone_offset : (new Date()).getTimezoneOffset()  # the difference (UTC time) - (local time), in minutes.
 
             timeout :
                 opts.timeout
@@ -1455,22 +1456,11 @@ class exports.Connection extends EventEmitter
             hidden     : false
             cb         : required
 
-        if opts.path.slice(0,9) == ".snapshot"
-            delete opts.time  # no way to sort by time
+        if opts.path.slice(0,9) == ".snapshot" and (opts.path.length == 9 or opts.path[9] == '/')
             opts.path = opts.path.slice(9)
             if opts.path.length > 0 and opts.path[0] == '/'
                 opts.path = opts.path.slice(1)  # delete leading slash
-
-            tries = 0
-            cb = opts.cb
-            # TODO: Try multiple times since server just gives an error on backend failure.
-            f = (err, result) =>
-                if err and tries < 2
-                    tries += 1
-                    @project_snap_listing(opts)
-                else
-                    cb(err, result)
-            opts.cb = f
+            delete opts.time
             @project_snap_listing(opts)
             return
 

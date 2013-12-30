@@ -1112,16 +1112,8 @@ class ProjectPage
             @new_file_tab_input.focus().select()
 
     update_snapshot_ui_elements: () =>
-        if @current_path.length > 0 and @current_path[0] == '.snapshot'
-            snapshot = true
-        else
-            snapshot = false
-
-        search = @container.find(".project-search-menu-item")
-        if snapshot
-            search.addClass('disabled')
-        else
-            search.removeClass('disabled')
+        # nothing special to do
+        return
 
     chdir: (path, no_focus) =>
         @set_current_path(path)

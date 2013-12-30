@@ -1717,6 +1717,7 @@ class Client extends EventEmitter
                         snapshot   : mesg.snapshot
                         path       : mesg.path
                         timeout    : mesg.timeout
+                        timezone_offset : mesg.timezone_offset
                         cb         : (err, list) =>
                             if err
                                 @error_to_client(id:mesg.id, error:err)
@@ -1784,6 +1785,7 @@ snap_command = (opts) ->
         snapshot   : undefined
         path       : '.'
         timeout    : 60
+        timezone_offset : 0
         cb         : required   # cb(err, list of results when meaningful)
 
     switch opts.command
@@ -1849,6 +1851,7 @@ snap_command_restore_or_log = (opts) ->
         location   : undefined
         path       : '.'
         timeout    : 60
+        timezone_offset : 0
         cb         : required   # cb(err)
 
     snap_location = undefined
@@ -1886,6 +1889,23 @@ snap_command_ls = (opts) ->
         snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
         path       : '.'
         timeout    : 60
+        timezone_offset : 0
+        cb         : required   # cb(err, list of results when meaningful)
+
+    storage.snapshot_listing
+        project_id      : opts.project_id
+        timezone_offset : opts.timezone_offset
+        snapshot        : opts.snapshot
+        path            : '.'
+        cb              : opts.cb
+
+XXXOLD_snap_command_ls = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
+        path       : '.'
+        timeout    : 60
+        timezone_offset : 0
         cb         : required   # cb(err, list of results when meaningful)
     if opts.snapshot?
         # Get directory listing inside a given snapshot

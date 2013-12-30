@@ -1104,6 +1104,38 @@ exports.diff = diff = (opts) ->
 
 
 
+
+exports.snapshot_listing = snapshot_listing = (opts) ->
+    opts = defaults opts,
+        project_id      : required
+        timezone_offset : 0   # difference in minutes:  UTC - local_time
+        snapshot        : undefined # if given, is name of a particular snapshot (the actual foo st there is in .zfs/snapshot/foo).
+        path            : '.'
+        host            : undefined
+        cb              : opts.cb
+
+    dbg = (m) -> winston.debug("snapshot_listing(#{opts.project_id}): #{m}")
+
+    if not opts.host?
+        dbg("use current host")
+        use_current_host(snapshot_listing, opts)
+        return
+
+    if not opts.snapshot?
+        # computed sorted list of unique days in local time, but as a file listing.
+        get_snapshots
+            project_id : opts.project_id
+            host       : opts.host
+            cb         : (err, snapshots) ->
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, snapshots)
+    else
+        opts.cb("not implemented")
+
+
+
 ######################
 # Replication
 ######################
