@@ -69,6 +69,11 @@ def create_user(project_id):
     if os.path.exists("/mnt/conf/etc/"): # GCE nodes
         cmd("cp /etc/passwd /etc/shadow /etc/group /mnt/conf/etc/")
 
+def chown_all(project_id):
+    cmd("zfs set snapdir=hidden %s"%home(project_id).lstrip('/'))  # needed for historical reasons
+    id = uid(project_id)
+    cmd('chown %s:%s -R %s'%(id, id, home(project_id)))
+
 def write_info_json(project_id, host='', base_url=''):
     if not host:
         import socket
@@ -121,6 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("--create", help="create the project user", default=False, action="store_const", const=True)
     parser.add_argument("--base_url", help="the base url (default:'')", default="", type=str)
     parser.add_argument("--host", help="the host ip address on the tinc vpn (default: auto-detect)", default="", type=str)
+    parser.add_argument("--chown", help="chown all the files in /projects/projectid", default=False, action="store_const", const=True)
     parser.add_argument("project_id", help="the uuid of the project", type=str)
     args = parser.parse_args()
     if args.create:
@@ -131,5 +137,7 @@ if __name__ == "__main__":
         copy_skeleton(args.project_id)
     if args.kill:
         killall_user(args.project_id)
+    if args.chown:
+        chown_all(args.project_id)
 
 

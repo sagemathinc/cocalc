@@ -110,14 +110,14 @@ exports.create_user = create_user = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
-        action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton)
+        action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton), 'chown' (chown files)
         base_url   : ''         # used when writing info.json
         cb         : undefined
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
     execute_on
         host    : opts.host
         command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} --base_url=#{opts.base_url} --host=#{opts.host} #{opts.project_id}"
-        timeout : 30
+        timeout : 600
         cb      : opts.cb
 
 # Open project on the given host.  This mounts the project, ensures the appropriate
@@ -137,7 +137,7 @@ exports.open_project = open_project = (opts) ->
             dbg("mount filesystem")
             execute_on
                 host    : opts.host
-                timeout : 30
+                timeout : 120
                 command : "sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{filesystem(opts.project_id)}&&sudo zfs mount #{filesystem(opts.project_id)}"
                 cb      : (err, output) ->
                     if err
@@ -156,7 +156,7 @@ exports.open_project = open_project = (opts) ->
             dbg("test login")
             execute_on
                 host    : opts.host
-                timeout : 10
+                timeout : 20
                 user    : username(opts.project_id)
                 command : "pwd"
                 cb      : (err, output) ->
@@ -183,7 +183,8 @@ exports.get_current_location = get_current_location = (opts) ->
             if r?[0]?
                 # e.g., r = [{"host":"10.3.1.4","username":"c1f1dc4adbf04fc69878012020a0a829","port":22,"path":"."}]
                 if r[0].username != username(opts.project_id)
-                    opts.cb("project #{opts.project_id} not yet migrated?!")
+                    winston.debug("get_current_location - WARNING: project #{opts.project_id} not yet fully migrated")
+                    opts.cb(undefined, undefined)
                 else
                     cur_loc = r[0]?.host
                     if cur_loc == ""
@@ -307,6 +308,7 @@ exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined  # defaults to current host; doesn't nothing if not deployed on any host.
+        unset_loc  : true       # set location to undefined in the database
         cb         : required
 
     if not opts.host?
@@ -337,11 +339,14 @@ exports.close_project = close_project = (opts) ->
                             err = undefined
                     cb(err)
         (cb) ->
-            database.update
-                table : 'projects'
-                set   : {location:undefined}
-                where : {project_id : opts.project_id}
-                cb    : cb
+            if opts.unset_loc
+                database.update
+                    table : 'projects'
+                    set   : {location:undefined}
+                    where : {project_id : opts.project_id}
+                    cb    : cb
+            else
+                cb()
     ], opts.cb)
 
 
@@ -352,10 +357,9 @@ exports.create_project = create_project = (opts) ->
     opts = defaults opts,
         project_id : required
         quota      : '5G'
-        base_url   : opts.base_url
+        base_url   : ''
         cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
 
-    winston.info("create project #{opts.project_id}")
     dbg = (m) -> winston.debug("create_project(#{opts.project_id}): #{m}")
 
     dbg("check if the project filesystem already exists somewhere")
@@ -738,6 +742,7 @@ exports.snapshot = snapshot = (opts) ->
             dbg("get the diff")
             diff
                 project_id : opts.project_id
+                host       : opts.host
                 cb         : (err, x) ->
                     modified_files = x
                     cb(err)
@@ -1066,41 +1071,53 @@ exports.zfs_diff = zfs_diff = (opts) ->
 
 
 # Returns a list of files/paths that changed between live and the most recent snapshot.
+# If host is given, it is treated as live.
 # Returns empty list if project not deployed.
 exports.diff = diff = (opts) ->
     opts = defaults opts,
         project_id : required
+        host       : undefined
         timeout    : 10
         cb         : required    # cb(err, list of filenames)
 
-    get_current_location
-        project_id : opts.project_id
-        cb         : (err, host) ->
-            if err
-                opts.cb(err)
-            else if not host?
-                opts.cb(undefined, [])
+    host = opts.host
+    v = []
+    async.series([
+        (cb) ->
+            if host?
+                cb()
             else
-                # use find command, which is thousands of times faster than "zfs diff".
-                execute_on
-                    host    : host
-                    user    : username(opts.project_id)
-                    command : "find . -xdev -newermt \"`ls -1 ~/.zfs/snapshot|tail -1 | sed 's/T/ /g'`\" | grep -v '^./\\.'"
-                    timeout : opts.timeout  # this should be really fast
-                    cb      : (err, output) ->
-                        if err and output?.stderr == ''
-                            # if the list is empty, grep yields a nonzero error code.
-                            err = undefined
-                        winston.debug("#{err}, #{misc.to_json(output)}")
+                get_current_location
+                    project_id : opts.project_id
+                    cb         : (err, _host) ->
                         if err
-                            opts.cb(err)
+                            cb(err)
                         else
-                            v = []
-                            for h in output.stdout.split('\n')
-                                a = h.slice(2)
-                                if a
-                                    v.push(a)
-                            opts.cb(undefined, v)
+                            host = host
+                            cb()
+        (cb) ->
+            if not host?
+                cb(); return
+            # use find command, which is thousands of times faster than "zfs diff".
+            execute_on
+                host    : host
+                user    : username(opts.project_id)
+                command : "find . -xdev -newermt \"`ls -1 ~/.zfs/snapshot|tail -1 | sed 's/T/ /g'`\" | grep -v '^./\\.'"
+                timeout : opts.timeout  # this should be really fast
+                cb      : (err, output) ->
+                    if err and output?.stderr == ''
+                        # if the list is empty, grep yields a nonzero error code.
+                        err = undefined
+                    winston.debug("#{err}, #{misc.to_json(output)}")
+                    if err
+                        cb(err)
+                    else
+                        for h in output.stdout.split('\n')
+                            a = h.slice(2)
+                            if a
+                                v.push(a)
+                        cb()
+        ], (err) -> opts.cb(err, v))
 
 
 
@@ -1510,6 +1527,206 @@ exports.replicate_all = replicate_all = (opts) ->
     ], (err) -> opts.cb?(err, errors))
 
 
+###
+# Migrate -- throw away code for migrating from the old /mnt/home/blah projects to new ones
+###
+
+#
+# TEMPORARY: for migrate to work, you must:
+#    - temporarily allow ssh key access to root@[all compute nodes]
+#    - temporarily allow root to ssh to any project
+#
+exports.migrate = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        force      : false
+        cb         : required
+    dbg = (m) -> winston.debug("migrate(#{opts.project_id}): #{m}")
+    dbg("migrate (or update) the data for project with given id to the new format")
+
+    done = false
+    old_home = undefined
+    old_user = undefined
+    old_host = undefined
+    new_host = undefined
+    now      = undefined
+    rsync_failed = false
+    async.series([
+        (cb) ->
+            if opts.force
+                cb(); return
+            dbg("check if project already completely migrated to new zfs storage format")
+            database.select_one
+                table   : 'projects'
+                columns : ['storage']
+                where   : {project_id : opts.project_id}
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        if result[0] == 'zfs'
+                            dbg("nothing further to do -- project is now up and running using the new ZFS-based storage")
+                            done = true
+                            cb(true)
+                        else
+                            cb()
+        (cb) ->
+            if opts.force
+                cb(); return
+            dbg("get last modification time and last migration time of this project")
+            database.select_one
+                table   : 'projects'
+                columns : ['last_edited', 'last_migrated']
+                where   : {project_id : opts.project_id}
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        last_edited = result[0]
+                        last_migrated = result[1]
+                        if last_migrated? and last_edited? and last_edited < last_migrated
+                            # nothing to do  -- project hasn't changed since last successful rsync/migration
+                            done = true
+                            cb(true)
+                        else
+                            cb()
+
+        (cb) ->
+            dbg("determine /mnt/home path of the project")
+            database.select_one
+                table   : 'projects'
+                columns : ['location']
+                json    : ['location']
+                where   : {project_id : opts.project_id}
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        if not result[0] or not result[0].username or not result[0].host
+                            cb("no /mnt/home/ location for project -- migration not possible")
+                        else
+                            old_user = result[0].username
+                            old_home = '/mnt/home/' + result[0].username
+                            old_host = result[0].host
+                            cb()
+        (cb) ->
+            dbg("create a zfs-based version of the project (or find out where it is already)")
+            create_project
+                project_id : opts.project_id
+                quota      : '10G'      # may shrink everything later...
+                cb         : cb
+        (cb) ->
+            dbg("open the project somewhere, so we can rsync old_home to it")
+            locs = _.flatten(locations(project_id:opts.project_id))
+            for h in locs
+                if h != old_host  # want different machine in case user already exists.
+                    new_host = h
+                    break
+            open_project
+                project_id : opts.project_id
+                host       : new_host
+                cb         : cb
+        (cb) ->
+            dbg("rsync old_home to it.")
+            new_home = mountpoint(opts.project_id)
+            t = misc.walltime()
+            now = cassandra.now()
+            rsync = "rsync -Hax --delete --exclude .forever --exclude .bup --exclude .zfs #{old_user}@#{old_host}:#{old_home}/ #{new_home}/"
+            execute_on
+                user          : "root"
+                host          : new_host
+                command       : rsync
+                err_on_stderr : false
+                err_on_exit   : false
+                cb            : (err, output) ->
+                    # we set rsync_failed here, since it is critical that we do the chown below no matter what.
+                    if err
+                        rsync_failed = err
+                    dbg("finished rsync; it took #{misc.walltime(t)} seconds; output=#{misc.to_json(output)}")
+                    if output.exit_code
+                        rsync_failed = output.stderr
+                        # TODO: ignore errors involving sshfs; be worried about other errors.
+                    cb()
+        (cb) ->
+            dbg("chown user files")
+            create_user
+                project_id : opts.project_id
+                host       : new_host
+                action     : 'chown'
+                cb         : (err) ->
+                    if rsync_failed
+                        err = rsync_failed
+                    cb(err)
+
+        (cb) ->
+            dbg("take a new snapshot if anything changed")
+            snapshot
+                project_id              : opts.project_id
+                host                    : new_host
+                min_snapshot_interval_s : 0
+                wait_for_replicate      : true
+                cb                      : cb
+        (cb) ->
+            dbg("close project")
+            close_project
+                project_id : opts.project_id
+                host       : new_host
+                unset_loc  : false
+                cb         : cb
+
+        (cb) ->
+            dbg("record that we successfully migrated all data at this point in time (=when rsync *started*)")
+            database.update
+                table : 'projects'
+                set   : {'last_migrated':now}
+                where : {project_id : opts.project_id}
+                cb    : cb
+    ], (err) ->
+        if done
+            opts.cb()
+        else
+            opts.cb(err)
+    )
+
+
+exports.migrate_all = (opts) ->
+    opts = defaults opts,
+        limit : 10  # no more than this many projects will be migrated simultaneously
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        cb    : undefined  # cb(err, {project_id:error when replicating that project})
+
+    projects = undefined
+    errors = {}
+    done = 0
+    todo = undefined
+    async.series([
+        (cb) ->
+            database.select
+                table   : 'projects'
+                columns : ['project_id']
+                limit   : if opts.stop? then opts.stop else 1000000       # should page, but no need since this is throw-away code.
+                cb      : (err, result) ->
+                    if result?
+                        projects = (x[0] for x in result)
+                        projects.sort()
+                        if opts.start? and opts.stop?
+                            projects = projects.slice(opts.start, opts.stop)
+                        todo = projects.length
+                    cb(err)
+        (cb) ->
+            f = (project_id, cb) ->
+                winston.debug("migrate_all -- #{project_id}")
+                exports.migrate
+                    project_id : project_id
+                    cb         : (err) ->
+                        done += 1
+                        winston.info("MIGRATE_ALL STATUS: finished #{done}/#{todo}")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) -> opts.cb?(err, errors))
 
 
 

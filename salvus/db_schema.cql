@@ -266,6 +266,8 @@ CREATE TABLE projects (
      quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
      usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
 
+     last_migrated    timestamp, // used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
+
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
 
      size             int,      // total size in bytes at last save
