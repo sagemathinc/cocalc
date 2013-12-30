@@ -1887,7 +1887,7 @@ snap_command_ls = (opts) ->
     opts = defaults opts,
         project_id : required
         snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
-        path       : '.'
+        path       : ''
         timeout    : 60
         timezone_offset : 0
         cb         : required   # cb(err, list of results when meaningful)
@@ -1895,8 +1895,7 @@ snap_command_ls = (opts) ->
     storage.snapshot_listing
         project_id      : opts.project_id
         timezone_offset : opts.timezone_offset
-        snapshot        : opts.snapshot
-        path            : '.'
+        path            : opts.path
         cb              : opts.cb
 
 XXXOLD_snap_command_ls = (opts) ->

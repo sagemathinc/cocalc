@@ -1109,28 +1109,51 @@ exports.snapshot_listing = snapshot_listing = (opts) ->
     opts = defaults opts,
         project_id      : required
         timezone_offset : 0   # difference in minutes:  UTC - local_time
-        snapshot        : undefined # if given, is name of a particular snapshot (the actual foo st there is in .zfs/snapshot/foo).
-        path            : '.'
+        path            : ''  # '' or a day in the format '2013-12-20'
         host            : undefined
         cb              : opts.cb
 
     dbg = (m) -> winston.debug("snapshot_listing(#{opts.project_id}): #{m}")
+    dbg(misc.to_json(opts))
 
     if not opts.host?
         dbg("use current host")
         use_current_host(snapshot_listing, opts)
         return
 
-    if not opts.snapshot?
-        # computed sorted list of unique days in local time, but as a file listing.
+    snaps = (cb) ->
         get_snapshots
             project_id : opts.project_id
             host       : opts.host
             cb         : (err, snapshots) ->
                 if err
-                    opts.cb(err)
+                    cb(err)
                 else
-                    opts.cb(undefined, snapshots)
+                    cb(undefined, new Date( (new Date(x+"+0000")) - opts.timezone_offset*60*1000) for x in snapshots)
+
+    if opts.path.length<10
+        dbg("sorted list of unique days in local time, but as a file listing.")
+        snaps (err, s) ->
+            if err
+                opts.cb(err); return
+            s = (x.toISOString().slice(0,10) for x in s)
+            s = _.uniq(s)
+            s.sort()
+            s.reverse()
+            dbg("result=#{misc.to_json(s)}")
+            opts.cb(undefined, s)
+    else if opts.path.length == 10
+        dbg("snapshots for a particular day in local time")
+        snaps (err, s) ->
+            if err
+                opts.cb(err); return
+            s = (x.toISOString().slice(0,19) for x in s)
+            s = (x.slice(11) for x in s when x.slice(0,10) == opts.path)
+            s = _.uniq(s)
+            s.sort()
+            s.reverse()
+            dbg("result=#{misc.to_json(s)}")
+            opts.cb(undefined, s)
     else
         opts.cb("not implemented")
 

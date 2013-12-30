@@ -1146,6 +1146,10 @@ class ProjectPage
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
 
+                if listing?.real_path?
+                    @set_current_path(listing.real_path)
+                    @push_state('files/' + listing.real_path)
+
                 clearTimeout(timer)
                 spinner.spin(false).hide()
 
@@ -1159,7 +1163,7 @@ class ProjectPage
                 @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
 
                 if (err)
-                    #console.log("update_file_list_tab: error -- ", err)
+                    console.log("update_file_list_tab: error -- ", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         #console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)

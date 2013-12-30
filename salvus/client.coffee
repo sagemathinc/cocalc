@@ -1365,37 +1365,46 @@ class exports.Connection extends EventEmitter
     project_snap_listing: (opts) =>
         opts = defaults opts,
             project_id : required
-            path       : '.'
+            path       : ''
             start      : 0
             limit      : 500
             timeout    : 60
             hidden     : false
             cb         : required
 
-        day = undefined
-        if opts.path.length == 10 # specifies a day
-            snapshot = undefined
-            day = opts.path
-        else if opts.path.length > 10
-            opts.path = opts.path.slice(11)
+        if opts.path.length >= 18
             i = opts.path.indexOf('/')
             if i == -1
-                snapshot = opts.path
-                path = '.'
+                opts.cb("invalid date"); return
+            path0 = opts.path.slice(0,i) + ' ' + opts.path.slice(i+1)
+            i = path0.indexOf('/')
+            if i == -1
+                snapshot = path0
+                path = ''
             else
-                snapshot = opts.path.slice(0,i)
-                path = opts.path.slice(i+1)
-        else
-            snapshot = undefined
-            path = "."
+                snapshot = path0.slice(0, i)
+                path = path0.slice(i+1)
+            snapshot = (new Date(snapshot)).toISOString().slice(0,19)
+            real_path = '.zfs/snapshot/' + snapshot + '/' + path
+            console.log(real_path)
+            @project_directory_listing
+                path       : real_path
+                project_id : opts.project_id
+                hidden     : opts.hidden
+                cb         : (err, files) ->
+                    if err
+                        opts.cb(err)
+                    else
+                        files.real_path = real_path
+                        opts.cb(undefined, files)
+            return
 
         @call
             message:
                 message.snap
                     command         : 'ls'
                     project_id      : opts.project_id
-                    snapshot        : snapshot
-                    path            : path
+                    path            : opts.path
                     timeout         : opts.timeout
                     timezone_offset : (new Date()).getTimezoneOffset()  # the difference (UTC time) - (local time), in minutes.
 
@@ -1408,24 +1417,14 @@ class exports.Connection extends EventEmitter
                 else if resp.event == 'error'
                     opts.cb(resp.error)
                 else
-                    if not snapshot?
-                        if day?
-                            files = ( {name:name, isdir:true, snapshot:''} for name in resp.list when name.slice(0,10) == day )
-
-                        else
-                            # list of all days with branches
-                            v = _.uniq( ( name.slice(0,10) for name in resp.list ) )
-                            files = ( {name:name, isdir:true, snapshot:''} for name in v )
+                    if opts.path.length == 0
+                        files = ({name:name, isdir:true} for name in resp.list)
+                        opts.cb(false, {files:files})
+                    else if opts.path.length == 10
+                        files = ({name:new Date("1974-01-01 #{name}").toLocaleTimeString(), isdir:true} for name in resp.list)
+                        opts.cb(false, {files:files})
                     else
-                        files = []
-                        for name in resp.list
-                            if not opts.hidden and name[0] == '.'
-                                continue
-                            if name[name.length-1] == '/'
-                                files.push({name:name.slice(0,name.length-1), isdir:true, snapshot:snapshot})
-                            else
-                                files.push({name:name, snapshot:snapshot})
-                    opts.cb(false, {files:files})
+                        opts.cb('invalid snapshot directory name')
 
     # return the time in seconds since epoch UTC of the last snapshot.
     project_last_snapshot_time: (opts) =>
