@@ -260,7 +260,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                         hosts = (x[2] for x in v)
 
                         ## TODO: FOR TESTING -- restrict to Google
-                        hosts = (x for x in hosts when x.slice(0,4) == '10.3')
+                        ##hosts = (x for x in hosts when x.slice(0,4) == '10.3')
 
                         dbg("hosts = #{misc.to_json(hosts)}")
                         cb()
@@ -338,7 +338,7 @@ exports.close_project = close_project = (opts) ->
                 command : "sudo zfs set mountpoint=none #{filesystem(opts.project_id)}&&sudo zfs umount #{mountpoint(opts.project_id)}"
                 cb      : (err, output) ->
                     if err
-                        if err.indexOf('not currently mounted') != -1    # non-fatal: to be expected (due to using both mountpoint setting and umount)
+                        if err.indexOf('not currently mounted') != -1 or err.indexOf('not a ZFS filesystem') != -1   # non-fatal: to be expected (due to using both mountpoint setting and umount)
                             err = undefined
                     cb(err)
         (cb) ->
@@ -403,7 +403,7 @@ exports.create_project = create_project = (opts) ->
                         dbg("creating ZFS filesystem")
                         execute_on
                             host    : host
-                            command : "sudo zfs create #{fs}; sudo zfs set snapdir=hidden #{fs}; sudo zfs set quota=#{opts.quota} #{fs}; sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{fs}"
+                            command : "sudo zfs create #{fs} ; sudo zfs set snapdir=hidden #{fs} ; sudo zfs set quota=#{opts.quota} #{fs} ; sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{fs}"
                             timeout : 60
                             cb      : (err, output) ->
                                 if output?.stderr?.indexOf('dataset already exists') != -1
@@ -1251,7 +1251,7 @@ exports.replicate = replicate = (opts) ->
 
     new_project = false
     clear_replicating_lock = false
-    errors = []
+    errors = {}
     async.series([
         (cb) ->
             # check for lock
@@ -1330,7 +1330,7 @@ exports.replicate = replicate = (opts) ->
                                 # the code in STAGE 2 below works.
                                 dest.version = source.version
                             else
-                                errors.push(err)
+                                errors["src-#{source.host}-dest-#{dest.host}"] = err
                             cb()
             async.map(versions, f, cb)
 
@@ -1355,14 +1355,14 @@ exports.replicate = replicate = (opts) ->
                             dest       : dest
                             cb         : (err) ->
                                 if err
-                                    errors.push(err)
+                                    errors["src-#{src.host}-dest-#{dest.host}"] = err
                                 cb()
                 async.map(d, g, cb)
 
             async.map(versions, f, cb)
 
     ], () ->
-        if errors.length > 0
+        if misc.len(errors) > 0
             err = errors
         else
             err = undefined
@@ -1757,6 +1757,35 @@ exports.migrate_all = (opts) ->
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) -> opts.cb?(err, errors))
 
+
+#r=require('storage');r.init()
+#x={};r.status_of_migrate_all(cb:(e,v)->console.log("DONE!"); x.v=v; console.log(x.v.done.length, x.v.todo.length))
+exports.status_of_migrate_all = (opts) ->
+    opts = defaults opts,
+        cb    : undefined
+
+    tm = misc.walltime()
+    dbg = (m) -> winston.debug("status_of_migrate_all(): #{m}")
+    dbg("querying db...")
+    database.select
+        table   : 'projects'
+        columns : ['project_id','last_edited', 'last_snapshot']
+        limit   : 1000000
+        cb      : (err, v) ->
+            #dbg("v=#{misc.to_json(v)}")
+            dbg("done querying in #{misc.walltime(tm)} seconds")
+            if err
+                opts.cb(err)
+            else
+                todo = []
+                done = []
+
+                for x in v
+                    if x[2]? and x[1] < x[2]
+                        done.push(x[0])
+                    else
+                        todo.push(x[0])
+                opts.cb(undefined, {done:done, todo:todo})
 
 exports.location_all = (opts) ->
     opts = defaults opts,
