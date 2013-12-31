@@ -180,7 +180,6 @@ class ProjectPage
         @init_project_download()
 
         @init_project_restart()
-        @init_project_move()
         @init_worksheet_server_restart()
 
         @init_delete_project()
@@ -342,10 +341,10 @@ class ProjectPage
                 @display_tab("project-search")
 
     set_location: () =>
-        if @project.location? and @project.location and @project.location.username?
-            x = @project.location.username + "@" + @project.location.host
+        if @project.location? and @project.location.host?
+            x = @project.location.host
         else
-            x = "(not deployed)"
+            x = "..."
         @container.find(".project-location").text(x)
 
     window_resize: () =>
@@ -1417,12 +1416,61 @@ class ProjectPage
                     del.find(".spinner").hide()
             return false
 
+        copy = b.find("a[href=#copy-file]")
+        copy.click () =>
+            @copy_file(fullname)
+            return false
+
         # Renaming a file
         rename_link = t.find('a[href=#rename-file]')
 
         rename_link.click () =>
             @click_to_rename_file(path, file_link)
             return false
+
+    copy_file:  (path, cb) =>
+        dialog = $(".project-copy-file-dialog").clone()
+        dialog.modal()
+        new_dest = undefined
+        new_src = undefined
+        async.series([
+            (cb) =>
+                if path.slice(0,5) == '.zfs/'
+                    dest = path.slice('.zfs/snapshot/2013-12-31T22:32:30/'.length)
+                else
+                    dest = path
+                dialog.find(".copy-file-src").val(path)
+                dialog.find(".copy-file-dest").val(dest).focus()
+                submit = (ok) =>
+                    dialog.modal('hide')
+                    if ok
+                        new_src = dialog.find(".copy-file-src").val()
+                        new_dest = dialog.find(".copy-file-dest").val()
+                    cb()
+                    return false
+                dialog.find(".btn-close").click(()=>submit(false))
+                dialog.find(".btn-submit").click(()=>submit(true))
+            (cb) =>
+                if not new_dest?
+                    cb(); return
+                alert_message(type:'info', message:"Copying #{new_src} to #{new_dest}...")
+                salvus_client.exec
+                    project_id : @project.project_id
+                    command    : 'rsync'
+                    args       : ['-axH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
+                    timeout    : 60   # how long grep runs on client
+                    network_timeout : 75   # how long network call has until it must return something or get total error.
+                    err_on_exit: true
+                    path       : '.'
+                    cb         : (err, output) =>
+                        if err
+                            alert_message(type:"error", message:"Error copying #{new_src} to #{new_dest} -- #{output.stderr}")
+                        else
+                            alert_message(type:"success", message:"Successfully copied #{new_src} to #{new_dest}")
+                            @update_file_list_tab()
+                        cb(err)
+        ], (err) => cb?(err))
+
 
     click_to_rename_file: (path, link) =>
         if link.attr('contenteditable')
@@ -1973,7 +2021,7 @@ class ProjectPage
             dialog.find(".btn-submit").click () =>
                 @container.find(".project-location").text("moving...")
                 @container.find(".project-location-heading").icon_spin(start:true)
-                alert_message(timeout:10, message:"Started moving project '#{@project.title}'.  This should take 30 seconds plus around 1 minute per gigabyte.")
+                alert_message(timeout:15, message:"Moving project '#{@project.title}' (this should take about a minute)...")
                 dialog.modal('hide')
                 salvus_client.move_project
                     project_id : @project.project_id
@@ -1982,7 +2030,7 @@ class ProjectPage
                         if err
                             alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
                         else
-                            alert_message(timeout:5, message:"Moved project '#{@project.title}'...")
+                            alert_message(timeout:10, type:"success", message:"Successfully moved project '#{@project.title}'!")
                             @project.location = location
                             @set_location()
 
@@ -2181,6 +2229,7 @@ class ProjectPage
 
 
     # Completely move the project, possibly moving it if it is on a broken host.
+    ###
     init_project_move: () =>
         # Close local project
         link = @container.find("a[href=#move-project]").tooltip(delay:{ show: 500, hide: 100 })
@@ -2211,6 +2260,7 @@ class ProjectPage
                         timeout : 5
             ])
             return false
+    ###
 
     init_snapshot_link: () =>
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>

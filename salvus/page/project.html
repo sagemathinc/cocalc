@@ -84,22 +84,58 @@
         <button type="button" class="close btn-close" aria-hidden="true">
             <span style="font-size:20pt;">×</span>
         </button>
-        <h3><i class="fa fa-external-link-square"> </i>  Move Project to a Different Server</h3>
+        <h3><i class="fa fa-external-link-square"> </i> Move Project to a Different Server</h3>
     </div>
     <div class="well">
-        If the computer on which your project is deployed is not working,
-        click the "Move Project" button below to move your project to a different
-        computer.  This copies all files from the most recent snapshot of your project,
-        which was taken <span class="project-move-snapshot-last-timeago">(unknown?)</span>.
-        <!--, which was taken
-        <span class="project-move-last-snapshot">(loading...)</span>.-->
-        <!--This will take about one minute per gigabyte of data in your project-->
+        If the computer on which your project is opened is not working,
+        click the "Move Project" button below to open your project on a different
+        computer, likely using the snapshot taken
+        <span class="project-move-snapshot-last-timeago">last</span>.
+        <br>
+        <hr>
+        <span class="lighten">Moving a project takes about a minute.
+            Your project is <b>not</b>
+            hosted on a networked filesystem, which would be too slow to
+            operate between datacenters; instead, there are two copies
+            of your project hosted in each datacenter as a ZFS filesystem,
+            distributed using
+            consistent hashing, and synchronized using ZFS replica streaming.
+            Moving your project
+            involves closing the project on its current host, then opening
+            a replica of it on another randomly chosen host (with newest
+            snapshot).
+            </span>
     </div>
     <div class="modal-footer">
         <button class="btn btn-large btn-close">Cancel</button>
-        <button class="btn btn-large btn-primary btn-submit">Move Project</button>
+        <button class="btn btn-large btn-danger btn-submit">Move Project</button>
     </div>
 </div>
+
+<div class="modal hide project-copy-file-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3><i class="fa fa-copy"> </i> Copy File or Directory</h3>
+    </div>
+    <div class="well">
+        Copy<br><br>
+        <input type="text" style="width:100%" class="copy-file-src" value="">
+        to<br><br>
+        <input type="text" style="width:100%" class="copy-file-dest" value="">
+        <br><hr>
+        <span class="lighten">
+            <b>Note:</b> The copy is done using <pre>rsync -axH --backup --backup-dir=.trash/ source dest</pre> so
+            destination files that would be overwritten are instead copied to the trash.
+        </span>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-close">Cancel</button>
+        <button class="btn btn-large btn-submit btn-primary">Copy File</button>
+    </div>
+</div>
+
 
 
 <!-- The actual project file browser, etc., interface -->
@@ -354,7 +390,7 @@
                                         <h4 class="project-location-heading">Location </h4>
                                     </div>
                                     <div class="span9">
-                                        <pre><a class="project-location">loading...</a></pre>
+                                        <pre><a class="project-location">...</a> <a class="btn btn-small btn-danger pull-right"><i class="fa fa-external-link-square"> </i> Move...</a></pre>
                                     </div>
                                 </div>
 
@@ -438,7 +474,8 @@
                                         </a>
                                     </div>
                                 </div>
-                                <br>
+                                <!--<br>
+
                                 <div class="row-fluid">
                                     <div class="span8">
                                         Move this project.  Kill everything running in this project and start the project running on a different virtual machine using the most recent snapshot.  Do this in case of hardware or networking issues, or you mess everything up badly (e.g., wildly deleting random stuff).
@@ -450,6 +487,7 @@
                                         </a>
                                     </div>
                                 </div>
+                                -->
                                 <br>
                                 <div class="row-fluid">
                                     <div class="span12 lighten">
@@ -623,11 +661,13 @@
         <div class="span" style="width: 10px;">
             <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
         </div>
+
         <div class="span pull-right" style="width:100px">
             <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
-                <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file"><i class="fa fa-edit"> </i> </a>
-                <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file"><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
-                <a class="btn btn-danger btn-small" href="#delete-file"  data-toggle="tooltip" data-placement="bottom" title="Delete file"><i class="fa fa-trash-o"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
+                <a class="btn btn-small" href="#copy-file"  data-toggle="tooltip" data-placement="bottom" title="Copy file..."><i class="fa fa-copy"> </i> </a>
+                <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file..."><i class="fa fa-edit"> </i> </a>
+                <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file..."><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
+                <a class="btn btn-danger btn-small" href="#delete-file"  data-toggle="tooltip" data-placement="bottom" title="Delete file..."><i class="fa fa-trash-o"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
             </span>
         </div>
 
@@ -663,6 +703,8 @@
         </div>
         <div class="span pull-right" style="width:60px">
             <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
+
+                <a class="btn btn-small" href="#copy-file"  data-toggle="tooltip" data-placement="bottom" title="Copy folder..."><i class="fa fa-copy"> </i> </a>
 
                 <a class="btn btn-small" href="#rename-file" data-toggle="tooltip" data-placement="bottom" title="Rename folder"><i class="fa fa-edit"> </i> </a>
                 <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download folder (as archive)"><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>

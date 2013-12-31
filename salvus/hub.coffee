@@ -1216,11 +1216,11 @@ class Client extends EventEmitter
             if err
                 return # error handled in get_project
             project.move_project
-                cb : (err, ok) =>
+                cb : (err, location) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
-                        @push_to_client(message.project_moved(id:mesg.id, location:project.location))
+                        @push_to_client(message.project_moved(id:mesg.id, location:location))
 
     mesg_create_project: (mesg) =>
         if not @account_id?
@@ -3697,7 +3697,7 @@ class Project
         if not @project_id
             cb("when creating Project, the project_id must be defined")
             return
-        winston.debug("Instantiating Project class for project with id #{@project_id}.")
+        @dbg("instantiating Project class")
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
         else
@@ -3711,6 +3711,9 @@ class Project
                 else
                     @local_hub = hub
                     cb(undefined, @)
+
+    dbg: (m) =>
+        winston.debug("project(#{@project_id}): #{m}")
 
     _fixpath: (obj) =>
         if obj? and @local_hub?
@@ -3763,15 +3766,36 @@ class Project
     move_project: (opts) =>
         opts = defaults opts,
             cb : undefined
+        @dbg("move_project")
+        host = @local_hub.host
+        new_host = undefined
         async.series([
             (cb) =>
-                database.set_project_location
+                @dbg("close the project in case it is open right now")
+                storage.close_project
                     project_id  : @project_id
-                    location    : ""
-                    cb          : cb
+                    cb          : (err) =>
+                        if err
+                            @dbg("move_project -- ignore error #{err} -- since errors are *why* we want to move")
+                        cb()
             (cb) =>
-                @deploy(cb)
-        ], opts.cb)
+                @dbg("move_project -- open the project somewhere *else*")
+                storage.open_project_somewhere
+                    project_id  : @project_id
+                    exclude     : [host]
+                    cb          : (err, n) =>
+                        new_host = n
+                        cb(err)
+            (cb) =>
+                @dbg("move_project -- now open a connection to the relocated project at #{new_host} so user has a better experience")
+                @local_hub.open(cb)
+        ], (err) =>
+            if new_host?
+                @dbg("move_project -- success!")
+                # TODO: temporary
+                loc = {host:new_host, username:storage.username(@project_id), port:22, path:'.'}
+            opts.cb(err, loc)
+        )
 
     undelete_project: (opts) =>
         opts = defaults opts,

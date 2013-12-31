@@ -205,6 +205,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
     opts = defaults opts,
         project_id : required
         base_url   : ''
+        exclude    : undefined  # if project not currently opened, won't open on any host in the list exclude
         cb         : required   # cb(err, host used)
 
     dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id}): #{m}")
@@ -258,6 +259,9 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                         dbg("v = #{misc.to_json(v)}")
                         hosts = (x[2] for x in v)
 
+                        if opts.exclude?
+                            hosts = (x for x in hosts when opts.exclude.indexOf(x) == -1)
+
                         ## TODO: FOR TESTING -- restrict to Google
                         ##hosts = (x for x in hosts when x.slice(0,4) == '10.3')
 
@@ -286,10 +290,11 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
             async.mapSeries(hosts, f, cb)
         (cb) ->
             if host_used? and host_used != cur_loc
-                dbg("record location in database")
+                new_loc = {"host":host_used,"username":username(opts.project_id),"port":22,"path":"."}
+                dbg("record location in database: #{misc.to_json(new_loc)}")
                 database.update
                     table : 'projects'
-                    set   : {location:{"host":host_used,"username":username(opts.project_id),"port":22,"path":"."}}
+                    set   : {location:new_loc}
                     json  : ['location']
                     where : {project_id : opts.project_id}
                     cb    : cb
@@ -328,6 +333,7 @@ exports.close_project = close_project = (opts) ->
                 project_id : opts.project_id
                 host       : opts.host
                 action     : 'kill'
+                timeout    : 30
                 cb         : cb
         (cb) ->
             dbg("unmount filesystem")
@@ -829,7 +835,7 @@ exports.snapshot = snapshot = (opts) ->
                 cb()
                 replicate
                     project_id : opts.project_id
-                    cb         : (err) -> # ignore    
+                    cb         : (err) -> # ignore
     ], (err) ->
         if err == 'delay' and modified_files?.length == 0
             opts.cb?()
