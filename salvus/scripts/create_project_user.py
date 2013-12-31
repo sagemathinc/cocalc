@@ -33,6 +33,11 @@ def cmd(s):
 def home(project_id):
     return os.path.join('/projects', project_id)
 
+def zfs_home_is_mounted(project_id):
+    h = home(project_id)
+    if not os.path.exists(os.path.join(h, '.zfs')):
+        raise RuntimeError("ZFS filesystem %s is not mounted"%h[1:])
+
 def username(project_id):
     return project_id.replace('-','')
 
@@ -56,7 +61,9 @@ def create_user(project_id):
         return
     if u != 0:
         # there's the username but with wrong id
-        cmd("userdel %s"%name)  # this also deletes the group
+        ##  during migration deleting that user would be a disaster!
+        raise RuntimeError("user %s already exists but with wrong id"%name)
+        #cmd("userdel %s"%name)  # this also deletes the group
 
     # Now make the correct user.  The -o makes it so in the incredibly unlikely
     # event of a collision, no big deal.
@@ -70,11 +77,13 @@ def create_user(project_id):
         cmd("cp /etc/passwd /etc/shadow /etc/group /mnt/conf/etc/")
 
 def chown_all(project_id):
+    zfs_home_is_mounted(project_id)
     cmd("zfs set snapdir=hidden %s"%home(project_id).lstrip('/'))  # needed for historical reasons
     id = uid(project_id)
     cmd('chown %s:%s -R %s'%(id, id, home(project_id)))
 
 def write_info_json(project_id, host='', base_url=''):
+    zfs_home_is_mounted(project_id)
     if not host:
         import socket
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -90,6 +99,7 @@ def write_info_json(project_id, host='', base_url=''):
     open(info_json,'w').write(json.dumps(obj, separators=(',',':')))
 
 def ensure_ssh_access(project_id):
+    zfs_home_is_mounted(project_id)
     # If possible, make some attempts to ensure ssh access to this account.
     h = home(project_id)
     if not os.path.exists(h):
@@ -112,6 +122,7 @@ def killall_user(project_id):
     os.system("pkill -u %s"%uid(project_id))
 
 def copy_skeleton(project_id):
+    zfs_home_is_mounted(project_id)
     h = home(project_id)
     u = username(project_id)
     if not os.path.exists(h):

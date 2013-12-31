@@ -104,7 +104,6 @@ or this since we don't need "sudo zpool":
 # Running Projects
 ######################
 
-
 # if user doesn't exist on the given host, create them
 exports.create_user = create_user = (opts) ->
     opts = defaults opts,
@@ -112,11 +111,13 @@ exports.create_user = create_user = (opts) ->
         host       : required
         action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton), 'chown' (chown files)
         base_url   : ''         # used when writing info.json
+        chown      : false      # if true, chowns files in /project/projectid in addition to creating user.
         cb         : undefined
+
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
     execute_on
         host    : opts.host
-        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} --base_url=#{opts.base_url} --host=#{opts.host} #{opts.project_id}"
+        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} --base_url=#{opts.base_url} --host=#{opts.host} #{if opts.chown then '--chown' else ''} #{opts.project_id}"
         timeout : 600
         cb      : opts.cb
 
@@ -307,7 +308,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
 exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         project_id : required
-        host       : undefined  # defaults to current host; doesn't nothing if not deployed on any host.
+        host       : undefined  # defaults to current host, if deployed
         unset_loc  : true       # set location to undefined in the database
         cb         : required
 
@@ -358,6 +359,7 @@ exports.create_project = create_project = (opts) ->
         project_id : required
         quota      : '5G'
         base_url   : ''
+        chown      : false       # if true, chown files in filesystem (throw-away: used only for migration from old)
         cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
 
     dbg = (m) -> winston.debug("create_project(#{opts.project_id}): #{m}")
@@ -378,7 +380,8 @@ exports.create_project = create_project = (opts) ->
             done = false
             fs = filesystem(opts.project_id)
             host = undefined
-            errors = []
+            mounted_fs = false
+            errors = {}
             f = (i, cb) ->
                 if done
                     cb(); return
@@ -390,22 +393,22 @@ exports.create_project = create_project = (opts) ->
                         dbg("creating ZFS filesystem")
                         execute_on
                             host    : host
-                            command : "sudo zfs create #{fs} && sudo zfs set snapdir=hidden #{fs} && sudo zfs set quota=#{opts.quota} #{fs}"
-                            timeout : 15
-                            cb      : c
+                            command : "sudo zfs create #{fs}; sudo zfs set snapdir=hidden #{fs}; sudo zfs set quota=#{opts.quota} #{fs}; sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{fs}"
+                            timeout : 60
+                            cb      : (err, output) ->
+                                if output?.stderr?.indexOf('dataset already exists') != -1
+                                    # non-fatal
+                                    err = undefined
+                                if not err
+                                    mounted_fs = true
+                                c(err)
                     (c) ->
                         dbg("created fs successfully; now create user")
                         create_user
                             project_id : opts.project_id
                             host       : host
                             action     : 'create'
-                            cb         : c
-                    (c) ->
-                        dbg("now open the project (so it's mounted)")
-                        open_project
-                            project_id : opts.project_id
-                            host       : host
-                            base_url   : opts.base_url
+                            chown      : opts.chown
                             cb         : c
                     (c) ->
                         dbg("copy over the template files, e.g., .sagemathcloud")
@@ -415,25 +418,33 @@ exports.create_project = create_project = (opts) ->
                             host       : host
                             cb         : c
                     (c) ->
-                        dbg("close the project ")
-                        close_project
-                            project_id : opts.project_id
-                            host       : host
-                            cb         : c
-                    (c) ->
                         dbg("snapshot the project")
                         snapshot
                             project_id : opts.project_id
                             host       : host
                             cb         : c
                 ], (err) ->
-                    if not err
-                        done = true
-                    else
-                        dbg("error #{host} -- #{err}")
-                        errors.push(err)
-                    cb()
+                    async.series([
+                        (c) ->
+                            if mounted_fs
+                                # unmount the project on this host (even if something along the way failed above)
+                                close_project
+                                    project_id : opts.project_id
+                                    host       : host
+                                    unset_loc  : false
+                                    cb         : c
+                            else
+                                c()
+                        (c) ->
+                            if not err
+                                done = true
+                            else
+                                dbg("error #{host} -- #{err}")
+                                errors[host] = err
+                            c()
+                    ], () -> cb())
                 )
+
             async.mapSeries [0...locs.length], f, () ->
                 if done
                     opts.cb(undefined, host)
@@ -790,7 +801,7 @@ exports.get_snapshots = get_snapshots = (opts) ->
         project_id : required
         host       : undefined
         cb         : required
-    database.select
+    database.select_one
         table   : 'projects'
         columns : ['locations']
         where   : {project_id : opts.project_id}
@@ -798,16 +809,12 @@ exports.get_snapshots = get_snapshots = (opts) ->
             if err
                 opts.cb(err)
                 return
-            if result.length == 0 # no record of this project, so no hosts; not an error
-                opts.cb(undefined, [])
-                return
-            else
-                result = result[0]
+            result = result[0]
             if opts.host?
                 if not result?
                     opts.cb(undefined, [])
                 else
-                    v = result[0][opts.host]
+                    v = result[opts.host]
                     if v?
                         v = JSON.parse(v)
                     else
@@ -815,7 +822,7 @@ exports.get_snapshots = get_snapshots = (opts) ->
                     opts.cb(undefined, v)
             else
                 ans = {}
-                for k, v of result[0]
+                for k, v of result
                     ans[k] = JSON.parse(v)
                 opts.cb(undefined, ans)
 
@@ -842,9 +849,12 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
         modified_files : undefined   # if given should be a list of (interesting) files that were modified from the previous snapshot to this one
         cb             : undefined
 
+    dbg = (m) -> winston.debug("record_snapshot_in_db(#{opts.project_id},#{opts.host},#{opts.name}): #{m}")
+
     new_snap_list = undefined
     async.series([
         (cb) ->
+            dbg("get snapshots")
             get_snapshots
                 project_id : opts.project_id
                 host       : opts.host
@@ -863,6 +873,7 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
                         new_snap_list = v
                         cb()
         (cb) ->
+            dbg("set new snapshots list")
             if not new_snap_list?
                 cb(); return
             set_snapshots_in_db
@@ -871,7 +882,9 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
                 snapshots  : new_snap_list
                 cb         : cb
         (cb) ->
+            # TODO: eliminate this -- probably using diff and find is just as good or better.
             if opts.modified_files?
+                dbg("set new modified files")
                 v = {}
                 x = "modified_files['#{opts.name}']"
                 v[x] = JSON.stringify(opts.modified_files)
@@ -882,8 +895,6 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
                     cb    : cb
             else
                 cb()
-
-
     ], (err) -> opts.cb?(err))
 
 # Set the list of snapshots for a given project.  The
@@ -1421,7 +1432,7 @@ exports.send = send = (opts) ->
                 host    : opts.dest.host
                 command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}; rm #{tmp}"
                 cb      : (err, output) ->
-                    winston.debug("(non-fatal) -- #{misc.to_json(output)}")
+                    #winston.debug("(non-fatal) -- #{misc.to_json(output)}")
                     if output?.stderr
                         if output.stderr.indexOf('destination has snapshots') != -1
                             # this is likely caused by the database being stale regarding what snapshots are known,
@@ -1599,6 +1610,7 @@ exports.migrate = (opts) ->
                 json    : ['location']
                 where   : {project_id : opts.project_id}
                 cb      : (err, result) ->
+                    dbg("location=#{misc.to_json(result)}")
                     if err
                         cb(err)
                     else
@@ -1610,18 +1622,17 @@ exports.migrate = (opts) ->
                             old_host = result[0].host
                             cb()
         (cb) ->
-            dbg("create a zfs-based version of the project (or find out where it is already)")
+            dbg("create a zfs version of the project (or find out where it is already)")
             create_project
                 project_id : opts.project_id
                 quota      : '10G'      # may shrink everything later...
-                cb         : cb
+                chown      : true       # in case of old messed up thing.
+                cb         : (err, host) ->
+                    new_host = host
+                    dbg("initial zfs project host=#{new_host}")
+                    cb(err)
         (cb) ->
-            dbg("open the project somewhere, so we can rsync old_home to it")
-            locs = _.flatten(locations(project_id:opts.project_id))
-            for h in locs
-                if h != old_host  # want different machine in case user already exists.
-                    new_host = h
-                    break
+            dbg("open the project on #{new_host}, so we can rsync old_home to it")
             open_project
                 project_id : opts.project_id
                 host       : new_host
@@ -1631,7 +1642,7 @@ exports.migrate = (opts) ->
             new_home = mountpoint(opts.project_id)
             t = misc.walltime()
             now = cassandra.now()
-            rsync = "rsync -Hax --delete --exclude .forever --exclude .bup --exclude .zfs #{old_user}@#{old_host}:#{old_home}/ #{new_home}/"
+            rsync = "rsync -Hax -e 'ssh -o StrictHostKeyChecking=no' --delete --exclude .forever --exclude .bup --exclude .zfs root@#{old_host}:#{old_home}/ #{new_home}/"
             execute_on
                 user          : "root"
                 host          : new_host
@@ -1659,12 +1670,13 @@ exports.migrate = (opts) ->
                     cb(err)
 
         (cb) ->
-            dbg("take a new snapshot if anything changed")
+            dbg("take a snapshot")
             snapshot
                 project_id              : opts.project_id
                 host                    : new_host
                 min_snapshot_interval_s : 0
                 wait_for_replicate      : true
+                force                   : opts.force
                 cb                      : cb
         (cb) ->
             dbg("close project")
@@ -1705,7 +1717,7 @@ exports.migrate_all = (opts) ->
             database.select
                 table   : 'projects'
                 columns : ['project_id']
-                limit   : if opts.stop? then opts.stop else 1000000       # should page, but no need since this is throw-away code.
+                limit   : 1000000                 # should page, but no need since this is throw-away code.
                 cb      : (err, result) ->
                     if result?
                         projects = (x[0] for x in result)
@@ -1729,6 +1741,27 @@ exports.migrate_all = (opts) ->
     ], (err) -> opts.cb?(err, errors))
 
 
+exports.location_all = (opts) ->
+    opts = defaults opts,
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        cb    : undefined  # cb(err, {project_id:error when replicating that project})
+
+    projects = undefined
+    ans = []
+    database.select
+        table   : 'projects'
+        columns : ['project_id','location']
+        limit   : 1000000       # should page, but no need since this is throw-away code.
+        cb      : (err, projects) ->
+            if err
+                opts.cb(err)
+            else
+                if projects?
+                    projects.sort()
+                    if opts.start? and opts.stop?
+                        projects = projects.slice(opts.start, opts.stop)
+                opts.cb(undefined, projects)
 
 ###
 # init
