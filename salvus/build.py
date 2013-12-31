@@ -320,6 +320,13 @@ r packages could be automated like so:
    mv ~/.sagemathcloud .
 
 
+# Salvus (needs more!)
+
+   cd /home/salvus/salvus/salvus/
+   mkdir local_hub_template/node_modules
+   cp scripts/skel/.sagemathcloud/node_modules/*.js local_hub_template/node_modules/
+   ./make_coffee --all
+
 # GCE problems:
    julia fails to build: as above
    system-wide theano fails to install: /usr/bin/pip install -U theano  # but fine in sage.

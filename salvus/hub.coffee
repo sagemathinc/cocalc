@@ -1795,7 +1795,7 @@ snap_command = (opts) ->
         when 'restore', 'log'
             snap_command_restore_or_log(opts)
         when 'last'
-            snap_last_snapshot
+            storage.last_snapshot
                 project_id : opts.project_id
                 cb         : opts.cb
         else
@@ -1817,31 +1817,6 @@ snap_server_ids = (cb) ->   # cb(err, server_ids)
                     _snap_server_ids = undefined
                 setTimeout(f, 30000)
                 cb(false, _snap_server_ids)
-
-snap_last_snapshot = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        cb         : required
-
-    server_ids = undefined
-    async.series([
-        (cb) ->
-            snap_server_ids (err, _server_ids) ->
-                server_ids = _server_ids
-                cb(err)
-        (cb) ->
-            database.select
-                table      : 'last_snapshot'
-                columns    : ['server_id', 'repo_id', 'timestamp', 'utc_seconds_epoch']
-                where      : {project_id : opts.project_id, server_id : {'in':server_ids}}
-                objectify  : true
-                cb         : (err, results) ->
-                    if err
-                        cb(err)
-                    else
-                        results.sort((a,b) -> b.utc_seconds_epoch - a.utc_seconds_epoch)
-                        opts.cb(false, results)
-    ], opts.cb)
 
 snap_command_restore_or_log = (opts) ->
     opts = defaults opts,

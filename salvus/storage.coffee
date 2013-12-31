@@ -705,6 +705,25 @@ use_best_host = (f, opts) ->
             opts.cb("no available host")
     )
 
+# Compute the time of the "probable last snapshot" in seconds since the epoch in UTC,
+# or undefined if there are no snapshots.
+exports.last_snapshot = last_snapshot = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : undefined    # cb(err, utc_seconds_epoch)
+    database.select_one
+        table      : 'projects'
+        where      : {project_id : opts.project_id}
+        columns    : ['last_snapshot']
+        cb         : (err, r) ->
+            if err
+                opts.cb(err)
+            else
+                if not r? or not r[0]?
+                    opts.cb(undefined, undefined)
+                else
+                    opts.cb(undefined, r[0]/1000)
+
 
 # Make a snapshot of a given project on a given host and record
 # this in the database; also record in the database the list of (interesting) files
