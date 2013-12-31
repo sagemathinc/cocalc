@@ -128,6 +128,7 @@ exports.open_project = open_project = (opts) ->
         project_id : required
         host       : required
         base_url   : ''
+        chown      : false
         cb         : required   # cb(err, host used)
 
     winston.info("opening project #{opts.project_id} on #{opts.host}")
@@ -152,6 +153,7 @@ exports.open_project = open_project = (opts) ->
                 action     : 'create'
                 host       : opts.host
                 base_url   : opts.base_url
+                chown      : opts.chown
                 cb         : cb
         (cb) ->
             dbg("test login")
@@ -333,7 +335,7 @@ exports.close_project = close_project = (opts) ->
             execute_on
                 host    : opts.host
                 timeout : 30
-                command : "sudo zfs set mountpoint=none #{filesystem(opts.project_id)}&&sudo zfs umount #{filesystem(opts.project_id)}"
+                command : "sudo zfs set mountpoint=none #{filesystem(opts.project_id)}&&sudo zfs umount #{mountpoint(opts.project_id)}"
                 cb      : (err, output) ->
                     if err
                         if err.indexOf('not currently mounted') != -1    # non-fatal: to be expected (due to using both mountpoint setting and umount)
@@ -360,6 +362,7 @@ exports.create_project = create_project = (opts) ->
         quota      : '5G'
         base_url   : ''
         chown      : false       # if true, chown files in filesystem (throw-away: used only for migration from old)
+        exclude    : []          # hosts to not use
         cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
 
     dbg = (m) -> winston.debug("create_project(#{opts.project_id}): #{m}")
@@ -370,11 +373,18 @@ exports.create_project = create_project = (opts) ->
         cb         : (err, hosts) ->
             if err
                 opts.cb(err); return
+
             if hosts.length > 0
-                opts.cb(undefined, [hosts[0]]); return
+                if opts.exclude.length > 0
+                    hosts = (h for h in hosts when opts.exclude.indexOf(h) == -1)
+                opts.cb(undefined, hosts[0])
+                return
 
             # according to DB, the project filesystem doesn't exist anywhere, so let's make it somewhere...
             locs = _.flatten(locations(project_id:opts.project_id))
+
+            if opts.exclude.length > 0
+                locs = (h for h in locs when opts.exclude.indexOf(h) == -1)
 
             # try each host in locs (in random order) until one works
             done = false
@@ -714,7 +724,7 @@ exports.snapshot = snapshot = (opts) ->
         use_current_host(snapshot, opts)
         return
 
-    dbg = (m) -> winston.debug("snapshot(#{opts.project_id},#{opts.host}): #{m}")
+    dbg = (m) -> winston.debug("snapshot(#{opts.project_id},#{opts.host},force=#{opts.force}): #{m}")
 
     dbg()
 
@@ -1627,6 +1637,7 @@ exports.migrate = (opts) ->
                 project_id : opts.project_id
                 quota      : '10G'      # may shrink everything later...
                 chown      : true       # in case of old messed up thing.
+                exclude    : [old_host]
                 cb         : (err, host) ->
                     new_host = host
                     dbg("initial zfs project host=#{new_host}")
@@ -1636,6 +1647,7 @@ exports.migrate = (opts) ->
             open_project
                 project_id : opts.project_id
                 host       : new_host
+                chown      : true
                 cb         : cb
         (cb) ->
             dbg("rsync old_home to it.")
@@ -1676,7 +1688,7 @@ exports.migrate = (opts) ->
                 host                    : new_host
                 min_snapshot_interval_s : 0
                 wait_for_replicate      : true
-                force                   : opts.force
+                force                   : true
                 cb                      : cb
         (cb) ->
             dbg("close project")
@@ -1712,14 +1724,19 @@ exports.migrate_all = (opts) ->
     errors = {}
     done = 0
     todo = undefined
+    dbg = (m) -> winston.debug("migrate_all(start=#{opts.start}, stop=#{opts.stop}): #{m}")
+    t = misc.walltime()
+
     async.series([
         (cb) ->
+            dbg("querying database...")
             database.select
                 table   : 'projects'
                 columns : ['project_id']
                 limit   : 1000000                 # should page, but no need since this is throw-away code.
                 cb      : (err, result) ->
                     if result?
+                        dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
                         projects = (x[0] for x in result)
                         projects.sort()
                         if opts.start? and opts.stop?
@@ -1728,7 +1745,7 @@ exports.migrate_all = (opts) ->
                     cb(err)
         (cb) ->
             f = (project_id, cb) ->
-                winston.debug("migrate_all -- #{project_id}")
+                dbg("migrating #{project_id}")
                 exports.migrate
                     project_id : project_id
                     cb         : (err) ->
@@ -1749,6 +1766,7 @@ exports.location_all = (opts) ->
 
     projects = undefined
     ans = []
+
     database.select
         table   : 'projects'
         columns : ['project_id','location']
