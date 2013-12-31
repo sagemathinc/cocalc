@@ -10,7 +10,7 @@ You should put the following in visudo:
 
 """
 
-import argparse, hashlib, os
+import argparse, hashlib, os, random, time
 from subprocess import Popen, PIPE
 
 def uid(uuid):
@@ -67,8 +67,23 @@ def create_user(project_id):
 
     # Now make the correct user.  The -o makes it so in the incredibly unlikely
     # event of a collision, no big deal.
-    cmd("groupadd -g %s -o %s"%(id, name))
-    cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, home(project_id), name))
+    c = "groupadd -g %s -o %s"%(id, name)
+    for i in range(3):
+        try:
+            cmd(c)
+            break
+        except:
+            time.sleep(random.random())
+
+    # minimal attemp to avoid locking issues
+    c = "useradd -u %s -g %s -o -d %s %s"%(id, id, home(project_id), name)
+    for i in range(3):
+        try:
+            cmd(c)
+            break
+        except:
+            time.sleep(random.random())
+
 
     # Save account info so it persists through reboots/upgrades/etc. that replaces the ephemeral root fs.
     if os.path.exists("/mnt/home/etc/"): # UW nodes

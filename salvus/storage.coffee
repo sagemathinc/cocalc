@@ -1723,6 +1723,7 @@ exports.migrate_all = (opts) ->
     projects = undefined
     errors = {}
     done = 0
+    fail = 0
     todo = undefined
     dbg = (m) -> winston.debug("migrate_all(start=#{opts.start}, stop=#{opts.stop}): #{m}")
     t = misc.walltime()
@@ -1749,8 +1750,11 @@ exports.migrate_all = (opts) ->
                 exports.migrate
                     project_id : project_id
                     cb         : (err) ->
-                        done += 1
-                        winston.info("MIGRATE_ALL STATUS: finished #{done}/#{todo}")
+                        if err
+                            fail += 1
+                        else
+                            done += 1
+                        winston.info("MIGRATE_ALL STATUS: (done=#{done} + fail=#{fail})/#{todo}")
                         if err
                             errors[project_id] = err
                         cb()
