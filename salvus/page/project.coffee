@@ -180,6 +180,7 @@ class ProjectPage
         @init_project_download()
 
         @init_project_restart()
+        @init_project_move()
         @init_worksheet_server_restart()
 
         @init_delete_project()
@@ -2164,7 +2165,7 @@ class ProjectPage
                     alert_message
                         type    : "info"
                         message : "Restarting project server..."
-                        timeout : 4
+                        timeout : 15
                     salvus_client.restart_project_server
                         project_id : @project.project_id
                         cb         : cb
@@ -2174,19 +2175,19 @@ class ProjectPage
                     alert_message
                         type    : "success"
                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                        timeout : 2
+                        timeout : 5
             ])
             return false
 
 
-    # Completely reset the project, possibly moving it if it is on a broken host.
-    init_project_reset: () =>
+    # Completely move the project, possibly moving it if it is on a broken host.
+    init_project_move: () =>
         # Close local project
-        link = @container.find("a[href=#reset-project]").tooltip(delay:{ show: 500, hide: 100 })
+        link = @container.find("a[href=#move-project]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
             async.series([
                 (cb) =>
-                    m = "Are you sure you want to RESET the project?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed and the project might be moved to another server."
+                    m = "Are you sure you want to <b>MOVE</b> the project?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed and the project will be opened on another server using the most recent snapshot.  This could take about a minute."
                     bootbox.confirm m, (result) =>
                         if result
                             cb()
@@ -2194,21 +2195,20 @@ class ProjectPage
                             cb(true)
                 (cb) =>
                     link.find("i").addClass('fa-spin')
-                    #link.icon_spin(start:true)
                     alert_message
                         type    : "info"
-                        message : "Closing project..."
-                        timeout : 10
-                    salvus_client.close_project
+                        message : "Moving project..."
+                        timeout : 15
+                    salvus_client.move_project
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
+                    link.find("i").removeClass('fa-spin')
                     #link.icon_spin(false)
                     alert_message
                         type    : "success"
-                        message : "Terminated project server.  Click the file browser to start it again..."
-                        timeout : 20
-                    cb()
+                        message : "Successfully moved project."
+                        timeout : 5
             ])
             return false
 

@@ -2829,10 +2829,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @dbg("restart: skipping killall since this username #{u} has a suspicous length (=#{u.length})")
                     cb()
                 else
-                    @_restart_lock = false
                     did_killall = true
                     @killall () =>
-                        @_restart_lock = true
                         cb()
             (cb) =>
                 @dbg("restart: push latest version of code to remote machine...")
@@ -2851,6 +2849,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     ignore_restart_lock : true
                     cb      : (err, output) =>
                         cb(err)
+            (cb) =>
+                @_restart_lock = false  # no longer needed
+                @dbg("restart: finally opening a port forward")
+                @open(cb)
         ], (err) =>
             if err
                 @dbg("restart: error at end = #{err}")
@@ -3323,11 +3325,11 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     _exec_on_local_hub: (opts) =>
         opts = defaults opts,
-            command : required
-            timeout : 30
+            command                : required
+            timeout                : 30
             dot_sagemathcloud_path : true
-            ignore_restart_lock : false
-            cb      : required
+            ignore_restart_lock    : false
+            cb                     : required
 
         @update_project_location (err) =>
             if err
@@ -3336,7 +3338,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if opts.dot_sagemathcloud_path
                 opts.command = "~#{@username}/#{@SAGEMATHCLOUD}/#{opts.command}"
 
-            if @_restart_lock and opts.ignore_restart_lock
+            if @_restart_lock and not opts.ignore_restart_lock
                 opts.cb("_restart_lock..."); return
 
             # ssh [user]@[host] [-p port] #{@SAGEMATHCLOUD}/[commmand]
@@ -3397,6 +3399,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             command : "rm #{@SAGEMATHCLOUD}/data/*.port #{@SAGEMATHCLOUD}/data/*.pid; pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
             dot_sagemathcloud_path : false
             timeout : 30
+            ignore_restart_lock : true
             cb      : (err, out) =>
                 @dbg("killall returned -- #{err}, #{misc.to_json(out)}")
                 # We explicitly ignore errors since killall kills self while at it, which results in an error code return.
