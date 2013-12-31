@@ -261,7 +261,9 @@ class exports.Editor
         @counter = opts.counter
 
         @project_page  = opts.project_page
-        @project_path = opts.project_page.project.location.path
+        @project_path = opts.project_page.project.location?.path
+        if not @project_path
+            @project_path = '.'  # if location isn't defined yet -- and this is the only thing used anyways.
         @project_id = opts.project_page.project.project_id
         @element = templates.find(".salvus-editor").clone().show()
 

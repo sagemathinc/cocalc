@@ -2146,14 +2146,47 @@ class ProjectPage
                             timeout : 4
             return false
 
-
     init_project_restart: () =>
-        # Close local project
+        # Restart local project server
         link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
         link.click () =>
             async.series([
                 (cb) =>
-                    m = "Are you sure you want to restart the project?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed and the project will probably be moved to another server."
+                    m = "Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
+                    bootbox.confirm m, (result) =>
+                        if result
+                            cb()
+                        else
+                            cb(true)
+                (cb) =>
+                    link.find("i").addClass('fa-spin')
+                    #link.icon_spin(start:true)
+                    alert_message
+                        type    : "info"
+                        message : "Restarting project server..."
+                        timeout : 4
+                    salvus_client.restart_project_server
+                        project_id : @project.project_id
+                        cb         : cb
+                (cb) =>
+                    link.find("i").removeClass('fa-spin')
+                    #link.icon_spin(false)
+                    alert_message
+                        type    : "success"
+                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                        timeout : 2
+            ])
+            return false
+
+
+    # Completely reset the project, possibly moving it if it is on a broken host.
+    init_project_reset: () =>
+        # Close local project
+        link = @container.find("a[href=#reset-project]").tooltip(delay:{ show: 500, hide: 100 })
+        link.click () =>
+            async.series([
+                (cb) =>
+                    m = "Are you sure you want to RESET the project?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed and the project might be moved to another server."
                     bootbox.confirm m, (result) =>
                         if result
                             cb()
@@ -2165,17 +2198,17 @@ class ProjectPage
                     alert_message
                         type    : "info"
                         message : "Closing project..."
-                        timeout : 4
+                        timeout : 10
                     salvus_client.close_project
                         project_id : @project.project_id
                         cb         : cb
                 (cb) =>
-                    link.find("i").removeClass('fa-spin')
                     #link.icon_spin(false)
                     alert_message
                         type    : "success"
-                        message : "Successfully terminated project server. Your terminal and worksheet processes have been killed."
-                        timeout : 2
+                        message : "Terminated project server.  Click the file browser to start it again..."
+                        timeout : 20
+                    cb()
             ])
             return false
 

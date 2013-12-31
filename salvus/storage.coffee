@@ -112,13 +112,14 @@ exports.create_user = create_user = (opts) ->
         action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton), 'chown' (chown files)
         base_url   : ''         # used when writing info.json
         chown      : false      # if true, chowns files in /project/projectid in addition to creating user.
+        timeout    : 200
         cb         : undefined
 
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
     execute_on
         host    : opts.host
         command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} --base_url=#{opts.base_url} --host=#{opts.host} #{if opts.chown then '--chown' else ''} #{opts.project_id}"
-        timeout : 600
+        timeout : opts.timeout
         cb      : opts.cb
 
 # Open project on the given host.  This mounts the project, ensures the appropriate
@@ -254,8 +255,6 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                         v.sort()
                         v.reverse()
 
-
-
                         dbg("v = #{misc.to_json(v)}")
                         hosts = (x[2] for x in v)
 
@@ -363,6 +362,7 @@ exports.create_project = create_project = (opts) ->
         base_url   : ''
         chown      : false       # if true, chown files in filesystem (throw-away: used only for migration from old)
         exclude    : []          # hosts to not use
+        unset_loc  : true
         cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
 
     dbg = (m) -> winston.debug("create_project(#{opts.project_id}): #{m}")
@@ -377,26 +377,28 @@ exports.create_project = create_project = (opts) ->
             if hosts.length > 0
                 if opts.exclude.length > 0
                     hosts = (h for h in hosts when opts.exclude.indexOf(h) == -1)
-                opts.cb(undefined, hosts[0])
-                return
+                if hosts.length > 0
+                    opts.cb(undefined, hosts[0])
+                    return
 
-            # according to DB, the project filesystem doesn't exist anywhere, so let's make it somewhere...
+            dbg("according to DB, the project filesystem doesn't exist anywhere (allowed), so let's make it somewhere...")
             locs = _.flatten(locations(project_id:opts.project_id))
 
             if opts.exclude.length > 0
                 locs = (h for h in locs when opts.exclude.indexOf(h) == -1)
 
-            # try each host in locs (in random order) until one works
-            done = false
-            fs = filesystem(opts.project_id)
-            host = undefined
+            dbg("try each host in locs (in random order) until one works")
+            done       = false
+            fs         = filesystem(opts.project_id)
+            host       = undefined
             mounted_fs = false
-            errors = {}
-            f = (i, cb) ->
+            errors     = {}
+
+            f = (i, cb) ->  # try ith one (in random order)!
                 if done
                     cb(); return
-                dbg("try to allocate project (attempt #{i+1})")
                 host = misc.random_choice(locs)
+                dbg("try to allocate project on #{host} (this is attempt #{i+1})")
                 misc.remove(locs, host)
                 async.series([
                     (c) ->
@@ -404,7 +406,7 @@ exports.create_project = create_project = (opts) ->
                         execute_on
                             host    : host
                             command : "sudo zfs create #{fs} ; sudo zfs set snapdir=hidden #{fs} ; sudo zfs set quota=#{opts.quota} #{fs} ; sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{fs}"
-                            timeout : 60
+                            timeout : 30
                             cb      : (err, output) ->
                                 if output?.stderr?.indexOf('dataset already exists') != -1
                                     # non-fatal
@@ -419,6 +421,7 @@ exports.create_project = create_project = (opts) ->
                             host       : host
                             action     : 'create'
                             chown      : opts.chown
+                            timeout    : 30
                             cb         : c
                     (c) ->
                         dbg("copy over the template files, e.g., .sagemathcloud")
@@ -426,12 +429,14 @@ exports.create_project = create_project = (opts) ->
                             project_id : opts.project_id
                             action     : 'skel'
                             host       : host
+                            timeout    : 30
                             cb         : c
                     (c) ->
                         dbg("snapshot the project")
                         snapshot
                             project_id : opts.project_id
                             host       : host
+                            force      : true
                             cb         : c
                 ], (err) ->
                     async.series([
@@ -441,7 +446,7 @@ exports.create_project = create_project = (opts) ->
                                 close_project
                                     project_id : opts.project_id
                                     host       : host
-                                    unset_loc  : false
+                                    unset_loc  : opts.unset_loc
                                     cb         : c
                             else
                                 c()
@@ -814,10 +819,17 @@ exports.snapshot = snapshot = (opts) ->
                 set   : {last_snapshot : now}
                 cb    : cb
         (cb) ->
-            dbg("replicate")
-            replicate
-                project_id : opts.project_id
-                cb         : cb
+            if opts.wait_for_replicate
+                dbg("replicate -- holding up return")
+                replicate
+                    project_id : opts.project_id
+                    cb         : cb
+            else
+                dbg("replicate in the background (returning anyways)")
+                cb()
+                replicate
+                    project_id : opts.project_id
+                    cb         : (err) -> # ignore    
     ], (err) ->
         if err == 'delay' and modified_files?.length == 0
             opts.cb?()
@@ -1657,6 +1669,7 @@ exports.migrate = (opts) ->
                 quota      : '10G'      # may shrink everything later...
                 chown      : true       # in case of old messed up thing.
                 exclude    : [old_host]
+                unset_loc  : false
                 cb         : (err, host) ->
                     new_host = host
                     dbg("initial zfs project host=#{new_host}")

@@ -99,6 +99,7 @@ winston.add(winston.transports.Console, level: 'debug')
 # TEMPORARY until we flesh out the account types
 DEFAULTS =
     quota        : {disk:{soft:128, hard:256}, inode:{soft:4096, hard:8192}}
+    zfs_quota    : '5G'
     idle_timeout : 3600
 
 
@@ -1226,32 +1227,49 @@ class Client extends EventEmitter
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
             return
 
-        project_id = uuid.v4()
-        project = undefined
-        location = undefined
+        dbg = (m) -> winston.debug("mesg_create_project(#{misc.to_json(mesg)}): #{m}")
 
-        database.create_project
-            project_id  : project_id
-            account_id  : @account_id
-            title       : mesg.title
-            description : mesg.description
-            public      : mesg.public
-            quota       : DEFAULTS.quota   # TODO -- account based
-            idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
-            cb          : (err) =>
-                if err
-                    winston.debug("Issue creating project #{project_id}: #{misc.to_json(mesg)}")
-                    @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(error)}")
-                else
-                    winston.debug("Successfully created project #{project_id}: #{misc.to_json(mesg)}")
-                    @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
-                    push_to_clients  # push a message to all other clients logged in as this user.
-                        where : {account_id:@account_id,  exclude: [@conn.id]}
-                        mesg  : message.project_list_updated()
-                    # As an optimization, we start the process of opening the project, which allocates a unix account,
-                    # copies over files, etc.  This way if the user opens the project immediately, it will work more quickly.
-                    @get_project {project_id:project_id}, 'write', (err, project) =>
-                        # do nothing --
+        project_id = uuid.v4()
+        project    = undefined
+        location   = undefined
+
+        async.series([
+            (cb) =>
+                dbg("create project entry in database")
+                database.create_project
+                    project_id  : project_id
+                    account_id  : @account_id
+                    title       : mesg.title
+                    description : mesg.description
+                    public      : mesg.public
+                    quota       : DEFAULTS.quota   # TODO -- account based
+                    idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
+                    cb          : cb
+            (cb) =>
+                dbg("create backend project storage")
+                storage.create_project
+                    project_id  : project_id
+                    quota       : DEFAULTS.zfs_quota
+                    cb          : (err, _host) =>
+                        host = _host
+                        cb(err)
+        ], (err) =>
+            if err
+                dbg("error; project #{project_id} -- #{err}")
+                @error_to_client(id: mesg.id, error: "Failed to create new project '#{mesg.title}' -- #{misc.to_json(err)}")
+            else
+                dbg("SUCCESS: project #{project_id}")
+                @push_to_client(message.project_created(id:mesg.id, project_id:project_id))
+                push_to_clients  # push a message to all other clients logged in as this user.
+                    where : {account_id:@account_id,  exclude: [@conn.id]}
+                    mesg  : message.project_list_updated()
+                # As an optimization, we start the process of opening the project, since the user is likely
+                # to open the project soon anyways.
+                dbg("start process of opening project")
+                @get_project {project_id:project_id}, 'write', (err, project) =>
+        )
+
+
 
     mesg_get_projects: (mesg) =>
         if not @account_id?
@@ -2824,17 +2842,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb()
             (cb) =>
                 @dbg("restart: (re-)start the local services...")
-                @_restart_lock = false # so we can call @_exec_on_local_hub
                 cmd = "start_smc --timeout=#{@timeout}"
                 if not did_killall
                     cmd = "re" + cmd
                 @_exec_on_local_hub
-                    command : cmd
-                    timeout : 45
+                    command             : cmd
+                    timeout             : 45
+                    ignore_restart_lock : true
                     cb      : (err, output) =>
                         cb(err)
-                # MUST be here, since _restart_lock prevents _exec_on_local_hub!
-                @_restart_lock = true
         ], (err) =>
             if err
                 @dbg("restart: error at end = #{err}")
@@ -3310,6 +3326,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             command : required
             timeout : 30
             dot_sagemathcloud_path : true
+            ignore_restart_lock : false
             cb      : required
 
         @update_project_location (err) =>
@@ -3319,7 +3336,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if opts.dot_sagemathcloud_path
                 opts.command = "~#{@username}/#{@SAGEMATHCLOUD}/#{opts.command}"
 
-            if @_restart_lock
+            if @_restart_lock and opts.ignore_restart_lock
                 opts.cb("_restart_lock..."); return
 
             # ssh [user]@[host] [-p port] #{@SAGEMATHCLOUD}/[commmand]
