@@ -357,6 +357,40 @@ exports.close_project = close_project = (opts) ->
                 cb()
     ], opts.cb)
 
+# Call "close_project" (with unset_loc=true) on all projects that have been open for
+# more than ttl seconds, where opened means that location is set.
+exports.close_stale_projects = (opts) ->
+    opts = defaults opts,
+        ttl     : 60*60*24   # time in seconds (up to a week)
+        dry_run : true       # don't actually close the projects
+        limit   : 40         # number of projects to close at once.
+        cb      : required
+
+    projects = undefined
+    async.series([
+        (cb) ->
+            database.stale_projects
+                ttl : opts.ttl
+                cb  : (err, v) ->
+                    projects = v
+                    cb(err)
+        (cb) ->
+            f = (x, cb) ->
+                project_id = x.project_id
+                host       = x.location.host
+                winston.debug("close stale project #{project_id} at #{host}")
+                if opts.dry_run
+                    cb()
+                else
+                    # would actually close
+                    close_project
+                        project_id : project_id
+                        host       : host
+                        unset_loc  : true
+                        cb         : cb
+            async.eachLimit(projects, opts.limit, f, cb)
+    ], opts.cb)
+
 
 # Creates project with given id on exactly one (random) available host, and
 # returns that host.  This also snapshots the projects, which puts it in the
