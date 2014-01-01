@@ -798,7 +798,6 @@ exports.snapshot = snapshot = (opts) ->
         tag = ''
     now = misc.to_iso(new Date())
     name = filesystem(opts.project_id) + '@' + now + tag
-    modified_files = undefined
     async.series([
         (cb) ->
             if opts.force
@@ -824,18 +823,19 @@ exports.snapshot = snapshot = (opts) ->
                                 else
                                     cb()
         (cb) ->
+            if opts.force
+                cb(); return
             dbg("get the diff")
             diff
                 project_id : opts.project_id
                 host       : opts.host
-                cb         : (err, x) ->
-                    modified_files = x
-                    cb(err)
-        (cb) ->
-            if not opts.force and modified_files.length == 0
-                cb('delay')
-            else
-                cb()
+                cb         : (err, modified_files) ->
+                    if err
+                        cb(err); return
+                    if modified_files.length == 0
+                        cb('delay')
+                    else
+                        cb()
         (cb) ->
             dbg("make snapshot")
             execute_on
@@ -849,7 +849,6 @@ exports.snapshot = snapshot = (opts) ->
                 project_id     : opts.project_id
                 host           : opts.host
                 name           : now + tag
-                modified_files : modified_files
                 cb             : cb
         (cb) ->
             dbg("record when we made this recent snapshot (might be slightly off if multiple snapshots at once)")
@@ -871,7 +870,7 @@ exports.snapshot = snapshot = (opts) ->
                     project_id : opts.project_id
                     cb         : (err) -> # ignore
     ], (err) ->
-        if err == 'delay' and modified_files?.length == 0
+        if err == 'delay'
             opts.cb?()
         else
             opts.cb?(err)
@@ -927,7 +926,6 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
         host           : required
         name           : required
         remove         : false
-        modified_files : undefined   # if given should be a list of (interesting) files that were modified from the previous snapshot to this one
         cb             : undefined
 
     dbg = (m) -> winston.debug("record_snapshot_in_db(#{opts.project_id},#{opts.host},#{opts.name}): #{m}")
@@ -962,20 +960,6 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
                 host       : opts.host
                 snapshots  : new_snap_list
                 cb         : cb
-        (cb) ->
-            # TODO: eliminate this -- probably using diff and find is just as good or better.
-            if opts.modified_files?
-                dbg("set new modified files")
-                v = {}
-                x = "modified_files['#{opts.name}']"
-                v[x] = JSON.stringify(opts.modified_files)
-                database.update
-                    table : 'projects'
-                    where : {project_id : opts.project_id}
-                    set   : v
-                    cb    : cb
-            else
-                cb()
     ], (err) -> opts.cb?(err))
 
 # Set the list of snapshots for a given project.  The
