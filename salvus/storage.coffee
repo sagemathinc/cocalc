@@ -101,6 +101,70 @@ or this since we don't need "sudo zpool":
 ###
 
 ######################
+# Database error logging
+######################
+
+exports.log_error = log_error = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        mesg       : required       # json-able
+        cb         : undefined
+    winston.debug("log_error(#{opts.project_id}): '#{misc.to_json(opts.mesg)}' to DATABASE")
+    x = "errors_zfs['#{cassandra.now()}']"
+    v = {}
+    v[x] = misc.to_json(opts.mesg)
+    database.update
+        table : 'projects'
+        where : {project_id : opts.project_id}
+        set   : v
+        cb    : (err) -> opts.cb?(err)
+
+
+exports.get_errors = get_errors = (opts) ->
+    opts = defaults opts,
+        project_id : required       # string (a single id) or a list of ids
+        max_age_s  : undefined      # if given, only return errors that are within max_age_s seconds of now.
+        cb         : required       # cb(err, {project_id:[list,of,errors], ...}
+    dbg = (m) -> winston.debug("get_errors: #{m}")
+    if typeof(opts.project_id) == 'string'
+        v = [opts.project_id]
+    else
+        v = opts.project_id
+    dbg("v=#{misc.to_json(v)}")
+    database.select
+        table   : 'projects'
+        where   : {project_id : {'in':v}}
+        columns : ['project_id', 'errors_zfs']
+        cb      : (err, results) ->
+            if err
+                opts.cb(err)
+            else
+                if opts.max_age_s?
+                    cutoff = misc.mswalltime() - opts.max_age_s*1000
+                    dbg("cutoff=#{cutoff}")
+                    for entry in results
+                        r = entry[1]
+                        for time, mesg of r
+                            d = new Date(time)
+                            delete r[time]
+                            if d.valueOf() >= cutoff
+                                r[d.toISOString()] = misc.from_json(mesg)
+                else
+                    for entry in results
+                        r = entry[1]
+                        for time, mesg of r
+                            delete r[time]
+                            r[(new Date(time)).toISOString()] = misc.from_json(mesg)
+
+                ans = {}
+                for entry in results
+                    if misc.len(entry[1]) > 0
+                        ans[entry[0]] = entry[1]
+                opts.cb(undefined, ans)
+
+
+
+######################
 # Running Projects
 ######################
 
@@ -160,11 +224,13 @@ exports.open_project = open_project = (opts) ->
             dbg("mount filesystem")
             execute_on
                 host    : opts.host
-                timeout : 120
+                timeout : 15  # relatively small timeout due to zfs deadlocks -- just move onto another host
                 command : "sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{filesystem(opts.project_id)}&&sudo zfs mount #{filesystem(opts.project_id)}"
                 cb      : (err, output) ->
                     if err
-                        if err.indexOf('filesystem already mounted') != -1  or err.indexOf('cannot unmount') # non-fatal: to be expected if fs mounted/busy already
+                        if err.indexOf('directory is not empty') != -1
+                            err += "mount directory not empty -- login to '#{opts.host}' and manually delete '#{mountpoint(opts.project_id)}'"
+                        else if err.indexOf('filesystem already mounted') != -1  or err.indexOf('cannot unmount') # non-fatal: to be expected if fs mounted/busy already
                             err = undefined
                     cb(err)
         (cb) ->
@@ -1805,6 +1871,10 @@ exports.migrate = (opts) ->
             opts.cb()
         else
             opts.cb(err)
+            if err
+                log_error
+                    project_id : opts.project_id
+                    mesg       : {type:"migrate", "error":err}
     )
 
 
@@ -1918,8 +1988,9 @@ exports.repair_all = (opts) ->
 
     dbg = (m) -> winston.debug("repair_all: #{m}")
 
-    projects = undefined
-    actions  = {}
+    projects    = undefined
+    wrong_locs  = {}
+    wrong_snaps = {}
     async.series([
         (cb) ->
             dbg("querying db...")
@@ -1942,18 +2013,23 @@ exports.repair_all = (opts) ->
                 destroy = []
                 loc = _.flatten(locations(project_id:x[0]))
                 if loc.indexOf(x[1]) == -1 and x[2].indexOf(x[1]) != -1
-                    destroy.append(x[1])
+                    if not wrong_locs[x[0]]?
+                        wrong_locs[x[0]] = [x[1]]
+                    else
+                        wrong_locs[x[0]].push(x[1])
+
                 v = ([s[0],h] for h,s of x[2] when s.length>0)
                 if v.length > 0
                     v.sort()
                     best = v[v.length-1]
                     for h,s of x[2]
                         if s.length == 0 or s[0] != best
-                            destroy.append(h)
-                if destroy.length > 0
-                    actions[project_id] = destroy
+                            if not wrong_snaps[x[0]]?
+                                wrong_snaps[x[0]] = [h]
+                            else
+                                wrong_snaps[x[0]].push(h)
             cb()
-    ], (err) -> opts.cb?(err, actions))
+    ], (err) -> opts.cb?(err, {wrong_locs:wrong_locs, wrong_snaps:wrong_snaps}))
 
 
 

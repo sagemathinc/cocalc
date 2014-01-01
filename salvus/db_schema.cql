@@ -265,6 +265,7 @@ CREATE TABLE projects (
 
      quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
      usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
+     errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
 
      last_migrated    timestamp, // used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
 
