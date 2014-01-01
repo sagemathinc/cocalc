@@ -137,6 +137,26 @@ exports.open_project = open_project = (opts) ->
 
     async.series([
         (cb) ->
+            dbg("check that host is up and not still mounting the pool")
+            execute_on
+                host    : opts.host
+                timeout : 10
+                command : "pidof /sbin/zpool"
+                err_on_exit : false
+                err_on_stderr : false
+                cb      : (err, output) ->
+                    if err
+                        dbg("host #{opts.host} appears down -- couldn't connect -- #{err}")
+                        cb(err)
+                    else
+                        o = (output.stdout + output.stderr).trim()
+                        if output.exit_code != 0 and o == ""
+                            dbg("zpool not running on #{opts.host} -- ready to go.")
+                            cb()
+                        else
+                            cb("zpool still being imported on #{opts.host} -- pid = #{o}")
+
+        (cb) ->
             dbg("mount filesystem")
             execute_on
                 host    : opts.host
@@ -1445,10 +1465,12 @@ exports.send = send = (opts) ->
         force      : true
         cb         : undefined
 
-    winston.info("** SEND **: #{misc.to_json(opts.source)} --> #{misc.to_json(opts.dest)}")
+    dbg = (m) -> winston.debug("send(#{opts.project_id},#{misc.to_json(opts.source)}-->#{misc.to_json(opts.dest)}): #{m}")
+
+    dbg("sending")
 
     if opts.source.version == opts.dest.version
-        # trivial special case
+        dbg("trivial special case")
         opts.cb()
         return
 
@@ -1457,7 +1479,7 @@ exports.send = send = (opts) ->
     clean_up = false
     async.series([
         (cb) ->
-            # check for already-there dump file
+            dbg("check for already-there dump file")
             execute_on
                 host    : opts.source.host
                 command : "ls #{tmp}"
@@ -1473,7 +1495,7 @@ exports.send = send = (opts) ->
                         # good to go
                         cb()
         (cb) ->
-            # dump range of snapshots
+            dbg("dump range of snapshots")
             start = if opts.dest.version then "-i #{f}@#{opts.dest.version}" else ""
             clean_up = true
             execute_on
@@ -1483,7 +1505,7 @@ exports.send = send = (opts) ->
                     winston.debug(output)
                     cb(err)
         (cb) ->
-            # scp to destination
+            dbg("scp to destination")
             execute_on
                 host    : opts.source.host
                 command : "scp -o StrictHostKeyChecking=no #{tmp} #{STORAGE_USER}@#{opts.dest.host}:#{tmp}; echo ''>#{tmp}"
@@ -1491,7 +1513,7 @@ exports.send = send = (opts) ->
                     winston.debug(output)
                     cb(err)
         (cb) ->
-            # receive on destination side
+            dbg("receive on destination side")
             force = if opts.force then '-F' else ''
             execute_on
                 host    : opts.dest.host
@@ -1502,24 +1524,33 @@ exports.send = send = (opts) ->
                         if output.stderr.indexOf('destination has snapshots') != -1
                             # this is likely caused by the database being stale regarding what snapshots are known,
                             # so we run a repair so that next time it will work.
+                            dbg("probably stale snapshot info in database")
                             repair_snapshots_in_db
                                 project_id : opts.project_id
                                 host       : opts.dest.host
                                 cb         : (ignore) ->
                                     cb(err)
                             return
+                        else if output.stderr.indexOf('cannot receive incremental stream: most recent snapshot of') != -1
+                            dbg("out of sync -- destroy the target; next time it should work.")
+                            destroy_project
+                                project_id : opts.project_id
+                                host       : opts.dest.host
+                                cb         : (ignore) ->
+                                    cb("destroyed target project -- #{output.stderr}")
+                            return
                         err = output.stderr
                     cb(err)
         (cb) ->
-            # update database to reflect the new list of snapshots resulting from this recv
+            dbg("update database to reflect the new list of snapshots resulting from this recv")
             # We use repair_snapshots to guarantee that this is correct.
             repair_snapshots_in_db
                 project_id : opts.project_id
                 host       : opts.dest.host
                 cb         : cb
     ], (err) ->
-        # remove the lock file
         if clean_up
+            dbg("remove the lock file")
             execute_on
                 host    : opts.source.host
                 command : "rm #{tmp}"
@@ -1527,7 +1558,7 @@ exports.send = send = (opts) ->
                 cb      : (ignored) ->
                     opts.cb?(err)
         else
-            # no need to clean up -- bailing due to another process lock
+            dbg("no need to clean up -- bailing due to another process lock")
             opts.cb?(err)
     )
 
@@ -1660,8 +1691,8 @@ exports.migrate = (opts) ->
                     else
                         last_edited = result[0]
                         last_migrated = result[1]
-                        if last_migrated? and last_edited? and last_edited < last_migrated
-                            # nothing to do  -- project hasn't changed since last successful rsync/migration
+                        if (last_migrated and last_edited and last_edited < last_migrated) or (last_migrated and not last_edited)
+                            dbg("nothing to do  -- project hasn't changed since last successful rsync/migration")
                             done = true
                             cb(true)
                         else
@@ -1671,16 +1702,24 @@ exports.migrate = (opts) ->
             dbg("determine /mnt/home path of the project")
             database.select_one
                 table   : 'projects'
-                columns : ['location']
+                columns : ['location', 'owner']
                 json    : ['location']
                 where   : {project_id : opts.project_id}
                 cb      : (err, result) ->
-                    dbg("location=#{misc.to_json(result)}")
+                    dbg("location=#{misc.to_json(result[0])}")
                     if err
                         cb(err)
                     else
                         if not result[0] or not result[0].username or not result[0].host
-                            cb("no /mnt/home/ location for project -- migration not possible")
+                            if not result[1]
+                                dbg("no owner either -- just an orphaned project entry")
+                                done = true
+                                database.update
+                                    table : 'projects'
+                                    set   : {'last_migrated':cassandra.now()}
+                                    where : {project_id : opts.project_id}
+                            cb("no /mnt/home/ location for project -- migration not necessary")
+
                         else
                             old_user = result[0].username
                             old_home = '/mnt/home/' + result[0].username
@@ -1869,6 +1908,55 @@ exports.location_all = (opts) ->
                     if opts.start? and opts.stop?
                         projects = projects.slice(opts.start, opts.stop)
                 opts.cb(undefined, projects)
+
+
+exports.repair_all = (opts) ->
+    opts = defaults opts,
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        cb    : undefined  # cb(err, {project_id:actions, ...})
+
+    dbg = (m) -> winston.debug("repair_all: #{m}")
+
+    projects = undefined
+    actions  = {}
+    async.series([
+        (cb) ->
+            dbg("querying db...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id','location','locations']
+                limit   : 1000000       # should page, but no need since this is throw-away code.
+                cb      : (err, projects) ->
+                    if err
+                        cb(err)
+                    else
+                        if projects?
+                            projects.sort()
+                            if opts.start? and opts.stop?
+                                projects = projects.slice(opts.start, opts.stop)
+                        cb()
+        (cb) ->
+            dbg("determining inconsistent replicas")
+            for x in projects
+                destroy = []
+                loc = _.flatten(locations(project_id:x[0]))
+                if loc.indexOf(x[1]) == -1 and x[2].indexOf(x[1]) != -1
+                    destroy.append(x[1])
+                v = ([s[0],h] for h,s of x[2] when s.length>0)
+                if v.length > 0
+                    v.sort()
+                    best = v[v.length-1]
+                    for h,s of x[2]
+                        if s.length == 0 or s[0] != best
+                            destroy.append(h)
+                if destroy.length > 0
+                    actions[project_id] = destroy
+            cb()
+    ], (err) -> opts.cb?(err, actions))
+
+
+
 
 ###
 # init
