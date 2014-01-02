@@ -35,9 +35,9 @@ connect_to_database = (cb) ->
             cb(err)
         else
             new cassandra.Salvus
-                hosts    : ['10.1.3.2']  # TODO
-                keyspace : 'salvus'                  # TODO
-                username : 'hub'
+                hosts    : [if process.env.USER=='wstein' then 'localhost' else '10.1.3.2']  # TODO
+                keyspace : if process.env.USER=='wstein' then 'test' else 'salvus'        # TODO
+                username : if process.env.USER=='wstein' then 'salvus' else 'hub'         # TODO
                 consistency : 1
                 password : password.toString().trim()
                 cb       : (err, db) ->
@@ -238,6 +238,15 @@ exports.open_project = open_project = (opts) ->
             create_user
                 project_id : opts.project_id
                 action     : 'create'
+                host       : opts.host
+                base_url   : opts.base_url
+                chown      : opts.chown
+                cb         : cb
+        (cb) ->
+            dbg("copy over skeleton")
+            create_user
+                project_id : opts.project_id
+                action     : 'skel'
                 host       : opts.host
                 base_url   : opts.base_url
                 chown      : opts.chown
@@ -573,15 +582,15 @@ exports.create_project = create_project = (opts) ->
                                     project_id : opts.project_id
                                     host       : host
                                     unset_loc  : opts.unset_loc
-                                    cb         : c
+                                    cb         : (ignore) -> c()
                             else
                                 c()
                         (c) ->
-                            if not err
-                                done = true
-                            else
+                            if err
                                 dbg("error #{host} -- #{err}")
                                 errors[host] = err
+                            else
+                                done = true
                             c()
                     ], () -> cb())
                 )
@@ -590,7 +599,10 @@ exports.create_project = create_project = (opts) ->
                 if done
                     opts.cb(undefined, host)
                 else
-                    opts.cb(errors)
+                    if misc.len(errors) == 0
+                        opts.cb()
+                    else
+                        opts.cb(errors)
 
 
 
