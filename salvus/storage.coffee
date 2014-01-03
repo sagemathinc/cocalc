@@ -230,6 +230,10 @@ exports.open_project = open_project = (opts) ->
                     if err
                         if err.indexOf('directory is not empty') != -1
                             err += "mount directory not empty -- login to '#{opts.host}' and manually delete '#{mountpoint(opts.project_id)}'"
+                            execute_on
+                                host : opts.host
+                                user : 'root'
+                                command : "rm -rf '#{mountpoint(opts.project_id)}'"                                
                         else if err.indexOf('filesystem already mounted') != -1  or err.indexOf('cannot unmount') # non-fatal: to be expected if fs mounted/busy already
                             err = undefined
                     cb(err)
@@ -1749,7 +1753,7 @@ exports.migrate = (opts) ->
             dbg("get last modification time and last migration time of this project")
             database.select_one
                 table   : 'projects'
-                columns : ['last_edited', 'last_migrated']
+                columns : ['last_edited', 'last_migrated', 'last_snapshot']
                 where   : {project_id : opts.project_id}
                 cb      : (err, result) ->
                     if err
@@ -1757,8 +1761,9 @@ exports.migrate = (opts) ->
                     else
                         last_edited = result[0]
                         last_migrated = result[1]
-                        if (last_migrated and last_edited and last_edited < last_migrated) or (last_migrated and not last_edited)
-                            dbg("nothing to do  -- project hasn't changed since last successful rsync/migration")
+                        last_snapshot = result[2]
+                        if (last_migrated and last_edited and (last_edited < last_migrated or last_edited<=last_snapshot)) or (last_migrated and not last_edited)
+                            dbg("nothing to do  -- project hasn't changed since last successful rsync/migration or snapshot")
                             done = true
                             cb(true)
                         else
@@ -1883,6 +1888,7 @@ exports.migrate_all = (opts) ->
         limit : 10  # no more than this many projects will be migrated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
+        exclude : undefined       # if given, any project_id in this array is skipped
         cb    : undefined  # cb(err, {project_id:error when replicating that project})
 
     projects = undefined
@@ -1907,6 +1913,11 @@ exports.migrate_all = (opts) ->
                         projects.sort()
                         if opts.start? and opts.stop?
                             projects = projects.slice(opts.start, opts.stop)
+                        if opts.exclude?
+                            v = {}
+                            for p in opts.exclude
+                                v[p] = true
+                            projects = (p for p in projects when not v[p])
                         todo = projects.length
                     cb(err)
         (cb) ->
@@ -1919,7 +1930,7 @@ exports.migrate_all = (opts) ->
                             fail += 1
                         else
                             done += 1
-                        winston.info("MIGRATE_ALL STATUS: (done=#{done} + fail=#{fail})/#{todo}")
+                        winston.info("MIGRATE_ALL STATUS: (done=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
                         if err
                             errors[project_id] = err
                         cb()
@@ -1938,7 +1949,7 @@ exports.status_of_migrate_all = (opts) ->
     dbg("querying db...")
     database.select
         table   : 'projects'
-        columns : ['project_id','last_edited', 'last_snapshot']
+        columns : ['project_id','last_edited', 'last_migrated', 'last_snapshot', 'errors_zfs']
         limit   : 1000000
         cb      : (err, v) ->
             #dbg("v=#{misc.to_json(v)}")
@@ -1949,11 +1960,14 @@ exports.status_of_migrate_all = (opts) ->
                 todo = []
                 done = []
 
-                for x in v
-                    if x[2]? and x[1] < x[2]
-                        done.push(x[0])
+                for result in v
+                    last_edited = result[1]
+                    last_migrated = result[2]
+                    last_snapshot = result[3]
+                    if (last_migrated and last_edited and (last_edited < last_migrated or last_edited<=last_snapshot)) or (last_migrated and not last_edited)
+                        done.push(result[0])
                     else
-                        todo.push(x[0])
+                        todo.push([result[0],result[4]])
                 opts.cb(undefined, {done:done, todo:todo})
 
 exports.location_all = (opts) ->
