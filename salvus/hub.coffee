@@ -3375,7 +3375,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             if err
                 @dbg("local hub code push -- failed #{err}")
             @_exec_on_local_hub
-                command : "start_smc --timeout=#{@timeout}"
+                command : "start_smc"
                 timeout : 30
                 cb      : cb
 
