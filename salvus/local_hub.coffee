@@ -639,6 +639,17 @@ class CodeMirrorSession
 
         async.series([
             (cb) =>
+                # if File doesn't exist, try to create it.
+                fs.exists @path, (exists) =>
+                    if exists
+                        cb()
+                    else
+                        fs.open @path,'w', (err, fd) =>
+                            if err
+                                cb(err)
+                            else
+                                fs.close(fd, cb)
+            (cb) =>
                 misc_node.is_file_readonly
                     path : @path
                     cb   : (err, readonly) =>
