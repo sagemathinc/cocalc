@@ -27,7 +27,7 @@ def cmd(s):
     x = out.stdout.read() + out.stderr.read()
     e = out.wait()
     if e:
-        raise RuntimeError(x)
+        raise RuntimeError(s+x)
     return x
 
 def home(project_id):
@@ -136,6 +136,9 @@ def ensure_ssh_access(project_id):
 def killall_user(project_id):
     os.system("pkill -u %s"%uid(project_id))
 
+def umount_user_home(project_id):
+    os.system("umount %s"%home(project_id))
+
 def copy_skeleton(project_id):
     zfs_home_is_mounted(project_id)
     h = home(project_id)
@@ -148,6 +151,7 @@ def copy_skeleton(project_id):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Project user control script")
     parser.add_argument("--kill", help="kill all processes owned by the user", default=False, action="store_const", const=True)
+    parser.add_argument("--umount", help="run umount on the project's home as root", default=False, action="store_const", const=True)
     parser.add_argument("--skel", help="rsync /home/salvus/salvus/salvus/scripts/skel/ to the home directory of the project", default=False, action="store_const", const=True)
     parser.add_argument("--create", help="create the project user", default=False, action="store_const", const=True)
     parser.add_argument("--base_url", help="the base url (default:'')", default="", type=str)
@@ -163,6 +167,8 @@ if __name__ == "__main__":
         copy_skeleton(args.project_id)
     if args.kill:
         killall_user(args.project_id)
+    if args.umount:
+        umount_user_home(args.project_id)
     if args.chown:
         chown_all(args.project_id)
 

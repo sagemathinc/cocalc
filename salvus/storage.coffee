@@ -176,7 +176,7 @@ exports.create_user = create_user = (opts) ->
         action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton), 'chown' (chown files)
         base_url   : ''         # used when writing info.json
         chown      : false      # if true, chowns files in /project/projectid in addition to creating user.
-        timeout    : 200
+        timeout    : 200        # time in seconds
         cb         : undefined
 
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
@@ -233,7 +233,7 @@ exports.open_project = open_project = (opts) ->
                             execute_on
                                 host : opts.host
                                 user : 'root'
-                                command : "rm -rf '#{mountpoint(opts.project_id)}'"                                
+                                command : "rm -rf '#{mountpoint(opts.project_id)}'"
                         else if err.indexOf('filesystem already mounted') != -1  or err.indexOf('cannot unmount') # non-fatal: to be expected if fs mounted/busy already
                             err = undefined
                     cb(err)
@@ -1650,9 +1650,19 @@ exports.destroy_project = destroy_project = (opts) ->
         host       : required
         cb         : undefined
 
+    dbg = (m) -> winston.debug("destroy_project(#{opts.project_id}, #{opts.host}: #{m}")
+
     async.series([
         (cb) ->
-            # 1. delete dataset
+            dbg("kill any user processes")
+            create_user
+                project_id : opts.project_id
+                host       : opts.host
+                action     : 'kill'
+                timeout    : 30
+                cb         : cb
+        (cb) ->
+            dbg("delete dataset")
             execute_on
                 host    : opts.host
                 command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
@@ -1662,7 +1672,15 @@ exports.destroy_project = destroy_project = (opts) ->
                             err = undefined
                     cb(err)
         (cb) ->
-            # 2. success -- so record in database that project is no longer on this host.
+            dbg("throw in a umount, just in case")
+            create_user
+                project_id : opts.project_id
+                host       : opts.host
+                action     : 'umount'
+                timeout    : 5
+                cb         : (ignored) -> cb()
+        (cb) ->
+            dbg("success -- so record in database that project is no longer on this host.")
             set_snapshots_in_db
                 project_id : opts.project_id
                 host       : opts.host
@@ -1796,11 +1814,11 @@ exports.migrate = (opts) ->
                         if not result[0] or not result[0].username or not result[0].host
                             if not result[1]
                                 dbg("no owner either -- just an orphaned project entry")
-                                done = true
-                                database.update
-                                    table : 'projects'
-                                    set   : {'last_migrated':cassandra.now()}
-                                    where : {project_id : opts.project_id}
+                            done = true
+                            database.update
+                                table : 'projects'
+                                set   : {'last_migrated':cassandra.now()}
+                                where : {project_id : opts.project_id}
                             cb("no /mnt/home/ location for project -- migration not necessary")
 
                         else
@@ -1844,7 +1862,7 @@ exports.migrate = (opts) ->
                     if err
                         rsync_failed = err
                     dbg("finished rsync; it took #{misc.walltime(t)} seconds; output=#{misc.to_json(output)}")
-                    if output.exit_code
+                    if output.exit_code and output.stderr.indexOf('readlink_stat("/mnt/home/teaAuZ9M/mnt")') == -1
                         rsync_failed = output.stderr
                         # TODO: ignore errors involving sshfs; be worried about other errors.
                     cb()
