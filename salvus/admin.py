@@ -1226,6 +1226,7 @@ class Monitor(object):
         """
         cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s . && du -s .. && df -h /mnt/snap"
         ans = []
+        return ans 
         for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
             d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v.get('stdout','error')).lower()) else 'down'}
 
