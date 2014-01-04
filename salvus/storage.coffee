@@ -229,6 +229,8 @@ exports.open_project = open_project = (opts) ->
                 cb      : (err, output) ->
                     if err
                         if err.indexOf('directory is not empty') != -1
+                            # TODO: this was only meant to be used (and to happen) during migrating from the old format.
+                            # The rm won't run below after migration, since root has no ssh key allowing access.
                             err += "mount directory not empty -- login to '#{opts.host}' and manually delete '#{mountpoint(opts.project_id)}'"
                             execute_on
                                 host : opts.host
@@ -2022,6 +2024,64 @@ exports.location_all = (opts) ->
                     if opts.start? and opts.stop?
                         projects = projects.slice(opts.start, opts.stop)
                 opts.cb(undefined, projects)
+
+exports.migrate_unset_all_locs= (opts) ->
+    opts = defaults opts,
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        limit : 20
+        cb    : undefined  # cb(err, {project_id:actions, ...})
+    dbg = (m) -> winston.debug("close_all_projects: #{m}")
+    projects    = undefined
+    errors = {}
+    async.series([
+        (cb) ->
+            dbg("querying db...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id','location']
+                limit   : 1000000       # should page, but no need since this is throw-away code.
+                cb      : (err, _projects) ->
+                    if err
+                        cb(err)
+                    else
+                        projects = _projects
+                        projects.sort()
+                        if opts.start? and opts.stop?
+                            projects = projects.slice(opts.start, opts.stop)
+                        projects = (p for p in projects when p[1])
+                        cb()
+        (cb) ->
+            dbg("closing #{projects.length} projects")
+            f = (p, cb) ->
+                dbg("closing p=#{misc.to_json(p)}")
+                async.series([
+                    (c) ->
+                        database.update
+                            table : 'projects'
+                            set   : {old_location:p[1]}
+                            where : {project_id : p[0]}
+                            cb    : c
+                    (c) ->
+                        database.update
+                            table : 'projects'
+                            set   : {location:undefined}
+                            where : {project_id : p[0]}
+                            cb    : c
+                ], (err) ->
+                    if err
+                        errors[project_id] = err
+                    cb()  # ignore errors here
+                )
+
+            async.mapLimit(projects, opts.limit, f, cb)
+
+    ], (ignore) ->
+        if misc.len(errors) > 0
+            opts.cb(errors)
+        else
+            opts.cb()
+    )
 
 
 exports.repair_all = (opts) ->
