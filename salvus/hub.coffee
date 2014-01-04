@@ -21,11 +21,6 @@ SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
-# Default local hub parameters -- how long until project local hubs
-# kill everything in that project, if there is no activity, where
-# activity = "receive data from a global hub".
-DEFAULT_LOCAL_HUB_TIMEOUT = 60*60*12  # time in seconds; 0 to disable
-
 # Anti DOS parameters:
 # If a client sends a burst of messages, we space handling them out by this many milliseconds:.
 MESG_QUEUE_INTERVAL_MS  = 50
@@ -2661,14 +2656,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @dbg("creating")
         if program.local
             @SAGEMATHCLOUD = ".sagemathcloud-local"
-            # Do not timeout when doing development, since the enclosing project would already timeout... and
-            # timeout would make left-running subproject kill enclosing project.  BAD.
-            # @timeout = 0  # 0 means "don't timeout"
         else
             @SAGEMATHCLOUD = ".sagemathcloud"
-        if not @timeout  # todo -- always not defined right now; I'm making this easy to customize later, since it could be a premium feature.
-            # This is used when starting the local hub server daemon.
-            @timeout = DEFAULT_LOCAL_HUB_TIMEOUT # in seconds
         @path = '.'  # default
         @port = 22
         @_sockets = {}
@@ -2840,7 +2829,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb()
             (cb) =>
                 @dbg("restart: (re-)start the local services...")
-                cmd = "start_smc --timeout=#{@timeout}"
+                cmd = "start_smc"
                 if not did_killall
                     cmd = "re" + cmd
                 @_exec_on_local_hub
@@ -5298,6 +5287,11 @@ connect_to_database = (cb) ->
                         storage.set_database(database)
                         cb()
 
+close_stale_projects = () ->
+    winston.debug("closing stale projects...")
+    storage.close_stale_projects (err) ->
+        winston.debug("finished closing stale projects (err=#{err})")
+
 #############################################
 # Start everything running
 #############################################
@@ -5325,6 +5319,11 @@ exports.start_server = start_server = () ->
             init_sockjs_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
+
+            if not program.local  # don't close stale projects for SMC in SMC
+                # We close stale projects about once per 1.5 hours.  There
+                # could be maybe 60-70 hubs (say), so this is plenty frequent.
+                setInterval(close_stale_projects, 1000*60*60 + Math.floor(100*60*60*Math.random()))
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 

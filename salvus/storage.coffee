@@ -462,7 +462,7 @@ exports.close_stale_projects = (opts) ->
     opts = defaults opts,
         ttl     : 60*60*24   # time in seconds (up to a week)
         dry_run : true       # don't actually close the projects
-        limit   : 40         # number of projects to close at once.
+        limit   : 20         # number of projects to close simultaneously.
         cb      : required
 
     projects = undefined

@@ -278,7 +278,10 @@ CREATE TABLE projects (
      collaborator         set<uuid>,   // all actual collaborators on this project
      invited_collaborator set<uuid>,   // accounts that have been invited to collaborate
      viewer               set<uuid>,   // accounts who are viewers
-     invited_viewer       set<uuid>    // accounts who have been invited to view.
+     invited_viewer       set<uuid>,    // accounts who have been invited to view.
+
+
+     timeout_disabled  boolean // if true, never automatically kill this project simply due to it sitting around unused.
 
 );
 

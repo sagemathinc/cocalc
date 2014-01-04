@@ -1716,13 +1716,13 @@ class exports.Salvus extends exports.Cassandra
                 @select
                     table   : 'projects'
                     where   : {'project_id':{'in':project_ids}}
-                    columns : ['project_id', 'location', 'last_edited']
+                    columns : ['project_id', 'location', 'last_edited', 'timeout_disabled']
                     cb      : (err, v) =>
                         if err
                             cb(err)
                         else
                             dbg("got #{v.length} matching projects")
-                            ans = ({'project_id':x[0], 'location':misc.from_json(x[1]), 'last_edited':x[2]} for x in v when x[1] and x[2] <= t)
+                            ans = ({'project_id':x[0], 'location':misc.from_json(x[1]), 'last_edited':x[2]} for x in v when x[1] and x[2] <= t and not x[3])
                             dbg("of these #{ans.length} are open but old.")
                             cb()
         ], (err) =>
