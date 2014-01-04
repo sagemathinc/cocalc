@@ -248,6 +248,7 @@ message
     session_uuid : required
     path         : required    # absolute path
     content      : required
+    readonly     : false       # if true, the file must be treated as "read-only" by the client.
 
 # A list of edits that should be applied, along with the
 # last version of edits received before.
@@ -747,8 +748,9 @@ message
     snapshot       : undefined
     path           : '.'         # when 'ls', returns listing of files in this path (if snapshot given), with slash
                                  # at end of filename to denote a directory.
-    timeout        : 600         # how long to wait for response from the snap server before sending an error
+    timeout        : 600         # how long to wait for response from the storage server before sending an error
     list           : undefined   # response message is of same type, but has this filled in for 'ls' and 'log' commands.
+    timezone_offset: 0           # the difference (UTC time) - (local time), in minutes, where local time is of the client
 
 
 ######################################################################

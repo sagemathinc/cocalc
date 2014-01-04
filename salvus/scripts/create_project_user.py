@@ -10,7 +10,7 @@ You should put the following in visudo:
 
 """
 
-import argparse, hashlib, os
+import argparse, hashlib, os, random, time
 from subprocess import Popen, PIPE
 
 def uid(uuid):
@@ -27,11 +27,16 @@ def cmd(s):
     x = out.stdout.read() + out.stderr.read()
     e = out.wait()
     if e:
-        raise RuntimeError(x)
+        raise RuntimeError(s+x)
     return x
 
 def home(project_id):
     return os.path.join('/projects', project_id)
+
+def zfs_home_is_mounted(project_id):
+    h = home(project_id)
+    if not os.path.exists(os.path.join(h, '.zfs')):
+        raise RuntimeError("ZFS filesystem %s is not mounted"%h[1:])
 
 def username(project_id):
     return project_id.replace('-','')
@@ -56,12 +61,29 @@ def create_user(project_id):
         return
     if u != 0:
         # there's the username but with wrong id
-        cmd("userdel %s"%name)  # this also deletes the group
+        ##  during migration deleting that user would be a disaster!
+        raise RuntimeError("user %s already exists but with wrong id"%name)
+        #cmd("userdel %s"%name)  # this also deletes the group
 
     # Now make the correct user.  The -o makes it so in the incredibly unlikely
     # event of a collision, no big deal.
-    cmd("groupadd -g %s -o %s"%(id, name))
-    cmd("useradd -u %s -g %s -o -d %s %s"%(id, id, home(project_id), name))
+    c = "groupadd -g %s -o %s"%(id, name)
+    for i in range(3):
+        try:
+            cmd(c)
+            break
+        except:
+            time.sleep(random.random())
+
+    # minimal attemp to avoid locking issues
+    c = "useradd -u %s -g %s -o -d %s %s"%(id, id, home(project_id), name)
+    for i in range(3):
+        try:
+            cmd(c)
+            break
+        except:
+            time.sleep(random.random())
+
 
     # Save account info so it persists through reboots/upgrades/etc. that replaces the ephemeral root fs.
     if os.path.exists("/mnt/home/etc/"): # UW nodes
@@ -69,7 +91,30 @@ def create_user(project_id):
     if os.path.exists("/mnt/conf/etc/"): # GCE nodes
         cmd("cp /etc/passwd /etc/shadow /etc/group /mnt/conf/etc/")
 
+def chown_all(project_id):
+    zfs_home_is_mounted(project_id)
+    cmd("zfs set snapdir=hidden %s"%home(project_id).lstrip('/'))  # needed for historical reasons
+    id = uid(project_id)
+    cmd('chown %s:%s -R %s'%(id, id, home(project_id)))
+
+def write_info_json(project_id, host='', base_url=''):
+    zfs_home_is_mounted(project_id)
+    if not host:
+        import socket
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('10.1.1.1',80))
+        host = s.getsockname()[0]
+
+    path = os.path.join(home(project_id), '.sagemathcloud' + ('-local' if base_url else ''))
+    info_json = os.path.join(path, 'info.json')
+    if not os.path.exists(path):
+        os.makedirs(path)
+    obj = {"project_id":project_id,"location":{"host":host,"username":username(project_id),"port":22,"path":"."},"base_url":base_url}
+    import json
+    open(info_json,'w').write(json.dumps(obj, separators=(',',':')))
+
 def ensure_ssh_access(project_id):
+    zfs_home_is_mounted(project_id)
     # If possible, make some attempts to ensure ssh access to this account.
     h = home(project_id)
     if not os.path.exists(h):
@@ -91,7 +136,11 @@ def ensure_ssh_access(project_id):
 def killall_user(project_id):
     os.system("pkill -u %s"%uid(project_id))
 
+def umount_user_home(project_id):
+    os.system("umount %s"%home(project_id))
+
 def copy_skeleton(project_id):
+    zfs_home_is_mounted(project_id)
     h = home(project_id)
     u = username(project_id)
     if not os.path.exists(h):
@@ -102,16 +151,25 @@ def copy_skeleton(project_id):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Project user control script")
     parser.add_argument("--kill", help="kill all processes owned by the user", default=False, action="store_const", const=True)
+    parser.add_argument("--umount", help="run umount on the project's home as root", default=False, action="store_const", const=True)
     parser.add_argument("--skel", help="rsync /home/salvus/salvus/salvus/scripts/skel/ to the home directory of the project", default=False, action="store_const", const=True)
     parser.add_argument("--create", help="create the project user", default=False, action="store_const", const=True)
+    parser.add_argument("--base_url", help="the base url (default:'')", default="", type=str)
+    parser.add_argument("--host", help="the host ip address on the tinc vpn (default: auto-detect)", default="", type=str)
+    parser.add_argument("--chown", help="chown all the files in /projects/projectid", default=False, action="store_const", const=True)
     parser.add_argument("project_id", help="the uuid of the project", type=str)
     args = parser.parse_args()
     if args.create:
         create_user(args.project_id)
+        write_info_json(project_id=args.project_id, host=args.host, base_url=args.base_url)
         ensure_ssh_access(args.project_id)
     if args.skel:
         copy_skeleton(args.project_id)
     if args.kill:
         killall_user(args.project_id)
+    if args.umount:
+        umount_user_home(args.project_id)
+    if args.chown:
+        chown_all(args.project_id)
 
 

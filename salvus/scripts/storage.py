@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 
+# NOTE: I'm very unhappy with the multiprocessing issues "messing up" this code. Hence I've basically abandoned it for storage.coffee
+# Maybe the multiprocessing.dummy module described here could be used: https://medium.com/p/40e9b2b36148
+
 import argparse, cPickle, hashlib, json, logging, os, sys, time, random
 from multiprocessing import Pool, TimeoutError
 from uuid import UUID, uuid4

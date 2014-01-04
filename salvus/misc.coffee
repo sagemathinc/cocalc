@@ -159,7 +159,9 @@ exports.from_json = (x) ->
         console.log("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
 
-# converts a Date object to an ISO string
+# converts a Date object to an ISO string in UTC.
+# NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
+# the SMC servers are assumed to be on UTC.
 exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 
 # returns true if the given object has no keys

@@ -47,6 +47,8 @@ uuid    = require('node-uuid')
 
 moment  = require('moment')
 
+storage = require('storage')
+
 _ = require('underscore')
 
 
@@ -423,11 +425,11 @@ class exports.Cassandra extends EventEmitter
         for key, val of properties
             if key in json
                 val = to_json(val)
-            if val?  # only consider properties with defined values
+            if val?
                 if misc.is_valid_uuid_string(val)
                     # The Helenus driver is completely totally
                     # broken regarding uuid's (their own UUID type
-                    # doesn't work at all). (as of April 15, 2013)
+                    # doesn't work at all). (as of April 15, 2013)  - TODO: revisit this since I'm not using Helenus anymore.
                     # This is of course scary/dangerous since what if x2 is accidentally a uuid!
                     set += "#{key}=#{val},"
                 else if typeof(val) != 'boolean'
@@ -436,6 +438,8 @@ class exports.Cassandra extends EventEmitter
                 else
                     # TODO: here we work around a driver bug :-(
                     set += "#{key}=#{val},"
+            else
+                set += "#{key}=null,"
         return set.slice(0,-1)
 
     close: () ->
@@ -1658,6 +1662,9 @@ class exports.Salvus extends exports.Cassandra
 
         @_touch_project_cache[id] = misc.walltime()
 
+        # Try to make a snapshot (will not make them too frequently).
+        storage.snapshot(project_id:opts.project_id)
+
         set = {last_edited: now()}
         if opts.size
             set.size = opts.size
@@ -1680,6 +1687,49 @@ class exports.Salvus extends exports.Cassandra
                         ttl   : t.ttl
                         cb    : cb
                 async.map(RECENT_TIMES_ARRAY, f, (err) -> opts.cb?(err))
+
+    # Return all projects that were active in the last week, but *not* active in the last ttl seconds.
+    stale_projects: (opts) =>
+        opts = defaults opts,
+            ttl     : 60*60*24   # time in seconds (up to a week)
+            cb      : required
+        dbg = (m) -> winston.debug("database  stale_projects(#{opts.ttl}): #{m}")
+
+        project_ids = undefined
+        t = misc.mswalltime() - opts.ttl*1000  # cassandra timestamps come back in ms since UTC epoch
+        ans = undefined
+        async.series([
+            (cb) =>
+                @select
+                    table   : 'recently_modified_projects'
+                    where   : {ttl:'week'}
+                    limit   : 100000   # TODO: something better when we have 100,000 weekly users...
+                    columns : ['project_id']
+                    cb      : (err, v) =>
+                        if err
+                            cb(err)
+                        else
+                            project_ids = (x[0] for x in v)
+                            dbg("got #{project_ids.length} project id's in last week")
+                            cb()
+            (cb) =>
+                @select
+                    table   : 'projects'
+                    where   : {'project_id':{'in':project_ids}}
+                    columns : ['project_id', 'location', 'last_edited', 'timeout_disabled']
+                    cb      : (err, v) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{v.length} matching projects")
+                            ans = ({'project_id':x[0], 'location':misc.from_json(x[1]), 'last_edited':x[2]} for x in v when x[1] and x[2] <= t and not x[3])
+                            dbg("of these #{ans.length} are open but old.")
+                            cb()
+        ], (err) =>
+            if err
+                dbg("error -- #{err}")
+            opts.cb(err, ans)
+        )
 
     create_project: (opts) ->
         opts = defaults opts,
@@ -1975,7 +2025,7 @@ class exports.Salvus extends exports.Cassandra
             cb         : required
         @select
             table      : 'projects'
-            columns    : (c for c in PROJECT_COLUMNS if c.indexOf('invited') == -1)
+            columns    : (c for c in PROJECT_COLUMNS when c.indexOf('invited') == -1)
             where      : { project_id : opts.project_id }
             cb         : (err, results) =>
                 if err?

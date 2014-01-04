@@ -184,16 +184,6 @@ create_project_item = (project) ->
     else if project.location == "deploying"
         item.find(".projects-location").append(template_project_deploying.clone())
 
-    ###
-    # This is too cluttered and is somewhat meaningless.
-    if project.location.username?
-        d = "#{project.location.username}@#{project.location.host}"
-        if project.location.path != '.'
-            d += ':' + project.location.path
-        if project.location.port != 22
-            d += " -p#{project.location.port}"
-        item.find(".projects-location").text(d)
-    ###
     item.click (event) ->
         open_project(project, item)
         return false
@@ -262,7 +252,7 @@ open_project = (project, item) ->
     if not (project.location? and project.location != "deploying")
         alert_message
             type:"info"
-            message:"WARNING: Opening project #{project.title} on a new virtual machine, which may take extra time (around 1 minute per gigabyte)."
+            message:"Opening project #{project.title}... (this takes about 30 seconds)"
             timeout: 10
         if item?
             item.find(".projects-location").html("<i class='fa-spinner fa-spin'> </i>restoring...")
@@ -275,9 +265,8 @@ open_project = (project, item) ->
                         item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
                     return
                 if not info.location?
-                    alert_message(type:"error", message:"error opening project (missing info)", timeout:6)
                     if item?
-                        item.find(".projects-location").html("<i class='fa-bug'></i> (last open failed)")
+                        item.find(".projects-location").html("(none)")
                 else
                     project.location = location
                     if item?
@@ -313,6 +302,7 @@ new_project_button = $("#projects-create_project-button-create_project").click (
         description = $("#projects-create_project-description").attr("placeholder")
 
     new_project_button.icon_spin(start:true)
+    alert_message(type:"warning", message:"Creating new project '#{title}'.  This takes about 30 seconds.", timeout:10)
     salvus_client.create_project
         title       : title
         description : description
@@ -320,7 +310,7 @@ new_project_button = $("#projects-create_project-button-create_project").click (
         cb : (error, mesg) ->
             new_project_button.icon_spin(false)
             if error
-                alert_messgae(type:"error", message:"Unable to connect to server to create new project '#{title}'; please try again later.")
+                alert_message(type:"error", message:"Unable to connect to server to create new project '#{title}'; please try again later.")
             else if mesg.event == "error"
                 alert_message(type:"error", message:mesg.error)
             else

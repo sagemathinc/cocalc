@@ -261,7 +261,9 @@ class exports.Editor
         @counter = opts.counter
 
         @project_page  = opts.project_page
-        @project_path = opts.project_page.project.location.path
+        @project_path = opts.project_page.project.location?.path
+        if not @project_path
+            @project_path = '.'  # if location isn't defined yet -- and this is the only thing used anyways.
         @project_id = opts.project_page.project.project_id
         @element = templates.find(".salvus-editor").clone().show()
 
@@ -1164,6 +1166,10 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.setOption('theme', theme)
         @opts.theme = theme
 
+    # add something visual to the UI to suggest that the file is read onl
+    set_readonly_ui: () =>
+        @element.find("a[href=#save]").text('Readonly').addClass('disabled')
+
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
             return
@@ -1601,7 +1607,7 @@ tmp_dir = (opts) ->
         args       : [name]
         cb         : (err, output) =>
             if err
-                opts.cb("Problem creating temporary directory in '#{path}'")
+                opts.cb("Problem creating temporary directory in '#{opts.path}'")
             else
                 opts.cb(false, name)
 
@@ -3346,6 +3352,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
     constructor: (@project_id, @path) ->
 
     start_server: (cb) =>
+        #console.log("start_server")
         salvus_client.exec
             project_id : @project_id
             path       : @path
@@ -3393,33 +3400,35 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             cb         : (err, output) =>
                 cb?(err)
 
-# Download a remote URL, possibly retrying repeatedly with exponetial backoff, only failing
-# if the delay until next retry hits max_delay.
+# Download a remote URL, possibly retrying repeatedly with exponetial backoff
+# on the timeout.
 # If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
 get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
-        initial_delay : 50
-        max_delay     : 15000     # once delay hits this, give up
-        factor        : 1.1      # for exponential backoff
+        initial_timeout : 5000
+        max_timeout     : 15000     # once delay hits this, give up
+        factor        : 1.1     # for exponential backoff
         bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url
-    delay = opts.initial_delay
+    timeout = opts.initial_timeout
+    delay   = 50
     f = () =>
-        if delay >= opts.max_delay  # too many attempts
+        if timeout >= opts.max_timeout  # too many attempts
             opts.cb("unable to connect to remote server")
             return
         $.ajax(
             url     : opts.url
-            timeout : 50
+            timeout : timeout
             success : (data) ->
                 if data.indexOf(opts.bad_string) != -1
-                    delay *= opts.factor
+                    timeout *= opts.factor
                     setTimeout(f, delay)
                 else
                     opts.cb(false, data)
         ).fail(() ->
-            delay *= opts.factor
+            timeout *= opts.factor
+            delay   *= opts.factor
             setTimeout(f, delay)
         )
 

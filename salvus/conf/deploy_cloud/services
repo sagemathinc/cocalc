@@ -40,25 +40,25 @@ cloud20   {'hostname':'cassandra20', 'vcpus':cassandra_cpu, 'ram':cassandra_ram,
 cloud21   {'hostname':'cassandra21', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
 
 # web/hub nodes
-cloud1   {'hostname':'web1',       'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud2   {'hostname':'web2',       'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud3   {'hostname':'web3',       'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud4   {'hostname':'web4',       'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
+cloud1   {'hostname':'web1',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud2   {'hostname':'web2',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud3   {'hostname':'web3',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud4   {'hostname':'web4',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 cloud5   {'hostname':'web5',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 cloud6   {'hostname':'web6',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
-cloud7   {'hostname':'web7',       'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud10  {'hostname':'web10',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud11  {'hostname':'web11',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud12  {'hostname':'web12',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-#cloud13  {'hostname':'web13',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud14  {'hostname':'web14',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud15  {'hostname':'web15',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud16  {'hostname':'web16',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud17  {'hostname':'web17',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud18  {'hostname':'web18',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud19  {'hostname':'web19',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
-cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base, 'disk':'snap:1024'}
+cloud7   {'hostname':'web7',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud10  {'hostname':'web10',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud11  {'hostname':'web11',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud12  {'hostname':'web12',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+#cloud13  {'hostname':'web13',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud14  {'hostname':'web14',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud15  {'hostname':'web15',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud16  {'hostname':'web16',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud17  {'hostname':'web17',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud18  {'hostname':'web18',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud19  {'hostname':'web19',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 
 # compute vm's
 cloud1   {'hostname':'compute1a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:1024,projects:512:none:qcow2', 'vnc':13000}
@@ -124,7 +124,4 @@ hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
 web1gce1 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.1.3.2:9042'}
-
-[snap] {'keyspace':'salvus', 'snap_dir':'/mnt/snap/snap0', 'snap_interval':60*5}
-snap
 
