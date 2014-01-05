@@ -1617,13 +1617,15 @@ exports.send = send = (opts) ->
                                     cb(err)
                             return
                         else if output.stderr.indexOf('cannot receive incremental stream: most recent snapshot of') != -1
-                            dbg("out of sync -- destroy the target; next time it should work.")
-                            destroy_project
-                                project_id : opts.project_id
-                                host       : opts.dest.host
-                                cb         : (ignore) ->
-                                    cb("destroyed target project -- #{output.stderr}")
+                            dbg("out of sync -- consider destroying the target; next time it should work.")
+                            cb("out of sync -- consider destroying the target; next time it should work.")
                             return
+                            #destroy_project
+                            #    project_id : opts.project_id
+                            #    host       : opts.dest.host
+                            #    cb         : (ignore) ->
+                            #        cb("destroyed target project -- #{output.stderr}")
+                            #return
                         err = output.stderr
                     cb(err)
         (cb) ->

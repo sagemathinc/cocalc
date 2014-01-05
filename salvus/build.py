@@ -192,12 +192,13 @@ tmux -V
 # Workaround bugs in Sage
 
    - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
-     (just put f=filename in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
+     (just put f=filename in function which in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
 
 
 # Non-sage Python packages into Sage
 
     sage -sh
+    easy_install -U setuptools
     easy_install pip
 
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
