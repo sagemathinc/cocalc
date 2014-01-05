@@ -27,15 +27,18 @@ Before building, do:
 
   Don't bother for LXC.
 
-# On glusterfs server machines:
+# LIBC version:
 
-    I've increased this to 10,000,000 on all hosts by putting this in /etc/sysctl.conf:
+  On Debian, add this line to /etc/apt/sources.list
 
-        fs.inotify.max_user_watches=10000000
+      deb     http://http.debian.net/debian jessie main
 
-    and also did this once on the command line:
+  Then do "apt-get update", then "apt-cache policy libc-dev6" to find the newest version.
+  Then do
+      apt-get install libc6-dev=2.17-97
+  and finally comment out the above line and do "apt-get update" again, in order to avoid breaking "apt-get upgrade".
 
-        sudo sysctl fs.inotify.max_user_watches=10000000
+
 
 # ATLAS:
 

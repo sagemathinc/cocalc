@@ -1048,8 +1048,9 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
                         if opts.remove
                             try
                                 misc.remove(v, opts.name)
-                            catch
+                            catch error
                                 # snapshot not in db anymore; nothing to do.
+                                cb()
                                 return
                         else
                             v.unshift(opts.name)

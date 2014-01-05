@@ -5289,8 +5289,8 @@ connect_to_database = (cb) ->
 
 close_stale_projects = () ->
     winston.debug("closing stale projects...")
-    storage.close_stale_projects (err) ->
-        winston.debug("finished closing stale projects (err=#{err})")
+    storage.close_stale_projects
+        cb : (err) -> winston.debug("finished closing stale projects (err=#{err})")
 
 #############################################
 # Start everything running
