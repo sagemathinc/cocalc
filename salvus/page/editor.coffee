@@ -52,6 +52,7 @@ codemirror_associations =
     patch  : 'text/x-diff'
 
     gp     : 'text/pari'
+    go     : 'text/x-go'
     pari   : 'text/pari'
 
     php    : 'php'
