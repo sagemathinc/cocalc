@@ -2036,7 +2036,7 @@ exports.migrate_unset_all_locs= (opts) ->
         stop  : undefined
         limit : 20
         cb    : undefined  # cb(err, {project_id:actions, ...})
-    dbg = (m) -> winston.debug("close_all_projects: #{m}")
+    dbg = (m) -> winston.debug("migrate_unset_all_locs: #{m}")
     projects    = undefined
     errors = {}
     async.series([
