@@ -1549,7 +1549,7 @@ exports.send = send = (opts) ->
         project_id : required
         source     : required    # {host:ip_address, version:snapshot_name}
         dest       : required    # {host:ip_address, version:snapshot_name}
-        force      : true
+        force      : false       # TODO: this may make things slam to a halt... but we need to nail this down.
         cb         : undefined
 
     dbg = (m) -> winston.debug("send(#{opts.project_id},#{misc.to_json(opts.source)}-->#{misc.to_json(opts.dest)}): #{m}")
