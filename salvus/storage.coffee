@@ -385,7 +385,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                             dbg("project worked on #{host}")
                             host_used = host
                         else
-                            dbg("nonfatal error attempting to open on #{host}")
+                            dbg("nonfatal error attempting to open on #{host} -- #{err}")
                         c()
 
             async.mapSeries(hosts, f, cb)
