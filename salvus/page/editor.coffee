@@ -62,6 +62,7 @@ codemirror_associations =
     r      : 'r'
     rst    : 'rst'
     rb     : 'text/x-ruby'
+    ru        : 'text/x-ruby'
     sage   : 'python'
     sagews : 'sagews'
     scala  : 'text/x-scala'
