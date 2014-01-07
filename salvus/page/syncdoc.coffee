@@ -173,6 +173,7 @@ class DiffSyncHub
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
 
+
 {EventEmitter} = require('events')
 
 class AbstractSynchronizedDoc extends EventEmitter

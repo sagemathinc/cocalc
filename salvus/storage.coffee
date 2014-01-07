@@ -218,7 +218,9 @@ exports.open_project = open_project = (opts) ->
                             dbg("zpool not running on #{opts.host} -- ready to go.")
                             cb()
                         else
-                            cb("zpool still being imported on #{opts.host} -- pid = #{o}")
+                            a = "zpool still being imported on #{opts.host} -- pid = #{o}"
+                            dbg(a)
+                            cb(a)
 
         (cb) ->
             dbg("mount filesystem")
@@ -1547,7 +1549,7 @@ exports.send = send = (opts) ->
         project_id : required
         source     : required    # {host:ip_address, version:snapshot_name}
         dest       : required    # {host:ip_address, version:snapshot_name}
-        force      : true
+        force      : false       # TODO: this may make things slam to a halt... but we need to nail this down.
         cb         : undefined
 
     dbg = (m) -> winston.debug("send(#{opts.project_id},#{misc.to_json(opts.source)}-->#{misc.to_json(opts.dest)}): #{m}")
@@ -2034,7 +2036,7 @@ exports.migrate_unset_all_locs= (opts) ->
         stop  : undefined
         limit : 20
         cb    : undefined  # cb(err, {project_id:actions, ...})
-    dbg = (m) -> winston.debug("close_all_projects: #{m}")
+    dbg = (m) -> winston.debug("migrate_unset_all_locs: #{m}")
     projects    = undefined
     errors = {}
     async.series([

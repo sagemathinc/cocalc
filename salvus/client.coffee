@@ -577,19 +577,6 @@ class exports.Connection extends EventEmitter
                 ), opts.timeout*1000
             )
 
-    #################################################
-    # CodeMirror Sessions
-    #################################################
-    codemirror_session: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : required      # cb(err, session, current_content)
-        session = new CodeMirrorSession
-            conn       : @
-            project_id : opts.project_id
-            path       : opts.path
-            cb         : opts.cb
 
     #################################################
     # Version

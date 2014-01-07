@@ -5290,6 +5290,8 @@ connect_to_database = (cb) ->
 close_stale_projects = () ->
     winston.debug("closing stale projects...")
     storage.close_stale_projects
+        dry_run : false
+        ttl     : 60*60*12  # every 12 hours for now.
         cb : (err) -> winston.debug("finished closing stale projects (err=#{err})")
 
 #############################################
