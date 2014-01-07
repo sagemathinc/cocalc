@@ -2852,3 +2852,15 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
     else:
         raise RuntimeError("viewer must be 'object' or 'pdfjs'")
 
+
+########################################################
+# WebRTC Support
+########################################################
+def sage_chat(chatroom=None, height="258px"):
+    if chatroom is None:
+        from random import randint
+        chatroom = randint(0,1e24)
+    html("""
+    <iframe src="/static/webrtc/index.html?%s" height="%s" width="100%%"></iframe>
+    """%(chatroom, height), hide=False)
+
