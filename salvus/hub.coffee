@@ -26,10 +26,10 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 MESG_QUEUE_INTERVAL_MS  = 50
 #MESG_QUEUE_INTERVAL_MS  = 20
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
-MESG_QUEUE_MAX_COUNT    = 25
-#MESG_QUEUE_MAX_COUNT    = 200
+#MESG_QUEUE_MAX_COUNT    = 25
+MESG_QUEUE_MAX_COUNT    = 150
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
-MESG_QUEUE_MAX_SIZE_MB  = 5
+MESG_QUEUE_MAX_SIZE_MB  = 7
 
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),

@@ -2180,7 +2180,7 @@ class ProjectPage
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
-                timeout    : 10
+                timeout    : 30
                 cb         : (err, output) =>
                     link.find("i").removeClass('fa-spin')
                     #link.icon_spin(false)
