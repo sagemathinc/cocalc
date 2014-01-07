@@ -550,8 +550,7 @@ def list_of_first_n(v, n):
     return w
 
 def automatic_control(default):
-    from sage.matrix.all import is_Matrix
-    from sage.all import Color
+    from sage.all import Color, is_Matrix
     label = None
     default_value = None
 
@@ -2851,4 +2850,16 @@ def show_pdf(filename, viewer="object", width=1000, height=600, scale=1.6):
             id, scale, url))
     else:
         raise RuntimeError("viewer must be 'object' or 'pdfjs'")
+
+
+########################################################
+# WebRTC Support
+########################################################
+def sage_chat(chatroom=None, height="258px"):
+    if chatroom is None:
+        from random import randint
+        chatroom = randint(0,1e24)
+    html("""
+    <iframe src="/static/webrtc/index.html?%s" height="%s" width="100%%"></iframe>
+    """%(chatroom, height), hide=False)
 
