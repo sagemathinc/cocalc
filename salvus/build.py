@@ -204,7 +204,7 @@ tmux -V
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-[os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
+[(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
 
 #('pandas', 'statsmodels', 'lxml')
 
@@ -216,8 +216,9 @@ tmux -V
 
 # Neuron -- requested by Jose Guzman
 
-   umask 022; sage -sh
+   umask 022
    cd /tmp; hg clone http://www.neuron.yale.edu/hg/neuron/iv; hg clone http://www.neuron.yale.edu/hg/neuron/nrn
+   sage -sh
    cd /tmp/iv; ./build.sh; ./configure --prefix=/usr/local/; make -j16; sudo make install
    # the make install below ends in an error, but it seems to work for people who care.
    cd /tmp/nrn; ./build.sh; ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython; make -j16; sudo make install; cd src/nrnpython/; python setup.py install
