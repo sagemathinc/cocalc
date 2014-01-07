@@ -2097,12 +2097,10 @@ class PDF_Preview extends FileEditor
         if max_width?
             @zoom_width = max_width
             n = @current_page().number
-            margin_left = "#{-(max_width-100)/2}%"
             max_width = "#{max_width}%"
             images.css
                 'max-width'   : max_width
                 width         : max_width
-                'margin-left' : margin_left
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
 
     watch_scroll: () =>
@@ -2295,7 +2293,6 @@ class PDF_Preview extends FileEditor
                         page.find("img").css
                             'max-width'   : self._max_width
                             width         : self._max_width
-                            'margin-left' : self._margin_left
 
                     if @_first_output
                         @output.empty()
