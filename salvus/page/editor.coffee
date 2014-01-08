@@ -425,7 +425,7 @@ class exports.Editor
             return
 
         if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
-            alert_message(type:"info",message:"Opening converted Sagemath Cloud worksheet file instead of '#{filename}...")
+            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
             @convert_sagenb_worksheet filename, (err, sagews_filename) =>
                 if not err
                     @open(sagews_filename, cb)
@@ -3901,7 +3901,7 @@ class IPythonNotebook extends FileEditor
 
     info: () =>
         t = "<h3>The IPython Notebook</h3>"
-        t += "<h4>Enhanced with Sagemath Cloud Sync</h4>"
+        t += "<h4>Enhanced with SageMathCloud Sync</h4>"
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
         if @kernel_id?
             t += "<h4>Sage mode by pasting this into a cell</h4>"

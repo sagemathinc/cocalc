@@ -1683,7 +1683,7 @@ class Client extends EventEmitter
                             # send an email to the user
                             send_email
                                 to      : email_address
-                                subject : "Sagemath Cloud Invitation"
+                                subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : cb
                 ], cb)
@@ -4653,7 +4653,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
-                Somebody just requested to change the password on your Sagemath Cloud account.
+                Somebody just requested to change the password on your SageMathCloud account.
                 If you requested this password change, please change your password by
                 following the link below within 15 minutes:
 
@@ -4665,7 +4665,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 """
 
             send_email
-                subject : 'Sagemath Cloud password reset confirmation'
+                subject : 'SageMathCloud password reset confirmation'
                 body    : body
                 to      : mesg.email_address
                 cb      : (error) ->

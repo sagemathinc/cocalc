@@ -248,7 +248,7 @@ Test with "import neuron".
 
         +--------------------------------------------------------------------+
         | Sage Version 5.10.beta5, Release Date: 2013-05-26                  |
-        | Enhanced for the Sagemath Cloud                                    |
+        | Enhanced for the SageMathCloud                                     |
         | Type "help()" for help.                                            |
         +--------------------------------------------------------------------+
 
