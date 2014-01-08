@@ -550,7 +550,8 @@ def list_of_first_n(v, n):
     return w
 
 def automatic_control(default):
-    from sage.all import Color, is_Matrix
+    from sage.all import Color
+    from sage.structure.element import is_Matrix
     label = None
     default_value = None
 
