@@ -3756,6 +3756,8 @@ class Project
         opts = defaults opts,
             cb : undefined
         @dbg("move_project")
+        opts.cb("moving projects temporarily disabled")
+        return
         host = @local_hub.host
         new_host = undefined
         async.series([
