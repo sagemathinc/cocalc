@@ -145,8 +145,10 @@ def copy_skeleton(project_id):
     u = username(project_id)
     if not os.path.exists(h):
         raise RuntimeError("home directory %s doesn't exist"%h)
+
     os.system("rsync -axH --update /home/salvus/salvus/salvus/scripts/skel/ %s/"%h)  # update so we don't overwrite newer versions
-    os.system("chown -R %s. %s"%(u, h))
+    # TODO: must fix this -- it could overwrite a user bash or ssh stuff.  BAD.
+    os.system("chown -R %s. %s/.sagemathcloud/ %s/.ssh %s/.bashrc"%(u, h))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Project user control script")

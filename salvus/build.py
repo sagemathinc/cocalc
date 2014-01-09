@@ -262,10 +262,13 @@ Delete stupidly wasted space:
    rm spkg/optional/*
 
 
-# R Packages:
+# R Packages into Sage's R:
 
-    umask 022 && R
+
+    umask 022 && sage -R
     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields"), repos='http://cran.us.r-project.org')
+
+    # add circular as a package once we upgrade sage to R-3.x
 
 r packages could be automated like so:
 
@@ -276,6 +279,21 @@ r packages could be automated like so:
 
                 if(inherits(res, "try-error")) q(status=1) else q()
                 0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$
+
+# R 3.x system-wide:
+
+  Add this to /etc/apt/sources.list:
+
+     deb http://cran.cnr.Berkeley.edu/bin/linux/ubuntu precise/        # ubuntu
+
+     deb http://cran.cnr.Berkeley.edu/bin/linux/debian wheezy-cran3/   # debian
+
+  Then
+
+     apt-get update; apt-get upgrade; apt-get install r-recommended
+
+     umask 022 && /usr/bin/R
+     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular"), repos='http://cran.us.r-project.org')
 
 
 
