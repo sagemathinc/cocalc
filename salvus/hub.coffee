@@ -3131,7 +3131,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 mesg = message.session_connected
                     session_uuid : opts.session_uuid
                     data_channel : channel
-                    history      : console_socket.history
+                    history      : console_socket.history.slice(console_socket.history.length - 100000)   # only last 100,000
                 opts.cb(false, mesg)
 
                 # console --> client:
