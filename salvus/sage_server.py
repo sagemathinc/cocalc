@@ -53,7 +53,14 @@ import parsing, sage_salvus
 uuid = sage_salvus.uuid
 
 def unicode8(s):
-    return unicode(s, 'utf8')
+    # I evidently don't understand Python unicode...  Do the following for now:
+    try:
+        return unicode(s, 'utf8')
+    except:
+        try:
+             return unicode(s)
+        except:
+             return s
 
 # Determine the info object, if available.  There's no good reason
 # it wouldn't be available, unless a user explicitly deleted it, but
