@@ -624,6 +624,18 @@ exports.create_project = create_project = (opts) ->
 # Managing Projects
 ######################
 
+# get quota from database
+exports.get_quota = get_quota = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : undefined    # cb(err, quota in gigabytes)
+    database.select_one
+        table : 'projects'
+        where : {project_id : opts.project_id}
+        columes  : ['quota_zfs']
+        cb    : (err, result) ->
+            cb(err, result[0]/1000000000)
+
 
 exports.quota = quota = (opts) ->
     opts = defaults opts,
@@ -1014,6 +1026,47 @@ exports.get_snapshots = get_snapshots = (opts) ->
                 for k, v of result
                     ans[k] = JSON.parse(v)
                 opts.cb(undefined, ans)
+
+# for interactive use
+exports.status = (project_id, update) ->
+    r = ""
+    async.series([
+        (cb) ->
+            get_current_location
+                project_id : project_id
+                cb         : (err, host) ->
+                    r += "current location: #{host}\n"
+                    cb()
+        (cb) ->
+            quota
+                project_id : project_id
+                cb         : (err, quota) ->
+                    r += "quota: #{quota}\n"
+                    cb()
+        (cb) ->
+            if update
+                repair_snapshots_in_db
+                    project_id : project_id
+                    cb         : (err) -> cb()
+            else
+                cb()
+        (cb) ->
+            get_snapshots
+                project_id : project_id
+                cb         : (err, s) ->
+                    r += '\nsnapshots:\n'
+                    if err
+                        r += err
+                    else
+                        for a in misc.keys(s)
+                            r += "\t\t#{a}: #{s[a][0]}, #{s[a][1]}, #{s[a][2]}, #{s[a][3]}, \n"
+                    cb()
+    ], (err) ->
+        console.log("-----------------------\n#{r}")
+        if err
+            console.log("ERROR: #{err}")
+    )
+
 
 # Compute list of all hosts that actually have some version of the project.
 # WARNING: returns an empty list if the project doesn't exist in the database!  *NOT* an error.

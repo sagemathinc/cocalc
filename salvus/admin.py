@@ -1570,7 +1570,7 @@ class Services(object):
         if 'id' not in options:
             options['id'] = 0
 
-        if 'monitor_database' in options: 
+        if 'monitor_database' in options:
             db_string=''
         else:
             db_string = db_string + ', '
