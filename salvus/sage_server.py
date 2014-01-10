@@ -52,6 +52,8 @@ import parsing, sage_salvus
 
 uuid = sage_salvus.uuid
 
+def unicode8(s):
+    return unicode(s, 'utf8')
 
 # Determine the info object, if available.  There's no good reason
 # it wouldn't be available, unless a user explicitly deleted it, but
@@ -531,7 +533,7 @@ class Salvus(object):
         function sage_server.uuidsha1).  Any two files with the same content have the
         same Sha1 hash.
         """
-        filename = unicode(filename,'utf8')
+        filename = unicode8(filename)
         if os.path.splitext(filename)[1] == u'.webm':
             raw = True
 
@@ -730,7 +732,7 @@ class Salvus(object):
             salvus.html("<b>Hi</b>")
         """
         self._flush_stdio()
-        self._conn.send_json(message.output(html=unicode(html), id=self._id, done=done, once=once))
+        self._conn.send_json(message.output(html=unicode8(html), id=self._id, done=done, once=once))
 
     def pdf(self, filename, **kwds):
         sage_salvus.show_pdf(filename, **kwds)
@@ -760,7 +762,7 @@ class Salvus(object):
 
     def stdout(self, output, done=False, once=None):
         """
-        Send the string output (or unicode(output) if output is not a
+        Send the string output (or unicode8(output) if output is not a
         string) to the standard output stream of the compute cell.
 
         INPUT:
@@ -768,13 +770,13 @@ class Salvus(object):
         - output -- string or object
 
         """
-        stdout = output if isinstance(output, (str, unicode)) else unicode(output)
+        stdout = output if isinstance(output, (str, unicode)) else unicode8(output)
         self._conn.send_json(message.output(stdout=stdout, done=done, id=self._id, once=once))
         return self
 
     def stderr(self, output, done=False, once=None):
         """
-        Send the string output (or unicode(output) if output is not a
+        Send the string output (or unicode8(output) if output is not a
         string) to the standard error stream of the compute cell.
 
         INPUT:
@@ -782,7 +784,7 @@ class Salvus(object):
         - output -- string or object
 
         """
-        stderr = output if isinstance(output, (str,unicode)) else unicode(output)
+        stderr = output if isinstance(output, (str, unicode)) else unicode8(output)
         self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id, once=once))
         return self
 
