@@ -26,10 +26,10 @@ REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 MESG_QUEUE_INTERVAL_MS  = 50
 #MESG_QUEUE_INTERVAL_MS  = 20
 # If a client sends a burst of messages, we discard all but the most recent this many of them:
-MESG_QUEUE_MAX_COUNT    = 25
-#MESG_QUEUE_MAX_COUNT    = 200
+#MESG_QUEUE_MAX_COUNT    = 25
+MESG_QUEUE_MAX_COUNT    = 150
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
-MESG_QUEUE_MAX_SIZE_MB  = 5
+MESG_QUEUE_MAX_SIZE_MB  = 7
 
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
@@ -1683,7 +1683,7 @@ class Client extends EventEmitter
                             # send an email to the user
                             send_email
                                 to      : email_address
-                                subject : "Sagemath Cloud Invitation"
+                                subject : "SageMathCloud Invitation"
                                 body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
                                 cb      : cb
                 ], cb)
@@ -3756,6 +3756,8 @@ class Project
         opts = defaults opts,
             cb : undefined
         @dbg("move_project")
+        opts.cb("moving projects temporarily disabled")
+        return
         host = @local_hub.host
         new_host = undefined
         async.series([
@@ -4653,7 +4655,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         # send an email to mesg.email_address that has a link to
         (cb) ->
             body = """
-                Somebody just requested to change the password on your Sagemath Cloud account.
+                Somebody just requested to change the password on your SageMathCloud account.
                 If you requested this password change, please change your password by
                 following the link below within 15 minutes:
 
@@ -4665,7 +4667,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 """
 
             send_email
-                subject : 'Sagemath Cloud password reset confirmation'
+                subject : 'SageMathCloud password reset confirmation'
                 body    : body
                 to      : mesg.email_address
                 cb      : (error) ->
@@ -5289,8 +5291,11 @@ connect_to_database = (cb) ->
 
 close_stale_projects = () ->
     winston.debug("closing stale projects...")
-    storage.close_stale_projects (err) ->
-        winston.debug("finished closing stale projects (err=#{err})")
+    storage.close_stale_projects
+        dry_run : false
+        ttl     : 60*60*6  # every 6 hours for now.
+        limit   : 40
+        cb : (err) -> winston.debug("finished closing stale projects (err=#{err})")
 
 #############################################
 # Start everything running

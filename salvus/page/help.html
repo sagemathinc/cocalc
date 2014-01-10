@@ -3,16 +3,8 @@
     <div class="row" style="padding:1em;">
         <div class="span11 well" >
             <h2><!--<i class="fa fa-cloud"> </i>-->
-                <img src="favicon-128.png" width="64" height="64" style="margin-right:1ex;" class="img img-rounded">The Sagemath Cloud&trade;</h2>
-            <h3 class="not-small">Computational mathematics in the cloud</h3>
-            <ul>
-                <li class="salvus-help-list">Interactive Worksheets that let you mix <a target="_blank" href="http://www.sagemath.org">Sage</a>, R, Python, Cython, GAP, Macaulay2, Singular, and much, much more.  For example, type "<span class="tt">%default_mode r</span>" in a worksheet to make all cells evaluate using R by default.</li>
-                <li class="salvus-help-list">Terminal with color themes, which can be used by multiple people at once</li>
-                <li class="salvus-help-list">LaTeX editor with inverse and forward search and SageTex</li>
-                <li class="salvus-help-list">Realtime synchronization of all document types, syntax highlighting, themes, split view editing, vim and emacs keybindings</li>
-                <li class="salvus-help-list">IPython notebooks (with synchronization)</li>
-            </ul>
-
+                <img src="favicon-128.png" width="64" height="64" style="margin-right:1ex;" class="img img-rounded">SageMathCloud&trade;
+            </h2>
 
             <h3 class="not-small">Support</h3>
 
@@ -28,14 +20,10 @@
                 <li  class="salvus-help-list"> <a target="_blank" href="http://www.sagemath.org/help.html">General Sage help and support</a> </li>
                 <li  class="salvus-help-list hide salvus-chrome-only"> <a href="https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb" target="_blank">Install the Chrome App</a><br></li>
 
-                <li class="salvus-help-list"> The Sagemath Cloud is a project of University of Washington.  The main people involved are
-                    William Stein (software dev), Harald Schilly (marketing and QA testing), and Keith Clawson (hardware and systems).  Some of this work
-                    is supported by the National Science Foundation <a target="_blank" href="http://sagemath.org/development-ack.html">under various grants</a>.  Read the <a href="#link-terms">Terms of Usage</a>.  You can <a href="https://www.washington.edu/giving/make-a-gift/?page=make&amp;ode=MATSAG" target="_blank">donate to support the project.</a>
-                </li>
 
             </ul>
             <div class="salvus-stats">
-                <h3>Status and Statistics <a href="#refresh-status"><i class="fa fa-refresh"> </i></a></h3>
+                <h3>Status <a href="#refresh-status"><i class="fa fa-refresh"> </i></a></h3>
                 <ul>
                     <li  class="salvus-help-list">
                         There are <b><span class="salvus-stats-number-of-clients"></span> clients</b> connected right now who are actively
@@ -46,13 +34,7 @@
                         <b><span class="salvus-stats-projects"></span> projects</b>.
                     </li>
                     <li class="salvus-help-list">
-                        There are <b>288 cores</b>, <b>1216GB RAM</b> and <b>50TB disk</b>
-                        space dedicated to the Sagemath Cloud cluster.
-                        <!-- If there is sufficient demand, in 2014 we'll upgrade
-                        to 2176GB RAM and 246TB disk. -->
-                    </li>
-                    <li class="salvus-help-list">
-                        <a target="_blank" href="http://boxen.math.washington.edu/home/schilly/salvus/stats/stats.html">Historical User Statistics</a>
+                        <a target="_blank" href="http://boxen.math.washington.edu/home/schilly/salvus/stats/stats.html">Usage statistics</a>
                     </li>
                     <li class="salvus-help-list">
                         We own all the hardware and host it in various
@@ -61,18 +43,21 @@
                         of the Sage mathematics software project, and has
                         been making mathematical software available via the web for over a decade.
                         If you have any questions, don't hesitate to email him at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.
+
+
                     </li>
+
+                    <li class="salvus-help-list"> The main developers of SageMathCloud are
+                        William Stein (software dev), Harald Schilly (marketing and QA testing), and Keith Clawson (hardware and systems).  Some of this work
+                        is supported by the National Science Foundation <a target="_blank" href="http://sagemath.org/development-ack.html">under various grants</a>.  Read the <a href="#link-terms">Terms of Usage</a>.  You can <a href="https://www.washington.edu/giving/make-a-gift/?page=make&amp;ode=MATSAG" target="_blank">donate to support the project.</a>
+                    </li>
+
 
                 </ul>
             </div>
-        </div>
-    </div>
+            <div  id="how-do-i"></div>
+            <h3>Documentation</h3>
 
-    <div  id="how-do-i"></div>
-
-    <div class="row" style="padding:1em;">
-        <div class="span11 well" >
-            <h3>Help Topics</h3>
             <ul>
                 <li  class="salvus-help-list"> <a href="#help-create-an-account">Create an account</a></li>
                 <li  class="salvus-help-list"> <a href="#help-change-my-username">Change your username, email address, or password</a></li>
@@ -95,7 +80,7 @@
 - Do Sage development and make worksheets that use my own custom copy of Sage?
 - Upload files into a project?
 - Download files from a project?
-- Copy a repository from github into a cloud.sagemath project?
+- Copy a repository from github into a SageMathCloud project?
 - Leave something running in a worksheet or terminal, and come back to it later?
 - Move or rename a file or directory?
 - See how much disk space my project is using?
@@ -136,7 +121,7 @@
                                 to.</li>
                             <li> The only requirement on your password is that it not be "Very weak" according
                                 to the password strength checker.  However, please
-                                use a strong password, especially when you start using the Sagemath Cloud frequently.</li>
+                                use a strong password, especially when you start using the SageMathCloud frequently.</li>
                             <li> Only the hash of your password is stored by the server, which uses 1000 iterations
                                 of the sha-512 hash function, with a salt length of 32.  This makes it much more
                                 difficult for a hacker to bruteforce your password, even if they have the database of
@@ -166,8 +151,8 @@
                             </p>
 
                             <p>
-                                To change the email account that is linked to your cloud.sagemath account, click
-                                on the "change" link next to your email address, type in the password (to your cloud.sagemath
+                                To change the email account that is linked to your SageMathCloud account, click
+                                on the "change" link next to your email address, type in the password (to your SageMathCloud
                                 account), then enter a new email address.
                             </p>
 
@@ -229,7 +214,7 @@
 
                             professional quality documents, with excellent support for typesetting mathematical formulas like
                             $J_\alpha(x) = \sum\limits_{m=0}^\infty \frac{(-1)^m}{m! \, \Gamma(m + \alpha + 1)}{\left({\frac{x}{2}}\right)}^{2 m + \alpha}$.
-                            There are two main ways to use latex in the Sagemath cloud:<br><br>
+                            There are two main ways to use latex in the SageMathCloud:<br><br>
                             <ol>
                                 <li> In chats or in worksheet cells that start with %html or %md,
                                     enclose mathematical formulas in single or double
@@ -297,7 +282,7 @@
                             "IPython" button, or just open an ipynb file.
                             The notebook will be opened using IPython's html-based client,
                             with support for embedded graphics.
-                            To support the collaborative nature of the Sagemath Cloud,
+                            To support the collaborative nature of the SageMathCloud,
                             we've enhanced the IPython notebook with realtime sync,
                             so if you open the same notebook on multiple computers (or if multiple
                             people open the same notebook), they will stay in sync.
@@ -338,7 +323,7 @@
                                     <pre>https://cloud.sagemath.com/project_id/port/&lt;port number>/</pre>
                                     You have to configure your web service so that the base url is <span class="tt">/project_id/port/&lt;port number>/</span>
                                     or you may find that things don't work.  This may be either easy or impossibly hard.
-                                    Websockets should be proxied fine.
+                                    Websockets should be proxied fine.  Note -- the project_id can be read from <tt>~/.sagemathcloud/info.json</tt>.
                                 </li>
                             </ol>
 

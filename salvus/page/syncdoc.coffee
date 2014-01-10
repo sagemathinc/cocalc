@@ -48,7 +48,7 @@ salvus_threejs = require("salvus_threejs")
 account = require('account')
 
 # Return true if there are currently unsynchronized changes, e.g., due to the network
-# connection being down, or cloud.sagemath not working, or a bug.
+# connection being down, or SageMathCloud not working, or a bug.
 exports.unsynced_docs = () ->
     return $(".salvus-editor-codemirror-not-synced:visible").length > 0
 
@@ -172,6 +172,7 @@ class DiffSyncHub
                     cb(mesg.event)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
+
 
 {EventEmitter} = require('events')
 

@@ -267,6 +267,7 @@ class Worksheet(object):
 \documentclass{article}
 \usepackage{fullpage}
 \usepackage{amsmath}
+\usepackage[utf8]{inputenc}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{etoolbox}
@@ -310,8 +311,8 @@ sensitive=true}
             s += "\\date{%s}\n"%date
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
-        if self._filename:
-            s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
+        #if self._filename:
+        #    s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
 
         if contents:
             s += "\\tableofcontents\n"

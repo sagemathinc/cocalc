@@ -268,6 +268,7 @@ CREATE TABLE projects (
      errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
 
      last_migrated    timestamp, // used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
+     old_location     varchar,   // used for migrating... (so can delete after that is done).
 
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
 

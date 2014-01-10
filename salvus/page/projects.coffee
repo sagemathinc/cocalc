@@ -245,7 +245,6 @@ update_project_view = (show_all=false) ->
 
 open_project = (project, item) ->
     #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
-    #    alert_message(type:"warning", message:"Please close a project before opening more projects.")
     proj = project_page(project)
     top_navbar.switch_to_page(project.project_id)
 
@@ -302,7 +301,7 @@ new_project_button = $("#projects-create_project-button-create_project").click (
         description = $("#projects-create_project-description").attr("placeholder")
 
     new_project_button.icon_spin(start:true)
-    alert_message(type:"warning", message:"Creating new project '#{title}'.  This takes about 30 seconds.", timeout:10)
+    alert_message(message:"Creating new project '#{title}'.  This takes about 30 seconds.", timeout:10)
     salvus_client.create_project
         title       : title
         description : description
