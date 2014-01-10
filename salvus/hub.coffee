@@ -3756,6 +3756,8 @@ class Project
         opts = defaults opts,
             cb : undefined
         @dbg("move_project")
+        opts.cb("moving projects temporarily disabled")
+        return
         host = @local_hub.host
         new_host = undefined
         async.series([
@@ -5291,7 +5293,8 @@ close_stale_projects = () ->
     winston.debug("closing stale projects...")
     storage.close_stale_projects
         dry_run : false
-        ttl     : 60*60*12  # every 12 hours for now.
+        ttl     : 60*60*6  # every 6 hours for now.
+        limit   : 40
         cb : (err) -> winston.debug("finished closing stale projects (err=#{err})")
 
 #############################################

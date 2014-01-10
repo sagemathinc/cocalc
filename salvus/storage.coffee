@@ -338,9 +338,12 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                     cb         : (err) ->
                         if not err
                             host_used = cur_loc  # success!
+                            cb()
                         else
-                            dbg("nonfatal error attempting to open on #{cur_loc} -- #{err}")
-                        cb()
+                            m = "error attempting to open on #{cur_loc} -- #{err}"
+                            dbg(m)
+                            # TODO: to enable automatic project move on fail, we would instead do "cb()".
+                            cb(m)
         (cb) ->
             if host_used?  # done?
                 cb(); return
@@ -418,7 +421,7 @@ exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined  # defaults to current host, if deployed
-        unset_loc  : true       # set location to undefined in the database
+        unset_loc  : false       # set location to undefined in the database
         cb         : required
 
     if not opts.host?
@@ -460,7 +463,7 @@ exports.close_project = close_project = (opts) ->
                 cb()
     ], opts.cb)
 
-# Call "close_project" (with unset_loc=true) on all projects that have been open for
+# Call "close_project"  on all projects that have been open for
 # more than ttl seconds, where opened means that location is set.
 exports.close_stale_projects = (opts) ->
     opts = defaults opts,
@@ -489,7 +492,7 @@ exports.close_stale_projects = (opts) ->
                     close_project
                         project_id : project_id
                         host       : host
-                        unset_loc  : true
+                        unset_loc  : false
                         cb         : cb
             async.eachLimit(projects, opts.limit, f, cb)
     ], opts.cb)
@@ -505,7 +508,7 @@ exports.create_project = create_project = (opts) ->
         base_url   : ''
         chown      : false       # if true, chown files in filesystem (throw-away: used only for migration from old)
         exclude    : []          # hosts to not use
-        unset_loc  : true
+        unset_loc  : false
         cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
 
     dbg = (m) -> winston.debug("create_project(#{opts.project_id}): #{m}")

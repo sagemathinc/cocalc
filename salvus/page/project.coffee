@@ -1909,6 +1909,8 @@ class ProjectPage
 
         m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
+            bootbox.confirm("Project move is temporarily disabled while we sort out some replication issues that can lead to data inavailability.  If you find that files seem to have vanished in the last few days, contact wstein@gmail.com; your files are there, just on a different machine.")
+            return
             bootbox.confirm m, (result) =>
                 if result
                     link.find(".spinner").show()
@@ -2007,6 +2009,9 @@ class ProjectPage
     init_move_project: () =>
         button = @container.find(".project-settings-move").find("a")
         button.click () =>
+
+            
+
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
             salvus_client.project_last_snapshot_time
