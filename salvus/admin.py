@@ -1321,7 +1321,11 @@ class Monitor(object):
         cmd = "ps ax |grep zfs |wc -l"
         ans = []
         for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
-            ans.append( {'host':k[0], 'service':'zfs', 'nproc':int(v.get('stdout','0').strip())-2} )
+            try:
+                nproc = int(v['stdout']) - 2
+            except:
+                nproc = -1
+            ans.append( {'host':k[0], 'service':'zfs', 'nproc':nproc} )
         w = [((d.get('status','down'),-d['nproc'],d['host']),d) for d in ans]
         w.sort()
         return [y for x,y in w]
@@ -1403,7 +1407,7 @@ class Monitor(object):
             if x['load15'] > 1.5:
                 m += "A machine is going crazy with load!: %s"%x
         for x in all['zfs']:
-            if x['nproc'] > 50:
+            if x['nproc'] > 200:
                 m += "Possibly deadlocked ZFS: %s"%x
         if m:
             try:
