@@ -442,6 +442,10 @@ exports.close_project = close_project = (opts) ->
                 timeout    : 30
                 cb         : cb
         (cb) ->
+            dbg("skipping unmount to see if this is causing the deadlock issues")
+            cb()
+            return
+        
             dbg("unmount filesystem")
             execute_on
                 host    : opts.host

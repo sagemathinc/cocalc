@@ -2009,9 +2009,8 @@ class ProjectPage
     init_move_project: () =>
         button = @container.find(".project-settings-move").find("a")
         button.click () =>
-
-
-
+            bootbox.confirm("Project move is temporarily disabled due to some synchronization issues that we are fixing right now.", (result) =>)
+            return false
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
             salvus_client.project_last_snapshot_time
