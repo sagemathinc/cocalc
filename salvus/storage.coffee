@@ -1457,10 +1457,12 @@ exports.replicate = replicate = (opts) ->
         project_id : required
         cb         : undefined
 
+    dbg = (m) -> winston.debug("replicate (#{opts.project_id}): #{m}")
     snaps   = undefined
     source  = undefined
 
     targets = locations(project_id:opts.project_id)
+    dbg("targets = #{targets}")
     num_replicas = targets[0].length
 
     snapshots = undefined
@@ -1472,7 +1474,7 @@ exports.replicate = replicate = (opts) ->
     errors = {}
     async.series([
         (cb) ->
-            # check for lock
+            dbg("check for lock")
             database.select_one
                 table   : 'projects'
                 where   : {project_id : opts.project_id}
@@ -1483,7 +1485,7 @@ exports.replicate = replicate = (opts) ->
                     else if r[0]
                         cb("already replicating")
                     else
-                        # create lock
+                        dbg("create lock")
                         clear_replicating_lock = true
                         database.update
                             table : 'projects'
@@ -1493,8 +1495,8 @@ exports.replicate = replicate = (opts) ->
                             cb    : (err) ->
                                 cb(err)
         (cb) ->
-            # Determine information about all known snapshots
-            # of this project, and also the best source for
+            dbg("Determine information about all known snapshots")
+            # Also find the best source for
             # replicating out (which might not be one of the
             # locations determined by the hash ring).
             tm = misc.walltime()
@@ -1505,7 +1507,7 @@ exports.replicate = replicate = (opts) ->
                         cb(err)
                     else
                         if not result? or misc.len(result) == 0
-                            # project doesn't have any snapshots at all or location.
+                            dbg("project doesn't have any snapshots at all or location.")
                             # this could happen for a new project with no data, or one not migrated.
                             winston.debug("WARNING: project #{opts.project_id} has no snapshots")
                             new_project = true
@@ -1518,17 +1520,17 @@ exports.replicate = replicate = (opts) ->
                         x = snaps[snaps.length - 1]
                         ver = x[0]
                         source = {version:ver, host:x[1]}
-                        # determine version of each target
+                        dbg("determine version of each target")
                         for k in targets
                             v = []
                             for host in k
                                 v.push({version:snapshots[host]?[0], host:host})
                             if v.length > 0
                                 versions.push(v)
-                        winston.debug("replicate (time=#{misc.walltime(tm)})-- status: #{misc.to_json(versions)}")
+                        dbg("(time=#{misc.walltime(tm)})-- status: #{misc.to_json(versions)}")
                         cb()
        (cb) ->
-            # STAGE 1: do inter-data center replications so each data center contains at least one up to date node
+            dbg("STAGE 1: do inter-data center replications so each data center contains at least one up to date node")
             f = (d, cb) ->
                 # choose newest in the datacenter -- this one is easiest to get up to date
                 dest = d[0]
@@ -1553,7 +1555,7 @@ exports.replicate = replicate = (opts) ->
             async.map(versions, f, cb)
 
        (cb) ->
-            # STAGE 2: do intra-data center replications to get all data in each data center up to date.
+            dbg("STAGE 2: do intra-data center replications to get all data in each data center up to date.")
             f = (d, cb) ->
                 # choose last *newest* in the datacenter as source
                 src = d[0]
@@ -1585,7 +1587,7 @@ exports.replicate = replicate = (opts) ->
         else
             err = undefined
         if clear_replicating_lock
-            # remove lock
+            dbg("remove lock")
             database.update
                 table : 'projects'
                 where : {project_id : opts.project_id}
