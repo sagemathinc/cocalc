@@ -218,7 +218,9 @@ exports.open_project = open_project = (opts) ->
                             dbg("zpool not running on #{opts.host} -- ready to go.")
                             cb()
                         else
-                            cb("zpool still being imported on #{opts.host} -- pid = #{o}")
+                            a = "zpool still being imported on #{opts.host} -- pid = #{o}"
+                            dbg(a)
+                            cb(a)
 
         (cb) ->
             dbg("mount filesystem")
@@ -336,9 +338,12 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                     cb         : (err) ->
                         if not err
                             host_used = cur_loc  # success!
+                            cb()
                         else
-                            dbg("nonfatal error attempting to open on #{cur_loc} -- #{err}")
-                        cb()
+                            m = "error attempting to open on #{cur_loc} -- #{err}"
+                            dbg(m)
+                            # TODO: to enable automatic project move on fail, we would instead do "cb()".
+                            cb(m)
         (cb) ->
             if host_used?  # done?
                 cb(); return
@@ -385,7 +390,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                             dbg("project worked on #{host}")
                             host_used = host
                         else
-                            dbg("nonfatal error attempting to open on #{host}")
+                            dbg("nonfatal error attempting to open on #{host} -- #{err}")
                         c()
 
             async.mapSeries(hosts, f, cb)
@@ -416,7 +421,7 @@ exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined  # defaults to current host, if deployed
-        unset_loc  : true       # set location to undefined in the database
+        unset_loc  : false       # set location to undefined in the database
         cb         : required
 
     if not opts.host?
@@ -458,7 +463,7 @@ exports.close_project = close_project = (opts) ->
                 cb()
     ], opts.cb)
 
-# Call "close_project" (with unset_loc=true) on all projects that have been open for
+# Call "close_project"  on all projects that have been open for
 # more than ttl seconds, where opened means that location is set.
 exports.close_stale_projects = (opts) ->
     opts = defaults opts,
@@ -487,7 +492,7 @@ exports.close_stale_projects = (opts) ->
                     close_project
                         project_id : project_id
                         host       : host
-                        unset_loc  : true
+                        unset_loc  : false
                         cb         : cb
             async.eachLimit(projects, opts.limit, f, cb)
     ], opts.cb)
@@ -503,7 +508,7 @@ exports.create_project = create_project = (opts) ->
         base_url   : ''
         chown      : false       # if true, chown files in filesystem (throw-away: used only for migration from old)
         exclude    : []          # hosts to not use
-        unset_loc  : true
+        unset_loc  : false
         cb         : required    # cb(err, host)   where host=ip address of a machine that has the project.
 
     dbg = (m) -> winston.debug("create_project(#{opts.project_id}): #{m}")
@@ -618,6 +623,18 @@ exports.create_project = create_project = (opts) ->
 ######################
 # Managing Projects
 ######################
+
+# get quota from database
+exports.get_quota = get_quota = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : undefined    # cb(err, quota in gigabytes)
+    database.select_one
+        table : 'projects'
+        where : {project_id : opts.project_id}
+        columes  : ['quota_zfs']
+        cb    : (err, result) ->
+            cb(err, result[0]/1000000000)
 
 
 exports.quota = quota = (opts) ->
@@ -1010,6 +1027,47 @@ exports.get_snapshots = get_snapshots = (opts) ->
                     ans[k] = JSON.parse(v)
                 opts.cb(undefined, ans)
 
+# for interactive use
+exports.status = (project_id, update) ->
+    r = ""
+    async.series([
+        (cb) ->
+            get_current_location
+                project_id : project_id
+                cb         : (err, host) ->
+                    r += "current location: #{host}\n"
+                    cb()
+        (cb) ->
+            quota
+                project_id : project_id
+                cb         : (err, quota) ->
+                    r += "quota: #{quota}\n"
+                    cb()
+        (cb) ->
+            if update
+                repair_snapshots_in_db
+                    project_id : project_id
+                    cb         : (err) -> cb()
+            else
+                cb()
+        (cb) ->
+            get_snapshots
+                project_id : project_id
+                cb         : (err, s) ->
+                    r += '\nsnapshots:\n'
+                    if err
+                        r += err
+                    else
+                        for a in misc.keys(s)
+                            r += "\t\t#{a}: #{s[a][0]}, #{s[a][1]}, #{s[a][2]}, #{s[a][3]}, \n"
+                    cb()
+    ], (err) ->
+        console.log("-----------------------\n#{r}")
+        if err
+            console.log("ERROR: #{err}")
+    )
+
+
 # Compute list of all hosts that actually have some version of the project.
 # WARNING: returns an empty list if the project doesn't exist in the database!  *NOT* an error.
 exports.get_hosts = get_hosts = (opts) ->
@@ -1048,8 +1106,9 @@ exports.record_snapshot_in_db = record_snapshot_in_db = (opts) ->
                         if opts.remove
                             try
                                 misc.remove(v, opts.name)
-                            catch
+                            catch error
                                 # snapshot not in db anymore; nothing to do.
+                                cb()
                                 return
                         else
                             v.unshift(opts.name)
@@ -1546,7 +1605,7 @@ exports.send = send = (opts) ->
         project_id : required
         source     : required    # {host:ip_address, version:snapshot_name}
         dest       : required    # {host:ip_address, version:snapshot_name}
-        force      : true
+        force      : false       # TODO: this may make things slam to a halt... but we need to nail this down.
         cb         : undefined
 
     dbg = (m) -> winston.debug("send(#{opts.project_id},#{misc.to_json(opts.source)}-->#{misc.to_json(opts.dest)}): #{m}")
@@ -1616,13 +1675,15 @@ exports.send = send = (opts) ->
                                     cb(err)
                             return
                         else if output.stderr.indexOf('cannot receive incremental stream: most recent snapshot of') != -1
-                            dbg("out of sync -- destroy the target; next time it should work.")
-                            destroy_project
-                                project_id : opts.project_id
-                                host       : opts.dest.host
-                                cb         : (ignore) ->
-                                    cb("destroyed target project -- #{output.stderr}")
+                            dbg("out of sync -- consider destroying the target; next time it should work.")
+                            cb("out of sync -- consider destroying the target; next time it should work.")
                             return
+                            #destroy_project
+                            #    project_id : opts.project_id
+                            #    host       : opts.dest.host
+                            #    cb         : (ignore) ->
+                            #        cb("destroyed target project -- #{output.stderr}")
+                            #return
                         err = output.stderr
                     cb(err)
         (cb) ->
@@ -2031,7 +2092,7 @@ exports.migrate_unset_all_locs= (opts) ->
         stop  : undefined
         limit : 20
         cb    : undefined  # cb(err, {project_id:actions, ...})
-    dbg = (m) -> winston.debug("close_all_projects: #{m}")
+    dbg = (m) -> winston.debug("migrate_unset_all_locs: #{m}")
     projects    = undefined
     errors = {}
     async.series([

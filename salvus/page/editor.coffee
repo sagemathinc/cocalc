@@ -52,6 +52,7 @@ codemirror_associations =
     patch  : 'text/x-diff'
 
     gp     : 'text/pari'
+    go     : 'text/x-go'
     pari   : 'text/pari'
 
     php    : 'php'
@@ -61,6 +62,7 @@ codemirror_associations =
     r      : 'r'
     rst    : 'rst'
     rb     : 'text/x-ruby'
+    ru        : 'text/x-ruby'
     sage   : 'python'
     sagews : 'sagews'
     scala  : 'text/x-scala'
@@ -423,7 +425,7 @@ class exports.Editor
             return
 
         if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
-            alert_message(type:"info",message:"Opening converted Sagemath Cloud worksheet file instead of '#{filename}...")
+            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
             @convert_sagenb_worksheet filename, (err, sagews_filename) =>
                 if not err
                     @open(sagews_filename, cb)
@@ -2089,7 +2091,7 @@ class PDF_Preview extends FileEditor
         if opts.delta?
             if not @zoom_width?
                 @zoom_width = 160   # NOTE: hardcoded also in editor.css class .salvus-editor-pdf-preview-image
-            max_width = @zoom_width#images.css('max-width')
+            max_width = @zoom_width
             max_width += opts.delta
         else if opts.width?
             max_width = opts.width
@@ -2097,13 +2099,18 @@ class PDF_Preview extends FileEditor
         if max_width?
             @zoom_width = max_width
             n = @current_page().number
-            margin_left = "#{-(max_width-100)/2}%"
             max_width = "#{max_width}%"
             images.css
                 'max-width'   : max_width
                 width         : max_width
-                'margin-left' : margin_left
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
+
+        @recenter()
+
+    recenter: () =>
+        container_width = @output.find(":first-child:first").width()
+        content_width = @output.find("img:first-child:first").width()
+        @output.scrollLeft((content_width - container_width)/2)
 
     watch_scroll: () =>
         if @_f?
@@ -2260,6 +2267,7 @@ class PDF_Preview extends FileEditor
                 @last_page = n-1
         else
             # update page
+            recenter = (@last_page == 0)
             that = @
             page = @output.find(".salvus-editor-pdf-preview-page-#{n}")
             if page.length == 0
@@ -2295,7 +2303,6 @@ class PDF_Preview extends FileEditor
                         page.find("img").css
                             'max-width'   : self._max_width
                             width         : self._max_width
-                            'margin-left' : self._margin_left
 
                     if @_first_output
                         @output.empty()
@@ -2325,14 +2332,16 @@ class PDF_Preview extends FileEditor
                 setTimeout((()->img.attr('src',url)), 2000)
             img.on('error', load_error)
 
+            if recenter
+                img.one 'load', () =>
+                    @recenter()
+
             if @zoom_width?
                 max_width = @zoom_width
-                margin_left = "#{-(max_width-100)/2}%"
                 max_width = "#{max_width}%"
                 img.css
                     'max-width'   : max_width
                     width         : max_width
-                    'margin-left' : margin_left
 
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
@@ -3892,7 +3901,7 @@ class IPythonNotebook extends FileEditor
 
     info: () =>
         t = "<h3>The IPython Notebook</h3>"
-        t += "<h4>Enhanced with Sagemath Cloud Sync</h4>"
+        t += "<h4>Enhanced with SageMathCloud Sync</h4>"
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
         if @kernel_id?
             t += "<h4>Sage mode by pasting this into a cell</h4>"

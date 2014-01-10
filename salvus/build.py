@@ -27,15 +27,17 @@ Before building, do:
 
   Don't bother for LXC.
 
-# On glusterfs server machines:
+# LIBC version:
 
-    I've increased this to 10,000,000 on all hosts by putting this in /etc/sysctl.conf:
+  On Debian, add this line to /etc/apt/sources.list
 
-        fs.inotify.max_user_watches=10000000
+      deb     http://http.debian.net/debian jessie main
 
-    and also did this once on the command line:
+  Then do "apt-get update", then "apt-cache policy libc-dev6" to find the newest version.
+  Then do
+      apt-get install libc6-dev=2.17-97
+  and finally comment out the above line and do "apt-get update" again, in order to avoid breaking "apt-get upgrade".
 
-        sudo sysctl fs.inotify.max_user_watches=10000000
 
 # ATLAS:
 
@@ -104,12 +106,12 @@ MaxStartups 128
 
 On Ubuntu 13.10
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev golang-go libicu-dev libicu-devlibicu-dev libicu-dev libicu-dev iceweasel xvfb
 
 
 On Debian 7 (Google)
 
-apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf spell
+apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf spell golang-go libicu-dev libicu-devlibicu-dev libicu-dev libicu-dev iceweasel xvfb
 
 
 # Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
@@ -189,18 +191,19 @@ tmux -V
 # Workaround bugs in Sage
 
    - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
-     (just put f=filename in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
+     (just put f=filename in function which in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
 
 
 # Non-sage Python packages into Sage
 
     sage -sh
+    easy_install -U setuptools
     easy_install pip
 
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-[os.system("pip install %s"%s) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil'.split()]
+[(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly'.split()]
 
 #('pandas', 'statsmodels', 'lxml')
 
@@ -212,8 +215,9 @@ tmux -V
 
 # Neuron -- requested by Jose Guzman
 
-   umask 022; sage -sh
+   umask 022
    cd /tmp; hg clone http://www.neuron.yale.edu/hg/neuron/iv; hg clone http://www.neuron.yale.edu/hg/neuron/nrn
+   sage -sh
    cd /tmp/iv; ./build.sh; ./configure --prefix=/usr/local/; make -j16; sudo make install
    # the make install below ends in an error, but it seems to work for people who care.
    cd /tmp/nrn; ./build.sh; ./configure --prefix=/usr/local/ --with-iv=/usr/local/ --with-nrnpython; make -j16; sudo make install; cd src/nrnpython/; python setup.py install
@@ -244,7 +248,7 @@ Test with "import neuron".
 
         +--------------------------------------------------------------------+
         | Sage Version 5.10.beta5, Release Date: 2013-05-26                  |
-        | Enhanced for the Sagemath Cloud                                    |
+        | Enhanced for the SageMathCloud                                     |
         | Type "help()" for help.                                            |
         +--------------------------------------------------------------------+
 
@@ -258,10 +262,13 @@ Delete stupidly wasted space:
    rm spkg/optional/*
 
 
-# R Packages:
+# R Packages into Sage's R:
 
-    umask 022 && R
+
+    umask 022 && sage -R
     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields"), repos='http://cran.us.r-project.org')
+
+    # add circular as a package once we upgrade sage to R-3.x
 
 r packages could be automated like so:
 
@@ -272,6 +279,21 @@ r packages could be automated like so:
 
                 if(inherits(res, "try-error")) q(status=1) else q()
                 0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$
+
+# R 3.x system-wide:
+
+  Add this to /etc/apt/sources.list:
+
+     deb http://cran.cnr.Berkeley.edu/bin/linux/ubuntu precise/        # ubuntu
+
+     deb http://cran.cnr.Berkeley.edu/bin/linux/debian wheezy-cran3/   # debian
+
+  Then
+
+     apt-get update; apt-get upgrade; apt-get install r-recommended
+
+     umask 022 && /usr/bin/R
+     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular"), repos='http://cran.us.r-project.org')
 
 
 
@@ -336,6 +358,7 @@ r packages could be automated like so:
 TINC_VERSION='1.0.23'       # options here -- http://tinc-vpn.org/packages/
 CASSANDRA_VERSION='1.2.9'   # options here -- http://downloads.datastax.com/community/
 NODE_VERSION='0.10.21'      # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+SETUPTOOLS_VERSION='2.0.2'  # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
 
 import logging, os, shutil, subprocess, sys, time
 
@@ -529,7 +552,13 @@ def build_cassandra():
 def build_python_packages():
     log.info('building python_packages'); start = time.time()
     try:
-        path = extract_package('distribute')
+        print "hi"
+        target = 'setuptools-%s.tar.gz'%SETUPTOOLS_VERSION
+        if not os.path.exists(os.path.join(SRC, target)):
+            cmd("rm -f setuptools-*.tar.*", SRC)
+            download("https://pypi.python.org/packages/source/s/setuptools/%s"%target)
+        os.system("rm -rf %s/local/lib/python2.7/site-packages/setuptools-*"%DATA)
+        path = extract_package('setuptools')
         cmd('python setup.py install', path)
         cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:

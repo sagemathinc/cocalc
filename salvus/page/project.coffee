@@ -1909,6 +1909,8 @@ class ProjectPage
 
         m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
+            bootbox.confirm("Project move is temporarily disabled while we sort out some replication issues that can lead to data inavailability.  If you find that files seem to have vanished in the last few days, contact wstein@gmail.com; your files are there, just on a different machine.")
+            return
             bootbox.confirm m, (result) =>
                 if result
                     link.find(".spinner").show()
@@ -1983,7 +1985,7 @@ class ProjectPage
             query = @container.find(".project-add-collaborator-input").val()
             @container.find(".project-add-collaborator-input").val('')
             dialog.find("input").val(query)
-            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}'.\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
+            email = "Please collaborate with me using the SageMathCloud on '#{@project.title}'.\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
             dialog.find("textarea").val(email)
             dialog.modal()
             submit = () =>
@@ -2007,6 +2009,9 @@ class ProjectPage
     init_move_project: () =>
         button = @container.find(".project-settings-move").find("a")
         button.click () =>
+
+            
+
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
             salvus_client.project_last_snapshot_time
@@ -2180,7 +2185,7 @@ class ProjectPage
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
-                timeout    : 10
+                timeout    : 30
                 cb         : (err, output) =>
                     link.find("i").removeClass('fa-spin')
                     #link.icon_spin(false)
