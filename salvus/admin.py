@@ -1365,6 +1365,8 @@ class Monitor(object):
         if all is None:
             all = self.all( )
 
+        print "TIME: " + time.strftime("%Y-%m-%d  %H:%M:%S")
+
         print "DNS"
         for x in all['dns'][:n]:
             print x
