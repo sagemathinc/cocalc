@@ -951,7 +951,7 @@ class ProjectPage
         dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
-            maxFilesize: 10 # in megabytes
+            maxFilesize: 128 # in megabytes
 
     init_new_file_tab: () =>
 
@@ -2010,7 +2010,7 @@ class ProjectPage
         button = @container.find(".project-settings-move").find("a")
         button.click () =>
 
-            
+
 
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
