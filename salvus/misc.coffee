@@ -168,7 +168,11 @@ exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOStrin
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
 # returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
-exports.len = (obj) -> Object.keys(obj).length
+exports.len = (obj) ->
+    a = obj.length
+    if a?
+        return a
+    Object.keys(obj).length
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = (obj) -> (key for key of obj)

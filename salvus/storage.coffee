@@ -632,13 +632,13 @@ exports.create_project = create_project = (opts) ->
 exports.get_quota = get_quota = (opts) ->
     opts = defaults opts,
         project_id : required
-        cb         : undefined    # cb(err, quota in gigabytes)
+        cb         : required  # cb(err, quota in gigabytes)
     database.select_one
-        table : 'projects'
-        where : {project_id : opts.project_id}
-        columes  : ['quota_zfs']
-        cb    : (err, result) ->
-            cb(err, result[0]/1000000000)
+        table   : 'projects'
+        where   : {project_id : opts.project_id}
+        columns : ['quota_zfs']
+        cb      : (err, result) ->
+            opts.cb(err, result[0]/10737418240)   # 10*2^30, since ZFS uses base 2 not SI for "GB".
 
 
 exports.quota = quota = (opts) ->
@@ -1034,6 +1034,7 @@ exports.get_snapshots = get_snapshots = (opts) ->
 # for interactive use
 exports.status = (project_id, update) ->
     r = ""
+    cur_loc = undefined
     async.series([
         (cb) ->
             get_current_location
@@ -1042,10 +1043,10 @@ exports.status = (project_id, update) ->
                     r += "current location: #{host}\n"
                     cb()
         (cb) ->
-            quota
+            get_quota
                 project_id : project_id
                 cb         : (err, quota) ->
-                    r += "quota: #{quota}\n"
+                    r += "quota: #{quota}GB\n"
                     cb()
         (cb) ->
             if update
@@ -1054,6 +1055,25 @@ exports.status = (project_id, update) ->
                     cb         : (err) -> cb()
             else
                 cb()
+        (cb) ->
+            get_usage
+                project_id : project_id
+                cb         : (err, usage) ->
+                    r += "usage: #{misc.to_json(usage)}\n"
+                    cb()
+        (cb) ->
+            is_currently_replicating
+                project_id : project_id
+                cb         : (err, is_replicating) ->
+                    r += "currently replicating: #{is_replicating}\n"
+                    cb()
+        (cb) ->
+            get_current_location
+                project_id : project_id
+                cb         : (err, x) ->
+                    cur_loc = x
+                    r += "current location: #{cur_loc}\n"
+                    cb()
         (cb) ->
             get_snapshots
                 project_id : project_id
@@ -1064,9 +1084,13 @@ exports.status = (project_id, update) ->
                     else
                         dc = 0
                         v = locations(project_id:project_id)
+                        active = s[cur_loc]?[0]
                         for grp in v
                             for a in grp
                                 r += "\t\t#{a} (dc #{dc}): #{s[a]?[0]}, #{s[a]?[1]}, #{s[a]?[2]}, #{s[a]?[3]}, ...\n"
+                                if active?
+                                    if s[a]?[0] != active
+                                        r += "(out of sync)\n\n"
                             dc += 1
                             r += '\n'
                         v = _.flatten(v)
@@ -1462,6 +1486,17 @@ exports.locations = locations = (opts) ->
 
     return (ring.range(opts.project_id, opts.number) for dc, ring of hashrings)
 
+is_currently_replicating = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    database.select_one
+        table   : 'projects'
+        where   : {project_id : opts.project_id}
+        columns : ['replicating']
+        cb      : (err, r) ->
+            opts.cb(err, r?[0])
+
 # Replicate = attempt to make it so that the newest snapshot of the project
 # is available on all copies of the filesystem.
 # This code right now assumes all snapshots are of the form "timestamp[-tag]".
@@ -1485,30 +1520,41 @@ exports.replicate = replicate = (opts) ->
     new_project = false
     clear_replicating_lock = false
     errors = {}
+
+    lock_enabled = false
+    renew_lock = (cb) ->
+        dbg("renew_lock: lock_enabled=#{lock_enabled}")
+        if not lock_enabled
+            cb?(); return
+
+        dbg("update replication lock")
+        clear_replicating_lock = true
+        database.update
+            table : 'projects'
+            ttl   : 180   # seconds
+            where : {project_id : opts.project_id}
+            set   : {'replicating': true}
+            cb    : (err) ->
+                if lock_enabled
+                    setTimeout(renew_lock, 120*1000) # *1000 since ms
+                cb?(err)
+
     async.series([
         (cb) ->
             dbg("check for lock")
-            database.select_one
-                table   : 'projects'
-                where   : {project_id : opts.project_id}
-                columns : ['replicating']
-                cb      : (err, r) ->
+            is_currently_replicating
+                project_id : opts.project_id
+                cb         : (err, is_replicating) ->
                     if err
                         cb(err)
-                    else if r[0]
-                        cb("already replicating")
+                    else if is_replicating
+                        errors = 'already replicating'
+                        cb(true)
                     else
-                        dbg("create lock")
-                        clear_replicating_lock = true
-                        database.update
-                            table : 'projects'
-                            ttl   : 300
-                            where : {project_id : opts.project_id}
-                            set   : {'replicating': true}
-                            cb    : (err) ->
-                                cb(err)
+                        lock_enabled = true
+                        renew_lock(cb)
         (cb) ->
-            dbg("Determine information about all known snapshots")
+            dbg("determine information about all known snapshots")
             # Also find the best source for
             # replicating out (which might not be one of the
             # locations determined by the hash ring).
@@ -1601,6 +1647,7 @@ exports.replicate = replicate = (opts) ->
             err = undefined
         if clear_replicating_lock
             dbg("remove lock")
+            lock_enabled = false
             database.update
                 table : 'projects'
                 where : {project_id : opts.project_id}
@@ -1623,7 +1670,7 @@ exports.send = send = (opts) ->
         force      : false       # TODO: this may make things slam to a halt... but we need to nail this down.
         cb         : undefined
 
-    dbg = (m) -> winston.debug("send(#{opts.project_id},#{misc.to_json(opts.source)}-->#{misc.to_json(opts.dest)}): #{m}")
+    dbg = (m) -> winston.debug("send(project_id:#{opts.project_id},source:#{misc.to_json(opts.source)},dest:#{misc.to_json(opts.dest)},force:#{opts.force}): #{m}")
 
     dbg("sending")
 
@@ -1637,7 +1684,7 @@ exports.send = send = (opts) ->
     clean_up = false
     async.series([
         (cb) ->
-            dbg("check for already-there dump file")
+            dbg("check for existing replication file")
             execute_on
                 host    : opts.source.host
                 command : "ls #{tmp}"
@@ -1653,7 +1700,7 @@ exports.send = send = (opts) ->
                         # good to go
                         cb()
         (cb) ->
-            dbg("dump range of snapshots")
+            dbg("export range of snapshots")
             start = if opts.dest.version then "-i #{f}@#{opts.dest.version}" else ""
             clean_up = true
             execute_on
@@ -1710,11 +1757,11 @@ exports.send = send = (opts) ->
                 cb         : cb
     ], (err) ->
         if clean_up
-            dbg("remove the lock file")
+            dbg("remove the lock file (err=#{err})")
             execute_on
                 host    : opts.source.host
                 command : "rm #{tmp}"
-                timeout : 120
+                timeout : 45
                 cb      : (ignored) ->
                     opts.cb?(err)
         else
