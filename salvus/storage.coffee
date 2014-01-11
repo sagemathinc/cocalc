@@ -445,7 +445,7 @@ exports.close_project = close_project = (opts) ->
             dbg("skipping unmount to see if this is causing the deadlock issues")
             cb()
             return
-        
+
             dbg("unmount filesystem")
             execute_on
                 host    : opts.host
@@ -1062,8 +1062,17 @@ exports.status = (project_id, update) ->
                     if err
                         r += err
                     else
+                        dc = 0
+                        v = locations(project_id:project_id)
+                        for grp in v
+                            for a in grp
+                                r += "\t\t#{a} (dc #{dc}): #{s[a]?[0]}, #{s[a]?[1]}, #{s[a]?[2]}, #{s[a]?[3]}, ...\n"
+                            dc += 1
+                            r += '\n'
+                        v = _.flatten(v)
                         for a in misc.keys(s)
-                            r += "\t\t#{a}: #{s[a][0]}, #{s[a][1]}, #{s[a][2]}, #{s[a][3]}, \n"
+                            if v.indexOf(a) == -1
+                                r += "\t\t#{a} (extra): #{s[a][0]}, #{s[a][1]}, #{s[a][2]}, #{s[a][3]}, ...\n"
                     cb()
     ], (err) ->
         console.log("-----------------------\n#{r}")
