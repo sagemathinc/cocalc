@@ -632,13 +632,20 @@ exports.create_project = create_project = (opts) ->
 exports.get_quota = get_quota = (opts) ->
     opts = defaults opts,
         project_id : required
-        cb         : required  # cb(err, quota in gigabytes)
+        cb         : required  # cb(err, quota in gigabytes in db)
     database.select_one
         table   : 'projects'
         where   : {project_id : opts.project_id}
         columns : ['quota_zfs']
         cb      : (err, result) ->
-            opts.cb(err, result[0]/10737418240)   # 10*2^30, since ZFS uses base 2 not SI for "GB".
+            if not result?[0]?
+                # no data in db, so try to compute and store in db (i.e., "heal").
+                quota
+                    project_id : opts.project_id
+                    cb         : (e, r) ->
+                        opts.cb(err, r?/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
+            else
+                opts.cb(err, result?[0]?/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
 
 
 exports.quota = quota = (opts) ->
@@ -681,7 +688,7 @@ exports.quota = quota = (opts) ->
                     size = opts.size
                     cb()
                     return
-                dbg("checking that all quotas consistent...")
+                dbg("checking that all quotas (=#{misc.to_json(results)} consistent...")
                 size = misc.max(results)
                 if misc.min(results) == size
                     cb()
@@ -782,7 +789,7 @@ exports.get_usage = get_usage = (opts) ->
                         usage = {avail:v[0].trim(), used:v[1].trim(), usedsnap:v[2].trim()}
                         cb()
         (cb) ->
-            dbg("updating database with usage = #{usage}")
+            dbg("updating database with usage = #{misc.to_json(usage)}")
             database.update
                 table : 'projects'
                 where : {project_id : opts.project_id}
@@ -1087,10 +1094,12 @@ exports.status = (project_id, update) ->
                         active = s[cur_loc]?[0]
                         for grp in v
                             for a in grp
-                                r += "\t\t#{a} (dc #{dc}): #{s[a]?[0]}, #{s[a]?[1]}, #{s[a]?[2]}, #{s[a]?[3]}, ...\n"
                                 if active?
                                     if s[a]?[0] != active
-                                        r += "(out of sync)\n\n"
+                                        r += "(old) "
+                                    else
+                                        r += "      "
+                                r += "\t#{a} (dc #{dc}): #{s[a]?[0]}, #{s[a]?[1]}, #{s[a]?[2]}, #{s[a]?[3]}, ...\n"
                             dc += 1
                             r += '\n'
                         v = _.flatten(v)
@@ -1204,14 +1213,9 @@ exports.repair_snapshots_in_db = repair_snapshots_in_db = (opts) ->
             (cb) ->
                 if opts.host == 'all'
                     hosts = all_hosts
-                    cb()
                 else
-                    # repair on all hosts that are "reasonable", i.e., anything in the db now.
-                    get_hosts
-                        project_id : opts.project_id
-                        cb         : (err, r) ->
-                            hosts = r
-                            cb(err)
+                    hosts = _.flatten(locations(project_id:opts.project_id))
+                cb()
             (cb) ->
                 f = (host, cb) ->
                     repair_snapshots_in_db
@@ -1643,8 +1647,34 @@ exports.replicate = replicate = (opts) ->
     ], () ->
         if misc.len(errors) > 0
             err = errors
+            if typeof(err) != 'string'
+                # record last replication error in the database; but don't store hitting a lock errors
+                database.update
+                    table : 'projects'
+                    where : {project_id : opts.project_id}
+                    json  : ['last_replication_error']
+                    set   : {'last_replication_error':{error:err, timestamp:cassandra.now()}}
+                    cb    : (e) ->
+                        if e
+                            dbg("failed to store last err in database: #{misc.to_json(err)}, #{e}")
+                        else
+                            dbg("stored last replication error in database: #{misc.to_json(err)}")
+                        # *no callback*
         else
             err = undefined
+            # no errors at all -- clear in db
+            database.update
+                table : 'projects'
+                where : {project_id : opts.project_id}
+                json  : ['last_replication_error']
+                set   : {'last_replication_error':undefined}
+                cb    : (e) ->
+                    if e
+                        dbg("failed to update last_replication_error: #{e}")
+                    else
+                        dbg("updated and removed last_replication_error")
+                    # no callback
+
         if clear_replicating_lock
             dbg("remove lock")
             lock_enabled = false
