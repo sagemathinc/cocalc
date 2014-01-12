@@ -1711,6 +1711,8 @@ exports.replicate = replicate = (opts) ->
             async.map(versions, f, cb)
 
     ], () ->
+        dbg("removing lock")
+        lock_enabled = false
         if misc.len(errors) > 0
             err = errors
             if typeof(err) != 'string'
@@ -1743,7 +1745,6 @@ exports.replicate = replicate = (opts) ->
 
         if clear_replicating_lock
             dbg("remove lock")
-            lock_enabled = false
             database.update
                 table : 'projects'
                 where : {project_id : opts.project_id}
@@ -1858,7 +1859,9 @@ exports.send = send = (opts) ->
                 if not opts.force2
                     rm((ignored) -> cb(err))
                     return
-                if output?.stderr
+                if not output?.stderr
+                    cb(err)
+                else
                     dbg("opts.force2 is true: we try to fix the problems")
                     # In some cases we try again
                     try_again = () ->
