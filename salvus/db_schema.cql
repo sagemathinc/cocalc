@@ -19,7 +19,8 @@ CREATE TABLE key_value (
      PRIMARY KEY(name, key)
 );
 
-CREATE TABLE compute_servers (
+/* TODO: THIS compute_servers table IS NOT USED ANYMORE */
+CREATE TABLE 1 (
     dummy boolean,
     host varchar,
     running boolean,
@@ -27,6 +28,9 @@ CREATE TABLE compute_servers (
     PRIMARY KEY(dummy, host)
 );
 CREATE INDEX ON compute_servers (running);
+
+
+
 
 CREATE TABLE services (
     service_id uuid PRIMARY KEY,
@@ -260,6 +264,7 @@ CREATE TABLE projects (
      modified_files   map<text, text>,   // snapshot_name --> [list of files changed]
      last_snapshot    timestamp,  // likely last timestamp of a successful snapshot
      replicating      boolean,   // set to try with a ttl (of one hour) when we start replicating this project out; will not try again until this lock is removed
+     last_replication_error varchar, // JSON -- last error message from replication failure.
 
      quota            varchar,
 
@@ -523,6 +528,7 @@ CREATE TABLE storage_topology (
     data_center  varchar,
     host         varchar,
     vnodes       int,
+    disabled     boolean,  /* if true, don't open projects here, etc., even if machine is on --- use for maintenance */
     PRIMARY KEY (data_center, host)
 );
 
