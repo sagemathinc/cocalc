@@ -1040,7 +1040,7 @@ exports.get_snapshots = get_snapshots = (opts) ->
 
 # for interactive use
 exports.status = (project_id, update) ->
-    r = ""
+    r = "STATUS of project #{project_id}\n----------------------------------\n\n"
     cur_loc = undefined
     async.series([
         (cb) ->
@@ -1558,6 +1558,12 @@ exports.replicate = replicate = (opts) ->
                         lock_enabled = true
                         renew_lock(cb)
         (cb) ->
+            # TODO: maybe remove this when things are running really smoothly. -- it's pretty fast but maybe doesn't scale longterm.
+            dbg("repair snapshots before replication, just in case")
+            repair_snapshots_in_db
+                project_id : opts.project_id
+                cb         : cb
+        (cb) ->
             dbg("determine information about all known snapshots")
             # Also find the best source for
             # replicating out (which might not be one of the
@@ -1584,9 +1590,9 @@ exports.replicate = replicate = (opts) ->
                         ver = x[0]
                         source = {version:ver, host:x[1]}
                         dbg("determine version of each target")
-                        for k in targets
+                        for data_center in targets
                             v = []
-                            for host in k
+                            for host in data_center
                                 v.push({version:snapshots[host]?[0], host:host})
                             if v.length > 0
                                 versions.push(v)
@@ -1601,7 +1607,7 @@ exports.replicate = replicate = (opts) ->
                     if d[i].version > dest.version
                         dest = d[i]
                 if source.version == dest.version
-                    cb() # already done
+                    cb() # already done -- there is one up to date in the dc, so no further work is needed
                 else
                     send
                         project_id : opts.project_id
@@ -1691,6 +1697,30 @@ exports.replicate = replicate = (opts) ->
            opts.cb?(err)
 
     )
+
+# Scan through the database and return a map
+#    {project_id:replication errors}
+# for the projects with replication errors i.e. for which the last replication attempt failed.
+exports.replication_errors = replication_errors = (opts) ->
+    opts = defaults opts,
+        cb         : required
+    dbg = (m) -> winston.debug("replication_errors: #{m}")
+    t = misc.walltime()
+    dbg("querying database")
+    database.select
+        table   : 'projects'
+        columns : ['project_id', 'last_replication_error']
+        json    : ['last_replication_error']
+        limit   : 1000000                 # need to rewrite with an index or via paging (?) or something...
+        cb      : (err, result) ->
+            if result?
+                dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
+                ans = {}
+                for x in result
+                    if x[1]?
+                        ans[x[0]] = x[1]
+                dbg("#{misc.len(ans)} projects have errors")
+            opts.cb(err, ans)
 
 exports.send = send = (opts) ->
     opts = defaults opts,
@@ -1803,6 +1833,7 @@ exports.destroy_project = destroy_project = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
+        safe       : true      # if given, instead renames the filesystem to DELETED-now()-project_id; we can delete those later...
         cb         : undefined
 
     dbg = (m) -> winston.debug("destroy_project(#{opts.project_id}, #{opts.host}: #{m}")
@@ -1817,15 +1848,36 @@ exports.destroy_project = destroy_project = (opts) ->
                 timeout    : 30
                 cb         : cb
         (cb) ->
-            dbg("delete dataset")
-            execute_on
-                host    : opts.host
-                command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
-                cb      : (err, output) ->
-                    if err
-                        if output?.stderr? and output.stderr.indexOf('does not exist') != -1
-                            err = undefined
-                    cb(err)
+            if opts.safe
+                f = filesystem(opts.project_id)
+                t = filesystem("DELETED-#{cassandra.now()}-#{opts.project_id}")
+                dbg("safely delete dataset (really just rename to #{t}")
+                execute_on
+                    host    : opts.host
+                    command : "sudo zfs rename #{f} #{t}"
+                    cb      : (err, output) ->
+                        if err
+                            if output?.stderr? and output.stderr.indexOf('does not exist') != -1
+                                does_not_exist = true
+                                err = undefined
+                        if err or does_not_exist
+                            cb(err)
+                        else
+                            dbg("unset the mountpoint, or we'll have trouble later")
+                            execute_on
+                                host    : opts.host
+                                command : "sudo zfs set mountpoint=none #{t}"
+                                cb      : cb
+            else
+                dbg("completely unsafely destroying dataset")
+                execute_on
+                    host    : opts.host
+                    command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
+                    cb      : (err, output) ->
+                        if err
+                            if output?.stderr? and output.stderr.indexOf('does not exist') != -1
+                                err = undefined
+                        cb(err)
         (cb) ->
             dbg("throw in a umount, just in case")
             create_user
