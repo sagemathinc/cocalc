@@ -1075,6 +1075,19 @@ exports.status = (project_id, update) ->
                     r += "currently replicating: #{is_replicating}\n"
                     cb()
         (cb) ->
+            database.select_one
+                table   : 'projects'
+                where   : {project_id : project_id}
+                columns : ['last_replication_error']
+                cb      : (err, result) ->
+                    r += "last_replication_error: "
+                    if err
+                        r += "(error getting -- #{err})"
+                    else
+                        r += result
+                    r += '\n'
+                    cb()
+        (cb) ->
             get_current_location
                 project_id : project_id
                 cb         : (err, x) ->
@@ -1823,7 +1836,7 @@ exports.send = send = (opts) ->
                         cb()
         (cb) ->
             dbg("export range of snapshots")
-            start = if opts.dest.version then "-i #{f}@#{opts.dest.version}" else ""
+            start = if opts.dest.version then "-I #{f}@#{opts.dest.version}" else ""
             clean_up = true
             execute_on
                 host    : opts.source.host
@@ -1992,6 +2005,7 @@ exports.destroy_project = destroy_project = (opts) ->
                 cb         : cb
     ], (err) -> opts.cb?(err))
 
+
 # Query database for *all* project's, sort them in alphabetical order,
 # then run replicate on every single one.
 # At the end, all projects should be replicated out to all their locations.
@@ -2003,6 +2017,7 @@ exports.replicate_all = replicate_all = (opts) ->
         limit : 3   # no more than this many projects will be replicated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
+        host  : undefined  # if given, only replicat projects whose current location is on this host.
         cb    : undefined  # cb(err, {project_id:error when replicating that project})
 
     projects = undefined
@@ -2011,19 +2026,30 @@ exports.replicate_all = replicate_all = (opts) ->
     todo = undefined
     async.series([
         (cb) ->
-            database.select
-                table   : 'projects'
-                columns : ['project_id']
-                limit   : if opts.stop? then opts.stop else 1000000       # TODO: change to use paging...
-                cb      : (err, result) ->
-                    if result?
-                        projects = (x[0] for x in result)
-                        projects.sort()
-                        if opts.start? and opts.stop?
-                            projects = projects.slice(opts.start, opts.stop)
-                        todo = projects.length
-                    cb(err)
+            if opts.host?
+                database.select
+                    table   : 'projects'
+                    columns : ['project_id', 'location']
+                    json    : ['location']
+                    limit   : if opts.stop? then opts.stop else 1000000       # TODO: change to use paging...
+                    cb      : (err, result) ->
+                        if result?
+                            projects = (x for x in result if x[1]?.host == opts.host)
+                        cb(err)
+            else
+                database.select
+                    table   : 'projects'
+                    columns : ['project_id']
+                    limit   : if opts.stop? then opts.stop else 1000000       # TODO: change to use paging...
+                    cb      : (err, result) ->
+                        projects = result
+                        cb(err)
         (cb) ->
+            projects.sort()
+            if opts.start? and opts.stop?
+                projects = projects.slice(opts.start, opts.stop)
+            projects = (x[0] for x in projects)
+            todo = projects.length
             f = (project_id, cb) ->
                 winston.debug("replicate_all -- #{project_id}")
                 replicate
