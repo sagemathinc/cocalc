@@ -638,14 +638,14 @@ exports.get_quota = get_quota = (opts) ->
         where   : {project_id : opts.project_id}
         columns : ['quota_zfs']
         cb      : (err, result) ->
-            if not result?[0]?
+            if not result?
                 # no data in db, so try to compute and store in db (i.e., "heal").
                 quota
                     project_id : opts.project_id
                     cb         : (e, r) ->
                         opts.cb(err, r?/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
             else
-                opts.cb(err, result?[0]?/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
+                opts.cb(err, result/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
 
 
 exports.quota = quota = (opts) ->
@@ -1040,7 +1040,7 @@ exports.get_snapshots = get_snapshots = (opts) ->
 
 # for interactive use
 exports.status = (project_id, update) ->
-    r = "STATUS of project #{project_id}\n----------------------------------\n\n"
+    r = "project_id: #{project_id}\n"
     cur_loc = undefined
     async.series([
         (cb) ->
@@ -1085,7 +1085,7 @@ exports.status = (project_id, update) ->
             get_snapshots
                 project_id : project_id
                 cb         : (err, s) ->
-                    r += '\nsnapshots:\n'
+                    r += 'snapshots:\n'
                     if err
                         r += err
                     else
@@ -1259,6 +1259,48 @@ exports.repair_snapshots_in_db = repair_snapshots_in_db = (opts) ->
                 host       : opts.host
                 snapshots  : snapshots
                 cb         : cb
+    ], (err) -> opts.cb?(err))
+
+# Rollback project to newest (or a particular) snapshot
+exports.rollback_to_snapshot = rollback_to_snapshot = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        snapshot   : undefined  # if not given, use most recent one
+        host       : required   # host on which to do all this
+        cb         : undefined
+
+    dbg = (m) -> winston.debug("rollback_to_snapshot(#{opts.project_id},#{opts.host},#{opts.snapshot}): #{m}")
+    snapshot = opts.snapshot
+    f = filesystem(opts.project_id)
+
+    async.series([
+        (cb) ->
+            if snapshot?
+                if snapshot.indexOf('@') == -1
+                    snapshot = opts.project_id + "@" + snapshot
+                cb()
+            else
+                dbg("get most recent snapshot name")
+                # We get the list directly instead of using the database
+                # so that we are most likely to have the
+                # correct result, even if this is slightly slower than a db lookup
+                execute_on
+                    host    : opts.host
+                    command : "sudo zfs list -r -t snapshot -o name -s creation #{f} | tail -1"
+                    timeout : 300
+                    cb      : (err, output) ->
+                        if err
+                            cb(err)
+                        else
+                            snapshot = output.stdout.trim()
+                            cb()
+        (cb) ->
+            dbg("rollback to #{snapshot}")
+            execute_on
+                host    : opts.host
+                command : "sudo zfs rollback #{snapshot}"
+                timeout : 300
+                cb      : cb
     ], (err) -> opts.cb?(err))
 
 
@@ -1543,6 +1585,8 @@ exports.replicate = replicate = (opts) ->
                     setTimeout(renew_lock, 120*1000) # *1000 since ms
                 cb?(err)
 
+    cur_loc = undefined # current location
+
     async.series([
         (cb) ->
             dbg("check for lock")
@@ -1563,6 +1607,12 @@ exports.replicate = replicate = (opts) ->
             repair_snapshots_in_db
                 project_id : opts.project_id
                 cb         : cb
+        (cb) ->
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    cur_loc = x
+                    cb(err)
         (cb) ->
             dbg("determine information about all known snapshots")
             # Also find the best source for
@@ -1586,9 +1636,19 @@ exports.replicate = replicate = (opts) ->
                         snapshots = result
                         snaps = ([s[0], h] for h, s of snapshots)
                         snaps.sort()
-                        x = snaps[snaps.length - 1]
-                        ver = x[0]
-                        source = {version:ver, host:x[1]}
+                        source = undefined
+
+                        if cur_loc?
+                            for x in snaps
+                                if x[1] == cur_loc
+                                    source = {version:x[0], host:x[1]}
+                                    break
+
+                        if not source?
+                            x = snaps[snaps.length - 1]
+                            ver = x[0]
+                            source = {version:ver, host:x[1]}
+
                         dbg("determine version of each target")
                         for data_center in targets
                             v = []
@@ -1727,7 +1787,8 @@ exports.send = send = (opts) ->
         project_id : required
         source     : required    # {host:ip_address, version:snapshot_name}
         dest       : required    # {host:ip_address, version:snapshot_name}
-        force      : false       # TODO: this may make things slam to a halt... but we need to nail this down.
+        force      : false       # *never* set this to true unless you really know what you're doing! It's evil.
+        force2     : true        # take various safer-than-F methods to send if there are errors; basically a better -F.
         cb         : undefined
 
     dbg = (m) -> winston.debug("send(project_id:#{opts.project_id},source:#{misc.to_json(opts.source)},dest:#{misc.to_json(opts.dest)},force:#{opts.force}): #{m}")
@@ -1780,34 +1841,65 @@ exports.send = send = (opts) ->
         (cb) ->
             dbg("receive on destination side")
             force = if opts.force then '-F' else ''
-            execute_on
-                host    : opts.dest.host
-                command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}; rm #{tmp}"
-                cb      : (err, output) ->
-                    #winston.debug("(non-fatal) -- #{misc.to_json(output)}")
-                    if output?.stderr
-                        if output.stderr.indexOf('destination has snapshots') != -1
-                            # this is likely caused by the database being stale regarding what snapshots are known,
-                            # so we run a repair so that next time it will work.
-                            dbg("probably stale snapshot info in database")
-                            repair_snapshots_in_db
-                                project_id : opts.project_id
-                                host       : opts.dest.host
-                                cb         : (ignore) ->
-                                    cb(err)
-                            return
-                        else if output.stderr.indexOf('cannot receive incremental stream: most recent snapshot of') != -1
-                            dbg("out of sync -- consider destroying the target; next time it should work.")
-                            cb("out of sync -- consider destroying the target; next time it should work.")
-                            return
-                            #destroy_project
-                            #    project_id : opts.project_id
-                            #    host       : opts.dest.host
-                            #    cb         : (ignore) ->
-                            #        cb("destroyed target project -- #{output.stderr}")
-                            #return
-                        err = output.stderr
-                    cb(err)
+            do_recv = (cb) ->
+                execute_on
+                    host    : opts.dest.host
+                    command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}"
+                    cb      : (err, output) ->
+                        dbg("output of recv: #{misc.to_json(output)}")
+                        cb(err, output)
+            rm = (cb) ->
+                execute_on
+                    host    : opts.dest.host
+                    command : "rm #{tmp}"
+                    cb      : cb
+
+            do_recv  (err,output) ->
+                if not opts.force2
+                    rm((ignored) -> cb(err))
+                    return
+                if output?.stderr
+                    dbg("opts.force2 is true: we try to fix the problems")
+                    # In some cases we try again
+                    try_again = () ->
+                        do_recv (err,output) ->
+                            rm () ->
+                                if err
+                                    cb(err + output.stderr)
+                                else
+                                    cb()
+                    # try each of several evasive actions
+                    if output.stderr.indexOf('destination has snapshots') != -1
+                        m = "problem -- destination has snapshots that the source doesn't have -- destroying the target (really renaming)"
+                        dbg(m)
+                        destroy_project
+                            project_id : opts.project_id
+                            host       : opts.dest.host
+                            safe       : true
+                            cb         : (ignore) ->
+                                rm ()->cb(m)
+
+                    else if output.stderr.indexOf('has been modified') != -1 and output.stderr.indexOf('most recent snapshot') != -1
+                        m = "modified since most recent snapshot -- so rolling back to *most recent* snapshot"
+                        dbg(m)
+                        rollback_to_snapshot
+                            project_id : opts.project_id
+                            host       : opts.dest.host
+                            cb         : try_again
+
+                    else if output.stderr.indexOf('cannot receive incremental stream: most recent snapshot of') != -1
+                        m = "out of sync -- destroying the target (really renaming)"
+                        dbg(m)
+                        destroy_project
+                            project_id : opts.project_id
+                            host       : opts.dest.host
+                            safe       : true
+                            cb         : (ignore) ->
+                                rm ()->cb(m)
+                    else
+                        dbg("no evasive action for '#{output.stderr}'")
+                        rm () ->
+                            cb(err)
         (cb) ->
             dbg("update database to reflect the new list of snapshots resulting from this recv")
             # We use repair_snapshots to guarantee that this is correct.
@@ -1816,8 +1908,10 @@ exports.send = send = (opts) ->
                 host       : opts.dest.host
                 cb         : cb
     ], (err) ->
+        if err
+            dbg("finished send -- err=#{err}")
         if clean_up
-            dbg("remove the lock file (err=#{err})")
+            dbg("remove the lock file")
             execute_on
                 host    : opts.source.host
                 command : "rm #{tmp}"
@@ -1869,7 +1963,7 @@ exports.destroy_project = destroy_project = (opts) ->
                                 command : "sudo zfs set mountpoint=none #{t}"
                                 cb      : cb
             else
-                dbg("completely unsafely destroying dataset")
+                dbg("unsafely destroying dataset")
                 execute_on
                     host    : opts.host
                     command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
