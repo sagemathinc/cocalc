@@ -186,6 +186,18 @@ exports.create_user = create_user = (opts) ->
         timeout : opts.timeout
         cb      : opts.cb
 
+is_disabled = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : required
+        cb         : required
+    database.select_one
+        table   : 'storage_topology'
+        columns : ['disabled']
+        where   : {host:opts.host, data_center:host_to_datacenter[opts.host]}
+        cb      : (err, result) ->
+            opts.cb(err, result?[0])
+
 # Open project on the given host.  This mounts the project, ensures the appropriate
 # user exists and that ssh-based login to that user works.
 exports.open_project = open_project = (opts) ->
@@ -200,6 +212,19 @@ exports.open_project = open_project = (opts) ->
     dbg = (m) -> winston.debug("open_project(#{opts.project_id},#{opts.host}): #{m}")
 
     async.series([
+        (cb) ->
+            dbg("check whether or not host is disabled for maintenance")
+            is_disabled
+                project_id : opts.project_id
+                host       : opts.host
+                cb         : (err, disabled) ->
+                    if err
+                        cb(err)
+                    else if disabled
+                        dbg("host is disabled")
+                        cb("host is disabled for maintenance")
+                    else
+                        cb()
         (cb) ->
             dbg("check that host is up and not still mounting the pool")
             execute_on
@@ -421,7 +446,8 @@ exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined  # defaults to current host, if deployed
-        unset_loc  : false       # set location to undefined in the database
+        unset_loc  : false      # set location to undefined in the database
+        umount     : false      # don't use this -- it causes ZFS deadlock, which requires machine reboots.  Horrible and not needed.
         cb         : required
 
     if not opts.host?
@@ -442,20 +468,20 @@ exports.close_project = close_project = (opts) ->
                 timeout    : 30
                 cb         : cb
         (cb) ->
-            dbg("skipping unmount to see if this is causing the deadlock issues")
-            cb()
-            return
-
-            dbg("unmount filesystem")
-            execute_on
-                host    : opts.host
-                timeout : 30
-                command : "sudo zfs set mountpoint=none #{filesystem(opts.project_id)}&&sudo zfs umount #{mountpoint(opts.project_id)}"
-                cb      : (err, output) ->
-                    if err
-                        if err.indexOf('not currently mounted') != -1 or err.indexOf('not a ZFS filesystem') != -1   # non-fatal: to be expected (due to using both mountpoint setting and umount)
-                            err = undefined
-                    cb(err)
+            if not opts.umount
+                dbg("skipping unmount")
+                cb()
+            else
+                dbg("unmounting filesystem")
+                execute_on
+                    host    : opts.host
+                    timeout : 30
+                    command : "sudo zfs set mountpoint=none #{filesystem(opts.project_id)}&&sudo zfs umount #{mountpoint(opts.project_id)}"
+                    cb      : (err, output) ->
+                        if err
+                            if err.indexOf('not currently mounted') != -1 or err.indexOf('not a ZFS filesystem') != -1   # non-fatal: to be expected (due to using both mountpoint setting and umount)
+                                err = undefined
+                        cb(err)
         (cb) ->
             if opts.unset_loc
                 database.update
@@ -1518,6 +1544,7 @@ exports.snapshot_listing = snapshot_listing = (opts) ->
 hashrings = undefined
 topology = undefined
 all_hosts = []
+host_to_datacenter = {}
 exports.init_hashrings = init_hashrings = (cb) ->
     database.select
         table   : 'storage_topology'
@@ -1532,6 +1559,7 @@ exports.init_hashrings = init_hashrings = (cb) ->
                     topology[datacenter] = {}
                 topology[datacenter][host] = {vnodes:vnodes}
                 all_hosts.push(host)
+                host_to_datacenter[host] = datacenter
             winston.debug(misc.to_json(topology))
             hashrings = {}
             for dc, obj of topology
@@ -2020,21 +2048,25 @@ exports.replicate_all = replicate_all = (opts) ->
         host  : undefined  # if given, only replicat projects whose current location is on this host.
         cb    : undefined  # cb(err, {project_id:error when replicating that project})
 
+    dbg = (m) -> winston.debug("replicate_all: #{m}")
+
     projects = undefined
     errors = {}
     done = 0
     todo = undefined
+
     async.series([
         (cb) ->
+            dbg("querying database...")
             if opts.host?
                 database.select
                     table   : 'projects'
                     columns : ['project_id', 'location']
                     json    : ['location']
-                    limit   : if opts.stop? then opts.stop else 1000000       # TODO: change to use paging...
+                    limit   : 1000000
                     cb      : (err, result) ->
                         if result?
-                            projects = (x for x in result if x[1]?.host == opts.host)
+                            projects = (x for x in result when x[1]?.host == opts.host)
                         cb(err)
             else
                 database.select
@@ -2050,13 +2082,14 @@ exports.replicate_all = replicate_all = (opts) ->
                 projects = projects.slice(opts.start, opts.stop)
             projects = (x[0] for x in projects)
             todo = projects.length
+            dbg("#{todo} projects to replicate")
             f = (project_id, cb) ->
-                winston.debug("replicate_all -- #{project_id}")
+                dbg("replicating #{project_id}")
                 replicate
                     project_id : project_id
                     cb         : (err) ->
                         done += 1
-                        winston.info("REPLICATE_ALL STATUS: finished #{done}/#{todo}")
+                        dbg("**** STATUS: finished #{done}/#{todo}")
                         if err
                             errors[project_id] = err
                         cb()

@@ -134,7 +134,8 @@ def ensure_ssh_access(project_id):
     os.system('chmod og-rwx -R %s'%ssh_path)
 
 def killall_user(project_id):
-    os.system("pkill -u %s"%uid(project_id))
+    u = uid(project_id)
+    os.system("pkill -u %s; sleep 1; pkill -9 -u %s"%(u,u))
 
 def umount_user_home(project_id):
     os.system("umount %s"%home(project_id))
@@ -148,7 +149,8 @@ def copy_skeleton(project_id):
 
     os.system("rsync -axH --update /home/salvus/salvus/salvus/scripts/skel/ %s/"%h)  # update so we don't overwrite newer versions
     # TODO: must fix this -- it could overwrite a user bash or ssh stuff.  BAD.
-    os.system("chown -R %s. %s/.sagemathcloud/ %s/.ssh %s/.bashrc"%(u, h))
+    cmd("chown -R %s. %s/.sagemathcloud/ %s/.ssh %s/.bashrc"%(u, h, h, h))
+    cmd("chown %s. %s"%(u, h))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Project user control script")
