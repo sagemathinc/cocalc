@@ -1894,6 +1894,54 @@ exports.replication_errors = replication_errors = (opts) ->
                 dbg("#{misc.len(ans)} projects have errors")
             opts.cb(err, ans)
 
+# Run replication on each project such that last time we tried to replicate it
+# there was an error.
+exports.replicate_all_with_errors  = (opts) ->
+    opts = defaults opts,
+        limit : 10   # no more than this many projects will be replicated simultaneously
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        cb    : undefined  # cb(err, {project_id:error when replicating that project})
+
+    dbg = (m) -> winston.debug("replicate_all_with_errors(limit:#{opts.limit}): #{m}")
+    projects = undefined
+    errors   = {}
+    done     = 0
+    todo     = 0
+    async.series([
+        (cb) ->
+            dbg('getting list of all projects with errors')
+            replication_errors
+                cb : (err, ans) ->
+                    if err
+                        cb(err)
+                    else
+                        projects = misc.keys(ans)
+                        todo = projects.length
+                        dbg("got #{todo} projects with errors")
+                        cb()
+        (cb) ->
+            f = (project_id, cb) ->
+                dbg("replicating #{project_id}")
+                replicate
+                    project_id : project_id
+                    cb         : (err) ->
+                        done += 1
+                        dbg("***********\n**** STATUS: finished #{done}/#{todo} ****\n***********\n")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) ->
+        if err
+            errors['err'] = err
+        if misc.len(errors) == 0
+            errors = undefined
+        opts.cb?(errors)
+    )
+
+
+
 exports.send = send = (opts) ->
     opts = defaults opts,
         project_id : required
@@ -2102,7 +2150,7 @@ exports.destroy_project = destroy_project = (opts) ->
 # with a higher limit... maybe.
 exports.replicate_all = replicate_all = (opts) ->
     opts = defaults opts,
-        limit : 3   # no more than this many projects will be replicated simultaneously
+        limit : 10   # no more than this many projects will be replicated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
         host  : undefined  # if given, only replicate projects whose current location is on this host.
