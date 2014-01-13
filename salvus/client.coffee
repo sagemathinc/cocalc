@@ -922,7 +922,7 @@ class exports.Connection extends EventEmitter
     move_project: (opts) =>
         opts = defaults opts,
             project_id : required
-            timeout    : 60*15  # 15 minutes -- since moving a project is potentially time consuming.
+            timeout    : 60*15              # 15 minutes -- since moving a project is potentially time consuming.
             cb         : undefined          # cb(err, new_location)
         @call
             message :

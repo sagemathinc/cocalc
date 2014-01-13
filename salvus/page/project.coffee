@@ -2025,16 +2025,16 @@ class ProjectPage
             dialog.find(".btn-submit").click () =>
                 @container.find(".project-location").text("moving...")
                 @container.find(".project-location-heading").icon_spin(start:true)
-                alert_message(timeout:15, message:"Moving project '#{@project.title}' (this should take about a minute)...")
+                alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move will be lost...")
                 dialog.modal('hide')
                 salvus_client.move_project
                     project_id : @project.project_id
                     cb         : (err, location) =>
                         @container.find(".project-location-heading").icon_spin(false)
                         if err
-                            alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
+                            alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
                         else
-                            alert_message(timeout:10, type:"success", message:"Successfully moved project '#{@project.title}'!")
+                            alert_message(timeout:60, type:"success", message:"Successfully moved project '#{@project.title}'!")
                             @project.location = location
                             @set_location()
 
