@@ -3766,7 +3766,7 @@ class Project
                 storage.close_project
                     project_id  : @project_id
                     unset_loc   : true
-                    wait_for_replicate : true                    
+                    wait_for_replicate : true
                     cb          : (err) =>
                         if err
                             @dbg("move_project -- ignore error #{err} -- since errors are *why* we want to move")
@@ -5348,10 +5348,10 @@ exports.start_server = start_server = () ->
                 # Similarly, we periodically check every few hours for projects whose replicas
                 # are not sufficiently up-to-date and re-run replication on them.  This addresses
                 # projects that have slipped through the event driven cracks.
-                setInterval(replicate_projects_needing_replication, 1000*60*60*3 + Math.floor(100*60*60*Math.random()))
+                setInterval(replicate_projects_needing_replication, 1000*60*60*12 + Math.floor(100*60*60*Math.random()))
                 # Every few hours we scan through the database for projects with
                 # replication errors and replicate those.
-                setInterval(replicate_projects_with_replication_errors, 1000*60*60*6 + Math.floor(100*60*60*Math.random()))
+                setInterval(replicate_projects_with_replication_errors, 1000*60*60*12 + Math.floor(100*60*60*Math.random()))
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
