@@ -467,7 +467,8 @@ exports.close_project = close_project = (opts) ->
                     project_id : opts.project_id
                     host       : opts.host
                     force      : true
-                    wait_for_replicate : opts.wait_for_replicate
+                    wait_for_replicate      : opts.wait_for_replicate
+                    only_if_not_replicating : false
                     cb         : cb
             else
                 cb()
@@ -501,6 +502,7 @@ exports.close_project = close_project = (opts) ->
                 host       : opts.host
                 force      : true
                 wait_for_replicate : opts.wait_for_replicate
+                only_if_not_replicating : false
                 cb         : cb
         (cb) ->
             if opts.unset_loc
@@ -712,6 +714,7 @@ exports.create_project = create_project = (opts) ->
                             project_id : opts.project_id
                             host       : host
                             force      : true
+                            only_if_not_replicating : false
                             cb         : c
                 ], (err) ->
                     async.series([
@@ -887,7 +890,7 @@ exports.updated_host = updated_host = (opts) ->
 exports.get_usage = get_usage = (opts) ->
     opts = defaults opts,
         project_id : required
-        host       : undefined  # if not given, choos any node with newest snapshot
+        host       : undefined  # if not given, choose any node with newest snapshot
         cb         : required   # cb(err, {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
                                 # on success, the quota field in the database for the project is set as well
     usage = undefined
@@ -1042,6 +1045,8 @@ exports.snapshot = snapshot = (opts) ->
                                   # (note that diff ignores ~/.*), and also don't make a snapshot if one was made within
         min_snapshot_interval_s : 90    # opts.min_snapshot_interval_s seconds.
         wait_for_replicate : false  # wait until replication has finished *and* returns error if any replication fails.
+
+        only_if_not_replicating : true  # won't make snapshot if currently replicating -- snapshotting during replication would cause major problems during a move.
         cb         : undefined
 
     if not opts.host?
@@ -1059,6 +1064,17 @@ exports.snapshot = snapshot = (opts) ->
     now = misc.to_iso(new Date())
     name = filesystem(opts.project_id) + '@' + now + tag
     async.series([
+        (cb) ->
+            if opts.only_if_not_replicating
+                is_currently_replicating
+                    project_id : opts.project_id
+                    cb         : (err, is_replicating) ->
+                        if is_replicating
+                            cb('delay')
+                        else
+                            cb()
+            else
+                cb()
         (cb) ->
             if opts.force
                 cb()
@@ -1691,8 +1707,9 @@ is_currently_replicating = (opts) ->
 # This code right now assumes all snapshots are of the form "timestamp[-tag]".
 exports.replicate = replicate = (opts) ->
     opts = defaults opts,
-        project_id : required
-        cb         : undefined
+        project_id    : required
+        repair_before : true
+        cb            : undefined
 
     dbg = (m) -> winston.debug("replicate (#{opts.project_id}): #{m}")
     snaps   = undefined
@@ -1744,12 +1761,15 @@ exports.replicate = replicate = (opts) ->
                     else
                         lock_enabled = true
                         renew_lock(cb)
-        #(cb) ->
+        (cb) ->
             # TODO: maybe remove this when things are running really smoothly. -- it's pretty fast but maybe doesn't scale longterm.
-        #    dbg("repair snapshots before replication, just in case")
-        #    repair_snapshots_in_db
-        #        project_id : opts.project_id
-        #        cb         : cb
+            if opts.repair_before
+                dbg("repair snapshots before replication, just in case")
+                repair_snapshots_in_db
+                    project_id : opts.project_id
+                    cb         : cb
+            else
+                cb()
         (cb) ->
             get_current_location
                 project_id : opts.project_id
@@ -1984,7 +2004,7 @@ exports.projects_needing_replication = projects_needing_replication = (opts) ->
     opts = defaults opts,
         age_s     : 5*60  # 5 minutes
         cb        : required
-    dbg = (m) -> winston.debug("projects_with_bad_replication: #{m}")
+    dbg = (m) -> winston.debug("projects_needing_replication: #{m}")
     dbg("querying database...")
     database.select
         table   : 'projects'
@@ -2026,7 +2046,7 @@ exports.replicate_projects_needing_replication = (opts) ->
         age_s     : 5*60  # 5 minutes
         limit     : 10    # max number to replicate simultaneously
         cb        : required
-    dbg = (m) -> winston.debug("projects_with_bad_replication: #{m}")
+    dbg = (m) -> winston.debug("replicate_projects_needing_replication: #{m}")
     projects = undefined
     errors = {}
     async.series([
