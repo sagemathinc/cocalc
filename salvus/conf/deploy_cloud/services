@@ -1,5 +1,5 @@
 # services
-base = 'salvus-2014-01-04-1323'
+base = 'salvus-2014-01-10-0338'
 
 cassandra_ram = 6
 cassandra_cpu = 2
@@ -59,25 +59,25 @@ cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       '
 cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 
 # compute vm's
-cloud1   {'hostname':'compute1a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud2   {'hostname':'compute2a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud3   {'hostname':'compute3a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud4   {'hostname':'compute4a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud5   {'hostname':'compute5a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud6   {'hostname':'compute6a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud7   {'hostname':'compute7a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud10  {'hostname':'compute10a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud11  {'hostname':'compute11a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud12  {'hostname':'compute12a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud13  {'hostname':'compute13a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud14  {'hostname':'compute14a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13001}
-cloud15  {'hostname':'compute15a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud16  {'hostname':'compute16a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud17  {'hostname':'compute17a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud18  {'hostname':'compute18a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud19  {'hostname':'compute19a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud20  {'hostname':'compute20a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
-cloud21  {'hostname':'compute21a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2', 'vnc':13000}
+cloud1   {'hostname':'compute1a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud2   {'hostname':'compute2a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud3   {'hostname':'compute3a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud4   {'hostname':'compute4a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud5   {'hostname':'compute5a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud6   {'hostname':'compute6a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud7   {'hostname':'compute7a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud10  {'hostname':'compute10a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud11  {'hostname':'compute11a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud12  {'hostname':'compute12a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud13  {'hostname':'compute13a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud14  {'hostname':'compute14a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud15  {'hostname':'compute15a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud16  {'hostname':'compute16a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud17  {'hostname':'compute17a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud18  {'hostname':'compute18a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud19  {'hostname':'compute19a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud20  {'hostname':'compute20a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud21  {'hostname':'compute21a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
 
 [cassandra] {'timeout':30, 'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer'}
 #cassandra1    {'seed':True,  'topology':'DC1:RAC0', 'num_tokens':256}
