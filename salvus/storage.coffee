@@ -448,6 +448,7 @@ exports.close_project = close_project = (opts) ->
         host       : undefined  # defaults to current host, if deployed
         unset_loc  : false      # set location to undefined in the database
         umount     : false      # don't use this -- it causes ZFS deadlock, which requires machine reboots.  Horrible and not needed.
+        wait_for_replicate : false  # if true, waits for post-snapshot replication to complete
         cb         : required
 
     if not opts.host?
@@ -459,6 +460,17 @@ exports.close_project = close_project = (opts) ->
 
     user = username(opts.project_id)
     async.series([
+        (cb) ->
+            if opts.wait_for_replicate and opts.unset_loc
+                dbg("making a first snapshot and replicating it out, to minimize user inconvenience later")
+                snapshot
+                    project_id : opts.project_id
+                    host       : opts.host
+                    force      : true
+                    wait_for_replicate : opts.wait_for_replicate
+                    cb         : cb
+            else
+                cb()
         (cb) ->
             dbg("killing all processes")
             create_user
@@ -483,7 +495,16 @@ exports.close_project = close_project = (opts) ->
                                 err = undefined
                         cb(err)
         (cb) ->
+            dbg("making a snapshot and replicating it out, so we don't have to rollback later")
+            snapshot
+                project_id : opts.project_id
+                host       : opts.host
+                force      : true
+                wait_for_replicate : opts.wait_for_replicate
+                cb         : cb
+        (cb) ->
             if opts.unset_loc
+                dbg("unsetting location in project")
                 database.update
                     table : 'projects'
                     set   : {location:undefined}
@@ -492,6 +513,55 @@ exports.close_project = close_project = (opts) ->
             else
                 cb()
     ], opts.cb)
+
+# Close every project on a given host -- useful for putting a node into maintenance
+# mode or before a proper shutdown.  NOTE that the defaults here are different than
+# for close_project, since this is aimed at maintenance and proper shutdown.
+exports.close_all_projects = (opts) ->
+    opts = defaults opts,
+        host       : required
+        unset_loc  : true          # set location to undefined in the database
+        wait_for_replicate : true  # make sure that we successfully replicate each project everywhere, or returns an error.
+        limit      : 10
+        cb         : required
+    dbg = (m) -> winston.debug("close_all_projects(host:#{opts.host},unset_loc:#{opts.unset_loc}): #{m}")
+    errors = {}
+    projects = undefined
+    async.series([
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'location']
+                json    : ['location']
+                limit   : 1000000   # TODO: stupidly slow
+                cb      : (err, result) ->
+                    if result?
+                        projects = (x[0] for x in result when x[1]?.host == opts.host)
+                    dbg("got #{projects.length} projects")
+                    cb(err)
+        (cb) ->
+            dbg("closing projects...")
+            f = (project_id, cb) ->
+                close_project
+                    project_id : project_id
+                    host       : opts.host
+                    unset_loc  : opts.unset_loc
+                    wait_for_replicate : opts.wait_for_replicate
+                    cb         : (err) ->
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) ->
+        if err
+            errors['err'] = err
+        if misc.len(errors) == 0
+            opts.cb()
+        else
+            opts.cb(errors)
+    )
+
 
 # Call "close_project"  on all projects that have been open for
 # more than ttl seconds, where opened means that location is set.
@@ -939,7 +1009,7 @@ exports.snapshot = snapshot = (opts) ->
         force      : false        # if false (the default), don't make the snapshot if diff outputs empty list of files
                                   # (note that diff ignores ~/.*), and also don't make a snapshot if one was made within
         min_snapshot_interval_s : 90    # opts.min_snapshot_interval_s seconds.
-        wait_for_replicate : false
+        wait_for_replicate : false  # wait until replication has finished *and* returns error if any replication fails.
         cb         : undefined
 
     if not opts.host?
@@ -999,7 +1069,7 @@ exports.snapshot = snapshot = (opts) ->
             execute_on
                 host    : opts.host
                 command : "sudo zfs snapshot #{name}"
-                timeout : 10
+                timeout : 120
                 cb      : cb
         (cb) ->
             dbg("record in database that we made a snapshot")
@@ -1309,14 +1379,14 @@ exports.rollback_to_snapshot = rollback_to_snapshot = (opts) ->
         cb         : undefined
 
     dbg = (m) -> winston.debug("rollback_to_snapshot(#{opts.project_id},#{opts.host},#{opts.snapshot}): #{m}")
-    snapshot = opts.snapshot
+    snapshot_name = opts.snapshot
     f = filesystem(opts.project_id)
 
     async.series([
         (cb) ->
-            if snapshot?
-                if snapshot.indexOf('@') == -1
-                    snapshot = opts.project_id + "@" + snapshot
+            if snapshot_name?
+                if snapshot_name.indexOf('@') == -1
+                    snapshot_name = opts.project_id + "@" + snapshot_name
                 cb()
             else
                 dbg("get most recent snapshot name")
@@ -1331,13 +1401,13 @@ exports.rollback_to_snapshot = rollback_to_snapshot = (opts) ->
                         if err
                             cb(err)
                         else
-                            snapshot = output.stdout.trim()
+                            snapshot_name = output.stdout.trim()
                             cb()
         (cb) ->
-            dbg("rollback to #{snapshot}")
+            dbg("rollback to #{snapshot_name}")
             execute_on
                 host    : opts.host
-                command : "sudo zfs rollback #{snapshot}"
+                command : "sudo zfs rollback #{snapshot_name}"
                 timeout : 300
                 cb      : cb
     ], (err) -> opts.cb?(err))
@@ -1913,26 +1983,16 @@ exports.send = send = (opts) ->
                                 else
                                     cb()
                     # try each of several evasive actions
-                    if output.stderr.indexOf('destination has snapshots') != -1
-                        m = "problem -- destination has snapshots that the source doesn't have -- destroying the target (really renaming)"
-                        dbg(m)
-                        destroy_project
-                            project_id : opts.project_id
-                            host       : opts.dest.host
-                            safe       : true
-                            cb         : (ignore) ->
-                                rm ()->cb(m)
-
-                    else if output.stderr.indexOf('has been modified') != -1 and output.stderr.indexOf('most recent snapshot') != -1
+                    stderr = output.stderr
+                    if stderr.indexOf('has been modified') != -1 and output.stderr.indexOf('most recent snapshot') != -1
                         m = "modified since most recent snapshot -- so rolling back to *most recent* snapshot"
                         dbg(m)
                         rollback_to_snapshot
                             project_id : opts.project_id
                             host       : opts.dest.host
                             cb         : try_again
-
-                    else if output.stderr.indexOf('cannot receive incremental stream: most recent snapshot of') != -1
-                        m = "out of sync -- destroying the target (really renaming)"
+                    else if stderr.indexOf('destination has snapshots') != -1 or stderr.indexOf('must specify -F to overwrite it') != -1 or  stderr.indexOf('cannot receive incremental stream: most recent snapshot of') != -1
+                        m = "problem -- destination has snapshots that the source doesn't have -- destroying the target (really safely renaming)"
                         dbg(m)
                         destroy_project
                             project_id : opts.project_id
@@ -2045,7 +2105,7 @@ exports.replicate_all = replicate_all = (opts) ->
         limit : 3   # no more than this many projects will be replicated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
-        host  : undefined  # if given, only replicat projects whose current location is on this host.
+        host  : undefined  # if given, only replicate projects whose current location is on this host.
         cb    : undefined  # cb(err, {project_id:error when replicating that project})
 
     dbg = (m) -> winston.debug("replicate_all: #{m}")
