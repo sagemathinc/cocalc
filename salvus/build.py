@@ -552,7 +552,6 @@ def build_cassandra():
 def build_python_packages():
     log.info('building python_packages'); start = time.time()
     try:
-        print "hi"
         target = 'setuptools-%s.tar.gz'%SETUPTOOLS_VERSION
         if not os.path.exists(os.path.join(SRC, target)):
             cmd("rm -f setuptools-*.tar.*", SRC)

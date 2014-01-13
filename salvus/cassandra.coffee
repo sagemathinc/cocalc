@@ -1662,8 +1662,10 @@ class exports.Salvus extends exports.Cassandra
 
         @_touch_project_cache[id] = misc.walltime()
 
-        # Try to make a snapshot (will not make them too frequently).
-        storage.snapshot(project_id:opts.project_id)
+        # Try to make a snapshot (will not make them too frequently) if the project is *not* currently being replicated
+        storage.snapshot
+            project_id              : opts.project_id
+            only_if_not_replicating : true  # since making snapshots can mess up replication
 
         set = {last_edited: now()}
         if opts.size

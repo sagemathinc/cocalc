@@ -2701,6 +2701,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 dbg("close actual deployed project")
                 storage.close_project
                     project_id : @project_id
+                    unset_loc  : true
+                    wait_for_replicate : true
                     cb         : (err) =>
                         dbg("close output: #{err}")
                         cb()
@@ -3756,8 +3758,6 @@ class Project
         opts = defaults opts,
             cb : undefined
         @dbg("move_project")
-        opts.cb("moving projects temporarily disabled")
-        return
         host = @local_hub.host
         new_host = undefined
         async.series([
@@ -3765,6 +3765,8 @@ class Project
                 @dbg("close the project in case it is open right now")
                 storage.close_project
                     project_id  : @project_id
+                    unset_loc   : true
+                    wait_for_replicate : true                    
                     cb          : (err) =>
                         if err
                             @dbg("move_project -- ignore error #{err} -- since errors are *why* we want to move")
@@ -5297,6 +5299,20 @@ close_stale_projects = () ->
         limit   : 40
         cb : (err) -> winston.debug("finished closing stale projects (err=#{err})")
 
+replicate_projects_needing_replication = () ->
+    winston.debug("replicating projects that need replication...")
+    storage.replicate_projects_needing_replication
+        limit   : 3
+        age_s   : 5*60   # 5 minutes
+        cb : (err) -> winston.debug("finished replicating projects that need replication (err=#{err})")
+
+replicate_projects_with_replication_errors = () ->
+    winston.debug("replicating projects with replication errors")
+    storage.replicate_all_with_errors
+        limit   : 3
+        cb : (err) -> winston.debug("finished replicating projects that had replication errors (err=#{err})")
+
+
 #############################################
 # Start everything running
 #############################################
@@ -5329,6 +5345,13 @@ exports.start_server = start_server = () ->
                 # We close stale projects about once per 1.5 hours.  There
                 # could be maybe 60-70 hubs (say), so this is plenty frequent.
                 setInterval(close_stale_projects, 1000*60*60 + Math.floor(100*60*60*Math.random()))
+                # Similarly, we periodically check every few hours for projects whose replicas
+                # are not sufficiently up-to-date and re-run replication on them.  This addresses
+                # projects that have slipped through the event driven cracks.
+                setInterval(replicate_projects_needing_replication, 1000*60*60*3 + Math.floor(100*60*60*Math.random()))
+                # Every few hours we scan through the database for projects with
+                # replication errors and replicate those.
+                setInterval(replicate_projects_with_replication_errors, 1000*60*60*6 + Math.floor(100*60*60*Math.random()))
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 
