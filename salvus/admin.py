@@ -1220,31 +1220,6 @@ class Monitor(object):
     def __init__(self, hosts):
         self._hosts = hosts
 
-    def snap(self):
-        """
-        Return information about the current active snap repo status.
-        """
-        cmd = "cd /mnt/snap/snap0/bup/`cat /mnt/snap/snap0/bup/active`&&BUP_DIR=. /usr/bin/time -f '%e' bup ls master|wc -l && du -s . && du -s .. && df -h /mnt/snap"
-        ans = []
-        for k, v in self._hosts('snap', cmd, wait=True, parallel=True, verbose=False).iteritems():
-            d = {'service':'snap', 'host':k[0], 'status':'up' if (not v.get('exit_status',1) and 'error' not in (v['stderr'] + v.get('stdout','error')).lower()) else 'down'}
-
-            if d['status'] == 'up':
-                d['ls_time_s'] = float(v['stderr'].split()[0])
-                d['commits'] = int(v['stdout'].split()[0])
-                d['active_GB'] = int(int(v['stdout'].split()[1])/10.**6)
-                d['bup_GB'] = int(int(v['stdout'].split()[3])/10.**6)
-                d['use%'] = int(v['stdout'].split()[16][:-1])
-            else:
-                # No active file means snap is up but just no active repo.
-                if 'active: No such file or directory' in v['stderr']:
-                    d['status'] = 'up'
-            ans.append(d)
-
-        w = [(-d.get('ls_time_s',100000), d) for d in ans]
-        w.sort()
-        return [y for x,y in w]
-
     def cassandra(self):
         """
         Return information about the cassandra nodes.
@@ -1338,14 +1313,29 @@ class Monitor(object):
         w = [((d.get('status','down'),d['host']),d) for d in ans]
         w.sort()
         return [y for x,y in w]
-        return ans
+
+    def zfs(self, hosts='all'):
+        """
+        Count zfs processes on each machine.
+        """
+        cmd = "ps ax |grep zfs |wc -l"
+        ans = []
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
+            try:
+                nproc = int(v['stdout']) - 2
+            except:
+                nproc = -1
+            ans.append( {'host':k[0], 'service':'zfs', 'nproc':nproc} )
+        w = [((d.get('status','down'),-d['nproc'],d['host']),d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
 
     def all(self):
         return {
             'timestamp' : time.time(),
             'dns'       : self.dns(),
+            'zfs'       : self.zfs(),
             'load'      : self.load(),
-            'snap'      : self.snap(),
             'cassandra' : self.cassandra(),
             'compute'   : self.compute()
         }
@@ -1364,16 +1354,18 @@ class Monitor(object):
         if all is None:
             all = self.all( )
 
+        print "TIME: " + time.strftime("%Y-%m-%d  %H:%M:%S")
+
         print "DNS"
         for x in all['dns'][:n]:
             print x
 
-        print "LOAD"
-        for x in all['load'][:n]:
+        print "ZFS"
+        for x in all['zfs'][:n]:
             print x
 
-        print "SNAP"
-        for x in all['snap'][:n]:
+        print "LOAD"
+        for x in all['load'][:n]:
             print x
 
         print "CASSANDRA"
@@ -1400,19 +1392,29 @@ class Monitor(object):
         d['minute']    = int(time.strftime("%M"))
         d['timestamp'] = int(time.time())
         password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
-        cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
-        cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, snap=:snap, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
+        cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
+        cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 
     def _go(self):
         all = self.all()
         self.update_db(all=all)
         self.print_status(all=all)
         down = self.down(all=all)
-        if len([x for x in down if x.get('service','') != 'dns']) > 0:
+        m = ''
+        if len(down) > 0:
+                m += "The following are down: %s"%down
+        for x in all['load']:
+            if x['load15'] > 4:
+                m += "A machine is going crazy with load!: %s"%x
+        for x in all['zfs']:
+            if x['nproc'] > 200:
+                m += "Possibly deadlocked ZFS: %s"%x
+        if m:
             try:
-                email("The following are down: %s"%down, subject="SMC admin -- stuff down!")
-            except Exception,msg:
-                print "nonfatal -- failed to send email! -- %s"%str(msg)
+                email(m, subject="SMC issue")
+            except Exception, msg:
+                print "failed to send email! -- %s\n%s"%(msg, m)
+
 
     def go(self, interval=5, residue=0):
         """
@@ -1570,7 +1572,7 @@ class Services(object):
         if 'id' not in options:
             options['id'] = 0
 
-        if 'monitor_database' in options: 
+        if 'monitor_database' in options:
             db_string=''
         else:
             db_string = db_string + ', '

@@ -164,7 +164,7 @@ Editor for files in a project
 
 .salvus-editor-pdf-preview-page {
     background-color:#eee;
-    overflow-x:hidden;
+    overflow-x:auto;
     overflow-y:scroll;
     border-left:2px solid #ddd;
 }
@@ -176,7 +176,6 @@ Editor for files in a project
     box-shadow: 5px 5px 5px 5px #888;
     max-width: 160%;   /* hard coded in the line @zoom_width = 160 in editor.coffee */
     width:160%;
-    margin-left: -30%;
 }
 
 .salvus-editor-pdf-preview-spinner {

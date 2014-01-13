@@ -107,9 +107,9 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
                 #### tinc vpn ####
                 tinc_path = os.path.join(tmp_path, 'home/salvus/salvus/salvus/data/local/etc/tinc/')
                 open(os.path.join(tinc_path, 'tinc-up'),'w').write(
-                    "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.192.0.0"%ip_address)
+                    "#!/bin/sh\nifconfig $INTERFACE %s netmask 255.192.0.0 txqueuelen 10000"%ip_address)
                 open(os.path.join(tinc_path, 'tinc.conf'),'w').write(
-                    "Name = %s\nConnectTo = %s"%(tincname, vmhost_tincname))
+                    "Name = %s\nKeyExpire = 2592000\nConnectTo = %s"%(tincname, vmhost_tincname))
                 rsa_key_priv = os.path.join(tinc_path, 'rsa_key.priv')
                 rsa_key_pub = os.path.join(tinc_path, 'hosts', tincname)
                 if os.path.exists(rsa_key_priv): os.unlink(rsa_key_priv)
@@ -117,7 +117,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
                 sh['tincd', '--config', tinc_path, '-K']
                 host_file = os.path.join(tinc_path, 'hosts', tincname)
                 public_key = open(rsa_key_pub).read().strip()
-                open(host_file,'w').write("Cipher = aes-128-cbc\nSubnet = %s/32\n%s"%(ip_address, public_key))
+                open(host_file,'w').write("TCPonly=yes\nCompression=10\nCipher = aes-128-cbc\nSubnet = %s/32\n%s"%(ip_address, public_key))
                 # put the tinc public key in our local db, so that the vm can connect to host.
                 shutil.copyfile(host_file, os.path.join(conf_path, 'tinc_hosts', tincname))
 

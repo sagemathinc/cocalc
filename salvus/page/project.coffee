@@ -341,10 +341,10 @@ class ProjectPage
                 @display_tab("project-search")
 
     set_location: () =>
-        if @project.location? and @project.location.username?
-            x = @project.location.username + "@" + @project.location.host
+        if @project.location? and @project.location.host?
+            x = @project.location.host
         else
-            x = "(not deployed)"
+            x = "..."
         @container.find(".project-location").text(x)
 
     window_resize: () =>
@@ -548,7 +548,10 @@ class ProjectPage
             path_prefix += '/'
 
         @container.find(".project-search-output-command").text(cmd)
-        @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
+        if @project.location?.path?
+            @container.find(".project-search-output-path").text(@project.location.path + '/' + path)
+        else
+            @container.find(".project-search-output-path").text('')
 
         spinner = @container.find(".project-search-spinner")
         timer = setTimeout(( () -> spinner.show().spin()), 300)
@@ -612,20 +615,6 @@ class ProjectPage
     # ...?
     ########################################
 
-    git_commit: (input) =>
-        @container.find(".project-commit-message-output").text("").hide()
-        @container.find(".project-commit-message-spinner").show().spin()
-        salvus_client.save_project
-            project_id : @project.project_id
-            commit_mesg : input.val()
-            cb : (err, mesg) =>
-                @container.find(".project-commit-message-spinner").spin(false).hide()
-                if err
-                    alert_message(type:"error", message:"Connection error saving project.")
-                else if mesg.event == "error"
-                    @container.find(".project-commit-message-output").text(mesg.error).show()
-                else
-                    input.val("")
 
     command_line_exec: () =>
         elt = @container.find(".project-command-line")
@@ -663,7 +652,10 @@ class ProjectPage
                         k = cwd.indexOf('/')
                         if k != -1
                             cwd = cwd.slice(k+1)
-                            path = @project.location.path
+                            if @project.location?.path?
+                                path = @project.location.path
+                            else
+                                path = ''
                             if path == '.'   # not good for our purposes here.
                                 path = ''
                             if path == cwd.slice(0, path.length)
@@ -709,41 +701,6 @@ class ProjectPage
     #     # bash completion on the VM host using pexpect (!).
     #     if not @_last_listing?
     #         return
-
-
-    branch_op: (opts) =>
-        opts = defaults opts,
-            branch : required
-            op     : required
-            cb     : undefined
-        # op must be one of ['create', 'checkout', 'delete', 'merge']
-        branch = opts.branch
-        op = opts.op
-
-        # Quick client-side check for obviously invalid branch name
-        if branch.length == 0 or branch.split(/\s+/g).length != 1
-            alert_message(type:'error', message:"Invalid branch name '#{branch}'")
-            return
-
-        async.series([
-            (c) =>
-                salvus_client.project_branch_op
-                    project_id : @project.project_id
-                    op         : op
-                    branch     : branch
-                    cb         : (err, mesg) ->
-                        if err
-                            alert_message(type:'error', message:err)
-                            c(true) # fail
-                        else if mesg.event == "error"
-                            alert_message(type:'error', message:mesg.error)
-                            c(true) # fail
-                        else
-                            alert_message(message:"#{op} branch '#{branch}'")
-                            c()  # success
-            (c) =>
-                @save_project(cb:c)
-        ], opts.cb)
 
     hide_tabs: () =>
         @container.find(".project-pages").hide()
@@ -834,14 +791,6 @@ class ProjectPage
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
 
-    save_project: (opts={}) =>
-        @save_browser_local_data (err) =>
-            if err
-                return # will have generated its own error message
-            opts.project_id = @project.project_id
-            opts.title = @project.title
-            save_project(opts)
-
     new_file_dialog: () =>
         salvus_client.write_text_file_to_project
             project_id : @project.project_id,
@@ -867,11 +816,7 @@ class ProjectPage
                     alert_message(type:"error", message:mesg.error)
                 else
                     alert_message(type:"success", message: "New file created.")
-                    salvus_client.save_project
-                        project_id : @project.project_id
-                        cb : (err, mesg) =>
-                            if not err and mesg.event != 'error'
-                                @update_file_list_tab()
+                    @update_file_list_tab()
 
     load_from_server: (opts) ->
         opts = defaults opts,
@@ -927,15 +872,19 @@ class ProjectPage
             @_computing_usage = true
             salvus_client.exec
                 project_id : @project.project_id
-                command    : 'du'
-                args       : ['-sch', '.']
-                timeout    : 360
+                command    : 'df -h $HOME'
+                bash       : true
+                timeout    : 30
                 cb         : (err, output) =>
                     delete @_computing_usage
                     if not err
-                        usage.text(output.stdout.split('\t')[0])
-                    else
-                        usage.text("(timed out running 'du -sch .')")
+                        #usage.text(output.stdout.split('\t')[0])
+                        o = output.stdout.split('\n')[1].split(/\s+/)
+                        usage.show()
+                        usage.find(".salvus-usage-size").text(o[1])
+                        usage.find(".salvus-usage-used").text(o[2])
+                        usage.find(".salvus-usage-avail").text(o[3])
+                        usage.find(".salvus-usage-percent").text(o[4])
 
         return @
 
@@ -1002,7 +951,7 @@ class ProjectPage
         dest_dir = encodeURIComponent(@new_file_tab.find(".project-new-file-path").text())
         dz.dropzone
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
-            maxFilesize: 10 # in megabytes
+            maxFilesize: 128 # in megabytes
 
     init_new_file_tab: () =>
 
@@ -1163,16 +1112,8 @@ class ProjectPage
             @new_file_tab_input.focus().select()
 
     update_snapshot_ui_elements: () =>
-        if @current_path.length > 0 and @current_path[0] == '.snapshot'
-            snapshot = true
-        else
-            snapshot = false
-
-        search = @container.find(".project-search-menu-item")
-        if snapshot
-            search.addClass('disabled')
-        else
-            search.removeClass('disabled')
+        # nothing special to do
+        return
 
     chdir: (path, no_focus) =>
         @set_current_path(path)
@@ -1205,6 +1146,10 @@ class ProjectPage
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
 
+                if listing?.real_path?
+                    @set_current_path(listing.real_path)
+                    @push_state('files/' + listing.real_path)
+
                 clearTimeout(timer)
                 spinner.spin(false).hide()
 
@@ -1218,7 +1163,7 @@ class ProjectPage
                 @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
 
                 if (err)
-                    #console.log("update_file_list_tab: error -- ", err)
+                    console.log("update_file_list_tab: error -- ", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         #console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
@@ -1471,12 +1416,61 @@ class ProjectPage
                     del.find(".spinner").hide()
             return false
 
+        copy = b.find("a[href=#copy-file]")
+        copy.click () =>
+            @copy_file(fullname)
+            return false
+
         # Renaming a file
         rename_link = t.find('a[href=#rename-file]')
 
         rename_link.click () =>
             @click_to_rename_file(path, file_link)
             return false
+
+    copy_file:  (path, cb) =>
+        dialog = $(".project-copy-file-dialog").clone()
+        dialog.modal()
+        new_dest = undefined
+        new_src = undefined
+        async.series([
+            (cb) =>
+                if path.slice(0,5) == '.zfs/'
+                    dest = path.slice('.zfs/snapshot/2013-12-31T22:32:30/'.length)
+                else
+                    dest = path
+                dialog.find(".copy-file-src").val(path)
+                dialog.find(".copy-file-dest").val(dest).focus()
+                submit = (ok) =>
+                    dialog.modal('hide')
+                    if ok
+                        new_src = dialog.find(".copy-file-src").val()
+                        new_dest = dialog.find(".copy-file-dest").val()
+                    cb()
+                    return false
+                dialog.find(".btn-close").click(()=>submit(false))
+                dialog.find(".btn-submit").click(()=>submit(true))
+            (cb) =>
+                if not new_dest?
+                    cb(); return
+                alert_message(type:'info', message:"Copying #{new_src} to #{new_dest}...")
+                salvus_client.exec
+                    project_id : @project.project_id
+                    command    : 'rsync'
+                    args       : ['-axH', '--backup', '--backup-dir=.trash/', new_src, new_dest]
+                    timeout    : 60   # how long grep runs on client
+                    network_timeout : 75   # how long network call has until it must return something or get total error.
+                    err_on_exit: true
+                    path       : '.'
+                    cb         : (err, output) =>
+                        if err
+                            alert_message(type:"error", message:"Error copying #{new_src} to #{new_dest} -- #{output.stderr}")
+                        else
+                            alert_message(type:"success", message:"Successfully copied #{new_src} to #{new_dest}")
+                            @update_file_list_tab()
+                        cb(err)
+        ], (err) => cb?(err))
+
 
     click_to_rename_file: (path, link) =>
         if link.attr('contenteditable')
@@ -1915,6 +1909,8 @@ class ProjectPage
 
         m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
         link.click () =>
+            bootbox.confirm("Project move is temporarily disabled while we sort out some replication issues that can lead to data inavailability.  If you find that files seem to have vanished in the last few days, contact wstein@gmail.com; your files are there, just on a different machine.")
+            return
             bootbox.confirm m, (result) =>
                 if result
                     link.find(".spinner").show()
@@ -1989,7 +1985,7 @@ class ProjectPage
             query = @container.find(".project-add-collaborator-input").val()
             @container.find(".project-add-collaborator-input").val('')
             dialog.find("input").val(query)
-            email = "Please collaborate with me using the Sagemath Cloud on '#{@project.title}'.\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
+            email = "Please collaborate with me using the SageMathCloud on '#{@project.title}'.\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
             dialog.find("textarea").val(email)
             dialog.modal()
             submit = () =>
@@ -2013,6 +2009,8 @@ class ProjectPage
     init_move_project: () =>
         button = @container.find(".project-settings-move").find("a")
         button.click () =>
+            #bootbox.confirm("Project move is temporarily disabled due to some synchronization issues that we are fixing right now.", (result) =>)
+            #return false
             dialog = $(".project-move-dialog").clone()
             dialog.modal()
             salvus_client.project_last_snapshot_time
@@ -2027,16 +2025,16 @@ class ProjectPage
             dialog.find(".btn-submit").click () =>
                 @container.find(".project-location").text("moving...")
                 @container.find(".project-location-heading").icon_spin(start:true)
-                alert_message(timeout:10, message:"Started moving project '#{@project.title}'.  This should take 30 seconds plus around 1 minute per gigabyte.")
+                alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move will be lost...")
                 dialog.modal('hide')
                 salvus_client.move_project
                     project_id : @project.project_id
                     cb         : (err, location) =>
                         @container.find(".project-location-heading").icon_spin(false)
                         if err
-                            alert_message(timeout:10, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
+                            alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
                         else
-                            alert_message(timeout:5, message:"Moved project '#{@project.title}'...")
+                            alert_message(timeout:60, type:"success", message:"Successfully moved project '#{@project.title}'!")
                             @project.location = location
                             @set_location()
 
@@ -2186,7 +2184,7 @@ class ProjectPage
             salvus_client.exec
                 project_id : @project.project_id
                 command    : "sage_server stop; sage_server start"
-                timeout    : 10
+                timeout    : 30
                 cb         : (err, output) =>
                     link.find("i").removeClass('fa-spin')
                     #link.icon_spin(false)
@@ -2200,7 +2198,6 @@ class ProjectPage
                             message : "Worksheet server restarted.  Restarted worksheets will use a new Sage session."
                             timeout : 4
             return false
-
 
     init_project_restart: () =>
         # Restart local project server
@@ -2220,7 +2217,7 @@ class ProjectPage
                     alert_message
                         type    : "info"
                         message : "Restarting project server..."
-                        timeout : 4
+                        timeout : 15
                     salvus_client.restart_project_server
                         project_id : @project.project_id
                         cb         : cb
@@ -2230,9 +2227,44 @@ class ProjectPage
                     alert_message
                         type    : "success"
                         message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                        timeout : 2
+                        timeout : 5
             ])
             return false
+
+
+    # Completely move the project, possibly moving it if it is on a broken host.
+    ###
+    init_project_move: () =>
+        # Close local project
+        link = @container.find("a[href=#move-project]").tooltip(delay:{ show: 500, hide: 100 })
+        link.click () =>
+            async.series([
+                (cb) =>
+                    m = "Are you sure you want to <b>MOVE</b> the project?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed and the project will be opened on another server using the most recent snapshot.  This could take about a minute."
+                    bootbox.confirm m, (result) =>
+                        if result
+                            cb()
+                        else
+                            cb(true)
+                (cb) =>
+                    link.find("i").addClass('fa-spin')
+                    alert_message
+                        type    : "info"
+                        message : "Moving project..."
+                        timeout : 15
+                    salvus_client.move_project
+                        project_id : @project.project_id
+                        cb         : cb
+                (cb) =>
+                    link.find("i").removeClass('fa-spin')
+                    #link.icon_spin(false)
+                    alert_message
+                        type    : "success"
+                        message : "Successfully moved project."
+                        timeout : 5
+            ])
+            return false
+    ###
 
     init_snapshot_link: () =>
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
@@ -2455,11 +2487,6 @@ class ProjectPage
                 else
                     cb()
 
-            # Save the project in its current state, so this action is undo-able/safe
-            (cb) =>
-                @save_project
-                    cb          : cb
-
             # Carry out the action
             (cb) =>
                 switch opts.action
@@ -2490,11 +2517,6 @@ class ProjectPage
                                     cb()
                     else
                         cb("unknown path action #{opts.action}")
-
-            # Save after the action.
-            (cb) =>
-                @save_project
-                    cb          : cb
 
             # Reload the files/branches/etc to take into account new commit, file deletions, etc.
             (cb) =>

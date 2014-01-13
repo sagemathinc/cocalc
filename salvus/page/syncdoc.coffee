@@ -48,7 +48,7 @@ salvus_threejs = require("salvus_threejs")
 account = require('account')
 
 # Return true if there are currently unsynchronized changes, e.g., due to the network
-# connection being down, or cloud.sagemath not working, or a bug.
+# connection being down, or SageMathCloud not working, or a bug.
 exports.unsynced_docs = () ->
     return $(".salvus-editor-codemirror-not-synced:visible").length > 0
 
@@ -60,6 +60,7 @@ class DiffSyncDoc
         @opts = defaults opts,
             cm     : undefined
             string : undefined
+            readonly : false   # only impacts the editor
         if not ((opts.cm? and not opts.string?) or (opts.string? and not opts.cm?))
             console.log("BUG -- exactly one of opts.cm and opts.string must be defined!")
 
@@ -134,8 +135,7 @@ class DiffSyncDoc
                             pos = pos1
             catch e
                 console.log("BUG in patch_in_place")
-            cm.setOption('readOnly', false)
-
+            cm.setOption('readOnly', @opts.readonly)
 
 
 codemirror_diffsync_client = (cm_session, content) ->
@@ -145,7 +145,7 @@ codemirror_diffsync_client = (cm_session, content) ->
     cm_session.codemirror.setValueNoJump(content)
 
     return new diffsync.CustomDiffSync
-        doc            : new DiffSyncDoc(cm:cm_session.codemirror)
+        doc            : new DiffSyncDoc(cm:cm_session.codemirror, readonly: cm_session.readonly)
         copy           : (s) -> s.copy()
         diff           : (v0,v1) -> v0.diff(v1)
         patch          : (d, v0) -> v0.patch(d)
@@ -172,6 +172,7 @@ class DiffSyncHub
                     cb(mesg.event)
                 else
                     @remote.recv_edits(mesg.edit_stack, mesg.last_version_ack, cb)
+
 
 {EventEmitter} = require('events')
 
@@ -289,6 +290,8 @@ class AbstractSynchronizedDoc extends EventEmitter
     _save: (cb) =>
         if not @dsync_client?
             cb("must be connected before saving"); return
+        if @readonly
+            cb(); return
         @sync (err) =>
             if err
                 cb(err); return
@@ -353,6 +356,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
                     cb?(err); return
 
                 @session_uuid = resp.session_uuid
+                @readonly = resp.readonly
 
                 if @_last_sync?
                     # We have sync'd before.
@@ -476,8 +480,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     cb?(err); return
 
                 @session_uuid = resp.session_uuid
-                @codemirror.setOption('readOnly', false)
-                @editor.codemirror1.setOption('readOnly', false)
+                @readonly = resp.readonly
+                if @readonly
+                    @editor.set_readonly_ui()
+
+                @codemirror.setOption('readOnly', @readonly)
+                @editor.codemirror1.setOption('readOnly', @readonly)
                 if @_last_sync?
                     # We have sync'd before.
                     synced_before = true

@@ -52,6 +52,7 @@ codemirror_associations =
     patch  : 'text/x-diff'
 
     gp     : 'text/pari'
+    go     : 'text/x-go'
     pari   : 'text/pari'
 
     php    : 'php'
@@ -61,6 +62,7 @@ codemirror_associations =
     r      : 'r'
     rst    : 'rst'
     rb     : 'text/x-ruby'
+    ru        : 'text/x-ruby'
     sage   : 'python'
     sagews : 'sagews'
     scala  : 'text/x-scala'
@@ -261,7 +263,9 @@ class exports.Editor
         @counter = opts.counter
 
         @project_page  = opts.project_page
-        @project_path = opts.project_page.project.location.path
+        @project_path = opts.project_page.project.location?.path
+        if not @project_path
+            @project_path = '.'  # if location isn't defined yet -- and this is the only thing used anyways.
         @project_id = opts.project_page.project.project_id
         @element = templates.find(".salvus-editor").clone().show()
 
@@ -421,7 +425,7 @@ class exports.Editor
             return
 
         if filename_extension(filename).toLowerCase() == "sws"   # sagenb worksheet
-            alert_message(type:"info",message:"Opening converted Sagemath Cloud worksheet file instead of '#{filename}...")
+            alert_message(type:"info",message:"Opening converted SageMathCloud worksheet file instead of '#{filename}...")
             @convert_sagenb_worksheet filename, (err, sagews_filename) =>
                 if not err
                     @open(sagews_filename, cb)
@@ -1164,6 +1168,10 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.setOption('theme', theme)
         @opts.theme = theme
 
+    # add something visual to the UI to suggest that the file is read onl
+    set_readonly_ui: () =>
+        @element.find("a[href=#save]").text('Readonly').addClass('disabled')
+
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
             return
@@ -1601,7 +1609,7 @@ tmp_dir = (opts) ->
         args       : [name]
         cb         : (err, output) =>
             if err
-                opts.cb("Problem creating temporary directory in '#{path}'")
+                opts.cb("Problem creating temporary directory in '#{opts.path}'")
             else
                 opts.cb(false, name)
 
@@ -2083,7 +2091,7 @@ class PDF_Preview extends FileEditor
         if opts.delta?
             if not @zoom_width?
                 @zoom_width = 160   # NOTE: hardcoded also in editor.css class .salvus-editor-pdf-preview-image
-            max_width = @zoom_width#images.css('max-width')
+            max_width = @zoom_width
             max_width += opts.delta
         else if opts.width?
             max_width = opts.width
@@ -2091,13 +2099,18 @@ class PDF_Preview extends FileEditor
         if max_width?
             @zoom_width = max_width
             n = @current_page().number
-            margin_left = "#{-(max_width-100)/2}%"
             max_width = "#{max_width}%"
             images.css
                 'max-width'   : max_width
                 width         : max_width
-                'margin-left' : margin_left
             @scroll_into_view(n : n, highlight_line:false, y:$(window).height()/2)
+
+        @recenter()
+
+    recenter: () =>
+        container_width = @output.find(":first-child:first").width()
+        content_width = @output.find("img:first-child:first").width()
+        @output.scrollLeft((content_width - container_width)/2)
 
     watch_scroll: () =>
         if @_f?
@@ -2254,6 +2267,7 @@ class PDF_Preview extends FileEditor
                 @last_page = n-1
         else
             # update page
+            recenter = (@last_page == 0)
             that = @
             page = @output.find(".salvus-editor-pdf-preview-page-#{n}")
             if page.length == 0
@@ -2289,7 +2303,6 @@ class PDF_Preview extends FileEditor
                         page.find("img").css
                             'max-width'   : self._max_width
                             width         : self._max_width
-                            'margin-left' : self._margin_left
 
                     if @_first_output
                         @output.empty()
@@ -2319,14 +2332,16 @@ class PDF_Preview extends FileEditor
                 setTimeout((()->img.attr('src',url)), 2000)
             img.on('error', load_error)
 
+            if recenter
+                img.one 'load', () =>
+                    @recenter()
+
             if @zoom_width?
                 max_width = @zoom_width
-                margin_left = "#{-(max_width-100)/2}%"
                 max_width = "#{max_width}%"
                 img.css
                     'max-width'   : max_width
                     width         : max_width
-                    'margin-left' : margin_left
 
             #page.find(".salvus-editor-pdf-preview-text").text(p.text)
         cb()
@@ -3346,6 +3361,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
     constructor: (@project_id, @path) ->
 
     start_server: (cb) =>
+        #console.log("start_server")
         salvus_client.exec
             project_id : @project_id
             path       : @path
@@ -3393,33 +3409,35 @@ class IPythonNotebookServer  # call ipython_notebook_server above
             cb         : (err, output) =>
                 cb?(err)
 
-# Download a remote URL, possibly retrying repeatedly with exponetial backoff, only failing
-# if the delay until next retry hits max_delay.
+# Download a remote URL, possibly retrying repeatedly with exponetial backoff
+# on the timeout.
 # If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
 get_with_retry = (opts) ->
     opts = defaults opts,
         url           : required
-        initial_delay : 50
-        max_delay     : 15000     # once delay hits this, give up
-        factor        : 1.1      # for exponential backoff
+        initial_timeout : 5000
+        max_timeout     : 15000     # once delay hits this, give up
+        factor        : 1.1     # for exponential backoff
         bad_string    : 'ECONNREFUSED'
         cb            : required  # cb(err, data)  # data = content of that url
-    delay = opts.initial_delay
+    timeout = opts.initial_timeout
+    delay   = 50
     f = () =>
-        if delay >= opts.max_delay  # too many attempts
+        if timeout >= opts.max_timeout  # too many attempts
             opts.cb("unable to connect to remote server")
             return
         $.ajax(
             url     : opts.url
-            timeout : 50
+            timeout : timeout
             success : (data) ->
                 if data.indexOf(opts.bad_string) != -1
-                    delay *= opts.factor
+                    timeout *= opts.factor
                     setTimeout(f, delay)
                 else
                     opts.cb(false, data)
         ).fail(() ->
-            delay *= opts.factor
+            timeout *= opts.factor
+            delay   *= opts.factor
             setTimeout(f, delay)
         )
 
@@ -3883,7 +3901,7 @@ class IPythonNotebook extends FileEditor
 
     info: () =>
         t = "<h3>The IPython Notebook</h3>"
-        t += "<h4>Enhanced with Sagemath Cloud Sync</h4>"
+        t += "<h4>Enhanced with SageMathCloud Sync</h4>"
         t += "You are editing this document using the IPython Notebook enhanced with realtime synchronization."
         if @kernel_id?
             t += "<h4>Sage mode by pasting this into a cell</h4>"
