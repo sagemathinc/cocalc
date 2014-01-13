@@ -562,6 +562,35 @@ exports.close_all_projects = (opts) ->
             opts.cb(errors)
     )
 
+exports.emergency_delocate_projects = (opts) ->
+    opts = defaults opts,
+        host       : required
+        limit      : 10
+        cb         : required
+    dbg = (m) -> winston.debug("emergency_delocate_projects(host:#{opts.host}): #{m}")
+    projects = undefined
+    async.series([
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'location', 'last_replication_error']
+                json    : ['location']
+                limit   : 1000000   # TODO: stupidly slow
+                cb      : (err, result) ->
+                    if result?
+                        good_projects = (x[0] for x in result when x[1]?.host == opts.host and not x[2]?)
+                        bad_projects  = (x[0] for x in result when x[1]?.host == opts.host and x[2]?)
+                        projects = {good:good_projects, bad:bad_projects}
+                    dbg("got #{good_projects.length} good projects and #{bad_projects.length} bad projects")
+                    cb(err)
+    ], (err) ->
+        if err
+            opts.cb(err)
+        else
+            opts.cb(undefined, projects)
+    )
+
 
 # Call "close_project"  on all projects that have been open for
 # more than ttl seconds, where opened means that location is set.
@@ -734,14 +763,17 @@ exports.get_quota = get_quota = (opts) ->
         where   : {project_id : opts.project_id}
         columns : ['quota_zfs']
         cb      : (err, result) ->
+            if err
+                opts.cb(err); return
+            winston.debug("get_quota: result=#{result}")
             if not result?
                 # no data in db, so try to compute and store in db (i.e., "heal").
                 quota
                     project_id : opts.project_id
-                    cb         : (e, r) ->
-                        opts.cb(err, r?/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
+                    cb         : (err, r) ->
+                        opts.cb(err, r?/1073741824)
             else
-                opts.cb(err, result/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
+                opts.cb(undefined, result/1073741824)   # 2^30, since ZFS uses base 2 not SI for "GB".
 
 
 exports.quota = quota = (opts) ->
@@ -1712,12 +1744,12 @@ exports.replicate = replicate = (opts) ->
                     else
                         lock_enabled = true
                         renew_lock(cb)
-        (cb) ->
+        #(cb) ->
             # TODO: maybe remove this when things are running really smoothly. -- it's pretty fast but maybe doesn't scale longterm.
-            dbg("repair snapshots before replication, just in case")
-            repair_snapshots_in_db
-                project_id : opts.project_id
-                cb         : cb
+        #    dbg("repair snapshots before replication, just in case")
+        #    repair_snapshots_in_db
+        #        project_id : opts.project_id
+        #        cb         : cb
         (cb) ->
             get_current_location
                 project_id : opts.project_id
@@ -1942,13 +1974,100 @@ exports.replicate_all_with_errors  = (opts) ->
 
 
 
+# Scan through the entire database and list of projects that really need to be
+# replicated in the sense that they do not have at least one replica in each data
+# center that is within age_s seconds of their newest replica.
+# In a perfect event driven world, this list would always be empty, but due to
+# various types of failures and other issues, sometimes it isn't, so we have
+# to periodically scan and force replication of these.
+exports.projects_needing_replication = projects_needing_replication = (opts) ->
+    opts = defaults opts,
+        age_s     : 5*60  # 5 minutes
+        cb        : required
+    dbg = (m) -> winston.debug("projects_with_bad_replication: #{m}")
+    dbg("querying database...")
+    database.select
+        table   : 'projects'
+        columns : ['project_id', 'locations']
+        limit   : 1000000                 # need to rewrite with an index or via paging (?) or something.
+        cb      : (err, results) ->
+            if err or not results?
+                opts.cb(err); return
+            dbg("got #{results.length} results")
+            ans = {}
+            for x in results
+                if x[1]?
+                    v = {}
+                    for k,z of x[1]
+                        v[k] = misc.from_json(z)
+                    project_id = x[0]
+                    locs = locations(project_id:project_id)   # replicas we care about, grouped by data center
+                    # first pass -- which is newest?  (TODO: could just do some list comprehension and sort.)
+                    newest = undefined
+                    for dc in locs
+                        for host in dc
+                            if v[host]?[0]? and (not newest? or v[host][0] > newest)
+                                newest = v[host][0]
+                    newest = new Date(newest)
+                    # second pass -- age of best in each dc
+                    for dc in locs
+                        newest0 = undefined
+                        for host in dc
+                            if v[host]?[0]? and (not newest0? or v[host][0] > newest0)
+                                newest0 = v[host][0]
+                        age_in_s = (newest - (new Date(newest0)))/1000
+                        if age_in_s >= opts.age_s
+                            ans[project_id] = true
+                            break
+            opts.cb(undefined, misc.keys(ans))
+
+exports.replicate_projects_needing_replication = (opts) ->
+    opts = defaults opts,
+        age_s     : 5*60  # 5 minutes
+        limit     : 10    # max number to replicate simultaneously
+        cb        : required
+    dbg = (m) -> winston.debug("projects_with_bad_replication: #{m}")
+    projects = undefined
+    errors = {}
+    async.series([
+        (cb) ->
+            dbg("figuring out which projects to replicate...")
+            projects_needing_replication
+                age_s : opts.age_s
+                cb    : (err, p) ->
+                    projects = p
+                    cb(err)
+        (cb) ->
+            dbg("replicating #{projects.length} projects")
+            todo = projects.length
+            done = 0
+            f = (project_id, cb) ->
+                dbg("replicating #{project_id}")
+                replicate
+                    project_id : project_id
+                    cb         : (err) ->
+                        done += 1
+                        dbg("\n******************\n**** STATUS: finished #{done}/#{todo}\n**************")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) ->
+        if err
+            errors.err = err
+        if misc.len(errors) > 0
+            opts.cb(errors)
+        else
+            opts.cb()
+    )
+
 exports.send = send = (opts) ->
     opts = defaults opts,
         project_id : required
         source     : required    # {host:ip_address, version:snapshot_name}
         dest       : required    # {host:ip_address, version:snapshot_name}
         force      : false       # *never* set this to true unless you really know what you're doing! It's evil.
-        force2     : true        # take various safer-than-F methods to send if there are errors; basically a better -F.
+        force2     : true        # take various safer-than-F methods to send if there are errors; basically a safer (but slower!) -F.
         cb         : undefined
 
     dbg = (m) -> winston.debug("send(project_id:#{opts.project_id},source:#{misc.to_json(opts.source)},dest:#{misc.to_json(opts.dest)},force:#{opts.force}): #{m}")
@@ -1964,22 +2083,6 @@ exports.send = send = (opts) ->
     f = filesystem(opts.project_id)
     clean_up = false
     async.series([
-        (cb) ->
-            dbg("check for existing replication file")
-            execute_on
-                host    : opts.source.host
-                command : "ls #{tmp}"
-                timeout : 120
-                err_on_exit : false
-                cb      : (err, output) ->
-                    if err
-                        cb(err)
-                    else if output.exit_code == 0
-                        # file exists!
-                        cb("file #{tmp} already exists on #{opts.source.host}")
-                    else
-                        # good to go
-                        cb()
         (cb) ->
             dbg("export range of snapshots")
             start = if opts.dest.version then "-I #{f}@#{opts.dest.version}" else ""
@@ -2011,7 +2114,8 @@ exports.send = send = (opts) ->
             rm = (cb) ->
                 execute_on
                     host    : opts.dest.host
-                    command : "rm #{tmp}"
+                    command : "rm -f #{tmp}"
+                    timeout : 120
                     cb      : cb
 
             do_recv  (err,output) ->
