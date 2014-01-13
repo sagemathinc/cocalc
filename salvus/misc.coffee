@@ -159,17 +159,32 @@ exports.from_json = (x) ->
         console.log("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
 
-# converts a Date object to an ISO string
+# converts a Date object to an ISO string in UTC.
+# NOTE -- we remove the +0000 (or whatever) timezone offset, since *all* machines within
+# the SMC servers are assumed to be on UTC.
 exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 
 # returns true if the given object has no keys
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
 # returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
-exports.len = (obj) -> Object.keys(obj).length
+exports.len = (obj) ->
+    a = obj.length
+    if a?
+        return a
+    Object.keys(obj).length
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = (obj) -> (key for key of obj)
+
+# remove first occurrence of value (just like in python);
+# throws an exception if val not in list.
+exports.remove = (obj, val) ->
+    for i in [0...obj.length]
+        if obj[i] == val
+            obj.splice(i, 1)
+            return
+    throw "ValueError -- item not in array"
 
 # convert an array of 2-element arrays to an object, e.g., [['a',5], ['xyz','10']] --> {a:5, xyz:'10'}
 exports.pairs_to_obj = (v) ->

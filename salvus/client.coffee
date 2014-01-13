@@ -577,19 +577,6 @@ class exports.Connection extends EventEmitter
                 ), opts.timeout*1000
             )
 
-    #################################################
-    # CodeMirror Sessions
-    #################################################
-    codemirror_session: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : required      # cb(err, session, current_content)
-        session = new CodeMirrorSession
-            conn       : @
-            project_id : opts.project_id
-            path       : opts.path
-            cb         : opts.cb
 
     #################################################
     # Version
@@ -898,16 +885,6 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
             cb : opts.cb
 
-    save_project: (opts) ->
-        opts = defaults opts,
-            project_id  : required
-            cb          : undefined
-        @call
-            message :
-                message.save_project
-                    project_id  : opts.project_id
-            cb : opts.cb
-
     close_project: (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -945,7 +922,7 @@ class exports.Connection extends EventEmitter
     move_project: (opts) =>
         opts = defaults opts,
             project_id : required
-            timeout    : 60*15  # 15 minutes -- since moving a project is potentially time consuming.
+            timeout    : 60*15              # 15 minutes -- since moving a project is potentially time consuming.
             cb         : undefined          # cb(err, new_location)
         @call
             message :
@@ -975,9 +952,7 @@ class exports.Connection extends EventEmitter
                     path       : opts.path
                     content    : opts.content
             timeout : opts.timeout
-            cb : (err, result) =>
-                @save_project(project_id : opts.project_id)
-                opts.cb?(err, result)
+            cb      : (err, resp) => opts.cb?(err, resp)
 
     read_text_file_from_project: (opts) ->
         opts = defaults opts,
@@ -1377,38 +1352,48 @@ class exports.Connection extends EventEmitter
     project_snap_listing: (opts) =>
         opts = defaults opts,
             project_id : required
-            path       : '.'
+            path       : ''
             start      : 0
-            limit      : 200
+            limit      : 500
             timeout    : 60
             hidden     : false
             cb         : required
 
-        day = undefined
-        if opts.path.length == 10 # specifies a day
-            snapshot = undefined
-            day = opts.path
-        else if opts.path.length > 10
-            opts.path = opts.path.slice(11)
+        if opts.path.length >= 18
             i = opts.path.indexOf('/')
             if i == -1
-                snapshot = opts.path
-                path = '.'
+                opts.cb("invalid date"); return
+            path0 = opts.path.slice(0,i) + ' ' + opts.path.slice(i+1)
+            i = path0.indexOf('/')
+            if i == -1
+                snapshot = path0
+                path = ''
             else
-                snapshot = opts.path.slice(0,i)
-                path = opts.path.slice(i+1)
-        else
-            snapshot = undefined
-            path = "."
+                snapshot = path0.slice(0, i)
+                path = path0.slice(i+1)
+            snapshot = (new Date(snapshot)).toISOString().slice(0,19)
+            real_path = '.zfs/snapshot/' + snapshot + '/' + path
+            console.log(real_path)
+            @project_directory_listing
+                path       : real_path
+                project_id : opts.project_id
+                hidden     : opts.hidden
+                cb         : (err, files) ->
+                    if err
+                        opts.cb(err)
+                    else
+                        files.real_path = real_path
+                        opts.cb(undefined, files)
+            return
 
         @call
             message:
                 message.snap
-                    command    : 'ls'
-                    project_id : opts.project_id
-                    snapshot   : snapshot
-                    path       : path
-                    timeout    : opts.timeout
+                    command         : 'ls'
+                    project_id      : opts.project_id
+                    path            : opts.path
+                    timeout         : opts.timeout
+                    timezone_offset : (new Date()).getTimezoneOffset()  # the difference (UTC time) - (local time), in minutes.
 
             timeout :
                 opts.timeout
@@ -1419,24 +1404,14 @@ class exports.Connection extends EventEmitter
                 else if resp.event == 'error'
                     opts.cb(resp.error)
                 else
-                    if not snapshot?
-                        if day?
-                            files = ( {name:name, isdir:true, snapshot:''} for name in resp.list when name.slice(0,10) == day )
-
-                        else
-                            # list of all days with branches
-                            v = _.uniq( ( name.slice(0,10) for name in resp.list ) )
-                            files = ( {name:name, isdir:true, snapshot:''} for name in v )
+                    if opts.path.length == 0
+                        files = ({name:name, isdir:true} for name in resp.list)
+                        opts.cb(false, {files:files})
+                    else if opts.path.length == 10
+                        files = ({name:new Date("1974-01-01 #{name}").toLocaleTimeString(), isdir:true} for name in resp.list)
+                        opts.cb(false, {files:files})
                     else
-                        files = []
-                        for name in resp.list
-                            if not opts.hidden and name[0] == '.'
-                                continue
-                            if name[name.length-1] == '/'
-                                files.push({name:name.slice(0,name.length-1), isdir:true, snapshot:snapshot})
-                            else
-                                files.push({name:name, snapshot:snapshot})
-                    opts.cb(false, {files:files})
+                        opts.cb('invalid snapshot directory name')
 
     # return the time in seconds since epoch UTC of the last snapshot.
     project_last_snapshot_time: (opts) =>
@@ -1454,7 +1429,7 @@ class exports.Connection extends EventEmitter
                 else if resp.event == 'error'
                     opts.cb(resp.error)
                 else
-                    opts.cb(false, resp.list[0]?.utc_seconds_epoch)
+                    opts.cb(false, resp.list)  # it's always called "list", even if it isn't a list (in this case)
 
     project_directory_listing: (opts) =>
         opts = defaults opts,
@@ -1467,22 +1442,11 @@ class exports.Connection extends EventEmitter
             hidden     : false
             cb         : required
 
-        if opts.path.slice(0,9) == ".snapshot"
-            delete opts.time  # no way to sort by time
+        if opts.path.slice(0,9) == ".snapshot" and (opts.path.length == 9 or opts.path[9] == '/')
             opts.path = opts.path.slice(9)
             if opts.path.length > 0 and opts.path[0] == '/'
                 opts.path = opts.path.slice(1)  # delete leading slash
-
-            tries = 0
-            cb = opts.cb
-            # TODO: Try multiple times since server just gives an error on backend failure.
-            f = (err, result) =>
-                if err and tries < 2
-                    tries += 1
-                    @project_snap_listing(opts)
-                else
-                    cb(err, result)
-            opts.cb = f
+            delete opts.time
             @project_snap_listing(opts)
             return
 
@@ -1526,6 +1490,16 @@ class exports.Connection extends EventEmitter
         @call
             message : message.project_restart(project_id:opts.project_id)
             timeout : 30    # should take about 5 seconds, but maybe network is slow (?)
+            cb      : opts.cb
+
+    close_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required    # will keep retrying until it succeeds at which point opts.cb().
+
+        @call
+            message : message.close_project(project_id:opts.project_id)
+            timeout : 120
             cb      : opts.cb
 
 #################################################

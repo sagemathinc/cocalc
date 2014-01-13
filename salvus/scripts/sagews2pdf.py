@@ -1,5 +1,30 @@
 #!/usr/bin/env python
 
+"""
+Copyright (c) 2014, William Stein and Cedric Sodhi
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+"""
+
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
@@ -48,11 +73,55 @@ class Parser(HTMLParser.HTMLParser):
             self.result += '}'  # fallback
 
     def handle_data(self, data):
-        self.result += data
+        # Textnode data has to be escaped in order to appear the same in LaTeX.
+        # But only outside of $s and $$s, which indicate mathmode. So we iterate
+        # over the text, count opening and closing $s ($$s) and perform
+        # substitutions outside of those. The procedure assumes well-formed text
+        # and will likely not act consistent (i.e. escape exactly those
+        # characters which require escaping) with how LaTeX acts if the text is
+        # mal-formed. A.k.a. the hustler-loop:
+        source = data
+        dollar_at = 0
+
+        while( dollar_at!=-1 ):
+            dollar_at = 0
+            while( True ):
+                dollar_at = source.find( "$",dollar_at+1 )
+                if( dollar_at<1 or source[ dollar_at-1 ]!="\\" ):
+                    break
+
+            # We seperate the optional $[$] which delimited the chunk from the actual chunk
+            # to replace all $s in the chunk (such as they occur when they were escaped)
+
+            dollars_so_far = self.dollars_found
+            if( dollar_at==-1 ):
+                chunk = source
+                tail = ""
+            else:
+                # Two $$ are treated exactly like one $, skip over the second
+                chunk = source[ :dollar_at ]
+                if( dollar_at<len( source )-1 and source[ dollar_at+1 ]=="$" ):
+                    dollar_at += 1
+                    tail = "$$"
+                else:
+                    tail = "$"
+
+                self.dollars_found += 1
+
+            if( dollars_so_far%2 ):
+                self.result += chunk+tail
+            else:
+                self.result += chunk.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" )+tail
+
+            source = source[ dollar_at+1: ]
 
 def html2tex(doc):
     parser = Parser()
     parser.result = ''
+    # The number of (unescaped) dollars or double-dollars found so far. An even
+    # number is assumed to indicate that we're outside of math and thus need to
+    # escape.
+    parser.dollars_found = 0
     parser.feed(doc)
     return parser.result
 
@@ -193,11 +262,12 @@ class Worksheet(object):
     def latex_preamble(self, title='',author='', date='', contents=True):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
-#\usepackage{attachfile}
+        #\usepackage{attachfile}
         s=r"""
 \documentclass{article}
 \usepackage{fullpage}
 \usepackage{amsmath}
+\usepackage[utf8]{inputenc}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{etoolbox}
@@ -241,8 +311,8 @@ sensitive=true}
             s += "\\date{%s}\n"%date
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
-        if self._filename:
-            s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
+        #if self._filename:
+        #    s += "The Worksheet: \\attachfile{%s}\n\n"%self._filename
 
         if contents:
             s += "\\tableofcontents\n"

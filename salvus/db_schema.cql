@@ -19,7 +19,8 @@ CREATE TABLE key_value (
      PRIMARY KEY(name, key)
 );
 
-CREATE TABLE compute_servers (
+/* TODO: THIS compute_servers table IS NOT USED ANYMORE */
+CREATE TABLE 1 (
     dummy boolean,
     host varchar,
     running boolean,
@@ -27,6 +28,9 @@ CREATE TABLE compute_servers (
     PRIMARY KEY(dummy, host)
 );
 CREATE INDEX ON compute_servers (running);
+
+
+
 
 CREATE TABLE services (
     service_id uuid PRIMARY KEY,
@@ -254,8 +258,22 @@ CREATE TABLE projects (
      last_edited      timestamp,// timestamp of last modification of the project
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
-     replicas         map<text, timestamp>, //  {ip_address:last_replicated_snapshot} -- 
-     quota            varchar,  // JSON
+
+     storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
+     locations        map<text, text>,   // ip_address --> snapshots available there
+     modified_files   map<text, text>,   // snapshot_name --> [list of files changed]
+     last_snapshot    timestamp,  // likely last timestamp of a successful snapshot
+     replicating      boolean,   // set to try with a ttl (of one hour) when we start replicating this project out; will not try again until this lock is removed
+     last_replication_error varchar, // JSON -- last error message from replication failure.
+
+     quota            varchar,
+
+     quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
+     usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
+     errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
+
+     last_migrated    timestamp, // used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
+     old_location     varchar,   // used for migrating... (so can delete after that is done).
 
      backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
 
@@ -266,7 +284,10 @@ CREATE TABLE projects (
      collaborator         set<uuid>,   // all actual collaborators on this project
      invited_collaborator set<uuid>,   // accounts that have been invited to collaborate
      viewer               set<uuid>,   // accounts who are viewers
-     invited_viewer       set<uuid>    // accounts who have been invited to view.
+     invited_viewer       set<uuid>,    // accounts who have been invited to view.
+
+
+     timeout_disabled  boolean // if true, never automatically kill this project simply due to it sitting around unused.
 
 );
 
@@ -500,5 +521,26 @@ CREATE TABLE file_access_log (
     filename   varchar,
     PRIMARY KEY(day, timestamp, account_id, project_id)
 );
+
+
+
+CREATE TABLE storage_topology (
+    data_center  varchar,
+    host         varchar,
+    vnodes       int,
+    disabled     boolean,  /* if true, don't open projects here, etc., even if machine is on --- use for maintenance */
+    PRIMARY KEY (data_center, host)
+);
+
+
+
+
+
+
+
+
+
+
+
 
 

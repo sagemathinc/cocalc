@@ -240,7 +240,7 @@ async          = require('async')
 fs             = require('fs')
 child_process  = require 'child_process'
 
-exports.execute_code = (opts) ->
+exports.execute_code = execute_code = (opts) ->
     opts = defaults opts,
         command    : required
         args       : []
@@ -473,10 +473,10 @@ exports.forward_remote_port_to_localhost = (opts) ->
         host        : required
         ssh_port    : 22
         remote_port : required
-        activity_time : 900 # kill connection if the HUB doesn't
+        activity_time : 2000 # kill connection if the HUB doesn't
                              # actively *receive* something on this
                              # port for this many seconds.
-        keep_alive_time :  5 # network activity every this many
+        keep_alive_time:2000 # network activity every this many
                              # seconds.; lower to more quickly detect
                              # a broken connection; raise to reduce resources
         cb          : required  # cb(err, local_port)
@@ -540,7 +540,7 @@ exports.forward_remote_port_to_localhost = (opts) ->
             new_output = false
 
         # check every few seconds
-        kill_no_output_timer = setInterval(kill_if_no_new_output, 2*1000*opts.keep_alive_time)
+        kill_no_output_timer = setInterval(kill_if_no_new_output, 1000*opts.keep_alive_time)
 
         kill_if_no_new_activity = () ->
             if not r.activity?
@@ -596,5 +596,30 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
             ], (err) -> cb?(err))
 
 exports.ensure_containing_directory_exists = ensure_containing_directory_exists
+
+
+# Determine if path (file or directory) is writable -- this works even if permissions are right but
+# filesystem is read only, e.g., ~/.zfs/snapshot/...
+# It's an error if the path doesn't exist.
+exports.is_file_readonly = (opts) ->
+    opts = defaults opts,
+        path : required
+        cb   : required    # cb(err, true if read only (false otherwise))
+    readonly = undefined
+    # determine if file is writable
+    execute_code
+        command     : 'find'
+        args        : [opts.path, '-maxdepth', '0', '-writable']
+        err_on_exit : false
+        cb          : (err, output) =>
+            if err
+                opts.cb(err)
+            else if output.stderr or output.exit_code
+                opts.cb("no such path '#{opts.path}'")
+            else
+                readonly = output.stdout.length == 0
+                opts.cb(undefined, readonly)
+
+
 
 
