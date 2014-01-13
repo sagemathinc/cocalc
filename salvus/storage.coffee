@@ -25,7 +25,7 @@ winston.add(winston.transports.Console, level: 'debug')
 SALVUS_HOME=process.cwd()
 STORAGE_USER = 'storage'
 STORAGE_TMP = '/home/storage/'
-TIMEOUT = 7200  # 2 hours
+TIMEOUT = 60*2  # default timeout for ssh commands -- 2 minutes
 
 # Connect to the cassandra database server; sets the global database variable.
 database = undefined
@@ -261,6 +261,7 @@ exports.open_project = open_project = (opts) ->
                             err += "mount directory not empty -- login to '#{opts.host}' and manually delete '#{mountpoint(opts.project_id)}'"
                             execute_on
                                 host : opts.host
+                                timeout : 120
                                 user : 'root'
                                 command : "rm -rf '#{mountpoint(opts.project_id)}'"
                         else if err.indexOf('filesystem already mounted') != -1  or err.indexOf('cannot unmount') # non-fatal: to be expected if fs mounted/busy already
@@ -854,6 +855,7 @@ exports.quota = quota = (opts) ->
         execute_on
             host       : opts.host
             command    : "sudo zfs get -pH -o value quota #{filesystem(opts.project_id)}"
+            timeout    : 60
             cb         : (err, output) ->
                 if not err
                     size = output.stdout
@@ -864,6 +866,7 @@ exports.quota = quota = (opts) ->
         execute_on
             host       : opts.host
             command    : "sudo zfs set quota=#{opts.size} #{filesystem(opts.project_id)}"
+            timeout    : 60
             cb         : (err, output) ->
                 opts.cb?(err, opts.size)
 
@@ -912,6 +915,7 @@ exports.get_usage = get_usage = (opts) ->
             execute_on
                 host    : opts.host
                 command : "sudo zfs list -H -o avail,used,usedsnap #{filesystem(opts.project_id)}"
+                timeout    : 60
                 cb      : (err, output) ->
                     if err
                         cb(err)
@@ -1767,7 +1771,7 @@ exports.replicate = replicate = (opts) ->
                 dbg("repair snapshots before replication, just in case")
                 repair_snapshots_in_db
                     project_id : opts.project_id
-                    cb         : cb
+                    cb         : (ignore) -> cb()
             else
                 cb()
         (cb) ->
@@ -2110,6 +2114,7 @@ exports.send = send = (opts) ->
             execute_on
                 host    : opts.source.host
                 command : "sudo zfs send -RD #{start} #{f}@#{opts.source.version} | lz4c -  > #{tmp}"
+                timeout : 7200
                 cb      : (err, output) ->
                     winston.debug(output)
                     cb(err)
@@ -2118,6 +2123,7 @@ exports.send = send = (opts) ->
             execute_on
                 host    : opts.source.host
                 command : "scp -o StrictHostKeyChecking=no #{tmp} #{STORAGE_USER}@#{opts.dest.host}:#{tmp}; echo ''>#{tmp}"
+                timeout    : 7200
                 cb      :  (err, output) ->
                     winston.debug(output)
                     cb(err)
@@ -2128,6 +2134,7 @@ exports.send = send = (opts) ->
                 execute_on
                     host    : opts.dest.host
                     command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{force} #{f}"
+                    timeout    : 7200
                     cb      : (err, output) ->
                         dbg("output of recv: #{misc.to_json(output)}")
                         cb(err, output)
@@ -2225,6 +2232,7 @@ exports.destroy_project = destroy_project = (opts) ->
                 execute_on
                     host    : opts.host
                     command : "sudo zfs rename #{f} #{t}"
+                    timeout : 300
                     cb      : (err, output) ->
                         if err
                             if output?.stderr? and output.stderr.indexOf('does not exist') != -1
@@ -2237,12 +2245,14 @@ exports.destroy_project = destroy_project = (opts) ->
                             execute_on
                                 host    : opts.host
                                 command : "sudo zfs set mountpoint=none #{t}"
+                                timeout : 120
                                 cb      : cb
             else
                 dbg("unsafely destroying dataset")
                 execute_on
                     host    : opts.host
                     command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
+                    timeout : 300
                     cb      : (err, output) ->
                         if err
                             if output?.stderr? and output.stderr.indexOf('does not exist') != -1
@@ -2452,6 +2462,7 @@ exports.migrate = (opts) ->
                 command       : rsync
                 err_on_stderr : false
                 err_on_exit   : false
+                timeout       : 300
                 cb            : (err, output) ->
                     # we set rsync_failed here, since it is critical that we do the chown below no matter what.
                     if err
