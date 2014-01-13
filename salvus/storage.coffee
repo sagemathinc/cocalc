@@ -497,6 +497,8 @@ exports.close_project = close_project = (opts) ->
                                 err = undefined
                         cb(err)
         (cb) ->
+            if not opts.unset_loc
+                cb(); return
             dbg("making a snapshot and replicating it out, so we don't have to rollback later")
             snapshot
                 project_id : opts.project_id
