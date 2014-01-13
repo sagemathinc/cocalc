@@ -1,13 +1,13 @@
 # services
-base = 'salvus-2014-01-10-0338'
+base = 'salvus-2014-01-12-2324'
 
 cassandra_ram = 6
 cassandra_cpu = 2
 
-web_ram       = 6
+web_ram       = 4
 web_cpu       = 2
 
-compute_ram   = 32
+compute_ram   = 42
 compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
                      # sage: n=1000;import numpy; a=numpy.random.randn(n,n);
