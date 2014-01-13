@@ -2702,6 +2702,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 storage.close_project
                     project_id : @project_id
                     unset_loc  : true
+                    wait_for_replicate : true
                     cb         : (err) =>
                         dbg("close output: #{err}")
                         cb()
@@ -3765,6 +3766,7 @@ class Project
                 storage.close_project
                     project_id  : @project_id
                     unset_loc   : true
+                    wait_for_replicate : true                    
                     cb          : (err) =>
                         if err
                             @dbg("move_project -- ignore error #{err} -- since errors are *why* we want to move")
