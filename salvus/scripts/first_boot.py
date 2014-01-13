@@ -59,6 +59,9 @@ if os.path.exists('/mnt/home/'):
     os.system("chown -R storage. /home/storage")
     os.system("chmod og-rwx -R /home/storage/&")
 
+    # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
+    os.system("rm /home/storage/.storage*")
+
     # Import the ZFS pool -- without mounting!
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 

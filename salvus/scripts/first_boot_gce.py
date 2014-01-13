@@ -94,6 +94,9 @@ def conf():
     cmd("chmod og-rwx -R /home/salvus/")
     cmd("chmod og-rwx -R /home/storage/")
 
+    # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
+    cmd("rm /home/storage/.storage*")
+
     # Import the ZFS pool -- without mounting!
     cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
