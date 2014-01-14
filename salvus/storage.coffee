@@ -1835,6 +1835,13 @@ exports.replicate = replicate = (opts) ->
                 for i in [1...d.length]
                     if d[i].version > dest.version
                         dest = d[i]
+
+                # Now make array of the elements in d that have this newest version
+                # choose one at random.  This way if one machine is down/busted once,
+                # there is a chance we will hit another one next time.
+                d2 = (x for x in d when x.version == dest.version)
+                dest = d2[misc.randint(0,d2.length-1)]
+
                 if source.version == dest.version
                     cb() # already done -- there is one up to date in the dc, so no further work is needed
                 else
