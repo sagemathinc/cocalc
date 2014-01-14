@@ -497,6 +497,8 @@ exports.close_project = close_project = (opts) ->
                                 err = undefined
                         cb(err)
         (cb) ->
+            if not opts.unset_loc
+                cb(); return
             dbg("making a snapshot and replicating it out, so we don't have to rollback later")
             snapshot
                 project_id : opts.project_id
@@ -1397,7 +1399,7 @@ exports.repair_snapshots_in_db = repair_snapshots_in_db = (opts) ->
             execute_on
                 host    : opts.host
                 command : "sudo zfs list -r -t snapshot -o name -s creation #{f}"
-                timeout : 600
+                timeout : 300
                 cb      : (err, output) ->
                     if err
                         if output?.stderr? and output.stderr.indexOf('not exist') != -1
@@ -1712,7 +1714,7 @@ is_currently_replicating = (opts) ->
 exports.replicate = replicate = (opts) ->
     opts = defaults opts,
         project_id    : required
-        repair_before : true
+        repair_before : false
         cb            : undefined
 
     dbg = (m) -> winston.debug("replicate (#{opts.project_id}): #{m}")
@@ -2180,9 +2182,12 @@ exports.send = send = (opts) ->
                             cb         : (ignore) ->
                                 rm ()->cb(m)
                     else
-                        dbg("no evasive action for '#{output.stderr}'")
-                        rm () ->
-                            cb(err)
+                        dbg("no evasive action for '#{output.stderr}'; at least try repairing snapshot list")
+                        repair_snapshots_in_db
+                            project_id : opts.project_id
+                            cb         : (ignore) ->
+                                rm () ->
+                                    cb(err)
         (cb) ->
             dbg("update database to reflect the new list of snapshots resulting from this recv")
             # We use repair_snapshots to guarantee that this is correct.
