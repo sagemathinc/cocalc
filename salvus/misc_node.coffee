@@ -383,7 +383,11 @@ exports.execute_code = execute_code = (opts) ->
                 f = () ->
                     if r.exitCode == null
                         winston.debug("execute_code: subprocess did not exit after #{opts.timeout} seconds, so killing with SIGKILL")
-                        r.kill("SIGKILL")  # this does not kill the process group :-(
+                        try
+                            r.kill("SIGKILL")  # this does not kill the process group :-(
+                        catch e
+                            # Exceptions can happen, which left uncaught messes up calling code bigtime.
+                            winston.debug("execute_code: r.kill raised an exception.")
                         if not callback_done
                             callback_done = true
                             c("killed command '#{opts.command} #{opts.args.join(' ')}'")
