@@ -2364,6 +2364,50 @@ exports.replicate_all = replicate_all = (opts) ->
 # Backup -- backup all projects to a single zpool.
 ###
 
+exports.backup_all_projects = (opts) ->
+    opts = defaults opts,
+        limit      : 10
+        cb         : undefined
+    dbg = (m) -> winston.debug("backup_all_projects: #{m}")
+    errors = {}
+    projects = undefined
+    async.series([
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id']
+                limit   : 1000000   # TODO: stupidly slow
+                cb      : (err, result) ->
+                    projects = (a[0] for a in result)
+                    projects.sort()
+                    dbg("got #{projects.length} projects")
+                    cb(err)
+        (cb) ->
+            dbg("backing up all projects...")
+            n = 0
+            total = projects.length
+            f = (project_id, cb) ->
+                dbg("backing up project #{project_id}")
+                n += 1
+                dbg("******\n* #{n} of #{total}\n******")
+                backup_project
+                    project_id : project_id
+                    cb         : (err) ->
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) ->
+        if err
+            errors['err'] = err
+        if misc.len(errors) == 0
+            opts.cb()
+        else
+            opts.cb(errors)
+    )
+
+
 exports.backup_project = backup_project = (opts) ->
     opts = defaults opts,
         project_id : required
