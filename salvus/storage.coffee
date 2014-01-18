@@ -1676,19 +1676,27 @@ exports.init_hashrings = init_hashrings = (cb) ->
         cb      : (err, results) ->
             if err
                 cb(err); return
-            topology = {}
-            for r in results
-                datacenter = r[0]; host = r[1]; vnodes = r[2]
-                if not topology[datacenter]?
-                    topology[datacenter] = {}
-                topology[datacenter][host] = {vnodes:vnodes}
-                all_hosts.push(host)
-                host_to_datacenter[host] = datacenter
-            winston.debug(misc.to_json(topology))
-            hashrings = {}
-            for dc, obj of topology
-                hashrings[dc] = new HashRing(obj)
-            cb?()
+            init_hashrings_2(results, cb)
+
+init_hashrings_2 = (results, cb) ->
+    topology = {}
+    for r in results
+        datacenter = r[0]; host = r[1]; vnodes = r[2]
+        if not topology[datacenter]?
+            topology[datacenter] = {}
+        topology[datacenter][host] = {vnodes:vnodes}
+        all_hosts.push(host)
+        host_to_datacenter[host] = datacenter
+    winston.debug(misc.to_json(topology))
+    hashrings = {}
+    for dc, obj of topology
+        hashrings[dc] = new HashRing(obj)
+    cb?()
+
+# TODO -- hard coding results from above so backup node doesn't need DB access yet!
+exports.init2 = (cb) ->
+    results = [["0","10.1.1.4",256],["0","10.1.2.4",256],["0","10.1.3.4",256],["0","10.1.4.4",256],["0","10.1.5.4",256],["0","10.1.6.4",256],["0","10.1.7.4",256],["2","10.3.1.4",256],["2","10.3.2.4",256],["2","10.3.3.4",256],["2","10.3.4.4",256],["1","10.1.10.4",256],["1","10.1.11.4",256],["1","10.1.12.4",256],["1","10.1.13.4",256],["1","10.1.14.4",256],["1","10.1.15.4",256],["1","10.1.16.4",256],["1","10.1.17.4",256],["1","10.1.18.4",256],["1","10.1.19.4",256],["1","10.1.20.4",256],["1","10.1.21.4",256]]
+    init_hashrings_2(results, cb)
 
 exports.locations = locations = (opts) ->
     opts = defaults opts,
@@ -1835,6 +1843,14 @@ exports.replicate = replicate = (opts) ->
                 for i in [1...d.length]
                     if d[i].version > dest.version
                         dest = d[i]
+
+                # Now make array of the elements in d that have this newest version
+                # choose one at random.  This way if one machine is down/busted once,
+                # there is a chance we will hit another one next time.
+                # TODO: really we should try each target in turn, from best to worst, until one succeeds.
+                d2 = (x for x in d when x.version == dest.version)
+                dest = d2[misc.randint(0,d2.length-1)]
+
                 if source.version == dest.version
                     cb() # already done -- there is one up to date in the dc, so no further work is needed
                 else
@@ -2342,6 +2358,181 @@ exports.replicate_all = replicate_all = (opts) ->
                         cb()
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) -> opts.cb?(err, errors))
+
+
+###
+# Backup -- backup all projects to a single zpool.
+###
+
+exports.backup_all_projects = (opts) ->
+    opts = defaults opts,
+        limit      : 10
+        cb         : undefined
+    dbg = (m) -> winston.debug("backup_all_projects: #{m}")
+    errors = {}
+    projects = undefined
+    async.series([
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id']
+                limit   : 1000000   # TODO: stupidly slow
+                cb      : (err, result) ->
+                    projects = (a[0] for a in result)
+                    projects.sort()
+                    dbg("got #{projects.length} projects")
+                    cb(err)
+        (cb) ->
+            dbg("backing up all projects...")
+            n = 0
+            total = projects.length
+            f = (project_id, cb) ->
+                dbg("backing up project #{project_id}")
+                n += 1
+                dbg("******\n* #{n} of #{total}\n******")
+                backup_project
+                    project_id : project_id
+                    cb         : (err) ->
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) ->
+        if err
+            errors['err'] = err
+        if misc.len(errors) == 0
+            opts.cb()
+        else
+            opts.cb(errors)
+    )
+
+
+exports.backup_project = backup_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        remote     : undefined
+        cb         : undefined
+    dbg = (m) -> winston.debug("backup_project(project_id:'#{opts.project_id}'): #{m}")
+    dbg("backup the project with given id from some remote server to the local projects zpool.")
+    if not opts.remote?
+        # We try each of the locations that have the project until one works.
+        done = false
+        f = (remote, cb) ->
+            if done
+                cb()
+            else
+                backup_project
+                    project_id : opts.project_id
+                    remote     : remote
+                    cb         : (err) ->
+                        if not err
+                            done = true
+                        cb()
+        remotes = _.flatten(locations(project_id:opts.project_id))
+        async.mapSeries remotes, f, () ->
+            if done
+                opts.cb()
+            else
+                opts.cb("unable to make a backup using any replica")
+    else
+        f                = filesystem(opts.project_id)
+        local_snapshots  = undefined
+        remote_snapshots = undefined
+        remote_base      = undefined
+        tmp              = undefined
+        clean_up         = false
+        async.series([
+            (cb) ->
+                dbg("determine local snapshots")
+                misc_node.execute_code
+                    command     : "sudo"
+                    args        : ['zfs', 'list', '-r', '-t', 'snapshot', '-o', 'name', '-s', 'creation', f]
+                    timeout     : 60
+                    err_on_exit : true
+                    cb          : (err, output) ->
+                        if err
+                            if output?.stderr? and output.stderr.indexOf('not exist') != -1
+                                dbg("no local snapshots yet")
+                                local_snapshots = []
+                                cb()
+                            else
+                                cb(err)
+                        else
+                            v = output.stdout.split('\n')
+                            n = f.length + 1
+                            local_snapshots = (a.slice(n) for a in v when a.slice(n))
+                            dbg("local_snapshots = #{misc.to_json(local_snapshots).slice(0,300)}...")
+                            cb()
+            (cb) ->
+                dbg("determine remote snapshots")
+                execute_on
+                        host    : opts.remote
+                        command : "sudo zfs list -r -t snapshot -o name -s creation #{f}"
+                        timeout : 300
+                        cb      : (err, output) ->
+                            if err
+                                cb(err)
+                            else
+                                dbg("getting remote_snapshots")# -- output=#{misc.to_json(output)}")
+                                v = output.stdout.split('\n')
+                                n = f.length + 1
+                                remote_snapshots = (a.slice(n) for a in v  when a.slice(n))
+                                dbg("remote_snapshots = #{misc.to_json(remote_snapshots).slice(0,300)}...")
+                                cb()
+            (cb) ->
+                dbg("determining replication strategy")
+                i = local_snapshots.length
+                if i == 0
+                    dbg("just get the full remote")
+                    cb()
+                else
+                    if remote_snapshots.indexOf(local_snapshots[i-1]) == -1
+                        dbg("the remote snapshot list doesn't include the newest local snapshot")
+                        # We do *NOT* rollback, since the whole point of the backup system is
+                        # to make something that can't lose history, despite what might happen
+                        # on any compute machine.
+                        cb("clone strategy to deal with forks not implemented")
+                    else
+                        remote_base = local_snapshots[i-1]
+                        cb()
+            (cb) ->
+                dbg("create replication stream")
+                start = if remote_base? then "-I #{f}@#{remote_base}" else ""
+                tmp = "#{STORAGE_TMP}/.backup-#{opts.project_id}-remote-#{opts.remote}-#{remote_base}-local.lz4"
+                fs.exists tmp, (exists) ->
+                    if exists
+                        cb("#{tmp} already exists -- delete and try again")
+                    else
+                        clean_up = true
+                        execute_on
+                                host    : opts.remote
+                                command : "sudo zfs send -RD #{start} #{f}@#{remote_snapshots[remote_snapshots.length-1]} | lz4c - > #{tmp} "
+                                timeout : 7200
+                                cb      : cb
+            (cb) ->
+                dbg("copy replication stream back to backup host")
+                misc_node.execute_code
+                    command     : "scp -o StrictHostKeyChecking=no storage@#{opts.remote}:#{tmp} #{tmp}"
+                    timeout     : 7200
+                    err_on_exit : false
+                    cb          : cb
+
+            (cb) ->
+                dbg("apply replication stream")
+                misc_node.execute_code
+                    command : "cat #{tmp} | lz4c -d - | sudo zfs recv #{f}"
+                    timeout : 7200
+                    cb      : cb
+        ], (err) ->
+            if clean_up
+                execute_on
+                    host    : opts.remote
+                    command : "rm #{tmp}"
+                fs.unlink(tmp)
+            opts.cb?(err)
+        )
+
 
 
 ###

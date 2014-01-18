@@ -2804,6 +2804,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         @dbg("2: #{misc.to_json(location)}")
                         cb()
             (cb) =>
+                @dbg("restart: ensure that user exists and that ssh into the account works; also updates info.json file")
+                storage.create_user
+                    project_id : @project_id
+                    host       : @host
+                    action     : 'create'
+                    timeout    : 30
+                    cb         : cb
+            (cb) =>
                 @dbg("restart: creating a lock at #{misc.to_json(location)}")
                 snap.create_lock
                     location : location
