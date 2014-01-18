@@ -20,7 +20,7 @@ CREATE TABLE key_value (
 );
 
 /* TODO: THIS compute_servers table IS NOT USED ANYMORE */
-CREATE TABLE 1 (
+CREATE TABLE compute_servers (
     dummy boolean,
     host varchar,
     running boolean,
