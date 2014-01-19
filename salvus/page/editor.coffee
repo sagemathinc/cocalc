@@ -2,6 +2,9 @@
 # Editor for files in a project
 ##################################################
 
+MAX_LATEX_ERRORS   = 10
+MAX_LATEX_WARNINGS = 50
+
 async = require('async')
 
 message = require('message')
@@ -2504,7 +2507,7 @@ class LatexEditor extends FileEditor
         @preview_embed.element.find("a[href=#refresh]").hide()
         @_pages['pdf-preview'] = @preview_embed
 
-        # initalize the log
+        # Initalize the log
         @log = @element.find(".salvus-editor-latex-log")
         @log.find("a").tooltip(delay:{ show: 500, hide: 100 })
         @_pages['log'] = @log
@@ -2871,7 +2874,12 @@ class LatexEditor extends FileEditor
             elt.html("None")
         else
             elt.html("")
+            cnt = 0
             for mesg in p.errors
+                cnt += 1
+                if cnt > MAX_LATEX_ERRORS
+                    elt.append($("<h4>(Not showing #{p.errors.length - cnt + 1} additional errors.)</h4>"))
+                    break
                 elt.append(@render_error_message(mesg))
 
         elt = @errors.find(".salvus-latex-warnings")
@@ -2879,7 +2887,12 @@ class LatexEditor extends FileEditor
             elt.html("None")
         else
             elt.html("")
+            cnt = 0
             for mesg in p.warnings
+                cnt += 1
+                if cnt > MAX_LATEX_WARNINGS
+                    elt.append($("<h4>(Not showing #{p.warnings.length - cnt + 1} additional warnings.)</h4>"))
+                    break
                 elt.append(@render_error_message(mesg))
 
         elt = @errors.find(".salvus-latex-typesetting")
@@ -2887,7 +2900,12 @@ class LatexEditor extends FileEditor
             elt.html("None")
         else
             elt.html("")
+            cnt = 0
             for mesg in p.typesetting
+                cnt += 1
+                if cnt > MAX_LATEX_WARNINGS
+                    elt.append($("<h4>(Not showing #{p.typesetting.length - cnt + 1} additional typesetting issues.)</h4>"))
+                    break
                 elt.append(@render_error_message(mesg))
 
     _show_error_in_file: (mesg, cb) =>
