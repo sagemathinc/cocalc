@@ -2799,7 +2799,7 @@ class LatexEditor extends FileEditor
             if n == name
                 e.show()
                 es = @latex_editor.empty_space
-                g  = left : es.start, top:es.top+3, width:es.end-es.start-3
+                g  = {left : es.start, top:es.top+3, width:es.end-es.start-3}
                 if n not in ['log', 'errors']
                     page.show(g)
                 else
