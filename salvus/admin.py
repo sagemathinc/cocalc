@@ -1146,10 +1146,18 @@ class Hosts(object):
                              (['ufw --force enable'] if commands else []))
         return self(hostname, cmd, sudo=True, timeout=10, wait=False)
 
-    def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120):
-        for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait).iteritems():
+    def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120, parallel=False):
+        for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait, parallel=parallel).iteritems():
             print k
             print v.get('stdout','')
+
+    def nodetool_repair(self):
+        # timeout is long since each repair can take quite a while; also, we wait, since we're supposed to do one at a time.
+        self.nodetool('repair', wait=True, timeout=12*60*60)
+
+    def nodetool_snapshot(self):
+        # we are supposed to do snapshots all at once.
+        self.nodetool('snapshot', wait=False, timeout=120, parallel=True)
 
     def update_hub_repos(self, parallel=True, wait=False):
         return self('hub','cd salvus/salvus; git pull 10.1.1.3:salvus && ./make_coffee ', parallel=parallel, wait=wait)
