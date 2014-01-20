@@ -2402,9 +2402,9 @@ exports.backup_all_projects = (opts) ->
         if err
             errors['err'] = err
         if misc.len(errors) == 0
-            opts.cb()
+            opts.cb?()
         else
-            opts.cb(errors)
+            opts.cb?(errors)
     )
 
 
@@ -2432,9 +2432,9 @@ exports.backup_project = backup_project = (opts) ->
         remotes = _.flatten(locations(project_id:opts.project_id))
         async.mapSeries remotes, f, () ->
             if done
-                opts.cb()
+                opts.cb?()
             else
-                opts.cb("unable to make a backup using any replica")
+                opts.cb?("unable to make a backup using any replica")
     else
         f                = filesystem(opts.project_id)
         local_snapshots  = undefined
