@@ -5288,7 +5288,7 @@ connect_to_database = (cb) ->
                 keyspace : program.keyspace
                 username : 'hub'
                 password : password.toString().trim()
-                consistency : 1
+                consistency : 2
                 cb       : (err, _db) ->
                     if err
                         winston.debug("Error connecting to database")
