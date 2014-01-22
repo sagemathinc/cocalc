@@ -1988,7 +1988,7 @@ class exports.Salvus extends exports.Cassandra
                         for p in projects
                             for group in PROJECT_GROUPS
                                 if p[group]?
-                                    p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group])
+                                    p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group] when usernames[id]?)
                         cb()
         ], (err) =>
                 opts.cb(err, projects)

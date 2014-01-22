@@ -601,9 +601,10 @@ exports.emergency_delocate_projects = (opts) ->
 # more than ttl seconds, where opened means that location is set.
 exports.close_stale_projects = (opts) ->
     opts = defaults opts,
-        ttl     : 60*60*24   # time in seconds (up to a week)
-        dry_run : true       # don't actually close the projects
-        limit   : 20         # number of projects to close simultaneously.
+        ttl     : 60*60*24  # time in seconds (up to a week)
+        dry_run : true      # don't actually close the projects
+        limit   : 5         # number of projects to close simultaneously.
+        interval: 3000      # space out the project closing to give server a chance to do other things.
         cb      : required
 
     projects = undefined
@@ -627,7 +628,11 @@ exports.close_stale_projects = (opts) ->
                         project_id : project_id
                         host       : host
                         unset_loc  : false
-                        cb         : cb
+                        cb         : (err) ->
+                            if err or not opts.interval
+                                cb(err)
+                            else
+                                setTimeout(cb, opts.interval)
             async.eachLimit(projects, opts.limit, f, cb)
     ], opts.cb)
 
@@ -662,7 +667,11 @@ exports.create_project = create_project = (opts) ->
                     return
 
             dbg("according to DB, the project filesystem doesn't exist anywhere (allowed), so let's make it somewhere...")
-            locs = _.flatten(locations(project_id:opts.project_id))
+            v = locations(project_id:opts.project_id)
+            if v.length == 0
+                opts.cb("hashrings not yet initialized")
+                return
+            locs = _.flatten(v)
 
             if opts.exclude.length > 0
                 locs = (h for h in locs when opts.exclude.indexOf(h) == -1)
@@ -1254,6 +1263,9 @@ exports.status = (project_id, update) ->
                     else
                         dc = 0
                         v = locations(project_id:project_id)
+                        if v.length == 0
+                            cb("hashrings not yet initialized")
+                            return
                         active = s[cur_loc]?[0]
                         for grp in v
                             for a in grp
@@ -1377,7 +1389,11 @@ exports.repair_snapshots_in_db = repair_snapshots_in_db = (opts) ->
                 if opts.host == 'all'
                     hosts = all_hosts
                 else
-                    hosts = _.flatten(locations(project_id:opts.project_id))
+                    v = locations(project_id:opts.project_id)
+                    if v.length == 0
+                        cb("hashrings not yet initialized")
+                        return
+                    hosts = _.flatten(v)
                 cb()
             (cb) ->
                 f = (host, cb) ->
@@ -1665,7 +1681,7 @@ exports.snapshot_listing = snapshot_listing = (opts) ->
 # Replication
 ######################
 
-hashrings = undefined
+hashrings = {}
 topology = undefined
 all_hosts = []
 host_to_datacenter = {}
@@ -1730,7 +1746,11 @@ exports.replicate = replicate = (opts) ->
     source  = undefined
 
     targets = locations(project_id:opts.project_id)
-    dbg("targets = #{targets}")
+    dbg("targets = #{misc.to_json(targets)}")
+    if targets.length == 0
+        opts.cb("hashrings not yet initialized")
+        return
+
     num_replicas = targets[0].length
 
     snapshots = undefined
@@ -2044,6 +2064,10 @@ exports.projects_needing_replication = projects_needing_replication = (opts) ->
                         v[k] = misc.from_json(z)
                     project_id = x[0]
                     locs = locations(project_id:project_id)   # replicas we care about, grouped by data center
+                    if locs.length == 0
+                        opts.cb("hashrings not yet initialized")
+                        return
+
                     # first pass -- which is newest?  (TODO: could just do some list comprehension and sort.)
                     newest = undefined
                     for dc in locs
@@ -2429,7 +2453,11 @@ exports.backup_project = backup_project = (opts) ->
                         if not err
                             done = true
                         cb()
-        remotes = _.flatten(locations(project_id:opts.project_id))
+        v = locations(project_id:opts.project_id)
+        if v.length == 0
+            opts.cb?("hashrings not yet initialized")
+            return
+        remotes = _.flatten(v)
         async.mapSeries remotes, f, () ->
             if done
                 opts.cb?()
@@ -2915,7 +2943,11 @@ exports.repair_all = (opts) ->
             dbg("determining inconsistent replicas")
             for x in projects
                 destroy = []
-                loc = _.flatten(locations(project_id:x[0]))
+                v = locations(project_id:x[0])
+                if v.length == 0
+                    cb("hashrings not yet initialized")
+                    return
+                loc = _.flatten(v)
                 if loc.indexOf(x[1]) == -1 and x[2].indexOf(x[1]) != -1
                     if not wrong_locs[x[0]]?
                         wrong_locs[x[0]] = [x[1]]
