@@ -30,7 +30,7 @@ SECRETS = os.path.join(DATA,'secrets')
 # Read in socket of ssh-agent, if there is an AGENT file.
 # NOTE: I'm using this right now on my laptop, but it's not yet
 # deployed on cloud.sagemath *yet*.  When done, it will mean the
-# ssh key used by the hub and snap is password protected, which
+# ssh key used by the hub is password protected, which
 # will be much more secure: someone who steals ~/.ssh gets nothing,
 # though still if somebody logs in as the salvus user on one of
 # these nodes, they can ssh to other nodes, though they can't
@@ -582,6 +582,7 @@ class Hub(Process):
 
 ####################
 # Snap -- snapshot/backup servers
+# TODO: this is deprecated
 ####################
 class Snap(Process):
     def __init__(self, id=0, host='', monitor_database=None, keyspace='salvus',
@@ -1146,10 +1147,18 @@ class Hosts(object):
                              (['ufw --force enable'] if commands else []))
         return self(hostname, cmd, sudo=True, timeout=10, wait=False)
 
-    def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120):
-        for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait).iteritems():
+    def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120, parallel=False):
+        for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait, parallel=parallel).iteritems():
             print k
             print v.get('stdout','')
+
+    def nodetool_repair(self):
+        # timeout is long since each repair can take quite a while; also, we wait, since we're supposed to do one at a time.
+        self.nodetool('repair', wait=True, timeout=12*60*60)
+
+    def nodetool_snapshot(self):
+        # we are supposed to do snapshots all at once.
+        self.nodetool('snapshot', wait=False, timeout=120, parallel=True)
 
     def update_hub_repos(self, parallel=True, wait=False):
         return self('hub','cd salvus/salvus; git pull 10.1.1.3:salvus && ./make_coffee ', parallel=parallel, wait=wait)
@@ -1646,10 +1655,9 @@ class Services(object):
         elif action == "start":
             # hub hosts can connect to CASSANDRA_CLIENT_PORT and CASSANDRA_NATIVE_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin snap']] +
-                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin snap']] +
-                        ['allow proto tcp from %s to any port %s'%(host, port)
-                                for host in self._hosts['cassandra admin'] for port in CASSANDRA_INTERNODE_PORTS] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin backup cassandra']] +
+                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin backup cassandra']] +
+                        ['allow proto tcp from %s to any port %s'%(host, port) for host in self._hosts['cassandra'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
         elif action == 'status':
             return
@@ -1739,7 +1747,7 @@ class Services(object):
         self.compute_firewall('compute', 'start')
         log.info(" ** Starting cassandra databases.")
         self.start('cassandra', wait=True, parallel=True)
-        for service in ['haproxy', 'nginx', 'hub', 'snap']:
+        for service in ['haproxy', 'nginx', 'hub']:
             log.info(" ** Starting %s", service)
             self.start(service, parallel=True, wait=False)
         #log.info(" ** Starting compute")
@@ -1749,7 +1757,7 @@ class Services(object):
     def stop_system(self):
         if 'cassandra' in self._services:
             self.stop('cassandra', parallel=True, wait=True)
-        for service in ['haproxy', 'nginx', 'hub', 'snap']:
+        for service in ['haproxy', 'nginx', 'hub']:
             self.stop(service, parallel=True, wait=True)
         if 'vm' in self._services:
             self.stop('vm', parallel=True)
@@ -1772,7 +1780,7 @@ class Services(object):
         the Sage install or python client code on the compute machines.  This is minimally
         disruptive to users, at least compared to a full restart of compute machines!
         """
-        services = 'hub nginx snap'
+        services = 'hub nginx'
         for service in services.split():
             self.stop(service, wait=True, parallel=True)
         web_hosts = [x for x in self._hosts._canonical_hostnames.values() if 'web' in x]
@@ -1787,13 +1795,11 @@ class Services(object):
           - (~1 minute) restart each stunnel, one at a time.
           - (~5 seconds) restart each haproxy, one at a time.
           - (~20 minutes = 1 minute per vm) for each web machine, one at time.
-               - stop snap
                - stop nginx
                - stop hub
                - restart the vm
                - start hub
                - start nginx
-               - start snap
        (*)  - broadcast message to all clients "system maintenance -- The project servers are restarting and will be unavailable for up to 1 minute."...
          - (~1 minute) restart all compute machine simultaneously (if projects moved then we would do differently)
          - for each cassandra machine, one a time:
@@ -1818,22 +1824,20 @@ class Services(object):
 
         if 'web' in services:
             print "Restarting web server hosts"
-            # We are assuming that snap/nginx/hub are all on the same VM's.
-            v = self._hosts['snap']
+            # We are assuming that nginx/hub are all on the same VM's.
+            v = self._hosts['hub']
             for i, host in enumerate(v):
                 print "*"*70
                 print "web HOST (%s of %s): %s"%(i+1, len(v), host)
                 print "*"*70
-                self.stop('snap', host=host, wait=True)
                 self.stop('nginx', host=host, wait=True)
                 self.stop('hub', host=host, wait=True)
-                print "resting vm..."
+                print "reseting vm..."
                 self.restart('vm',ip_address=host, wait=True)
                 print "WAITING FOR -- web HOST (%s of %s): %s"%(i, len(v), host)
                 self.wait_until_up(host)
                 self.start('hub', host=host, wait=False)
                 self.start('nginx', host=host, wait=False)
-                self.start('snap', host=host, wait=False)
                 print "time: ", time.time()-t
 
         if 'compute' in services:

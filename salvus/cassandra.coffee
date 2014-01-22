@@ -984,6 +984,9 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             plan_id : required
             cb      : required
+
+        if not misc.is_valid_uuid_string(opts.plan_id)   # I've seen 0 in tracebacks
+            opts.plan_id = DEFAULT_PLAN_ID
         @select
             table  : 'plans'
             where  : {plan_id:opts.plan_id}
@@ -1507,11 +1510,14 @@ class exports.Salvus extends exports.Cassandra
                     columns    : opts.groups
                     objectify  : false
                     cb         : (err, _groups) =>
-                        groups = _groups
-                        for i in [0...groups.length]
-                            if not groups[i]?
-                                groups[i] = []
-                        cb(err)
+                        if err
+                            cb(err)
+                        else
+                            groups = _groups
+                            for i in [0...groups.length]
+                                if not groups[i]?
+                                    groups[i] = []
+                            cb()
             # get names of users
             (cb) =>
                 v = _.flatten(groups)
@@ -1530,7 +1536,8 @@ class exports.Salvus extends exports.Cassandra
                     r[g] = []
                     for account_id in groups[i]
                         x = names[account_id]
-                        r[g].push({account_id:account_id, first_name:x.first_name, last_name:x.last_name})
+                        if x?
+                            r[g].push({account_id:account_id, first_name:x.first_name, last_name:x.last_name})
                     i += 1
                 opts.cb(false, r)
         )
@@ -1988,7 +1995,7 @@ class exports.Salvus extends exports.Cassandra
                         for p in projects
                             for group in PROJECT_GROUPS
                                 if p[group]?
-                                    p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group])
+                                    p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group] when usernames[id]?)
                         cb()
         ], (err) =>
                 opts.cb(err, projects)
