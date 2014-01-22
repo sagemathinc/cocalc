@@ -961,7 +961,7 @@ use_current_host = (f, opts) ->
         project_id : opts.project_id
         cb         : (err, host) ->
             if err
-                opts.cb(err)
+                opts.cb?(err)
             else if host?
                 opts.host = host
                 f(opts)

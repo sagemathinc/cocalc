@@ -1507,11 +1507,14 @@ class exports.Salvus extends exports.Cassandra
                     columns    : opts.groups
                     objectify  : false
                     cb         : (err, _groups) =>
-                        groups = _groups
-                        for i in [0...groups.length]
-                            if not groups[i]?
-                                groups[i] = []
-                        cb(err)
+                        if err
+                            cb(err)
+                        else
+                            groups = _groups
+                            for i in [0...groups.length]
+                                if not groups[i]?
+                                    groups[i] = []
+                            cb()
             # get names of users
             (cb) =>
                 v = _.flatten(groups)
@@ -1530,7 +1533,8 @@ class exports.Salvus extends exports.Cassandra
                     r[g] = []
                     for account_id in groups[i]
                         x = names[account_id]
-                        r[g].push({account_id:account_id, first_name:x.first_name, last_name:x.last_name})
+                        if x?
+                            r[g].push({account_id:account_id, first_name:x.first_name, last_name:x.last_name})
                     i += 1
                 opts.cb(false, r)
         )
