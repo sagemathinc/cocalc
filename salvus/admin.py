@@ -1308,7 +1308,11 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
+        backups = set(self._hosts['backup'])
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20).iteritems():
+            if k[0] in backups:
+                # these should always fail, due to security restriction on automated login.
+                continue  
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
