@@ -984,6 +984,9 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             plan_id : required
             cb      : required
+
+        if not misc.is_valid_uuid_string(opts.plan_id)   # I've seen 0 in tracebacks
+            opts.plan_id = DEFAULT_PLAN_ID
         @select
             table  : 'plans'
             where  : {plan_id:opts.plan_id}
