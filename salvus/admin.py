@@ -1308,7 +1308,11 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
+        backups = set(self._hosts['backup'])
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20).iteritems():
+            if k[0] in backups:
+                # these should always fail, due to security restriction on automated login.
+                continue  
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1655,10 +1659,9 @@ class Services(object):
         elif action == "start":
             # hub hosts can connect to CASSANDRA_CLIENT_PORT and CASSANDRA_NATIVE_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin']] +
-                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin']] +
-                        ['allow proto tcp from %s to any port %s'%(host, port)
-                                for host in self._hosts['cassandra admin backup'] for port in CASSANDRA_INTERNODE_PORTS] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin backup cassandra']] +
+                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin backup cassandra']] +
+                        ['allow proto tcp from %s to any port %s'%(host, port) for host in self._hosts['cassandra'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
         elif action == 'status':
             return
