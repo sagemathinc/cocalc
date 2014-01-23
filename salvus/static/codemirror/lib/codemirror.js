@@ -169,7 +169,7 @@
     // See readInput and resetInput
     if (!ie_lt9) {
       d.prevInput = d.input.value = "_";
-      d.input.setSelectionRange(1, 1);
+      /* d.input.setSelectionRange(1, 1); */
     } else {
       d.prevInput = "";
     }
