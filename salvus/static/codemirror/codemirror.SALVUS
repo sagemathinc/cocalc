@@ -1,2 +1,8 @@
 * I had to patch codemirror/keymap/vim.js by deleting all reference to Ctrl-C because
   we can't break system-wide copy!
+
+* I had to make this change in lib/codemirror.js so that worksheet output works:
+
+  -    var content = elt("span", null, null, webkit ? "padding-right: .1px" : null);
+  +    var content = elt("span", null, null, webkit ? "padding-right: .01px" : null);
+
