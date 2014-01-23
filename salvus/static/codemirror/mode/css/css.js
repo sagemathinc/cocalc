@@ -1,6 +1,14 @@
-CodeMirror.defineMode("css", function(config, parserConfig) {
-  "use strict";
+(function(mod) {
+  if (typeof exports == "object" && typeof module == "object") // CommonJS
+    mod(require("../../lib/codemirror"));
+  else if (typeof define == "function" && define.amd) // AMD
+    define(["../../lib/codemirror"], mod);
+  else // Plain browser env
+    mod(CodeMirror);
+})(function(CodeMirror) {
+"use strict";
 
+CodeMirror.defineMode("css", function(config, parserConfig) {
   if (!parserConfig.propertyKeywords) parserConfig = CodeMirror.resolveMode("text/css");
 
   var indentUnit = config.indentUnit,
@@ -140,6 +148,8 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
       return pushContext(state, stream, "media");
     } else if (type == "@font-face") {
       return "font_face_before";
+    } else if (/^@(-(moz|ms|o|webkit)-)?keyframes$/.test(type)) {
+      return "keyframes";
     } else if (type && type.charAt(0) == "@") {
       return pushContext(state, stream, "at");
     } else if (type == "hash") {
@@ -264,6 +274,12 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
     return "font_face";
   };
 
+  states.keyframes = function(type, stream, state) {
+    if (type == "word") { override = "variable"; return "keyframes"; }
+    if (type == "{") return pushContext(state, stream, "top");
+    return pass(type, stream, state);
+  };
+
   states.at = function(type, stream, state) {
     if (type == ";") return popContext(state);
     if (type == "{" || type == "}") return popAndPass(type, stream, state);
@@ -308,6 +324,7 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
     indent: function(state, textAfter) {
       var cx = state.context, ch = textAfter && textAfter.charAt(0);
       var indent = cx.indent;
+      if (cx.type == "prop" && ch == "}") cx = cx.prev;
       if (cx.prev &&
           (ch == "}" && (cx.type == "block" || cx.type == "top" || cx.type == "interpolation" || cx.type == "font_face") ||
            ch == ")" && (cx.type == "parens" || cx.type == "params" || cx.type == "media_parens") ||
@@ -325,7 +342,6 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
   };
 });
 
-(function() {
   function keySet(array) {
     var keys = {};
     for (var i = 0; i < array.length; ++i) {
@@ -353,10 +369,10 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
   var propertyKeywords_ = [
     "align-content", "align-items", "align-self", "alignment-adjust",
     "alignment-baseline", "anchor-point", "animation", "animation-delay",
-    "animation-direction", "animation-duration", "animation-iteration-count",
-    "animation-name", "animation-play-state", "animation-timing-function",
-    "appearance", "azimuth", "backface-visibility", "background",
-    "background-attachment", "background-clip", "background-color",
+    "animation-direction", "animation-duration", "animation-fill-mode",
+    "animation-iteration-count", "animation-name", "animation-play-state",
+    "animation-timing-function", "appearance", "azimuth", "backface-visibility",
+    "background", "background-attachment", "background-clip", "background-color",
     "background-image", "background-origin", "background-position",
     "background-repeat", "background-size", "baseline-shift", "binding",
     "bleed", "bookmark-label", "bookmark-level", "bookmark-state",
@@ -680,4 +696,5 @@ CodeMirror.defineMode("css", function(config, parserConfig) {
     name: "css",
     helperType: "less"
   });
-})();
+
+});
