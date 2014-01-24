@@ -1280,7 +1280,7 @@ class ProjectPage
                     #end if
 
                     # Define file actions using a closure
-                    @_init_listing_actions(t, path, obj.name, obj.isdir? and obj.isdir, obj.snapshot?)
+                    @_init_listing_actions(t, path, obj.name, obj.fullname, obj.isdir? and obj.isdir, obj.snapshot?)
 
                     # Drag handle for moving files via drag and drop.
                     handle = t.find(".project-file-drag-handle")
@@ -1314,11 +1314,12 @@ class ProjectPage
                     return
                 @focus_file_search()
 
-    _init_listing_actions: (t, path, name, isdir, is_snapshot) =>
-        if path != ""
-            fullname = path + '/' + name
-        else
-            fullname = name
+    _init_listing_actions: (t, path, name, fullname, isdir, is_snapshot) =>
+        if not fullname?
+            if path != ""
+                fullname = path + '/' + name
+            else
+                fullname = name
 
         t.data('name', fullname)  # save for other uses outside this function
 
@@ -1326,7 +1327,8 @@ class ProjectPage
 
         open = (e) =>
             if isdir
-                @switch_to_directory(@current_path.concat([name]))
+                @set_current_path(fullname)
+                @update_file_list_tab()
             else
                 @open_file
                     path : fullname

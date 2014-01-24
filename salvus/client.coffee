@@ -1413,7 +1413,7 @@ class exports.Connection extends EventEmitter
                         files = ({name:name, isdir:true} for name in resp.list)
                         opts.cb(false, {files:files})
                     else if opts.path.length == 10
-                        files = ({name:new Date("Tue, 01 Jan 1974 #{name}").toLocaleTimeString(), isdir:true} for name in resp.list)
+                        files = ({name:new Date("Tue, 01 Jan 1974 #{file.local}").toLocaleTimeString(), isdir:true, fullname:".zfs/snapshot/#{file.utc}"} for file in resp.list)
                         opts.cb(false, {files:files})
                     else
                         opts.cb('invalid snapshot directory name')

@@ -1621,15 +1621,14 @@ exports.diff = diff = (opts) ->
         ], (err) -> opts.cb(err, v))
 
 
-
-
 exports.snapshot_listing = snapshot_listing = (opts) ->
     opts = defaults opts,
         project_id      : required
         timezone_offset : 0   # difference in minutes:  UTC - local_time
         path            : ''  # '' or a day in the format '2013-12-20'
         host            : undefined
-        cb              : opts.cb
+        cb              : opts.cb   # array of days when path=''
+                                    # array of {utc:..., local:...} when path!=''.
 
     dbg = (m) -> winston.debug("snapshot_listing(#{opts.project_id}): #{m}")
     dbg(misc.to_json(opts))
@@ -1647,31 +1646,29 @@ exports.snapshot_listing = snapshot_listing = (opts) ->
                 if err
                     cb(err)
                 else
-                    cb(undefined, new Date( (new Date(x+"+0000")) - opts.timezone_offset*60*1000) for x in snapshots)
+                    cb(undefined, {utc:x, local:new Date( (new Date(x+"+0000")) - opts.timezone_offset*60*1000)} for x in snapshots)
 
     if opts.path.length<10
         dbg("sorted list of unique days in local time, but as a file listing.")
-        snaps (err, s) ->
+        snaps (err,s) ->
             if err
                 opts.cb(err); return
-            s = (x.toISOString().slice(0,10) for x in s)
+            s = (x.local.toISOString().slice(0,10) for x in s)
             s = _.uniq(s)
-            s.sort()
-            s.reverse()
             dbg("result=#{misc.to_json(s)}")
             opts.cb(undefined, s)
     else if opts.path.length == 10
         dbg("snapshots for a particular day in local time")
-        snaps (err, s) ->
+        snaps (err,s) ->
             if err
                 opts.cb(err); return
-            s = (x.toISOString().slice(0,19) for x in s)
-            s = (x.slice(11) for x in s when x.slice(0,10) == opts.path)
-            s = _.uniq(s)
-            s.sort()
-            s.reverse()
-            dbg("result=#{misc.to_json(s)}")
-            opts.cb(undefined, s)
+            t = []
+            for x in s
+                z = x.local.toISOString().slice(0,19)
+                if z.slice(0,10) == opts.path
+                    t.push({utc:x.utc, local:z.slice(11)})
+            dbg("result=#{misc.to_json(t)}")
+            opts.cb(undefined, t)
     else
         opts.cb("not implemented")
 
