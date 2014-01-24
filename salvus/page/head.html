@@ -9,35 +9,6 @@
 
     <link rel="stylesheet" href="static/jquery/jquery-ui/css/humanity/jquery-ui.css">
 
-    <!-- favicons -->
-
-    <!-- ****** faviconit.com favicons ****** -->
-	<!-- Basic favicons -->
-	<link rel="shortcut icon" sizes="16x16 32x32 48x48 64x64" href="/favicon.ico">
-	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
-	<!--[if IE]><link rel="shortcut icon" href="/favicon.ico"><![endif]-->
-	<!-- For Opera Speed Dial: -->
-	<link rel="icon" type="image/png" sizes="195x195" href="/favicon-195.png">
-	<!-- For iPad with high-resolution Retina display running iOS ≥ 7: -->
-	<link rel="apple-touch-icon" sizes="152x152" href="/favicon-152.png">
-	<!-- For iPad with high-resolution Retina display running iOS ≤ 6: -->
-	<link rel="apple-touch-icon" sizes="144x144" href="/favicon-144.png">
-	<!-- For iPhone with high-resolution Retina display running iOS ≥ 7: -->
-	<link rel="apple-touch-icon" sizes="120x120" href="/favicon-120.png">
-	<!-- For iPhone with high-resolution Retina display running iOS ≤ 6: -->
-	<link rel="apple-touch-icon" sizes="114x114" href="/favicon-114.png">
-	<!-- For Google TV devices: -->
-	<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png">
-	<!-- For iPad Mini: -->
-	<link rel="apple-touch-icon" sizes="76x76" href="/favicon-76.png">
-	<!-- For first- and second-generation iPad: -->
-	<link rel="apple-touch-icon" sizes="72x72" href="/favicon-72.png">
-	<!-- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices: -->
-	<link rel="apple-touch-icon" href="favicon-57.png">
-	<!-- Windows 8 Tiles -->
-	<meta name="msapplication-TileColor" content="#FFFFFF">
-	<meta name="msapplication-TileImage" content="/favicon-144.png">
-	<!-- ****** faviconit.com favicons ****** -->
 
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="static/font-awesome/css/font-awesome.min.css" rel="stylesheet">
@@ -74,6 +45,50 @@
     <link rel="stylesheet" href="static/codemirror/theme/paraiso-light.css">
     <link rel="stylesheet" href="static/codemirror/theme/pastel-on-dark.css">
     <link rel="stylesheet" href="static/codemirror/theme/tomorrow-night-eighties.css">
+
+    <link rel="stylesheet" href="static/codemirror/addon/dialog/dialog.css">
+
+    <link rel="stylesheet" type="text/css" href="static/jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css">
+    <link href="static/pnotify/jquery.pnotify.default.css" media="all" rel="stylesheet" type="text/css" />
+    <link href="static/pnotify/jquery.pnotify.default.icons.css" media="all" rel="stylesheet" type="text/css" />
+
+    <link rel="stylesheet" href="static/jquery/plugins/dropzone/css/dropzone.css">
+
+    <!-- Salvus stylesheet -->
+    <link href="static/index.css" rel="stylesheet">
+
+
+    <!-- favicons -->
+
+    <!-- ****** faviconit.com favicons ****** -->
+	<!-- Basic favicons -->
+	<link rel="shortcut icon" sizes="16x16 32x32 48x48 64x64" href="/favicon.ico">
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico">
+	<!--[if IE]><link rel="shortcut icon" href="/favicon.ico"><![endif]-->
+	<!-- For Opera Speed Dial: -->
+	<link rel="icon" type="image/png" sizes="195x195" href="/favicon-195.png">
+	<!-- For iPad with high-resolution Retina display running iOS ≥ 7: -->
+	<link rel="apple-touch-icon" sizes="152x152" href="/favicon-152.png">
+	<!-- For iPad with high-resolution Retina display running iOS ≤ 6: -->
+	<link rel="apple-touch-icon" sizes="144x144" href="/favicon-144.png">
+	<!-- For iPhone with high-resolution Retina display running iOS ≥ 7: -->
+	<link rel="apple-touch-icon" sizes="120x120" href="/favicon-120.png">
+	<!-- For iPhone with high-resolution Retina display running iOS ≤ 6: -->
+	<link rel="apple-touch-icon" sizes="114x114" href="/favicon-114.png">
+	<!-- For Google TV devices: -->
+	<link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png">
+	<!-- For iPad Mini: -->
+	<link rel="apple-touch-icon" sizes="76x76" href="/favicon-76.png">
+	<!-- For first- and second-generation iPad: -->
+	<link rel="apple-touch-icon" sizes="72x72" href="/favicon-72.png">
+	<!-- For non-Retina iPhone, iPod Touch, and Android 2.1+ devices: -->
+	<link rel="apple-touch-icon" href="favicon-57.png">
+	<!-- Windows 8 Tiles -->
+	<meta name="msapplication-TileColor" content="#FFFFFF">
+	<meta name="msapplication-TileImage" content="/favicon-144.png">
+	<!-- ****** faviconit.com favicons ****** -->
+
+
 
     <script src="static/codemirror/lib/codemirror.js"></script>
     <script src="static/codemirror/addon/edit/matchbrackets.js"></script>
@@ -143,7 +158,6 @@
 
     <!-- Codemirror plugins/addons -->
     <script src="static/codemirror/addon/dialog/dialog.js"></script>
-    <link rel="stylesheet" href="static/codemirror/addon/dialog/dialog.css">
     <script src="static/codemirror/addon/search/searchcursor.js"></script>
     <script src="static/codemirror/addon/search/search.js"></script>
 
@@ -215,11 +229,13 @@
     <script type="text/javascript" src="static/mathjax/MathJax.js"></script>
 
     <!-- JSON Editor -->
+
+    <!--
     <link rel="stylesheet" type="text/css" href="static/jsoneditor/jsoneditor.css">
     <script type="text/javascript" src="static/jsoneditor/jsoneditor.min.js"></script>
+    -->
 
     <!-- Bootstrap Colorpicker Plugin -->
-    <link rel="stylesheet" type="text/css" href="static/jquery/plugins/bootstrap-colorpicker/css/bootstrap-colorpicker.css">
     <script type="text/javascript" src="static/jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js"></script>
 
     <!-- Raphael SVG support: we may want this at some point; provides nice interactive printable graphics using SVG
@@ -229,8 +245,6 @@
 
     <!-- Pnotify: Notification framework from http://pinesframework.org/pnotify -->
     <script type="text/javascript" src="static/pnotify/jquery.pnotify.min.js"></script>
-    <link href="static/pnotify/jquery.pnotify.default.css" media="all" rel="stylesheet" type="text/css" />
-    <link href="static/pnotify/jquery.pnotify.default.icons.css" media="all" rel="stylesheet" type="text/css" />
 
 
 
@@ -245,7 +259,6 @@
 
     <!-- Dropzone for file upload -->
     <script type="text/javascript" src="static/jquery/plugins/dropzone/dropzone.js"></script>
-    <link rel="stylesheet" href="static/jquery/plugins/dropzone/css/dropzone.css">
 
     <!-- LaTeX support -->
     <script type="text/javascript" src="static/latex/latex-log-parser.js"></script>
@@ -256,19 +269,10 @@
     <script type="text/javascript" src="static/index-__SALVUS_VERSION__.min.js"></script>
 
     <!-- D3 data visualization -->
+    <!--
     <script type="text/javascript" src="static/d3/d3.v3.min.js"></script>
     <script type="text/javascript" src="static/d3/d3.layout.cloud.js"></script>
-
-    <!-- Three.js for 3d graphics -->
-    <!--  disabled for now: I'm going to fully integrate the r59 version that works, then carefully upgrade and fix issues:
-    <script src="static/threejs/three.min.js"></script>
-    <script src="static/threejs/OBJLoader.js"></script>
-    <script src="static/threejs/TrackballControls.js"></script>
-    <script src="static/threejs/Detector.js"></script>
     -->
-
-    <!-- Salvus stylesheet -->
-    <link href="static/index.css" rel="stylesheet">
 
     <script type="text/javascript">
         var _gaq = _gaq || [];
