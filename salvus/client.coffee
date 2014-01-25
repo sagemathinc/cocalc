@@ -1366,14 +1366,19 @@ class exports.Connection extends EventEmitter
             path0 = opts.path.slice(0,i) + ' ' + opts.path.slice(i+1)
             i = path0.indexOf('/')
             if i == -1
-                snapshot = path0
                 path = ''
             else
-                snapshot = path0.slice(0, i)
                 path = path0.slice(i+1)
+                path0 = path0.slice(0, i)
+
+            # This is horrible code that works on supported platforms.
+            # This puts the time in a format that new Date(...) can parse on everything.
+            v = path0.split(' ')
+            a = new Date(v[0]).toUTCString().split(' ')
+            snapshot = "#{a[1]} #{a[2]} #{a[3]} #{v[1]}"
+
             snapshot = (new Date(snapshot)).toISOString().slice(0,19)
             real_path = '.zfs/snapshot/' + snapshot + '/' + path
-            console.log(real_path)
             @project_directory_listing
                 path       : real_path
                 project_id : opts.project_id
@@ -1408,7 +1413,7 @@ class exports.Connection extends EventEmitter
                         files = ({name:name, isdir:true} for name in resp.list)
                         opts.cb(false, {files:files})
                     else if opts.path.length == 10
-                        files = ({name:new Date("1974-01-01 #{name}").toLocaleTimeString(), isdir:true} for name in resp.list)
+                        files = ({name:new Date("Tue, 01 Jan 1974 #{name}").toLocaleTimeString(), isdir:true} for name in resp.list)
                         opts.cb(false, {files:files})
                     else
                         opts.cb('invalid snapshot directory name')
