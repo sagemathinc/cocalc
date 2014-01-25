@@ -2363,7 +2363,7 @@ exports.replicate_all = replicate_all = (opts) ->
                 database.select
                     table   : 'projects'
                     columns : ['project_id']
-                    limit   : if opts.stop? then opts.stop else 1000000       # TODO: change to use paging...
+                    limit   : 1000000       # TODO: change to use paging...
                     cb      : (err, result) ->
                         projects = result
                         cb(err)
