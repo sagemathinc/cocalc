@@ -300,9 +300,9 @@ init_http_proxy_server = () =>
                 database.key_value_store(name: 'remember_me').get
                     key : generate_hash(x[0], x[1], x[2], x[3])
                     cb  : (err, signed_in_mesg) =>
-                        if err
+                        account_id = signed_in_mesg?.account_id
+                        if err or not account_id?
                             cb('unable to get remember_me cookie from db -- cookie invalid'); return
-                        account_id = signed_in_mesg.account_id
                         cb()
             (cb) ->
                 user_has_write_access_to_project

@@ -25,8 +25,8 @@ cmd("./scripts/make_coffee " + ' '.join(sys.argv[1:]))
 ###########
 # Code shared between backend servers and web browser clients
 ###########
+#       rm -f static/salvus-*.min.js static/index-*.min.js && \
 cmd("""\
-      rm -f static/salvus-*.min.js static/index-*.min.js && \
       browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
       uglifyjs2 static/salvus.js -o static/salvus-%s.min.js && \
       cd page &&

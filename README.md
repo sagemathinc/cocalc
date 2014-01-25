@@ -1,30 +1,35 @@
-Salvus
-======
+SageMathCloud (SMC)
+===================
 
 Website
 -------
 
-   * [salv.us](https://salv.us)
+   * [cloud.sagemath.com](https://cloud.sagemath.com)
 
 Author
 ------
 
-   * William Stein, University of Washington
+   * William Stein, University of Washington -- Coding and Design
+   * Harald Schilly, Vienna, Austria -- Marketing and QA
+   * Keith Clawson -- Infrastructure
 
 Copyright
 ---------
 
    * This code is *not* released under any license; in particular,
-     this codebase is not "open source".
+     the entire codebase is not "open source".  Some selected
+     parts of it have been released under open source licenses though.
 
-   * Copyright, University of Washington.
+   * Copyright, William Stein, University of Washington.
 
    * All dependencies are open source.
-   * Every dependency of the core of Salvus itself is licensed under
+
+   * Every library dependency of the *core* of SMC is licensed under
      BSD, Apache, MIT, or a similar non-viral license -- absolutely no
      GPL, LGPL, AGPL, etc.
+
    * However various things that communicate over the network with the
-     core, sit on the edge, may be GPL'd, e.g., Stunnel, Sage, etc.
+     core may be GPL'd, e.g., Stunnel, Sage, etc.
 
 Dependencies
 ------------
@@ -39,6 +44,7 @@ Python
 Javascript/CSS/HTML
 -------------------
 
+   * CoffeeScript -- all our Javascript is written using CoffeeScript
    * jQuery, jQuery-ui -- http://jquery.org/; MIT license
    * twitter bootstrap -- apache license
    * codemirror2 -- http://codemirror.net/; basically MIT license
@@ -56,58 +62,62 @@ Database
 
 There are some GPL'd componenents of the overall system, but
 each runs as a separate process, not linking as a library into
-the new Salvus code.
+the new SMC codebase.
 --------------------------------------------------------------
 
-   * Linux -- OS -- Salvus is only designed to be run on Linux.  I
-              developed Salvus on OS X for a while, but gave up at
-              some point, since a Linux private cloud is the
-              deployment target; GPL v2.
-   * tinc  -- VPN software -- http://www.tinc-vpn.org/; GPL v2+
+   * Linux -- SMC is only designed to be run on Linux (GPL v2)
+   * tinc  -- VPN software; http://www.tinc-vpn.org/; GPL v2+
    * Git   -- http://git-scm.com/; GPL v2
-   * Sage  -- http://sagemath.org/; GPL v3+; this is linked by
-              sage_server.py, which thus must be GPL'd
+   * Sage  -- http://sagemath.org/; GPL v3+; this is linked by sage_server.py, which thus must be GPL'd
+   * ZFS   -- filesystem; CDL license
 
 ARCHITECTURE
 ------------
-  * VPN           : tinc, connects all computers at all sites into one
+  * VPN          -- tinc; P2P vpn; connects all computers at all sites into one
                     unified network address space with secure communication
-  * SSL           : stunnel
-  * Client        : javascript client library that runs in web browser
-  * Load balancer : HAproxy
-  * Database      : Cassandra -- distributed, NoSQL, fault tolerant; this is
-                    the *only* longterm non-stateless part of the system
-  * Compute       : VM's running some TCP servers (e.g., sage, console, projects,
-                    python3, R, etc.); provides short-term state.
-  * Hub           : written in Node; Sock.js server; connects with *everything* --
+  * SSL          -- stunnel
+  * Client       -- javascript client library that runs in web browser
+  * Load balancer-- HAproxy
+  * Database     -- Cassandra; distributed, NoSQL, fault tolerant, P2P
+  * Compute      -- VM's running TCP servers (e.g., sage, console, projects,
+                    python3, R, etc.); stores all project data using ZFS.
+  * Hub          -- written in Node.js; Sock.js server; connects with *everything* --
                     compute servers, Cassandra DB, other hubs, and clients.
-  * HTTP server   : Nginx static http
-  * Admin         : Python program that uses paramiko to start/stop everything
-  * Private Cloud : (mostly) kvm virtual machines in various places
+  * HTTP server  -- Nginx static http server
+  * admin        -- Python program that uses paramiko to start/stop everything
+  * Private Cloud-- (mostly) kvm virtual machines in various places
+  * Public Cloud -- Google Compute Engine
 
-Diagram
--------
+Architectural Diagram
+---------------------
 <pre>
+
    Client    Client    Client   Client  ...
      /|\
       |
-   https://salv.us (stunnel, sock.js)
+   https://cloud.sagemath.com (stunnel, sock.js)
       |
       |
      \|/
- HAProxy load balancers ........                      Admin     (monitor and control system)
+ HAproxy (load balancing...)HAproxy                  Admin     (monitor and control system)
  /|\       /|\      /|\      /|\
   |         |        |        |
   |http1.1  |        |        |
   |         |        |        |
  \|/       \|/      \|/      \|/
- Hub<----> Hub<---->Hub<---> Hub  <----------->   Cassandra <--> Cassandra  <--> Cassandra ...
+ Hub<----> Hub<---->Hub<---> Hub  <-----------> Cassandra <--> Cassandra  <--> Cassandra ...
            /|\      /|\      /|\
             |        |        |
    ---------|        |        | (tcp)
    |                 |        |
    |                 |        |
-  \|/               \|/       \|/
- Compute          Compute  Compute   Compute ...
+  \|/               \|/      \|/
+ Compute<-------->Compute<-->Compute <--- ZFS replication (over ssh) --->  Compute ...
+  ZFS snapshots
 
 </pre>
+
+
+
+
+

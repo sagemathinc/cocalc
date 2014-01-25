@@ -209,6 +209,16 @@ tmux -V
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
+# Clawpack: requires a special flag
+
+    # system-wide
+    sudo su; umask 022; pip install clawpack
+
+    # in sage
+    sage -sh; umask 022
+    export LDFLAGS=-shared; pip install clawpack
+
+
 # We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
 
     pip install --upgrade rpy2
