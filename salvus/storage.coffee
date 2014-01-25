@@ -335,6 +335,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
         project_id : required
         base_url   : ''
         exclude    : undefined  # if project not currently opened, won't open on any host in the list exclude
+        prefer     : undefined  # string or array; if given prefer these hosts first, irregardless of their newness.
         cb         : required   # cb(err, host used)
 
     dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id}): #{m}")
@@ -393,6 +394,12 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
 
                         if opts.exclude?
                             hosts = (x for x in hosts when opts.exclude.indexOf(x) == -1)
+
+                        if opts.prefer?
+                            if typeof(opts.prefer) == 'string'
+                                opts.prefer = [opts.prefer]
+                            # move any hosts in the prefer list to the front of the line.
+                            hosts = (x for x in hosts when opts.prefer.indexOf(x) != -1).concat( (x for x in hosts when opts.prefer.indexOf(x) == -1) )
 
                         ## TODO: FOR TESTING -- restrict to Google
                         ##hosts = (x for x in hosts when x.slice(0,4) == '10.3')
