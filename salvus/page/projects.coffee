@@ -19,11 +19,20 @@ top_navbar.on "switch_to_page-projects", () ->
 
 
 project_list = undefined
+project_hashtags = {}
 compute_search_data = () ->
     if project_list?
+        project_hashtags = {}  # reset global variable
         for project in project_list
             project.search = (project.title+' '+project.description).toLowerCase()
-    # NOTE: update_project_view also adds to project.search
+            for k in misc.split(project.search)
+                if k[0] == '#'
+                    tag = k.slice(1).toLowerCase()
+                    if not project_hashtags[tag]?
+                        project_hashtags[tag] = []
+                    project_hashtags[tag].push(project)
+
+    # NOTE: create_project_item also adds to project.search, with info about the users of the projects
 
 project_list_spinner = $("#projects").find(".projects-project-list-spinner")
 
@@ -160,7 +169,7 @@ create_project_item = (project) ->
             for user in project[group]
                 if user.account_id != salvus_client.account_id
                     users.push("#{user.first_name} #{user.last_name}") # (#{group})")  # use color for group...
-                    project.search += (user.first_name + ' ' + user.last_name + ' ').toLowerCase()
+                    project.search += (' ' + user.first_name + ' ' + user.last_name + ' ').toLowerCase()
 
     if users.length == 0
         u = ''
@@ -214,8 +223,15 @@ update_project_view = (show_all=false) ->
 
     $(".projects-describe-listing").text(desc)
 
+    words = misc.split(find_text)
+    match = (search) ->
+        for word in words
+            if search.indexOf(word) == -1
+                return false
+        return true
+
     for project in project_list
-        if find_text != "" and project.search.indexOf(find_text) == -1
+        if find_text != "" and not match(project.search)
             continue
 
         if only_public

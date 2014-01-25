@@ -51,6 +51,9 @@ exports.random_choice_from_obj = (obj) ->
 # Returns a random integer in the range, inclusive (like in Python)
 exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
 
+# Like Python's string split -- splits on whitespace
+exports.split = (s) -> s.match(/\S+/g)
+
 # modifies target in place, so that the properties of target are the
 # same as those of upper_bound, and each is <=.
 exports.min_object = (target, upper_bounds) ->
