@@ -17,6 +17,7 @@ top_navbar.on "switch_to_page-projects", () ->
     update_project_list?()
     $(".projects-find-input").focus()
 
+templates = $(".salvus-projects-templates")
 
 project_list = undefined
 project_hashtags = {}
@@ -28,9 +29,7 @@ compute_search_data = () ->
             for k in misc.split(project.search)
                 if k[0] == '#'
                     tag = k.slice(1).toLowerCase()
-                    if not project_hashtags[tag]?
-                        project_hashtags[tag] = []
-                    project_hashtags[tag].push(project)
+                    project_hashtags[tag] = true
 
     # NOTE: create_project_item also adds to project.search, with info about the users of the projects
 
@@ -61,6 +60,7 @@ update_project_list = exports.update_project_list = (cb) ->
                         p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
                 compute_search_data()
                 update_project_view()
+                update_hashtag_bar()
 
             cb?()
 
@@ -206,8 +206,13 @@ update_project_view = (show_all=false) ->
     X = $("#projects-project_list")
     X.empty()
     # $("#projects-count").html(project_list.length)
+
+
     find_text = $(".projects-find-input").val().toLowerCase()
     n = 0
+
+    for tag in selected_hashtags()
+        find_text += ' ' + tag
 
     desc = "Showing "
     if only_deleted
@@ -222,16 +227,16 @@ update_project_view = (show_all=false) ->
         desc += " whose title, description or users contain '#{find_text}'."
 
     $(".projects-describe-listing").text(desc)
-
     words = misc.split(find_text)
     match = (search) ->
-        for word in words
-            if search.indexOf(word) == -1
-                return false
+        if find_text != ''
+            for word in words
+                if search.indexOf(word) == -1
+                    return false
         return true
 
     for project in project_list
-        if find_text != "" and not match(project.search)
+        if not match(project.search)
             continue
 
         if only_public
@@ -258,6 +263,54 @@ update_project_view = (show_all=false) ->
         $("#projects-show_all").show()
     else
         $("#projects-show_all").hide()
+
+########################################
+#
+# hashtag handling
+#
+########################################
+
+hashtag_bar = $(".salvus-hashtag-buttons")
+hashtag_button_template = templates.find(".salvus-hashtag-button")
+
+# Toggle whether or not the given hashtag button is selected.
+toggle_hashtag_button = (button) ->
+    if button.hasClass('btn-info')
+        button.removeClass('btn-info').addClass('btn-inverse')
+    else
+        button.removeClass('btn-inverse').addClass('btn-info')
+
+# Return list of strings '#foo', for each currently selected hashtag
+selected_hashtags = () ->
+    v = []
+    for button in hashtag_bar.children()
+        b = $(button)
+        if b.hasClass('btn-inverse')
+            v.push(b.text())
+    return v
+
+# Handle user clicking on a hashtag button; updates what is displayed and changes class of button.
+click_hashtag = (event) ->
+    button = $(event.delegateTarget)
+    toggle_hashtag_button(button)
+    update_project_view()
+    return false
+
+update_hashtag_bar = () ->
+    # Create and activate all the hashtag buttons.
+    if project_hashtags.length == 0
+        hashtag_bar.hide()
+        return
+    hashtag_bar.empty()
+    for tag,ignore of project_hashtags
+        button = hashtag_button_template.clone()
+        button.text("#"+tag)
+        button.click(click_hashtag)
+        hashtag_bar.append(button)
+    hashtag_bar.show()
+
+
+## end hashtag code
 
 open_project = (project, item) ->
     #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
