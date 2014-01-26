@@ -2395,6 +2395,8 @@ exports.replicate_all = replicate_all = (opts) ->
 exports.backup_all_projects = (opts) ->
     opts = defaults opts,
         limit      : 10
+        start      : undefined
+        stop       : undefined
         cb         : undefined
     dbg = (m) -> winston.debug("backup_all_projects: #{m}")
     errors = {}
@@ -2410,6 +2412,8 @@ exports.backup_all_projects = (opts) ->
                     projects = (a[0] for a in result)
                     projects.sort()
                     dbg("got #{projects.length} projects")
+                    if opts.start? or opts.stop?
+                        projects = projects.slice(opts.start, opts.stop)
                     cb(err)
         (cb) ->
             dbg("backing up all projects...")
