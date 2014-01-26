@@ -304,7 +304,9 @@ update_hashtag_bar = () ->
         hashtag_bar.hide()
         return
     hashtag_bar.empty()
-    for tag,ignore of project_hashtags
+    v = misc.keys(project_hashtags)
+    v.sort()
+    for tag in v
         button = hashtag_button_template.clone()
         button.text("#"+tag)
         button.click(click_hashtag)
