@@ -34,6 +34,11 @@
     margin-bottom: 1ex !important;
 }
 
+.project-add-linked-project-input {
+    width: 95%;
+    margin-bottom: 1ex !important;
+}
+
 .project-file-listing {
     margin-left  : 3em;
     margin-right : 3em;
@@ -44,7 +49,7 @@
     overflow-x: hidden; */
 }
 
-.project-collaborators {
+.project-connections {
     line-height: 2.2em;
     max-height: 13em;
     overflow-y: auto;
@@ -54,6 +59,8 @@
     margin-top: 1em;
     background-color: #eee;
 }
+
+
 
 .project-file-listing-current_path {
     margin-top:12px;
