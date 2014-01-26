@@ -189,10 +189,10 @@ class ProjectPage
         @init_make_public()
         @init_make_private()
 
-        @init_add_collaborators()
+        @update_collaborators = @init_add_collaborators()
         @init_add_noncloud_collaborator()
 
-        @init_linked_projects()
+        @update_linked_projects = @init_linked_projects()
 
         @init_move_project()
 
@@ -361,7 +361,6 @@ class ProjectPage
 
     close: () =>
         top_navbar.remove_page(@project.project_id)
-
 
     # Reload the @project attribute from the database, and re-initialize
     # ui elements, mainly in settings.
@@ -762,6 +761,9 @@ class ProjectPage
                 tab.onshow = () ->
                     that.push_state('settings')
                     that.update_topbar()
+                    that.update_linked_projects()
+                    that.update_collaborators()
+
             else if name == "project-search"
                 tab.onshow = () ->
                     that.push_state('search/' + that.current_path.join('/'))
@@ -2120,8 +2122,6 @@ class ProjectPage
                                     c.tooltip(title:"Viewer"+extra_tip, delay: { show: 500, hide: 100 })
                             collabs.append(c)
 
-        update_collaborators()
-
         update_collab_list = () =>
             x = input.val()
             if x == ""
@@ -2180,15 +2180,17 @@ class ProjectPage
             timer = setTimeout(update_collab_list, 100)
             return false
 
+        return update_collaborators
+
     init_linked_projects: () =>
 
-        @linked_projects = {}  # TODO: need to load from db
-
+        @linked_project_list = []
         element    = @container.find(".project-linked-projects-box")
         input      = element.find(".project-add-linked-project-input")
         select     = element.find(".project-add-linked-project-select")
         add_button = element.find("a[href=#add-linked-project]").tooltip(delay:{ show: 500, hide: 100 })
         linked     = element.find(".project-linked-projects")
+        loading    = element.find(".project-linked-projects-loading")
 
         projects   = require('projects')
 
@@ -2198,19 +2200,32 @@ class ProjectPage
             else
                 add_button.removeClass('disabled')
 
-        add_project = (project_id) =>
-            @linked_projects[project_id] = true
+        add_projects = (project_ids, cb) =>
+            salvus_client.linked_projects
+                project_id : @project.project_id
+                add        : project_ids
+                cb         : (err) =>
+                    cb(err)
 
-        remove_project = (project_id) =>
-            delete @linked_projects[project_id]
 
-        add_selected = () =>
-            for y in select.find(":selected")
-                x = $(y)
-                project_id = x.attr('value')
-                add_project(project_id)
-                console.log(project_id)
-            update_linked_projects()
+        remove_project = (project_id, cb) =>
+            salvus_client.linked_projects
+                project_id : @project.project_id
+                remove     : project_id
+                cb         : (err) =>
+                    if err
+                        alert_message(type:'error', message:'error deleted selected projects')
+                        cb?()
+                    else
+                        update_linked_projects(cb)
+
+        add_selected = (cb) =>
+            add_projects ($(y).attr('value') for y in select.find(":selected")), (err) =>
+                if err
+                    alert_message(type:'error', message:'error adding selected projects')
+                    cb?()
+                else
+                    update_linked_projects(cb)
 
         add_button.click () =>
             if add_button.hasClass('disabled')
@@ -2219,24 +2234,35 @@ class ProjectPage
             return false
 
         # update list of currently linked projects
-        update_linked_projects = () =>
-            update_linked_projects_search_list()
-            result = projects.matching_projects(misc.keys(@linked_projects))
-            linked.empty()
-            for project in result.projects
-                c = template_project_linked.clone()
-                c.find(".project-linked-title").text(project.title)
-                if project.description != "No description"
-                    c.find(".project-linked-description").text(project.description)
-                project_id = project.project_id
-                c.find(".project-close-button").data('project_id', project_id).click () ->
-                    remove_project($(@).data('project_id'))
-                    update_linked_projects()
-                    return false
-                c.find("a").data('project_id', project_id).click () ->
-                    projects.open_project($(@).data('project_id'))
-                    return false
-                linked.append(c)
+        update_linked_projects = (cb) =>
+            loading.show()
+            salvus_client.linked_projects
+                project_id : @project.project_id
+                cb         : (err, x) =>
+                    loading.hide()
+                    if err
+                        cb?(err); return
+
+                    @linked_project_list = x
+                    update_linked_projects_search_list()
+                    result = projects.matching_projects(@linked_project_list)
+
+                    linked.empty()
+                    for project in result.projects
+                        c = template_project_linked.clone()
+                        c.find(".project-linked-title").text(project.title)
+                        if project.description != "No description"
+                            c.find(".project-linked-description").text(project.description)
+                        project_id = project.project_id
+                        c.find(".project-close-button").data('project_id', project_id).click () ->
+                            remove_project($(@).data('project_id'))
+                            update_linked_projects()
+                            return false
+                        c.find("a").data('project_id', project_id).click () ->
+                            projects.open_project($(@).data('project_id'))
+                            return false
+                        linked.append(c)
+                    cb?()
 
         # display result of searching for linked projects
         update_linked_projects_search_list = () =>
@@ -2249,7 +2275,10 @@ class ProjectPage
                 return
 
             x = projects.matching_projects(x)
-            result = (project for project in x.projects when not @linked_projects[project.project_id])
+            if @linked_project_list?
+                result = (project for project in x.projects when @linked_project_list.indexOf(project.project_id) == -1)
+            else
+                result = x.projects
             element.find(".project-add-linked-projects-desc").text(x.desc)
 
             if result.length > 0
@@ -2276,6 +2305,7 @@ class ProjectPage
             timer = setTimeout(update_linked_projects_search_list, 100)
             return false
 
+        return update_linked_projects
 
     init_worksheet_server_restart: () =>
         # Restart worksheet server

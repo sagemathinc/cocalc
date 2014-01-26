@@ -1038,6 +1038,16 @@ message
     event      : 'project_list_updated'
 
 
+## linked projects  ---------------------------
+# client <--> hub
+message
+    event      : 'linked_projects'
+    id         : undefined
+    project_id : undefined
+    add        : undefined   # array of project_id's
+    remove     : undefined   # array of project_id's
+    list       : undefined   # if add/remove are undefined in client-->hub message, then list it list of project_id's in the hub-->client message
+
 
 ## search ---------------------------
 

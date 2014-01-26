@@ -1470,6 +1470,36 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
+    mesg_linked_projects: (mesg) =>
+        if not mesg.add? and not mesg.remove?
+            # get list of linked projects
+            @get_project mesg, 'read', (err, project) =>
+                if err
+                    return
+                # we have read access to this project, so we can see list of linked projects
+                database.linked_projects
+                    project_id : project.project_id
+                    cb         : (err, list) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.linked_projects(id:mesg.id, list:list))
+        else
+            @get_project mesg, 'write', (err, project) =>
+                if err
+                    return
+                # we have read/write access to this project, so we can add/remove linked projects
+                database.linked_projects
+                    add        : mesg.add
+                    remove     : mesg.remove
+                    project_id : project.project_id
+                    cb         : (err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.success(id:mesg.id))
+
+
     ################################################
     # CodeMirror Sessions
     ################################################
@@ -1885,7 +1915,7 @@ snap_command_ls = (opts) ->
         timezone_offset : opts.timezone_offset
         path            : opts.path
         cb              : opts.cb
-        
+
 
 _snap_server_socket_cache = {}
 connect_to_snap_server = (server, cb) ->

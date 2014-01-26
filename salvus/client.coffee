@@ -1344,7 +1344,30 @@ class exports.Connection extends EventEmitter
                 else if result.event == 'error'
                     opts.cb(result.error)
                 else
-                    opts.cb(false, result)
+                    opts.cb(undefined, result)
+
+    #################################################
+    # Linked projects
+    #################################################
+    linked_projects: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            add        : undefined   # if given should be: project_id or list of project_id's; each is added
+            remove     : undefined   # if given should be: project_id or list of project_id's; each is added
+            cb         : required    # if neither add nor remove are specified, then cb(err, list of linked project ids)
+        if opts.add? and typeof(opts.add) == 'string'
+            opts.add = [opts.add]
+        if opts.remove? and typeof(opts.remove) == 'string'
+            opts.remove = [opts.remove]
+        @call
+            message : message.linked_projects(project_id : opts.project_id, add:opts.add, remove:opts.remove)
+            cb      : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(undefined, resp.list)
 
     #################################################
     # File Management
