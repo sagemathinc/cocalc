@@ -39,6 +39,14 @@
     margin-bottom: 1ex !important;
 }
 
+.project-add-collaborator-select {
+    width:100%;
+}
+
+.project-add-linked-project-select {
+    width:100%;
+}
+
 .project-file-listing {
     margin-left  : 3em;
     margin-right : 3em;

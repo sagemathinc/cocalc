@@ -191,6 +191,8 @@ class ProjectPage
         @init_add_collaborators()
         @init_add_noncloud_collaborator()
 
+        @init_linked_projects()
+
         @init_move_project()
 
         # Set the project id
@@ -2137,6 +2139,7 @@ class ProjectPage
                     result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
                     if result.length > 0
                         select.show()
+                        select.attr(size:Math.min(10,result.length))
                         @container.find(".project-add-noncloud-collaborator").hide()
                         @container.find(".project-add-collaborator").show()
                         for r in result
@@ -2176,6 +2179,49 @@ class ProjectPage
                 clearTimeout(timer)
             timer = setTimeout(update_collab_list, 100)
             return false
+
+    init_linked_projects: () =>
+        element    = @container.find(".project-linked-projects-box")
+        input      = element.find(".project-add-linked-project-input")
+        select     = element.find(".project-add-linked-project-select")
+        add_button = element.find("a[href=#add-linked-project]").tooltip(delay:{ show: 500, hide: 100 })
+
+        projects = require('projects')
+
+        update_linked_projects_search_list = () =>
+            x = input.val()
+
+            if x == ""
+                select.html("").hide()
+                element.find(".project-add-linked-project").hide()
+                element.find(".project-add-linked-projects-desc").hide()
+                return
+
+            x = projects.matching_projects(x)
+            result = x.projects
+            element.find(".project-add-linked-projects-desc").text(x.desc)
+
+            if result.length > 0
+                select.html("")
+                select.show()
+                select.attr(size:Math.min(10,result.length))
+                element.find(".project-add-linked-project").show()
+                for r in result
+                    x = r.title + '; ' + r.description
+                    select.append($("<option>").attr(value:r.project_id, label:x).text(x))
+                select.show()
+                add_button.addClass('disabled')
+            else
+                select.hide()
+
+
+        timer = undefined
+        input.keyup (event) ->
+            if timer?
+                clearTimeout(timer)
+            timer = setTimeout(update_linked_projects_search_list, 100)
+            return false
+
 
     init_worksheet_server_restart: () =>
         # Restart worksheet server

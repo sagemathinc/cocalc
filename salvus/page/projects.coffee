@@ -199,19 +199,9 @@ create_project_item = (project) ->
         return false
     return item
 
-update_project_view = (show_all=false) ->
-    if not project_list?
-        return
-    X = $("#projects-project_list")
-    X.empty()
-    # $("#projects-count").html(project_list.length)
-
-    find_text = $(".projects-find-input").val().toLowerCase()
-    n = 0
-
-    for tag in selected_hashtags()
-        find_text += ' ' + tag
-
+exports.matching_projects = matching_projects = (find_text) ->
+    # Returns
+    #    {projects:[sorted (newest first) array of projects matching the given search], desc:'description of the search'}
     desc = "Showing "
     if only_deleted
         desc += "deleted projects "
@@ -224,7 +214,6 @@ update_project_view = (show_all=false) ->
     if find_text != ""
         desc += " whose title, description or users contain '#{find_text}'."
 
-    $(".projects-describe-listing").text(desc)
     words = misc.split(find_text)
     match = (search) ->
         if find_text != ''
@@ -235,6 +224,7 @@ update_project_view = (show_all=false) ->
                     return false
         return true
 
+    ans = {projects:[], desc:desc}
     for project in project_list
         if not match(project.search)
             continue
@@ -253,7 +243,30 @@ update_project_view = (show_all=false) ->
         else
             if project.deleted
                 continue
+        ans.projects.push(project)
 
+    return ans
+
+# Update the list of projects in the projects tab.
+# TODO: don't actually make the change until mouse has stayed still for at least some amount of time. (?)
+update_project_view = (show_all=false) ->
+    if not project_list?
+        return
+    X = $("#projects-project_list")
+    X.empty()
+    # $("#projects-count").html(project_list.length)
+
+    find_text = $(".projects-find-input").val().toLowerCase()
+
+    for tag in selected_hashtags()
+        find_text += ' ' + tag
+
+    {projects, desc} = matching_projects(find_text)
+
+    n = 0
+    $(".projects-describe-listing").text(desc)
+
+    for project in projects
         n += 1
         if not show_all and n > DEFAULT_MAX_PROJECTS
             break
