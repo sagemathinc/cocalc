@@ -199,53 +199,64 @@ create_project_item = (project) ->
         return false
     return item
 
-exports.matching_projects = matching_projects = (find_text) ->
-    # Returns
-    #    {projects:[sorted (newest first) array of projects matching the given search], desc:'description of the search'}
-    desc = "Showing "
-    if only_deleted
-        desc += "deleted projects "
-    else if only_public
-        desc += "public projects "
-    else if only_private
-        desc += "private projects "
-    else
-        desc += "projects "
-    if find_text != ""
-        desc += " whose title, description or users contain '#{find_text}'."
+# query = string or array of project_id's
+exports.matching_projects = matching_projects = (query) ->
 
-    words = misc.split(find_text)
-    match = (search) ->
-        if find_text != ''
-            for word in words
-                if word[0] == '#'
-                    word = '[' + word + ']'
-                if search.indexOf(word) == -1
-                    return false
-        return true
+    if typeof(query) == 'string'
+        find_text = query
 
-    ans = {projects:[], desc:desc}
-    for project in project_list
-        if not match(project.search)
-            continue
-
-        if only_public
-            if not project.public
-                continue
-
-        if only_private
-            if project.public
-                continue
-
+        # Returns
+        #    {projects:[sorted (newest first) array of projects matching the given search], desc:'description of the search'}
+        desc = "Showing "
         if only_deleted
-            if not project.deleted
-                continue
+            desc += "deleted projects "
+        else if only_public
+            desc += "public projects "
+        else if only_private
+            desc += "private projects "
         else
-            if project.deleted
-                continue
-        ans.projects.push(project)
+            desc += "projects "
+        if find_text != ""
+            desc += " whose title, description or users contain '#{find_text}'."
 
-    return ans
+        words = misc.split(find_text)
+        match = (search) ->
+            if find_text != ''
+                for word in words
+                    if word[0] == '#'
+                        word = '[' + word + ']'
+                    if search.indexOf(word) == -1
+                        return false
+            return true
+
+        ans = {projects:[], desc:desc}
+        for project in project_list
+            if not match(project.search)
+                continue
+
+            if only_public
+                if not project.public
+                    continue
+
+            if only_private
+                if project.public
+                    continue
+
+            if only_deleted
+                if not project.deleted
+                    continue
+            else
+                if project.deleted
+                    continue
+            ans.projects.push(project)
+
+        return ans
+
+    else
+
+        # array of project_id's
+        return {desc:'', projects:(p for p in project_list when p.project_id in query)}
+
 
 # Update the list of projects in the projects tab.
 # TODO: don't actually make the change until mouse has stayed still for at least some amount of time. (?)
@@ -332,8 +343,20 @@ update_hashtag_bar = () ->
 
 ## end hashtag code
 
-open_project = (project, item) ->
-    #if not top_navbar.pages[project.project_id]? and top_navbar.number_of_pages_left() >= 5
+exports.open_project = open_project = (project, item) ->
+    if typeof(project) == 'string'
+        # actually a project id
+        x = undefined
+        for p in project_list
+            if p.project_id == project
+                x = p
+                break
+        if not x?
+            alert_message(type:"error", message:"Unknown project with id '#{project}'")
+            return
+        else
+            project = x
+
     proj = project_page(project)
     top_navbar.switch_to_page(project.project_id)
 

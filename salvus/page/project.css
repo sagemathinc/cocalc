@@ -69,7 +69,6 @@
 }
 
 
-
 .project-file-listing-current_path {
     margin-top:12px;
     margin-bottom:12px;
@@ -415,7 +414,7 @@
     border-radius: 5px;
 }
 
-.project-collab {
+.project-connection {
     margin-right: 1em;
     border-radius: 6px;
     background-color: #08c;

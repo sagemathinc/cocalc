@@ -30,6 +30,7 @@ template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
 template_project_collab        = templates.find(".project-collab")
+template_project_linked        = templates.find(".project-linked")
 
 ################################O##################
 # Initialize the modal project management dialogs
@@ -2169,7 +2170,6 @@ class ProjectPage
         add_button.click () =>
             if add_button.hasClass('disabled')
                 return false
-
             invite_selected()
             return false
 
@@ -2181,13 +2181,64 @@ class ProjectPage
             return false
 
     init_linked_projects: () =>
+
+        @linked_projects = {}  # TODO: need to load from db
+
         element    = @container.find(".project-linked-projects-box")
         input      = element.find(".project-add-linked-project-input")
         select     = element.find(".project-add-linked-project-select")
         add_button = element.find("a[href=#add-linked-project]").tooltip(delay:{ show: 500, hide: 100 })
+        linked     = element.find(".project-linked-projects")
 
-        projects = require('projects')
+        projects   = require('projects')
 
+        select.change () =>
+            if select.find(":selected").length == 0
+                add_button.addClass('disabled')
+            else
+                add_button.removeClass('disabled')
+
+        add_project = (project_id) =>
+            @linked_projects[project_id] = true
+
+        remove_project = (project_id) =>
+            delete @linked_projects[project_id]
+
+        add_selected = () =>
+            for y in select.find(":selected")
+                x = $(y)
+                project_id = x.attr('value')
+                add_project(project_id)
+                console.log(project_id)
+            update_linked_projects()
+
+        add_button.click () =>
+            if add_button.hasClass('disabled')
+                return false
+            add_selected()
+            return false
+
+        # update list of currently linked projects
+        update_linked_projects = () =>
+            update_linked_projects_search_list()
+            result = projects.matching_projects(misc.keys(@linked_projects))
+            linked.empty()
+            for project in result.projects
+                c = template_project_linked.clone()
+                c.find(".project-linked-title").text(project.title)
+                if project.description != "No description"
+                    c.find(".project-linked-description").text(project.description)
+                project_id = project.project_id
+                c.find(".project-close-button").data('project_id', project_id).click () ->
+                    remove_project($(@).data('project_id'))
+                    update_linked_projects()
+                    return false
+                c.find("a").data('project_id', project_id).click () ->
+                    projects.open_project($(@).data('project_id'))
+                    return false
+                linked.append(c)
+
+        # display result of searching for linked projects
         update_linked_projects_search_list = () =>
             x = input.val()
 
@@ -2198,16 +2249,19 @@ class ProjectPage
                 return
 
             x = projects.matching_projects(x)
-            result = x.projects
+            result = (project for project in x.projects when not @linked_projects[project.project_id])
             element.find(".project-add-linked-projects-desc").text(x.desc)
 
             if result.length > 0
                 select.html("")
+                add_button.addClass('disabled')
                 select.show()
                 select.attr(size:Math.min(10,result.length))
                 element.find(".project-add-linked-project").show()
                 for r in result
-                    x = r.title + '; ' + r.description
+                    x = r.title
+                    if $.trim(r.description) not in ['', 'No description']
+                        x += '; ' + r.description
                     select.append($("<option>").attr(value:r.project_id, label:x).text(x))
                 select.show()
                 add_button.addClass('disabled')
