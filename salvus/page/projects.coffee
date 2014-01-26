@@ -30,6 +30,7 @@ compute_search_data = () ->
                 if k[0] == '#'
                     tag = k.slice(1).toLowerCase()
                     project_hashtags[tag] = true
+                    project.search += " [#{k}] "
 
     # NOTE: create_project_item also adds to project.search, with info about the users of the projects
 
@@ -196,8 +197,6 @@ create_project_item = (project) ->
     item.click (event) ->
         open_project(project, item)
         return false
-
-
     return item
 
 update_project_view = (show_all=false) ->
@@ -230,6 +229,8 @@ update_project_view = (show_all=false) ->
     match = (search) ->
         if find_text != ''
             for word in words
+                if word[0] == '#'
+                    word = '[' + word + ']'
                 if search.indexOf(word) == -1
                     return false
         return true
