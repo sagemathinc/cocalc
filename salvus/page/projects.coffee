@@ -59,8 +59,8 @@ update_project_list = exports.update_project_list = (cb) ->
                     if p.owner?
                         p.ownername = misc.make_valid_name(p.owner[0].first_name + p.owner[0].last_name)
                 compute_search_data()
-                update_project_view()
                 update_hashtag_bar()
+                update_project_view()
 
             cb?()
 
@@ -207,7 +207,6 @@ update_project_view = (show_all=false) ->
     X.empty()
     # $("#projects-count").html(project_list.length)
 
-
     find_text = $(".projects-find-input").val().toLowerCase()
     n = 0
 
@@ -222,7 +221,7 @@ update_project_view = (show_all=false) ->
     else if only_private
         desc += "private projects "
     else
-        desc += "all projects "
+        desc += "projects "
     if find_text != ""
         desc += " whose title, description or users contain '#{find_text}'."
 
@@ -275,10 +274,13 @@ hashtag_button_template = templates.find(".salvus-hashtag-button")
 
 # Toggle whether or not the given hashtag button is selected.
 toggle_hashtag_button = (button) ->
+    tag = button.text()
     if button.hasClass('btn-info')
         button.removeClass('btn-info').addClass('btn-inverse')
+        localStorage["projects-hashtag-#{tag}"] = true
     else
         button.removeClass('btn-inverse').addClass('btn-info')
+        delete localStorage["projects-hashtag-#{tag}"]
 
 # Return list of strings '#foo', for each currently selected hashtag
 selected_hashtags = () ->
@@ -297,7 +299,7 @@ click_hashtag = (event) ->
     return false
 
 update_hashtag_bar = () ->
-    # Create and activate all the hashtag buttons.
+    # Create and add click events to all the hashtag buttons.
     if project_hashtags.length == 0
         hashtag_bar.hide()
         return
@@ -307,6 +309,8 @@ update_hashtag_bar = () ->
         button.text("#"+tag)
         button.click(click_hashtag)
         hashtag_bar.append(button)
+        if localStorage["projects-hashtag-##{tag}"]
+            toggle_hashtag_button(button)
     hashtag_bar.show()
 
 
