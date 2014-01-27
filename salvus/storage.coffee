@@ -622,11 +622,15 @@ exports.close_stale_projects = (opts) ->
         dry_run : true      # don't actually close the projects
         limit   : 5         # number of projects to close simultaneously.
         interval: 3000      # space out the project closing to give server a chance to do other things.
+        unset_loc : false   # whether to unset the location field in the database after closing the project; if done, then projects will resume later on a random host (which is usually *NOT* desirable).
         cb      : required
 
+    dbg = (m) -> winston.debug("close_stale_projects(...): #{m}")
+    dbg()
     projects = undefined
     async.series([
         (cb) ->
+            dbg("querying database...")
             database.stale_projects
                 ttl : opts.ttl
                 cb  : (err, v) ->
@@ -636,20 +640,31 @@ exports.close_stale_projects = (opts) ->
             f = (x, cb) ->
                 project_id = x.project_id
                 host       = x.location.host
-                winston.debug("close stale project #{project_id} at #{host}")
+                dbg("close stale project #{project_id} at #{host}")
                 if opts.dry_run
                     cb()
                 else
-                    # would actually close
-                    close_project
-                        project_id : project_id
-                        host       : host
-                        unset_loc  : false
-                        cb         : (err) ->
-                            if err or not opts.interval
-                                cb(err)
-                            else
-                                setTimeout(cb, opts.interval)
+                    # still stale -- could be quite a delay between getting list of stale projects and f getting called!
+                    database.select_one
+                        table   : 'projects'
+                        columns : ['last_edited']
+                        where   : {project_id : project_id}
+                        cb      : (err, result) ->
+                            if err
+                                cb(err); return
+                            last_edited = result[0]
+                            if misc.mswalltime() - opts.ttl*1000 < last_edited
+                                dbg("not killing, since they have edited #{project_id} in the meantime.")
+                                cb(); return
+                            close_project
+                                project_id : project_id
+                                host       : host
+                                unset_loc  : opts.unset_loc
+                                cb         : (err) ->
+                                    if err or not opts.interval
+                                        cb(err)
+                                    else
+                                        setTimeout(cb, opts.interval)
             async.eachLimit(projects, opts.limit, f, cb)
     ], opts.cb)
 
