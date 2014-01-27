@@ -30,6 +30,7 @@ template_project_commits       = templates.find(".project-commits")
 template_project_commit_single = templates.find(".project-commit-single")
 template_project_branch_single = templates.find(".project-branch-single")
 template_project_collab        = templates.find(".project-collab")
+template_project_linked        = templates.find(".project-linked")
 
 ################################O##################
 # Initialize the modal project management dialogs
@@ -188,8 +189,10 @@ class ProjectPage
         @init_make_public()
         @init_make_private()
 
-        @init_add_collaborators()
+        @update_collaborators = @init_add_collaborators()
         @init_add_noncloud_collaborator()
+
+        @update_linked_projects = @init_linked_projects()
 
         @init_move_project()
 
@@ -358,7 +361,6 @@ class ProjectPage
 
     close: () =>
         top_navbar.remove_page(@project.project_id)
-
 
     # Reload the @project attribute from the database, and re-initialize
     # ui elements, mainly in settings.
@@ -759,6 +761,9 @@ class ProjectPage
                 tab.onshow = () ->
                     that.push_state('settings')
                     that.update_topbar()
+                    that.update_linked_projects()
+                    that.update_collaborators()
+
             else if name == "project-search"
                 tab.onshow = () ->
                     that.push_state('search/' + that.current_path.join('/'))
@@ -2117,8 +2122,6 @@ class ProjectPage
                                     c.tooltip(title:"Viewer"+extra_tip, delay: { show: 500, hide: 100 })
                             collabs.append(c)
 
-        update_collaborators()
-
         update_collab_list = () =>
             x = input.val()
             if x == ""
@@ -2137,6 +2140,7 @@ class ProjectPage
                     result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
                     if result.length > 0
                         select.show()
+                        select.attr(size:Math.min(10,result.length))
                         @container.find(".project-add-noncloud-collaborator").hide()
                         @container.find(".project-add-collaborator").show()
                         for r in result
@@ -2166,7 +2170,6 @@ class ProjectPage
         add_button.click () =>
             if add_button.hasClass('disabled')
                 return false
-
             invite_selected()
             return false
 
@@ -2176,6 +2179,133 @@ class ProjectPage
                 clearTimeout(timer)
             timer = setTimeout(update_collab_list, 100)
             return false
+
+        return update_collaborators
+
+    init_linked_projects: () =>
+
+        @linked_project_list = []
+        element    = @container.find(".project-linked-projects-box")
+        input      = element.find(".project-add-linked-project-input")
+        select     = element.find(".project-add-linked-project-select")
+        add_button = element.find("a[href=#add-linked-project]").tooltip(delay:{ show: 500, hide: 100 })
+        linked     = element.find(".project-linked-projects")
+        loading    = element.find(".project-linked-projects-loading")
+
+        projects   = require('projects')
+
+        select.change () =>
+            if select.find(":selected").length == 0
+                add_button.addClass('disabled')
+            else
+                add_button.removeClass('disabled')
+
+        add_projects = (project_ids, cb) =>
+            salvus_client.linked_projects
+                project_id : @project.project_id
+                add        : project_ids
+                cb         : (err) =>
+                    cb(err)
+
+
+        remove_project = (project_id, cb) =>
+            salvus_client.linked_projects
+                project_id : @project.project_id
+                remove     : project_id
+                cb         : (err) =>
+                    if err
+                        alert_message(type:'error', message:'error deleted selected projects')
+                        cb?()
+                    else
+                        update_linked_projects(cb)
+
+        add_selected = (cb) =>
+            add_projects ($(y).attr('value') for y in select.find(":selected")), (err) =>
+                if err
+                    alert_message(type:'error', message:'error adding selected projects')
+                    cb?()
+                else
+                    update_linked_projects(cb)
+
+        add_button.click () =>
+            if add_button.hasClass('disabled')
+                return false
+            add_selected()
+            return false
+
+        # update list of currently linked projects
+        update_linked_projects = (cb) =>
+            loading.show()
+            salvus_client.linked_projects
+                project_id : @project.project_id
+                cb         : (err, x) =>
+                    loading.hide()
+                    if err
+                        cb?(err); return
+
+                    @linked_project_list = x
+                    update_linked_projects_search_list()
+                    result = projects.matching_projects(@linked_project_list)
+
+                    linked.empty()
+                    for project in result.projects
+                        c = template_project_linked.clone()
+                        c.find(".project-linked-title").text(project.title)
+                        if project.description != "No description"
+                            c.find(".project-linked-description").text(project.description)
+                        project_id = project.project_id
+                        c.find(".project-close-button").data('project_id', project_id).click () ->
+                            remove_project($(@).data('project_id'))
+                            update_linked_projects()
+                            return false
+                        c.find("a").data('project_id', project_id).click () ->
+                            projects.open_project($(@).data('project_id'))
+                            return false
+                        linked.append(c)
+                    cb?()
+
+        # display result of searching for linked projects
+        update_linked_projects_search_list = () =>
+            x = input.val()
+
+            if x == ""
+                select.html("").hide()
+                element.find(".project-add-linked-project").hide()
+                element.find(".project-add-linked-projects-desc").hide()
+                return
+
+            x = projects.matching_projects(x)
+            if @linked_project_list?
+                result = (project for project in x.projects when @linked_project_list.indexOf(project.project_id) == -1)
+            else
+                result = x.projects
+            element.find(".project-add-linked-projects-desc").text(x.desc)
+
+            if result.length > 0
+                select.html("")
+                add_button.addClass('disabled')
+                select.show()
+                select.attr(size:Math.min(10,result.length))
+                element.find(".project-add-linked-project").show()
+                for r in result
+                    x = r.title
+                    if $.trim(r.description) not in ['', 'No description']
+                        x += '; ' + r.description
+                    select.append($("<option>").attr(value:r.project_id, label:x).text(x))
+                select.show()
+                add_button.addClass('disabled')
+            else
+                select.hide()
+
+
+        timer = undefined
+        input.keyup (event) ->
+            if timer?
+                clearTimeout(timer)
+            timer = setTimeout(update_linked_projects_search_list, 100)
+            return false
+
+        return update_linked_projects
 
     init_worksheet_server_restart: () =>
         # Restart worksheet server

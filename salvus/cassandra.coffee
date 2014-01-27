@@ -1542,6 +1542,53 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(false, r)
         )
 
+    # linked projects
+    linked_projects: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            add        : undefined   # array if given
+            remove     : undefined   # array if given
+            cb         : required    # if neither add nor remove are specified, then cb(err, list of linked project ids)
+        list = undefined
+        dbg = (m) -> winston.debug("linked_projects: #{m}")
+        async.series([
+            (cb) =>
+                if not opts.add?
+                    cb(); return
+                for x in opts.add
+                    if not misc.is_valid_uuid_string(x)
+                        cb("invalid uuid '#{x}'")
+                        return
+                #TODO: I don't know how to put variable number of params into a @cql call
+                query = "UPDATE projects SET linked_projects=linked_projects+{#{opts.add.join(',')}} where project_id=?"
+                #dbg("add query: #{query}")
+                @cql(query, [opts.project_id], cb)
+            (cb) =>
+                if not opts.remove?
+                    cb(); return
+                for x in opts.remove
+                    if not misc.is_valid_uuid_string(x)
+                        cb("invalid uuid '#{x}'")
+                        return
+                query = "UPDATE projects SET linked_projects=linked_projects-{#{opts.remove.join(',')}} where project_id=?"
+                #dbg("remove query: #{query}")
+                @cql(query, [opts.project_id], cb)
+            (cb) =>
+                if opts.add? or opts.remove?
+                    cb(); return
+                @select_one
+                    table   : 'projects'
+                    where   : {'project_id':opts.project_id}
+                    columns : ['linked_projects']
+                    objectify : false
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            list = result[0]
+                            cb()
+        ], (err) => opts.cb(err, list))
+
     # TODO: REWRITE THE function below (and others) to use get_project_data above.
     _get_project_location: (opts) =>
         opts = defaults opts,

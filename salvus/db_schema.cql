@@ -286,6 +286,8 @@ CREATE TABLE projects (
      viewer               set<uuid>,   // accounts who are viewers
      invited_viewer       set<uuid>,    // accounts who have been invited to view.
 
+     linked_projects      set<uuid>,   // projects that this one links to.
+
 
      timeout_disabled  boolean // if true, never automatically kill this project simply due to it sitting around unused.
 
