@@ -535,7 +535,9 @@ exports.close_all_projects = (opts) ->
         unset_loc  : true          # set location to undefined in the database
         wait_for_replicate : true  # make sure that we successfully replicate each project everywhere, or returns an error.
         limit      : 10
+        ttl        : undefined   # if given is a time in seconds; any project with last_edited within ttl (or timeout_disabled set) is not killed
         cb         : required
+
     dbg = (m) -> winston.debug("close_all_projects(host:#{opts.host},unset_loc:#{opts.unset_loc}): #{m}")
     errors = {}
     projects = undefined
@@ -544,17 +546,25 @@ exports.close_all_projects = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['project_id', 'location']
+                columns : ['project_id', 'location', 'last_edited', 'timeout_disabled']
                 json    : ['location']
                 limit   : 1000000   # TODO: stupidly slow
                 cb      : (err, result) ->
                     if result?
-                        projects = (x[0] for x in result when x[1]?.host == opts.host)
+                        if opts.ttl? and opts.ttl
+                            cutoff = misc.mswalltime() - opts.ttl*1000  # cassandra timestamps come back in ms since UTC epoch
+                            projects = (x[0] for x in result when x[1]?.host == opts.host and (not x[3] and x[2] < cutoff))
+                        else
+                            projects = (x[0] for x in result when x[1]?.host == opts.host)
+
                     dbg("got #{projects.length} projects")
                     cb(err)
         (cb) ->
             dbg("closing projects...")
+            cnt = 0
             f = (project_id, cb) ->
+                cnt += 1
+                dbg("**************\nclosing project #{cnt}/#{projects.length}\n**********")
                 close_project
                     project_id : project_id
                     host       : opts.host
