@@ -192,7 +192,7 @@ class ProjectPage
         @update_collaborators = @init_add_collaborators()
         @init_add_noncloud_collaborator()
 
-        @update_linked_projects = @init_linked_projects()
+        #@update_linked_projects = @init_linked_projects()
 
         @init_move_project()
 
@@ -761,7 +761,7 @@ class ProjectPage
                 tab.onshow = () ->
                     that.push_state('settings')
                     that.update_topbar()
-                    that.update_linked_projects()
+                    #that.update_linked_projects()
                     that.update_collaborators()
 
             else if name == "project-search"
