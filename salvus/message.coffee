@@ -138,7 +138,7 @@ message
     reason       : undefined
     done         : undefined
 
-# browser --> hub --> sage_server
+# client --> hub --> sage_server
 message
     event        : 'execute_code'
     id           : undefined
