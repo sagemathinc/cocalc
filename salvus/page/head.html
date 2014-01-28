@@ -43,7 +43,7 @@
     <link rel="stylesheet" href="static/codemirror/theme/the-matrix.css">
     <link rel="stylesheet" href="static/codemirror/theme/paraiso-dark.css">
     <link rel="stylesheet" href="static/codemirror/theme/paraiso-light.css">
-    <link rel="stylesheet" href="static/codemirror/theme/pastel-on-dark.css">
+    <!--<link rel="stylesheet" href="static/codemirror/theme/pastel-on-dark.css">-->
     <link rel="stylesheet" href="static/codemirror/theme/tomorrow-night-eighties.css">
 
     <link rel="stylesheet" href="static/codemirror/addon/dialog/dialog.css">
@@ -221,7 +221,7 @@
           displayMath: [ ['$$','$$'], ["\\[","\\]"] ],
           processEscapes: true
        },
-       TeX: {extensions: ["xypic.js", "autoload-all.js"]},
+       TeX: {extensions: ["autoload-all.js"]},    /* "xypic.js", frequently causes crash! */
        "HTML-CSS": { linebreaks: { automatic: true } },
        SVG: { linebreaks: { automatic: true } }
     });
