@@ -1441,6 +1441,24 @@ class exports.Connection extends EventEmitter
                     else
                         opts.cb('invalid snapshot directory name')
 
+    project_snap_status: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required     # cb(err, utc_seconds_epoch)
+        @call
+            message:
+                message.snap
+                    command    : 'status'
+                    project_id : opts.project_id
+            cb : (err, resp) ->
+                if err
+                    opts.cb(err)
+                else if resp.event == 'error'
+                    opts.cb(resp.error)
+                else
+                    opts.cb(false, resp.list)  # it's always called "list", even if it isn't a list (in this case)
+
+
     # return the time in seconds since epoch UTC of the last snapshot.
     project_last_snapshot_time: (opts) =>
         opts = defaults opts,

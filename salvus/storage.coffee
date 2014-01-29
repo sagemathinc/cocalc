@@ -1101,7 +1101,6 @@ exports.snapshot = snapshot = (opts) ->
         return
 
     dbg = (m) -> winston.debug("snapshot(#{opts.project_id},#{opts.host},force=#{opts.force}): #{m}")
-
     dbg()
 
     if opts.tag?
@@ -1228,6 +1227,29 @@ exports.get_snapshots = get_snapshots = (opts) ->
                 for k, v of result
                     ans[k] = JSON.parse(v)
                 opts.cb(undefined, ans)
+
+# status_fast: get status information about the storage, location, quota, etc., of a project
+# from the database.  This function will not do any potentially slow/expensive ZFS commands.
+exports.status_fast = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    winston.debug("status_fast(#{opts.project_id})")
+    database.select_one
+        table   : 'projects'
+        where   : {project_id : opts.project_id}
+        columns : ['location', 'locations', 'replicating']
+        json    : ['location']
+        cb      : (err, result) ->
+            if err
+                opts.cb(err)
+            else
+                v = {}
+                for k,z of result[1]
+                    v[k] = {newest_snapshot:misc.from_json(z)?[0], datacenter:datacenter_to_desc[host_to_datacenter[k]]}
+                opts.cb(undefined, {current_location:result[0]?.host, locations:v, replicating:result[2], })
+
+
 
 # for interactive use
 exports.status = (project_id, update) ->
@@ -1714,6 +1736,7 @@ hashrings = {}
 topology = undefined
 all_hosts = []
 host_to_datacenter = {}
+datacenter_to_desc = {'0':"Univ. of Washington (Mathematics)", '1':"Univ. of Washington (4545)", '2':"Google Compute Engine (us-central1-a)"}
 exports.init_hashrings = init_hashrings = (cb) ->
     database.select
         table   : 'storage_topology'

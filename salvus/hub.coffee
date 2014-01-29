@@ -1744,7 +1744,7 @@ class Client extends EventEmitter
     # Project snapshots -- interface to the snap servers
     ################################################
     mesg_snap: (mesg) =>
-        if mesg.command not in ['ls', 'restore', 'log', 'last']
+        if mesg.command not in ['ls', 'restore', 'log', 'last', 'status']
             @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
             return
         user_has_write_access_to_project
@@ -1829,7 +1829,7 @@ snap_command = (opts) ->
         path       : '.'
         timeout    : 60
         timezone_offset : 0
-        cb         : required   # cb(err, list of results when meaningful)
+        cb         : required   # cb(err, result)
 
     switch opts.command
         when 'ls'
@@ -1839,6 +1839,10 @@ snap_command = (opts) ->
             snap_command_restore_or_log(opts)
         when 'last'
             storage.last_snapshot
+                project_id : opts.project_id
+                cb         : opts.cb
+        when 'status'
+            storage.status_fast
                 project_id : opts.project_id
                 cb         : opts.cb
         else
