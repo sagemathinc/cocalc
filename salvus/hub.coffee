@@ -489,11 +489,17 @@ init_http_proxy_server = () =>
                 proxy = _ws_proxy_servers[t]
                 if not proxy?
                     winston.debug("websocket upgrade: not using cache")
-                    proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
-                    _ws_proxy_servers[t] = proxy
+                    try
+                        proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
+                        _ws_proxy_servers[t] = proxy
+                    catch e
+                        winston.debug("websocket upgrade -- create proxy: ERROR/DEBUG/TODO -- SOMETHING WENT WRONG -- #{e}")
                 else
                     winston.debug("websocket upgrade: using cache")
-                proxy.ws(req, socket, head)
+                try
+                    proxy.ws(req, socket, head)
+                catch e
+                    winston.debug("websocket upgrade -- proxy.ws: ERROR/DEBUG/TODO -- SOMETHING WENT WRONG -- #{e}")
 
 
 
