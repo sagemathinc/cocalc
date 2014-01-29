@@ -3211,6 +3211,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                                     ssh_port    : @port
                                     remote_port : @_status['local_hub.port']
                                     cb          : (err, local_port) =>
+                                        if not @_status?  # in some rare cases @_status gets deleted by the time this gets called...
+                                            @_status = {}
                                         @_status.local_port = local_port
                                         cb(err)
                     else
