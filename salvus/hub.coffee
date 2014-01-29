@@ -140,10 +140,14 @@ init_http_server = () ->
                     if query.get
                         conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
                     if query.set
-                        x = conn.cookies[query.set]
                         delete conn.cookies[query.set]
-                        cookies.set(query.set, x.value, x.options)
-                        conn.emit("set_cookie-#{query.set}")
+                        # in some rare cases this is undefined:
+                        x = conn.cookies[query.set]
+                        if x?
+                            cookies.set(query.set, x.value, x.options)
+                            conn.emit("set_cookie-#{query.set}")
+                        else
+                            winston.debug("possible issue -- requested to set cookie #{query.set}, but cookie not defined")
                 res.end('')
             when "alive"
                 res.end('')
@@ -2515,7 +2519,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
             cb   : (err, resp) =>
                 if err
                     winston.debug("Error reading from disk -- #{err} -- reconnecting")
-                    @reconnect () =>
+                    @connect () =>
                         resp = message.reconnect(id:mesg.id, reason:"error reading from disk -- #{err}")
                         client.push_to_client(resp)
                 else
@@ -2532,7 +2536,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
             cb   : (err, resp) =>   # cb can be called multiple times due to multi_response=True
                 if err
                     winston.debug("Server error executing code in local codemirror session -- #{err} -- reconnecting")
-                    @reconnect () =>
+                    @connect () =>
                         resp = message.reconnect(id:mesg.id, reason:"error executing code-- #{err}")
                         client.push_to_client(resp)
                 else
