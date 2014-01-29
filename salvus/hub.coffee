@@ -1750,7 +1750,7 @@ class Client extends EventEmitter
     # Project snapshots -- interface to the snap servers
     ################################################
     mesg_snap: (mesg) =>
-        if mesg.command not in ['ls', 'restore', 'log', 'last']
+        if mesg.command not in ['ls', 'restore', 'log', 'last', 'status']
             @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
             return
         user_has_write_access_to_project
@@ -1835,7 +1835,7 @@ snap_command = (opts) ->
         path       : '.'
         timeout    : 60
         timezone_offset : 0
-        cb         : required   # cb(err, list of results when meaningful)
+        cb         : required   # cb(err, result)
 
     switch opts.command
         when 'ls'
@@ -1845,6 +1845,10 @@ snap_command = (opts) ->
             snap_command_restore_or_log(opts)
         when 'last'
             storage.last_snapshot
+                project_id : opts.project_id
+                cb         : opts.cb
+        when 'status'
+            storage.status_fast
                 project_id : opts.project_id
                 cb         : opts.cb
         else
@@ -4398,11 +4402,15 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 
 change_email_address = (mesg, client_ip_address, push_to_client) ->
 
+    dbg = (m) -> winston.debug("change_email_address(mesg.account_id, mesg.old_email_address, mesg.new_email_address): #{m}")
+    dbg()
     if mesg.old_email_address == mesg.new_email_address  # easy case
+        dbg("easy case -- no change")
         push_to_client(message.changed_email_address(id:mesg.id))
         return
 
     if not client_lib.is_valid_email_address(mesg.new_email_address)
+        dbg("invalid email address")
         push_to_client(message.changed_email_address(id:mesg.id, error:'email_invalid'))
         return
 
@@ -4410,6 +4418,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         # Make sure there hasn't been an email change attempt for this
         # email address in the last 5 seconds:
         (cb) ->
+            dbg("limit email address change attempts")
             WAIT = 5
             tracker = database.key_value_store(name:'change_email_address_tracker')
             tracker.get(
@@ -4417,9 +4426,11 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                 cb : (error, value) ->
                     if error
                         push_to_client(message.changed_email_address(id:mesg.id, error:error))
+                        dbg("error: #{error}")
                         cb(true)
                         return
                     if value?  # is defined, so problem -- it's over
+                        dbg("limited!")
                         push_to_client(message.changed_email_address(id:mesg.id, error:'too_frequent', ttl:WAIT))
                         database.log(
                             event : 'change_email_address'
@@ -4437,8 +4448,8 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                         cb()
             )
 
-        # validate the password
         (cb) ->
+            dbg("no limit issues, so validate the password")
             is_password_correct
                 account_id    : mesg.account_id
                 password      : mesg.password
@@ -4458,6 +4469,8 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         # easy to implement a "change your email address back" feature
         # if I need to at some point.
         (cb) ->
+            dbg("log change to db")
+
             database.log(event : 'change_email_address', value : {client_ip_address : client_ip_address, old_email_address : mesg.old_email_address, new_email_address : mesg.new_email_address})
 
             #################################################
@@ -4466,10 +4479,12 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
             # to undo the change to the email address.
             #################################################
 
+            dbg("actually make change in db")
             database.change_email_address
                 account_id    : mesg.account_id
                 email_address : mesg.new_email_address
                 cb : (error, success) ->
+                    dbg("db change; got #{error}, #{success}")
                     if error
                         push_to_client(message.changed_email_address(id:mesg.id, error:error))
                     else
@@ -4477,7 +4492,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     cb()
 
         (cb) ->
-            # If they just changed email to an address that hs some actions, carry those out...
+            # If they just changed email to an address that has some actions, carry those out...
             # TODO: move to hook this only after validdation of the email address.
             account_creation_actions
                 email_address : mesg.new_email_address

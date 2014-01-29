@@ -270,13 +270,21 @@ CodeMirror.defineExtension 'delete_trailing_whitespace', (opts={}) ->
 # to maintain the view, e.g., cursor position and scroll position.
 # This function is very, very naive now, but will get better using better algorithms.
 CodeMirror.defineExtension 'setValueNoJump', (value) ->
-    scroll = @getScrollInfo()
-    pos = @getCursor()
-    #console.log("setValueNoJump: cursor pos = ", pos)
+    try
+        scroll = @getScrollInfo()
+        pos = @getCursor()
+    catch e
+        # nothing
     @setValue(value)
-    @setCursor(pos)
-    @scrollTo(scroll.left, scroll.top)
-    @scrollIntoView(pos)
+    try
+        @setCursor(pos)
+        @scrollTo(scroll.left, scroll.top)
+        @scrollIntoView(pos)   #I've seen tracebacks from this saying "cannot call method chunckSize of undefined"
+                               #which cause havoc on the reset of sync, which assumes setValueNoJump works, and
+                               # leads to user data loss.  I consider this a codemirror bug, but of course
+                               # just not moving the view in such cases is a reasonable workaround. 
+    catch e
+        # nothing
 
 
 

@@ -1312,34 +1312,70 @@ class exports.Salvus extends exports.Cassandra
         )
 
     # Change the email address, unless the email_address we're changing to is already taken.
-    change_email_address: (opts={}) ->
-        opts = defaults(opts,
+    change_email_address: (opts={}) =>
+        opts = defaults opts,
             account_id    : required
             email_address : required
             cb            : undefined
-        )
 
-        # verify that email address is not already taken
+        dbg = (m) -> winston.debug("change_email_address(#{opts.account_id}, #{opts.email_address}): #{m}")
+        dbg()
+
+        orig_address = undefined
+
         async.series([
             (cb) =>
+                dbg("verify that email address is not already taken")
                 @count
-                    table   : 'accounts'
+                    table   : 'email_address_to_account_id'
                     where   : {email_address : opts.email_address}
-                    cb      : (error, result) ->
+                    cb      : (err, result) =>
+                        if err
+                            cb(err); return
                         if result > 0
-                            opts.cb('email_already_taken')
-                            cb(true)
+                            cb('email_already_taken')
                         else
                             cb()
             (cb) =>
+                dbg("get old email address")
+                @select_one
+                    table : 'accounts'
+                    where : {account_id : opts.account_id}
+                    columns : ['email_address']
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            orig_address = result[0]
+                            cb()
+            (cb) =>
+                dbg("change in accounts table")
                 @update
                     table   : 'accounts'
                     where   : {account_id    : opts.account_id}
                     set     : {email_address : opts.email_address}
-                    cb      : (error, result) ->
-                        opts.cb(error, true)
-                        cb()
-        ])
+                    cb      : cb
+            (cb) =>
+                dbg("add new one")
+                @update
+                    table : 'email_address_to_account_id'
+                    set   : {account_id : opts.account_id}
+                    where : {email_address: opts.email_address}
+                    cb    : cb
+            (cb) =>
+                dbg("delete old address in email_address_to_account_id")
+                @delete
+                    table : 'email_address_to_account_id'
+                    where : {email_address: orig_address}
+                    cb    : (ignored) => cb()
+
+        ], (err) =>
+            if err == "nothing to do"
+                opts.cb?()
+            else
+                opts.cb?(err)
+        )
+
 
 
     #####################################

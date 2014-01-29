@@ -614,12 +614,14 @@ $("#account-change_email_address_button").click (event) ->
     new_email_address = $("#account-change_email_new_address").val()
     password = $("#account-change_email_password").val()
 
+    $("#account-change_email_address_button").icon_spin(start:true)
     salvus_client.change_email
         old_email_address : account_settings.settings.email_address
         new_email_address : new_email_address
         password          : password
         account_id        : account_settings.settings.account_id
         cb                : (error, mesg) ->
+            $("#account-change_email_address_button").icon_spin(false)
             $("#account-change_email_address").find(".account-error-text").hide()
             if error  # exceptional condition -- some sort of server or connection error
                 alert_message(type:"error", message:error)
@@ -643,6 +645,7 @@ $("#account-change_email_address_button").click (event) ->
                 account_settings.settings.email_address = new_email_address
                 set_account_tab_label(true, new_email_address)
                 close_change_email_address()
+                alert_message(type:"success", message:"Email address successfully changed.")
     return false
 
 ################################################

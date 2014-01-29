@@ -1340,9 +1340,10 @@ class ProjectPage
                     foreground : not(e.which==2 or e.ctrlKey)
             return false
 
+        file_link = t.find("a[href=#open-file]")
+
         if not (is_snapshot or isdir)
             # Opening a file
-            file_link = t.find("a[href=#open-file]")
             file_link.mousedown(open)
 
             # Clicking on link -- open the file
