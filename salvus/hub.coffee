@@ -140,9 +140,9 @@ init_http_server = () ->
                     if query.get
                         conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
                     if query.set
-                        delete conn.cookies[query.set]
                         # in some rare cases this is undefined:
                         x = conn.cookies[query.set]
+                        #delete conn.cookies[query.set]
                         if x?
                             cookies.set(query.set, x.value, x.options)
                             conn.emit("set_cookie-#{query.set}")
