@@ -208,8 +208,13 @@ def divide_into_blocks(code):
     blocks = []
     while i >= 0:
         stop = i
-        while i>=0 and len(code[i]) > 0 and code[i][0] in string.whitespace:
+        paren_depth = code[i].count('(') - code[i].count(')')
+        brack_depth = code[i].count('[') - code[i].count(']')
+        while i>=0 and ((len(code[i]) > 0 and code[i][0] in string.whitespace) or paren_depth < 0 or brack_depth < 0):
             i -= 1
+            if i >= 0:
+                paren_depth += code[i].count('(') - code[i].count(')')
+                brack_depth += code[i].count('[') - code[i].count(']')
         # remove comments
         for k, v in literals.iteritems():
             if v.startswith('#'):
