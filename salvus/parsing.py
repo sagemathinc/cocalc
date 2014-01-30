@@ -194,15 +194,16 @@ def divide_into_blocks(code):
     except Exception, mesg:
         code = c
 
-    code = [x for x in code if x.strip()]  # take only non-empty lines now for Python code.
+    ## Tested this: Completely disable block parsing:
+    ## but it requires the caller to do "exec compile(block+'\n', '', 'exec') in namespace, locals", which means no display hook,
+    ## so "2+2" breaks.
+    ## return [[0,len(code)-1,('\n'.join(code))%literals]]
+
+
+    # take only non-empty lines now for Python code.
+    code = [x for x in code if x.strip()]
 
     # Compute the blocks
-    blocks = []
-    ## Attempt to completely disable block parsing (didn't work)
-    ##blocks = [[0,len(code)-1,('\n'.join(code))%literals]]
-    ##return blocks
-
-
     i = len(code)-1
     blocks = []
     while i >= 0:
@@ -225,8 +226,8 @@ def divide_into_blocks(code):
     while i < len(blocks):
         s = blocks[i][-1].lstrip()
         # TODO: there shouldn't be 5 identical bits of code below!!!
-        if s.startswith('finally:') or s.startswith('except'):
-            if blocks[i-1][-1].lstrip().startswith('try:'):
+        if s.startswith('finally') or s.startswith('except'):
+            if blocks[i-1][-1].lstrip().startswith('try'):
                 blocks[i-1][-1] += '\n' + blocks[i][-1]
                 blocks[i-1][1] = blocks[i][1]
                 del blocks[i]
@@ -234,15 +235,11 @@ def divide_into_blocks(code):
             blocks[i-1][-1] += '\n' + blocks[i][-1]
             blocks[i-1][1] = blocks[i][1]
             del blocks[i]
-        elif s.startswith('else') and blocks[i-1][-1].lstrip().startswith('if'):
+        elif s.startswith('else') and (blocks[i-1][-1].lstrip().startswith('if') or blocks[i-1][-1].lstrip().startswith('while') or blocks[i-1][-1].lstrip().startswith('for') or blocks[i-1][-1].lstrip().startswith('elif')):
             blocks[i-1][-1] += '\n' + blocks[i][-1]
             blocks[i-1][1] = blocks[i][1]
             del blocks[i]
         elif s.startswith('elif') and blocks[i-1][-1].lstrip().startswith('if'):
-            blocks[i-1][-1] += '\n' + blocks[i][-1]
-            blocks[i-1][1] = blocks[i][1]
-            del blocks[i]
-        elif s.startswith('else') and blocks[i-1][-1].lstrip().startswith('elif'):
             blocks[i-1][-1] += '\n' + blocks[i][-1]
             blocks[i-1][1] = blocks[i][1]
             del blocks[i]
