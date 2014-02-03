@@ -534,6 +534,17 @@ CREATE TABLE storage_topology (
     PRIMARY KEY (data_center, host)
 );
 
+/* Table of email addresses that are not allowed.  If a user tries to register with
+   foo+bar@xyz.com and foo@xyz.com is in this table, then they are not allowed to
+   create an account.
+   When a user connects, if their normalized address is in this table, then they
+   are rejected.
+*/
+
+CREATE TABLE banned_email_addresses (
+    email_address varchar PRIMARY KEY,
+    dummy         boolean
+);
 
 
 
