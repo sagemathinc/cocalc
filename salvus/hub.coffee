@@ -578,7 +578,7 @@ class Client extends EventEmitter
                             if not error and signed_in_mesg?
                                 database.is_banned_user
                                     email_address : signed_in_mesg.email_address
-                                    cb            : (err, is_banned) ->
+                                    cb            : (err, is_banned) =>
                                         if err
                                             # do nothing
                                         else if is_banned
@@ -4297,7 +4297,19 @@ create_account = (client, mesg) ->
                 else
                     cb()
             )
-
+        # check that account is not banned
+        (cb) ->
+            database.is_banned_user
+                email_address : mesg.email_address
+                cb            : (err, is_banned) ->
+                    if err
+                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
+                        cb(true)
+                    else if is_banned
+                        client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is banned."}))
+                        cb(true)
+                    else
+                        cb()
         # create new account
         (cb) ->
             database.create_account

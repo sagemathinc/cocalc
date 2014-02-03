@@ -292,7 +292,7 @@ exports.canonicalize_email_address = (email_address) ->
     # remove + part from email address:   foo+bar@example.com
     i = email_address.indexOf('+')
     if i != -1
-        j = email_address.indxOf('@')
+        j = email_address.indexOf('@')
         if j != -1
             email_address = email_address.slice(0,i) + email_address.slice(j)
     # make email address lower case
