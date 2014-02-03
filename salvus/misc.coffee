@@ -285,6 +285,19 @@ exports.trunc = (s, max_length) ->
 
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
 
+# More canonical email address -- lower case and remove stuff between + and @.
+# This is mainly used for banning users.
+
+exports.canonicalize_email_address = (email_address) ->
+    # remove + part from email address:   foo+bar@example.com
+    i = email_address.indexOf('+')
+    if i != -1
+        j = email_address.indxOf('@')
+        if j != -1
+            email_address = email_address.slice(0,i) + email_address.slice(j)
+    # make email address lower case
+    return email_address.toLowerCase()
+
 # Delete trailing whitespace in the string s.  See
 exports.delete_trailing_whitespace = (s) ->
     return s.replace(/[^\S\n]+$/gm, "")

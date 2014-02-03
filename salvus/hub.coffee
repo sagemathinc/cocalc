@@ -298,16 +298,34 @@ init_http_proxy_server = () =>
             cb          : required    # cb(err, has_access)
         account_id = undefined
         has_write_access = false
+        hash = undefined
+        email_address = undefined
         async.series([
             (cb) ->
                 x    = opts.remember_me.split('$')
+                hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
-                    key : generate_hash(x[0], x[1], x[2], x[3])
+                    key : hash
                     cb  : (err, signed_in_mesg) =>
                         account_id = signed_in_mesg?.account_id
                         if err or not account_id?
-                            cb('unable to get remember_me cookie from db -- cookie invalid'); return
-                        cb()
+                            cb('unable to get remember_me cookie from db -- cookie invalid')
+                        else
+                            email_address = signed_in_mesg.email_address
+                            cb()
+            (cb) ->
+                # check if user is banned
+                database.is_banned_user
+                    email_address : email_address
+                    cb            : (err, is_banned) ->
+                        if err
+                            cb(err); return
+                        if is_banned
+                            # delete this auth key, since banned users are a waste of space.
+                            @remember_me_db.delete(key : hash)
+                            cb('banned')
+                        else
+                            cb()
             (cb) ->
                 user_has_write_access_to_project
                     project_id : opts.project_id
@@ -558,10 +576,20 @@ class Client extends EventEmitter
                         key : hash
                         cb  : (error, signed_in_mesg) =>
                             if not error and signed_in_mesg?
-                                signed_in_mesg.hub = program.host + ':' + program.port
-                                @hash_session_id = hash
-                                @signed_in(signed_in_mesg)
-                                @push_to_client(signed_in_mesg)
+                                database.is_banned_user
+                                    email_address : signed_in_mesg.email_address
+                                    cb            : (err, is_banned) ->
+                                        if err
+                                            # do nothing
+                                        else if is_banned
+                                            # delete this auth key, since banned users are a waste of space.
+                                            @remember_me_db.delete(key : hash)
+                                        else
+                                            # good -- sign them in
+                                            signed_in_mesg.hub = program.host + ':' + program.port
+                                            @hash_session_id = hash
+                                            @signed_in(signed_in_mesg)
+                                            @push_to_client(signed_in_mesg)
 
     #######################################################
     # Capping resource limits; client can request anything.
@@ -4020,6 +4048,21 @@ sign_in = (client, mesg) =>
                         sign_in_error("A given ip address is allowed at most 250 failed login attempts per hour. Please wait.")
                         cb(true); return
                     cb()
+
+        # POLICY: Don't allow banned users to sign in.
+        (cb) ->
+            database.is_banned_user
+                email_address : mesg.email_address
+                cb            : (err, is_banned) ->
+                    if err
+                        sign_in_error(err)
+                        cb(err)
+                    else
+                        if is_banned
+                            sign_in_error("User '#{mesg.email_address}' is banned from SageMathCloud due to violation of the terms of usage.")
+                            cb(true)
+                        else
+                            cb()
 
         # get account and check credentials
         (cb) ->
