@@ -535,7 +535,7 @@ exports.close_all_projects = (opts) ->
         unset_loc  : true          # set location to undefined in the database
         wait_for_replicate : true  # make sure that we successfully replicate each project everywhere, or returns an error.
         limit      : 10
-        ttl        : undefined   # if given is a time in seconds; any project with last_edited within ttl (or timeout_disabled set) is not killed
+        ttl        : undefined   # if given is a time in seconds; any project with last_edited within ttl (or timeout_disabled set) is not killed; this is used when spinning up new hosts.
         cb         : required
 
     dbg = (m) -> winston.debug("close_all_projects(host:#{opts.host},unset_loc:#{opts.unset_loc}): #{m}")

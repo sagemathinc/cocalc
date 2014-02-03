@@ -547,8 +547,6 @@ class Client extends EventEmitter
 
         winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
 
-
-
     check_for_remember_me: () =>
         @get_cookie
             name : program.base_url + 'remember_me'
