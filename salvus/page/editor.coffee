@@ -1066,7 +1066,9 @@ class CodeMirrorEditor extends FileEditor
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
-        @element.find(".salvus-editor-codemirror-filename").text(filename)
+
+        # not really needed due to highlighted tab; annoying.
+        #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
