@@ -980,7 +980,6 @@ class exports.Connection extends EventEmitter
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : required
 
-        #console.log("read_file_from_project")
         base = window?.salvus_base_url  # will be defined in web browser
         if not base?
             base = ''
@@ -991,8 +990,8 @@ class exports.Connection extends EventEmitter
             else
                 opts.path = '.sagemathcloud/root' + opts.path  # use root symlink, which is created by start_smc
 
-        url = "#{base}/#{opts.project_id}/raw/#{opts.path}"
-        #console.log(url)
+        url = encodeURI("#{base}/#{opts.project_id}/raw/#{opts.path}")
+
         opts.cb(false, {url:url})
         # This is the old hub/database version -- too slow, and loads the database/server, way way too much.
         ###
