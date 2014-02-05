@@ -25,6 +25,8 @@
 
 {defaults, required} = require('misc')
 
+async = require('async')
+
 component_to_hex = (c) ->
     hex = c.toString(16);
     if hex.length == 1
@@ -46,6 +48,24 @@ class SalvusThreeJS
             background      : undefined
             foreground      : undefined
             camera_distance : 10
+
+        load = (script, cb) -> $.getScript(script).done(()=>cb()).fail(()=>cb("error loading"))
+        if not THREE?
+            async.series([
+                (cb) -> load("/static/threejs/r59/three.min.js",cb)
+                (cb) -> load("/static/threejs/r59/TrackballControls.js",cb)
+                (cb) -> load("/static/threejs/Detector.js",cb)
+            ], (err) =>
+                if not err
+                    @init()
+                else
+                    # TODO -- not sure what to do at this point...
+                    console.log("Error loading THREE.js")
+            )
+        else
+            @init()
+
+    init: () =>
         @scene = new THREE.Scene()
         @opts.width  = if opts.width? then opts.width else $(window).width()*.9
         @opts.height = if opts.height? then opts.height else $(window).height()*.6

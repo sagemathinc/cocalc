@@ -1315,7 +1315,7 @@ def serve(port, host):
 
         namespace['_salvus_parsing'] = parsing
 
-        for name in ['coffeescript', 'javascript', 'time', 'file', 'timeit', 'capture', 'cython',
+        for name in ['coffeescript', 'javascript', 'time', 'timeit', 'capture', 'cython',
                      'script', 'python', 'python3', 'perl', 'ruby', 'sh', 'prun', 'show', 'auto',
                      'hide', 'hideall', 'cell', 'fork', 'exercise', 'dynamic', 'var',
                      'reset', 'restore', 'md', 'load', 'typeset_mode', 'default_mode',
@@ -1323,6 +1323,9 @@ def serve(port, host):
             namespace[name] = getattr(sage_salvus, name)
 
         sage_salvus.default_namespace = dict(namespace)
+
+        # Sage's pretty print is ancient and a mess.
+        namespace['pretty_print'] = sage.all.pretty_print = sage.misc.latex.pretty_print = namespace['show']
 
         # this way client code can tell it is running as a Sage Worksheet.
         namespace['__SAGEWS__'] = True

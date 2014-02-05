@@ -140,10 +140,14 @@ init_http_server = () ->
                     if query.get
                         conn.emit("get_cookie-#{query.get}", cookies.get(query.get))
                     if query.set
+                        # in some rare cases this is undefined:
                         x = conn.cookies[query.set]
-                        delete conn.cookies[query.set]
-                        cookies.set(query.set, x.value, x.options)
-                        conn.emit("set_cookie-#{query.set}")
+                        #delete conn.cookies[query.set]
+                        if x?
+                            cookies.set(query.set, x.value, x.options)
+                            conn.emit("set_cookie-#{query.set}")
+                        else
+                            winston.debug("possible issue -- requested to set cookie #{query.set}, but cookie not defined")
                 res.end('')
             when "alive"
                 res.end('')
@@ -294,16 +298,34 @@ init_http_proxy_server = () =>
             cb          : required    # cb(err, has_access)
         account_id = undefined
         has_write_access = false
+        hash = undefined
+        email_address = undefined
         async.series([
             (cb) ->
                 x    = opts.remember_me.split('$')
+                hash = generate_hash(x[0], x[1], x[2], x[3])
                 database.key_value_store(name: 'remember_me').get
-                    key : generate_hash(x[0], x[1], x[2], x[3])
+                    key : hash
                     cb  : (err, signed_in_mesg) =>
                         account_id = signed_in_mesg?.account_id
                         if err or not account_id?
-                            cb('unable to get remember_me cookie from db -- cookie invalid'); return
-                        cb()
+                            cb('unable to get remember_me cookie from db -- cookie invalid')
+                        else
+                            email_address = signed_in_mesg.email_address
+                            cb()
+            (cb) ->
+                # check if user is banned
+                database.is_banned_user
+                    email_address : email_address
+                    cb            : (err, is_banned) ->
+                        if err
+                            cb(err); return
+                        if is_banned
+                            # delete this auth key, since banned users are a waste of space.
+                            @remember_me_db.delete(key : hash)
+                            cb('banned')
+                        else
+                            cb()
             (cb) ->
                 user_has_write_access_to_project
                     project_id : opts.project_id
@@ -489,11 +511,17 @@ init_http_proxy_server = () =>
                 proxy = _ws_proxy_servers[t]
                 if not proxy?
                     winston.debug("websocket upgrade: not using cache")
-                    proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
-                    _ws_proxy_servers[t] = proxy
+                    try
+                        proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
+                        _ws_proxy_servers[t] = proxy
+                    catch e
+                        winston.debug("websocket upgrade -- create proxy: ERROR/DEBUG/TODO -- SOMETHING WENT WRONG -- #{e}")
                 else
                     winston.debug("websocket upgrade: using cache")
-                proxy.ws(req, socket, head)
+                try
+                    proxy.ws(req, socket, head)
+                catch e
+                    winston.debug("websocket upgrade -- proxy.ws: ERROR/DEBUG/TODO -- SOMETHING WENT WRONG -- #{e}")
 
 
 
@@ -537,8 +565,6 @@ class Client extends EventEmitter
 
         winston.debug("connection: hub <--> client(id=#{@id})  ESTABLISHED")
 
-
-
     check_for_remember_me: () =>
         @get_cookie
             name : program.base_url + 'remember_me'
@@ -550,10 +576,20 @@ class Client extends EventEmitter
                         key : hash
                         cb  : (error, signed_in_mesg) =>
                             if not error and signed_in_mesg?
-                                signed_in_mesg.hub = program.host + ':' + program.port
-                                @hash_session_id = hash
-                                @signed_in(signed_in_mesg)
-                                @push_to_client(signed_in_mesg)
+                                database.is_banned_user
+                                    email_address : signed_in_mesg.email_address
+                                    cb            : (err, is_banned) =>
+                                        if err
+                                            # do nothing
+                                        else if is_banned
+                                            # delete this auth key, since banned users are a waste of space.
+                                            @remember_me_db.delete(key : hash)
+                                        else
+                                            # good -- sign them in
+                                            signed_in_mesg.hub = program.host + ':' + program.port
+                                            @hash_session_id = hash
+                                            @signed_in(signed_in_mesg)
+                                            @push_to_client(signed_in_mesg)
 
     #######################################################
     # Capping resource limits; client can request anything.
@@ -1470,6 +1506,36 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
+    mesg_linked_projects: (mesg) =>
+        if not mesg.add? and not mesg.remove?
+            # get list of linked projects
+            @get_project mesg, 'read', (err, project) =>
+                if err
+                    return
+                # we have read access to this project, so we can see list of linked projects
+                database.linked_projects
+                    project_id : project.project_id
+                    cb         : (err, list) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.linked_projects(id:mesg.id, list:list))
+        else
+            @get_project mesg, 'write', (err, project) =>
+                if err
+                    return
+                # we have read/write access to this project, so we can add/remove linked projects
+                database.linked_projects
+                    add        : mesg.add
+                    remove     : mesg.remove
+                    project_id : project.project_id
+                    cb         : (err) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.success(id:mesg.id))
+
+
     ################################################
     # CodeMirror Sessions
     ################################################
@@ -1714,7 +1780,7 @@ class Client extends EventEmitter
     # Project snapshots -- interface to the snap servers
     ################################################
     mesg_snap: (mesg) =>
-        if mesg.command not in ['ls', 'restore', 'log', 'last']
+        if mesg.command not in ['ls', 'restore', 'log', 'last', 'status']
             @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
             return
         user_has_write_access_to_project
@@ -1799,7 +1865,7 @@ snap_command = (opts) ->
         path       : '.'
         timeout    : 60
         timezone_offset : 0
-        cb         : required   # cb(err, list of results when meaningful)
+        cb         : required   # cb(err, result)
 
     switch opts.command
         when 'ls'
@@ -1809,6 +1875,10 @@ snap_command = (opts) ->
             snap_command_restore_or_log(opts)
         when 'last'
             storage.last_snapshot
+                project_id : opts.project_id
+                cb         : opts.cb
+        when 'status'
+            storage.status_fast
                 project_id : opts.project_id
                 cb         : opts.cb
         else
@@ -1886,104 +1956,6 @@ snap_command_ls = (opts) ->
         path            : opts.path
         cb              : opts.cb
 
-XXXOLD_snap_command_ls = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
-        path       : '.'
-        timeout    : 60
-        timezone_offset : 0
-        cb         : required   # cb(err, list of results when meaningful)
-    if opts.snapshot?
-        # Get directory listing inside a given snapshot
-        listing  = undefined
-        location = undefined
-        socket   = undefined
-        async.series([
-            # First check for cached listing in the database
-            (cb) ->
-                database.snap_ls_cache
-                    project_id : opts.project_id
-                    timestamp  : opts.snapshot
-                    path       : opts.path
-                    cb         : (err, _listing) ->
-                        listing = _listing
-                        cb(err)
-            (cb) ->
-                if listing?  # already got it from cache, so done
-                    cb(); return
-                # find snap servers with this particular snapshot
-                database.snap_locate_commit
-                    project_id : opts.project_id
-                    timestamp  : opts.snapshot
-                    cb         : (err, r) ->
-                        location = r
-                        cb(err)
-           (cb) ->
-                if listing?
-                    cb(); return
-                # get the listing from a server
-                connect_to_snap_server location.server, (err, _socket) ->
-                    socket = _socket
-                    cb(err)
-            (cb) ->
-                if listing?
-                    cb(); return
-                snap.client_snap
-                    command : 'ls'
-                    socket  : socket
-                    project_id : opts.project_id
-                    snapshot   : opts.snapshot
-                    repo_id    : location.repo_id
-                    path       : opts.path
-                    timeout    : opts.timeout
-                    cb         : (err, _listing) ->
-                        listing = _listing
-                        cb(err)
-            (cb) ->
-                if listing? and socket?  # socket defined means we computed the listing
-                    # store listing in database cache
-                    database.snap_ls_cache
-                        project_id : opts.project_id
-                        timestamp  : opts.snapshot
-                        path       : opts.path
-                        listing    : listing
-                        cb         : cb
-                else
-                    cb()
-
-        ], (err) ->
-            opts.cb(err, listing)
-        )
-
-    else
-
-        # Get list of all currently available snapshots for the given project:
-        # This *only* involves two database queries -- no connections to snap servers.
-        server_ids = undefined
-        commits = undefined
-        async.series([
-            # get id's of the active snap_servers
-            (cb) ->
-                snap_server_ids (err, _server_ids) ->
-                    server_ids = _server_ids
-                    cb(err)
-            # query database for snapshots of this project on any of the active snap servers
-            (cb) ->
-                database.snap_commits
-                    project_id : opts.project_id
-                    server_ids : server_ids
-                    columns    : ['timestamp']
-                    cb         : (err, results) ->
-                        if err
-                            cb(err)
-                        else
-                            commits = (r.timestamp for r in results)
-                            commits.sort()
-                            commits = _.uniq(commits, true)
-                            commits.reverse()
-                            cb()
-        ], (err) -> opts.cb(err, commits))
 
 _snap_server_socket_cache = {}
 connect_to_snap_server = (server, cb) ->
@@ -2573,7 +2545,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
             cb   : (err, resp) =>
                 if err
                     winston.debug("Error reading from disk -- #{err} -- reconnecting")
-                    @reconnect () =>
+                    @connect () =>
                         resp = message.reconnect(id:mesg.id, reason:"error reading from disk -- #{err}")
                         client.push_to_client(resp)
                 else
@@ -2590,7 +2562,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
             cb   : (err, resp) =>   # cb can be called multiple times due to multi_response=True
                 if err
                     winston.debug("Server error executing code in local codemirror session -- #{err} -- reconnecting")
-                    @reconnect () =>
+                    @connect () =>
                         resp = message.reconnect(id:mesg.id, reason:"error executing code-- #{err}")
                         client.push_to_client(resp)
                 else
@@ -3269,6 +3241,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                                     ssh_port    : @port
                                     remote_port : @_status['local_hub.port']
                                     cb          : (err, local_port) =>
+                                        if not @_status?  # in some rare cases @_status gets deleted by the time this gets called...
+                                            @_status = {}
                                         @_status.local_port = local_port
                                         cb(err)
                     else
@@ -4075,6 +4049,21 @@ sign_in = (client, mesg) =>
                         cb(true); return
                     cb()
 
+        # POLICY: Don't allow banned users to sign in.
+        (cb) ->
+            database.is_banned_user
+                email_address : mesg.email_address
+                cb            : (err, is_banned) ->
+                    if err
+                        sign_in_error(err)
+                        cb(err)
+                    else
+                        if is_banned
+                            sign_in_error("User '#{mesg.email_address}' is banned from SageMathCloud due to violation of the terms of usage.")
+                            cb(true)
+                        else
+                            cb()
+
         # get account and check credentials
         (cb) ->
             # Do not give away info about whether the e-mail address is valid:
@@ -4308,7 +4297,19 @@ create_account = (client, mesg) ->
                 else
                     cb()
             )
-
+        # check that account is not banned
+        (cb) ->
+            database.is_banned_user
+                email_address : mesg.email_address
+                cb            : (err, is_banned) ->
+                    if err
+                        client.push_to_client(message.account_creation_failed(id:id, reason:{'other':"Unable to create account.  Please try later."}))
+                        cb(true)
+                    else if is_banned
+                        client.push_to_client(message.account_creation_failed(id:id, reason:{email_address:"This e-mail address is banned."}))
+                        cb(true)
+                    else
+                        cb()
         # create new account
         (cb) ->
             database.create_account
@@ -4460,11 +4461,15 @@ change_password = (mesg, client_ip_address, push_to_client) ->
 
 change_email_address = (mesg, client_ip_address, push_to_client) ->
 
+    dbg = (m) -> winston.debug("change_email_address(mesg.account_id, mesg.old_email_address, mesg.new_email_address): #{m}")
+    dbg()
     if mesg.old_email_address == mesg.new_email_address  # easy case
+        dbg("easy case -- no change")
         push_to_client(message.changed_email_address(id:mesg.id))
         return
 
     if not client_lib.is_valid_email_address(mesg.new_email_address)
+        dbg("invalid email address")
         push_to_client(message.changed_email_address(id:mesg.id, error:'email_invalid'))
         return
 
@@ -4472,6 +4477,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         # Make sure there hasn't been an email change attempt for this
         # email address in the last 5 seconds:
         (cb) ->
+            dbg("limit email address change attempts")
             WAIT = 5
             tracker = database.key_value_store(name:'change_email_address_tracker')
             tracker.get(
@@ -4479,9 +4485,11 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                 cb : (error, value) ->
                     if error
                         push_to_client(message.changed_email_address(id:mesg.id, error:error))
+                        dbg("error: #{error}")
                         cb(true)
                         return
                     if value?  # is defined, so problem -- it's over
+                        dbg("limited!")
                         push_to_client(message.changed_email_address(id:mesg.id, error:'too_frequent', ttl:WAIT))
                         database.log(
                             event : 'change_email_address'
@@ -4499,8 +4507,8 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                         cb()
             )
 
-        # validate the password
         (cb) ->
+            dbg("no limit issues, so validate the password")
             is_password_correct
                 account_id    : mesg.account_id
                 password      : mesg.password
@@ -4520,6 +4528,8 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         # easy to implement a "change your email address back" feature
         # if I need to at some point.
         (cb) ->
+            dbg("log change to db")
+
             database.log(event : 'change_email_address', value : {client_ip_address : client_ip_address, old_email_address : mesg.old_email_address, new_email_address : mesg.new_email_address})
 
             #################################################
@@ -4528,10 +4538,12 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
             # to undo the change to the email address.
             #################################################
 
+            dbg("actually make change in db")
             database.change_email_address
                 account_id    : mesg.account_id
                 email_address : mesg.new_email_address
                 cb : (error, success) ->
+                    dbg("db change; got #{error}, #{success}")
                     if error
                         push_to_client(message.changed_email_address(id:mesg.id, error:error))
                     else
@@ -4539,7 +4551,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
                     cb()
 
         (cb) ->
-            # If they just changed email to an address that hs some actions, carry those out...
+            # If they just changed email to an address that has some actions, carry those out...
             # TODO: move to hook this only after validdation of the email address.
             account_creation_actions
                 email_address : mesg.new_email_address
@@ -5288,7 +5300,7 @@ connect_to_database = (cb) ->
                 keyspace : program.keyspace
                 username : 'hub'
                 password : password.toString().trim()
-                consistency : 1
+                consistency : 2
                 cb       : (err, _db) ->
                     if err
                         winston.debug("Error connecting to database")

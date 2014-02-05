@@ -397,29 +397,41 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping',
                               'line_numbers', 'smart_indent', 'match_brackets', 'electric_chars']
 
 class AccountSettings
-    account_id: () ->
+    account_id: () =>
         return account_id
-    load_from_server: (cb) ->
+
+    load_from_server: (cb) =>
         salvus_client.get_account_settings
             account_id : account_id
             cb         : (error, settings_mesg) =>
                 if error
-                    alert_message(type:"error", message:"Error loading account settings - #{error}")
-                    @settings = 'error'
-                    cb(error)
+                    $("#account-settings-error").show()
+                    if not @settings?
+                        # we only set the settings to error if they aren't already set, since we
+                        # don't want to just throw away the last known settings.
+                        @settings = 'error'
+
+                    # try to get settings again in a bit to fix that the settings aren't known
+                    f = () =>
+                        @load_from_server()
+                    setTimeout(f, 10000)
+
+                    cb?(error)
                     return
 
 
                 if settings_mesg.event != "account_settings"
+                    $("#account-settings-error").show()
                     alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
-                    cb("invalid message")
+                    cb?("invalid message")
                     return
 
+                $("#account-settings-error").hide()
                 @settings = settings_mesg
                 delete @settings['id']
                 delete @settings['event']
 
-                cb()
+                cb?()
 
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
@@ -487,17 +499,10 @@ class AccountSettings
         if not @settings?
             return  # not logged in -- don't bother
 
-        if @settings == 'error'
-            $("#account-settings-error").show()
-            return
-
         set = (element, value) ->
             # TODO: dumb and dangerous -- do better
             element.val(value)
             element.text(value)
-
-
-        $("#account-settings-error").hide()
 
         for prop, value of @settings
             def = message.account_settings_defaults[prop]
@@ -614,12 +619,14 @@ $("#account-change_email_address_button").click (event) ->
     new_email_address = $("#account-change_email_new_address").val()
     password = $("#account-change_email_password").val()
 
+    $("#account-change_email_address_button").icon_spin(start:true)
     salvus_client.change_email
         old_email_address : account_settings.settings.email_address
         new_email_address : new_email_address
         password          : password
         account_id        : account_settings.settings.account_id
         cb                : (error, mesg) ->
+            $("#account-change_email_address_button").icon_spin(false)
             $("#account-change_email_address").find(".account-error-text").hide()
             if error  # exceptional condition -- some sort of server or connection error
                 alert_message(type:"error", message:error)
@@ -643,6 +650,7 @@ $("#account-change_email_address_button").click (event) ->
                 account_settings.settings.email_address = new_email_address
                 set_account_tab_label(true, new_email_address)
                 close_change_email_address()
+                alert_message(type:"success", message:"Email address successfully changed.")
     return false
 
 ################################################
