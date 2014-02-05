@@ -279,7 +279,11 @@ Test with "import neuron".
 
     ln -s local/share data
 
-    ./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq stein-watkins-ecdb
+    ./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  topcom zeromq stein-watkins-ecdb
+
+# temporary workaround:
+
+    ./sage -i http://sage.math.washington.edu/home/SimonKing/Cohomology/p_group_cohomology-2.1.4.p1.spkg
 
 
 # R Packages into Sage's R:
@@ -332,6 +336,11 @@ r packages could be automated like so (?)
 
     cd /usr/local/sage/current; chmod -R a+r *; find . -perm /u+x -execdir chmod a+x {} \;
 
+
+# Delete cached packages
+
+   #cd SAGE_ROOT
+   rm -rf upstream; local/var/tmp/sage/build/
 
 # Run sage one last time
 
