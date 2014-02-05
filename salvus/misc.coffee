@@ -51,6 +51,9 @@ exports.random_choice_from_obj = (obj) ->
 # Returns a random integer in the range, inclusive (like in Python)
 exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
 
+# Like Python's string split -- splits on whitespace
+exports.split = (s) -> s.match(/\S+/g)
+
 # modifies target in place, so that the properties of target are the
 # same as those of upper_bound, and each is <=.
 exports.min_object = (target, upper_bounds) ->
@@ -281,6 +284,19 @@ exports.trunc = (s, max_length) ->
         return s
 
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
+
+# More canonical email address -- lower case and remove stuff between + and @.
+# This is mainly used for banning users.
+
+exports.canonicalize_email_address = (email_address) ->
+    # remove + part from email address:   foo+bar@example.com
+    i = email_address.indexOf('+')
+    if i != -1
+        j = email_address.indexOf('@')
+        if j != -1
+            email_address = email_address.slice(0,i) + email_address.slice(j)
+    # make email address lower case
+    return email_address.toLowerCase()
 
 # Delete trailing whitespace in the string s.  See
 exports.delete_trailing_whitespace = (s) ->

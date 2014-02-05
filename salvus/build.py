@@ -174,6 +174,10 @@ tmux -V
     apt-get install libntl-dev libntl0  libpari-gmp3
     cd /tmp/; rm Macaulay2*.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Debian/Macaulay2-1.6-amd64-Linux-Debian-7.0.deb; wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.6-common.deb;  sudo dpkg -i Macaulay2*.deb; rm Macaulay2*.deb
 
+# Install Julia
+
+   sudo su
+   umask 022; cd /usr/local/; git clone git://github.com/JuliaLang/julia.git; cd julia; make -j4 install;  cd /usr/local/bin; ln -s /usr/local/julia/julia .
 
 # Snappy
 
@@ -183,6 +187,8 @@ tmux -V
 # Build Sage (as usual)
 
     umask 022   # always do this so that the resulting build is usable without painful permission hacking.
+                # the hack would be:
+                #   chmod a+r -R .;    find . -perm /u+x -execdir chmod a+x {} \;
 
     #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
     export MAKE="make -j20"
@@ -193,21 +199,28 @@ tmux -V
    - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
      (just put f=filename in function which in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
 
-
 # Non-sage Python packages into Sage
 
     sage -sh
-    easy_install -U setuptools
-    easy_install pip
+    wget https://raw.github.com/pypa/pip/master/contrib/get-pip.py; python get-pip.py
+
+    sudo su
+    cd /tmp; wget http://download.osgeo.org/proj/proj-4.8.0.tar.gz; tar xvf proj-4.8.0.tar.gz; cd proj-4.8.0; ./configure --prefix=/usr; make install
 
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-[(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image scimath Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly'.split()]
+    os.environ['PROJ_DIR']='/usr/'; os.environ['NETCDF4_DIR']='/usr'; os.environ['HDF5_DIR']='/usr'
+    [(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image  Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly'.split()]
 
 #('pandas', 'statsmodels', 'lxml')
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
+
+Also do this into sage (where the version may change -- check -- https://pypi.python.org/pypi/scimath); I don't understand why pip doesn't work, but it doesn't:
+
+    ./sage -sh
+     wget http://www.enthought.com/repo/ets/scimath-4.1.2.tar.gz; tar xvf scimath-4.1.2.tar.gz; cd scimath-4.1.2; python setup.py install; cd ..; rm -rf scimath-4.1.2*
 
 # Clawpack: requires a special flag
 
@@ -217,7 +230,6 @@ tmux -V
     # in sage
     sage -sh; umask 022
     export LDFLAGS=-shared; pip install clawpack
-
 
 # We have to upgrade rpy2, since the one in sage is so old, and it breaks ipython's r interface.
 
@@ -234,11 +246,6 @@ tmux -V
    rm -rf /tmp/iv /tmp/nrn
 
 Test with "import neuron".
-
-# Install Julia
-
-   sudo su
-   umask 022; cd /usr/local/; git clone git://github.com/JuliaLang/julia.git; cd julia; make -j4 install;  cd /usr/local/bin; ln -s /usr/local/julia/julia .
 
 # basemap -- won't install through pip/easy_install, so we do this:
 
@@ -264,23 +271,27 @@ Test with "import neuron".
 
 # OPTIONAL SAGE PACKAGES
 
-    ./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  TOPCOM zeromq stein-watkins-ecdb
+    Add this back to src/bin/sage-env:
 
+        # this is to be compatible with optional packages that haven't
+        # been updated to not use SAGE_DATA
+        export SAGE_DATA="$SAGE_SHARE"
 
-Delete stupidly wasted space:
+    ln -s local/share data
 
-   rm spkg/optional/*
+    ./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  topcom zeromq stein-watkins-ecdb
+
+# temporary workaround:
+
+    ./sage -i http://sage.math.washington.edu/home/SimonKing/Cohomology/p_group_cohomology-2.1.4.p1.spkg
 
 
 # R Packages into Sage's R:
 
-
     umask 022 && sage -R
-    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields"), repos='http://cran.us.r-project.org')
+    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular"), repos='http://cran.cs.wwu.edu/')
 
-    # add circular as a package once we upgrade sage to R-3.x
-
-r packages could be automated like so:
+r packages could be automated like so (?)
 
                 0 jan@snapperkob:~/src/r-install-packages-0.1ubuntu5$cat r-install-packages.R
                 #! /usr/bin/Rscript --vanilla
@@ -303,24 +314,15 @@ r packages could be automated like so:
      apt-get update; apt-get upgrade; apt-get install r-recommended
 
      umask 022 && /usr/bin/R
-     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular"), repos='http://cran.us.r-project.org')
-
+     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular"), repos='http://cran.cs.wwu.edu/')
 
 
 # 4ti2 into sage: until the optional spkg gets fixed:
-
 
     ./sage -sh
     cd /tmp; wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz && tar xf 4ti2-1.6.tar.gz && cd 4ti2-1.6 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
     make install      # this *must* be a separate step!!
     rm -rf /tmp/4ti2*
-
-
-# Copy over the newest SageTex, so it actually works (only do this with the default sage):
-
-    sudo su
-    umask 022
-    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/; texhash
 
 
 # Update to ipython 1.1.0
@@ -332,11 +334,23 @@ r packages could be automated like so:
 
 # Fix permissions, just in case.
 
-    cd /usr/local/sage/current; chmod -R a+r *
+    cd /usr/local/sage/current; chmod -R a+r *; find . -perm /u+x -execdir chmod a+x {} \;
+
+
+# Delete cached packages
+
+   #cd SAGE_ROOT
+   rm -rf upstream; local/var/tmp/sage/build/
 
 # Run sage one last time
 
   ./sage
+
+# Copy over the newest SageTex, so it actually works (only do this with the default sage):
+
+    sudo su
+    umask 022
+    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/; texhash
 
 # Setup /usr/local/bin/skel
 

@@ -135,7 +135,7 @@ def ensure_ssh_access(project_id):
 
 def killall_user(project_id):
     u = uid(project_id)
-    os.system("pkill -u %s; sleep 1; pkill -9 -u %s"%(u,u))
+    os.system("pkill -u %s; sleep 1; pkill -9 -u %s; killall -u %s"%(u,u,username(project_id)))
 
 def umount_user_home(project_id):
     os.system("umount %s"%home(project_id))

@@ -4,6 +4,11 @@
 #
 ####################################################
 
+if not window.WebSocket?  # websocket support -- mark of a modern browser.
+    $(".salvus_client_browser_warning").draggable().find(".fa-times").click () ->
+        $(".salvus_client_browser_warning").hide()
+    $(".salvus_client_browser_warning").show()
+
 isMobile = exports.isMobile =
     Android    : () -> if navigator.userAgent.match(/Android/i) then true else false
     BlackBerry : () -> if navigator.userAgent.match(/BlackBerry/i) then true else false
