@@ -958,6 +958,11 @@ class FileEditor extends EventEmitter
         if not val?
             return @_has_unsaved_changes
         else
+            if not @_has_unsaved_changes? or @_has_unsaved_changes != val
+                if val
+                    @save_button.removeClass('disabled')
+                else
+                    @save_button.addClass('disabled')
             @_has_unsaved_changes = val
 
     focus: () => # TODO in derived class
@@ -1061,7 +1066,9 @@ class CodeMirrorEditor extends FileEditor
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
-        @element.find(".salvus-editor-codemirror-filename").text(filename)
+
+        # not really needed due to highlighted tab; annoying.
+        #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
@@ -1171,7 +1178,7 @@ class CodeMirrorEditor extends FileEditor
         @codemirror1.setOption('theme', theme)
         @opts.theme = theme
 
-    # add something visual to the UI to suggest that the file is read onl
+    # add something visual to the UI to suggest that the file is read only
     set_readonly_ui: () =>
         @element.find("a[href=#save]").text('Readonly').addClass('disabled')
 
@@ -1443,14 +1450,13 @@ class CodeMirrorEditor extends FileEditor
             @save_button.icon_spin(false)
             @_saving = false
             if not err and not changed
-                @save_button.addClass('disabled')
+                delete @_change_event
                 @has_unsaved_changes(false)
         return false
 
     init_change_event: () =>
         @codemirror.on 'change', (instance, changeObj) =>
             @has_unsaved_changes(true)
-            @save_button.removeClass('disabled')
 
     _get: () =>
         return @codemirror.getValue()
@@ -2428,7 +2434,7 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data='#{result.url}' type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
+                    @output.html("<object data=\"#{result.url}\" type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
 
     show: (geometry={}) =>
         geometry = defaults geometry,

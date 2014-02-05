@@ -335,6 +335,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
         project_id : required
         base_url   : ''
         exclude    : undefined  # if project not currently opened, won't open on any host in the list exclude
+        prefer     : undefined  # string or array; if given prefer these hosts first, irregardless of their newness.
         cb         : required   # cb(err, host used)
 
     dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id}): #{m}")
@@ -393,6 +394,12 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
 
                         if opts.exclude?
                             hosts = (x for x in hosts when opts.exclude.indexOf(x) == -1)
+
+                        if opts.prefer?
+                            if typeof(opts.prefer) == 'string'
+                                opts.prefer = [opts.prefer]
+                            # move any hosts in the prefer list to the front of the line.
+                            hosts = (x for x in hosts when opts.prefer.indexOf(x) != -1).concat( (x for x in hosts when opts.prefer.indexOf(x) == -1) )
 
                         ## TODO: FOR TESTING -- restrict to Google
                         ##hosts = (x for x in hosts when x.slice(0,4) == '10.3')
@@ -528,7 +535,9 @@ exports.close_all_projects = (opts) ->
         unset_loc  : true          # set location to undefined in the database
         wait_for_replicate : true  # make sure that we successfully replicate each project everywhere, or returns an error.
         limit      : 10
+        ttl        : undefined   # if given is a time in seconds; any project with last_edited within ttl (or timeout_disabled set) is not killed; this is used when spinning up new hosts.
         cb         : required
+
     dbg = (m) -> winston.debug("close_all_projects(host:#{opts.host},unset_loc:#{opts.unset_loc}): #{m}")
     errors = {}
     projects = undefined
@@ -537,17 +546,25 @@ exports.close_all_projects = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['project_id', 'location']
+                columns : ['project_id', 'location', 'last_edited', 'timeout_disabled']
                 json    : ['location']
                 limit   : 1000000   # TODO: stupidly slow
                 cb      : (err, result) ->
                     if result?
-                        projects = (x[0] for x in result when x[1]?.host == opts.host)
+                        if opts.ttl? and opts.ttl
+                            cutoff = misc.mswalltime() - opts.ttl*1000  # cassandra timestamps come back in ms since UTC epoch
+                            projects = (x[0] for x in result when x[1]?.host == opts.host and (not x[3] and x[2] < cutoff))
+                        else
+                            projects = (x[0] for x in result when x[1]?.host == opts.host)
+
                     dbg("got #{projects.length} projects")
                     cb(err)
         (cb) ->
             dbg("closing projects...")
+            cnt = 0
             f = (project_id, cb) ->
+                cnt += 1
+                dbg("**************\nclosing project #{cnt}/#{projects.length}\n**********")
                 close_project
                     project_id : project_id
                     host       : opts.host
@@ -605,11 +622,15 @@ exports.close_stale_projects = (opts) ->
         dry_run : true      # don't actually close the projects
         limit   : 5         # number of projects to close simultaneously.
         interval: 3000      # space out the project closing to give server a chance to do other things.
+        unset_loc : false   # whether to unset the location field in the database after closing the project; if done, then projects will resume later on a random host (which is usually *NOT* desirable).
         cb      : required
 
+    dbg = (m) -> winston.debug("close_stale_projects(...): #{m}")
+    dbg()
     projects = undefined
     async.series([
         (cb) ->
+            dbg("querying database...")
             database.stale_projects
                 ttl : opts.ttl
                 cb  : (err, v) ->
@@ -619,20 +640,31 @@ exports.close_stale_projects = (opts) ->
             f = (x, cb) ->
                 project_id = x.project_id
                 host       = x.location.host
-                winston.debug("close stale project #{project_id} at #{host}")
+                dbg("close stale project #{project_id} at #{host}")
                 if opts.dry_run
                     cb()
                 else
-                    # would actually close
-                    close_project
-                        project_id : project_id
-                        host       : host
-                        unset_loc  : false
-                        cb         : (err) ->
-                            if err or not opts.interval
-                                cb(err)
-                            else
-                                setTimeout(cb, opts.interval)
+                    # still stale -- could be quite a delay between getting list of stale projects and f getting called!
+                    database.select_one
+                        table   : 'projects'
+                        columns : ['last_edited']
+                        where   : {project_id : project_id}
+                        cb      : (err, result) ->
+                            if err
+                                cb(err); return
+                            last_edited = result[0]
+                            if misc.mswalltime() - opts.ttl*1000 < last_edited
+                                dbg("not killing, since they have edited #{project_id} in the meantime.")
+                                cb(); return
+                            close_project
+                                project_id : project_id
+                                host       : host
+                                unset_loc  : opts.unset_loc
+                                cb         : (err) ->
+                                    if err or not opts.interval
+                                        cb(err)
+                                    else
+                                        setTimeout(cb, opts.interval)
             async.eachLimit(projects, opts.limit, f, cb)
     ], opts.cb)
 
@@ -1069,7 +1101,6 @@ exports.snapshot = snapshot = (opts) ->
         return
 
     dbg = (m) -> winston.debug("snapshot(#{opts.project_id},#{opts.host},force=#{opts.force}): #{m}")
-
     dbg()
 
     if opts.tag?
@@ -1196,6 +1227,29 @@ exports.get_snapshots = get_snapshots = (opts) ->
                 for k, v of result
                     ans[k] = JSON.parse(v)
                 opts.cb(undefined, ans)
+
+# status_fast: get status information about the storage, location, quota, etc., of a project
+# from the database.  This function will not do any potentially slow/expensive ZFS commands.
+exports.status_fast = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    winston.debug("status_fast(#{opts.project_id})")
+    database.select_one
+        table   : 'projects'
+        where   : {project_id : opts.project_id}
+        columns : ['location', 'locations', 'replicating']
+        json    : ['location']
+        cb      : (err, result) ->
+            if err
+                opts.cb(err)
+            else
+                v = {}
+                for k,z of result[1]
+                    v[k] = {newest_snapshot:misc.from_json(z)?[0], datacenter:datacenter_to_desc[host_to_datacenter[k]]}
+                opts.cb(undefined, {current_location:result[0]?.host, locations:v, replicating:result[2], })
+
+
 
 # for interactive use
 exports.status = (project_id, update) ->
@@ -1621,15 +1675,14 @@ exports.diff = diff = (opts) ->
         ], (err) -> opts.cb(err, v))
 
 
-
-
 exports.snapshot_listing = snapshot_listing = (opts) ->
     opts = defaults opts,
         project_id      : required
         timezone_offset : 0   # difference in minutes:  UTC - local_time
         path            : ''  # '' or a day in the format '2013-12-20'
         host            : undefined
-        cb              : opts.cb
+        cb              : opts.cb   # array of days when path=''
+                                    # array of {utc:..., local:...} when path!=''.
 
     dbg = (m) -> winston.debug("snapshot_listing(#{opts.project_id}): #{m}")
     dbg(misc.to_json(opts))
@@ -1647,31 +1700,29 @@ exports.snapshot_listing = snapshot_listing = (opts) ->
                 if err
                     cb(err)
                 else
-                    cb(undefined, new Date( (new Date(x+"+0000")) - opts.timezone_offset*60*1000) for x in snapshots)
+                    cb(undefined, {utc:x, local:new Date( (new Date(x+"+0000")) - opts.timezone_offset*60*1000)} for x in snapshots)
 
     if opts.path.length<10
         dbg("sorted list of unique days in local time, but as a file listing.")
-        snaps (err, s) ->
+        snaps (err,s) ->
             if err
                 opts.cb(err); return
-            s = (x.toISOString().slice(0,10) for x in s)
+            s = (x.local.toISOString().slice(0,10) for x in s)
             s = _.uniq(s)
-            s.sort()
-            s.reverse()
             dbg("result=#{misc.to_json(s)}")
             opts.cb(undefined, s)
     else if opts.path.length == 10
         dbg("snapshots for a particular day in local time")
-        snaps (err, s) ->
+        snaps (err,s) ->
             if err
                 opts.cb(err); return
-            s = (x.toISOString().slice(0,19) for x in s)
-            s = (x.slice(11) for x in s when x.slice(0,10) == opts.path)
-            s = _.uniq(s)
-            s.sort()
-            s.reverse()
-            dbg("result=#{misc.to_json(s)}")
-            opts.cb(undefined, s)
+            t = []
+            for x in s
+                z = x.local.toISOString().slice(0,19)
+                if z.slice(0,10) == opts.path
+                    t.push({utc:x.utc, local:z.slice(11)})
+            dbg("result=#{misc.to_json(t)}")
+            opts.cb(undefined, t)
     else
         opts.cb("not implemented")
 
@@ -1685,6 +1736,7 @@ hashrings = {}
 topology = undefined
 all_hosts = []
 host_to_datacenter = {}
+datacenter_to_desc = {'0':"Univ. of Washington (Mathematics)", '1':"Univ. of Washington (4545)", '2':"Google Compute Engine (us-central1-a)"}
 exports.init_hashrings = init_hashrings = (cb) ->
     database.select
         table   : 'storage_topology'
@@ -2359,7 +2411,7 @@ exports.replicate_all = replicate_all = (opts) ->
                 database.select
                     table   : 'projects'
                     columns : ['project_id']
-                    limit   : if opts.stop? then opts.stop else 1000000       # TODO: change to use paging...
+                    limit   : 1000000       # TODO: change to use paging...
                     cb      : (err, result) ->
                         projects = result
                         cb(err)
@@ -2391,6 +2443,8 @@ exports.replicate_all = replicate_all = (opts) ->
 exports.backup_all_projects = (opts) ->
     opts = defaults opts,
         limit      : 10
+        start      : undefined
+        stop       : undefined
         cb         : undefined
     dbg = (m) -> winston.debug("backup_all_projects: #{m}")
     errors = {}
@@ -2406,6 +2460,8 @@ exports.backup_all_projects = (opts) ->
                     projects = (a[0] for a in result)
                     projects.sort()
                     dbg("got #{projects.length} projects")
+                    if opts.start? or opts.stop?
+                        projects = projects.slice(opts.start, opts.stop)
                     cb(err)
         (cb) ->
             dbg("backing up all projects...")

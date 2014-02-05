@@ -515,7 +515,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @dsync_client.connect(@dsync_server)
                 @dsync_server.connect(@dsync_client)
                 @_add_listeners()
-                @editor.save_button.addClass('disabled')   # TODO: start with no unsaved changes -- not tech. correct!!
+                @editor.has_unsaved_changes(false) # TODO: start with no unsaved changes -- not tech. correct!!
 
                 @emit 'connect'    # successful connection
 

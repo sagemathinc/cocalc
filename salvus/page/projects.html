@@ -3,25 +3,31 @@
     <div class="span11 well" style="margin-top:1em;">
         <div class="row-fluid" style="padding-left:2em">
             <div class="row">
-                <div class="span4">
-                    <h3>Projects <a href="#refresh-projects"><i class="fa fa-refresh"> </i></a></h3>
-                </div>
-            </div>
-            <div class="row">
                 <div class="span3">
+                    <h3>Projects <a href="#refresh-projects"><i class="fa fa-refresh"> </i></a></h3>
                     <button class="btn btn-primary btn-large" style="width:95%" type="submit" id="new_project-button">New Project</button>
                 </div>
-                <div class="span5">
-                    <span class="btn-group">
-                        <button class="btn btn-inverse btn-small" id="projects-all-button">All</button>
-                        <button class="btn btn-info btn-small" id="projects-public-button"><i class="fa fa-eye"></i> Public</button>
-                        <button class="btn btn-info btn-small" id="projects-private-button"><i class="fa fa-eye-slash"></i> Private</button>
-                        <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="fa fa-trash-o"></i> Deleted</button>
-                    </span>
-                </div>
-                <div class="span4">
-                    <input class="projects-find-input search-query" type="search" placeholder="Find a project...">
-                    <i class="projects-search-form-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                <div class="span9">
+                    <div class="row-fluid">
+                        <div class="row">
+                            <div class="span7">
+                                <span class="btn-group">
+                                    <button class="btn btn-inverse btn-small" id="projects-all-button"><i class="fa fa-tasks"></i> All</button>
+                                    <button class="btn btn-info btn-small" id="projects-public-button"><i class="fa fa-eye"></i> Public</button>
+                                    <button class="btn btn-info btn-small" id="projects-private-button"><i class="fa fa-eye-slash"></i> Private</button>
+                                    <button class="btn btn-info btn-small" id="projects-deleted-button"><i class="fa fa-trash-o"></i> Deleted</button>
+                                </span>
+                            </div>
+                            <div class="span5">
+                                <input class="projects-find-input search-query" type="search" placeholder="Find a project...">
+                                <i class="projects-search-form-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                            </div>
+                        </div>
+                        <div class="row" style="margin-top: 1ex;">
+                            <span class="salvus-hashtag-buttons btn-group" style="white-space: normal">
+                            </span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -72,6 +78,11 @@
         </div>
     </div>
 
+</div>
+
+
+<div class="salvus-projects-templates hide">
+    <button class="btn btn-info btn-small salvus-hashtag-button"></button>
 </div>
 
 <div class="hide projects-location-states">
@@ -141,6 +152,8 @@
     </div>
 
 </div>
+
+
 
 
 

@@ -354,7 +354,7 @@
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                <h1 class="big-only" style="margin-left:1em;">Project Settings and Controls</h1>
+                <h1 class="big-only" style="margin-left:1em;">Project Settings</h1>
                 <span class="hide salvus-project-id-warning pull-right"
                       title="When doing development of SMC inside an SMC project, the security of the raw http server and ipython server is via the project id; other users on the same VM that know the project id of your devel project both from the POV of SMC and of your local server, could get readonly access to your files (or read/write if you start an ipython server).">DANGER (hover with mouse)</span>
                 <div class="row">
@@ -431,7 +431,7 @@
                                             Loading collaborators... <i class="fa fa-spinner fa fa-spin"> </i>
                                         </div>
                                     </div>
-                                    <div class="project-collaborators lighten">
+                                    <div class="project-collaborators project-connections  lighten">
                                     </div>
                                 </div>
                             </div>
@@ -474,20 +474,6 @@
                                         </a>
                                     </div>
                                 </div>
-                                <!--<br>
-
-                                <div class="row-fluid">
-                                    <div class="span8">
-                                        Move this project.  Kill everything running in this project and start the project running on a different virtual machine using the most recent snapshot.  Do this in case of hardware or networking issues, or you mess everything up badly (e.g., wildly deleting random stuff).
-                                    </div>
-                                    <div class="span4">
-                                        <a href="#move-project" class="btn  btn-warning"
-                                           data-toggle="tooltip" data-placement="right" title="Move this project">
-                                            <i class="fa fa-refresh"> </i> Move Project to Another Computer
-                                        </a>
-                                    </div>
-                                </div>
-                                -->
                                 <br>
                                 <div class="row-fluid">
                                     <div class="span12 lighten">
@@ -645,7 +631,7 @@
         </div>
     </div>
 
-    <div class="row span12 project-directory-link-style project-directory-link-snapshot">
+    <div class="row span11 project-directory-link-style project-directory-link-snapshot">
         <div class="span" style="width:120px">
             <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore directory from snapshot"><i class="fa fa-external-link"> </i> </a>
         </div>
@@ -695,7 +681,7 @@
             (<a class="project-file-last-commit-message lighten"></a>)
         </div>
     </div>
-    <div class="row span12  project-directory-link-style project-directory-link">
+    <div class="row span11  project-directory-link-style project-directory-link">
         <div class="span " style="width: 10px;">
 
             <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>
@@ -741,7 +727,7 @@
         <span></span>
     </div>
 
-    <div class="project-collab">
+    <div class="project-collab project-connection">
         <div style="white-space: nowrap;">
             <span class="project-collab-first-name"></span>
             <span class="project-collab-last-name"></span>
@@ -749,6 +735,17 @@
             <i class="project-close-button lighten fa fa-times pull-right" style="font-size:24px"> </i>
         </div>
     </div>
+
+    <div class="project-linked project-connection">
+        <div style="white-space: nowrap;">
+            <a style="color:white;cursor:pointer">
+                <span class="project-linked-title"></span>
+                <span class="project-linked-description"></span>
+            </a>
+            <i class="project-close-button lighten fa fa-times pull-right" style="font-size:24px"> </i>
+        </div>
+    </div>
+
 
 </div>
 
@@ -787,3 +784,37 @@
 
 </div>
 
+
+<!--
+                            <div class="span6 well project-settings-well project-linked-projects-box">
+                                <div class="row-fluid">
+                                    <div class="span4">
+                                        <h4 class="pull-left"><i class="fa fa-link"> </i> Linked Projects</h4>
+                                        <br><br>
+                                    </div>
+                                    <div class="span8">
+                                        <input class="project-add-linked-project-input search-query" type="search" placeholder="Search by title or description...">
+                                        <div class="project-add-linked-projects-desc lighten"></div>
+                                        <select multiple="multiple" class="project-add-linked-project-select hide"> </select>
+
+                                        <div class="project-add-linked-project hide">
+                                            <a href="#add-linked-project" style="margin-bottom: 1ex; display: inline-block;" class="btn btn-large btn-primary" data-toggle="tooltip" data-placement="right" title="Link selected projects.">
+                                            <i class="fa fa-plus"> </i>Add Selected
+                                            </a>
+                                        </div>
+                                        <br>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="project-linked-projects-loading hide row-fluid">
+                                        <div class="span8 offset4">
+                                            Loading linked projects... <i class="fa fa-spinner fa fa-spin"> </i>
+                                        </div>
+                                    </div>
+                                    <div class="project-linked-projects project-connections lighten">
+                                    </div>
+                                </div>
+
+                            </div>
+
+-->

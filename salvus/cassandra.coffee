@@ -1219,6 +1219,71 @@ class exports.Salvus extends exports.Cassandra
             opts.cb(err, account)
         )
 
+    # check whether or not a user is banned
+    is_banned_user: (opts) =>
+        opts = defaults opts,
+            email_address : undefined
+            account_id    : undefined
+            cb            : required    # cb(err, true if banned; false if not banned)
+        if not opts.email_address? or opts.account_id?
+            opts.cb("at least one of email_address or account_id must be given")
+            return
+        dbg = (m) -> winston.debug("user_is_banned(email_address=#{opts.email_address},account_id=#{opts.account_id}): #{m}")
+        banned_accounts = undefined
+        email_address = undefined
+        async.series([
+            (cb) =>
+                if @_account_is_banned_cache?
+                    banned_accounts = @_account_is_banned_cache
+                    cb()
+                else
+                    dbg("filling cache")
+                    @select
+                        table   : 'banned_email_addresses'
+                        columns : ['email_address']
+                        cb      : (err, results) =>
+                            if err
+                                cb(err); return
+                            @_account_is_banned_cache = {}
+                            for x in results
+                                @_account_is_banned_cache[x] = true
+                            banned_accounts = @_account_is_banned_cache
+                            f = () =>
+                                delete @_account_is_banned_cache
+                            setTimeout(f, 60000)    # cache db lookups for 1 minute
+                            cb()
+            (cb) =>
+                if opts.email_address?
+                    email_address = opts.email_address
+                    cb()
+                else
+                    dbg("determining email address from account id")
+                    @select_one
+                        table   : 'accounts'
+                        columns : ['email_address']
+                        cb      : (err, result) =>
+                            if err
+                                cb(err); return
+                            email_address = result[0]
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                # finally -- check if is banned
+                opts.cb(undefined, banned_accounts[misc.canonicalize_email_address(email_address)]==true)
+        )
+
+    ban_user: (opts) =>
+        opts = defaults opts,
+            email_address : undefined
+            cb            : undefined
+        @update
+            table  : 'banned_email_addresses'
+            set    : {dummy : true}
+            where  : {email_address : misc.canonicalize_email_address(opts.email_address)}
+            cb     : (err) => opts.cb?(err)
+
     account_exists: (opts) =>
         opts = defaults opts,
             email_address : required
@@ -1312,34 +1377,70 @@ class exports.Salvus extends exports.Cassandra
         )
 
     # Change the email address, unless the email_address we're changing to is already taken.
-    change_email_address: (opts={}) ->
-        opts = defaults(opts,
+    change_email_address: (opts={}) =>
+        opts = defaults opts,
             account_id    : required
             email_address : required
             cb            : undefined
-        )
 
-        # verify that email address is not already taken
+        dbg = (m) -> winston.debug("change_email_address(#{opts.account_id}, #{opts.email_address}): #{m}")
+        dbg()
+
+        orig_address = undefined
+
         async.series([
             (cb) =>
+                dbg("verify that email address is not already taken")
                 @count
-                    table   : 'accounts'
+                    table   : 'email_address_to_account_id'
                     where   : {email_address : opts.email_address}
-                    cb      : (error, result) ->
+                    cb      : (err, result) =>
+                        if err
+                            cb(err); return
                         if result > 0
-                            opts.cb('email_already_taken')
-                            cb(true)
+                            cb('email_already_taken')
                         else
                             cb()
             (cb) =>
+                dbg("get old email address")
+                @select_one
+                    table : 'accounts'
+                    where : {account_id : opts.account_id}
+                    columns : ['email_address']
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            orig_address = result[0]
+                            cb()
+            (cb) =>
+                dbg("change in accounts table")
                 @update
                     table   : 'accounts'
                     where   : {account_id    : opts.account_id}
                     set     : {email_address : opts.email_address}
-                    cb      : (error, result) ->
-                        opts.cb(error, true)
-                        cb()
-        ])
+                    cb      : cb
+            (cb) =>
+                dbg("add new one")
+                @update
+                    table : 'email_address_to_account_id'
+                    set   : {account_id : opts.account_id}
+                    where : {email_address: opts.email_address}
+                    cb    : cb
+            (cb) =>
+                dbg("delete old address in email_address_to_account_id")
+                @delete
+                    table : 'email_address_to_account_id'
+                    where : {email_address: orig_address}
+                    cb    : (ignored) => cb()
+
+        ], (err) =>
+            if err == "nothing to do"
+                opts.cb?()
+            else
+                opts.cb?(err)
+        )
+
 
 
     #####################################
@@ -1541,6 +1642,53 @@ class exports.Salvus extends exports.Cassandra
                     i += 1
                 opts.cb(false, r)
         )
+
+    # linked projects
+    linked_projects: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            add        : undefined   # array if given
+            remove     : undefined   # array if given
+            cb         : required    # if neither add nor remove are specified, then cb(err, list of linked project ids)
+        list = undefined
+        dbg = (m) -> winston.debug("linked_projects: #{m}")
+        async.series([
+            (cb) =>
+                if not opts.add?
+                    cb(); return
+                for x in opts.add
+                    if not misc.is_valid_uuid_string(x)
+                        cb("invalid uuid '#{x}'")
+                        return
+                #TODO: I don't know how to put variable number of params into a @cql call
+                query = "UPDATE projects SET linked_projects=linked_projects+{#{opts.add.join(',')}} where project_id=?"
+                #dbg("add query: #{query}")
+                @cql(query, [opts.project_id], cb)
+            (cb) =>
+                if not opts.remove?
+                    cb(); return
+                for x in opts.remove
+                    if not misc.is_valid_uuid_string(x)
+                        cb("invalid uuid '#{x}'")
+                        return
+                query = "UPDATE projects SET linked_projects=linked_projects-{#{opts.remove.join(',')}} where project_id=?"
+                #dbg("remove query: #{query}")
+                @cql(query, [opts.project_id], cb)
+            (cb) =>
+                if opts.add? or opts.remove?
+                    cb(); return
+                @select_one
+                    table   : 'projects'
+                    where   : {'project_id':opts.project_id}
+                    columns : ['linked_projects']
+                    objectify : false
+                    cb      : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            list = result[0]
+                            cb()
+        ], (err) => opts.cb(err, list))
 
     # TODO: REWRITE THE function below (and others) to use get_project_data above.
     _get_project_location: (opts) =>
