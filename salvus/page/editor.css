@@ -82,6 +82,7 @@ Editor for files in a project
 .salvus-editor-codemirror-cursor {
     position: absolute;
     width:15em;
+    z-index: 5;
 }
 
 .salvus-editor-codemirror-cursor-inside {
@@ -101,6 +102,7 @@ Editor for files in a project
     left:1.5ex;
     font-size:8pt;
     font-family:serif;
+    background-color:rgba(255,255,255,0.7)
 }
 
 .salvus-editor-recent-files {

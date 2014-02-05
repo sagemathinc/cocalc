@@ -34,6 +34,19 @@
     margin-bottom: 1ex !important;
 }
 
+.project-add-linked-project-input {
+    width: 95%;
+    margin-bottom: 1ex !important;
+}
+
+.project-add-collaborator-select {
+    width:100%;
+}
+
+.project-add-linked-project-select {
+    width:100%;
+}
+
 .project-file-listing {
     margin-left  : 3em;
     margin-right : 3em;
@@ -44,7 +57,7 @@
     overflow-x: hidden; */
 }
 
-.project-collaborators {
+.project-connections {
     line-height: 2.2em;
     max-height: 13em;
     overflow-y: auto;
@@ -54,6 +67,7 @@
     margin-top: 1em;
     background-color: #eee;
 }
+
 
 .project-file-listing-current_path {
     margin-top:12px;
@@ -400,7 +414,7 @@
     border-radius: 5px;
 }
 
-.project-collab {
+.project-connection {
     margin-right: 1em;
     border-radius: 6px;
     background-color: #08c;

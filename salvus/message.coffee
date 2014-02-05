@@ -138,7 +138,7 @@ message
     reason       : undefined
     done         : undefined
 
-# browser --> hub --> sage_server
+# client --> hub --> sage_server
 message
     event        : 'execute_code'
     id           : undefined
@@ -742,7 +742,7 @@ message
 message
     event          : 'snap'
     id             : undefined
-    command        : required    # 'ls', 'restore', 'log', 'last'
+    command        : required    # 'ls', 'restore', 'log', 'last', 'status'
     project_id     : required
     # if snapshot not given, then command must be "ls", and server returns a list of available snapshots in reverse order
     snapshot       : undefined
@@ -1037,6 +1037,16 @@ message
 message
     event      : 'project_list_updated'
 
+
+## linked projects  ---------------------------
+# client <--> hub
+message
+    event      : 'linked_projects'
+    id         : undefined
+    project_id : undefined
+    add        : undefined   # array of project_id's
+    remove     : undefined   # array of project_id's
+    list       : undefined   # if add/remove are undefined in client-->hub message, then list it list of project_id's in the hub-->client message
 
 
 ## search ---------------------------
