@@ -44,6 +44,8 @@ codemirror_associations =
     f90    : 'text/x-fortran'
     f95    : 'text/x-fortran'
     h      : 'text/x-c++hdr'
+    hs     : 'text/x-haskell'
+    lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
@@ -53,11 +55,9 @@ codemirror_associations =
     md     : 'markdown'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
-
     gp     : 'text/pari'
     go     : 'text/x-go'
     pari   : 'text/pari'
-
     php    : 'php'
     py     : 'python'
     pyx    : 'python'
@@ -1053,6 +1053,8 @@ class CodeMirrorEditor extends FileEditor
             sync_interval     : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
             completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
+
+        #console.log("mode =", opts.mode)
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
