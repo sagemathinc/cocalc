@@ -2532,7 +2532,7 @@ exports.backup_project = backup_project = (opts) ->
                 misc_node.execute_code
                     command     : "sudo"
                     args        : ['zfs', 'list', '-r', '-t', 'snapshot', '-o', 'name', '-s', 'creation', f]
-                    timeout     : 60
+                    timeout     : 3600
                     err_on_exit : true
                     cb          : (err, output) ->
                         if err
