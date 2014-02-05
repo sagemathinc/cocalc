@@ -397,29 +397,41 @@ EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping',
                               'line_numbers', 'smart_indent', 'match_brackets', 'electric_chars']
 
 class AccountSettings
-    account_id: () ->
+    account_id: () =>
         return account_id
-    load_from_server: (cb) ->
+
+    load_from_server: (cb) =>
         salvus_client.get_account_settings
             account_id : account_id
             cb         : (error, settings_mesg) =>
                 if error
-                    alert_message(type:"error", message:"Error loading account settings - #{error}")
-                    @settings = 'error'
-                    cb(error)
+                    $("#account-settings-error").show()
+                    if not @settings?
+                        # we only set the settings to error if they aren't already set, since we
+                        # don't want to just throw away the last known settings.
+                        @settings = 'error'
+
+                    # try to get settings again in a bit to fix that the settings aren't known
+                    f = () =>
+                        @load_from_server()
+                    setTimeout(f, 10000)
+
+                    cb?(error)
                     return
 
 
                 if settings_mesg.event != "account_settings"
+                    $("#account-settings-error").show()
                     alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
-                    cb("invalid message")
+                    cb?("invalid message")
                     return
 
+                $("#account-settings-error").hide()
                 @settings = settings_mesg
                 delete @settings['id']
                 delete @settings['event']
 
-                cb()
+                cb?()
 
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
@@ -487,17 +499,10 @@ class AccountSettings
         if not @settings?
             return  # not logged in -- don't bother
 
-        if @settings == 'error'
-            $("#account-settings-error").show()
-            return
-
         set = (element, value) ->
             # TODO: dumb and dangerous -- do better
             element.val(value)
             element.text(value)
-
-
-        $("#account-settings-error").hide()
 
         for prop, value of @settings
             def = message.account_settings_defaults[prop]

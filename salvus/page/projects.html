@@ -4,8 +4,8 @@
         <div class="row-fluid" style="padding-left:2em">
             <div class="row">
                 <div class="span3">
-                    <h3>Projects <a href="#refresh-projects"><i class="fa fa-refresh"> </i></a></h3>
-                    <button class="btn btn-primary btn-large" style="width:95%" type="submit" id="new_project-button">New Project</button>
+                    <h3> <a href="#refresh-projects"><i class="fa fa-refresh"> </i></a> Projects</h3>
+                    <button class="btn btn-primary btn-large" style="width:95%" type="submit" id="new_project-button"><i class="fa fa-plus-circle"> </i>  New Project...</button>
                 </div>
                 <div class="span9">
                     <div class="row-fluid">
@@ -94,32 +94,31 @@
 <div class="modal hide" id="projects-create_project"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header big-only">
         <button type="button" class="close" data-dismiss="modal">×</button>
-        <h2>Create a New Project</h2>
+        <h2><i class="fa fa-plus-circle"> </i> Create a New Project</h2>
         <div class="lighten">
             A project is a complete self-contained collection of files and folders.
             Sharing and collaboration occurs at the project level.
         </div>
     </div>
     <div class="modal-body">
-
         <!-- title -->
-        <div class="row span5">
+        <div>
             <h4 class="big-only">Title</h4>
-            <input class="span5 offset1" type="text" placeholder="Title (you can easily change this later)" id="projects-create_project-title">
+            <input type="text" style="width:95%" placeholder="Title (you can easily change this later)" id="projects-create_project-title">
         </div>
 
         <!-- description -->
-        <div class="row span5">
+        <div>
             <h4 class="big-only">Description</h4>
-            <input class="span5 offset1" type="text" placeholder="No description" id="projects-create_project-description">
+            <input type="text" style="width:95%" placeholder="No description" id="projects-create_project-description">
         </div>
 
-        <div class="row span5">
+        <div>
             <span class="big-only lighten">You can change the title and description at any time later.</span>
         </div>
 
         <!-- public? -->
-        <div class="row span5">
+        <div>
             <hr class="big-only">
             <label class="radio">
                 <input type="radio" name="projects-create_project-public" value="public" id="projects-create_project-public" checked>
@@ -132,17 +131,6 @@
                 <span class="big-only lighten">You choose who can see and modify contents of this project.</span>
             </label>
         </div>
-
-        <!-- location -->
-        <!--
-<div class="row span5">
-<hr class="big-only">
-<h4>Advanced (only for William Stein!): use your own Linux account</h4>
-<span class="big-only lighten">Enter "username@host[:path] [-p port]".</span>
-<input class="span5 offset1" type="text" placeholder="username@host[:path] [-p port]" id="projects-create_project-location">
-</div>
--->
-
     </div>
     <!-- do it -->
     <div class="modal-footer">

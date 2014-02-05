@@ -44,6 +44,8 @@ codemirror_associations =
     f90    : 'text/x-fortran'
     f95    : 'text/x-fortran'
     h      : 'text/x-c++hdr'
+    hs     : 'text/x-haskell'
+    lhs    : 'text/x-haskell'
     html   : 'htmlmixed'
     java   : 'text/x-java'
     jl     : 'text/x-julia'
@@ -53,11 +55,9 @@ codemirror_associations =
     md     : 'markdown'
     mysql  : 'text/x-sql'
     patch  : 'text/x-diff'
-
     gp     : 'text/pari'
     go     : 'text/x-go'
     pari   : 'text/pari'
-
     php    : 'php'
     py     : 'python'
     pyx    : 'python'
@@ -1054,6 +1054,8 @@ class CodeMirrorEditor extends FileEditor
 
             completions_size  : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
+        #console.log("mode =", opts.mode)
+
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
@@ -1066,7 +1068,9 @@ class CodeMirrorEditor extends FileEditor
         filename = @filename
         if filename.length > 30
             filename = "…" + filename.slice(filename.length-30)
-        @element.find(".salvus-editor-codemirror-filename").text(filename)
+
+        # not really needed due to highlighted tab; annoying.
+        #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
         elt = @element.find(".salvus-editor-codemirror-input-box").find("textarea")
         elt.text(content)
@@ -2432,7 +2436,7 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @output.html("<object data='#{result.url}' type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
+                    @output.html("<object data=\"#{result.url}\" type='application/pdf' width='#{width}' height='#{output_height-10}'><br><br>Your browser doesn't support embedded PDF's, but you can <a href='#{result.url}'>download #{@filename}</a></p></object>")
 
     show: (geometry={}) =>
         geometry = defaults geometry,
