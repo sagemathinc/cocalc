@@ -139,3 +139,5 @@
 10.9.1.1 backup1  backup
 10.9.1.2 backup2  backup
 
+# Sage Cell Server
+10.10.1.1 cellserver1 cellserver
