@@ -2801,7 +2801,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     cb()
                 else
                     did_killall = true
-                    @killall () =>
+                    @killall (ignore) =>
                         cb()
             (cb) =>
                 @dbg("restart: push latest version of code to remote machine...")
@@ -3365,18 +3365,29 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     killall: (cb) =>
         @dbg("kill all processes running on a local hub (including the local hub itself)")
+
         if program.local
             @dbg("killall -- skipping since running with --local=true debug mode")
             cb?(); return
-        @_exec_on_local_hub
-            command : "rm #{@SAGEMATHCLOUD}/data/*.port #{@SAGEMATHCLOUD}/data/*.pid; pkill -9 -u #{@username}"  # pkill is *WAY better* than killall (which evidently does not work in some cases)
-            dot_sagemathcloud_path : false
-            timeout : 30
-            ignore_restart_lock : true
-            cb      : (err, out) =>
-                @dbg("killall returned -- #{err}, #{misc.to_json(out)}")
-                # We explicitly ignore errors since killall kills self while at it, which results in an error code return.
-                cb?()
+
+        async.series([
+            (cb) =>
+                @update_project_location(cb)
+            (cb) =>
+                storage.create_user
+                    project_id : @project_id
+                    host       : @host
+                    action     : 'kill'
+                    timeout    : 30
+                    cb         : cb
+            (cb) =>
+                @_exec_on_local_hub
+                    command                : "rm #{@SAGEMATHCLOUD}/data/*.port #{@SAGEMATHCLOUD}/data/*.pid"
+                    dot_sagemathcloud_path : false
+                    timeout                : 30
+                    ignore_restart_lock    : true
+                    cb                     : cb
+        ], (err) => cb?(err))
 
     _restart_local_hub_if_not_all_daemons_running: (cb) =>
         if @_status?.local_hub #and @_status.console_server
