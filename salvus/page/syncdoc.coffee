@@ -23,6 +23,11 @@ their 900 clients in parallel.
 
 ###
 
+# seconds to wait for synchronized doc editing session, before reporting an error.
+# Don't make this too short, since when we open a link to a file in a project that
+# hasn't been opened in a while, it can take a while.
+CONNECT_TIMEOUT_S = 45
+
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
@@ -345,7 +350,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         delete @session_uuid
         #console.log("_connect -- '#{@filename}'")
         @call
-            timeout : 30     # a reasonable amount of time, since file could be *large*
+            timeout : CONNECT_TIMEOUT_S    # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @project_id
@@ -468,7 +473,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         delete @session_uuid
         @ui_loading()
         @call
-            timeout : 30     # a reasonable amount of time, since file could be *large*
+            timeout : CONNECT_TIMEOUT_S              # a reasonable amount of time, since file could be *large*
             message : message.codemirror_get_session
                 path         : @filename
                 project_id   : @editor.project_id

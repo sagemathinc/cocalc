@@ -1219,6 +1219,71 @@ class exports.Salvus extends exports.Cassandra
             opts.cb(err, account)
         )
 
+    # check whether or not a user is banned
+    is_banned_user: (opts) =>
+        opts = defaults opts,
+            email_address : undefined
+            account_id    : undefined
+            cb            : required    # cb(err, true if banned; false if not banned)
+        if not opts.email_address? or opts.account_id?
+            opts.cb("at least one of email_address or account_id must be given")
+            return
+        dbg = (m) -> winston.debug("user_is_banned(email_address=#{opts.email_address},account_id=#{opts.account_id}): #{m}")
+        banned_accounts = undefined
+        email_address = undefined
+        async.series([
+            (cb) =>
+                if @_account_is_banned_cache?
+                    banned_accounts = @_account_is_banned_cache
+                    cb()
+                else
+                    dbg("filling cache")
+                    @select
+                        table   : 'banned_email_addresses'
+                        columns : ['email_address']
+                        cb      : (err, results) =>
+                            if err
+                                cb(err); return
+                            @_account_is_banned_cache = {}
+                            for x in results
+                                @_account_is_banned_cache[x] = true
+                            banned_accounts = @_account_is_banned_cache
+                            f = () =>
+                                delete @_account_is_banned_cache
+                            setTimeout(f, 60000)    # cache db lookups for 1 minute
+                            cb()
+            (cb) =>
+                if opts.email_address?
+                    email_address = opts.email_address
+                    cb()
+                else
+                    dbg("determining email address from account id")
+                    @select_one
+                        table   : 'accounts'
+                        columns : ['email_address']
+                        cb      : (err, result) =>
+                            if err
+                                cb(err); return
+                            email_address = result[0]
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                # finally -- check if is banned
+                opts.cb(undefined, banned_accounts[misc.canonicalize_email_address(email_address)]==true)
+        )
+
+    ban_user: (opts) =>
+        opts = defaults opts,
+            email_address : undefined
+            cb            : undefined
+        @update
+            table  : 'banned_email_addresses'
+            set    : {dummy : true}
+            where  : {email_address : misc.canonicalize_email_address(opts.email_address)}
+            cb     : (err) => opts.cb?(err)
+
     account_exists: (opts) =>
         opts = defaults opts,
             email_address : required
