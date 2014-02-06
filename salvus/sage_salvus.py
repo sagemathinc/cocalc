@@ -1761,7 +1761,7 @@ def sh(code):
 
 import sage.interfaces.r
 def r_eval0(*args, **kwds):
-    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds)
+    return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip()
 
 r_dev_on = False
 def r_eval(code, *args, **kwds):
@@ -1799,7 +1799,7 @@ def r_eval(code, *args, **kwds):
     finally:
         r_dev_on = False
         if os.path.exists(tmp):
-            salvus.file(tmp, show=True)
+            salvus.stdout('\n'); salvus.file(tmp, show=True); salvus.stdout('\n')
             os.unlink(tmp)
 
 sage.interfaces.r.r.eval = r_eval

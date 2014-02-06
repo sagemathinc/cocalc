@@ -712,8 +712,7 @@ class Salvus(object):
 
         for code_decorator in reversed(code_decorators):
             if hasattr(code_decorator, 'eval'):   # eval is for backward compatibility
-                code = code_decorator.eval(code, locals=self.namespace)
-                print code
+                print code_decorator.eval(code, locals=self.namespace),
                 code = ''
             elif code_decorator is sage:
                 # special case -- the sage module (i.e., %sage) should do nothing.
