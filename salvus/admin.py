@@ -1324,11 +1324,11 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        backups = set(self._hosts['backup'])
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20).iteritems():
-            if k[0] in backups:
-                # these should always fail, due to security restriction on automated login.
-                continue
+        exclude = set(self._hosts['backup']+self._hosts['cellserver'])
+        h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
+        if not h:
+            return []
+        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=20).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1365,15 +1365,16 @@ class Monitor(object):
         valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
         """
         ans = []
+        import urllib2
         try:
             for ip_address in dns(SITENAME, timeout):
                 entry = {'host':ip_address, 'service':'stats'}
                 ans.append(entry)
                 try:
                     # site must return and be valid json
-                    json.loads(urllib2.urlopen('https://cloud.sagemath.com/stats', timeout=timeout).read())
+                    json.loads(urllib2.urlopen('https://%s/stats'%ip_address, timeout=timeout).read())
                     entry['status'] = 'up'
-                except URLError:
+                except urllib2.URLError:
                     entry['status'] = 'down'
         except (RuntimeError, ValueError):
             ans = [{'host':SITENAME, 'service':'stats', 'status':'down'}]
