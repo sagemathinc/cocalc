@@ -7,7 +7,7 @@ Administration and Launch control of salvus components
 ####################
 # Standard imports
 ####################
-import logging, os, shutil, signal, socket, stat, subprocess, tempfile, time
+import json, logging, os, shutil, signal, socket, stat, subprocess, tempfile, time
 
 from string import Template
 
@@ -16,6 +16,7 @@ import misc
 ############################################################
 # Paths where data and configuration are stored
 ############################################################
+SITENAME = 'cloud.sagemath.com'
 DATA   = 'data'
 CONF   = 'conf'
 AGENT  = os.path.join(os.environ['HOME'], '.ssh', 'agent')
@@ -141,6 +142,21 @@ def process_status(pid, run):
     v = run(['ps', '-p', str(int(pid)), '-o', ' '.join(fields)], verbose=False).splitlines()
     if len(v) <= 1: return {}
     return dict(zip(fields, v[-1].split()))
+
+
+def dns(host, timeout=10):
+    """
+    Return list of ip addresses of a given host.  Errors out after timeout seconds.
+    """
+    a = os.popen3("host -t A -W %s %s | awk '{print $4}'"%(timeout,host))
+    err = a[2].read().strip()
+    if err:
+        raise RuntimeError(err)
+    out = a[1].read()
+    if 'found' in out:
+        raise RuntimeError("unknown domain '%s'"%host)
+    else:
+        return out.split()[1:]
 
 ########################################
 # Standard Python Logging
@@ -472,7 +488,7 @@ class Stunnel(Process):
 ####################
 class Haproxy(Process):
     def __init__(self, id=0,
-                 sitename='cloud.sagemath.com',   # name of site, e.g., 'codethyme.com' if site is https://codethyme.com; used only if insecure_redirect is set
+                 sitename=SITENAME,   # name of site, e.g., 'cloud.sagemath.com' if site is https://cloud.sagemath.com; used only if insecure_redirect is set
                  accept_proxy_port=HAPROXY_PORT,  # port that stunnel sends decrypted traffic to
                  insecure_redirect_port=None,    # if set to a port number (say 80), then all traffic to that port is immediately redirected to the secure site
                  insecure_testing_port=None, # if set to a port, then gives direct insecure access to full site
@@ -1312,7 +1328,7 @@ class Monitor(object):
         for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20).iteritems():
             if k[0] in backups:
                 # these should always fail, due to security restriction on automated login.
-                continue  
+                continue
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1343,6 +1359,29 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def stats(self, timeout=10):
+        """
+        Get all ip addresses that SITENAME resolves to, then verify that https://ip_address/stats returns
+        valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
+        """
+        ans = []
+        try:
+            for ip_address in dns(SITENAME, timeout):
+                entry = {'host':ip_address, 'service':'stats'}
+                ans.append(entry)
+                try:
+                    # site must return and be valid json
+                    json.loads(urllib2.urlopen('https://cloud.sagemath.com/stats', timeout=timeout).read())
+                    entry['status'] = 'up'
+                except URLError:
+                    entry['status'] = 'down'
+        except (RuntimeError, ValueError):
+            ans = [{'host':SITENAME, 'service':'stats', 'status':'down'}]
+
+        w = [(d.get('status','down'),d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
     def all(self):
         return {
             'timestamp' : time.time(),
@@ -1350,6 +1389,7 @@ class Monitor(object):
             'zfs'       : self.zfs(),
             'load'      : self.load(),
             'cassandra' : self.cassandra(),
+            'stats'     : self.stats(),
             'compute'   : self.compute()
         }
 
@@ -1385,6 +1425,10 @@ class Monitor(object):
         for x in all['cassandra'][:n]:
             print x
 
+        print "STATS"
+        for x in all['stats'][:n]:
+            print x
+
         print "COMPUTE"
         vcompute = all['compute']
         print "%s projects running"%(sum([x['nprojects'] for x in vcompute]))
@@ -1394,7 +1438,7 @@ class Monitor(object):
     def update_db(self, all=None):
         if all is None:
             all = self.all()
-        import cassandra, json
+        import cassandra
         t = all['timestamp']
         d = {}
         for k, v in all.iteritems():
