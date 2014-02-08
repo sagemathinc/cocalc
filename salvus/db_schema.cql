@@ -118,7 +118,9 @@ CREATE TABLE accounts (
 
     editor_settings    varchar, // JSON
 
-    enable_tooltips    boolean
+    other_settings     varchar, // JSON
+
+    enable_tooltips    boolean,
 
     owner                set<uuid>,   // projects that this user owns
     collaborator         set<uuid>,   // projects this users is collaborating on
