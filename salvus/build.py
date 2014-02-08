@@ -179,6 +179,12 @@ tmux -V
    sudo su
    umask 022; cd /usr/local/; git clone git://github.com/JuliaLang/julia.git; cd julia; make -j4 install;  cd /usr/local/bin; ln -s /usr/local/julia/julia .
 
+# FEnICS -- automated solution of differential equations by finite element methods
+
+    add-apt-repository ppa:fenics-packages/fenics
+    apt-get update; apt-get install fenics
+
+
 # Snappy
 
     umask 022; sage -i http://snappy.computop.org/get/snappy-2.0.3.spkg
@@ -193,6 +199,12 @@ tmux -V
     #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
     export MAKE="make -j20"
     make
+
+# Make the new Sage able to import stuff installed in the system-wide python, e.g., "import dolfin" (some complicated FEM library)
+
+    cd $SAGE_ROOT/local/lib/python
+    echo "import sys; sys.path.append('/usr/lib/python2.7/dist-packages/'); sys.path.append('/usr/lib/pymodules/python2.7')" >> sitecustomize.py
+    chmod a+r sitecustomize.py
 
 # Workaround bugs in Sage
 

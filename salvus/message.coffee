@@ -526,6 +526,7 @@ exports.unrestricted_account_settings =
     autosave             : required   # time in seconds or 0 to disable
     terminal             : required   # JSON object -- client interprets
     editor_settings      : required   # JSON object -- client interprets
+    other_settings       : required   # JSON object
 
 exports.account_settings_defaults =
     plan_id            : 0  # the free trial plan
@@ -538,6 +539,8 @@ exports.account_settings_defaults =
     connect_Google     : ''
     connect_Dropbox    : ''
     autosave           : 180
+    other_settings     :
+        confirm_close : false
     editor_settings    :
         strip_trailing_whitespace : true
         line_wrapping             : true

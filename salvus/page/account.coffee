@@ -396,6 +396,8 @@ $("#account").find("a[href=#sign-out]").click (event) ->
 EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace', 'line_wrapping',
                               'line_numbers', 'smart_indent', 'match_brackets', 'electric_chars']
 
+OTHER_SETTINGS_CHECKBOXES = ['confirm_close']
+
 class AccountSettings
     account_id: () =>
         return account_id
@@ -484,6 +486,12 @@ class AccountSettings
                     # Color schemes
                     val.theme = element.find(".account-settings-editor-color_scheme").val()
 
+                when 'other_settings'
+                    val = {}
+
+                    for x in OTHER_SETTINGS_CHECKBOXES
+                        val[x] = element.find(".account-settings-other_settings-#{x}").is(":checked")
+
                 else
                     val = element.val()
 
@@ -550,6 +558,9 @@ class AccountSettings
                         element.find(".account-settings-#{x}").prop("checked", value[x])
                     element.find(".account-settings-editor-bindings").val(value.bindings)
                     element.find(".account-settings-editor-color_scheme").val(value.theme)
+                when 'other_settings'
+                    for x in OTHER_SETTINGS_CHECKBOXES
+                        element.find(".account-settings-other_settings-#{x}").prop("checked", value[x])
                 else
                     set(element, value)
 
