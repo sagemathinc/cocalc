@@ -67,6 +67,7 @@ CASSANDRA_INTERNODE_PORTS = [7000, 7001]
 CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_NATIVE_PORT]
 
 
+
 ####################
 # Sending an email (useful for monitoring script)
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
@@ -88,6 +89,21 @@ def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@gmail.
     server.login(username,password)
     server.sendmail(fromaddr, toaddrs, msg.as_string())
     server.quit()
+
+def zfs_size(s):
+    """
+    Convert a zfs size string to gigabytes (float)
+    """
+    if len(s) == 0:
+        return 0.0
+    u = s[-1]; q = float(s[:-1])
+    if u == 'M':
+        q /= 1000
+    elif u == 'T':
+        q *= 1000
+    elif u == 'K':
+        q /= 1000000
+    return q
 
 ####################
 # Running a subprocess
@@ -1017,19 +1033,21 @@ class Hosts(object):
             self._password = getpass.getpass("%s's password: "%self._username)
         return self._password
 
-    def ssh(self, hostname, timeout=20, keepalive=None, use_cache=True):
-        key = (hostname, self._username)
+    def ssh(self, hostname, timeout=20, keepalive=None, use_cache=True, username=None):
+        if username is None:
+            username = self._username
+        key = (hostname, username)
         if use_cache and key in self._ssh:
             return self._ssh[key]
         import paramiko
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            ssh.connect(hostname=hostname, username=self._username, password=self._password, timeout=timeout)
+            ssh.connect(hostname=hostname, username=username, password=self._password, timeout=timeout)
         except paramiko.AuthenticationException:
             while True:
                 try:
-                    ssh.connect(hostname=hostname, username=self._username, password=self.password(retry=True))
+                    ssh.connect(hostname=hostname, username=username, password=self.password(retry=True))
                     break
                 except paramiko.AuthenticationException, msg:
                     print msg
@@ -1065,10 +1083,10 @@ class Hosts(object):
     def ip_addresses(self, hostname):
         return [socket.gethostbyname(h) for h in self[hostname]]
 
-    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True, verbose=True):
+    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True, username=None, verbose=True):
         def f(hostname):
             try:
-                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, verbose=verbose)
+                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, username=username, verbose=verbose)
             except Exception, msg:
                 return {'stdout':'', 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
         return dict(self.map(f, hostname=hostname, parallel=parallel))
@@ -1086,18 +1104,17 @@ class Hosts(object):
                 print
         return result
 
-    def _exec_command(self, command, hostname, sudo, timeout, wait, verbose=True):
+    def _exec_command(self, command, hostname, sudo, timeout, wait, username=None, verbose=True):
         if not self._passwd:
             # never use sudo if self._passwd is false...
             sudo = False
         start = time.time()
-        ssh = self.ssh(hostname, timeout=timeout)
-        import paramiko
+        ssh = self.ssh(hostname, username=username, timeout=timeout)
         try:
             chan = ssh.get_transport().open_session()
         except:
             # try again in case if remote machine got rebooted or something...
-            chan = self.ssh(hostname, timeout=timeout, use_cache=False).get_transport().open_session()
+            chan = self.ssh(hostname, username=username, timeout=timeout, use_cache=False).get_transport().open_session()
         stdin = chan.makefile('wb')
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
@@ -1328,7 +1345,7 @@ class Monitor(object):
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
-        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=20).iteritems():
+        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=30).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1343,19 +1360,37 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def zfs(self, hosts='all'):
+    def zfs(self, hosts='compute'):
         """
-        Count zfs processes on each machine.
+        Count zfs processes on each compute machine.
         """
-        cmd = "ps ax |grep zfs |wc -l"
+        cmd = "ps ax |grep zfs |wc -l; sudo zpool list"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30, username='storage').iteritems():
+            x = v['stdout'].split()
             try:
-                nproc = int(v['stdout']) - 2
+                nproc = int(x[0]) - 2
             except:
                 nproc = -1
-            ans.append( {'host':k[0], 'service':'zfs', 'nproc':nproc} )
-        w = [((d.get('status','down'),-d['nproc'],d['host']),d) for d in ans]
+            try:
+                size  = zfs_size(x[10])
+                alloc = zfs_size(x[11])
+                free  = zfs_size(x[12])
+                cap   = float(x[13][:-1])
+                dedup = float(x[14][:-1])
+                health = x[15]
+                d = {'host':k[0], 'service':'zfs', 'nproc':nproc, 'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health}
+                if free < 64 or d['health'] != 'ONLINE':
+                    d['status'] = 'down'  # <15GB free -- start receiving scary emails!
+                else:
+                    d['status'] = 'up'
+            except:
+                print "FAIL"
+                print "x = ", x
+                d = {'status':'down'}
+            ans.append(d)
+        # put anything with < 100 GB free first in list, since we need to worry about it.
+        w = [((d.get('free')>=100, d.get('status','down'), -d['nproc'],d['host']),d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
