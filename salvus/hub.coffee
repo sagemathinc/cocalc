@@ -3247,7 +3247,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                                         cb(err)
                     else
                         cb("unable to start local_hub daemon on #{@address}")
-
+            (cb) =>
+                database.update
+                    table : 'projects'
+                    set   : {'status':'opened'}
+                    where : {project_id : @project_id}
+                    cb    : cb
         ], (err) =>
             delete @_opening
             if err

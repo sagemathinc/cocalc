@@ -515,15 +515,16 @@ exports.close_project = close_project = (opts) ->
                 only_if_not_replicating : false
                 cb         : cb
         (cb) ->
+            dbg("updating project status in database")
+            set = {status:'closed'}
             if opts.unset_loc
                 dbg("unsetting location in project")
-                database.update
-                    table : 'projects'
-                    set   : {location:undefined}
-                    where : {project_id : opts.project_id}
-                    cb    : cb
-            else
-                cb()
+                set.location = undefined
+            database.update
+                table : 'projects'
+                set   : set
+                where : {project_id : opts.project_id}
+                cb    : cb
     ], opts.cb)
 
 # Close every project on a given host -- useful for putting a node into maintenance
