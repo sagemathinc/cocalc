@@ -1005,9 +1005,10 @@ class exports.Salvus extends exports.Cassandra
     # Account Management
     #####################################
     is_email_address_available: (email_address, cb) =>
+
         @count
             table : "email_address_to_account_id"
-            where :{email_address:email_address}
+            where :{email_address : misc.lower_email_address(email_address)}
             cb    : (error, cnt) =>
                 if error
                    cb(error)
@@ -1023,6 +1024,7 @@ class exports.Salvus extends exports.Cassandra
             cb            : required
 
         account_id = uuid.v4()
+        opts.email_address = misc.lower_email_address(opts.email_address)   # canonicalize the email address
         async.series([
             # verify that account doesn't already exist
             (cb) =>
@@ -1179,6 +1181,8 @@ class exports.Salvus extends exports.Cassandra
                              'autosave', 'terminal', 'editor_settings', 'other_settings']
 
         account = undefined
+        if opts.email_address?
+            opts.email_address = misc.lower_email_address(opts.email_address)
         async.series([
             (cb) =>
                 if opts.account_id?
@@ -1228,6 +1232,8 @@ class exports.Salvus extends exports.Cassandra
         if not opts.email_address? or opts.account_id?
             opts.cb("at least one of email_address or account_id must be given")
             return
+        if opts.email_address?
+            opts.email_address = misc.lower_email_address(opts.email_address)
         dbg = (m) -> winston.debug("user_is_banned(email_address=#{opts.email_address},account_id=#{opts.account_id}): #{m}")
         banned_accounts = undefined
         email_address = undefined
@@ -1288,6 +1294,8 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             email_address : required
             cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+
+        opts.email_address = misc.lower_email_address(opts.email_address)   # canonicalize the email address
         @select
             table     : 'email_address_to_account_id'
             where     : {email_address:opts.email_address}
@@ -1387,6 +1395,7 @@ class exports.Salvus extends exports.Cassandra
         dbg()
 
         orig_address = undefined
+        opts.email_address = misc.lower_email_address(opts.email_address)
 
         async.series([
             (cb) =>
