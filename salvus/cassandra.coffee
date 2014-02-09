@@ -1105,6 +1105,80 @@ class exports.Salvus extends exports.Cassandra
                             value : misc.len(t)
                             cb    : cb
 
+    # A *one-off* computation!  For when we canonicalized email addresses to be lower case.
+    lowercase_email_addresses: (cb) =>
+        ###
+        Algorithm:
+         - get list of all pairs (account_id, email_address)
+         - use to make map  {lower_email_address:[[email_address, account_id], ... }
+         - for each key of that map:
+               - if multiple addresses, query db to see which was used most recently
+               - set accounts record with given account_id to lower_email_address
+               - set email_address_to_account_id --> accounts mapping to map lower_email_address to account_id.
+        ###
+        dbg = (m) -> console.log("lowercase_email_addresses: #{m}")
+        dbg()
+        @select
+            table     : 'accounts'
+            limit     : 10000000  # effectively unlimited...
+            columns   : ['email_address', 'account_id']
+            objectify : false
+            cb: (err, results) =>
+                dbg("There are #{results.length} accounts.")
+                t = {}
+                for r in results
+                    k = r[0].toLowerCase()
+                    if not t[k]?
+                        t[k] = []
+                    t[k].push(r)
+                dbg("There are #{misc.len(t)} distinct lower case email addresses.")
+                f = (k, cb) =>
+                    v = t[k]
+                    account_id = undefined
+                    async.series([
+                        (c) =>
+                            if v.length == 1
+                                account_id = v[0][1]
+                                c(true)
+                                return
+                        (c) =>
+                            @select
+                                table    : 'successful_sign_ins'
+                                columns  : ['time','account_id']
+                                where    : {'email_address':{'in':(x[0] for x in v)}}
+                                order_by : 'time'
+                                cb       : (e, results) =>
+                                    if e
+                                        c(e)
+                                    else
+                                        if results.length == 0   # never logged in... -- so just take one arbitrarily
+                                            account_id = v[0][1]
+                                        else
+                                            account_id = results[results.length-1][1]
+                                            c()
+                    ], (ignore) =>
+                        if account_id?
+                            async.series([
+                                (c) =>
+                                    @update
+                                        table : 'accounts'
+                                        set   : {'email_address': k}
+                                        where : {'account_id': account_id}
+                                        cb    : c
+                                (c) =>
+                                    @update
+                                        table : 'email_address_to_account_id'
+                                        set   : {'account_id': account_id}
+                                        where : {'email_address': k}
+                                        cb    : c
+                            ], cb)
+                        else
+                            cb("unable to determine account for email '#{k}'")
+                    )
+                async.map misc.keys(t), f, (err) =>
+                    dbg("done -- err=#{err}")
+
+
     # Delete the account with given id, and
     # remove the entry in the email_address_to_account_id table
     # corresponding to this account, if indeed the entry in that
