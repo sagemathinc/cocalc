@@ -3070,6 +3070,28 @@ exports.init = init = (cb) ->
 #init (err) ->
 #    winston.debug("init -- #{err}")
 
+# ONE OFF
+exports.set_status_to_new_for_all_with_empty_locations = () ->
+    dbg = (m) -> winston.debug("set_status_to_new_for_all_with_empty_locations: #{m}")
+    dbg("querying database... (should take a minute)")
+    database.select
+        table   : 'projects'
+        columns : ['project_id', 'locations', 'status']
+        limit   : 100000   # TODO: stupidly slow
+        cb      : (err, result) ->
+            projects = (a[0] for a in result when not a[1]? and not a[2]?)
+            projects.sort()
+            dbg("got #{projects.length} projects: #{misc.to_json(projects)}")
+            database.update
+                table : 'projects'
+                set   : {status:'new'}
+                where : {project_id : {'in':projects}}
+                cb    : (err) ->
+                    dbg("done!  (with err=#{err})")
+
+
+
+
 
 
 
