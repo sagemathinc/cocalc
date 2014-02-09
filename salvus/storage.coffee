@@ -2440,11 +2440,12 @@ exports.replicate_all = replicate_all = (opts) ->
 # Backup -- backup all projects to a single zpool.
 ###
 
-exports.backup_all_projects = (opts) ->
+exports.backup_all_projects =  backup_all_projects = (opts) ->
     opts = defaults opts,
-        limit      : 10
+        limit      : 5
         start      : undefined
         stop       : undefined
+        repeat     : false       # if true, will loop around, repeatedly backing up, over and over again; opts.cb (if defined) will get called every time it completes a backup cycle.
         cb         : undefined
     dbg = (m) -> winston.debug("backup_all_projects: #{m}")
     errors = {}
@@ -2485,6 +2486,9 @@ exports.backup_all_projects = (opts) ->
             opts.cb?()
         else
             opts.cb?(errors)
+        if opts.repeat
+            dbg("!!!!!!!!!!!!!!!!!!!! Doing the whole backup again. !!!!!!!!!!!!!!!!!!!!!")
+            backup_all_projects(opts)
     )
 
 
