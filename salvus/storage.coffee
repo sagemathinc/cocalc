@@ -2463,10 +2463,10 @@ exports.backup_all_projects =  backup_all_projects = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['project_id']
+                columns : ['project_id', 'status']
                 limit   : 1000000   # TODO: stupidly slow
                 cb      : (err, result) ->
-                    projects = (a[0] for a in result)
+                    projects = (a[0] for a in result when a[1] != 'new')  # ignore new projects -- never opened, so no data.
                     projects.sort()
                     dbg("got #{projects.length} projects")
                     if opts.start? or opts.stop?

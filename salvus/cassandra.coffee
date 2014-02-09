@@ -1914,6 +1914,7 @@ class exports.Salvus extends exports.Cassandra
                         description : opts.description
                         public      : opts.public
                         quota       : opts.quota
+                        status      : 'new'
                     where : {project_id: opts.project_id}
                     json  : ['quota', 'location']
                     cb    : (error, result) ->
