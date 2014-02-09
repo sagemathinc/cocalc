@@ -1133,19 +1133,23 @@ class exports.Salvus extends exports.Cassandra
                     t[k].push(r)
                 dbg("There are #{misc.len(t)} distinct lower case email addresses.")
                 f = (k, cb) =>
+                    dbg("Canonicalizing #{k}")
                     v = t[k]
                     account_id = undefined
                     async.series([
                         (c) =>
                             if v.length == 1
+                                dbg("#{k}: easy case of only one account")
                                 account_id = v[0][1]
                                 c(true)
-                                return
+                            else
+                                dbg("#{k}: have to deal with #{v.length} accounts")
+                                c()
                         (c) =>
                             @select
                                 table    : 'successful_sign_ins'
                                 columns  : ['time','account_id']
-                                where    : {'email_address':{'in':(x[0] for x in v)}}
+                                where    : {'account_id':{'in':(x[1] for x in v)}}
                                 order_by : 'time'
                                 cb       : (e, results) =>
                                     if e
