@@ -1125,15 +1125,19 @@ class exports.Salvus extends exports.Cassandra
             objectify : false
             cb: (err, results) =>
                 dbg("There are #{results.length} accounts.")
+                results.sort()
                 t = {}
                 for r in results
-                    k = r[0].toLowerCase()
-                    if not t[k]?
-                        t[k] = []
-                    t[k].push(r)
-                dbg("There are #{misc.len(t)} distinct lower case email addresses.")
+                    if r[0]?
+                        k = r[0].toLowerCase()
+                        if not t[k]?
+                            t[k] = []
+                        t[k].push(r)
+                total = misc.len(t)
+                cnt = 1
+                dbg("There are #{total} distinct lower case email addresses.")
                 f = (k, cb) =>
-                    dbg("Canonicalizing #{k}")
+                    dbg("#{k}: #{cnt}/#{total}"); cnt += 1
                     v = t[k]
                     account_id = undefined
                     async.series([
@@ -1159,7 +1163,7 @@ class exports.Salvus extends exports.Cassandra
                                             account_id = v[0][1]
                                         else
                                             account_id = results[results.length-1][1]
-                                            c()
+                                        c()
                     ], (ignore) =>
                         if account_id?
                             async.series([
@@ -1179,7 +1183,7 @@ class exports.Salvus extends exports.Cassandra
                         else
                             cb("unable to determine account for email '#{k}'")
                     )
-                async.map misc.keys(t), f, (err) =>
+                async.mapLimit misc.keys(t), 5, f, (err) =>
                     dbg("done -- err=#{err}")
 
 
