@@ -1269,14 +1269,18 @@ class Monitor(object):
         # Determine up/down status using a random node
         import random
         hosts = self._hosts['cassandra']
-        v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False)
-        r = v[v.keys()[0]]
-        status = {}
-        for z in [x for x in r['stdout'].splitlines() if '%' in x]:
-            w = z.split()
-            status[w[1]] = 'up' if w[0] == "UN" else 'down'
+        for i in range(len(hosts)):
+            v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
+            r = v[v.keys()[0]]
+            status = {}
+            for z in [x for x in r['stdout'].splitlines() if '%' in x]:
+                w = z.split()
+                status[w[1]] = 'up' if w[0] == "UN" else 'down'
+            if len(status) > 0:
+                # keep trying until we at least get some output.
+                break
         ans = []
-        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False).iteritems():
+        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=45).iteritems():
             if v.get('exit_status',1) or 'stdout' not in v:
                 ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
             else:
