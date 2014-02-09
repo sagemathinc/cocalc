@@ -9,8 +9,8 @@ echo "Dumping accounts..."
 time echo "select * from accounts limit 1000000;" | cqlsh_connect 10.1.1.2 > $NAME/accounts
 echo "Dumping email_address --> accounts mapping"
 time echo "select * from email_address_to_account_id  limit 1000000;" | cqlsh_connect 10.1.1.2 > $NAME/email_address_to_account_id 
-echo "Dumping projects table..."
-time echo "select * from projects limit 1000000;" | cqlsh_connect 10.1.1.2 > $NAME/projects
+#echo "Dumping projects table..."
+#time echo "select * from projects limit 1000000;" | cqlsh_connect 10.1.1.2 > $NAME/projects
 echo "Dumping storage topology..."
 time echo "select * from storage_topology limit 1000000;" | cqlsh_connect 10.1.1.2 > $NAME/storage_topology
 
