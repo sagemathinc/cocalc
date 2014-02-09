@@ -1372,6 +1372,7 @@ class Monitor(object):
                 nproc = int(x[0]) - 2
             except:
                 nproc = -1
+            d = {'host':k[0], 'service':'zfs', 'nproc':nproc}
             try:
                 size  = zfs_size(x[10])
                 alloc = zfs_size(x[11])
@@ -1379,18 +1380,18 @@ class Monitor(object):
                 cap   = float(x[13][:-1])
                 dedup = float(x[14][:-1])
                 health = x[15]
-                d = {'host':k[0], 'service':'zfs', 'nproc':nproc, 'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health}
+                d.update({'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health})
                 if free < 64 or d['health'] != 'ONLINE':
-                    d['status'] = 'down'  # <15GB free -- start receiving scary emails!
+                    d['status'] = 'down'  # <64GB free ==> start receiving scary emails!
                 else:
                     d['status'] = 'up'
-            except:
-                print "FAIL"
+            except Exception, msg:
+                print "FAIL, %s"%msg
                 print "x = ", x
-                d = {'status':'down'}
+                d['status'] = 'down'
             ans.append(d)
         # put anything with < 100 GB free first in list, since we need to worry about it.
-        w = [((d.get('free')>=100, d.get('status','down'), -d['nproc'],d['host']),d) for d in ans]
+        w = [((d.get('free')>=100, d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
