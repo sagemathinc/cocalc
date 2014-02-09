@@ -2346,6 +2346,9 @@ exports.destroy_project = destroy_project = (opts) ->
                                 cb      : cb
             else
                 dbg("unsafely destroying dataset")
+                # I don't want to ever,ever do this, so...
+                cb("opts.safe = false NOT implemented (on purpose)!")
+                ###
                 execute_on
                     host    : opts.host
                     command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
@@ -2355,6 +2358,7 @@ exports.destroy_project = destroy_project = (opts) ->
                             if output?.stderr? and output.stderr.indexOf('does not exist') != -1
                                 err = undefined
                         cb(err)
+                ###
         (cb) ->
             dbg("throw in a umount, just in case")
             create_user
@@ -2446,12 +2450,15 @@ exports.backup_all_projects =  backup_all_projects = (opts) ->
         start      : undefined
         stop       : undefined
         repeat     : false       # if true, will loop around, repeatedly backing up, over and over again; opts.cb (if defined) will get called every time it completes a backup cycle.
+        projects   : undefined   # if given, only backup *this* list of projects (list of project id's)
         cb         : undefined
     dbg = (m) -> winston.debug("backup_all_projects: #{m}")
     errors = {}
-    projects = undefined
+    projects = opts.projects
     async.series([
         (cb) ->
+            if projects?
+                cb(); return
             dbg("querying database...")
             database.select
                 table   : 'projects'
@@ -2476,8 +2483,29 @@ exports.backup_all_projects =  backup_all_projects = (opts) ->
                     project_id : project_id
                     cb         : (err) ->
                         if err
-                            errors[project_id] = err
-                        cb()
+                            dbg("err -- #{err}, so move project #{project_id} out of the way, then try exactly one more time from scratch")
+                            async.series([
+                                (cb0) ->
+                                    dbg("moving #{project_id} out of the way")
+                                    t = filesystem("DELETED-#{cassandra.now()}-#{project_id}")
+                                    misc_node.execute_code
+                                        command     : "sudo"
+                                        args        : ['zfs', 'rename', filesystem(project_id), t]
+                                        timeout     : 300
+                                        err_on_exit : true
+                                        cb          : cb0
+                                (cb0) ->
+                                    dbg("trying one more time to backup #{project_id}")
+                                    backup_project
+                                        project_id : project_id
+                                        cb         : cb0
+                            ], (err) ->
+                                if err
+                                    errors[project_id] = err
+                                cb()
+                            )
+                        else
+                            cb()
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) ->
         if err
