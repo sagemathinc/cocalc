@@ -261,7 +261,7 @@ CREATE TABLE projects (
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 
-     status           varchar,  // 'opened', 'closed', etc. -- maybe "archived" at some pointed (?)
+     status           varchar,  // 'new'=just created, 'opened'=right after opening, 'closed'=right after closing, etc. -- maybe "archived" at some pointed (?)
 
      storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
      locations        map<text, text>,   // ip_address --> snapshots available there

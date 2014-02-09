@@ -289,6 +289,9 @@ exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{
 # This is mainly used for banning users.
 
 exports.canonicalize_email_address = (email_address) ->
+    if typeof(email_address) != 'string'
+        # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
+        email_address = JSON.stringify(email_address)
     # remove + part from email address:   foo+bar@example.com
     i = email_address.indexOf('+')
     if i != -1
@@ -297,6 +300,14 @@ exports.canonicalize_email_address = (email_address) ->
             email_address = email_address.slice(0,i) + email_address.slice(j)
     # make email address lower case
     return email_address.toLowerCase()
+
+exports.lower_email_address = (email_address) ->
+    if typeof(email_address) != 'string'
+        # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
+        email_address = JSON.stringify(email_address)
+    # make email address lower case
+    return email_address.toLowerCase()
+
 
 # Delete trailing whitespace in the string s.  See
 exports.delete_trailing_whitespace = (s) ->
