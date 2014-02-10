@@ -460,8 +460,12 @@
     cursor: pointer;
 }
 
-.salvus-project-replica:hover {
+.salvus-project-replica-clickable:hover {
     background-color:#efe;
+}
+
+.salvus-project-replica-current {
+    background-color:#FFFACD;
 }
 
 .salvus-project-replica-datacenter {

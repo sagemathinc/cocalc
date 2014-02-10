@@ -85,14 +85,15 @@
         <button type="button" class="close btn-close" aria-hidden="true">
             <span style="font-size:20pt;">×</span>
         </button>
-        <h3><i class="fa fa-building"> </i> Project Locations</h3>
+        <h3><i class="fa fa-building"> </i> Project Locations <a href="#refresh-status"><i class="fa fa-refresh"> </i></a></h3>
     </div>
     <div class="well">
 
         Your project is stored on
         several computers in different datacenters.
-        It runs in exactly one of these locations, and you can
-        move it to another by selecting a location below.
+        It runs in <b>exactly one</b> of these locations, but you can
+        move it by selecting another location below.  (The Google machines
+        have faster CPU's but less RAM.)
         <br><br>
         <span class="salvus-project-location-dialog-error hide"></span>
         <span class="salvus-project-replica-replicating hide">(Project is currently being replicated)</span>
@@ -417,10 +418,10 @@
                                 <div class="row-fluid project-settings-move" style="margin-top:1ex">
                                     <!-- Current location of the project -->
                                     <div class="span4">
-                                        <h4 class="project-location-heading project-move-button btn btn-info"><i class="fa fa-building"> </i> Locations&hellip;</h4>
+                                        <h4>Locations</h4>
                                     </div>
                                     <div class="span8">
-                                        <pre><a class="project-location project-move-button"></a></pre>
+                                        <pre><a class="project-location project-move-button"></a><a class="pull-right project-location-heading project-move-button btn btn-info btn-small"><i class="fa fa-building"> </i> Locations&hellip;</a></pre>
                                     </div>
                                 </div>
 

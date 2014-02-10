@@ -970,6 +970,7 @@ message
     event      : 'move_project'
     id         : undefined
     project_id : required
+    target     : undefined   # prefered destination of move
 
 message
     event      : 'project_moved'

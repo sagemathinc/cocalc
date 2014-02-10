@@ -2019,62 +2019,77 @@ class ProjectPage
 
         button.click () =>
             dialog = $(".project-location-dialog").clone()
-
             replica_template = dialog.find(".salvus-project-replica")
 
             dialog.modal()
-            dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+            dialog.find(".btn-close").click(() -> dialog.modal('hide').remove(); return false)
 
-            salvus_client.project_snap_status
-                project_id : @project.project_id
-                cb         : (err, status) =>
-                    if err
-                        dialog.find(".salvus-project-location-dialog-error").show().text("Unable to load project snapshot status: #{err}")
-                        return
-                    console.log(status)
-                    replicas = dialog.find(".salvus-project-replicas")
-                    f = (loc) =>
-                        console.log("f(#{loc})")
-                        data = status.locations[loc]
-                        console.log("data=",data)
-                        if data?
-                            replica = replica_template.clone()
-                            replica.find(".salvus-project-replica-host").text(loc)
-                            replica.find(".salvus-project-replica-datacenter").text(data.datacenter)
-                            if data.status != 'up'
-                                replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
-                                replica.css('background-color':'#ff0000', 'color':'#ffffff')
-                            else
-                                replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
-                                stats = "#{data.status.ram_free_GB}GB RAM free, #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} processors"
-                                replica.find(".salvus-project-replica-status").text(stats)
-                            replicas.append(replica.show())
-
-                    if status.current_location?
-                        f(status.current_location)
-                    for loc, data in status.locations
-                        if loc != status.current_location and loc in status.canonical_locations
-                            f(loc)
-
-    # TODO
-    move_to_specific_target_dialog: (target) ->
-            dialog.find(".btn-submit").click () =>
-                @container.find(".project-location").text("moving...")
-                @container.find(".project-location-heading").icon_spin(start:true)
-                alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move will be lost...")
-                dialog.modal('hide')
-                salvus_client.move_project
+            refresh = () =>
+                dialog.find("a[href=#refresh-status]").find("i").addClass('fa-spin')
+                salvus_client.project_snap_status
                     project_id : @project.project_id
-                    cb         : (err, location) =>
-                        @container.find(".project-location-heading").icon_spin(false)
+                    cb         : (err, status) =>
+                        dialog.find("a[href=#refresh-status]").find("i").removeClass('fa-spin')
                         if err
-                            alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
-                        else
-                            alert_message(timeout:60, type:"success", message:"Successfully moved project '#{@project.title}'!")
-                            @project.location = location
-                            @set_location()
+                            dialog.find(".salvus-project-location-dialog-error").show().text("Unable to load project snapshot status: #{err}")
+                            return
 
-            return false
+                        replicas = dialog.find(".salvus-project-replicas")
+                        replicas.children(":not(:first)").remove()
+                        f = (loc) =>
+                            #console.log("f(#{loc})")
+                            data = status.locations[loc]
+                            #console.log("data=",data)
+                            if data?
+                                replica = replica_template.clone()
+                                if loc == status.current_location
+                                    l = loc+" (current)"
+                                else
+                                    l = loc
+                                replica.find(".salvus-project-replica-host").text(l)
+                                replica.find(".salvus-project-replica-datacenter").text(data.datacenter)
+                                if data.status.status != 'up'
+                                    replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
+                                    replica.css('background-color':'#ff0000', 'color':'#ffffff')
+                                else
+                                    replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
+                                    stats = "#{data.status.ram_used_GB+data.status.ram_free_GB}GB RAM (#{data.status.ram_free_GB}GB free), #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} cores"
+                                    replica.find(".salvus-project-replica-status").text(stats)
+
+                                if loc == status.current_location
+                                    replica.addClass("salvus-project-replica-current")
+                                else
+                                    replica.addClass("salvus-project-replica-clickable")
+                                    replica.click () =>
+                                        dialog.modal('hide').remove()
+                                        @move_to_specific_target_dialog(loc)
+                                        return false
+                                replicas.append(replica.show())
+
+                        if status.current_location?
+                            f(status.current_location)
+                        for loc, data of status.locations
+                            if loc != status.current_location and loc in status.canonical_locations
+                                f(loc)
+
+            refresh()
+            dialog.find("a[href=#refresh-status]").click(()=>refresh();return false)
+
+    move_to_specific_target_dialog: (target) ->
+        @container.find(".project-location").text("moving to #{target}...")
+        @container.find(".project-location-heading").icon_spin(start:true)
+        alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move may be lost...")
+        salvus_client.move_project
+            project_id : @project.project_id
+            target     : target
+            cb         : (err, location) =>
+                @container.find(".project-location-heading").icon_spin(false)
+                if err
+                    alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{target} -- #{err}")
+                else
+                    alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
+                    @project.location = location
+                    @set_location()
 
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")

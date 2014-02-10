@@ -1255,7 +1255,7 @@ exports.status_fast = (opts) ->
                             current_location    : result[0]?.host    # the current location of the project (ip address or undefined)
                             locations           : v                  # mapping from addresses to info about (time, location, status)
                             replicating         : result[2]          # whether or not project is being replicated right now
-                            canonical_locations : locations(project_id:opts.project_id)   # the locations determined by consistent hashing
+                            canonical_locations : _.flatten(locations(project_id:opts.project_id))   # the locations determined by consistent hashing
                         cb()
         (cb) ->
             database.compute_status
@@ -1264,13 +1264,11 @@ exports.status_fast = (opts) ->
                         cb(err)
                     else
                         v = ans.locations
-                        console.log(compute)
-                        console.log(v)
+                        #console.log(compute)
+                        #console.log(v)
                         for c in compute
-
                             if c.host == '127.0.0.1' and ans.current_location == 'localhost' # special case for dev vm
                                 c.host = 'localhost'
-
                             if v[c.host]?
                                 v[c.host].status = c
                         cb()
