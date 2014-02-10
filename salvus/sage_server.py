@@ -36,6 +36,10 @@ sys.path.insert(0, PWD)
 # exceeded, an exception is raised; this reduces the chances of the user creating
 # a huge unusable worksheet.
 MAX_OUTPUT_MESSAGES = 256
+# stdout, stderr, html, etc. that exceeds this many characters will be truncated to avoid
+# killing the client.
+MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_HTML_SIZE = 100000
+MAX_TEX_SIZE = 2000
 
 LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 # This can be useful, just in case.
@@ -160,6 +164,13 @@ class ConnectionJSON(object):
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
 
+def truncate_text(s, max_size):
+    if len(s) > max_size:
+        return s[:max_size] + "[...]"
+    else:
+        return s
+
+
 class Message(object):
     def _new(self, event, props={}):
         m = {'event':event}
@@ -189,10 +200,14 @@ class Message(object):
     def output(self, id, stdout=None, stderr=None, html=None, javascript=None, coffeescript=None, interact=None, obj=None, tex=None, file=None, done=None, once=None, hide=None, show=None, auto=None, events=None, clear=None):
         m = self._new('output')
         m['id'] = id
-        if stdout is not None and len(stdout) > 0: m['stdout'] = stdout
-        if stderr is not None and len(stderr) > 0: m['stderr'] = stderr
-        if html is not None  and len(html) > 0: m['html'] = html
-        if tex is not None and len(tex)>0: m['tex'] = tex
+        t = truncate_text
+        import sage_server  # we do this so that the user can customize the MAX's below.
+        if stdout is not None and len(stdout) > 0: m['stdout'] = t(stdout, sage_server.MAX_STDOUT_SIZE)
+        if stderr is not None and len(stderr) > 0: m['stderr'] = t(stderr, sage_server.MAX_STDERR_SIZE)
+        if html is not None  and len(html) > 0: m['html'] = t(html, sage_server.MAX_HTML_SIZE)
+        if tex is not None and len(tex)>0:
+            tex['tex'] = t(tex['tex'], sage_server.MAX_TEX_SIZE)
+            m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
         if interact is not None: m['interact'] = interact
@@ -380,6 +395,24 @@ class TemporaryURL:
 namespace = Namespace({})
 
 class Salvus(object):
+    """
+    Cell execution state object and wrapper for access to special SageMathCloud functionality.
+
+    An instance of this object is created each time you execute a cell.  It has various methods
+    for sending different types of output messages, links to files, etc.
+
+    OUTPUT LIMITATIONS -- There is an absolute limit on the number of messages output for a given
+    cell, and also the size of the output message for each cell.  You can access or change
+    those limits dynamically in a worksheet as follows by viewing or changing any of the
+    following variables::
+
+        import sage_server
+        sage_server.MAX_STDOUT_SIZE   # max length of each stdout output message
+        sage_server.MAX_STDERR_SIZE   # max length of each stderr output message
+        sage_server.MAX_HTML_SIZE     # max length of each html output message
+        sage_server.MAX_TEX_SIZE      # max length of tex output message
+        sage_server.MAX_OUTPUT_MESSAGES   # max number of messages output for a cell.
+    """
     Namespace = Namespace
     _prefix       = ''
     _postfix      = ''
@@ -416,9 +449,10 @@ class Salvus(object):
         mesg = message.output(*args, **kwds)
         if not mesg.get('once',False):
             self._num_output_messages += 1
-        if self._num_output_messages > MAX_OUTPUT_MESSAGES:
-            if self._num_output_messages == MAX_OUTPUT_MESSAGES+1:
-                err = "\nToo many output messages (at most %s per cell): attempting to terminate..."%MAX_OUTPUT_MESSAGES
+        import sage_server
+        if self._num_output_messages > sage_server.MAX_OUTPUT_MESSAGES:
+            if self._num_output_messages == sage_server.MAX_OUTPUT_MESSAGES+1:
+                err = "\nToo many output messages (at most %s per cell): attempting to terminate..."%sage_server.MAX_OUTPUT_MESSAGES
                 self._conn.send_json(message.output(stderr=err, id=self._id, once=False))
             if mesg.get('done',False):
                 self._conn.send_json(message.output(done=True, id=self._id))
