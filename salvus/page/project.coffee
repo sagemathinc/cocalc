@@ -2015,21 +2015,49 @@ class ProjectPage
             return false
 
     init_move_project: () =>
-        button = @container.find(".project-settings-move").find("a")
+        button = @container.find(".project-settings-move").find(".project-move-button")
+
         button.click () =>
-            #bootbox.confirm("Project move is temporarily disabled due to some synchronization issues that we are fixing right now.", (result) =>)
-            #return false
-            dialog = $(".project-move-dialog").clone()
+            dialog = $(".project-location-dialog").clone()
+
+            replica_template = dialog.find(".salvus-project-replica")
+
             dialog.modal()
-            salvus_client.project_last_snapshot_time
-                project_id : @project.project_id
-                cb         : (err, time) =>
-                    if err or not time?
-                        time = @_last_snapshot_time
-                    if @_last_snapshot_time?
-                        d = dialog.find(".project-move-snapshot-last-timeago")
-                        d.attr('title',(new Date(1000*@_last_snapshot_time)).toISOString()).timeago()
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
+
+            salvus_client.project_snap_status
+                project_id : @project.project_id
+                cb         : (err, status) =>
+                    if err
+                        dialog.find(".salvus-project-location-dialog-error").show().text("Unable to load project snapshot status: #{err}")
+                        return
+                    console.log(status)
+                    replicas = dialog.find(".salvus-project-replicas")
+                    f = (loc) =>
+                        console.log("f(#{loc})")
+                        data = status.locations[loc]
+                        console.log("data=",data)
+                        if data?
+                            replica = replica_template.clone()
+                            replica.find(".salvus-project-replica-host").text(loc)
+                            replica.find(".salvus-project-replica-datacenter").text(data.datacenter)
+                            if data.status != 'up'
+                                replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
+                                replica.css('background-color':'#ff0000', 'color':'#ffffff')
+                            else
+                                replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
+                                stats = "#{data.status.ram_free_GB}GB RAM free, #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} processors"
+                                replica.find(".salvus-project-replica-status").text(stats)
+                            replicas.append(replica.show())
+
+                    if status.current_location?
+                        f(status.current_location)
+                    for loc, data in status.locations
+                        if loc != status.current_location and loc in status.canonical_locations
+                            f(loc)
+
+    # TODO
+    move_to_specific_target_dialog: (target) ->
             dialog.find(".btn-submit").click () =>
                 @container.find(".project-location").text("moving...")
                 @container.find(".project-location-heading").icon_spin(start:true)

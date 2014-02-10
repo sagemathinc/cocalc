@@ -625,6 +625,23 @@ class exports.Salvus extends exports.Cassandra
             opts.keyspace = 'salvus'
         super(opts)
 
+    #####################################
+    # The cluster status monitor
+    #####################################
+
+    # returns array [{host:'10.x.y.z', ..., other data about compute node}, ...]
+    compute_status: (opts={}) =>
+        opts = defaults opts,
+            cb : required
+        @select_one
+            table : 'monitor_last'
+            columns : ['compute']
+            json    : ['compute']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
 
     #####################################
     # The log: we log important conceptually meaningful events

@@ -1235,22 +1235,46 @@ exports.status_fast = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : required
-    winston.debug("status_fast(#{opts.project_id})")
-    database.select_one
-        table   : 'projects'
-        where   : {project_id : opts.project_id}
-        columns : ['location', 'locations', 'replicating']
-        json    : ['location']
-        cb      : (err, result) ->
-            if err
-                opts.cb(err)
-            else
-                v = {}
-                for k,z of result[1]
-                    v[k] = {newest_snapshot:misc.from_json(z)?[0], datacenter:datacenter_to_desc[host_to_datacenter[k]]}
-                opts.cb(undefined, {current_location:result[0]?.host, locations:v, replicating:result[2], })
+    dbg = (m) -> winston.debug("status_fast(#{opts.project_id}): #{m}")
+    ans = undefined
+    async.series([
+        (cb) ->
+            database.select_one
+                table   : 'projects'
+                where   : {project_id : opts.project_id}
+                columns : ['location', 'locations', 'replicating']
+                json    : ['location']
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        v = {}
+                        for k,z of result[1]
+                            v[k] = {newest_snapshot:misc.from_json(z)?[0], datacenter:datacenter_to_desc[host_to_datacenter[k]]}
+                        ans =
+                            current_location    : result[0]?.host    # the current location of the project (ip address or undefined)
+                            locations           : v                  # mapping from addresses to info about (time, location, status)
+                            replicating         : result[2]          # whether or not project is being replicated right now
+                            canonical_locations : locations(project_id:opts.project_id)   # the locations determined by consistent hashing
+                        cb()
+        (cb) ->
+            database.compute_status
+                cb : (err, compute) ->
+                    if err
+                        cb(err)
+                    else
+                        v = ans.locations
+                        console.log(compute)
+                        console.log(v)
+                        for c in compute
 
+                            if c.host == '127.0.0.1' and ans.current_location == 'localhost' # special case for dev vm
+                                c.host = 'localhost'
 
+                            if v[c.host]?
+                                v[c.host].status = c
+                        cb()
+        ], (err) -> opts.cb(err, ans))
 
 # for interactive use
 exports.status = (project_id, update) ->
@@ -1737,7 +1761,7 @@ hashrings = {}
 topology = undefined
 all_hosts = []
 host_to_datacenter = {}
-datacenter_to_desc = {'0':"Univ. of Washington (Mathematics)", '1':"Univ. of Washington (4545)", '2':"Google Compute Engine (us-central1-a)"}
+datacenter_to_desc = {'0':"uw-padelford", '1':"uw-4545", '2':"google-us-central1-a"}
 exports.init_hashrings = init_hashrings = (cb) ->
     database.select
         table   : 'storage_topology'

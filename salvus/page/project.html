@@ -79,18 +79,49 @@
 
 
 
+<div class="modal hide project-location-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3><i class="fa fa-building"> </i> Project Locations</h3>
+    </div>
+    <div class="well">
+
+        Your project is stored on
+        several computers in different datacenters.
+        It runs in exactly one of these locations, and you can
+        move it to another by selecting a location below.
+        <br><br>
+        <span class="salvus-project-location-dialog-error hide"></span>
+        <span class="salvus-project-replica-replicating hide">(Project is currently being replicated)</span>
+        <hr>
+        <div class="salvus-project-replicas">
+            <div class="row-fluid salvus-project-replica">
+                <div class="span2 salvus-project-replica-host"><b>Host</b></div>
+                <div class="span2 lighten salvus-project-replica-timeago"><b>Snapshot</b></div>
+                <div class="span3 salvus-project-replica-datacenter"><b>Datacenter</b></div>
+                <div class="span4 salvus-project-replica-status"><b>Status</b></div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-close">Cancel</button>
+    </div>
+
+</div>
+
+
 <div class="modal hide project-move-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close btn-close" aria-hidden="true">
             <span style="font-size:20pt;">×</span>
         </button>
-        <h3><i class="fa fa-external-link-square"> </i> Move Project to a Different Server</h3>
+        <h3><i class="fa fa-building"> </i> Project Location</h3>
     </div>
     <div class="well">
-        If the computer on which your project is opened is not working,
-        click the "Move Project" button below to open your project on a different
-        computer, likely using the snapshot taken
-        <span class="project-move-snapshot-last-timeago">last</span>.
+
         <br>
         <hr>
         <span class="lighten">Moving a project takes <b>several minutes</b>.
@@ -108,7 +139,6 @@
     </div>
     <div class="modal-footer">
         <button class="btn btn-large btn-close">Cancel</button>
-        <button class="btn btn-large btn-danger btn-submit">Move Project</button>
     </div>
 </div>
 
@@ -376,21 +406,21 @@
                             <div class="span6 well project-settings-well">
                                 <!-- The project id -->
                                 <div class="row-fluid project-settings-move" style="margin-top:1ex">
-                                    <div class="span3">
+                                    <div class="span4">
                                         <h4>Project id</h4>
                                     </div>
-                                    <div class="span9">
-                                        <pre class="project-id">loading...</pre>
+                                    <div class="span8">
+                                        <pre class="project-id">loading&hellip;</pre>
                                     </div>
                                 </div>
 
                                 <div class="row-fluid project-settings-move" style="margin-top:1ex">
                                     <!-- Current location of the project -->
-                                    <div class="span3">
-                                        <h4 class="project-location-heading">Location </h4>
+                                    <div class="span4">
+                                        <h4 class="project-location-heading project-move-button btn btn-info"><i class="fa fa-building"> </i> Locations&hellip;</h4>
                                     </div>
-                                    <div class="span9">
-                                        <pre><a class="project-location">...</a> <a class="btn btn-small btn-danger pull-right"><i class="fa fa-external-link-square"> </i> Move...</a></pre>
+                                    <div class="span8">
+                                        <pre><a class="project-location project-move-button"></a></pre>
                                     </div>
                                 </div>
 
@@ -492,7 +522,7 @@
                                     <!-- Change public / private -->
                                         <a href="#make-public" class="btn btn-danger  pull-right"
                                             data-toggle="tooltip" data-placement="right" title="Make it so anyone can see the contents of this project. You choose who can modify it.">
-                                            <i class="fa fa-eye"> </i> Make Public
+                                            <i class="fa fa-eye"> </i> Make Public...
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
                                         </a>
                                     </div>
@@ -505,7 +535,7 @@
                                     <div class="span4 pull-right">
                                         <a href="#make-private" class="btn btn-danger  pull-right"
                                             data-toggle="tooltip" data-placement="right" title="Make it so you choose who can see and modify contents of this project.">
-                                            <i class="fa fa-lock"> </i> Make Private
+                                            <i class="fa fa-lock"> </i> Make Private...
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
                                         </a>
                                     </div>
@@ -520,7 +550,7 @@
                                     <div class="span4 pull-right">
                                         <a href="#delete-project" class="btn  btn-danger  pull-right"
                                             data-toggle="tooltip" data-placement="right" title="Delete this project.">
-                                            <i class="fa fa-trash-o"> </i> Delete Project
+                                            <i class="fa fa-trash-o"> </i> Delete Project...
                                             <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
                                         </a>
                                     </div>

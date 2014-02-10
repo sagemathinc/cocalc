@@ -1490,6 +1490,7 @@ class Monitor(object):
         d['minute']    = int(time.strftime("%M"))
         d['timestamp'] = int(time.time())
         password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        print cassandra.KEYSPACE
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 
