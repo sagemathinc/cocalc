@@ -32,6 +32,10 @@ import os, sys
 PWD = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, PWD)
 
+# Maximum number of distinct (non-once) output messages per cell; when this number is
+# exceeded, an exception is raised; this reduces the chances of the user creating
+# a huge unusable worksheet.
+MAX_OUTPUT_MESSAGES = 256
 
 LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 # This can be useful, just in case.
@@ -394,6 +398,7 @@ class Salvus(object):
 
     def __init__(self, conn, id, data=None, message_queue=None):
         self._conn = conn
+        self._num_output_messages = 0
         self._id   = id
         self._done = True    # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
         self.data = data
@@ -407,8 +412,22 @@ class Salvus(object):
         import sage.all
         sage.all.salvus = self
 
+    def _send_output(self, *args, **kwds):
+        mesg = message.output(*args, **kwds)
+        if not mesg.get('once',False):
+            self._num_output_messages += 1
+        if self._num_output_messages > MAX_OUTPUT_MESSAGES:
+            if self._num_output_messages == MAX_OUTPUT_MESSAGES+1:
+                err = "\nToo many output messages (at most %s per cell): attempting to terminate..."%MAX_OUTPUT_MESSAGES
+                self._conn.send_json(message.output(stderr=err, id=self._id, once=False))
+            if mesg.get('done',False):
+                self._conn.send_json(message.output(done=True, id=self._id))
+            raise KeyboardInterrupt
+
+        self._conn.send_json(mesg)
+
     def obj(self, obj, done=False):
-        self._conn.send_json(message.output(obj=obj, id=self._id, done=done))
+        self._send_output(obj=obj, id=self._id, done=done)
         return self
 
     def link(self, filename, label=None, foreground=True, cls=''):
@@ -555,7 +574,7 @@ class Salvus(object):
             url  = os.path.join(u'/',info['base_url'].strip('/'), info['project_id'], u'raw', path.lstrip('/'))
             if show:
                 self._flush_stdio()
-                self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events))
+                self._send_output(id=self._id, once=once, file={'filename':filename, 'url':url, 'show':show}, events=events)
                 return
             else:
                 return TemporaryURL(url=url, ttl=0)
@@ -575,7 +594,7 @@ class Salvus(object):
             raise RuntimeError("error saving blob -- " + mesg['error'])
 
         self._flush_stdio()
-        self._conn.send_json(message.output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events))
+        self._send_output(id=self._id, once=once, file={'filename':filename, 'uuid':file_uuid, 'show':show}, events=events)
         if not show:
             info = self.project_info()
             url = u"%s/blobs/%s?uuid=%s"%(info['base_url'], filename, file_uuid)
@@ -738,7 +757,7 @@ class Salvus(object):
             salvus.html("<b>Hi</b>")
         """
         self._flush_stdio()
-        self._conn.send_json(message.output(html=unicode8(html), id=self._id, done=done, once=once))
+        self._send_output(html=unicode8(html), id=self._id, done=done, once=once)
 
     def pdf(self, filename, **kwds):
         sage_salvus.show_pdf(filename, **kwds)
@@ -754,17 +773,17 @@ class Salvus(object):
         """
         self._flush_stdio()
         tex = obj if isinstance(obj, str) else self.namespace['latex'](obj)
-        self._conn.send_json(message.output(tex={'tex':tex, 'display':display}, id=self._id, done=done, once=once))
+        self._send_output(tex={'tex':tex, 'display':display}, id=self._id, done=done, once=once)
         return self
 
     def start_executing(self):
-        self._conn.send_json(message.output(done=False, id=self._id))
+        self._send_output(done=False, id=self._id)
 
     def clear(self, done=False):
         """
         Clear the output of the current cell.
         """
-        self._conn.send_json(message.output(clear=True, id=self._id, done=done))
+        self._send_output(clear=True, id=self._id, done=done)
 
     def stdout(self, output, done=False, once=None):
         """
@@ -777,7 +796,7 @@ class Salvus(object):
 
         """
         stdout = output if isinstance(output, (str, unicode)) else unicode8(output)
-        self._conn.send_json(message.output(stdout=stdout, done=done, id=self._id, once=once))
+        self._send_output(stdout=stdout, done=done, id=self._id, once=once)
         return self
 
     def stderr(self, output, done=False, once=None):
@@ -791,7 +810,7 @@ class Salvus(object):
 
         """
         stderr = output if isinstance(output, (str, unicode)) else unicode8(output)
-        self._conn.send_json(message.output(stderr=stderr, done=done, id=self._id, once=once))
+        self._send_output(stderr=stderr, done=done, id=self._id, once=once)
         return self
 
     def _execute_interact(self, id, vals):
@@ -804,9 +823,7 @@ class Salvus(object):
     def interact(self, f, done=False, once=None, **kwds):
         I = sage_salvus.InteractCell(f, **kwds)
         self._flush_stdio()
-        self._conn.send_json(message.output(
-            interact = I.jsonable(),
-            id=self._id, done=done, once=once))
+        self._send_output(interact = I.jsonable(), id=self._id, done=done, once=once)
         return sage_salvus.InteractFunction(I)
 
     def javascript(self, code, once=False, coffeescript=False, done=False, obj=None):
@@ -842,7 +859,7 @@ class Salvus(object):
         """
         if obj is None:
             obj = {}
-        self._conn.send_json(message.output(javascript={'code':code, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj, once=once))
+        self._send_output(javascript={'code':code, 'coffeescript':coffeescript}, id=self._id, done=done, obj=obj, once=once)
 
     def coffeescript(self, *args, **kwds):
         """
@@ -862,21 +879,21 @@ class Salvus(object):
         Hide the given component ('input' or 'output') of the cell.
         """
         self._check_component(component)
-        self._conn.send_json(message.output(self._id, hide=component))
+        self._send_output(self._id, hide=component)
 
     def show(self, component):
         """
         Show the given component ('input' or 'output') of the cell.
         """
         self._check_component(component)
-        self._conn.send_json(message.output(self._id, show=component))
+        self._send_output(self._id, show=component)
 
     def auto(self, state=True):
         """
         Set whether or not the current cells is automatically executed when
         the Sage process restarts.
         """
-        self._conn.send_json(message.output(self._id, auto=state))
+        self._send_output(self._id, auto=state)
 
     def notify(self, **kwds):
         """
