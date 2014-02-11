@@ -2056,6 +2056,9 @@ class ProjectPage
                                         replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
                                         stats = "#{data.status.ram_used_GB+data.status.ram_free_GB}GB RAM (#{data.status.ram_free_GB}GB free), #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} cores"
                                         replica.find(".salvus-project-replica-status").text(stats)
+                                else
+                                    replica.find(".salvus-project-replica-timeago").text('...')
+                                    replica.find(".salvus-project-replica-status").text('...')
 
                                 if loc == status.current_location
                                     replica.addClass("salvus-project-replica-current")
