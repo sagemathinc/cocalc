@@ -2048,13 +2048,14 @@ class ProjectPage
                                     l = loc
                                 replica.find(".salvus-project-replica-host").text(l)
                                 replica.find(".salvus-project-replica-datacenter").text(data.datacenter)
-                                if data.status.status != 'up'
-                                    replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
-                                    replica.css('background-color':'#ff0000', 'color':'#ffffff')
-                                else
-                                    replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
-                                    stats = "#{data.status.ram_used_GB+data.status.ram_free_GB}GB RAM (#{data.status.ram_free_GB}GB free), #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} cores"
-                                    replica.find(".salvus-project-replica-status").text(stats)
+                                if data.status?
+                                    if data.status.status != 'up'
+                                        replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
+                                        replica.css('background-color':'#ff0000', 'color':'#ffffff')
+                                    else
+                                        replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
+                                        stats = "#{data.status.ram_used_GB+data.status.ram_free_GB}GB RAM (#{data.status.ram_free_GB}GB free), #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} cores"
+                                        replica.find(".salvus-project-replica-status").text(stats)
 
                                 if loc == status.current_location
                                     replica.addClass("salvus-project-replica-current")
