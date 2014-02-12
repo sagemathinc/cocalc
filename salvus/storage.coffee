@@ -515,15 +515,16 @@ exports.close_project = close_project = (opts) ->
                 only_if_not_replicating : false
                 cb         : cb
         (cb) ->
+            dbg("updating project status in database")
+            set = {status:'closed'}
             if opts.unset_loc
                 dbg("unsetting location in project")
-                database.update
-                    table : 'projects'
-                    set   : {location:undefined}
-                    where : {project_id : opts.project_id}
-                    cb    : cb
-            else
-                cb()
+                set.location = undefined
+            database.update
+                table : 'projects'
+                set   : set
+                where : {project_id : opts.project_id}
+                cb    : cb
     ], opts.cb)
 
 # Close every project on a given host -- useful for putting a node into maintenance
@@ -1234,22 +1235,44 @@ exports.status_fast = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : required
-    winston.debug("status_fast(#{opts.project_id})")
-    database.select_one
-        table   : 'projects'
-        where   : {project_id : opts.project_id}
-        columns : ['location', 'locations', 'replicating']
-        json    : ['location']
-        cb      : (err, result) ->
-            if err
-                opts.cb(err)
-            else
-                v = {}
-                for k,z of result[1]
-                    v[k] = {newest_snapshot:misc.from_json(z)?[0], datacenter:datacenter_to_desc[host_to_datacenter[k]]}
-                opts.cb(undefined, {current_location:result[0]?.host, locations:v, replicating:result[2], })
-
-
+    dbg = (m) -> winston.debug("status_fast(#{opts.project_id}): #{m}")
+    ans = undefined
+    async.series([
+        (cb) ->
+            database.select_one
+                table   : 'projects'
+                where   : {project_id : opts.project_id}
+                columns : ['location', 'locations', 'replicating']
+                json    : ['location']
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        v = {}
+                        for k,z of result[1]
+                            v[k] = {newest_snapshot:misc.from_json(z)?[0], datacenter:datacenter_to_desc[host_to_datacenter[k]]}
+                        ans =
+                            current_location    : result[0]?.host    # the current location of the project (ip address or undefined)
+                            locations           : v                  # mapping from addresses to info about (time, location, status)
+                            replicating         : result[2]          # whether or not project is being replicated right now
+                            canonical_locations : _.flatten(locations(project_id:opts.project_id))   # the locations determined by consistent hashing
+                        cb()
+        (cb) ->
+            database.compute_status
+                cb : (err, compute) ->
+                    if err
+                        cb(err)
+                    else
+                        v = ans.locations
+                        #console.log(compute)
+                        #console.log(v)
+                        for c in compute
+                            if c.host == '127.0.0.1' and ans.current_location == 'localhost' # special case for dev vm
+                                c.host = 'localhost'
+                            if v[c.host]?
+                                v[c.host].status = c
+                        cb()
+        ], (err) -> opts.cb(err, ans))
 
 # for interactive use
 exports.status = (project_id, update) ->
@@ -1736,7 +1759,7 @@ hashrings = {}
 topology = undefined
 all_hosts = []
 host_to_datacenter = {}
-datacenter_to_desc = {'0':"Univ. of Washington (Mathematics)", '1':"Univ. of Washington (4545)", '2':"Google Compute Engine (us-central1-a)"}
+datacenter_to_desc = {'0':"uw-padelford", '1':"uw-4545", '2':"google-us-central1-a"}
 exports.init_hashrings = init_hashrings = (cb) ->
     database.select
         table   : 'storage_topology'
@@ -2346,6 +2369,9 @@ exports.destroy_project = destroy_project = (opts) ->
                                 cb      : cb
             else
                 dbg("unsafely destroying dataset")
+                # I don't want to ever,ever do this, so...
+                cb("opts.safe = false NOT implemented (on purpose)!")
+                ###
                 execute_on
                     host    : opts.host
                     command : "sudo zfs destroy -r #{filesystem(opts.project_id)}"
@@ -2355,6 +2381,7 @@ exports.destroy_project = destroy_project = (opts) ->
                             if output?.stderr? and output.stderr.indexOf('does not exist') != -1
                                 err = undefined
                         cb(err)
+                ###
         (cb) ->
             dbg("throw in a umount, just in case")
             create_user
@@ -2440,24 +2467,28 @@ exports.replicate_all = replicate_all = (opts) ->
 # Backup -- backup all projects to a single zpool.
 ###
 
-exports.backup_all_projects = (opts) ->
+exports.backup_all_projects =  backup_all_projects = (opts) ->
     opts = defaults opts,
-        limit      : 10
+        limit      : 5
         start      : undefined
         stop       : undefined
+        repeat     : false       # if true, will loop around, repeatedly backing up, over and over again; opts.cb (if defined) will get called every time it completes a backup cycle.
+        projects   : undefined   # if given, only backup *this* list of projects (list of project id's)
         cb         : undefined
     dbg = (m) -> winston.debug("backup_all_projects: #{m}")
     errors = {}
-    projects = undefined
+    projects = opts.projects
     async.series([
         (cb) ->
+            if projects?
+                cb(); return
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['project_id']
+                columns : ['project_id', 'status']
                 limit   : 1000000   # TODO: stupidly slow
                 cb      : (err, result) ->
-                    projects = (a[0] for a in result)
+                    projects = (a[0] for a in result when a[1] != 'new')  # ignore new projects -- never opened, so no data.
                     projects.sort()
                     dbg("got #{projects.length} projects")
                     if opts.start? or opts.stop?
@@ -2475,8 +2506,29 @@ exports.backup_all_projects = (opts) ->
                     project_id : project_id
                     cb         : (err) ->
                         if err
-                            errors[project_id] = err
-                        cb()
+                            dbg("err -- #{err}, so move project #{project_id} out of the way, then try exactly one more time from scratch")
+                            async.series([
+                                (cb0) ->
+                                    dbg("moving #{project_id} out of the way")
+                                    t = filesystem("DELETED-#{cassandra.now()}-#{project_id}")
+                                    misc_node.execute_code
+                                        command     : "sudo"
+                                        args        : ['zfs', 'rename', filesystem(project_id), t]
+                                        timeout     : 300
+                                        err_on_exit : true
+                                        cb          : cb0
+                                (cb0) ->
+                                    dbg("trying one more time to backup #{project_id}")
+                                    backup_project
+                                        project_id : project_id
+                                        cb         : cb0
+                            ], (err) ->
+                                if err
+                                    errors[project_id] = err
+                                cb()
+                            )
+                        else
+                            cb()
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) ->
         if err
@@ -2485,6 +2537,9 @@ exports.backup_all_projects = (opts) ->
             opts.cb?()
         else
             opts.cb?(errors)
+        if opts.repeat
+            dbg("!!!!!!!!!!!!!!!!!!!! Doing the whole backup again. !!!!!!!!!!!!!!!!!!!!!")
+            backup_all_projects(opts)
     )
 
 
@@ -3036,6 +3091,28 @@ exports.init = init = (cb) ->
 # TODO
 #init (err) ->
 #    winston.debug("init -- #{err}")
+
+# ONE OFF
+exports.set_status_to_new_for_all_with_empty_locations = () ->
+    dbg = (m) -> winston.debug("set_status_to_new_for_all_with_empty_locations: #{m}")
+    dbg("querying database... (should take a minute)")
+    database.select
+        table   : 'projects'
+        columns : ['project_id', 'locations', 'status']
+        limit   : 100000   # TODO: stupidly slow
+        cb      : (err, result) ->
+            projects = (a[0] for a in result when not a[1]? and not a[2]?)
+            projects.sort()
+            dbg("got #{projects.length} projects: #{misc.to_json(projects)}")
+            database.update
+                table : 'projects'
+                set   : {status:'new'}
+                where : {project_id : {'in':projects}}
+                cb    : (err) ->
+                    dbg("done!  (with err=#{err})")
+
+
+
 
 
 

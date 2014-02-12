@@ -5,9 +5,10 @@
 
 import os, socket, sys
 
-# If hostname isn't "salvus-base", then setup /tmp and swap.
+hostname = socket.gethostname()
 
-if socket.gethostname() == "salvus-base":
+if hostname == "salvus-base":
+    # no special config -- this is our template machine
     sys.exit(0)
 
 # Enable swap
@@ -72,4 +73,17 @@ else:
 # Lock down some perms a little, just in case I were to mess up somehow at some point
 os.system("chmod og-rwx -R /home/salvus/&")
 
+
+# Configure the backup machine(s)
+if hostname.startswith('backup'):
+    # create a /home/storage directory owned by salvus
+    os.system("mkdir -p /home/storage; chown -R salvus. /home/storage")    
+    # delete the .ssh/authorized_keys file for the salvus user -- no passwordless login to backup vm's
+    os.system("rm /home/salvus/.ssh/authorized_keys")
+    # add lines to sudo control
+    os.system("echo 'salvus ALL=(ALL) NOPASSWD: /sbin/zfs *' >> /etc/sudoers.d/salvus ")
+    os.system("echo 'salvus ALL=(ALL) NOPASSWD: /sbin/zpool *' >> /etc/sudoers.d/salvus ")
+    os.system("chmod 0440 /etc/sudoers.d/salvus ")
+    # import the projects pool
+    os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 

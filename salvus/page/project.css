@@ -453,5 +453,36 @@
     font-weight: bold;
 }
 
+.salvus-project-replica {
+    background-color:  white;
+    border: 1px solid lightgrey;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.salvus-project-replica-clickable:hover {
+    background-color:#efe;
+}
+
+.salvus-project-replica-current {
+    background-color:#FFFACD;
+}
+
+.salvus-project-replica-datacenter {
+    font-size: 9pt;
+}
+
+.salvus-project-replica-host {
+    font-family: monospace;
+    font-size: 9pt;
+}
+
+.salvus-project-replica-timeago {
+    font-size: 9pt;
+}
+
+.salvus-project-replica-status {
+    font-size: 9pt;
+}
 
 

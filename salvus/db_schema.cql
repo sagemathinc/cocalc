@@ -118,7 +118,9 @@ CREATE TABLE accounts (
 
     editor_settings    varchar, // JSON
 
-    enable_tooltips    boolean
+    other_settings     varchar, // JSON
+
+    enable_tooltips    boolean,
 
     owner                set<uuid>,   // projects that this user owns
     collaborator         set<uuid>,   // projects this users is collaborating on
@@ -259,6 +261,8 @@ CREATE TABLE projects (
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 
+     status           varchar,  // 'new'=just created, 'opened'=right after opening, 'closed'=right after closing, etc. -- maybe "archived" at some pointed (?)
+
      storage          varchar,  // storage type; ''=just some account; 'zfs'=the new ZFS-based hashring storage system.
      locations        map<text, text>,   // ip_address --> snapshots available there
      modified_files   map<text, text>,   // snapshot_name --> [list of files changed]
@@ -272,10 +276,10 @@ CREATE TABLE projects (
      usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
      errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
 
-     last_migrated    timestamp, // used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
-     old_location     varchar,   // used for migrating... (so can delete after that is done).
+     last_migrated    timestamp, // DEPRECATED: used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
+     old_location     varchar,   // DEPRECATED: used for migrating... (so can delete after that is done).
 
-     backup           varchar,  // hosts on which files are backed up (via rsnapshot): JSON format not yet determined
+     backup           varchar,  // DEPRECATED: hosts on which files are backed up (via rsnapshot): JSON format not yet determined
 
      size             int,      // total size in bytes at last save
      deleted          boolean,  // if true, user deleted the project, so nobody sees it.
