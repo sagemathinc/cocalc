@@ -245,7 +245,34 @@ console_sessions = new ConsoleSessions()
 ###############################################
 # Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
 ###############################################
-get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
+
+restart_sage_server = (cb) ->
+    misc_node.execute_code
+        command     : "sage_server stop; sage_server start"
+        timeout     : 30
+        err_on_exit : true
+        bash        : true
+        cb          : cb
+
+get_sage_socket = (cb) ->
+    _get_sage_socket (err, socket) ->
+        if not err
+            cb(undefined, socket)
+        else
+            # Failed for some reason: try to restart one time, then try again.
+            # We do this because the Sage server can easily get killed due to out of memory conditions.
+            # But we don't constantly try to restart the server, since it can easily fail to start if
+            # there is something wrong with a local Sage install.
+            # Note that restarting the sage server doesn't impact currently running worksheets (they
+            # have their own process that isn't killed).
+            restart_sage_server (err) ->
+                if err
+                    cb(err)
+                else
+                    _get_sage_socket(cb)
+
+
+_get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
     sage_socket = undefined
     port = undefined
     async.series([
