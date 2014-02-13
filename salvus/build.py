@@ -126,6 +126,8 @@ NOTE: With ubuntu 12.04 I do this:
           apt-add-repository ppa:dr-graef/octave-3.6.precise
           apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
 
+          cd /usr/share/fonts/truetype; ln -s liberation ttf-liberation   # needed by octave for plotting.
+
 
 # Tmux -- Ensure tmux is at least 1.8 and if not:
 
