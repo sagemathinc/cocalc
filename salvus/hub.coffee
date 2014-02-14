@@ -583,9 +583,11 @@ class Client extends EventEmitter
                                             # do nothing
                                         else if is_banned
                                             # delete this auth key, since banned users are a waste of space.
+                                            # TODO: probably want to log this attempt...
                                             @remember_me_db.delete(key : hash)
                                         else
                                             # good -- sign them in
+                                            signed_in_mesg.email_address = misc.lower_email_address(signed_in_mesg.email_address)  # delete in April 2014.
                                             signed_in_mesg.hub = program.host + ':' + program.port
                                             @hash_session_id = hash
                                             @signed_in(signed_in_mesg)
@@ -1247,6 +1249,7 @@ class Client extends EventEmitter
             if err
                 return # error handled in get_project
             project.move_project
+                target : mesg.target
                 cb : (err, location) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -1707,6 +1710,7 @@ class Client extends EventEmitter
                 if not client_lib.is_valid_email_address(email_address)
                     cb("invalid email address '#{email_address}'")
                     return
+                email_address = misc.lower_email_address(email_address)
                 if email_address.length >= 128
                     # if an attacker tries to embed a spam in the email address itself (e.g, wstein+spam_message@gmail.com), then
                     # at least we can limit its size.
@@ -3754,6 +3758,7 @@ class Project
 
     move_project: (opts) =>
         opts = defaults opts,
+            target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
         host = @local_hub.host
@@ -3771,9 +3776,14 @@ class Project
                         cb()
             (cb) =>
                 @dbg("move_project -- open the project somewhere *else*")
+                if opts.target?
+                    prefer = [opts.target]
+                else
+                    prefer = undefined
                 storage.open_project_somewhere
                     project_id  : @project_id
                     exclude     : [host]
+                    prefer      : prefer
                     cb          : (err, n) =>
                         new_host = n
                         cb(err)
@@ -4007,6 +4017,8 @@ sign_in = (client, mesg) =>
     if mesg.password == ""
         sign_in_error("Empty password.")
         return
+
+    mesg.email_address = misc.lower_email_address(mesg.email_address)
 
     signed_in_mesg = null
     async.series([
@@ -4392,6 +4404,7 @@ account_creation_actions = (opts) ->
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
+    mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
         # make sure there hasn't been a password change attempt for this
         # email address in the last 5 seconds
@@ -4479,6 +4492,10 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
 
     dbg = (m) -> winston.debug("change_email_address(mesg.account_id, mesg.old_email_address, mesg.new_email_address): #{m}")
     dbg()
+
+    mesg.old_email_address = misc.lower_email_address(mesg.old_email_address)
+    mesg.new_email_address = misc.lower_email_address(mesg.new_email_address)
+
     if mesg.old_email_address == mesg.new_email_address  # easy case
         dbg("easy case -- no change")
         push_to_client(message.changed_email_address(id:mesg.id))
@@ -4594,6 +4611,8 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
     if not client_lib.is_valid_email_address(mesg.email_address)
         push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
         return
+
+    mesg.email_address = misc.lower_email_address(mesg.email_address)
 
     id = null
     async.series([

@@ -54,6 +54,17 @@ exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)
 # Like Python's string split -- splits on whitespace
 exports.split = (s) -> s.match(/\S+/g)
 
+# Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
+
+exports.count = (str, strsearch) ->
+    index = -1
+    count = -1
+    loop
+        index = str.indexOf(strsearch, index + 1)
+        count++
+        break unless index isnt -1
+    return count
+
 # modifies target in place, so that the properties of target are the
 # same as those of upper_bound, and each is <=.
 exports.min_object = (target, upper_bounds) ->
@@ -289,6 +300,9 @@ exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{
 # This is mainly used for banning users.
 
 exports.canonicalize_email_address = (email_address) ->
+    if typeof(email_address) != 'string'
+        # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
+        email_address = JSON.stringify(email_address)
     # remove + part from email address:   foo+bar@example.com
     i = email_address.indexOf('+')
     if i != -1
@@ -297,6 +311,14 @@ exports.canonicalize_email_address = (email_address) ->
             email_address = email_address.slice(0,i) + email_address.slice(j)
     # make email address lower case
     return email_address.toLowerCase()
+
+exports.lower_email_address = (email_address) ->
+    if typeof(email_address) != 'string'
+        # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
+        email_address = JSON.stringify(email_address)
+    # make email address lower case
+    return email_address.toLowerCase()
+
 
 # Delete trailing whitespace in the string s.  See
 exports.delete_trailing_whitespace = (s) ->

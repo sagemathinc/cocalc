@@ -1370,7 +1370,8 @@ class Monitor(object):
         """
         cmd = "ps ax |grep zfs |wc -l; sudo zpool list"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=60, username='storage').iteritems():
+        # zpool list can take a while when host is loaded, but still work fine.
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=5*60, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1490,6 +1491,7 @@ class Monitor(object):
         d['minute']    = int(time.strftime("%M"))
         d['timestamp'] = int(time.time())
         password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        print cassandra.KEYSPACE
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 

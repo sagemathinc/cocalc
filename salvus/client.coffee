@@ -923,11 +923,13 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             timeout    : 60*15              # 15 minutes -- since moving a project is potentially time consuming.
+            target     : undefined          # optional target; if given will attempt to move to the given host
             cb         : undefined          # cb(err, new_location)
         @call
             message :
                 message.move_project
                     project_id  : opts.project_id
+                    target      : opts.target
             timeout : opts.timeout
             cb      : (err, resp) =>
                 if err

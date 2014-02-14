@@ -625,6 +625,23 @@ class exports.Salvus extends exports.Cassandra
             opts.keyspace = 'salvus'
         super(opts)
 
+    #####################################
+    # The cluster status monitor
+    #####################################
+
+    # returns array [{host:'10.x.y.z', ..., other data about compute node}, ...]
+    compute_status: (opts={}) =>
+        opts = defaults opts,
+            cb : required
+        @select_one
+            table : 'monitor_last'
+            columns : ['compute']
+            json    : ['compute']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
 
     #####################################
     # The log: we log important conceptually meaningful events
@@ -1005,9 +1022,10 @@ class exports.Salvus extends exports.Cassandra
     # Account Management
     #####################################
     is_email_address_available: (email_address, cb) =>
+
         @count
             table : "email_address_to_account_id"
-            where :{email_address:email_address}
+            where :{email_address : misc.lower_email_address(email_address)}
             cb    : (error, cnt) =>
                 if error
                    cb(error)
@@ -1023,6 +1041,7 @@ class exports.Salvus extends exports.Cassandra
             cb            : required
 
         account_id = uuid.v4()
+        opts.email_address = misc.lower_email_address(opts.email_address)   # canonicalize the email address
         async.series([
             # verify that account doesn't already exist
             (cb) =>
@@ -1103,6 +1122,88 @@ class exports.Salvus extends exports.Cassandra
                             value : misc.len(t)
                             cb    : cb
 
+    # A *one-off* computation!  For when we canonicalized email addresses to be lower case.
+    lowercase_email_addresses: (cb) =>
+        ###
+        Algorithm:
+         - get list of all pairs (account_id, email_address)
+         - use to make map  {lower_email_address:[[email_address, account_id], ... }
+         - for each key of that map:
+               - if multiple addresses, query db to see which was used most recently
+               - set accounts record with given account_id to lower_email_address
+               - set email_address_to_account_id --> accounts mapping to map lower_email_address to account_id.
+        ###
+        dbg = (m) -> console.log("lowercase_email_addresses: #{m}")
+        dbg()
+        @select
+            table     : 'accounts'
+            limit     : 10000000  # effectively unlimited...
+            columns   : ['email_address', 'account_id']
+            objectify : false
+            cb: (err, results) =>
+                dbg("There are #{results.length} accounts.")
+                results.sort()
+                t = {}
+                for r in results
+                    if r[0]?
+                        k = r[0].toLowerCase()
+                        if not t[k]?
+                            t[k] = []
+                        t[k].push(r)
+                total = misc.len(t)
+                cnt = 1
+                dbg("There are #{total} distinct lower case email addresses.")
+                f = (k, cb) =>
+                    dbg("#{k}: #{cnt}/#{total}"); cnt += 1
+                    v = t[k]
+                    account_id = undefined
+                    async.series([
+                        (c) =>
+                            if v.length == 1
+                                dbg("#{k}: easy case of only one account")
+                                account_id = v[0][1]
+                                c(true)
+                            else
+                                dbg("#{k}: have to deal with #{v.length} accounts")
+                                c()
+                        (c) =>
+                            @select
+                                table    : 'successful_sign_ins'
+                                columns  : ['time','account_id']
+                                where    : {'account_id':{'in':(x[1] for x in v)}}
+                                order_by : 'time'
+                                cb       : (e, results) =>
+                                    if e
+                                        c(e)
+                                    else
+                                        if results.length == 0   # never logged in... -- so just take one arbitrarily
+                                            account_id = v[0][1]
+                                        else
+                                            account_id = results[results.length-1][1]
+                                        c()
+                    ], (ignore) =>
+                        if account_id?
+                            async.series([
+                                (c) =>
+                                    @update
+                                        table : 'accounts'
+                                        set   : {'email_address': k}
+                                        where : {'account_id': account_id}
+                                        cb    : c
+                                (c) =>
+                                    @update
+                                        table : 'email_address_to_account_id'
+                                        set   : {'account_id': account_id}
+                                        where : {'email_address': k}
+                                        cb    : c
+                            ], cb)
+                        else
+                            cb("unable to determine account for email '#{k}'")
+                    )
+                async.mapLimit misc.keys(t), 5, f, (err) =>
+                    dbg("done -- err=#{err}")
+
+
     # Delete the account with given id, and
     # remove the entry in the email_address_to_account_id table
     # corresponding to this account, if indeed the entry in that
@@ -1179,6 +1280,8 @@ class exports.Salvus extends exports.Cassandra
                              'autosave', 'terminal', 'editor_settings', 'other_settings']
 
         account = undefined
+        if opts.email_address?
+            opts.email_address = misc.lower_email_address(opts.email_address)
         async.series([
             (cb) =>
                 if opts.account_id?
@@ -1228,6 +1331,8 @@ class exports.Salvus extends exports.Cassandra
         if not opts.email_address? or opts.account_id?
             opts.cb("at least one of email_address or account_id must be given")
             return
+        if opts.email_address?
+            opts.email_address = misc.lower_email_address(opts.email_address)
         dbg = (m) -> winston.debug("user_is_banned(email_address=#{opts.email_address},account_id=#{opts.account_id}): #{m}")
         banned_accounts = undefined
         email_address = undefined
@@ -1288,6 +1393,8 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             email_address : required
             cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+
+        opts.email_address = misc.lower_email_address(opts.email_address)   # canonicalize the email address
         @select
             table     : 'email_address_to_account_id'
             where     : {email_address:opts.email_address}
@@ -1387,6 +1494,7 @@ class exports.Salvus extends exports.Cassandra
         dbg()
 
         orig_address = undefined
+        opts.email_address = misc.lower_email_address(opts.email_address)
 
         async.series([
             (cb) =>
@@ -1914,6 +2022,7 @@ class exports.Salvus extends exports.Cassandra
                         description : opts.description
                         public      : opts.public
                         quota       : opts.quota
+                        status      : 'new'
                     where : {project_id: opts.project_id}
                     json  : ['quota', 'location']
                     cb    : (error, result) ->
