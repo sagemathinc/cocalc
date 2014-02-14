@@ -68,6 +68,7 @@ def conf():
         cmd("mount -o bind /mnt/conf/tinc /home/salvus/salvus/salvus/data/local/etc/tinc")
         cmd("cp /mnt/conf/tinc/hosts.0/* /mnt/conf/tinc/hosts/")
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/var/run/")
+        cmd("/home/salvus/salvus/salvus/data/local/sbin/tincd -k; sleep 2")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
     # restore project user accounts
