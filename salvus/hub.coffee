@@ -1249,6 +1249,7 @@ class Client extends EventEmitter
             if err
                 return # error handled in get_project
             project.move_project
+                target : mesg.target
                 cb : (err, location) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -3757,6 +3758,7 @@ class Project
 
     move_project: (opts) =>
         opts = defaults opts,
+            target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
         host = @local_hub.host
@@ -3774,9 +3776,14 @@ class Project
                         cb()
             (cb) =>
                 @dbg("move_project -- open the project somewhere *else*")
+                if opts.target?
+                    prefer = [opts.target]
+                else
+                    prefer = undefined
                 storage.open_project_somewhere
                     project_id  : @project_id
                     exclude     : [host]
+                    prefer      : prefer
                     cb          : (err, n) =>
                         new_host = n
                         cb(err)
