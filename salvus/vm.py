@@ -230,7 +230,7 @@ if __name__ == "__main__":
     parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
                         help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--disk", dest="disk", type=str, default="",
-                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[raw|qcow2]:[ext4|xfs|none].  If format is none, then the disk is not mounted in fstab.")
+                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[ext4|xfs|none]:[raw|qcow2].  If format is none, then the disk is not mounted in fstab.")
     parser.add_argument("--fstab", dest="fstab", type=str, default="", help="custom string to add to the end of /etc/fstab; each mountpoint in that string will be created if necessary")
     parser.add_argument('--base', dest='base', type=str, default='salvus',
                         help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")
