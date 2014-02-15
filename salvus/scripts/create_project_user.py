@@ -162,6 +162,9 @@ def cgroup(project_id, cpu=1024, memory='8G'):
        - cpu -- (default: 1024) total number of cpu.shares allocated to this project (across all processes)
        - memory -- (default: '8G') total amount of RAM allocated to this project (across all processes)
     """
+    if not os.path.exists('/sys/fs/cgroup/memory'):
+        # do nothing on platforms where cgroups isn't supported (GCE right now, I'm looking at you.)
+        return
     uname = username(project_id)
     cmd("cgcreate -g memory,cpu:%s"%uname)
     cmd('echo "%s" > /sys/fs/cgroup/memory/%s/memory.limit_in_bytes'%(memory, uname))
