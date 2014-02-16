@@ -174,7 +174,11 @@ def cgroup(project_id, cpu=1024, memory='8G'):
     if z not in cur:
         open("/etc/cgrules.conf",'a').write(z)
     cmd('service cgred restart')
-    pids = cmd("ps -o pid -u %s"%uname).split()[1:]
+    try:
+        pids = cmd("ps -o pid -u %s"%uname).split()[1:]
+    except RuntimeError:
+        # ps returns an error code if there are NO processes at all (a common condition).
+        pids = []
     if pids:
         try:
             cmd("cgclassify %s"%(' '.join(pids)))
