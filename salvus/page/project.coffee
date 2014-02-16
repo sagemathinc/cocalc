@@ -2060,13 +2060,14 @@ class ProjectPage
                                     replica.find(".salvus-project-replica-timeago").text('...')
                                     replica.find(".salvus-project-replica-status").text('...')
 
-                                if loc == status.current_location
+                                if false and loc == status.current_location
                                     replica.addClass("salvus-project-replica-current")
                                 else
                                     replica.addClass("salvus-project-replica-clickable")
                                     replica.click () =>
-                                        dialog.modal('hide').remove()
-                                        @move_to_specific_target_dialog(loc)
+                                        @move_to_specific_target_dialog loc, (close) =>
+                                            if close
+                                                dialog.modal('hide').remove()
                                         return false
                                 replicas.append(replica.show())
 
@@ -2079,21 +2080,26 @@ class ProjectPage
             refresh()
             dialog.find("a[href=#refresh-status]").click(()=>refresh();return false)
 
-    move_to_specific_target_dialog: (target) ->
-        @container.find(".project-location").text("moving to #{target}...")
-        @container.find(".project-location-heading").icon_spin(start:true)
-        alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move may be lost...")
-        salvus_client.move_project
-            project_id : @project.project_id
-            target     : target
-            cb         : (err, location) =>
-                @container.find(".project-location-heading").icon_spin(false)
-                if err
-                    alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{target} -- #{err}")
-                else
-                    alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
-                    @project.location = location
-                    @set_location()
+    move_to_specific_target_dialog: (target, cb) ->
+        m = "<h3>Move Project</h3><hr><br>Are you sure you want to <b>move</b> your project to '#{target}'.  This will make a new snapshot of your project (if possible), replicate it out to all other nodes, then restart your project on '#{target}'.  Your project will be unavailable for a few minutes."
+        bootbox.confirm m, (result) =>
+            if not result
+                cb(false); return
+            cb(true)
+            @container.find(".project-location").text("moving to #{target}...")
+            @container.find(".project-location-heading").icon_spin(start:true)
+            alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move may be lost...")
+            salvus_client.move_project
+                project_id : @project.project_id
+                target     : target
+                cb         : (err, location) =>
+                    @container.find(".project-location-heading").icon_spin(false)
+                    if err
+                        alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{target} -- #{err}")
+                    else
+                        alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
+                        @project.location = location
+                        @set_location()
 
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")
