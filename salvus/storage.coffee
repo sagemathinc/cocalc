@@ -340,7 +340,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
         prefer     : undefined  # string or array; if given prefer these hosts first, irregardless of their newness.
         cb         : required   # cb(err, host used)
 
-    dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id}): #{m}")
+    dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id},exclude=#{misc.to_json(opts.exclude)},prefer=#{misc.to_json(opts.prefer)}): #{m}")
 
     cur_loc   = undefined
     host_used = undefined
@@ -354,8 +354,8 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                     cur_loc = x
                     cb(err)
         (cb) ->
-            if not cur_loc?
-                dbg("no current location")
+            if not cur_loc? or (opts.prefer? and (cur_loc not in opts.prefer))
+                dbg("no current location or current location not prefered")
                 # we'll try all other hosts in the next step
                 cb()
             else
