@@ -1361,14 +1361,14 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def zfs0(self, hosts='compute'):
+    def zfs(self, hosts='compute'):
         """
         Count zfs processes on each compute machine.
         """
-        cmd = "ps ax |grep zfs |wc -l; sudo zpool list"
+        cmd = "ps ax |grep zfs |wc -l; cat zpool.list"
         ans = []
         # zpool list can take a while when host is loaded, but still work fine.
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=60, username='storage').iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1397,7 +1397,7 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def zfs(self, hosts='compute'):
+    def zfs0(self, hosts='compute'):
         """
         Count zfs processes on each compute machine.
         """
