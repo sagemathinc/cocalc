@@ -173,16 +173,20 @@ exports.create_user = create_user = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
-        action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton), 'chown' (chown files)
+        action     : 'create'   # 'create', 'kill' (kill all processes), 'skel' (copy over skeleton), 'chown' (chown files)
         base_url   : ''         # used when writing info.json
         chown      : false      # if true, chowns files in /project/projectid in addition to creating user.
         timeout    : 200        # time in seconds
         cb         : undefined
 
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
+    if opts.action == 'create'
+        cgroup = '--cgroup=cpu:1024,memory:12G'
+    else
+        cgroup = ''
     execute_on
         host    : opts.host
-        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} --base_url=#{opts.base_url} --host=#{opts.host} #{if opts.chown then '--chown' else ''} #{opts.project_id}"
+        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} #{cgroup} --base_url=#{opts.base_url} --host=#{opts.host} #{if opts.chown then '--chown' else ''} #{opts.project_id}"
         timeout : opts.timeout
         cb      : opts.cb
 
