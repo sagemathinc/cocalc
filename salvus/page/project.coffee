@@ -2094,7 +2094,7 @@ class ProjectPage
             dialog.find("a[href=#refresh-status]").click(()=>refresh();return false)
 
     move_to_specific_target_dialog: (target, cb) ->
-        m = "<h3>Move Project</h3><hr><br>Are you sure you want to <b>move</b> your project to '#{target}'.  This will make a new snapshot of your project (if possible), replicate it out to all other nodes, then restart your project on '#{target}'.  Your project will be unavailable for a few minutes."
+        m = "<h3>Move Project</h3><hr><br>Are you sure you want to <b>move</b> your project to '#{target}'.  Your project will be opened on '#{target}' using the last available snapshot, so you may loose a few minutes of changes.  Your project will be unavailable for about a minute during the move."
         bootbox.confirm m, (result) =>
             if not result
                 cb(false); return
