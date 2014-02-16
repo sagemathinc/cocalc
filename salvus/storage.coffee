@@ -192,7 +192,6 @@ exports.create_user = create_user = (opts) ->
 
 is_disabled = (opts) ->
     opts = defaults opts,
-        project_id : required
         host       : required
         cb         : required
     database.select_one
@@ -219,7 +218,6 @@ exports.open_project = open_project = (opts) ->
         (cb) ->
             dbg("check whether or not host is disabled for maintenance")
             is_disabled
-                project_id : opts.project_id
                 host       : opts.host
                 cb         : (err, disabled) ->
                     if err

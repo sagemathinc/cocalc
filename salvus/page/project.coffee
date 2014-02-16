@@ -2050,9 +2050,15 @@ class ProjectPage
                                 replica.find(".salvus-project-replica-datacenter").text(data.datacenter)
                                 if data.status?
                                     if data.status.status != 'up'
+                                        available = false
                                         replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
                                         replica.css('background-color':'#ff0000', 'color':'#ffffff')
+                                    else if data.status.disabled
+                                        available = false
+                                        replica.find(".salvus-project-replica-status").html('<b>NOT AVAILABLE</b>')
+                                        replica.css('background-color':'#0000ff', 'color':'#ffffff')
                                     else
+                                        available = true
                                         replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
                                         stats = "#{data.status.ram_used_GB+data.status.ram_free_GB}GB RAM (#{data.status.ram_free_GB}GB free), #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} cores"
                                         replica.find(".salvus-project-replica-status").text(stats)
@@ -2060,8 +2066,15 @@ class ProjectPage
                                     replica.find(".salvus-project-replica-timeago").text('...')
                                     replica.find(".salvus-project-replica-status").text('...')
 
-                                if false and loc == status.current_location
+                                if loc == status.current_location or not available
                                     replica.addClass("salvus-project-replica-current")
+                                    replica.click () =>
+                                        if loc == status.current_location
+                                            m = "<h3>Move Project</h3><hr><br>Project is already on '#{loc}'."
+                                        else
+                                            m = "<h3>Move Project</h3><hr><br>The host '#{loc}' is not currently available."
+                                        bootbox.alert(m)
+                                        return false
                                 else
                                     replica.addClass("salvus-project-replica-clickable")
                                     replica.click () =>

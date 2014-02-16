@@ -1477,7 +1477,22 @@ class Monitor(object):
     def update_db(self, all=None):
         if all is None:
             all = self.all()
+
         import cassandra
+        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        print cassandra.KEYSPACE
+
+        # Fill in disabled field for each compute node; this is useful to record in
+        # the monitor, and is used by the move project UI code.
+        v = dict(list(cassandra.cursor_execute("SELECT host,disabled FROM storage_topology", user='monitor', password=password)))
+        if 'compute' in all:
+            for x in all['compute']:
+                host = x['host']
+                if host == '127.0.0.1':  # special case
+                    host = 'localhost'
+                x['disabled'] = bool(v.get(host,False))
+
+        # Prepare for database insertion
         t = all['timestamp']
         d = {}
         for k, v in all.iteritems():
@@ -1487,8 +1502,7 @@ class Monitor(object):
         d['hour']      = int(time.strftime("%H"))
         d['minute']    = int(time.strftime("%M"))
         d['timestamp'] = int(time.time())
-        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
-        print cassandra.KEYSPACE
+
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 
