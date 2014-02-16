@@ -1361,7 +1361,7 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def zfs(self, hosts='compute'):
+    def zfs0(self, hosts='compute'):
         """
         Count zfs processes on each compute machine.
         """
@@ -1394,6 +1394,25 @@ class Monitor(object):
             ans.append(d)
         # put anything with < 100 GB free first in list, since we need to worry about it.
         w = [((d.get('free')>=100, d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
+    def zfs(self, hosts='compute'):
+        """
+        Count zfs processes on each compute machine.
+        """
+        cmd = "ps ax |grep zfs |wc -l"
+        ans = []
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20, username='storage').iteritems():
+            x = v['stdout'].split()
+            try:
+                nproc = int(x[0]) - 2
+            except:
+                nproc = -1
+            d = {'host':k[0], 'service':'zfs', 'nproc':nproc}
+            ans.append(d)
+        # put anything with < 100 GB free first in list, since we need to worry about it.
+        w = [((d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
