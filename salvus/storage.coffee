@@ -1768,7 +1768,7 @@ exports.init_hashrings = init_hashrings = (cb) ->
         columns : ['data_center', 'host', 'vnodes']
         cb      : (err, results) ->
             if err
-                cb(err); return
+                cb?(err); return
             init_hashrings_2(results, cb)
 
 init_hashrings_2 = (results, cb) ->
