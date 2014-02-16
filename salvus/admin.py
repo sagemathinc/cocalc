@@ -1293,10 +1293,10 @@ class Monitor(object):
     def compute(self):
         hosts = self._hosts['cassandra']
         ans = []
-        for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
+        for k, v in self._hosts('compute', 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
             m = v.get('stdout','').splitlines()
-            if v.get('exit_status',1) != 0 or len(m) != 9:
+            if v.get('exit_status',1) != 0 or len(m) < 7:
                 d['status'] = 'down'
             else:
                 d['status'] = 'up'
@@ -1306,14 +1306,11 @@ class Monitor(object):
                 d['load5']  = float(z[-2]) / d['nproc']
                 d['load15'] = float(z[-1]) / d['nproc']
                 z = m[3].split()
-                d['use_GB'] =  int(z[2][:-1]) if z[2][-1] == 'G' else 1
-                d['use%']   = int(z[4][:-1])
-                z = m[5].split()
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
-                d['nprojects'] = int(m[8])
+                d['nprojects'] = int(m[6])
                 ans.append(d)
-        w = [(-d['use%'], d) for d in ans]
+        w = [(-d['load15'], d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1386,7 +1383,7 @@ class Monitor(object):
                 dedup = float(x[14][:-1])
                 health = x[15]
                 d.update({'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health})
-                if free < 64 or d['health'] != 'ONLINE':
+                if free < 50 or d['health'] != 'ONLINE':
                     d['status'] = 'down'  # <64GB free ==> start receiving scary emails!
                 else:
                     d['status'] = 'up'
