@@ -1919,6 +1919,7 @@ exports.replicate = replicate = (opts) ->
                                     break
 
                         if not source?
+                            # choose global newest
                             x = snaps[snaps.length - 1]
                             ver = x[0]
                             source = {version:ver, host:x[1]}
@@ -1932,6 +1933,21 @@ exports.replicate = replicate = (opts) ->
                                 versions.push(v)
                         dbg("(time=#{misc.walltime(tm)})-- status: #{misc.to_json(versions)}")
                         cb()
+       (cb) ->
+            dbg("STAGE 0: (safely) destroy any target replicas whose version is newer than the source")
+            # Make list of versions that are newer than the source. Here's what the versions array looks like:
+            # [[{"version":"2014-02-13T18:23:34","host":"10.1.3.4"},{"version":"2014-02-13T18:23:34","host":"10.1.2.4"}],[{"host":"10.1.11.4"},{"version":"2014-02-13T18:23:41","host":"10.1.16.4"}],[{"version":"2014-02-13T18:23:34","host":"10.3.8.4"},{"version":"2014-02-13T18:23:34","host":"10.3.3.4"}]]
+            hosts_to_delete = (x.host for x in _.flatten(versions) when x.version > source.version)
+            f = (host, c) ->
+                destroy_project
+                    project_id : opts.project_id
+                    host       : host
+                    safe       : true
+                    cb         : (ignore) ->
+                        # non-fatal -- don't want to stop replication just because of this -- e.g., what if host is down?
+                        c()
+            async.map(hosts_to_delete, f, cb)
+
        (cb) ->
             dbg("STAGE 1: do inter-data center replications so each data center contains at least one up to date node")
             f = (d, cb) ->
