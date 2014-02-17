@@ -387,9 +387,9 @@ class Process(object):
                 print run(self._start_cmd)
         print self._start_monitor()
 
-    def stop(self):
+    def stop(self, force=False):
         pid = self.pid()
-        if pid is None: return
+        if pid is None and not force: return
         if self._stop_cmd is not None:
             print run(self._stop_cmd)
         else:
@@ -399,14 +399,15 @@ class Process(object):
         except Exception, msg:
             print msg
 
-        while True:
-            s = process_status(pid, run)
-            if not s:
-                break
-            print "waiting for %s to terminate"%pid
-            time.sleep(0.5)
+        if pid:
+            while True:
+                s = process_status(pid, run)
+                if not s:
+                    break
+                print "waiting for %s to terminate"%pid
+                time.sleep(0.5)
 
-        self._pids = {}
+            self._pids = {}
 
     def reload(self):
         self._stop_monitor()
@@ -800,6 +801,9 @@ class Vm(Process):
                          monitor_database=monitor_database,
                          term_signal = 2   # must use 2 (=SIGINT) instead of 15 or 9 for proper cleanup!
                          )
+
+    def stop(self):
+        Process.stop(self, force=True)
 
 #################################
 # Classical Sage Notebook Server
