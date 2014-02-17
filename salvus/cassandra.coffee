@@ -343,9 +343,12 @@ class KeyValueStore
 exports.from_cassandra = from_cassandra = (value, json) ->
     if not value?
         return undefined
-    value = value.valueOf()
-    if json
-        value = from_json(value)
+    if value.toInt?
+        value = value.toInt()   # newer version of node-cassandra-cql uses the Javascript long type
+    else
+        value = value.valueOf()
+        if json
+            value = from_json(value)
     return value
 
 class exports.Cassandra extends EventEmitter
@@ -357,6 +360,8 @@ class exports.Cassandra extends EventEmitter
             username : undefined
             password : undefined
             consistency : undefined
+            verbose : false # quick hack for debugging...
+            conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
 
         @keyspace = opts.keyspace
 
@@ -373,6 +378,11 @@ class exports.Cassandra extends EventEmitter
             keyspace   : opts.keyspace
             username   : opts.username
             password   : opts.password
+            getAConnectionTimeout : opts.conn_timeout_ms
+
+        if opts.verbose
+            @conn.on 'log', (level, message) =>
+                winston.debug('database connection event: %s -- %j', level, message)
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
@@ -515,8 +525,10 @@ class exports.Cassandra extends EventEmitter
             query += " WHERE #{where}"
 
         @cql query, vals, (err, results) =>
-            opts.cb?(err, results[0].get('count').valueOf())
-
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, from_cassandra(results[0].get('count')))
 
     update: (opts={}) ->
         opts = defaults opts,
@@ -567,11 +579,13 @@ class exports.Cassandra extends EventEmitter
         if opts.allow_filtering
             query += " ALLOW FILTERING"
         @cql query, vals, opts.consistency, (error, results) =>
+            if error
+                opts.cb(error); return
             if opts.objectify
                 x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
             else
                 x = ((from_cassandra(r.get(col), col in opts.json) for col in opts.columns) for r in results)
-            opts.cb(error, x)
+            opts.cb(undefined, x)
 
     # Exactly like select (above), but gives an error if there is not exactly one
     # row in the table that matches the condition.  Also, this returns the one
@@ -603,8 +617,6 @@ class exports.Cassandra extends EventEmitter
             @conn.execute query, vals, consistency, (error, results) =>
                 if error
                     winston.error("Query cql('#{query}',params=#{vals}) caused a CQL error:\n#{error}")
-                    @emit('error', error)
-                #console.log("got ", results)
                 cb?(error, results?.rows)
         catch e
             cb?("exception doing cql query -- #{e}")
@@ -625,6 +637,23 @@ class exports.Salvus extends exports.Cassandra
             opts.keyspace = 'salvus'
         super(opts)
 
+    #####################################
+    # The cluster status monitor
+    #####################################
+
+    # returns array [{host:'10.x.y.z', ..., other data about compute node}, ...]
+    compute_status: (opts={}) =>
+        opts = defaults opts,
+            cb : required
+        @select_one
+            table : 'monitor_last'
+            columns : ['compute']
+            json    : ['compute']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
 
     #####################################
     # The log: we log important conceptually meaningful events
@@ -1007,7 +1036,7 @@ class exports.Salvus extends exports.Cassandra
     is_email_address_available: (email_address, cb) =>
         @count
             table : "email_address_to_account_id"
-            where :{email_address:email_address}
+            where :{email_address : misc.lower_email_address(email_address)}
             cb    : (error, cnt) =>
                 if error
                    cb(error)
@@ -1023,6 +1052,7 @@ class exports.Salvus extends exports.Cassandra
             cb            : required
 
         account_id = uuid.v4()
+        opts.email_address = misc.lower_email_address(opts.email_address)   # canonicalize the email address
         async.series([
             # verify that account doesn't already exist
             (cb) =>
@@ -1103,6 +1133,88 @@ class exports.Salvus extends exports.Cassandra
                             value : misc.len(t)
                             cb    : cb
 
+    # A *one-off* computation!  For when we canonicalized email addresses to be lower case.
+    lowercase_email_addresses: (cb) =>
+        ###
+        Algorithm:
+         - get list of all pairs (account_id, email_address)
+         - use to make map  {lower_email_address:[[email_address, account_id], ... }
+         - for each key of that map:
+               - if multiple addresses, query db to see which was used most recently
+               - set accounts record with given account_id to lower_email_address
+               - set email_address_to_account_id --> accounts mapping to map lower_email_address to account_id.
+        ###
+        dbg = (m) -> console.log("lowercase_email_addresses: #{m}")
+        dbg()
+        @select
+            table     : 'accounts'
+            limit     : 10000000  # effectively unlimited...
+            columns   : ['email_address', 'account_id']
+            objectify : false
+            cb: (err, results) =>
+                dbg("There are #{results.length} accounts.")
+                results.sort()
+                t = {}
+                for r in results
+                    if r[0]?
+                        k = r[0].toLowerCase()
+                        if not t[k]?
+                            t[k] = []
+                        t[k].push(r)
+                total = misc.len(t)
+                cnt = 1
+                dbg("There are #{total} distinct lower case email addresses.")
+                f = (k, cb) =>
+                    dbg("#{k}: #{cnt}/#{total}"); cnt += 1
+                    v = t[k]
+                    account_id = undefined
+                    async.series([
+                        (c) =>
+                            if v.length == 1
+                                dbg("#{k}: easy case of only one account")
+                                account_id = v[0][1]
+                                c(true)
+                            else
+                                dbg("#{k}: have to deal with #{v.length} accounts")
+                                c()
+                        (c) =>
+                            @select
+                                table    : 'successful_sign_ins'
+                                columns  : ['time','account_id']
+                                where    : {'account_id':{'in':(x[1] for x in v)}}
+                                order_by : 'time'
+                                cb       : (e, results) =>
+                                    if e
+                                        c(e)
+                                    else
+                                        if results.length == 0   # never logged in... -- so just take one arbitrarily
+                                            account_id = v[0][1]
+                                        else
+                                            account_id = results[results.length-1][1]
+                                        c()
+                    ], (ignore) =>
+                        if account_id?
+                            async.series([
+                                (c) =>
+                                    @update
+                                        table : 'accounts'
+                                        set   : {'email_address': k}
+                                        where : {'account_id': account_id}
+                                        cb    : c
+                                (c) =>
+                                    @update
+                                        table : 'email_address_to_account_id'
+                                        set   : {'account_id': account_id}
+                                        where : {'email_address': k}
+                                        cb    : c
+                            ], cb)
+                        else
+                            cb("unable to determine account for email '#{k}'")
+                    )
+                async.mapLimit misc.keys(t), 5, f, (err) =>
+                    dbg("done -- err=#{err}")
+
+
     # Delete the account with given id, and
     # remove the entry in the email_address_to_account_id table
     # corresponding to this account, if indeed the entry in that
@@ -1176,9 +1288,11 @@ class exports.Salvus extends exports.Cassandra
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
                              'connect_Github', 'connect_Google', 'connect_Dropbox',
-                             'autosave', 'terminal', 'editor_settings']
+                             'autosave', 'terminal', 'editor_settings', 'other_settings']
 
         account = undefined
+        if opts.email_address?
+            opts.email_address = misc.lower_email_address(opts.email_address)
         async.series([
             (cb) =>
                 if opts.account_id?
@@ -1206,7 +1320,7 @@ class exports.Salvus extends exports.Cassandra
                     where     : {account_id : opts.account_id}
                     columns   : opts.columns
                     objectify : true
-                    json      : ['terminal', 'editor_settings']
+                    json      : ['terminal', 'editor_settings', 'other_settings']
                     cb        : (error, results) ->
                         if error
                             cb(error)
@@ -1228,6 +1342,8 @@ class exports.Salvus extends exports.Cassandra
         if not opts.email_address? or opts.account_id?
             opts.cb("at least one of email_address or account_id must be given")
             return
+        if opts.email_address?
+            opts.email_address = misc.lower_email_address(opts.email_address)
         dbg = (m) -> winston.debug("user_is_banned(email_address=#{opts.email_address},account_id=#{opts.account_id}): #{m}")
         banned_accounts = undefined
         email_address = undefined
@@ -1288,6 +1404,8 @@ class exports.Salvus extends exports.Cassandra
         opts = defaults opts,
             email_address : required
             cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+
+        opts.email_address = misc.lower_email_address(opts.email_address)   # canonicalize the email address
         @select
             table     : 'email_address_to_account_id'
             where     : {email_address:opts.email_address}
@@ -1356,7 +1474,7 @@ class exports.Salvus extends exports.Cassandra
                     table      : 'accounts'
                     where      : {'account_id':opts.account_id}
                     set        : opts.settings
-                    json       : ['terminal', 'editor_settings']
+                    json       : ['terminal', 'editor_settings', 'other_settings']
                     cb         : (error, result) ->
                         opts.cb(error, result)
                         cb()
@@ -1387,6 +1505,7 @@ class exports.Salvus extends exports.Cassandra
         dbg()
 
         orig_address = undefined
+        opts.email_address = misc.lower_email_address(opts.email_address)
 
         async.series([
             (cb) =>
@@ -1845,12 +1964,13 @@ class exports.Salvus extends exports.Cassandra
                         cb    : cb
                 async.map(RECENT_TIMES_ARRAY, f, (err) -> opts.cb?(err))
 
-    # Return all projects that were active in the last week, but *not* active in the last ttl seconds.
+    # Return all projects that were active in the last week, but *not* active in the last ttl seconds,
+    # whose status is not 'closed'.
     stale_projects: (opts) =>
         opts = defaults opts,
             ttl     : 60*60*24   # time in seconds (up to a week)
             cb      : required
-        dbg = (m) -> winston.debug("database  stale_projects(#{opts.ttl}): #{m}")
+        dbg = (m) -> winston.debug("database stale_projects(#{opts.ttl}): #{m}")
 
         project_ids = undefined
         t = misc.mswalltime() - opts.ttl*1000  # cassandra timestamps come back in ms since UTC epoch
@@ -1873,13 +1993,13 @@ class exports.Salvus extends exports.Cassandra
                 @select
                     table   : 'projects'
                     where   : {'project_id':{'in':project_ids}}
-                    columns : ['project_id', 'location', 'last_edited', 'timeout_disabled']
+                    columns : ['project_id', 'location', 'last_edited', 'timeout_disabled', 'status']
                     cb      : (err, v) =>
                         if err
                             cb(err)
                         else
                             dbg("got #{v.length} matching projects")
-                            ans = ({'project_id':x[0], 'location':misc.from_json(x[1]), 'last_edited':x[2]} for x in v when x[1] and x[2] <= t and not x[3])
+                            ans = ({'project_id':x[0], 'location':misc.from_json(x[1]), 'last_edited':x[2]} for x in v when x[1] and x[2] <= t and not x[3] and x[4] != 'closed')
                             dbg("of these #{ans.length} are open but old.")
                             cb()
         ], (err) =>
@@ -1913,6 +2033,7 @@ class exports.Salvus extends exports.Cassandra
                         description : opts.description
                         public      : opts.public
                         quota       : opts.quota
+                        status      : 'new'
                     where : {project_id: opts.project_id}
                     json  : ['quota', 'location']
                     cb    : (error, result) ->

@@ -67,6 +67,7 @@ CASSANDRA_INTERNODE_PORTS = [7000, 7001]
 CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_NATIVE_PORT]
 
 
+
 ####################
 # Sending an email (useful for monitoring script)
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
@@ -88,6 +89,21 @@ def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@gmail.
     server.login(username,password)
     server.sendmail(fromaddr, toaddrs, msg.as_string())
     server.quit()
+
+def zfs_size(s):
+    """
+    Convert a zfs size string to gigabytes (float)
+    """
+    if len(s) == 0:
+        return 0.0
+    u = s[-1]; q = float(s[:-1])
+    if u == 'M':
+        q /= 1000
+    elif u == 'T':
+        q *= 1000
+    elif u == 'K':
+        q /= 1000000
+    return q
 
 ####################
 # Running a subprocess
@@ -371,9 +387,9 @@ class Process(object):
                 print run(self._start_cmd)
         print self._start_monitor()
 
-    def stop(self):
+    def stop(self, force=False):
         pid = self.pid()
-        if pid is None: return
+        if pid is None and not force: return
         if self._stop_cmd is not None:
             print run(self._stop_cmd)
         else:
@@ -383,14 +399,15 @@ class Process(object):
         except Exception, msg:
             print msg
 
-        while True:
-            s = process_status(pid, run)
-            if not s:
-                break
-            print "waiting for %s to terminate"%pid
-            time.sleep(0.5)
+        if pid:
+            while True:
+                s = process_status(pid, run)
+                if not s:
+                    break
+                print "waiting for %s to terminate"%pid
+                time.sleep(0.5)
 
-        self._pids = {}
+            self._pids = {}
 
     def reload(self):
         self._stop_monitor()
@@ -740,7 +757,7 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class Vm(Process):
-    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine', fstab=''):
+    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine', fstab=''):
         """
         INPUT:
 
@@ -750,7 +767,6 @@ class Vm(Process):
             - vcpus -- number of cpus
             - ram -- number of gigabytes of ram (an integer)
             - vnc -- port of vnc console (default: 0 for no vnc)
-            - vm_type -- 'kvm' (later maybe 'virtualbox'?)
             - disk -- string 'name1:size1,name2:size2,...' with size in gigabytes
             - base -- string (default: 'salvus'); name of base vm image
             - id -- optional, defaulta:0 (basically ignored)
@@ -762,7 +778,6 @@ class Vm(Process):
         self._vcpus = vcpus
         self._ram = ram
         self._vnc = vnc
-        self._vm_type = vm_type
         self._base = base
         self._disk = disk
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
@@ -773,16 +788,22 @@ class Vm(Process):
                      '--vcpus', vcpus, '--ram', ram,
                      '--vnc', vnc,
                      '--fstab', fstab,
-                     '--vm_type', vm_type, '--base', base] + \
+                     '--base', base] + \
                      (['--disk', disk] if self._disk else []) + \
                      (['--hostname', self._hostname] if self._hostname else [])
+
+        stop_cmd = [PYTHON, 'vm.py', '--stop',  '--ip_address', ip_address] + (['--hostname', self._hostname] if self._hostname else [])
 
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
                          start_cmd = start_cmd,
+                         stop_cmd = stop_cmd,
                          monitor_database=monitor_database,
                          term_signal = 2   # must use 2 (=SIGINT) instead of 15 or 9 for proper cleanup!
                          )
+
+    def stop(self):
+        Process.stop(self, force=True)
 
 #################################
 # Classical Sage Notebook Server
@@ -1017,19 +1038,21 @@ class Hosts(object):
             self._password = getpass.getpass("%s's password: "%self._username)
         return self._password
 
-    def ssh(self, hostname, timeout=20, keepalive=None, use_cache=True):
-        key = (hostname, self._username)
+    def ssh(self, hostname, timeout=20, keepalive=None, use_cache=True, username=None):
+        if username is None:
+            username = self._username
+        key = (hostname, username)
         if use_cache and key in self._ssh:
             return self._ssh[key]
         import paramiko
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            ssh.connect(hostname=hostname, username=self._username, password=self._password, timeout=timeout)
+            ssh.connect(hostname=hostname, username=username, password=self._password, timeout=timeout)
         except paramiko.AuthenticationException:
             while True:
                 try:
-                    ssh.connect(hostname=hostname, username=self._username, password=self.password(retry=True))
+                    ssh.connect(hostname=hostname, username=username, password=self.password(retry=True))
                     break
                 except paramiko.AuthenticationException, msg:
                     print msg
@@ -1065,10 +1088,10 @@ class Hosts(object):
     def ip_addresses(self, hostname):
         return [socket.gethostbyname(h) for h in self[hostname]]
 
-    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True, verbose=True):
+    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True, username=None, verbose=True):
         def f(hostname):
             try:
-                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, verbose=verbose)
+                return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, username=username, verbose=verbose)
             except Exception, msg:
                 return {'stdout':'', 'stderr':'Error connecting -- %s: %s'%(hostname, msg)}
         return dict(self.map(f, hostname=hostname, parallel=parallel))
@@ -1086,18 +1109,17 @@ class Hosts(object):
                 print
         return result
 
-    def _exec_command(self, command, hostname, sudo, timeout, wait, verbose=True):
+    def _exec_command(self, command, hostname, sudo, timeout, wait, username=None, verbose=True):
         if not self._passwd:
             # never use sudo if self._passwd is false...
             sudo = False
         start = time.time()
-        ssh = self.ssh(hostname, timeout=timeout)
-        import paramiko
+        ssh = self.ssh(hostname, username=username, timeout=timeout)
         try:
             chan = ssh.get_transport().open_session()
         except:
             # try again in case if remote machine got rebooted or something...
-            chan = self.ssh(hostname, timeout=timeout, use_cache=False).get_transport().open_session()
+            chan = self.ssh(hostname, username=username, timeout=timeout, use_cache=False).get_transport().open_session()
         stdin = chan.makefile('wb')
         stdout = chan.makefile('rb')
         stderr = chan.makefile_stderr('rb')
@@ -1252,14 +1274,18 @@ class Monitor(object):
         # Determine up/down status using a random node
         import random
         hosts = self._hosts['cassandra']
-        v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False)
-        r = v[v.keys()[0]]
-        status = {}
-        for z in [x for x in r['stdout'].splitlines() if '%' in x]:
-            w = z.split()
-            status[w[1]] = 'up' if w[0] == "UN" else 'down'
+        for i in range(len(hosts)):
+            v = self._hosts(random.choice(hosts), "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=45)
+            r = v[v.keys()[0]]
+            status = {}
+            for z in [x for x in r['stdout'].splitlines() if '%' in x]:
+                w = z.split()
+                status[w[1]] = 'up' if w[0] == "UN" else 'down'
+            if len(status) > 0:
+                # keep trying until we at least get some output.
+                break
         ans = []
-        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False).iteritems():
+        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=45).iteritems():
             if v.get('exit_status',1) or 'stdout' not in v:
                 ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
             else:
@@ -1272,10 +1298,10 @@ class Monitor(object):
     def compute(self):
         hosts = self._hosts['cassandra']
         ans = []
-        for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
+        for k, v in self._hosts('compute', 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
             m = v.get('stdout','').splitlines()
-            if v.get('exit_status',1) != 0 or len(m) != 9:
+            if v.get('exit_status',1) != 0 or len(m) < 7:
                 d['status'] = 'down'
             else:
                 d['status'] = 'up'
@@ -1285,14 +1311,11 @@ class Monitor(object):
                 d['load5']  = float(z[-2]) / d['nproc']
                 d['load15'] = float(z[-1]) / d['nproc']
                 z = m[3].split()
-                d['use_GB'] =  int(z[2][:-1]) if z[2][-1] == 'G' else 1
-                d['use%']   = int(z[4][:-1])
-                z = m[5].split()
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
-                d['nprojects'] = int(m[8])
+                d['nprojects'] = int(m[6])
                 ans.append(d)
-        w = [(-d['use%'], d) for d in ans]
+        w = [(-d['load15'], d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1328,7 +1351,7 @@ class Monitor(object):
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
-        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=20).iteritems():
+        for k, v in self._hosts(h, cmd, parallel=True, wait=True, timeout=60).iteritems():
             d = {'host':k[0], 'service':'dns'}
             exit_code = v.get('stdout','').strip()
             if exit_code == '':
@@ -1343,19 +1366,58 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def zfs(self, hosts='all'):
+    def zfs(self, hosts='compute'):
         """
-        Count zfs processes on each machine.
+        Count zfs processes on each compute machine.
+        """
+        cmd = "ps ax |grep zfs |wc -l; cat zpool.list"
+        ans = []
+        # zpool list can take a while when host is loaded, but still work fine.
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30, username='storage').iteritems():
+            x = v['stdout'].split()
+            try:
+                nproc = int(x[0]) - 2
+            except:
+                nproc = -1
+            d = {'host':k[0], 'service':'zfs', 'nproc':nproc}
+            try:
+                size  = zfs_size(x[10])
+                alloc = zfs_size(x[11])
+                free  = zfs_size(x[12])
+                cap   = float(x[13][:-1])
+                dedup = float(x[14][:-1])
+                health = x[15]
+                d.update({'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health})
+                if free < 50 or d['health'] != 'ONLINE':
+                    d['status'] = 'down'  # <64GB free ==> start receiving scary emails!
+                else:
+                    d['status'] = 'up'
+            except Exception, msg:
+                print "FAIL, %s"%msg
+                print "x = ", x
+                d['status'] = 'down'
+            ans.append(d)
+        # put anything with < 100 GB free first in list, since we need to worry about it.
+        w = [((d.get('free')>=100, d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
+    def zfs0(self, hosts='compute'):
+        """
+        Count zfs processes on each compute machine.
         """
         cmd = "ps ax |grep zfs |wc -l"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=10).iteritems():
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20, username='storage').iteritems():
+            x = v['stdout'].split()
             try:
-                nproc = int(v['stdout']) - 2
+                nproc = int(x[0]) - 2
             except:
                 nproc = -1
-            ans.append( {'host':k[0], 'service':'zfs', 'nproc':nproc} )
-        w = [((d.get('status','down'),-d['nproc'],d['host']),d) for d in ans]
+            d = {'host':k[0], 'service':'zfs', 'nproc':nproc}
+            ans.append(d)
+        # put anything with < 100 GB free first in list, since we need to worry about it.
+        w = [((d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1439,7 +1501,22 @@ class Monitor(object):
     def update_db(self, all=None):
         if all is None:
             all = self.all()
+
         import cassandra
+        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        print cassandra.KEYSPACE
+
+        # Fill in disabled field for each compute node; this is useful to record in
+        # the monitor, and is used by the move project UI code.
+        v = dict(list(cassandra.cursor_execute("SELECT host,disabled FROM storage_topology", user='monitor', password=password)))
+        if 'compute' in all:
+            for x in all['compute']:
+                host = x['host']
+                if host == '127.0.0.1':  # special case
+                    host = 'localhost'
+                x['disabled'] = bool(v.get(host,False))
+
+        # Prepare for database insertion
         t = all['timestamp']
         d = {}
         for k, v in all.iteritems():
@@ -1449,7 +1526,7 @@ class Monitor(object):
         d['hour']      = int(time.strftime("%H"))
         d['minute']    = int(time.strftime("%M"))
         d['timestamp'] = int(time.time())
-        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 

@@ -152,6 +152,40 @@ def copy_skeleton(project_id):
     cmd("chown -R %s. %s/.sagemathcloud/ %s/.ssh %s/.bashrc"%(u, h, h, h))
     cmd("chown %s. %s"%(u, h))
 
+def cgroup(project_id, cpu=1024, memory='8G'):
+    """
+    Create a cgroup for the given project, and ensure all of the project's processes are in the cgroup.
+
+    INPUT:
+
+       - project_id -- uuid of the project
+       - cpu -- (default: 1024) total number of cpu.shares allocated to this project (across all processes)
+       - memory -- (default: '8G') total amount of RAM allocated to this project (across all processes)
+    """
+    if not os.path.exists('/sys/fs/cgroup/memory'):
+        # do nothing on platforms where cgroups isn't supported (GCE right now, I'm looking at you.)
+        return
+    uname = username(project_id)
+    cmd("cgcreate -g memory,cpu:%s"%uname)
+    cmd('echo "%s" > /sys/fs/cgroup/memory/%s/memory.limit_in_bytes'%(memory, uname))
+    cmd('echo "%s" > /sys/fs/cgroup/cpu/%s/cpu.shares'%(cpu, uname))
+    z = "\n%s  cpu,memory  %s\n"%(uname, uname)
+    cur = open("/etc/cgrules.conf").read()
+    if z not in cur:
+        open("/etc/cgrules.conf",'a').write(z)
+    cmd('service cgred restart')
+    try:
+        pids = cmd("ps -o pid -u %s"%uname).split()[1:]
+    except RuntimeError:
+        # ps returns an error code if there are NO processes at all (a common condition).
+        pids = []
+    if pids:
+        try:
+            cmd("cgclassify %s"%(' '.join(pids)))
+            # ignore cgclassify errors, since processes come and go, etc.
+        except RuntimeError:
+            pass
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Project user control script")
     parser.add_argument("--kill", help="kill all processes owned by the user", default=False, action="store_const", const=True)
@@ -161,6 +195,7 @@ if __name__ == "__main__":
     parser.add_argument("--base_url", help="the base url (default:'')", default="", type=str)
     parser.add_argument("--host", help="the host ip address on the tinc vpn (default: auto-detect)", default="", type=str)
     parser.add_argument("--chown", help="chown all the files in /projects/projectid", default=False, action="store_const", const=True)
+    parser.add_argument("--cgroup", help="put project in given control group (format: --cgroup=cpu:1024,memory:10G)", default="", type=str)
     parser.add_argument("project_id", help="the uuid of the project", type=str)
     args = parser.parse_args()
     if args.create:
@@ -175,5 +210,8 @@ if __name__ == "__main__":
         umount_user_home(args.project_id)
     if args.chown:
         chown_all(args.project_id)
+    if args.cgroup:
+        kwds = dict([x.split(':') for x in args.cgroup.split(',')])
+        cgroup(args.project_id, **kwds)
 
 

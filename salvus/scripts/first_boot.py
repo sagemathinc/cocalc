@@ -5,9 +5,10 @@
 
 import os, socket, sys
 
-# If hostname isn't "salvus-base", then setup /tmp and swap.
+hostname = socket.gethostname()
 
-if socket.gethostname() == "salvus-base":
+if hostname == "salvus-base":
+    # no special config -- this is our template machine
     sys.exit(0)
 
 # Enable swap
@@ -39,9 +40,11 @@ if os.path.exists('/mnt/home/'):
         os.system("mkdir -p /mnt/home/etc/")
 
     # Store crontabs in persistent storage, so they don't vanish on VM restart
-    if not os.path.exists("/mnt/home/crontabs/"):
-        os.system("mkdir -p /mnt/home/crontabs/; chmod a+rx /mnt/home/; chgrp crontab /mnt/home/crontabs; chmod 1730 /mnt/home/crontabs")
-    os.system("cd /var/spool/cron/; rm -rf crontabs; ln -s /mnt/home/crontabs .")
+    if False:
+        # disabled -- need to do something that takes into account how projects can move.  Pretty tricky.
+        if not os.path.exists("/mnt/home/crontabs/"):
+           os.system("mkdir -p /mnt/home/crontabs/; chmod a+rx /mnt/home/; chgrp crontab /mnt/home/crontabs; chmod 1730 /mnt/home/crontabs")
+        os.system("cd /var/spool/cron/; rm -rf crontabs; ln -s /mnt/home/crontabs .")
 
     # Setup /tmp so it is on the external disk image (has that quota) and is clean, since this is a fresh boot.
     # os.system("rm -rf /mnt/home/tmp; mkdir -p /mnt/home/tmp/; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/tmp /tmp; chmod a+rwx /mnt/home/tmp/")
@@ -72,4 +75,17 @@ else:
 # Lock down some perms a little, just in case I were to mess up somehow at some point
 os.system("chmod og-rwx -R /home/salvus/&")
 
+
+# Configure the backup machine(s)
+if hostname.startswith('backup'):
+    # create a /home/storage directory owned by salvus
+    os.system("mkdir -p /home/storage; chown -R salvus. /home/storage")    
+    # delete the .ssh/authorized_keys file for the salvus user -- no passwordless login to backup vm's
+    os.system("rm /home/salvus/.ssh/authorized_keys")
+    # add lines to sudo control
+    os.system("echo 'salvus ALL=(ALL) NOPASSWD: /sbin/zfs *' >> /etc/sudoers.d/salvus ")
+    os.system("echo 'salvus ALL=(ALL) NOPASSWD: /sbin/zpool *' >> /etc/sudoers.d/salvus ")
+    os.system("chmod 0440 /etc/sudoers.d/salvus ")
+    # import the projects pool
+    os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 

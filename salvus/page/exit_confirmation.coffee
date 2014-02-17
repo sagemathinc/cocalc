@@ -1,8 +1,7 @@
 ###
 #
 # This should be a confirmation-before-leave dialog.  So far, this
-# code works in Firefox, Chrome, Safari and maybe IE, but does not seem to
-# work in Opera.  So Opera users could loose work...
+# code works in Firefox, Chrome, Safari, Opera and IE11
 #
 # Also, this does not work on iOS.
 #
@@ -12,13 +11,16 @@
 {unsynced_docs} = require('syncdoc')
 
 window.onbeforeunload = (e) ->
+    mesg = undefined
     if not unsynced_docs()
-        return
+        if require('account').account_settings.settings.other_settings?.confirm_close
+            mesg = "Your data is saved, but you asked for confirmation before leaving SageMathCloud."
+        else
+            return
 
-    # TODO: we could instead just save everything at this point and return null
-    #
     e.cancelBubble = true  # e.cancelBubble is supported by IE - this will kill the bubbling process.
-    mesg = "Some documents haven't successfully synchronized with the server yet.  Leaving now may result in lost work."
+    if not mesg?
+        mesg = "Some documents haven't successfully synchronized with the server yet.  Leaving now may result in lost work."
     e.returnValue = mesg
     if e.stopPropagation
         e.stopPropagation()

@@ -2015,38 +2015,104 @@ class ProjectPage
             return false
 
     init_move_project: () =>
-        button = @container.find(".project-settings-move").find("a")
-        button.click () =>
-            #bootbox.confirm("Project move is temporarily disabled due to some synchronization issues that we are fixing right now.", (result) =>)
-            #return false
-            dialog = $(".project-move-dialog").clone()
-            dialog.modal()
-            salvus_client.project_last_snapshot_time
-                project_id : @project.project_id
-                cb         : (err, time) =>
-                    if err or not time?
-                        time = @_last_snapshot_time
-                    if @_last_snapshot_time?
-                        d = dialog.find(".project-move-snapshot-last-timeago")
-                        d.attr('title',(new Date(1000*@_last_snapshot_time)).toISOString()).timeago()
-            dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
-            dialog.find(".btn-submit").click () =>
-                @container.find(".project-location").text("moving...")
-                @container.find(".project-location-heading").icon_spin(start:true)
-                alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move will be lost...")
-                dialog.modal('hide')
-                salvus_client.move_project
-                    project_id : @project.project_id
-                    cb         : (err, location) =>
-                        @container.find(".project-location-heading").icon_spin(false)
-                        if err
-                            alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' -- #{err}")
-                        else
-                            alert_message(timeout:60, type:"success", message:"Successfully moved project '#{@project.title}'!")
-                            @project.location = location
-                            @set_location()
+        button = @container.find(".project-settings-move").find(".project-move-button")
 
-            return false
+        button.click () =>
+            dialog = $(".project-location-dialog").clone()
+            replica_template = dialog.find(".salvus-project-replica")
+
+            dialog.modal()
+            dialog.find(".btn-close").click(() -> dialog.modal('hide').remove(); return false)
+
+            refresh = () =>
+                dialog.find("a[href=#refresh-status]").find("i").addClass('fa-spin')
+                salvus_client.project_snap_status
+                    project_id : @project.project_id
+                    cb         : (err, status) =>
+                        dialog.find("a[href=#refresh-status]").find("i").removeClass('fa-spin')
+                        if err
+                            dialog.find(".salvus-project-location-dialog-error").show().text("Unable to load project snapshot status: #{err}")
+                            return
+
+                        replicas = dialog.find(".salvus-project-replicas")
+                        replicas.children(":not(:first)").remove()
+                        f = (loc) =>
+                            #console.log("f(#{loc})")
+                            data = status.locations[loc]
+                            #console.log("data=",data)
+                            if data?
+                                replica = replica_template.clone()
+                                if loc == status.current_location
+                                    l = loc+" (current)"
+                                else
+                                    l = loc
+                                replica.find(".salvus-project-replica-host").text(l)
+                                replica.find(".salvus-project-replica-datacenter").text(data.datacenter)
+                                if data.status?
+                                    if data.status.status != 'up'
+                                        available = false
+                                        replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
+                                        replica.css('background-color':'#ff0000', 'color':'#ffffff')
+                                    else if data.status.disabled
+                                        available = false
+                                        replica.find(".salvus-project-replica-status").html('<b>NOT AVAILABLE</b>')
+                                        replica.css('background-color':'#0000ff', 'color':'#ffffff')
+                                    else
+                                        available = true
+                                        replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
+                                        stats = "#{data.status.ram_used_GB+data.status.ram_free_GB}GB RAM (#{data.status.ram_free_GB}GB free), #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} cores"
+                                        replica.find(".salvus-project-replica-status").text(stats)
+                                else
+                                    replica.find(".salvus-project-replica-timeago").text('...')
+                                    replica.find(".salvus-project-replica-status").text('...')
+
+                                if loc == status.current_location or not available
+                                    replica.addClass("salvus-project-replica-current")
+                                    replica.click () =>
+                                        if loc == status.current_location
+                                            m = "<h3>Move Project</h3><hr><br>Project is already on '#{loc}'."
+                                        else
+                                            m = "<h3>Move Project</h3><hr><br>The host '#{loc}' is not currently available."
+                                        bootbox.alert(m)
+                                        return false
+                                else
+                                    replica.addClass("salvus-project-replica-clickable")
+                                    replica.click () =>
+                                        @move_to_specific_target_dialog loc, (close) =>
+                                            if close
+                                                dialog.modal('hide').remove()
+                                        return false
+                                replicas.append(replica.show())
+
+                        if status.current_location?
+                            f(status.current_location)
+                        for loc, data of status.locations
+                            if loc != status.current_location and loc in status.canonical_locations
+                                f(loc)
+
+            refresh()
+            dialog.find("a[href=#refresh-status]").click(()=>refresh();return false)
+
+    move_to_specific_target_dialog: (target, cb) ->
+        m = "<h3>Move Project</h3><hr><br>Are you sure you want to <b>move</b> your project to '#{target}'.  Your project will be opened on '#{target}' using the last available snapshot, so you may loose a few minutes of changes.  Your project will be unavailable for about a minute during the move."
+        bootbox.confirm m, (result) =>
+            if not result
+                cb(false); return
+            cb(true)
+            @container.find(".project-location").text("moving to #{target}...")
+            @container.find(".project-location-heading").icon_spin(start:true)
+            alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move may be lost...")
+            salvus_client.move_project
+                project_id : @project.project_id
+                target     : target
+                cb         : (err, location) =>
+                    @container.find(".project-location-heading").icon_spin(false)
+                    if err
+                        alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{target} -- #{err}")
+                    else
+                        alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
+                        @project.location = location
+                        @set_location()
 
     init_add_collaborators: () =>
         input   = @container.find(".project-add-collaborator-input")
