@@ -3179,7 +3179,6 @@ exports.all_projects_on_host = (opts) ->
 
 #  x={}; s.projects_on_node(host:'10.1.2.4',cb:(e,t)->x.t=t)
 #   fs.writeFileSync('projects-day',x.t.join('\n'))
-
 exports.recent_projects_on_host = (opts) ->
     opts = defaults opts,
         host : required  # ip address
