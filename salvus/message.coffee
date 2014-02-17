@@ -542,7 +542,7 @@ exports.account_settings_defaults =
     other_settings     :
         confirm_close : false
     editor_settings    :
-        strip_trailing_whitespace : true
+        strip_trailing_whitespace : false
         line_wrapping             : true
         line_numbers              : true
         smart_indent              : true

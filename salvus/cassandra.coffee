@@ -343,9 +343,12 @@ class KeyValueStore
 exports.from_cassandra = from_cassandra = (value, json) ->
     if not value?
         return undefined
-    value = value.valueOf()
-    if json
-        value = from_json(value)
+    if value.toInt?
+        value = value.toInt()   # newer version of node-cassandra-cql uses the Javascript long type
+    else
+        value = value.valueOf()
+        if json
+            value = from_json(value)
     return value
 
 class exports.Cassandra extends EventEmitter
@@ -359,7 +362,7 @@ class exports.Cassandra extends EventEmitter
             consistency : undefined
             verbose : false # quick hack for debugging...
             conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
- 
+
         @keyspace = opts.keyspace
 
         if opts.hosts.length == 1
@@ -376,7 +379,7 @@ class exports.Cassandra extends EventEmitter
             username   : opts.username
             password   : opts.password
             getAConnectionTimeout : opts.conn_timeout_ms
-   
+
         if opts.verbose
             @conn.on 'log', (level, message) =>
                 winston.debug('database connection event: %s -- %j', level, message)
@@ -522,8 +525,10 @@ class exports.Cassandra extends EventEmitter
             query += " WHERE #{where}"
 
         @cql query, vals, (err, results) =>
-            opts.cb?(err, results[0].get('count').valueOf())
-
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, from_cassandra(results[0].get('count')))
 
     update: (opts={}) ->
         opts = defaults opts,
@@ -1029,7 +1034,6 @@ class exports.Salvus extends exports.Cassandra
     # Account Management
     #####################################
     is_email_address_available: (email_address, cb) =>
-
         @count
             table : "email_address_to_account_id"
             where :{email_address : misc.lower_email_address(email_address)}
