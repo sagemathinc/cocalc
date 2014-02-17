@@ -194,6 +194,9 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
             pass
 
     finally:
+
+        return  # don't do this: it gets triggered when vm.py gets killed by OOM, which *does* happen -- we'll have to write code to check and delete/move this stuff out of the way very soon.
+ 
         try:
             os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
         except: pass
