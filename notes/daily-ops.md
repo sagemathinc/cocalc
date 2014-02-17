@@ -32,4 +32,4 @@ We could most replace this by: <http://askubuntu.com/questions/325998/how-to-ena
         coffee> s.status('43228724-071d-4701-9d80-694dda179d4f')
 
   - Worry about disk usage -- this shoud be a "spot check" since the monitor *should* alert us of anything.
-   
+
