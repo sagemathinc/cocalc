@@ -188,9 +188,9 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
         except Exception, e:
             log.info("error creating virtual machine -- %s"%e)
         finally:
-            # clean up
-            virsh('undefine', hostname)
-            virsh('destroy', hostname)
+            # clean up -- skip temporarily while we decide new way to do this...
+            # virsh('undefine', hostname)
+            # virsh('destroy', hostname)
             pass
 
     finally:
