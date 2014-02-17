@@ -2367,6 +2367,7 @@ exports.destroy_project = destroy_project = (opts) ->
                 f = filesystem(opts.project_id)
                 t = filesystem("DELETED-#{cassandra.now()}-#{opts.project_id}")
                 dbg("safely delete dataset (really just rename to #{t})")
+                cmd = "sudo zfs rename #{f} #{t}"   # if change this, also change arg to indexOf below!!!!
                 execute_on
                     host          : opts.host
                     command       : "ps ax | grep 'zfs rename' | grep #{opts.project_id}"
@@ -2376,13 +2377,13 @@ exports.destroy_project = destroy_project = (opts) ->
                     cb      : (err, output) ->
                         if err
                             cb("unable to connect to '#{opts.host}'")
-                        else if output.stdout.indexOf(opts.project_id) != -1
-                            dbg("already renaming -- left from previous attempt, since zfs is filling up with work...")
+                        else if output.stdout.indexOf("rename #{f}") != -1
+                            dbg("already renaming -- left from previous attempt, since zfs is filling up with work... --")
                             cb("unable to delete data set due zfs being too busy")
                         else
                             execute_on
                                 host    : opts.host
-                                command : "sudo zfs rename #{f} #{t}"
+                                command : cmd
                                 timeout : 360
                                 cb      : (err, output) ->
                                     if err
