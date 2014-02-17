@@ -2366,25 +2366,38 @@ exports.destroy_project = destroy_project = (opts) ->
             if opts.safe
                 f = filesystem(opts.project_id)
                 t = filesystem("DELETED-#{cassandra.now()}-#{opts.project_id}")
-                dbg("safely delete dataset (really just rename to #{t}")
+                dbg("safely delete dataset (really just rename to #{t})")
                 execute_on
-                    host    : opts.host
-                    command : "sudo zfs rename #{f} #{t}"
-                    timeout : 300
+                    host          : opts.host
+                    command       : "ps ax | grep 'zfs rename' | grep #{opts.project_id}"
+                    timeout       : 120
+                    err_on_exit   : false
+                    err_on_stderr : false
                     cb      : (err, output) ->
                         if err
-                            if output?.stderr? and output.stderr.indexOf('does not exist') != -1
-                                does_not_exist = true
-                                err = undefined
-                        if err or does_not_exist
-                            cb(err)
+                            cb("unable to connect to '#{opts.host}'")
+                        else if output.stdout.indexOf(opts.project_id) != -1
+                            dbg("already renaming -- left from previous attempt, since zfs is filling up with work...")
+                            cb("unable to delete data set due zfs being too busy")
                         else
-                            dbg("unset the mountpoint, or we'll have trouble later")
                             execute_on
                                 host    : opts.host
-                                command : "sudo zfs set mountpoint=none #{t}"
-                                timeout : 120
-                                cb      : cb
+                                command : "sudo zfs rename #{f} #{t}"
+                                timeout : 360
+                                cb      : (err, output) ->
+                                    if err
+                                        if output?.stderr? and output.stderr.indexOf('does not exist') != -1
+                                            does_not_exist = true
+                                            err = undefined
+                                    if err or does_not_exist
+                                        cb(err)
+                                    else
+                                        dbg("unset the mountpoint, or we'll have trouble later")
+                                        execute_on
+                                            host    : opts.host
+                                            command : "sudo zfs set mountpoint=none #{t}"
+                                            timeout : 120
+                                            cb      : cb
             else
                 dbg("unsafely destroying dataset")
                 # I don't want to ever,ever do this, so...
@@ -3130,6 +3143,60 @@ exports.set_status_to_new_for_all_with_empty_locations = () ->
                     dbg("done!  (with err=#{err})")
 
 
+
+############################################
+# Projects that are stored on a given node
+# In case we have to recover a node from scratch
+# for some reason, it is useful to be able to get a list
+# of the project_id's of projects that are supposed
+# to be available on that node according to
+# consistent hashing.
+#   x={}; s.projects_on_node(host:'10.1.2.4',cb:(e,t)->x.t=t)
+#   fs.writeFileSync('projects-day',x.t.join('\n'))
+############################################
+
+filter_by_host = (projects, host) ->
+    v = (x[0] for x in projects when host in _.flatten(locations(project_id:x[0])))
+    v.sort()
+    return v
+
+
+exports.all_projects_on_host = (opts) ->
+    opts = defaults opts,
+        host : required  # ip address
+        cb   : required  # cb(err, [list of project id's])
+    database.select
+        table   : 'projects'
+        columns : ['project_id']
+        limit   : 100000   # TODO: stupidly slow
+        cb      : (err, projects) ->
+            if err
+                opts.cb(err); return
+            winston.debug("got #{projects.length} projects")
+            v = filter_by_host(projects, opts.host)
+            winston.debug("of these,#{v.length} are on '#{opts.host}'")
+            opts.cb(undefined, v)
+
+#  x={}; s.projects_on_node(host:'10.1.2.4',cb:(e,t)->x.t=t)
+#   fs.writeFileSync('projects-day',x.t.join('\n'))
+
+exports.recent_projects_on_host = (opts) ->
+    opts = defaults opts,
+        host : required  # ip address
+        time : required  # 'short', 'day', 'week', 'month'
+        cb   : required  # cb(err, [list of project id's])
+    database.select
+        table   : 'recently_modified_projects'
+        columns : ['project_id']
+        limit   : 100000   # TODO: stupidly slow
+        where   : {ttl:opts.time}
+        cb      : (err, projects) ->
+            if err
+                opts.cb(err); return
+            winston.debug("got #{projects.length} projects")
+            v = filter_by_host(projects, opts.host)
+            winston.debug("of these,#{v.length} are on '#{opts.host}'")
+            opts.cb(undefined, v)
 
 
 
