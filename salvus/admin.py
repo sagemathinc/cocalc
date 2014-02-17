@@ -756,7 +756,7 @@ class Cassandra(Process):
 # A Virtual Machine
 ##############################################
 class Vm(Process):
-    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, vm_type='kvm', disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine', fstab=''):
+    def __init__(self, ip_address, hostname=None, vcpus=2, ram=4, vnc=0, disk='', base='salvus', id=0, monitor_database=None, name='virtual_machine', fstab=''):
         """
         INPUT:
 
@@ -766,7 +766,6 @@ class Vm(Process):
             - vcpus -- number of cpus
             - ram -- number of gigabytes of ram (an integer)
             - vnc -- port of vnc console (default: 0 for no vnc)
-            - vm_type -- 'kvm' (later maybe 'virtualbox'?)
             - disk -- string 'name1:size1,name2:size2,...' with size in gigabytes
             - base -- string (default: 'salvus'); name of base vm image
             - id -- optional, defaulta:0 (basically ignored)
@@ -778,7 +777,6 @@ class Vm(Process):
         self._vcpus = vcpus
         self._ram = ram
         self._vnc = vnc
-        self._vm_type = vm_type
         self._base = base
         self._disk = disk
         pidfile = os.path.join(PIDS, 'vm-%s.pid'%ip_address)
@@ -789,13 +787,16 @@ class Vm(Process):
                      '--vcpus', vcpus, '--ram', ram,
                      '--vnc', vnc,
                      '--fstab', fstab,
-                     '--vm_type', vm_type, '--base', base] + \
+                     '--base', base] + \
                      (['--disk', disk] if self._disk else []) + \
                      (['--hostname', self._hostname] if self._hostname else [])
+
+        stop_cmd = [PYTHON, 'vm.py', '--stop',  '--ip_address', ip_address] + (['--hostname', self._hostname] if self._hostname else [])
 
         Process.__init__(self, id=id, name=name, port=0,
                          pidfile = pidfile, logfile = logfile,
                          start_cmd = start_cmd,
+                         stop_cmd = stop_cmd,
                          monitor_database=monitor_database,
                          term_signal = 2   # must use 2 (=SIGINT) instead of 15 or 9 for proper cleanup!
                          )
