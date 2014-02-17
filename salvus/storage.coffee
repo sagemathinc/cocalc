@@ -3131,6 +3131,57 @@ exports.set_status_to_new_for_all_with_empty_locations = () ->
 
 
 
+############################################
+# Projects that are stored on a given node
+# In case we have to recover a node from scratch
+# for some reason, it is useful to be able to get a list
+# of the project_id's of projects that are supposed
+# to be available on that node according to
+# consistent hashing.
+#   x={}; s.projects_on_node(host:'10.1.2.4',cb:(e,t)->x.t=t)
+############################################
+
+filter_by_host = (projects, host) ->
+    v = (x[0] for x in projects when host in _.flatten(locations(project_id:x[0])))
+    v.sort()
+    return v
+
+
+exports.all_projects_on_host = (opts) ->
+    opts = defaults opts,
+        host : required  # ip address
+        cb   : required  # cb(err, [list of project id's])
+    database.select
+        table   : 'projects'
+        columns : ['project_id']
+        limit   : 100000   # TODO: stupidly slow
+        cb      : (err, projects) ->
+            if err
+                opts.cb(err); return
+            winston.debug("got #{projects.length} projects")
+            v = filter_by_host(projects, opts.host)
+            winston.debug("of these,#{v.length} are on '#{opts.host}'")
+            opts.cb(undefined, v)
+
+
+exports.recent_projects_on_host = (opts) ->
+    opts = defaults opts,
+        host : required  # ip address
+        time : required  # 'short', 'day', 'week', 'month'
+        cb   : required  # cb(err, [list of project id's])
+    database.select
+        table   : 'recently_modified_projects'
+        columns : ['project_id']
+        limit   : 100000   # TODO: stupidly slow
+        where   : {ttl:opts.time}
+        cb      : (err, projects) ->
+            if err
+                opts.cb(err); return
+            winston.debug("got #{projects.length} projects")
+            v = filter_by_host(projects, opts.host)
+            winston.debug("of these,#{v.length} are on '#{opts.host}'")
+            opts.cb(undefined, v)
+
 
 
 
