@@ -3769,13 +3769,13 @@ class Project
                 storage.close_project
                     project_id  : @project_id
                     unset_loc   : true
-                    wait_for_replicate : true
+                    wait_for_replicate : false
                     cb          : (err) =>
                         if err
-                            @dbg("move_project -- ignore error #{err} -- since errors are *why* we want to move")
+                            @dbg("move_project -- ignore error #{to_json(err)} -- since errors are *why* we want to move")
                         cb()
             (cb) =>
-                @dbg("move_project -- open the project somewhere *else*")
+                @dbg("move_project -- open the project somewhere *else* -- target=#{opts.target}")
                 if opts.target?
                     prefer = [opts.target]
                 else

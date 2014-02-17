@@ -211,6 +211,8 @@ CodeMirror.defineExtension 'unindent_selection', () ->
 
     start_line = start.line
     end_line   = if end.ch > 0 then end.line else end.line - 1
+    if end_line < start_line
+        end_line = start_line
     all_need_unindent = true
     for n in [start_line .. end_line]
         s = editor.getLine(n)
@@ -282,7 +284,7 @@ CodeMirror.defineExtension 'setValueNoJump', (value) ->
         @scrollIntoView(pos)   #I've seen tracebacks from this saying "cannot call method chunckSize of undefined"
                                #which cause havoc on the reset of sync, which assumes setValueNoJump works, and
                                # leads to user data loss.  I consider this a codemirror bug, but of course
-                               # just not moving the view in such cases is a reasonable workaround. 
+                               # just not moving the view in such cases is a reasonable workaround.
     catch e
         # nothing
 

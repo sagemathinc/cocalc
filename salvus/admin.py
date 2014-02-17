@@ -1293,10 +1293,10 @@ class Monitor(object):
     def compute(self):
         hosts = self._hosts['cassandra']
         ans = []
-        for k, v in self._hosts('compute', 'nproc && uptime && df -h /mnt/home/ && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
+        for k, v in self._hosts('compute', 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l', wait=True, parallel=True).iteritems():
             d = {'host':k[0], 'service':'compute'}
             m = v.get('stdout','').splitlines()
-            if v.get('exit_status',1) != 0 or len(m) != 9:
+            if v.get('exit_status',1) != 0 or len(m) < 7:
                 d['status'] = 'down'
             else:
                 d['status'] = 'up'
@@ -1306,14 +1306,11 @@ class Monitor(object):
                 d['load5']  = float(z[-2]) / d['nproc']
                 d['load15'] = float(z[-1]) / d['nproc']
                 z = m[3].split()
-                d['use_GB'] =  int(z[2][:-1]) if z[2][-1] == 'G' else 1
-                d['use%']   = int(z[4][:-1])
-                z = m[5].split()
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
-                d['nprojects'] = int(m[8])
+                d['nprojects'] = int(m[6])
                 ans.append(d)
-        w = [(-d['use%'], d) for d in ans]
+        w = [(-d['load15'], d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1368,9 +1365,10 @@ class Monitor(object):
         """
         Count zfs processes on each compute machine.
         """
-        cmd = "ps ax |grep zfs |wc -l; sudo zpool list"
+        cmd = "ps ax |grep zfs |wc -l; cat zpool.list"
         ans = []
-        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=60, username='storage').iteritems():
+        # zpool list can take a while when host is loaded, but still work fine.
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30, username='storage').iteritems():
             x = v['stdout'].split()
             try:
                 nproc = int(x[0]) - 2
@@ -1385,7 +1383,7 @@ class Monitor(object):
                 dedup = float(x[14][:-1])
                 health = x[15]
                 d.update({'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health})
-                if free < 64 or d['health'] != 'ONLINE':
+                if free < 50 or d['health'] != 'ONLINE':
                     d['status'] = 'down'  # <64GB free ==> start receiving scary emails!
                 else:
                     d['status'] = 'up'
@@ -1396,6 +1394,25 @@ class Monitor(object):
             ans.append(d)
         # put anything with < 100 GB free first in list, since we need to worry about it.
         w = [((d.get('free')>=100, d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
+        w.sort()
+        return [y for x,y in w]
+
+    def zfs0(self, hosts='compute'):
+        """
+        Count zfs processes on each compute machine.
+        """
+        cmd = "ps ax |grep zfs |wc -l"
+        ans = []
+        for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20, username='storage').iteritems():
+            x = v['stdout'].split()
+            try:
+                nproc = int(x[0]) - 2
+            except:
+                nproc = -1
+            d = {'host':k[0], 'service':'zfs', 'nproc':nproc}
+            ans.append(d)
+        # put anything with < 100 GB free first in list, since we need to worry about it.
+        w = [((d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1479,7 +1496,22 @@ class Monitor(object):
     def update_db(self, all=None):
         if all is None:
             all = self.all()
+
         import cassandra
+        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
+        print cassandra.KEYSPACE
+
+        # Fill in disabled field for each compute node; this is useful to record in
+        # the monitor, and is used by the move project UI code.
+        v = dict(list(cassandra.cursor_execute("SELECT host,disabled FROM storage_topology", user='monitor', password=password)))
+        if 'compute' in all:
+            for x in all['compute']:
+                host = x['host']
+                if host == '127.0.0.1':  # special case
+                    host = 'localhost'
+                x['disabled'] = bool(v.get(host,False))
+
+        # Prepare for database insertion
         t = all['timestamp']
         d = {}
         for k, v in all.iteritems():
@@ -1489,8 +1521,7 @@ class Monitor(object):
         d['hour']      = int(time.strftime("%H"))
         d['minute']    = int(time.strftime("%M"))
         d['timestamp'] = int(time.time())
-        password = open(os.path.join(SECRETS, 'cassandra/monitor')).read().strip()
-        print cassandra.KEYSPACE
+
         cassandra.cursor_execute("UPDATE monitor SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute WHERE day=:day and hour=:hour and minute=:minute",  param_dict=d, user='monitor', password=password)
         cassandra.cursor_execute("UPDATE monitor_last SET timestamp=:timestamp, dns=:dns, load=:load, cassandra=:cassandra, compute=:compute, day=:day, hour=:hour, minute=:minute WHERE dummy=true",  param_dict=d, user='monitor', password=password)
 

@@ -1346,6 +1346,7 @@ def serve(port, host):
         import sage.all
 
         # Monkey patch the html command.
+        import sage.interacts.library
         sage.all.html = sage.misc.html.html = sage.interacts.library.html = sage_salvus.html
 
         # Set a useful figsize default; the matplotlib one is not notebook friendly.

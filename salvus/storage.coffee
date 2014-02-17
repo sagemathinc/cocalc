@@ -173,22 +173,25 @@ exports.create_user = create_user = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : required
-        action     : 'create'   # 'create', 'kill' (kill all proceses), 'skel' (copy over skeleton), 'chown' (chown files)
+        action     : 'create'   # 'create', 'kill' (kill all processes), 'skel' (copy over skeleton), 'chown' (chown files)
         base_url   : ''         # used when writing info.json
         chown      : false      # if true, chowns files in /project/projectid in addition to creating user.
         timeout    : 200        # time in seconds
         cb         : undefined
 
     winston.info("creating user for #{opts.project_id} on #{opts.host}")
+    if opts.action == 'create'
+        cgroup = '--cgroup=cpu:1024,memory:12G'
+    else
+        cgroup = ''
     execute_on
         host    : opts.host
-        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} --base_url=#{opts.base_url} --host=#{opts.host} #{if opts.chown then '--chown' else ''} #{opts.project_id}"
+        command : "sudo /usr/local/bin/create_project_user.py --#{opts.action} #{cgroup} --base_url=#{opts.base_url} --host=#{opts.host} #{if opts.chown then '--chown' else ''} #{opts.project_id}"
         timeout : opts.timeout
         cb      : opts.cb
 
 is_disabled = (opts) ->
     opts = defaults opts,
-        project_id : required
         host       : required
         cb         : required
     database.select_one
@@ -215,7 +218,6 @@ exports.open_project = open_project = (opts) ->
         (cb) ->
             dbg("check whether or not host is disabled for maintenance")
             is_disabled
-                project_id : opts.project_id
                 host       : opts.host
                 cb         : (err, disabled) ->
                     if err
@@ -338,7 +340,7 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
         prefer     : undefined  # string or array; if given prefer these hosts first, irregardless of their newness.
         cb         : required   # cb(err, host used)
 
-    dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id}): #{m}")
+    dbg = (m) -> winston.debug("open_project_somewhere(#{opts.project_id},exclude=#{misc.to_json(opts.exclude)},prefer=#{misc.to_json(opts.prefer)}): #{m}")
 
     cur_loc   = undefined
     host_used = undefined
@@ -352,8 +354,8 @@ exports.open_project_somewhere = open_project_somewhere = (opts) ->
                     cur_loc = x
                     cb(err)
         (cb) ->
-            if not cur_loc?
-                dbg("no current location")
+            if not cur_loc? or (opts.prefer? and (cur_loc not in opts.prefer))
+                dbg("no current location or current location not prefered")
                 # we'll try all other hosts in the next step
                 cb()
             else
@@ -1766,7 +1768,7 @@ exports.init_hashrings = init_hashrings = (cb) ->
         columns : ['data_center', 'host', 'vnodes']
         cb      : (err, results) ->
             if err
-                cb(err); return
+                cb?(err); return
             init_hashrings_2(results, cb)
 
 init_hashrings_2 = (results, cb) ->
@@ -1917,6 +1919,7 @@ exports.replicate = replicate = (opts) ->
                                     break
 
                         if not source?
+                            # choose global newest
                             x = snaps[snaps.length - 1]
                             ver = x[0]
                             source = {version:ver, host:x[1]}
@@ -1930,6 +1933,21 @@ exports.replicate = replicate = (opts) ->
                                 versions.push(v)
                         dbg("(time=#{misc.walltime(tm)})-- status: #{misc.to_json(versions)}")
                         cb()
+       (cb) ->
+            dbg("STAGE 0: (safely) destroy any target replicas whose version is newer than the source")
+            # Make list of versions that are newer than the source. Here's what the versions array looks like:
+            # [[{"version":"2014-02-13T18:23:34","host":"10.1.3.4"},{"version":"2014-02-13T18:23:34","host":"10.1.2.4"}],[{"host":"10.1.11.4"},{"version":"2014-02-13T18:23:41","host":"10.1.16.4"}],[{"version":"2014-02-13T18:23:34","host":"10.3.8.4"},{"version":"2014-02-13T18:23:34","host":"10.3.3.4"}]]
+            hosts_to_delete = (x.host for x in _.flatten(versions) when x.version > source.version)
+            f = (host, c) ->
+                destroy_project
+                    project_id : opts.project_id
+                    host       : host
+                    safe       : true
+                    cb         : (ignore) ->
+                        # non-fatal -- don't want to stop replication just because of this -- e.g., what if host is down?
+                        c()
+            async.map(hosts_to_delete, f, cb)
+
        (cb) ->
             dbg("STAGE 1: do inter-data center replications so each data center contains at least one up to date node")
             f = (d, cb) ->

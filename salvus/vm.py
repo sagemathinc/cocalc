@@ -95,7 +95,7 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
                 #### hostname ####
                 hostname_file = os.path.join(tmp_path,'etc/hostname')
                 if not os.path.exists(hostname_file):
-                    raise RuntimeError("missing /etc/hostname in the VM image; probably the guestmount command is not working, and the fix is probably to type 'sudo chmod a+r /boot/vmlinuz-*'")
+                    raise RuntimeError("missing /etc/hostname in the VM image; probably the guestmount command is not working, and the fix is probably to type 'sudo chmod a+r /boot/vmlinuz-*; sudo chmod a+rw /dev/fuse'")
 
                 os.unlink(hostname_file)
                 open(hostname_file,'w').write(hostname)
@@ -188,12 +188,15 @@ def run_kvm(ip_address, hostname, vcpus, ram, vnc, disk, base, fstab):
         except Exception, e:
             log.info("error creating virtual machine -- %s"%e)
         finally:
-            # clean up
-            virsh('undefine', hostname)
-            virsh('destroy', hostname)
+            # clean up -- skip temporarily while we decide new way to do this...
+            # virsh('undefine', hostname)
+            # virsh('destroy', hostname)
             pass
 
     finally:
+
+        return  # don't do this: it gets triggered when vm.py gets killed by OOM, which *does* happen -- we'll have to write code to check and delete/move this stuff out of the way very soon.
+ 
         try:
             os.unlink(os.path.join(conf_path, 'tinc_hosts', tincname))
         except: pass
@@ -230,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument("--vm_type", dest="vm_type", type=str, default="kvm",
                         help="type of virtual machine to create ('kvm', 'virtualbox')")
     parser.add_argument("--disk", dest="disk", type=str, default="",
-                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[raw|qcow2]:[ext4|xfs|none].  If format is none, then the disk is not mounted in fstab.")
+                        help="persistent disks: '--disk=cassandra:64:ext4:qcow2,backup:10:xfs:qcow2' makes two sparse qcow2 images of size 64GB and 10GB if they don't exist, one formated ext4 the other xfs, and mounted as /mnt/cassandra and /mnt/backup; if they exist and are smaller than the given size, they are automatically expanded.  The disks are stored as ~/vm/images/ip_address-cassandra.img, etc.  More precisely, the format is --disk=[name]:[size]:[ext4|xfs|none]:[raw|qcow2].  If format is none, then the disk is not mounted in fstab.")
     parser.add_argument("--fstab", dest="fstab", type=str, default="", help="custom string to add to the end of /etc/fstab; each mountpoint in that string will be created if necessary")
     parser.add_argument('--base', dest='base', type=str, default='salvus',
                         help="template image in ~/vm/images/base on which to base this machine; must *not* be running (default: salvus).")

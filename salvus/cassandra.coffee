@@ -343,9 +343,12 @@ class KeyValueStore
 exports.from_cassandra = from_cassandra = (value, json) ->
     if not value?
         return undefined
-    value = value.valueOf()
-    if json
-        value = from_json(value)
+    if value.toInt?
+        value = value.toInt()   # newer version of node-cassandra-cql uses the Javascript long type
+    else
+        value = value.valueOf()
+        if json
+            value = from_json(value)
     return value
 
 class exports.Cassandra extends EventEmitter
@@ -357,6 +360,8 @@ class exports.Cassandra extends EventEmitter
             username : undefined
             password : undefined
             consistency : undefined
+            verbose : false # quick hack for debugging...
+            conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
 
         @keyspace = opts.keyspace
 
@@ -373,6 +378,11 @@ class exports.Cassandra extends EventEmitter
             keyspace   : opts.keyspace
             username   : opts.username
             password   : opts.password
+            getAConnectionTimeout : opts.conn_timeout_ms
+
+        if opts.verbose
+            @conn.on 'log', (level, message) =>
+                winston.debug('database connection event: %s -- %j', level, message)
 
         @conn.on 'error', (err) =>
             winston.error(err.name, err.message)
@@ -515,8 +525,10 @@ class exports.Cassandra extends EventEmitter
             query += " WHERE #{where}"
 
         @cql query, vals, (err, results) =>
-            opts.cb?(err, results[0].get('count').valueOf())
-
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, from_cassandra(results[0].get('count')))
 
     update: (opts={}) ->
         opts = defaults opts,
@@ -567,11 +579,13 @@ class exports.Cassandra extends EventEmitter
         if opts.allow_filtering
             query += " ALLOW FILTERING"
         @cql query, vals, opts.consistency, (error, results) =>
+            if error
+                opts.cb(error); return
             if opts.objectify
                 x = (misc.pairs_to_obj([col,from_cassandra(r.get(col), col in opts.json)] for col in opts.columns) for r in results)
             else
                 x = ((from_cassandra(r.get(col), col in opts.json) for col in opts.columns) for r in results)
-            opts.cb(error, x)
+            opts.cb(undefined, x)
 
     # Exactly like select (above), but gives an error if there is not exactly one
     # row in the table that matches the condition.  Also, this returns the one
@@ -603,8 +617,6 @@ class exports.Cassandra extends EventEmitter
             @conn.execute query, vals, consistency, (error, results) =>
                 if error
                     winston.error("Query cql('#{query}',params=#{vals}) caused a CQL error:\n#{error}")
-                    @emit('error', error)
-                #console.log("got ", results)
                 cb?(error, results?.rows)
         catch e
             cb?("exception doing cql query -- #{e}")
@@ -1022,7 +1034,6 @@ class exports.Salvus extends exports.Cassandra
     # Account Management
     #####################################
     is_email_address_available: (email_address, cb) =>
-
         @count
             table : "email_address_to_account_id"
             where :{email_address : misc.lower_email_address(email_address)}

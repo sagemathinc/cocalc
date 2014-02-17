@@ -126,6 +126,8 @@ NOTE: With ubuntu 12.04 I do this:
           apt-add-repository ppa:dr-graef/octave-3.6.precise
           apt-get update; apt-get install octave;  # or is it apt-get dist-upgrade  ?
 
+          cd /usr/share/fonts/truetype; ln -s liberation ttf-liberation   # needed by octave for plotting.
+
 
 # Tmux -- Ensure tmux is at least 1.8 and if not:
 
@@ -223,7 +225,7 @@ tmux -V
 # Execute this inside of sage:
 
     os.environ['PROJ_DIR']='/usr/'; os.environ['NETCDF4_DIR']='/usr'; os.environ['HDF5_DIR']='/usr'
-    [(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image  Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly'.split()]
+    [(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image  Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly mahotas'.split()]
 
 #('pandas', 'statsmodels', 'lxml')
 
@@ -301,7 +303,7 @@ Test with "import neuron".
 # R Packages into Sage's R:
 
     umask 022 && sage -R
-    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular"), repos='http://cran.cs.wwu.edu/')
+    install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular", "glmnet"), repos='http://cran.cs.wwu.edu/')
 
 r packages could be automated like so (?)
 
@@ -326,7 +328,7 @@ r packages could be automated like so (?)
      apt-get update; apt-get upgrade; apt-get install r-recommended
 
      umask 022 && /usr/bin/R
-     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular"), repos='http://cran.cs.wwu.edu/')
+     install.packages(c("ggplot2", "stringr", "plyr", "reshape2", "zoo", "car", "mvtnorm", "e1071", "Rcpp", "lattice",  "KernSmooth", "Matrix", "cluster", "codetools", "mgcv", "rpart", "survival", "fields", "circular", "glmnet"), repos='http://cran.cs.wwu.edu/')
 
 
 # 4ti2 into sage: until the optional spkg gets fixed:
