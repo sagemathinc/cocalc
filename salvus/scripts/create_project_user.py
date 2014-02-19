@@ -17,7 +17,6 @@ def uid(uuid):
     # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
     # user could somehow generate an account id of their choosing, this wouldn't help them get the
     # same uid as another user.
-    #
     # 2^32-2=max uid, as keith determined by a program + experimentation.
     n = hash(hashlib.sha512(uuid).digest()) % (4294967294-1000)
     return n + 1001
