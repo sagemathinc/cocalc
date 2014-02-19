@@ -1421,7 +1421,7 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
-    def stats(self, timeout=10):
+    def stats(self, timeout=60):
         """
         Get all ip addresses that SITENAME resolves to, then verify that https://ip_address/stats returns
         valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
