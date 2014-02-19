@@ -33,6 +33,7 @@ def migrate_to_img(project_id):
     mp = '/' + filesystem
 
     # Mount existing filesystem
+    cmd("zfs set mountpoint=%s %s"%(mp,filesystem), ignore_errors=True)
     o = cmd("zfs mount %s"%filesystem, ignore_errors=True)
     if 'ERROR' in o:
         if 'filesystem already mounted' not in o:
