@@ -1388,7 +1388,7 @@ class Monitor(object):
                 dedup = float(x[14][:-1])
                 health = x[15]
                 d.update({'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health})
-                if free < 50 or d['health'] != 'ONLINE':
+                if free < 25 or d['health'] != 'ONLINE':
                     d['status'] = 'down'  # <64GB free ==> start receiving scary emails!
                 else:
                     d['status'] = 'up'
@@ -1542,7 +1542,7 @@ class Monitor(object):
             if x['load15'] > 100:
                 m += "A machine is going crazy with load!: %s"%x
         for x in all['zfs']:
-            if x['nproc'] > 1000:
+            if x['nproc'] > 2000:
                 m += "Large amount of ZFS: %s"%x
         if m:
             try:
