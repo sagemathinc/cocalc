@@ -1539,16 +1539,16 @@ class Monitor(object):
         if len(down) > 0:
                 m += "The following are down: %s"%down
         for x in all['load']:
-            if x['load15'] > 100:
-                m += "A machine is going crazy with load!: %s"%x
+            if x['load15'] > 400:
+                m += "A machine is going *crazy* with load!: %s"%x
         for x in all['zfs']:
-            if x['nproc'] > 2000:
+            if x['nproc'] > 4000:
                 m += "Large amount of ZFS: %s"%x
         if m:
             try:
                 email(m, subject="SMC issue")
             except Exception, msg:
-                print "failed to send email! -- %s\n%s"%(msg, m)
+                print "Failed to send email! -- %s\n%s"%(msg, m)
 
 
     def go(self, interval=5, residue=0):
