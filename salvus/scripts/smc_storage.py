@@ -21,13 +21,13 @@ def cmd(s, ignore_errors=False):
     out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
     x = out.stdout.read() + out.stderr.read()
     e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
-    print "(%s seconds): %s"%(time.time()-t, x)
     if e:
         if ignore_errors:
-            return x + "ERROR"
+            return (x + "ERROR").strip()
         else:
             raise RuntimeError(x)
-    return x
+    print "(%s seconds): %s"%(time.time()-t, x)
+    return x.strip()
 
 def sync():
     print("syncing file system")
@@ -53,7 +53,7 @@ def newest_snapshot(fs):
 
 def mount(mountpoint, fs):
     cmd("zfs set mountpoint='%s' %s"%(mountpoint, fs))
-    e = cmd("zfs mount %s"%fs, ignore_errors=True).strip()
+    e = cmd("zfs mount %s"%fs, ignore_errors=True)
     if not e or 'filesystem already mounted' in e:
         return
     raise RuntimeError(e)
@@ -129,10 +129,14 @@ class Project(object):
         log = self._log("umount")
         log("exporting project pool")
         cmd("pkill -u %s; sleep 1; pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
-        cmd("zpool export %s"%self.project_pool)
+        e = cmd("zpool export %s"%self.project_pool, ignore_errors=True)
+        if e and 'no such pool' not in e:
+            raise RuntimeError(e)
         sync()
         log("unmounting image filesystem")
-        cmd("zfs set mountpoint=none %s"%self.image_fs)
+        e = cmd("zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
+        if e and 'dataset does not exist' not in e:
+            raise RuntimeError(e)
 
     def is_project_pool_imported(self):
         s = cmd("zpool list %s"%self.project_pool, ignore_errors=True)
@@ -187,13 +191,19 @@ class Project(object):
 
     def save(self):
         """
-        Snapshot image filesystem, and save the stream to get there to the streams directory.
+        Snapshot image filesystem, and update corresponding streams.
         """
         log = self._log("save")
         sync()
         end = now()
         log("snapshotting image filesystem %s"%end)
-        cmd("zfs snapshot %s@%s"%(self.image_fs, end))
+        e = cmd("zfs snapshot %s@%s"%(self.image_fs, end), ignore_errors=True)
+        if e:
+            if 'dataset does not exist' in e:
+                # not mounted -- nothing to do
+                return
+            else:
+                raise RuntimeError(e)
         v = self.streams()
         log("there are %s streams already"%len(v))
         if len(v) > 0 and v[-1].size_mb() < self.stream_thresh_mb:
@@ -262,7 +272,9 @@ class Project(object):
         Destroy the image filesystem.
         """
         log = self._log("destroy_image_fs")
-        cmd("zfs destroy -r %s"%self.image_fs)
+        e = cmd("zfs destroy -r %s"%self.image_fs, ignore_errors=True)
+        if e and 'dataset does not exist' not in e:
+            raise RuntimeError(e)
 
     def destroy_streams(self):
         """
@@ -273,6 +285,29 @@ class Project(object):
             log("destroying stream %s"%x)
             os.unlink(os.path.join(self.stream_path, x))
 
+    def _create_migrate_user(self):
+        u = self.uid
+        username = 'migrate%s'%u
+        cmd('userdel %s; groupdel %s'%(username, username), ignore_errors=True)
+        cmd('groupadd -g %s -o %s'%(u,username))
+        cmd('useradd -u %s -g %s -o %s'%(u,u,username))
+        return username
+
+    def migrate(self):
+        """
+        Update the content of this project to exactly equal what is in the old /projects/project-id zfs filesystem.
+        This is only used for migrating from the old to the new format.
+        """
+        self.mount()
+        self.snapshot()
+        username = self._create_migrate_user()
+        fs = 'projects/%s'%self.project_id
+        mount('/' + fs, fs)
+        cmd("rsync -axH --delete /%s/ %s/"%(fs, self.project_mnt))
+        cmd("chown -R %s. %s/"%(username, self.project_mnt))
+        cmd("userdel %s; groupdel %s"%(username, username), ignore_errors=True)
+        self.snapshot()
+        self.save()
 
 if __name__ == "__main__":
 
@@ -309,6 +344,9 @@ if __name__ == "__main__":
     parser_increase_quota.add_argument("--amount", dest="amount", help="amount (default: '5G')", type=str, default='5G')
     parser_increase_quota.set_defaults(func=lambda args: project.increase_quota(amount=args.amount))
 
+    parser_snapshot = subparsers.add_parser('migrate', help='copy project from old project storage system')
+    parser_snapshot.set_defaults(func=lambda args: project.migrate())
+
     args = parser.parse_args()
 
     if not args.mnt:
@@ -316,9 +354,11 @@ if __name__ == "__main__":
     if not args.stream_path:
         args.stream_path = '/' + os.path.join(args.pool, 'streams', args.project_id)
 
+    t0 = time.time()
     project = Project(project_id  = args.project_id,
                       mnt         = args.mnt,
                       pool        = args.pool,
                       stream_path = args.stream_path)
     args.func(args)
+    print "total time: %s seconds"%(time.time()-t0)
 
