@@ -1542,7 +1542,7 @@ class Monitor(object):
             if x['load15'] > 400:
                 m += "A machine is going *crazy* with load!: %s"%x
         for x in all['zfs']:
-            if x['nproc'] > 4000:
+            if x['nproc'] > 10000:
                 m += "Large amount of ZFS: %s"%x
         if m:
             try:
