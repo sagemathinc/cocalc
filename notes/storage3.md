@@ -20,7 +20,7 @@
      - a sequence of lz4 compressed zfs streams that together defines the zfs filesystem project-project_id, stored in a directory "/images" (?) on the filesystem of at least 2 hosts in each data center, determined by consistent hashing
 
 
-## Operations.
+## Operations
 
  - create
 
@@ -35,4 +35,19 @@
  - increase quota
 
  - snapshot
+
+## Database schema
+
+keyspace: 'projects'
+set replication factor of 2
+login: projects; a random password
+
+    CREATE TABLE images (
+        project_id uuid  PRIMARY KEY,
+        start      timestamp, // undefined = first stream
+        end        timestamp,
+        stream     blob,
+        number     int        // if we split stream from snap0 to snap1 into multiple db entries
+    );
+
 
