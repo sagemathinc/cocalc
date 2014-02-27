@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 
-import argparse, hashlib, os, time, uuid
-
+import argparse, hashlib, os, random, shutil, string, sys, time, uuid, json
 from subprocess import Popen, PIPE
+
+def print_json(s):
+    print json.dumps(s, separators=(',',':'))
 
 def uid(project_id):
     # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
@@ -15,8 +17,13 @@ def uid(project_id):
 def now():
     return time.strftime('%Y-%m-%dT%H:%M:%S')
 
-def cmd(s, ignore_errors=False):
-    print s
+def log(m):
+    sys.stderr.write(str(m)+'\n')
+    sys.stderr.flush()
+
+def cmd(s, ignore_errors=False, verbose=2):
+    if verbose >= 1:
+        log(s)
     t = time.time()
     out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
     x = out.stdout.read() + out.stderr.read()
@@ -26,7 +33,10 @@ def cmd(s, ignore_errors=False):
             return (x + "ERROR").strip()
         else:
             raise RuntimeError(x)
-    print "(%s seconds): %s"%(time.time()-t, x)
+    if verbose>=2:
+        log("(%s seconds): %s"%(time.time()-t, x))
+    elif verbose >= 1:
+        log("(%s seconds)"%(time.time()-t))
     return x.strip()
 
 def sync():
@@ -50,6 +60,10 @@ def newest_snapshot(fs):
         raise RuntimeError("output should start with filesystem name")
     else:
         return out[len(fs)+1:].strip()
+
+def snapshots(filesystem):
+    w = cmd(['zfs', 'list', '-r', '-t', 'snapshot', '-o', 'name', '-s', 'creation', filesystem], verbose=1).split()
+    return [x.split('@')[1].strip() for x in w if '@' in x]
 
 def mount(mountpoint, fs):
     cmd("zfs set mountpoint='%s' %s"%(mountpoint, fs))
@@ -101,7 +115,7 @@ class Project(object):
 
     def _log(self, funcname, **kwds):
         def f(mesg=''):
-            print "%s(project_id=%s,%s): %s"%(funcname, self.project_id, kwds, mesg)
+            log("%s(project_id=%s,%s): %s"%(funcname, self.project_id, kwds, mesg))
         f()
         return f
 
@@ -110,6 +124,8 @@ class Project(object):
         Create and mount storage for the given project.
         """
         log = self._log("create")
+        if len(os.listdir(self.stream_path)) > 0:
+            return
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
         cmd("zfs create %s"%self.image_fs)
         mount('/'+self.image_fs, self.image_fs)
@@ -137,6 +153,10 @@ class Project(object):
         e = cmd("zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
+        if os.path.exists('/'+self.image_fs):
+            os.rmdir('/' + self.image_fs)
+        if os.path.exists(self.project_mnt):
+            os.rmdir(self.project_mnt)
 
     def is_project_pool_imported(self):
         s = cmd("zpool list %s"%self.project_pool, ignore_errors=True)
@@ -170,7 +190,7 @@ class Project(object):
         v = []
         for x in os.listdir(self.stream_path):
             p = os.path.join(self.stream_path, x)
-            if os.path.isfile(p):
+            if os.path.isfile(p) and not x.endswith(".partial"):
                 v.append(Stream(self, p))
         v.sort()
         log("found %s streams"%len(v))
@@ -223,7 +243,11 @@ class Project(object):
         target = os.path.join(self.stream_path, "%s--%s"%(start, end))
         try:
             log("sending new stream: %s"%target)
-            cmd("zfs send -Dv %s | lz4c - > %s"%(snap, target))
+            try:
+                cmd("zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
+            except:
+                os.unlink("%s.partial"%target)
+                raise
             if discard is not None:
                 log("success; now discarding a previous stream: %s"%discard.path)
                 os.unlink(discard.path)
@@ -234,12 +258,24 @@ class Project(object):
             except: pass
             raise
 
-    def snapshot(self):
+    def snapshot(self, name=''):
         """
-        Snapshot the given project with the current time.
+        Snapshot with the current time if name='', else the given name.
+
+        The project must be mounted.
         """
+        if not name:
+            name = now()
         log = self._log("snapshot_project")
-        cmd("zfs snapshot %s@%s"%(self.project_pool, now()))
+        cmd(["zfs", "snapshot", "%s@%s"%(self.project_pool, name)])
+
+    def snapshots(self):
+        """
+        Return list of all snapshots in date order of the project pool.
+
+        The project must be mounted.
+        """
+        return snapshots(self.project_pool)
 
     def increase_quota(self, amount):
         """
@@ -281,33 +317,114 @@ class Project(object):
         Destroy all the streams associated to this project.
         """
         log = self._log("destroy_streams")
-        for x in os.listdir(self.stream_path):
-            log("destroying stream %s"%x)
-            os.unlink(os.path.join(self.stream_path, x))
+        log("removing the entire directory tree: '%s'"%self.stream_path)
+        shutil.rmtree(self.stream_path)
+
+    def destroy(self):
+        """
+        Delete all traces of this project from this machine.  *VERY DANGEROUS.*
+        """
+        self.umount()
+        self.destroy_image_fs()
+        self.destroy_streams()
 
     def _create_migrate_user(self):
         u = self.uid
         username = 'migrate%s'%u
-        cmd('userdel %s; groupdel %s'%(username, username), ignore_errors=True)
+        self._delete_migrate_user()
         cmd('groupadd -g %s -o %s'%(u,username))
         cmd('useradd -u %s -g %s -o %s'%(u,u,username))
         return username
 
+    def _delete_migrate_user(self):
+        u = self.uid
+        username = 'migrate%s'%u
+        cmd('userdel %s; groupdel %s'%(username, username), ignore_errors=True)
+
     def migrate(self):
         """
-        Update the content of this project to exactly equal what is in the old /projects/project-id zfs filesystem.
-        This is only used for migrating from the old to the new format.
+        Create the project with the appropriate quota, then migrate over all snapshots.
+        Assumes the project has not already been created.
         """
+        log = self._log("migrate")
+        log("figure out original quota")
+        quota = cmd("zfs get -H quota projects/%s"%self.project_id).split()[2]
+        self.create(quota)
+        log("now migrate all snapshots")
+        self.migrate_snapshots()
+        log("done -- now close the project")
+        self.close()
+
+    def migrate_snapshots(self, snapshot=None):
+        """
+        Copy over the given snapshot from the old project, and also make the current live
+        contents of this project equal to that snapshot.
+
+        If snapshot is not given, copy over in order all snapshots we don't currently have.
+
+        We use this only to migrate from the old to the new format.
+        """
+        if snapshot is not None:
+            log = self._log("migrate_snapshots", snapshot=snapshot)
+        else:
+            log = self._log("migrate_snapshots")
+
         self.mount()
-        self.snapshot()
-        username = self._create_migrate_user()
         fs = 'projects/%s'%self.project_id
         mount('/' + fs, fs)
-        cmd("rsync -axH --delete /%s/ %s/"%(fs, self.project_mnt))
-        cmd("chown -R %s. %s/"%(username, self.project_mnt))
-        cmd("userdel %s; groupdel %s"%(username, username), ignore_errors=True)
-        self.snapshot()
-        self.save()
+
+        def setup_user():
+            global passwd
+            username = self._create_migrate_user()
+            alpha = string.lowercase + string.digits
+            passwd = ''.join([random.choice(alpha) for _ in range(16)])
+            passwd_file = os.path.join('/root', username)
+            open(passwd_file,'w').write(passwd+'\n'+passwd)
+            cmd("cat %s | passwd %s"%(passwd_file, username))
+            return username, passwd_file
+
+        def do_sync(username, passwd_file, snapshot):
+            cmd("sshpass -f %s rsync -axH --delete /%s/.zfs/snapshot/%s/ %s@localhost:%s/"%(
+                                         passwd_file, fs, snapshot, username, self.project_mnt))
+            self.snapshot(snapshot)
+
+        def remove_user(passwd_file):
+            os.unlink(passwd_file)
+            self._delete_migrate_user()
+
+
+        if snapshot is None:
+            log("migrating all missing snapshots")
+            s = set(self.snapshots())
+            t = snapshots(fs)
+            todo = [snapshot for snapshot in t if snapshot not in s]
+            i = 1
+            if len(todo) == 0:
+                return
+            tm = time.time()
+            username, passwd_file = setup_user()
+            recent_times = []
+            for snapshot in todo:
+                if len(recent_times)>0:
+                    time_per = sum(recent_times)/len(recent_times)
+                    tr = (time_per * (len(todo)-i+1))/60.0
+                else:
+                    tr = 999999
+                log("migrating missing snapshot (%s/%s; set time remaining: %.1f minutes): %s"%(
+                              i, len(todo), tr, snapshot))
+                tm0 = time.time()
+                do_sync(username, passwd_file, snapshot)
+                recent_times.append(time.time() - tm0)
+                if len(recent_times) > 10:
+                    del recent_times[0]
+                i += 1
+
+            remove_user(passwd_file)
+        else:
+            username, passwd_file = setup_user()
+            do_sync(username, passwd_file, snapshot)
+            remove_user(passwd_file)
+
 
 if __name__ == "__main__":
 
@@ -337,15 +454,25 @@ if __name__ == "__main__":
     parser_close = subparsers.add_parser('close', help='save, unmount, destroy images, etc., leaving only streams')
     parser_close.set_defaults(func=lambda args: project.close())
 
+    parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
+    parser_destroy.set_defaults(func=lambda args: project.destroy())
+
     parser_snapshot = subparsers.add_parser('snapshot', help='snapshot the project')
-    parser_snapshot.set_defaults(func=lambda args: project.snapshot())
+    parser_snapshot.add_argument("--name", dest="name", help="name of snapshot (default: ISO date)", type=str, default='')
+    parser_snapshot.set_defaults(func=lambda args: project.snapshot(args.name))
+
+    parser_snapshot = subparsers.add_parser('snapshots', help='snapshots of the given project')
+    parser_snapshot.set_defaults(func=lambda args: print_json(project.snapshots()))
 
     parser_increase_quota = subparsers.add_parser('increase_quota', help='increase quota')
     parser_increase_quota.add_argument("--amount", dest="amount", help="amount (default: '5G')", type=str, default='5G')
     parser_increase_quota.set_defaults(func=lambda args: project.increase_quota(amount=args.amount))
 
-    parser_snapshot = subparsers.add_parser('migrate', help='copy project from old project storage system')
-    parser_snapshot.set_defaults(func=lambda args: project.migrate())
+    parser_migrate = subparsers.add_parser('migrate', help='migrate old project: creates, migrate all snapshots, then close')
+    parser_migrate.set_defaults(func=lambda args: project.migrate())
+
+    parser_migrate_snapshots = subparsers.add_parser('migrate_snapshots', help='ensure new project has all snapshots from old project')
+    parser_migrate_snapshots.set_defaults(func=lambda args: project.migrate_snapshots())
 
     args = parser.parse_args()
 
@@ -360,5 +487,5 @@ if __name__ == "__main__":
                       pool        = args.pool,
                       stream_path = args.stream_path)
     args.func(args)
-    print "total time: %s seconds"%(time.time()-t0)
+    log("total time: %s seconds"%(time.time()-t0))
 
