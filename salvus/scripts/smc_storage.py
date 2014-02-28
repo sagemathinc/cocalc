@@ -152,13 +152,15 @@ class Project(object):
         cmd("sudo zfs set dedup=on %s"%self.project_pool)
         os.chown(self.project_mnt, self.uid, self.uid)
 
-    def umount(self):
+    def umount(self, kill=True):
         """
         Unmount the given project.
         """
         log = self._log("umount")
         log("exporting project pool")
-        cmd("sudo pkill -u %s; sleep 1; sudo pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
+        if kill:
+            log("killing all processes by user with id %s"%self.uid)
+            cmd("sudo pkill -u %s; sleep 1; sudo pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
         e = cmd("sudo zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
@@ -314,13 +316,13 @@ class Project(object):
         log("adding sparse image file %s to pool %s"%(u, self.project_pool))
         cmd("sudo zpool add %s %s"%(self.project_pool, u))
 
-    def close(self):
+    def close(self, kill=True):
         """
         Save, unmount, then destroy image filesystem, leaving only streams.
         """
         log = self._log("close")
         self.save()
-        self.umount()
+        self.umount(kill=kill)
         self.destroy_image_fs()
 
     def replicate(self, target):
@@ -384,7 +386,7 @@ class Project(object):
         log("now migrate all snapshots")
         self.migrate_snapshots()
         log("done -- now close the project")
-        self.close()
+        self.close(kill=False)
 
     def migrate_snapshots(self, snapshot=None):
         """
