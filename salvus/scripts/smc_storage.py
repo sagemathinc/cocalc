@@ -303,6 +303,14 @@ class Project(object):
         self.umount()
         self.destroy_image_fs()
 
+    def replicate(self, target):
+        """
+        Replicate the streams for this project from this node to the given target.
+
+        The stream paths have to be identical on the source and target machines.
+        """
+        cmd("rsync -axvH %s/ %s:%s/"%(self.stream_path, target, self.stream_path))
+
     def destroy_image_fs(self):
         """
         Destroy the image filesystem.
@@ -450,6 +458,10 @@ if __name__ == "__main__":
 
     parser_save = subparsers.add_parser('save', help='save active project to streams')
     parser_save.set_defaults(func=lambda args: project.save())
+
+    parser_replicate = subparsers.add_parser('replicate', help='replicate active project to streams')
+    parser_replicate.add_argument("target", help="target hostname", type=str)
+    parser_replicate.set_defaults(func=lambda args: project.replicate(args.target))
 
     parser_close = subparsers.add_parser('close', help='save, unmount, destroy images, etc., leaving only streams')
     parser_close.set_defaults(func=lambda args: project.close())
