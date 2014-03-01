@@ -89,3 +89,8 @@ if hostname.startswith('backup'):
     # import the projects pool
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
+
+if hostname.startswith('cassandra'):
+   # import and mount the relevant ZFS pool -- do this blocking, since once the machine is up we had better
+   # be able to start cassandra itself.
+   os.system("zpool import -f cassandra ")
