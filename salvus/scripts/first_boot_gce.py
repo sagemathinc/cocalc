@@ -62,6 +62,11 @@ def conf():
         open('/etc/fstab','w').write(fstab0 + '\n#SALVUS -- everything below this is automatically added from /mnt/conf/fstab! \n' + fstab1)
         cmd("mount -a")
 
+    # hostname
+    if os.path.exists('/mnt/conf/hostname'):
+        cmd("cp /mnt/conf/hostname /etc/hostname")
+        cmd("hostname `cat /mnt/conf/hostname`")
+
     # tinc
     if os.path.exists('/mnt/conf/tinc'):
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/etc/tinc")
@@ -89,7 +94,7 @@ def conf():
     cmd("chmod og-rwx -R /home/salvus/")
     cmd("chmod og-rwx -R /home/storage/")
 
-    # Copy over newest version of storage management script to storage user. 
+    # Copy over newest version of storage management script to storage user.
     os.system("cp /home/salvus/salvus/salvus/scripts/smc_storage.py /home/storage/; chown storage. /home/storage/smc_storage.py")
 
     # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
