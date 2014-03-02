@@ -3195,9 +3195,31 @@ exports.recent_projects_on_host = (opts) ->
                 opts.cb(err); return
             winston.debug("got #{projects.length} projects")
             v = filter_by_host(projects, opts.host)
-            winston.debug("of these,#{v.length} are on '#{opts.host}'")
+            winston.debug("of these, #{v.length} are on '#{opts.host}'")
             opts.cb(undefined, v)
 
+# returns all projects that are on host but not on any host in other_hosts
+exports.all_projects_on_host_not_on_other_hosts = (opts) ->
+    opts = defaults opts,
+        host : required  # ip address
+        other_hosts : required  # list of ip addresses
+        cb   : required  # cb(err, [list of project id's])
+    database.select
+        table   : 'projects'
+        columns : ['project_id']
+        limit   : 100000   # TODO: stupidly slow
+        cb      : (err, projects) ->
+            if err
+                opts.cb(err); return
+            winston.debug("got #{projects.length} projects")
+            v = filter_by_host(projects, opts.host)
+            w = {}
+            for host in opts.other_hosts
+                for project_id in filter_by_host(projects, host)
+                    w[project_id] = true
+            v = (project_id for project_id in v when not w[project_id])
+            winston.debug("of these, #{v.length} are on '#{opts.host}' but not on '#{misc.to_json(opts.other_hosts)}'")
+            opts.cb(undefined, v)
 
 
 

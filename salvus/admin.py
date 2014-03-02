@@ -1370,7 +1370,7 @@ class Monitor(object):
         """
         Count zfs processes on each compute machine.
         """
-        cmd = "ps ax |grep zfs |wc -l; cat zpool.list"
+        cmd = "ps ax |grep zfs | grep -v flush | wc -l; cat zpool.list"
         ans = []
         # zpool list can take a while when host is loaded, but still work fine.
         for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=30, username='storage').iteritems():
@@ -1406,7 +1406,7 @@ class Monitor(object):
         """
         Count zfs processes on each compute machine.
         """
-        cmd = "ps ax |grep zfs |wc -l"
+        cmd = "ps ax |grep zfs | grep -v flush | wc -l"
         ans = []
         for k, v in self._hosts(hosts, cmd, parallel=True, wait=True, timeout=20, username='storage').iteritems():
             x = v['stdout'].split()
@@ -1539,16 +1539,16 @@ class Monitor(object):
         if len(down) > 0:
                 m += "The following are down: %s"%down
         for x in all['load']:
-            if x['load15'] > 100:
-                m += "A machine is going crazy with load!: %s"%x
+            if x['load15'] > 400:
+                m += "A machine is going *crazy* with load!: %s"%x
         for x in all['zfs']:
-            if x['nproc'] > 2000:
+            if x['nproc'] > 10000:
                 m += "Large amount of ZFS: %s"%x
         if m:
             try:
                 email(m, subject="SMC issue")
             except Exception, msg:
-                print "failed to send email! -- %s\n%s"%(msg, m)
+                print "Failed to send email! -- %s\n%s"%(msg, m)
 
 
     def go(self, interval=5, residue=0):
