@@ -71,12 +71,6 @@ def conf():
         cmd("/home/salvus/salvus/salvus/data/local/sbin/tincd -k; sleep 2")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
-    # restore project user accounts
-    if os.path.exists('/mnt/conf/etc/'):
-        os.system("cp -rv /mnt/conf/etc/* /etc/")
-    else:
-        os.system("mkdir -p /mnt/conf/etc/")
-
     # Copy over newest version of sudo project creation script, and ensure permissions are right.
     os.system("cp /home/salvus/salvus/salvus/scripts/create_project_user.py /usr/local/bin/; chmod a-w /usr/local/bin/create_project_user.py; chmod a+rx /usr/local/bin/create_project_user.py")
 
