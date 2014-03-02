@@ -61,6 +61,9 @@ if os.path.exists('/mnt/home/'):
     os.system("chown -R storage. /home/storage")
     os.system("chmod og-rwx -R /home/storage/&")
 
+    # Copy over newest version of storage management script to storage user. 
+    os.system("cp /home/salvus/salvus/salvus/scripts/smc_storage.py /home/storage/; chown storage. /home/storage/smc_storage.py")
+
     # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
     os.system("rm /home/storage/.storage*")
 
@@ -89,3 +92,8 @@ if hostname.startswith('backup'):
     # import the projects pool
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
+
+if hostname.startswith('cassandra'):
+   # import and mount the relevant ZFS pool -- do this blocking, since once the machine is up we had better
+   # be able to start cassandra itself.
+   os.system("zpool import -f cassandra ")

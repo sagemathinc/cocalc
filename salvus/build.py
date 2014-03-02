@@ -61,11 +61,7 @@ Before building, do:
 
     apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r) zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
 
-    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz
-    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz
-
-    tar -xzf spl-0.6.2.tar.gz
-    tar -xzf zfs-0.6.2.tar.gz
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz && wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz && tar -xzf spl-0.6.2.tar.gz && tar -xzf zfs-0.6.2.tar.gz
 
     # **IMPORTANT**!  See https://github.com/zfsonlinux/zfs/issues/845
     # comment out line 98 in zfs-0.6.2/lib/libshare/libshare.c so have this:
@@ -73,17 +69,7 @@ Before building, do:
     #      /* update_zfs_shares(impl_handle, NULL); */
     #
 
-    cd spl-0.6.2
-    ./configure
-    make deb-utils deb-kmod
-    dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb
-
-    cd ../zfs-0.6.2
-    ./configure
-    make deb-utils deb-kmod
-    cd ..
-
-    dpkg -i */*.deb
+    cd spl-0.6.2 && ./configure && make deb-utils deb-kmod && dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb && cd ../zfs-0.6.2 && ./configure && make deb-utils deb-kmod && cd .. && dpkg -i */*.deb
 
 # LZ4 -- compression
 
