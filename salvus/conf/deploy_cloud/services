@@ -1,5 +1,5 @@
 # services
-base = 'salvus-2014-02-17-1551'
+base = 'salvus-2014-03-01-1105'
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -19,23 +19,23 @@ compute_cpu   = 12   # DO *NOT* change compute_cpu willy-nilly; if you change it
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256:none:qcow2'}
 cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/mapper/cassandra2-cassandra::none'}
-cloud3    {'hostname':'cassandra3', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud4    {'hostname':'cassandra4', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud6    {'hostname':'cassandra6', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud7    {'hostname':'cassandra7', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud10   {'hostname':'cassandra10', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud11   {'hostname':'cassandra11', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud12   {'hostname':'cassandra12', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud13   {'hostname':'cassandra13', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256:ext4:qcow2', 'vnc':13005}
-cloud14   {'hostname':'cassandra14', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud15   {'hostname':'cassandra15', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud16   {'hostname':'cassandra16', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud17   {'hostname':'cassandra17', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud18   {'hostname':'cassandra18', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud19   {'hostname':'cassandra19', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud20   {'hostname':'cassandra20', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
-cloud21   {'hostname':'cassandra21', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256'}
+cloud3    {'hostname':'cassandra3', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud4    {'hostname':'cassandra4', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud6    {'hostname':'cassandra6', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud7    {'hostname':'cassandra7', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud10   {'hostname':'cassandra10', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud11   {'hostname':'cassandra11', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud12   {'hostname':'cassandra12', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud13   {'hostname':'cassandra13', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud14   {'hostname':'cassandra14', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud15   {'hostname':'cassandra15', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud16   {'hostname':'cassandra16', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud17   {'hostname':'cassandra17', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud18   {'hostname':'cassandra18', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud19   {'hostname':'cassandra19', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud20   {'hostname':'cassandra20', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
+cloud21   {'hostname':'cassandra21', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 
 # web/hub nodes
 cloud1   {'hostname':'web1',       'vcpus':web_cpu,       'ram':web_ram,       'base':base}
@@ -59,25 +59,25 @@ cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       '
 cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 
 # compute vm's
-cloud1   {'hostname':'compute1a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud2   {'hostname':'compute2a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,/dev/mapper/compute2a-projects::none,tmpdump:1500:ext4:qcow2', 'vnc':13000}
-cloud3   {'hostname':'compute3a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud4   {'hostname':'compute4a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud5   {'hostname':'compute5a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,projects2:512:none:qcow2', 'vnc':13000}
-cloud6   {'hostname':'compute6a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud7   {'hostname':'compute7a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,projects2:512:none:qcow2', 'vnc':13000}
-cloud10  {'hostname':'compute10a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud11  {'hostname':'compute11a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud12  {'hostname':'compute12a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud13  {'hostname':'compute13a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud14  {'hostname':'compute14a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud15  {'hostname':'compute15a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud16  {'hostname':'compute16a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud17  {'hostname':'compute17a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud18  {'hostname':'compute18a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud19  {'hostname':'compute19a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud20  {'hostname':'compute20a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
-cloud21  {'hostname':'compute21a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2', 'vnc':13000}
+cloud1   {'hostname':'compute1a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud2   {'hostname':'compute2a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,/dev/mapper/compute2a-projects::none,tmpdump:1500:ext4:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud3   {'hostname':'compute3a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud4   {'hostname':'compute4a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud5   {'hostname':'compute5a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud6   {'hostname':'compute6a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud7   {'hostname':'compute7a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud10  {'hostname':'compute10a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud11  {'hostname':'compute11a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud12  {'hostname':'compute12a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud13  {'hostname':'compute13a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud14  {'hostname':'compute14a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud15  {'hostname':'compute15a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud16  {'hostname':'compute16a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud17  {'hostname':'compute17a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud18  {'hostname':'compute18a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud19  {'hostname':'compute19a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud20  {'hostname':'compute20a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud21  {'hostname':'compute21a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 
 #On-site aggregate backup of all projects; just in case, maybe for easy analytics.  
 cloud1 {'hostname':'backup1', 'vcpus':8, 'ram':16, 'base':base, 'disk':'projects:2048:none:qcow2', 'vnc':13001}
