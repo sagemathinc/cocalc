@@ -2526,58 +2526,169 @@ class exports.Salvus extends exports.Cassandra
     # This uses the storage and storage_blob tables.
     ############################################################################
 
-    storage_write: (opts) =>
+    file_storage_put: (opts) =>
+        opts = defaults opts,
+            project_id    : required
+            name          : required
+            path          : required   # actual absolute or relative path to the file
+            chunk_size_mb : 200        # 200MB -- file is
+            limit         : 3         # max number of chunks to save at once
+            cb            : undefined
+        dbg = (m) -> winston.debug("file_storage_put(#{opts.project_id}, #{opts.name}): #{m}")
+
+    file_storage_get: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            name       : required
+            path       : undefined
+            limit      : 3         # max number of chunks to read at once
+            cb         : required
+        dbg = (m) -> winston.debug("file_storage_get(#{opts.project_id}, #{opts.name}): #{m}")
+
+    file_storage_delete: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            name       : required
+            limit      : 3           # number to delete at once
+            cb         : undefined
+
+    storage_put: (opts) =>
         opts = defaults opts,
             project_id    : required
             name          : required
             blob          : required   # Buffer
-            chunk_size_mb : 10      # 10MB
+            chunk_size_mb : 10         # 10MB
+            limit         : 10         # max number of chunks to save at once
             cb            : undefined
         dbg = (m) -> winston.debug("storage_write(#{opts.project_id}, #{opts.name}): #{m}")
-        dbg()
-        u = uuid.v4()
-        @cql "UPDATE storage SET blob_ids=[#{u}] WHERE project_id=#{opts.project_id} AND name='#{opts.name}'", [], (err) =>
-            if err
-                opts.cb?(err)
-                return
-            @cql "UPDATE storage_blobs SET blob=? WHERE blob_id=#{u} AND project_id=#{opts.project_id}", [opts.blob], (err) =>
-                opts.cb?(err)
+        dbg("divide blob of length #{opts.blob.length/1000000}mb into chunks of size at most #{opts.chunk_size_mb}")
+        chunks   = []
+        chunk_ids = []
+        i = 0
+        while i < opts.blob.length
+            j = i + opts.chunk_size_mb*1000000
+            chunk_ids.push(uuid.v4())
+            chunks.push(opts.blob.slice(i, j))
+            i = j
+        async.series([
+            (cb) =>
+                # critical to delete first or we would leave stuff in storage_chunks just laying around never to be removed!
+                @storage_delete
+                    project_id : opts.project_id
+                    name       : opts.name
+                    limit      : opts.limit
+                    cb         : cb
+            (cb) =>
+                b = "[#{chunk_ids.join(',')}]"
+                dbg("save chunk ids: #{b}")
+                @cql("UPDATE storage SET chunk_ids=#{b} WHERE project_id=#{opts.project_id} AND name='#{opts.name}'", [], cb)
+            (cb) =>
+                dbg("saving the chunks")
+                f = (i, c) =>
+                    t = misc.walltime()
+                    chunk_id = chunk_ids[i]
+                    chunk   = chunks[i]
+                    @cql "UPDATE storage_chunks SET chunk=? WHERE chunk_id=#{chunk_id} AND project_id=#{opts.project_id}", [chunk], (err) =>
+                        if err
+                            c(err)
+                        else
+                            dbg("saved chunk #{i}/#{chunks.length-1} in #{misc.walltime(t)} s")
+                            c()
+                async.mapLimit([0...chunks.length], opts.limit, f, cb)
+        ], (err) => opts.cb?(err))
 
-    storage_read: (opts) =>
+    storage_get: (opts) =>
         opts = defaults opts,
             project_id : required
             name       : required
+            limit      : 10         # max number of chunks to read at once
             cb         : required
         dbg = (m) -> winston.debug("storage_read(#{opts.project_id}, #{opts.name}): #{m}")
-        dbg()
-        @select_one
-            table     : 'storage'
-            where     : {project_id : opts.project_id, name : opts.name}
-            columns   : ['blob_ids']
-            objectify : false
-            cb        : (err, result) =>
-                if err
-                    opts.cb(err)
-                    return
-                blobs = result[0]
+        chunk_ids = undefined
+        chunks = {}
+        async.series([
+            (cb) =>
+                dbg("get chunk ids")
                 @select_one
-                    table : 'storage_blobs'
-                    where : {blob_id: blobs[0], project_id:opts.project_id}
-                    columns : ['blob']
+                    table     : 'storage'
+                    where     : {project_id : opts.project_id, name : opts.name}
+                    columns   : ['chunk_ids']
                     objectify : false
                     cb        : (err, result) =>
                         if err
-                            opts.cb(err)
-                            return
-                        opts.cb(undefined, result[0])
+                            cb(err)
+                        else
+                            chunk_ids = result[0]
+                            dbg("chunk ids=#{misc.to_json(chunk_ids)}")
+                            cb()
+            (cb) =>
+                dbg("get chunks")
+                f = (i, c) =>
+                    t = misc.walltime()
+                    @select_one
+                        table : 'storage_chunks'
+                        where : {chunk_id:chunk_ids[i], project_id:opts.project_id}
+                        columns : ['chunk']
+                        objectify : false
+                        cb        : (err, result) =>
+                            if err
+                                c(err)
+                            else
+                                dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
+                                chunks[chunk_ids[i]] = result[0]
+                                c()
+                async.mapLimit([0...chunk_ids.length], opts.limit, f, cb)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                blob = Buffer.concat( (chunks[chunk_id] for chunk_id in chunk_ids) )
+                opts.cb(undefined, blob)
+        )
 
     storage_delete: (opts) =>
         opts = defaults opts,
             project_id : required
             name       : required
+            limit      : 10           # number to delete at once
             cb         : undefined
         dbg = (m) -> winston.debug("storage_delete(#{opts.project_id}, #{opts.name}): #{m}")
-        dbg()
+        chunk_ids = undefined
+        async.series([
+            (cb) =>
+                dbg("get chunk ids")
+                @select
+                    table     : 'storage'
+                    where     : {project_id : opts.project_id, name : opts.name}
+                    columns   : ['chunk_ids']
+                    objectify : false
+                    cb        : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            if result.length > 0
+                                chunk_ids = result[0][0]
+                                dbg("chunk ids=#{misc.to_json(chunk_ids)}")
+                            else
+                                dbg("nothing there")
+                            cb()
+            (cb) =>
+                if not chunk_ids?
+                    cb(); return
+                dbg("delete chunks")
+                f = (i, c) =>
+                    t = misc.walltime()
+                    @delete
+                        table : 'storage_chunks'
+                        where : {chunk_id:chunk_ids[i], project_id:opts.project_id}
+                        cb    : (err) =>
+                            if err
+                                c(err)
+                            else
+                                dbg("deleted chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
+                                c()
+                async.mapLimit([0...chunk_ids.length], opts.limit, f, cb)
+        ], (err) => opts.cb?(err))
 
 
 

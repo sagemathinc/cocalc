@@ -35,7 +35,7 @@ connect_to_database = (cb) ->
             cb(err)
         else
             new cassandra.Salvus
-                hosts    : [if process.env.USER=='wstein' then 'localhost' else '10.1.3.2']  # TODO
+                hosts    : if process.env.USER=='wstein' then ['localhost'] else ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
                 keyspace : if process.env.USER=='wstein' then 'test' else 'salvus'        # TODO
                 username : if process.env.USER=='wstein' then 'salvus' else 'hub'         # TODO
                 consistency : 1

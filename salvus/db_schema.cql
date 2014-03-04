@@ -562,15 +562,15 @@ CREATE TABLE banned_email_addresses (
 CREATE TABLE storage (
     project_id uuid,
     name       varchar,
-    blob_ids   list<uuid>,
+    chunk_ids   list<uuid>,
     PRIMARY KEY (project_id, name)
 );
 
-CREATE TABLE storage_blobs (
-    blob_id    uuid,
-    project_id uuid,
-    blob       blob,
-    PRIMARY KEY (blob_id, project_id)
+CREATE TABLE storage_chunks (
+    chunk_id    uuid,
+    project_id  uuid,
+    chunk       blob,
+    PRIMARY KEY (chunk_id, project_id)
 );
 
 
