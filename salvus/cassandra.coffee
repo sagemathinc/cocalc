@@ -2538,14 +2538,72 @@ class ChunkedStorage
     dbg: (f, args, m) =>
         winston.debug("ChunkedStorage(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
 
+    # Delete any chunks that aren't referenced by some object -- this is not restricted to
+    # this particular project but all projects.   Running this while objects are being
+    # written would corrupt them as they are written, for obvious reasons.
+    _scrub: (cb) =>
+        dbg = (m) => @dbg('_scrub', '', m)
+
+        ids = undefined
+        to_delete = undefined
+        async.series([
+            (cb) =>
+                @db.select
+                    table     : 'storage'
+                    columns   : ['chunk_ids']
+                    objectify : false
+                    cb        : (err, results) =>
+                        if err
+                            cb(err)
+                            return
+                        dbg("found #{results.length} files")
+                        ids = {}
+                        for r in results
+                            for chunk_id in r[0]
+                                ids[chunk_id] = true
+                        dbg("found #{misc.len(ids)} valid referenced chunks")
+                        cb()
+            (cb) =>
+                @db.select
+                    table   : 'storage_chunks'
+                    columns : ['chunk_id']
+                    objectify : false
+                    cb        : (err, results) =>
+                        if err
+                            cb(err)
+                            return
+                        dbg("found #{results.length} chunks")
+                        to_delete = (r[0] for r in results when not ids[r[0]]?)
+                        dbg("made list of #{to_delete.length} chunks to delete")
+                        cb()
+            (cb) =>
+                @db.delete
+                    table  : 'storage_chunks'
+                    where  : {chunk_id:{'in':to_delete}}
+                    cb     : cb
+        ], cb)
+
+    # list of objects in chunked storage for this project
+    ls: (opts) =>
+        opts = defaults opts,
+            cb  : required # cb(err, [array of {name:, size:} objects])
+        @db.select
+            table     : 'storage'
+            where     : {project_id:@project_id}
+            columns   : ['name', 'size']
+            objectify : true
+            cb        : opts.cb
+
+    # write file/blob to the cassandra database
     put: (opts) =>
         opts = defaults opts,
-            name          : required
+            name          : undefined  # defaults to equal filename if given; if filename not given, name *must* be given
             blob          : undefined  # Buffer  # EXACTLY ONE of blob or path must be defined
             filename      : undefined  # filename  -- instead read blob directly from file, which will work even if file is HUGE
             chunk_size_mb : 10         # 10MB
             limit         : 20         # max number of chunks to save at once
             cb            : undefined
+
         if not opts.blob? and not opts.filename?
             opts.cb?("either a blob or filename must be given")
             return
@@ -2556,6 +2614,12 @@ class ChunkedStorage
             else
                 if typeof(opts.blob) == "string"
                     opts.blob = new Buffer(opts.blob)
+
+        if not opts.name?
+            if not opts.filename?
+                opts.cb?("if name isn't given, then filename must be given")
+            else
+                opts.name = opts.filename
 
         dbg = (m) => @dbg('put', opts.name, m)
 
@@ -2606,8 +2670,8 @@ class ChunkedStorage
                         if err
                             c(err)
                         else
-                            query = "UPDATE storage_chunks SET chunk=? WHERE chunk_id=?"
-                            @db.cql query, [chunk, chunk_id], (err) =>
+                            query = "UPDATE storage_chunks SET chunk=?, size=? WHERE chunk_id=?"
+                            @db.cql query, [chunk, chunk.length, chunk_id], (err) =>
                                 dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
                                 c(err)
 
@@ -2634,15 +2698,24 @@ class ChunkedStorage
                             dbg("ignoring error deleting previous chunks: #{err}")
                         b = "[#{chunk_ids.join(',')}]"
                         dbg("writing index to new chunks: #{b}")
-                        @db.cql("UPDATE storage SET chunk_ids=#{b} WHERE project_id=#{@project_id} AND name='#{opts.name}'", [], cb)
+                        query = "UPDATE storage SET chunk_ids=#{b}, size=? WHERE project_id=? AND name=?"
+                        dbg(query)
+                        @db.cql(query, [size, @project_id, opts.name], cb)
         ], (err) => opts.cb?(err))
 
+    # get file/blob from the cassandra database (to memory or a local file)
     get: (opts) =>
         opts = defaults opts,
-            name       : required
-            filename       : undefined  # if given, write result to the file with this
+            name       : undefined  # if not given, defaults to filename
+            filename   : undefined  # if given, write result to the file with this name instead of returning a new Buffer.
             limit      : 10         # max number of chunks to read at once
             cb         : required
+        if not opts.name?
+            if not opts.filename?
+                opts.cb("name or filename must be given")
+                return
+            opts.name = opts.filename
+
         dbg = (m) => @dbg('get', opts.name, m)
         chunk_ids = undefined
         chunks = {}
@@ -2651,7 +2724,7 @@ class ChunkedStorage
                 dbg("get chunk ids")
                 @db.select_one
                     table     : 'storage'
-                    where     : {project_id : @project_id, name : opts.name}
+                    where     : {project_id:@project_id, name:opts.name}
                     columns   : ['chunk_ids']
                     objectify : false
                     cb        : (err, result) =>
