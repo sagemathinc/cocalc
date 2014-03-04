@@ -559,9 +559,16 @@ CREATE TABLE banned_email_addresses (
 
 /*STORAGE */
 
+CREATE TABLE file_storage (
+    project_id          uuid,
+    name                varchar,
+    storage_chunk_names list<varchar>,
+    PRIMARY KEY (project_id, name)
+);
+
 CREATE TABLE storage (
-    project_id uuid,
-    name       varchar,
+    project_id  uuid,
+    name        varchar,
     chunk_ids   list<uuid>,
     PRIMARY KEY (project_id, name)
 );

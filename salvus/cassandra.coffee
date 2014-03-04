@@ -37,6 +37,7 @@ PROJECT_GROUPS = misc.PROJECT_GROUPS
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
 
+fs      = require('fs')
 assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
@@ -629,6 +630,9 @@ class exports.Cassandra extends EventEmitter
 
     uuid_blob_store: (opts={}) -> # uuid_blob_store(name:"the name")
         new UUIDBlobStore(@, opts)
+
+    chunked_storage: (project_id) =>
+        return new ChunkedStorage(@, project_id)
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
@@ -2520,47 +2524,108 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, stats)
         )
 
-    ############################################################################
-    # Chunked project-by-project storage for each project.
-    # Store arbitrarily large blob data associated to each project here.
-    # This uses the storage and storage_blob tables.
-    ############################################################################
+############################################################################
+# Chunked project-by-project storage for each project.
+# Store arbitrarily large blob data associated to each project here.
+# This uses the storage and storage_blob tables.
+############################################################################
 
-    file_storage_put: (opts) =>
+class ChunkedStorage
+
+    constructor: (@db, @project_id) ->
+        @dbg("constructor", undefined, 'create')
+
+    dbg: (f, args, m) =>
+        winston.debug("ChunkedStorage(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
+
+    put_file: (opts) =>
         opts = defaults opts,
-            project_id    : required
             name          : required
             path          : required   # actual absolute or relative path to the file
             chunk_size_mb : 200        # 200MB -- file is
-            limit         : 3         # max number of chunks to save at once
+            limit         : 3          # max number of chunks to save at once
             cb            : undefined
-        dbg = (m) -> winston.debug("file_storage_put(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg = (m) => @dbg('put_file', [opts.name, opts.path], m)
 
-    file_storage_get: (opts) =>
+        file_size  = undefined
+        chunk_size = opts.chunk_size_mb * 1000000
+        fd         = undefined
+        names      = undefined
+        async.series([
+            (cb) =>
+                dbg("delete previous file with same name if there")
+                @delete_file
+                    name       : opts.name
+                    limit      : opts.limit
+                    cb         : cb
+            (cb) =>
+                dbg("determine file size")
+                fs.stat opts.path, (err, stats) =>
+                    if err
+                        cb(err)
+                    else
+                        file_size = stats.size
+                        cb()
+            (cb) =>
+                fs.open opts.path, 'r', (err, _fd) =>
+                    if err
+                        cb(err)
+                    else
+                        fd = _fd
+                        cb()
+            (cb) =>
+                num_chunks = Math.ceil(file_size / chunk_size)
+                # changing names this will break anything stored in DB, so don't do it:
+                names = ("files.#{opts.name}-#{i}-#{num_chunks-1}" for i in [0...num_chunks])
+                dbg("creating #{misc.to_json(names)}")
+                f = (i, c) =>
+                    dbg("reading and store chunk #{i}/#{num_chunks-1}")
+                    start = i*chunk_size
+                    end   = Math.min(file_size, (i+1)*chunk_size)  # really ends at pos one before this.
+                    buffer = new Buffer(end-start)
+                    fs.read fd, buffer, 0, buffer.length, start, (err) =>
+                        @put
+                            name : names[i]
+                            blob : buffer
+                            cb   : c
+                async.mapLimit [0...num_chunks], opts.limit, f, cb
+            (cb) =>
+                n = misc.to_json(names).replace(/"/g, "'")
+                @db.cql("UPDATE file_storage SET storage_chunk_names=#{n} WHERE project_id=#{@project_id} AND name='#{opts.name}'",
+                        [], cb)
+        ], (err) =>
+            if err and names?
+                # clean up -- attempt to delete everything
+                g = (name, c) =>
+                    @delete(name:name, cb:(ignore)=>c())
+                async.map(names, g, (ignore) => opts.cb?(err))
+            else
+                opts.cb?(err)
+        )
+
+    get_file: (opts) =>
         opts = defaults opts,
-            project_id : required
             name       : required
             path       : undefined
-            limit      : 3         # max number of chunks to read at once
+            limit      : 3            # max number of chunks to read at once
             cb         : required
-        dbg = (m) -> winston.debug("file_storage_get(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg = (m) => @dbg('get_file', [opts.name, opts.path], m)
 
-    file_storage_delete: (opts) =>
+    delete_file: (opts) =>
         opts = defaults opts,
-            project_id : required
             name       : required
             limit      : 3           # number to delete at once
             cb         : undefined
+        dbg = (m) => @dbg('delete_file', opts.name, m)
 
-    storage_put: (opts) =>
+    put: (opts) =>
         opts = defaults opts,
-            project_id    : required
             name          : required
             blob          : required   # Buffer
             chunk_size_mb : 10         # 10MB
-            limit         : 10         # max number of chunks to save at once
+            limit         : 20         # max number of chunks to save at once
             cb            : undefined
-        dbg = (m) -> winston.debug("storage_write(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg = (m) => @dbg('put', opts.name, m)
         dbg("divide blob of length #{opts.blob.length/1000000}mb into chunks of size at most #{opts.chunk_size_mb}")
         chunks   = []
         chunk_ids = []
@@ -2573,22 +2638,21 @@ class exports.Salvus extends exports.Cassandra
         async.series([
             (cb) =>
                 # critical to delete first or we would leave stuff in storage_chunks just laying around never to be removed!
-                @storage_delete
-                    project_id : opts.project_id
+                @delete
                     name       : opts.name
                     limit      : opts.limit
                     cb         : cb
             (cb) =>
                 b = "[#{chunk_ids.join(',')}]"
                 dbg("save chunk ids: #{b}")
-                @cql("UPDATE storage SET chunk_ids=#{b} WHERE project_id=#{opts.project_id} AND name='#{opts.name}'", [], cb)
+                @db.cql("UPDATE storage SET chunk_ids=#{b} WHERE project_id=#{@project_id} AND name='#{opts.name}'", [], cb)
             (cb) =>
                 dbg("saving the chunks")
                 f = (i, c) =>
                     t = misc.walltime()
                     chunk_id = chunk_ids[i]
                     chunk   = chunks[i]
-                    @cql "UPDATE storage_chunks SET chunk=? WHERE chunk_id=#{chunk_id} AND project_id=#{opts.project_id}", [chunk], (err) =>
+                    @db.cql "UPDATE storage_chunks SET chunk=? WHERE chunk_id=#{chunk_id} AND project_id=#{@project_id}", [chunk], (err) =>
                         if err
                             c(err)
                         else
@@ -2597,21 +2661,20 @@ class exports.Salvus extends exports.Cassandra
                 async.mapLimit([0...chunks.length], opts.limit, f, cb)
         ], (err) => opts.cb?(err))
 
-    storage_get: (opts) =>
+    get: (opts) =>
         opts = defaults opts,
-            project_id : required
             name       : required
             limit      : 10         # max number of chunks to read at once
             cb         : required
-        dbg = (m) -> winston.debug("storage_read(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg = (m) => @dbg('get', opts.name, m)
         chunk_ids = undefined
         chunks = {}
         async.series([
             (cb) =>
                 dbg("get chunk ids")
-                @select_one
+                @db.select_one
                     table     : 'storage'
-                    where     : {project_id : opts.project_id, name : opts.name}
+                    where     : {project_id : @project_id, name : opts.name}
                     columns   : ['chunk_ids']
                     objectify : false
                     cb        : (err, result) =>
@@ -2625,9 +2688,9 @@ class exports.Salvus extends exports.Cassandra
                 dbg("get chunks")
                 f = (i, c) =>
                     t = misc.walltime()
-                    @select_one
+                    @db.select_one
                         table : 'storage_chunks'
-                        where : {chunk_id:chunk_ids[i], project_id:opts.project_id}
+                        where : {chunk_id:chunk_ids[i], project_id:@project_id}
                         columns : ['chunk']
                         objectify : false
                         cb        : (err, result) =>
@@ -2646,20 +2709,19 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(undefined, blob)
         )
 
-    storage_delete: (opts) =>
+    delete: (opts) =>
         opts = defaults opts,
-            project_id : required
             name       : required
             limit      : 10           # number to delete at once
             cb         : undefined
-        dbg = (m) -> winston.debug("storage_delete(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg = (m) => @dbg('delete', opts.name, m)
         chunk_ids = undefined
         async.series([
             (cb) =>
                 dbg("get chunk ids")
-                @select
+                @db.select
                     table     : 'storage'
-                    where     : {project_id : opts.project_id, name : opts.name}
+                    where     : {project_id : @project_id, name : opts.name}
                     columns   : ['chunk_ids']
                     objectify : false
                     cb        : (err, result) =>
@@ -2676,22 +2738,30 @@ class exports.Salvus extends exports.Cassandra
                 if not chunk_ids?
                     cb(); return
                 dbg("delete chunks")
+                fail = false
                 f = (i, c) =>
                     t = misc.walltime()
-                    @delete
+                    @db.delete
                         table : 'storage_chunks'
-                        where : {chunk_id:chunk_ids[i], project_id:opts.project_id}
+                        where : {chunk_id:chunk_ids[i], project_id:@project_id}
                         cb    : (err) =>
                             if err
-                                c(err)
+                                fail = err
+                                # nonfatal -- so at least all the other chunks get deleted, and next time this one does.
+                                c()
                             else
                                 dbg("deleted chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
                                 c()
-                async.mapLimit([0...chunk_ids.length], opts.limit, f, cb)
+                async.mapLimit([0...chunk_ids.length], opts.limit, f, (err) -> cb(fail))
+            (cb) =>
+                if not chunk_ids?
+                    cb(); return
+                dbg("delete index")
+                @db.delete
+                    table : 'storage'
+                    where : {project_id : @project_id, name : opts.name}
+                    cb    : cb
         ], (err) => opts.cb?(err))
-
-
-
 
 
 quote_if_not_uuid = (s) ->
