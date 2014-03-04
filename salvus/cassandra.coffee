@@ -2538,132 +2538,109 @@ class ChunkedStorage
     dbg: (f, args, m) =>
         winston.debug("ChunkedStorage(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
 
-    put_file: (opts) =>
-        opts = defaults opts,
-            name          : required
-            path          : required   # actual absolute or relative path to the file
-            chunk_size_mb : 200        # 200MB -- file is
-            limit         : 3          # max number of chunks to save at once
-            cb            : undefined
-        dbg = (m) => @dbg('put_file', [opts.name, opts.path], m)
-
-        file_size  = undefined
-        chunk_size = opts.chunk_size_mb * 1000000
-        fd         = undefined
-        names      = undefined
-        async.series([
-            (cb) =>
-                dbg("delete previous file with same name if there")
-                @delete_file
-                    name       : opts.name
-                    limit      : opts.limit
-                    cb         : cb
-            (cb) =>
-                dbg("determine file size")
-                fs.stat opts.path, (err, stats) =>
-                    if err
-                        cb(err)
-                    else
-                        file_size = stats.size
-                        cb()
-            (cb) =>
-                fs.open opts.path, 'r', (err, _fd) =>
-                    if err
-                        cb(err)
-                    else
-                        fd = _fd
-                        cb()
-            (cb) =>
-                num_chunks = Math.ceil(file_size / chunk_size)
-                # changing names this will break anything stored in DB, so don't do it:
-                names = ("files.#{opts.name}-#{i}-#{num_chunks-1}" for i in [0...num_chunks])
-                dbg("creating #{misc.to_json(names)}")
-                f = (i, c) =>
-                    dbg("reading and store chunk #{i}/#{num_chunks-1}")
-                    start = i*chunk_size
-                    end   = Math.min(file_size, (i+1)*chunk_size)  # really ends at pos one before this.
-                    buffer = new Buffer(end-start)
-                    fs.read fd, buffer, 0, buffer.length, start, (err) =>
-                        @put
-                            name : names[i]
-                            blob : buffer
-                            cb   : c
-                async.mapLimit [0...num_chunks], opts.limit, f, cb
-            (cb) =>
-                n = misc.to_json(names).replace(/"/g, "'")
-                @db.cql("UPDATE file_storage SET storage_chunk_names=#{n} WHERE project_id=#{@project_id} AND name='#{opts.name}'",
-                        [], cb)
-        ], (err) =>
-            if err and names?
-                # clean up -- attempt to delete everything
-                g = (name, c) =>
-                    @delete(name:name, cb:(ignore)=>c())
-                async.map(names, g, (ignore) => opts.cb?(err))
-            else
-                opts.cb?(err)
-        )
-
-    get_file: (opts) =>
-        opts = defaults opts,
-            name       : required
-            path       : undefined
-            limit      : 3            # max number of chunks to read at once
-            cb         : required
-        dbg = (m) => @dbg('get_file', [opts.name, opts.path], m)
-
-    delete_file: (opts) =>
-        opts = defaults opts,
-            name       : required
-            limit      : 3           # number to delete at once
-            cb         : undefined
-        dbg = (m) => @dbg('delete_file', opts.name, m)
-
     put: (opts) =>
         opts = defaults opts,
             name          : required
-            blob          : required   # Buffer
+            blob          : undefined  # Buffer  # EXACTLY ONE of blob or path must be defined
+            filename      : undefined  # filename  -- instead read blob directly from file, which will work even if file is HUGE
             chunk_size_mb : 10         # 10MB
             limit         : 20         # max number of chunks to save at once
             cb            : undefined
+        if not opts.blob? and not opts.filename?
+            opts.cb?("either a blob or filename must be given")
+            return
+
+        if opts.blob?
+            if opts.filename?
+                opts.cb?("exactly one of blob or filename must be given but NOT both")
+            else
+                if typeof(opts.blob) == "string"
+                    opts.blob = new Buffer(opts.blob)
+
         dbg = (m) => @dbg('put', opts.name, m)
-        dbg("divide blob of length #{opts.blob.length/1000000}mb into chunks of size at most #{opts.chunk_size_mb}")
-        chunks   = []
-        chunk_ids = []
-        i = 0
-        while i < opts.blob.length
-            j = i + opts.chunk_size_mb*1000000
-            chunk_ids.push(uuid.v4())
-            chunks.push(opts.blob.slice(i, j))
-            i = j
+
+        chunk_size = opts.chunk_size_mb * 1000000
+        size       = undefined
+        fd         = undefined
+        num_chunks = undefined
+        chunk_ids  = undefined
+
         async.series([
             (cb) =>
-                # critical to delete first or we would leave stuff in storage_chunks just laying around never to be removed!
-                @delete
-                    name       : opts.name
-                    limit      : opts.limit
-                    cb         : cb
+                dbg("get size of blob or filename")
+                if opts.blob?
+                    size = opts.blob.length
+                    cb()
+                else
+                    fs.stat opts.filename, (err, stats) =>
+                        if err
+                            cb(err)
+                        else
+                            size = stats.size
+                            # also, get the file descriptor, so we can read randomly chunks of the file.
+                            # Reading the whole file at once could easily run out of address space or RAM!
+                            fs.open opts.filename, 'r', (err, _fd) =>
+                                fd = _fd
+                                cb(err)
+
             (cb) =>
-                b = "[#{chunk_ids.join(',')}]"
-                dbg("save chunk ids: #{b}")
-                @db.cql("UPDATE storage SET chunk_ids=#{b} WHERE project_id=#{@project_id} AND name='#{opts.name}'", [], cb)
-            (cb) =>
+                num_chunks = Math.ceil(size / chunk_size)
+                chunk_ids = (uuid.v4() for i in [0...num_chunks])
+
                 dbg("saving the chunks")
+                get_chunk = (start, end, c) =>
+                    if opts.blob?
+                        c(undefined, opts.blob.slice(start, end))
+                    else
+                        chunk = new Buffer(end-start)
+                        fs.read fd, chunk, 0, chunk.length, start, (err) =>
+                            c(err, chunk)
+
                 f = (i, c) =>
                     t = misc.walltime()
                     chunk_id = chunk_ids[i]
-                    chunk   = chunks[i]
-                    @db.cql "UPDATE storage_chunks SET chunk=? WHERE chunk_id=#{chunk_id} AND project_id=#{@project_id}", [chunk], (err) =>
+                    dbg("reading and store chunk #{i}/#{num_chunks-1}: #{chunk_id}")
+                    start = i*chunk_size
+                    end   = Math.min(size, (i+1)*chunk_size)  # really ends at pos one before this.
+                    get_chunk start, end, (err, chunk) =>
                         if err
                             c(err)
                         else
-                            dbg("saved chunk #{i}/#{chunks.length-1} in #{misc.walltime(t)} s")
-                            c()
-                async.mapLimit([0...chunks.length], opts.limit, f, cb)
+                            query = "UPDATE storage_chunks SET chunk=? WHERE chunk_id=?"
+                            @db.cql query, [chunk, chunk_id], (err) =>
+                                dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
+                                c(err)
+
+                async.mapLimit [0...num_chunks], opts.limit, f, (err) =>
+                    if err
+                        dbg("something went wrong writing chunks (#{err}): delete any chunks we just wrote")
+                        g = (id, c) =>
+                            @db.delete
+                                table : 'storage_chunks'
+                                where : {chunk_id:id}
+                                cb    : (ignored) => c()
+                        async.map chunk_ids, g, (ignored) => cb(err)
+                    else
+                        cb()
+
+            (cb) =>
+                dbg("now all new chunks are successfully saved so delete any previous chunks")
+                @delete
+                    name       : opts.name
+                    limit      : opts.limit
+                    cb         : (err) =>
+                        if err
+                            # ignoring this at worse leaks storage at this point.
+                            dbg("ignoring error deleting previous chunks: #{err}")
+                        b = "[#{chunk_ids.join(',')}]"
+                        dbg("writing index to new chunks: #{b}")
+                        @db.cql("UPDATE storage SET chunk_ids=#{b} WHERE project_id=#{@project_id} AND name='#{opts.name}'", [], cb)
         ], (err) => opts.cb?(err))
 
     get: (opts) =>
         opts = defaults opts,
             name       : required
+            filename       : undefined  # if given, write result to the file with this
             limit      : 10         # max number of chunks to read at once
             cb         : required
         dbg = (m) => @dbg('get', opts.name, m)
@@ -2690,7 +2667,7 @@ class ChunkedStorage
                     t = misc.walltime()
                     @db.select_one
                         table : 'storage_chunks'
-                        where : {chunk_id:chunk_ids[i], project_id:@project_id}
+                        where : {chunk_id:chunk_ids[i]}
                         columns : ['chunk']
                         objectify : false
                         cb        : (err, result) =>
@@ -2743,7 +2720,7 @@ class ChunkedStorage
                     t = misc.walltime()
                     @db.delete
                         table : 'storage_chunks'
-                        where : {chunk_id:chunk_ids[i], project_id:@project_id}
+                        where : {chunk_id:chunk_ids[i]}
                         cb    : (err) =>
                             if err
                                 fail = err
