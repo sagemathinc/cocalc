@@ -3233,13 +3233,13 @@ exports.all_projects_on_host_not_on_other_hosts = (opts) ->
 
 TIMEOUT2 = 15*60
 
-class exports.Storage
+class exports.Project
     constructor: (@project_id) ->
         if typeof @project_id != 'string'
-            @dbg("constructor -- project_id must be a string!")
+            @dbg("constructor", "project_id (=#{@project_id}) must be a string!")
 
     dbg: (f, m) =>
-        winston.debug("Storage(#{@project_id}).#{f}: #{m}")
+        winston.debug("Project(#{@project_id}).#{f}: #{m}")
 
     execute: (opts) =>
         opts = defaults opts,
@@ -3296,6 +3296,28 @@ class exports.Storage
 
     # Actually close the project; uses less resources (no sparse images in pool), but mounting will take longer.
     close: () =>
+
+class exports.Host
+    constructor: (@host) ->
+        if typeof @project_id != 'string'
+            @dbg("constructor", "host(=#{@host}) must be a string!")
+
+    dbg: (f, m) =>
+        winston.debug("Host(#{@host}).#{f}: #{m}")
+
+    projects: (opts) =>
+        opts = defaults opts,
+            cb : required
+        # return map project_id : Project, for all projects on this host, where "on this host"
+        # means there is a directory streams/project_id
+
+    replicate_all: (opts) =>
+        opts = required opts,
+            limit  : 5      # maximum number of projects to replicate at once
+            cb     : undefined
+        @projects
+            cb : (err, projects) =>
+                # TODO.
 
 
 

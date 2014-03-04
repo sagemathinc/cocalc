@@ -1,3 +1,9 @@
+/* NOTE: as explained at https://cloud.sagemath.com/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/files/salvus/salvus/db_schema.cql
+   these blob tables below will store everything with a given name in the *same* single Cassandra column, hence not spread across
+   the cluster.  This is technically bad (though in practice can maybe mean some queries are faster).  It's mainly an issue if the
+   size of the table were huge, which it isn't now.   This should be restructured at some point though.
+*/
+
 CREATE TABLE uuid_blob (
      name varchar,
      uuid uuid,
@@ -551,13 +557,21 @@ CREATE TABLE banned_email_addresses (
 );
 
 
+/*STORAGE */
 
+CREATE TABLE storage (
+    project_id uuid,
+    name       varchar,
+    blob_ids   list<uuid>,
+    PRIMARY KEY (project_id, name)
+);
 
-
-
-
-
-
+CREATE TABLE storage_blobs (
+    blob_id    uuid,
+    project_id uuid,
+    blob       blob,
+    PRIMARY KEY (blob_id, project_id)
+);
 
 
 

@@ -2520,6 +2520,68 @@ class exports.Salvus extends exports.Cassandra
                 opts.cb(err, stats)
         )
 
+    ############################################################################
+    # Chunked project-by-project storage for each project.
+    # Store arbitrarily large blob data associated to each project here.
+    # This uses the storage and storage_blob tables.
+    ############################################################################
+
+    storage_write: (opts) =>
+        opts = defaults opts,
+            project_id    : required
+            name          : required
+            blob          : required   # Buffer
+            chunk_size_mb : 10      # 10MB
+            cb            : undefined
+        dbg = (m) -> winston.debug("storage_write(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg()
+        u = uuid.v4()
+        @cql "UPDATE storage SET blob_ids=[#{u}] WHERE project_id=#{opts.project_id} AND name='#{opts.name}'", [], (err) =>
+            if err
+                opts.cb?(err)
+                return
+            @cql "UPDATE storage_blobs SET blob=? WHERE blob_id=#{u} AND project_id=#{opts.project_id}", [opts.blob], (err) =>
+                opts.cb?(err)
+
+    storage_read: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            name       : required
+            cb         : required
+        dbg = (m) -> winston.debug("storage_read(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg()
+        @select_one
+            table     : 'storage'
+            where     : {project_id : opts.project_id, name : opts.name}
+            columns   : ['blob_ids']
+            objectify : false
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                    return
+                blobs = result[0]
+                @select_one
+                    table : 'storage_blobs'
+                    where : {blob_id: blobs[0], project_id:opts.project_id}
+                    columns : ['blob']
+                    objectify : false
+                    cb        : (err, result) =>
+                        if err
+                            opts.cb(err)
+                            return
+                        opts.cb(undefined, result[0])
+
+    storage_delete: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            name       : required
+            cb         : undefined
+        dbg = (m) -> winston.debug("storage_delete(#{opts.project_id}, #{opts.name}): #{m}")
+        dbg()
+
+
+
+
 
 quote_if_not_uuid = (s) ->
     if misc.is_valid_uuid_string(s)
