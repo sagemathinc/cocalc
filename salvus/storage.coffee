@@ -3221,6 +3221,82 @@ exports.all_projects_on_host_not_on_other_hosts = (opts) ->
             winston.debug("of these, #{v.length} are on '#{opts.host}' but not on '#{misc.to_json(opts.other_hosts)}'")
             opts.cb(undefined, v)
 
+################################################################
+# New (and final!?) storage system
+#
+# - everything will be stored in a new pool called "storage"
+# - /storage/streams -- where streams are stored
+# - /storage/images  -- where sparse image files are temporarily located
+# - /storage/
+#
+################################################################
+
+TIMEOUT2 = 15*60
+
+class exports.Storage
+    constructor: (@project_id) ->
+        if typeof @project_id != 'string'
+            @dbg("constructor -- project_id must be a string!")
+
+    dbg: (f, m) =>
+        winston.debug("Storage(#{@project_id}).#{f}: #{m}")
+
+    execute: (opts) =>
+        opts = defaults opts,
+            host    : required
+            command : required     # string -- smc_storage [...cmd...] project_id
+            timeout : TIMEOUT2
+            cb      : undefined
+
+        execute_on
+            host    : opts.host
+            command : "./smc_storage.py --pool=storage --mnt=/test/#{@project_id} #{opts.command} #{@project_id}"
+            timeout : opts.timeout
+            cb      : opts.cb
+
+    # Take a snapshot of the current project.  Does not replicate.
+    snapshot: (opts) =>
+        opts = defaults opts,
+            host : required
+            cb   : undefined
+
+    # Snapshot filesystem containing image file, send it to streams path.
+    save: (opts) =>
+
+    # Sync out the streams from host to all replicas.
+    replicate: (opts) =>
+        opts = defaults opts,
+            host   : required
+            delete : false   # if true, deletes any files on target not on the host.  DANGEROUS.
+            cb     : undefined
+        @dbg("replicate")
+        errors = {}
+        f = (target, cb) =>
+            @dbg("replicate to #{target}")
+            @execute
+                host    : opts.host
+                command : "replicate #{if opts.delete then '--delete' else ''} #{target}"
+                cb      : (err) =>
+                    if err
+                        @dbg("replicate to #{target} failed -- #{err}")
+                        errors[target] = err
+                    cb()
+        targets = (host for host in _.flatten(locations(project_id:@project_id)) when host != opts.host)
+        async.map targets, f, () =>
+            if misc.len(errors) > 0
+                opts.cb?(errors)
+            else
+                opts.cb?()
+
+    # Mount the given project, so that the relevant filesystem is properly recv'd and mounted
+    mount: () =>
+
+    # Unmount the given project; the filesystem can be remounted quickly.
+    umount: () =>
+
+    # Actually close the project; uses less resources (no sparse images in pool), but mounting will take longer.
+    close: () =>
+
 
 
 
