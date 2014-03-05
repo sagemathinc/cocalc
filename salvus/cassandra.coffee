@@ -31,6 +31,7 @@ exports.RECENT_TIMES = RECENT_TIMES =
 RECENT_TIMES_ARRAY = ({desc:desc,ttl:ttl} for desc,ttl of RECENT_TIMES)
 
 misc    = require('misc')
+misc_node = require('misc_node')
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
@@ -631,8 +632,8 @@ class exports.Cassandra extends EventEmitter
     uuid_blob_store: (opts={}) -> # uuid_blob_store(name:"the name")
         new UUIDBlobStore(@, opts)
 
-    chunked_storage: (project_id) =>
-        return new ChunkedStorage(@, project_id)
+    chunked_storage: (id, verbose=false) =>  # id=uuid
+        return new ChunkedStorage(@, id, verbose)
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
@@ -2525,19 +2526,22 @@ class exports.Salvus extends exports.Cassandra
         )
 
 ############################################################################
-# Chunked project-by-project storage for each project.
+# Chunked storage for each project (or user, or whatever is indexed by a uuid).
 # Store arbitrarily large blob data associated to each project here.
 # This uses the storage and storage_blob tables.
 ############################################################################
 
 class ChunkedStorage
 
-    constructor: (@db, @project_id, @verbose=false) ->
+    constructor: (@db, @id, @verbose=false) ->
+        # db = a database connection
+        # id = a uuid
+        # verbose = if true, log a lot about what happens.
         @dbg("constructor", undefined, 'create')
 
     dbg: (f, args, m) =>
         if @verbose
-            winston.debug("ChunkedStorage(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
+            winston.debug("ChunkedStorage(#{@id}).#{f}(#{misc.to_json(args)}): #{m}")
 
     # Delete any chunks that aren't referenced by some object -- this is not restricted to
     # this particular project but all projects.   Running this while objects are being
@@ -2590,7 +2594,7 @@ class ChunkedStorage
             cb  : required # cb(err, [array of {name:, size:} objects])
         @db.select
             table     : 'storage'
-            where     : {project_id:@project_id}
+            where     : {id:@id}
             columns   : ['name', 'size']
             objectify : true
             cb        : opts.cb
@@ -2713,9 +2717,9 @@ class ChunkedStorage
                             dbg("ignoring error deleting previous chunks: #{err}")
                         b = "[#{chunk_ids.join(',')}]"
                         dbg("writing index to new chunks: #{b}")
-                        query = "UPDATE storage SET chunk_ids=#{b}, size=?, chunk_size=? WHERE project_id=? AND name=?"
+                        query = "UPDATE storage SET chunk_ids=#{b}, size=?, chunk_size=? WHERE id=? AND name=?"
                         dbg(query)
-                        @db.cql(query, [size, chunk_size, @project_id, opts.name], cb)
+                        @db.cql(query, [size, chunk_size, @id, opts.name], cb)
         ], (err) => opts.cb?(err))
 
     # get file/blob from the cassandra database (to memory or a local file)
@@ -2772,7 +2776,7 @@ class ChunkedStorage
                 dbg("get chunk ids")
                 @db.select_one
                     table     : 'storage'
-                    where     : {project_id:@project_id, name:opts.name}
+                    where     : {id:@id, name:opts.name}
                     columns   : ['chunk_ids', 'chunk_size']
                     objectify : true
                     cb        : (err, result) =>
@@ -2840,7 +2844,7 @@ class ChunkedStorage
                 dbg("get chunk ids")
                 @db.select
                     table     : 'storage'
-                    where     : {project_id : @project_id, name : opts.name}
+                    where     : {id : @id, name : opts.name}
                     columns   : ['chunk_ids']
                     objectify : false
                     cb        : (err, result) =>
@@ -2878,14 +2882,14 @@ class ChunkedStorage
                 dbg("delete index")
                 @db.delete
                     table : 'storage'
-                    where : {project_id : @project_id, name : opts.name}
+                    where : {id : @id, name : opts.name}
                     cb    : cb
         ], (err) => opts.cb?(err))
 
     # Sync back and forth between a path and the database:
     #
     # Files with the same name and size are considered equal (for our application
-    # even the same name is equal).
+    # this is fine).
 
     # Copy any files in path not in database *to* the database.
     sync_put: (opts) =>
@@ -2893,7 +2897,67 @@ class ChunkedStorage
             path   : required
             delete : false          # if true, deletes anything in the database not in the path
             cb     : undefined
-        #async.series(
+        dbg = (m) => @dbg('sync_put', opts.path, m)
+        db_files = {}
+        to_copy  = []
+        local_files = {}
+        async.series([
+            (cb) =>
+                dbg("get files in database")
+                @ls
+                    cb : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            for f in x
+                                db_files[f.name] = f.size
+                            cb()
+            (cb) =>
+                dbg("get files in path")
+                misc_node.execute_code
+                    command     : 'find'
+                    args        : [opts.path, '-type', 'f', '-printf', '%s %P\n']  # size_bytes filename
+                    timeout     : 360
+                    err_on_exit : true
+                    path        : process.cwd()
+                    cb          : (err, output) ->
+                        if err
+                            cb(err)
+                        else
+                            for x in output.stdout.split('\n')
+                                v = misc.split(x)
+                                if v.length == 2
+                                    if opts.delete
+                                        local_files[v[1]] = true
+                                    if db_files[v[1]] != parseInt(v[0])   # true if diff size or not there
+                                        to_copy.push(v[1])
+                            cb()
+            (cb) =>
+                if to_copy.length == 0
+                    cb(); return
+                dbg("copy all new files to database")
+                f = (name, c) =>
+                    @put
+                        name     : name
+                        filename : opts.path + '/'+name
+                        cb       : c
+                async.mapLimit(to_copy, 5, f, cb)  # up to 5 files at once
+
+            (cb) =>
+                if opts.delete
+                    to_delete = (name for name, size of db_files when not local_files[name])
+                    if to_delete.length == 0
+                        cb(); return
+                    dbg("delete #{to_delete.length} files in database not in local path")
+                    f = (name, c) =>
+                        @delete
+                            name : name
+                            cb   : c
+                    async.map(to_delete, f, cb)   # no limit -- deleting is easy.
+                else
+                    cb()
+        ], (err) => opts.cb?(err))
+
 
     # Copy any files not in path *from* the database to the local directory.
     sync_get: (opts) =>
@@ -2901,6 +2965,7 @@ class ChunkedStorage
             path   : required
             delete : false
             cb     : undefined
+        dbg = (m) => @dbg('sync_get', opts.path, m)
 
     # First copy any files from the database to path, and any from path (not in db) back to the database,
     # so that the same files (the union) are in both.
