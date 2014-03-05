@@ -2882,6 +2882,35 @@ class ChunkedStorage
                     cb    : cb
         ], (err) => opts.cb?(err))
 
+    # Sync back and forth between a path and the database:
+    #
+    # Files with the same name and size are considered equal (for our application
+    # even the same name is equal).
+
+    # Copy any files in path not in database *to* the database.
+    sync_put: (opts) =>
+        opts = defaults opts,
+            path   : required
+            delete : false          # if true, deletes anything in the database not in the path
+            cb     : undefined
+        #async.series(
+
+    # Copy any files not in path *from* the database to the local directory.
+    sync_get: (opts) =>
+        opts = defaults opts,
+            path   : required
+            delete : false
+            cb     : undefined
+
+    # First copy any files from the database to path, and any from path (not in db) back to the database,
+    # so that the same files (the union) are in both.
+    sync: (opts) =>
+        opts = defaults opts,
+            path   : required
+            cb     : undefined
+
+
+
 
 quote_if_not_uuid = (s) ->
     if misc.is_valid_uuid_string(s)
