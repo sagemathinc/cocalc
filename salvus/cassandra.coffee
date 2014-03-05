@@ -618,10 +618,10 @@ class exports.Cassandra extends EventEmitter
         try
             @conn.execute query, vals, consistency, (error, results) =>
                 if error
-                    winston.error("Query cql('#{query}',params=#{vals}) caused a CQL error:\n#{error}")
+                    winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                 cb?(error, results?.rows)
         catch e
-            cb?("exception doing cql query -- #{e}")
+            cb?("exception doing cql query -- #{misc.to_json(e).slice(0,1000)}")
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)
@@ -2530,6 +2530,77 @@ class exports.Salvus extends exports.Cassandra
 # Store arbitrarily large blob data associated to each project here.
 # This uses the storage and storage_blob tables.
 ############################################################################
+
+exports.storage_db = (cb) ->
+    fs.readFile "#{process.cwd()}/data/secrets/cassandra/storage0", (err, password) ->
+        if err
+            cb(err)
+        else
+            new exports.Salvus
+                hosts    : ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                keyspace : 'storage'
+                username : 'storage0'
+                consistency : 1
+                password : password.toString().trim()
+                cb       : cb
+
+exports.storage_migrate = (opts) ->
+    opts = defaults opts,
+        start   : required  # integer
+        stop    : required  # integer
+        streams : required  # path to streams
+        limit   : 1
+        verbose : false
+        cb      : undefined
+
+    dbg = (m) -> winston.debug("storage_migrate: #{m}")
+    db = undefined
+    files = undefined
+    errors = {}
+    async.series([
+        (cb) ->
+            dbg("getting db")
+            exports.storage_db (err, x) ->
+                db = x
+                cb(err)
+        (cb) ->
+            dbg("reading dirctory")
+            fs.readdir opts.streams, (err, x) ->
+                if err
+                    cb(err)
+                else
+                    x.sort()
+                    dbg("contains #{x.length} files")
+                    files = x.slice(opts.start, opts.stop)
+                    cb()
+        (cb) ->
+            i = 0
+            f = (project_id, c) ->
+                t = misc.walltime()
+                i += 1
+                dbg("syncing #{i}/#{files.length}: #{project_id}")
+                cs = db.chunked_storage(project_id)
+                cs.verbose = opts.verbose
+                cs.sync_put
+                    path : opts.streams + '/' + project_id
+                    cb   : (err) ->
+                        dbg("done syncing #{project_id} in #{misc.walltime(t)} seconds")
+                        if err
+                            dbg("syncing #{project_id} resulted in error: #{err}")
+                            errors[project_id] = err
+                        c()
+            async.mapLimit(files, opts.limit, f, cb)
+    ], (err) ->
+        if err
+            opts.cb?(err)
+        else
+            if misc.len(errors) > 0
+                opts.cb?(errors)
+            else
+                opts.cb?()
+    )
+
+
 
 class ChunkedStorage
 
