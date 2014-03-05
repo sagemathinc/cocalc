@@ -2767,9 +2767,13 @@ class ChunkedStorage
             (cb) =>
                 if opts.filename?
                     dbg("open output file #{opts.filename}")
-                    fs.open opts.filename, 'w', (err, _fd) =>
-                        fd = _fd
-                        cb(err)
+                    misc_node.ensure_containing_directory_exists process.cwd()+'/'+opts.filename, (err) =>
+                        if err
+                            cb(err)
+                        else
+                            fs.open opts.filename, 'w', (err, _fd) =>
+                                fd = _fd
+                                cb(err)
                 else
                     cb()
             (cb) =>
@@ -2788,6 +2792,8 @@ class ChunkedStorage
                             dbg("chunk ids=#{misc.to_json(chunk_ids)}")
                             cb()
             (cb) =>
+                if not chunk_ids?  # 0-length file
+                    cb(); return
                 dbg("get chunks")
                 f = (i, c) =>
                     t = misc.walltime()
@@ -2853,6 +2859,8 @@ class ChunkedStorage
                         else
                             if result.length > 0
                                 chunk_ids = result[0][0]
+                                if not chunk_ids?
+                                    chunk_ids = []
                                 dbg("chunk ids=#{misc.to_json(chunk_ids)}")
                             else
                                 dbg("nothing there")
@@ -2891,19 +2899,17 @@ class ChunkedStorage
     # Files with the same name and size are considered equal (for our application
     # this is fine).
 
-    # Copy any files in path not in database *to* the database.
-    sync_put: (opts) =>
+    sync_diff: (opts) =>
         opts = defaults opts,
-            path   : required
-            delete : false          # if true, deletes anything in the database not in the path
-            cb     : undefined
-        dbg = (m) => @dbg('sync_put', opts.path, m)
-        db_files = {}
-        to_copy  = []
-        local_files = {}
+            path : required,
+            cb   : required     # cb(err, {local_only:local_only_files, db_only:db_only_files})
+
+        dbg = (m) => @dbg('sync_diff', opts.path, m)
+        db_files    = {}  # map filename:size with keys the db files
+        local_files = {}  # map filename:size with keys the local files
         async.series([
             (cb) =>
-                dbg("get files in database")
+                dbg("files in database")
                 @ls
                     cb : (err, x) =>
                         if err
@@ -2927,25 +2933,49 @@ class ChunkedStorage
                             for x in output.stdout.split('\n')
                                 v = misc.split(x)
                                 if v.length == 2
-                                    if opts.delete
-                                        local_files[v[1]] = true
-                                    if db_files[v[1]] != parseInt(v[0])   # true if diff size or not there
-                                        to_copy.push(v[1])
+                                    local_files[v[1]] = parseInt(v[0])
                             cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                local_only_files = (name for name, size of local_files when db_files[name] != size)
+                db_only_files    = (name for name, size of db_files when local_files[name] != size)
+                opts.cb(undefined, {local_only:local_only_files, db_only:db_only_files})
+        )
+
+
+    # Copy any files in path not in database *to* the database.
+    sync_put: (opts) =>
+        opts = defaults opts,
+            path   : required
+            delete : false          # if true, deletes anything in the database not in the path
+            cb     : undefined
+        dbg = (m) => @dbg('sync_put', opts.path, m)
+        diff = undefined
+        copied = {}
+        async.series([
             (cb) =>
-                if to_copy.length == 0
+                @sync_diff
+                    path : opts.path
+                    cb   : (err, x) =>
+                        diff = x
+                        cb(err)
+            (cb) =>
+                if diff.local_only.length == 0
                     cb(); return
-                dbg("copy all new files to database")
+                dbg("copy all new local files to database")
                 f = (name, c) =>
+                    copied[name] = true
                     @put
                         name     : name
                         filename : opts.path + '/'+name
                         cb       : c
-                async.mapLimit(to_copy, 5, f, cb)  # up to 5 files at once
+                async.mapLimit(diff.local_only, 3, f, cb)  # up to 3 files at once
 
             (cb) =>
                 if opts.delete
-                    to_delete = (name for name, size of db_files when not local_files[name])
+                    to_delete = (name for name in diff.db_only when not copied[name])
                     if to_delete.length == 0
                         cb(); return
                     dbg("delete #{to_delete.length} files in database not in local path")
@@ -2963,9 +2993,43 @@ class ChunkedStorage
     sync_get: (opts) =>
         opts = defaults opts,
             path   : required
-            delete : false
+            delete : false       # if true, deletes local files not in database, after doing the copy successfully.
             cb     : undefined
         dbg = (m) => @dbg('sync_get', opts.path, m)
+        diff = undefined
+        copied = {}
+        async.series([
+            (cb) =>
+                @sync_diff
+                    path : opts.path
+                    cb   : (err, x) =>
+                        diff = x
+                        cb(err)
+            (cb) =>
+                if diff.db_only.length == 0
+                    cb(); return
+                dbg("get all files only (or changed) in db")
+                f = (name, c) =>
+                    copied[name] = true
+                    @get
+                        name     : name
+                        filename : opts.path + '/' + name
+                        cb       : c
+                async.mapLimit(diff.db_only, 3, f, cb)  # up to 3 files at once
+
+            (cb) =>
+                if opts.delete
+                    to_delete = (name for name in diff.local_only when not copied[name])
+                    if to_delete.length == 0
+                        cb(); return
+                    dbg("delete #{to_delete.length} files locally")
+                    f = (name, c) =>
+                        fs.unlink(opts.path + '/' + name, c)
+                    async.map(to_delete, f, cb)   # no limit -- deleting is easy.
+                else
+                    cb()
+        ], (err) => opts.cb?(err))
+
 
     # First copy any files from the database to path, and any from path (not in db) back to the database,
     # so that the same files (the union) are in both.
@@ -2973,8 +3037,18 @@ class ChunkedStorage
         opts = defaults opts,
             path   : required
             cb     : undefined
-
-
+        async.series([
+            (cb) =>
+                @sync_get
+                    path   : opts.path
+                    delete : false
+                    cb     : cb
+            (cb) =>
+                @sync_put
+                    path   : opts.path
+                    delete : false
+                    cb     : cb
+        ], (err) => opts.cb?(err))
 
 
 quote_if_not_uuid = (s) ->
