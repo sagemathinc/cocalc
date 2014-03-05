@@ -2551,6 +2551,7 @@ exports.storage_migrate = (opts) ->
         streams : required  # path to streams
         limit   : 1
         verbose : false
+        timeout : 5         # wait this many seconds after each sync to give database time to breath
         cb      : undefined
 
     dbg = (m) -> winston.debug("storage_migrate: #{m}")
@@ -2588,7 +2589,7 @@ exports.storage_migrate = (opts) ->
                         if err
                             dbg("syncing #{project_id} resulted in error: #{err}")
                             errors[project_id] = err
-                        c()
+                        setTimeout(c, opts.timeout*1000)  # let it break
             async.mapLimit(files, opts.limit, f, cb)
     ], (err) ->
         if err
@@ -2739,6 +2740,8 @@ class ChunkedStorage
 
             (cb) =>
                 num_chunks = Math.ceil(size / chunk_size)
+                # do not use Sha1 -- even though that might be nice in theory and for some sort of (highly unlikely!) dedup,
+                # in practice it would require reference counting and making the code much more complicated and error prone.
                 chunk_ids = (uuid.v4() for i in [0...num_chunks])
 
                 dbg("saving the chunks")
