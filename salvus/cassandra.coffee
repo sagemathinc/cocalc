@@ -2532,11 +2532,12 @@ class exports.Salvus extends exports.Cassandra
 
 class ChunkedStorage
 
-    constructor: (@db, @project_id) ->
+    constructor: (@db, @project_id, @verbose=false) ->
         @dbg("constructor", undefined, 'create')
 
     dbg: (f, args, m) =>
-        winston.debug("ChunkedStorage(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
+        if @verbose
+            winston.debug("ChunkedStorage(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
 
     # Delete any chunks that aren't referenced by some object -- this is not restricted to
     # this particular project but all projects.   Running this while objects are being
@@ -2593,6 +2594,20 @@ class ChunkedStorage
             columns   : ['name', 'size']
             objectify : true
             cb        : opts.cb
+
+    # total usage of all objects
+    size: (opts) =>
+        opts = defaults opts,
+            cb  : required # cb(err, [array of {name:, size:} objects])
+        @ls
+            cb : (err, v) =>
+                if err
+                    opts.cb(err)
+                else
+                    size = 0
+                    for f in v
+                        size += f.size
+                    opts.cb(undefined, size)
 
     # write file/blob to the cassandra database
     put: (opts) =>
@@ -2698,16 +2713,16 @@ class ChunkedStorage
                             dbg("ignoring error deleting previous chunks: #{err}")
                         b = "[#{chunk_ids.join(',')}]"
                         dbg("writing index to new chunks: #{b}")
-                        query = "UPDATE storage SET chunk_ids=#{b}, size=? WHERE project_id=? AND name=?"
+                        query = "UPDATE storage SET chunk_ids=#{b}, size=?, chunk_size=? WHERE project_id=? AND name=?"
                         dbg(query)
-                        @db.cql(query, [size, @project_id, opts.name], cb)
+                        @db.cql(query, [size, chunk_size, @project_id, opts.name], cb)
         ], (err) => opts.cb?(err))
 
     # get file/blob from the cassandra database (to memory or a local file)
     get: (opts) =>
         opts = defaults opts,
             name       : undefined  # if not given, defaults to filename
-            filename   : undefined  # if given, write result to the file with this name instead of returning a new Buffer.
+            filename   : undefined  # if given, write result to the file with this name instead of returning a new Buffer, which is CRITICAL if object is large!
             limit      : 10         # max number of chunks to read at once
             cb         : required
         if not opts.name?
@@ -2719,19 +2734,53 @@ class ChunkedStorage
         dbg = (m) => @dbg('get', opts.name, m)
         chunk_ids = undefined
         chunks = {}
+        chunk_size = undefined
+        fd = undefined
+
+        writing_chunks = false
+        write_chunks_to_file = (cb) =>
+            # write all chunks in chunks to the file
+            if writing_chunks
+                f = () =>
+                    write_chunks_to_file(cb)
+                setTimeout(f, 250)  # check again soon
+            else
+                if misc.len(chunks) == 0
+                    cb(); return # done
+                # Write everything
+                writing_chunks = true
+                f = (chunk, c) =>
+                    dbg("writing chunk starting at #{chunk.start} to #{opts.filename}")
+                    fs.write fd, chunk.chunk, 0, chunk.chunk.length, chunk.start, (err) =>
+                        delete chunks[chunk.chunk_id]
+                        c(err)
+                v = (chunk for chunk_id, chunk of chunks)
+                async.mapSeries v, f, (err) =>
+                    writing_chunks = false
+                    cb(err)
+
         async.series([
+            (cb) =>
+                if opts.filename?
+                    dbg("open output file #{opts.filename}")
+                    fs.open opts.filename, 'w', (err, _fd) =>
+                        fd = _fd
+                        cb(err)
+                else
+                    cb()
             (cb) =>
                 dbg("get chunk ids")
                 @db.select_one
                     table     : 'storage'
                     where     : {project_id:@project_id, name:opts.name}
-                    columns   : ['chunk_ids']
-                    objectify : false
+                    columns   : ['chunk_ids', 'chunk_size']
+                    objectify : true
                     cb        : (err, result) =>
                         if err
                             cb(err)
                         else
-                            chunk_ids = result[0]
+                            chunk_ids  = result.chunk_ids
+                            chunk_size = result.chunk_size
                             dbg("chunk ids=#{misc.to_json(chunk_ids)}")
                             cb()
             (cb) =>
@@ -2748,15 +2797,35 @@ class ChunkedStorage
                                 c(err)
                             else
                                 dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
-                                chunks[chunk_ids[i]] = result[0]
-                                c()
+                                chunk = result[0]
+                                chunks[chunk_ids[i]] = {chunk:chunk, start:i*chunk_size, chunk_id:chunk_ids[i]}
+                                if opts.filename?
+                                    if misc.len(chunks) >= opts.limit
+                                        # attempt to write the chunks we have so far to the file -- one at a time before returning (which will slow things down)
+                                        write_chunks_to_file(c)
+                                    else
+                                        c()
+                                else
+                                    c()
                 async.mapLimit([0...chunk_ids.length], opts.limit, f, cb)
+            (cb) =>
+                if opts.filename?
+                    dbg("write any remaining chunks to file")
+                    write_chunks_to_file(cb)
+                else
+                    cb()
         ], (err) =>
+            if fd?
+                fs.close(fd)
             if err
                 opts.cb(err)
             else
-                blob = Buffer.concat( (chunks[chunk_id] for chunk_id in chunk_ids) )
-                opts.cb(undefined, blob)
+                if not opts.filename?
+                    dbg("assembling in memory buffers together to make blob")
+                    blob = Buffer.concat( (chunks[chunk_id].chunk for chunk_id in chunk_ids) )
+                    opts.cb(undefined, blob)
+                else
+                    opts.cb()
         )
 
     delete: (opts) =>
