@@ -1,6 +1,5 @@
 #!/bin/bash
-# Written by Keith Clawson
-
+# Written by Keith Clawson, with some modifications by William Stein.  March 2014
 
 # flush table
 iptables -F
@@ -22,7 +21,7 @@ do
 done
 
 # accept incoming traffic to ports >= 1024 from localhost -- this is used for port forwarding over ssh
-iptables -A INPUT -p tcp --dport 1024: --source 127.0.0.1 -j ACCEPT
+iptables -A INPUT -p tcp --dport 1024: --source localhost -j ACCEPT
 
 # reject incoming tcp connections to ports >= 1024 from any source that
 # did not match any of the previous rules
