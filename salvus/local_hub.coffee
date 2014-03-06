@@ -1699,49 +1699,63 @@ start_tcp_server = (cb) ->
         winston.info("listening on port #{server.address().port}")
         fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
+# use of domain inspired by http://stackoverflow.com/questions/17940895/handle-uncaughtexception-in-express-and-restify
+# This addresses an issue where the raw server fails to startup, maybe due to race condition with misc_node.free_port;
+# and... in any case if anything uncaught goes wrong starting the raw server or running, this will ensure
+# that it gets fixed automatically.
+raw_server_domain = require('domain').create()
+
+raw_server_domain.on 'error', (err) ->
+    winston.debug("got an exception in raw server, so restarting.")
+    start_raw_server( () -> winston.debug("restarted raw http server") )
+
 start_raw_server = (cb) ->
-    winston.info("starting raw server...")
-    # It's fine to move these lines to the outer scope... when they are needed there.
-    try
-        info = fs.readFileSync("#{process.env['SAGEMATHCLOUD']}/info.json")
-        winston.debug("info = #{info}")
-        info = JSON.parse(info)
-        # We do the following for backward compatibility -- old projects may have an
-        # old base_url laying around.
-        if not info.base_url?
-            info.base_url = ''
-    catch e
-        winston.debug("Missing or corrupt info.json file -- waiting for a new one. #{e}")
-        # There is really nothing the local hub can do if the info.json file is missing
-        # or corrupt, except to wait for a global hub to copy over a new good version.
-        # A global hub should do this on local hub restart or project connection...
-        # Try again soon.
-        f = () ->
-            start_raw_server(()->)
-        setTimeout(f, 1000)
-        cb() # no error, since other stuff needs to happen
-        return
+    raw_server_domain.run () ->
+        winston.info("starting raw server...")
+        # It's fine to move these lines to the outer scope... when they are needed there.
+        try
+            info = fs.readFileSync("#{process.env['SAGEMATHCLOUD']}/info.json")
+            winston.debug("info = #{info}")
+            info = JSON.parse(info)
+            # We do the following for backward compatibility -- old projects may have an
+            # old base_url laying around.
+            if not info.base_url?
+                info.base_url = ''
+        catch e
+            winston.debug("Missing or corrupt info.json file -- waiting for a new one. #{e}")
+            # There is really nothing the local hub can do if the info.json file is missing
+            # or corrupt, except to wait for a global hub to copy over a new good version.
+            # A global hub should do this on local hub restart or project connection...
+            # Try again soon.
+            f = () ->
+                start_raw_server(()->)
+            setTimeout(f, 1000)
+            cb() # no error, since other stuff needs to happen
+            return
 
-    express = require('express')
-    raw_server = express()
-    project_id = info.project_id
-    misc_node.free_port (err, port) ->
-        if err
-            winston.debug("error starting raw server: #{err}")
-            cb(err); return
-        base = "#{info.base_url}/#{project_id}/raw/"
-        winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
-        raw_server.configure () ->
-            raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
-            raw_server.use(base, express.static(process.env.HOME, {hidden:true}))
-
-        # NOTE: It is critical to only listen on the host interface, since otherwise other users
-        # on the same VM could listen in.   We firewall connections from the other VM hosts above
-        # port 1024, so this is safe without authentication.
-        raw_server.listen port, info.location.host, (err) ->
+        express = require('express')
+        raw_server = express()
+        project_id = info.project_id
+        misc_node.free_port (err, port) ->
             if err
+                winston.debug("error starting raw server: #{err}")
                 cb(err); return
             fs.writeFile(abspath("#{DATA}/raw.port"), port, cb)
+            base = "#{info.base_url}/#{project_id}/raw/"
+            winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
+
+            raw_server.configure () ->
+                raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
+                raw_server.use(base, express.static(process.env.HOME, {hidden:true}))
+
+            # NOTE: It is critical to only listen on the host interface, since otherwise other users
+            # on the same VM could listen in.   We firewall connections from the other VM hosts above
+            # port 1024, so this is safe without authentication.
+            raw_server.listen port, info.location.host, (err) ->
+                winston.info("err = #{err}")
+                if err
+                    cb(err); return
+                fs.writeFile(abspath("#{DATA}/raw.port"), port, cb)
 
 last_activity = undefined
 # Call this function to signal that there is activity.

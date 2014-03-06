@@ -468,7 +468,10 @@ free_port = exports.free_port = (cb) ->    # cb(err, available port as assigned 
         port = server.address().port
         server.close()
     server.on "close", ->
-        cb(null, port)
+        f = () ->
+            cb(null, port)
+        # give the OS a chance to really make the port available again.
+        setTimeout(f, 500)
     server.listen(0)
 
 exports.forward_remote_port_to_localhost = (opts) ->

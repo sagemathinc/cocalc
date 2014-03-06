@@ -61,7 +61,7 @@ if os.path.exists('/mnt/home/'):
     os.system("chown -R storage. /home/storage")
     os.system("chmod og-rwx -R /home/storage/&")
 
-    # Copy over newest version of storage management script to storage user. 
+    # Copy over newest version of storage management script to storage user.
     os.system("cp /home/salvus/salvus/salvus/scripts/smc_storage.py /home/storage/; chown storage. /home/storage/smc_storage.py")
 
     # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
@@ -82,7 +82,7 @@ os.system("chmod og-rwx -R /home/salvus/&")
 # Configure the backup machine(s)
 if hostname.startswith('backup'):
     # create a /home/storage directory owned by salvus
-    os.system("mkdir -p /home/storage; chown -R salvus. /home/storage")    
+    os.system("mkdir -p /home/storage; chown -R salvus. /home/storage")
     # delete the .ssh/authorized_keys file for the salvus user -- no passwordless login to backup vm's
     os.system("rm /home/salvus/.ssh/authorized_keys")
     # add lines to sudo control
@@ -94,6 +94,16 @@ if hostname.startswith('backup'):
 
 
 if hostname.startswith('cassandra'):
-   # import and mount the relevant ZFS pool -- do this blocking, since once the machine is up we had better
-   # be able to start cassandra itself.
-   os.system("zpool import -f cassandra ")
+    # import and mount the relevant ZFS pool -- do this blocking, since once the machine is up we had better
+    # be able to start cassandra itself.
+    os.system("zpool import -f cassandra ")
+
+if hostname.startswith('compute'):
+    # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
+    os.system("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
+
+
+
+
+
+

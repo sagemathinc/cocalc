@@ -52,7 +52,12 @@ exports.random_choice_from_obj = (obj) ->
 exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
 
 # Like Python's string split -- splits on whitespace
-exports.split = (s) -> s.match(/\S+/g)
+exports.split = (s) ->
+    r = s.match(/\S+/g)
+    if r
+        return r
+    else
+        return []
 
 # Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
 
