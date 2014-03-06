@@ -632,8 +632,9 @@ class exports.Cassandra extends EventEmitter
     uuid_blob_store: (opts={}) -> # uuid_blob_store(name:"the name")
         new UUIDBlobStore(@, opts)
 
-    chunked_storage: (id, verbose=false) =>  # id=uuid
-        return new ChunkedStorage(@, id, verbose)
+    chunked_storage: (opts) =>  # id=uuid
+        opts.db = @
+        return new ChunkedStorage(opts)
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
@@ -2605,10 +2606,16 @@ exports.storage_migrate = (opts) ->
 
 class ChunkedStorage
 
-    constructor: (@db, @id, @verbose=false) ->
-        # db = a database connection
-        # id = a uuid
-        # verbose = if true, log a lot about what happens.
+    constructor: (opts) ->
+        opts = defaults opts,
+            db      : required     # db = a database connection
+            id      : required     # id = a uuid
+            verbose : true   # verbose = if true, log a lot about what happens.
+            limit   : 5
+        @db = opts.db
+        @id = opts.id
+        @verbose = opts.verbose
+        @limit = opts.limit
         @dbg("constructor", undefined, 'create')
 
     dbg: (f, args, m) =>
@@ -2625,6 +2632,7 @@ class ChunkedStorage
         to_delete = undefined
         async.series([
             (cb) =>
+                # TODO: this must be re-done to use paging.            
                 @db.select
                     table     : 'storage'
                     columns   : ['chunk_ids']
@@ -2641,6 +2649,7 @@ class ChunkedStorage
                         dbg("found #{misc.len(ids)} valid referenced chunks")
                         cb()
             (cb) =>
+                # TODO: this must be re-done to use paging.
                 @db.select
                     table   : 'storage_chunks'
                     columns : ['chunk_id']
@@ -2692,8 +2701,11 @@ class ChunkedStorage
             blob          : undefined  # Buffer  # EXACTLY ONE of blob or path must be defined
             filename      : undefined  # filename  -- instead read blob directly from file, which will work even if file is HUGE
             chunk_size_mb : 10         # 10MB
-            limit         : 20         # max number of chunks to save at once
+            limit         : undefined          # max number of chunks to save at once
             cb            : undefined
+
+        if not opts.limit?
+            opts.limit = @limit
 
         if not opts.blob? and not opts.filename?
             opts.cb?("either a blob or filename must be given")
@@ -2713,6 +2725,7 @@ class ChunkedStorage
                 opts.name = opts.filename
 
         dbg = (m) => @dbg('put', opts.name, m)
+        total_time = misc.walltime()
 
         chunk_size = opts.chunk_size_mb * 1000000
         size       = undefined
@@ -2794,15 +2807,24 @@ class ChunkedStorage
                         query = "UPDATE storage SET chunk_ids=#{b}, size=?, chunk_size=? WHERE id=? AND name=?"
                         dbg(query)
                         @db.cql(query, [size, chunk_size, @id, opts.name], cb)
-        ], (err) => opts.cb?(err))
+        ], (err) =>
+            dbg("total time: #{misc.walltime(total_time)}")
+            opts.cb?(err)
+        )
 
     # get file/blob from the cassandra database (to memory or a local file)
     get: (opts) =>
         opts = defaults opts,
             name       : undefined  # if not given, defaults to filename
             filename   : undefined  # if given, write result to the file with this name instead of returning a new Buffer, which is CRITICAL if object is large!
-            limit      : 10         # max number of chunks to read at once
+            limit      : undefined  # max number of chunks to read at once
             cb         : required
+
+        total_time = misc.walltime()
+
+        if not opts.limit?
+            opts.limit = @limit
+
         if not opts.name?
             if not opts.filename?
                 opts.cb("name or filename must be given")
@@ -2899,6 +2921,7 @@ class ChunkedStorage
                 else
                     cb()
         ], (err) =>
+            dbg("total time: #{misc.walltime(total_time)}")
             if fd?
                 fs.close(fd)
             if err
@@ -2915,8 +2938,10 @@ class ChunkedStorage
     delete: (opts) =>
         opts = defaults opts,
             name       : required
-            limit      : 10           # number to delete at once
+            limit      : undefined           # number to delete at once
             cb         : undefined
+        if not opts.limit?
+            opts.limit = @limit
         dbg = (m) => @dbg('delete', opts.name, m)
         chunk_ids = undefined
         async.series([
