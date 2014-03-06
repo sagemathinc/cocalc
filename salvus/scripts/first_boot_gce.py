@@ -103,6 +103,11 @@ def conf():
     # Import the ZFS pool -- without mounting!
     cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
+    # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
+    if hostname.startswith('compute'):
+        os.system("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
+
+
 if __name__ == "__main__":
     if mount_conf():
         conf()
