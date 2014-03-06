@@ -31,12 +31,14 @@ exports.RECENT_TIMES = RECENT_TIMES =
 RECENT_TIMES_ARRAY = ({desc:desc,ttl:ttl} for desc,ttl of RECENT_TIMES)
 
 misc    = require('misc')
+misc_node = require('misc_node')
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 {to_json, from_json, to_iso, defaults} = misc
 required = defaults.required
 
+fs      = require('fs')
 assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
@@ -616,10 +618,10 @@ class exports.Cassandra extends EventEmitter
         try
             @conn.execute query, vals, consistency, (error, results) =>
                 if error
-                    winston.error("Query cql('#{query}',params=#{vals}) caused a CQL error:\n#{error}")
+                    winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                 cb?(error, results?.rows)
         catch e
-            cb?("exception doing cql query -- #{e}")
+            cb?("exception doing cql query -- #{misc.to_json(e).slice(0,1000)}")
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)
@@ -629,6 +631,10 @@ class exports.Cassandra extends EventEmitter
 
     uuid_blob_store: (opts={}) -> # uuid_blob_store(name:"the name")
         new UUIDBlobStore(@, opts)
+
+    chunked_storage: (opts) =>  # id=uuid
+        opts.db = @
+        return new ChunkedStorage(opts)
 
 class exports.Salvus extends exports.Cassandra
     constructor: (opts={}) ->
@@ -2519,6 +2525,629 @@ class exports.Salvus extends exports.Cassandra
             else
                 opts.cb(err, stats)
         )
+
+############################################################################
+# Chunked storage for each project (or user, or whatever is indexed by a uuid).
+# Store arbitrarily large blob data associated to each project here.
+# This uses the storage and storage_blob tables.
+############################################################################
+
+exports.storage_db = (cb) ->
+    fs.readFile "#{process.cwd()}/data/secrets/cassandra/storage0", (err, password) ->
+        if err
+            cb(err)
+        else
+            new exports.Salvus
+                hosts    : ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                keyspace : 'storage'
+                username : 'storage0'
+                consistency : 1
+                password : password.toString().trim()
+                cb       : cb
+
+exports.storage_migrate = (opts) ->
+    opts = defaults opts,
+        start   : required  # integer
+        stop    : required  # integer
+        streams : required  # path to streams
+        limit   : 1
+        verbose : false
+        timeout : 5         # wait this many seconds after each sync to give database time to breath
+        cb      : undefined
+
+    dbg = (m) -> winston.debug("storage_migrate: #{m}")
+    db = undefined
+    files = undefined
+    errors = {}
+    async.series([
+        (cb) ->
+            dbg("getting db")
+            exports.storage_db (err, x) ->
+                db = x
+                cb(err)
+        (cb) ->
+            dbg("reading dirctory")
+            fs.readdir opts.streams, (err, x) ->
+                if err
+                    cb(err)
+                else
+                    x.sort()
+                    dbg("contains #{x.length} files")
+                    files = x.slice(opts.start, opts.stop)
+                    cb()
+        (cb) ->
+            i = 0
+            f = (project_id, c) ->
+                t = misc.walltime()
+                i += 1
+                dbg("syncing #{i}/#{files.length}: #{project_id}")
+                cs = db.chunked_storage(project_id)
+                cs.verbose = opts.verbose
+                cs.sync_put
+                    path : opts.streams + '/' + project_id
+                    cb   : (err) ->
+                        dbg("done syncing #{project_id} in #{misc.walltime(t)} seconds")
+                        if err
+                            dbg("syncing #{project_id} resulted in error: #{err}")
+                            errors[project_id] = err
+                        setTimeout(c, opts.timeout*1000)  # let it break
+            async.mapLimit(files, opts.limit, f, cb)
+    ], (err) ->
+        if err
+            opts.cb?(err)
+        else
+            if misc.len(errors) > 0
+                opts.cb?(errors)
+            else
+                opts.cb?()
+    )
+
+
+
+class ChunkedStorage
+
+    constructor: (opts) ->
+        opts = defaults opts,
+            db      : required     # db = a database connection
+            id      : required     # id = a uuid
+            verbose : true   # verbose = if true, log a lot about what happens.
+            limit   : 5
+        @db = opts.db
+        @id = opts.id
+        @verbose = opts.verbose
+        @limit = opts.limit
+        @dbg("constructor", undefined, 'create')
+
+    dbg: (f, args, m) =>
+        if @verbose
+            winston.debug("ChunkedStorage(#{@id}).#{f}(#{misc.to_json(args)}): #{m}")
+
+    # Delete any chunks that aren't referenced by some object -- this is not restricted to
+    # this particular project but all projects.   Running this while objects are being
+    # written would corrupt them as they are written, for obvious reasons.
+    _scrub: (cb) =>
+        dbg = (m) => @dbg('_scrub', '', m)
+
+        ids = undefined
+        to_delete = undefined
+        async.series([
+            (cb) =>
+                # TODO: this must be re-done to use paging.            
+                @db.select
+                    table     : 'storage'
+                    columns   : ['chunk_ids']
+                    objectify : false
+                    cb        : (err, results) =>
+                        if err
+                            cb(err)
+                            return
+                        dbg("found #{results.length} files")
+                        ids = {}
+                        for r in results
+                            for chunk_id in r[0]
+                                ids[chunk_id] = true
+                        dbg("found #{misc.len(ids)} valid referenced chunks")
+                        cb()
+            (cb) =>
+                # TODO: this must be re-done to use paging.
+                @db.select
+                    table   : 'storage_chunks'
+                    columns : ['chunk_id']
+                    objectify : false
+                    cb        : (err, results) =>
+                        if err
+                            cb(err)
+                            return
+                        dbg("found #{results.length} chunks")
+                        to_delete = (r[0] for r in results when not ids[r[0]]?)
+                        dbg("made list of #{to_delete.length} chunks to delete")
+                        cb()
+            (cb) =>
+                @db.delete
+                    table  : 'storage_chunks'
+                    where  : {chunk_id:{'in':to_delete}}
+                    cb     : cb
+        ], cb)
+
+    # list of objects in chunked storage for this project
+    ls: (opts) =>
+        opts = defaults opts,
+            cb  : required # cb(err, [array of {name:, size:} objects])
+        @db.select
+            table     : 'storage'
+            where     : {id:@id}
+            columns   : ['name', 'size']
+            objectify : true
+            cb        : opts.cb
+
+    # total usage of all objects
+    size: (opts) =>
+        opts = defaults opts,
+            cb  : required # cb(err, [array of {name:, size:} objects])
+        @ls
+            cb : (err, v) =>
+                if err
+                    opts.cb(err)
+                else
+                    size = 0
+                    for f in v
+                        size += f.size
+                    opts.cb(undefined, size)
+
+    # write file/blob to the cassandra database
+    put: (opts) =>
+        opts = defaults opts,
+            name          : undefined  # defaults to equal filename if given; if filename not given, name *must* be given
+            blob          : undefined  # Buffer  # EXACTLY ONE of blob or path must be defined
+            filename      : undefined  # filename  -- instead read blob directly from file, which will work even if file is HUGE
+            chunk_size_mb : 10         # 10MB
+            limit         : undefined          # max number of chunks to save at once
+            cb            : undefined
+
+        if not opts.limit?
+            opts.limit = @limit
+
+        if not opts.blob? and not opts.filename?
+            opts.cb?("either a blob or filename must be given")
+            return
+
+        if opts.blob?
+            if opts.filename?
+                opts.cb?("exactly one of blob or filename must be given but NOT both")
+            else
+                if typeof(opts.blob) == "string"
+                    opts.blob = new Buffer(opts.blob)
+
+        if not opts.name?
+            if not opts.filename?
+                opts.cb?("if name isn't given, then filename must be given")
+            else
+                opts.name = opts.filename
+
+        dbg = (m) => @dbg('put', opts.name, m)
+        total_time = misc.walltime()
+
+        chunk_size = opts.chunk_size_mb * 1000000
+        size       = undefined
+        fd         = undefined
+        num_chunks = undefined
+        chunk_ids  = undefined
+
+        async.series([
+            (cb) =>
+                dbg("get size of blob or filename")
+                if opts.blob?
+                    size = opts.blob.length
+                    cb()
+                else
+                    fs.stat opts.filename, (err, stats) =>
+                        if err
+                            cb(err)
+                        else
+                            size = stats.size
+                            # also, get the file descriptor, so we can read randomly chunks of the file.
+                            # Reading the whole file at once could easily run out of address space or RAM!
+                            fs.open opts.filename, 'r', (err, _fd) =>
+                                fd = _fd
+                                cb(err)
+
+            (cb) =>
+                num_chunks = Math.ceil(size / chunk_size)
+                # do not use Sha1 -- even though that might be nice in theory and for some sort of (highly unlikely!) dedup,
+                # in practice it would require reference counting and making the code much more complicated and error prone.
+                chunk_ids = (uuid.v4() for i in [0...num_chunks])
+
+                dbg("saving the chunks")
+                get_chunk = (start, end, c) =>
+                    if opts.blob?
+                        c(undefined, opts.blob.slice(start, end))
+                    else
+                        chunk = new Buffer(end-start)
+                        fs.read fd, chunk, 0, chunk.length, start, (err) =>
+                            c(err, chunk)
+
+                f = (i, c) =>
+                    t = misc.walltime()
+                    chunk_id = chunk_ids[i]
+                    dbg("reading and store chunk #{i}/#{num_chunks-1}: #{chunk_id}")
+                    start = i*chunk_size
+                    end   = Math.min(size, (i+1)*chunk_size)  # really ends at pos one before this.
+                    get_chunk start, end, (err, chunk) =>
+                        if err
+                            c(err)
+                        else
+                            query = "UPDATE storage_chunks SET chunk=?, size=? WHERE chunk_id=?"
+                            @db.cql query, [chunk, chunk.length, chunk_id], (err) =>
+                                dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
+                                c(err)
+
+                async.mapLimit [0...num_chunks], opts.limit, f, (err) =>
+                    if err
+                        dbg("something went wrong writing chunks (#{err}): delete any chunks we just wrote")
+                        g = (id, c) =>
+                            @db.delete
+                                table : 'storage_chunks'
+                                where : {chunk_id:id}
+                                cb    : (ignored) => c()
+                        async.map chunk_ids, g, (ignored) => cb(err)
+                    else
+                        cb()
+
+            (cb) =>
+                dbg("now all new chunks are successfully saved so delete any previous chunks")
+                @delete
+                    name       : opts.name
+                    limit      : opts.limit
+                    cb         : (err) =>
+                        if err
+                            # ignoring this at worse leaks storage at this point.
+                            dbg("ignoring error deleting previous chunks: #{err}")
+                        b = "[#{chunk_ids.join(',')}]"
+                        dbg("writing index to new chunks: #{b}")
+                        query = "UPDATE storage SET chunk_ids=#{b}, size=?, chunk_size=? WHERE id=? AND name=?"
+                        dbg(query)
+                        @db.cql(query, [size, chunk_size, @id, opts.name], cb)
+        ], (err) =>
+            dbg("total time: #{misc.walltime(total_time)}")
+            opts.cb?(err)
+        )
+
+    # get file/blob from the cassandra database (to memory or a local file)
+    get: (opts) =>
+        opts = defaults opts,
+            name       : undefined  # if not given, defaults to filename
+            filename   : undefined  # if given, write result to the file with this name instead of returning a new Buffer, which is CRITICAL if object is large!
+            limit      : undefined  # max number of chunks to read at once
+            cb         : required
+
+        total_time = misc.walltime()
+
+        if not opts.limit?
+            opts.limit = @limit
+
+        if not opts.name?
+            if not opts.filename?
+                opts.cb("name or filename must be given")
+                return
+            opts.name = opts.filename
+
+        dbg = (m) => @dbg('get', opts.name, m)
+        chunk_ids = undefined
+        chunks = {}
+        chunk_size = undefined
+        fd = undefined
+
+        writing_chunks = false
+        write_chunks_to_file = (cb) =>
+            # write all chunks in chunks to the file
+            if writing_chunks
+                f = () =>
+                    write_chunks_to_file(cb)
+                setTimeout(f, 250)  # check again soon
+            else
+                if misc.len(chunks) == 0
+                    cb(); return # done
+                # Write everything
+                writing_chunks = true
+                f = (chunk, c) =>
+                    dbg("writing chunk starting at #{chunk.start} to #{opts.filename}")
+                    fs.write fd, chunk.chunk, 0, chunk.chunk.length, chunk.start, (err) =>
+                        delete chunks[chunk.chunk_id]
+                        c(err)
+                v = (chunk for chunk_id, chunk of chunks)
+                async.mapSeries v, f, (err) =>
+                    writing_chunks = false
+                    cb(err)
+
+        async.series([
+            (cb) =>
+                if opts.filename?
+                    dbg("open output file #{opts.filename}")
+                    misc_node.ensure_containing_directory_exists process.cwd()+'/'+opts.filename, (err) =>
+                        if err
+                            cb(err)
+                        else
+                            fs.open opts.filename, 'w', (err, _fd) =>
+                                fd = _fd
+                                cb(err)
+                else
+                    cb()
+            (cb) =>
+                dbg("get chunk ids")
+                @db.select_one
+                    table     : 'storage'
+                    where     : {id:@id, name:opts.name}
+                    columns   : ['chunk_ids', 'chunk_size']
+                    objectify : true
+                    cb        : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            chunk_ids  = result.chunk_ids
+                            chunk_size = result.chunk_size
+                            dbg("chunk ids=#{misc.to_json(chunk_ids)}")
+                            cb()
+            (cb) =>
+                if not chunk_ids?  # 0-length file
+                    cb(); return
+                dbg("get chunks")
+                f = (i, c) =>
+                    t = misc.walltime()
+                    @db.select_one
+                        table : 'storage_chunks'
+                        where : {chunk_id:chunk_ids[i]}
+                        columns : ['chunk']
+                        objectify : false
+                        cb        : (err, result) =>
+                            if err
+                                c(err)
+                            else
+                                dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
+                                chunk = result[0]
+                                chunks[chunk_ids[i]] = {chunk:chunk, start:i*chunk_size, chunk_id:chunk_ids[i]}
+                                if opts.filename?
+                                    if misc.len(chunks) >= opts.limit
+                                        # attempt to write the chunks we have so far to the file -- one at a time before returning (which will slow things down)
+                                        write_chunks_to_file(c)
+                                    else
+                                        c()
+                                else
+                                    c()
+                async.mapLimit([0...chunk_ids.length], opts.limit, f, cb)
+            (cb) =>
+                if opts.filename?
+                    dbg("write any remaining chunks to file")
+                    write_chunks_to_file(cb)
+                else
+                    cb()
+        ], (err) =>
+            dbg("total time: #{misc.walltime(total_time)}")
+            if fd?
+                fs.close(fd)
+            if err
+                opts.cb(err)
+            else
+                if not opts.filename?
+                    dbg("assembling in memory buffers together to make blob")
+                    blob = Buffer.concat( (chunks[chunk_id].chunk for chunk_id in chunk_ids) )
+                    opts.cb(undefined, blob)
+                else
+                    opts.cb()
+        )
+
+    delete: (opts) =>
+        opts = defaults opts,
+            name       : required
+            limit      : undefined           # number to delete at once
+            cb         : undefined
+        if not opts.limit?
+            opts.limit = @limit
+        dbg = (m) => @dbg('delete', opts.name, m)
+        chunk_ids = undefined
+        async.series([
+            (cb) =>
+                dbg("get chunk ids")
+                @db.select
+                    table     : 'storage'
+                    where     : {id : @id, name : opts.name}
+                    columns   : ['chunk_ids']
+                    objectify : false
+                    cb        : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            if result.length > 0
+                                chunk_ids = result[0][0]
+                                if not chunk_ids?
+                                    chunk_ids = []
+                                dbg("chunk ids=#{misc.to_json(chunk_ids)}")
+                            else
+                                dbg("nothing there")
+                            cb()
+            (cb) =>
+                if not chunk_ids?
+                    cb(); return
+                dbg("delete chunks")
+                fail = false
+                f = (i, c) =>
+                    t = misc.walltime()
+                    @db.delete
+                        table : 'storage_chunks'
+                        where : {chunk_id:chunk_ids[i]}
+                        cb    : (err) =>
+                            if err
+                                fail = err
+                                # nonfatal -- so at least all the other chunks get deleted, and next time this one does.
+                                c()
+                            else
+                                dbg("deleted chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
+                                c()
+                async.mapLimit([0...chunk_ids.length], opts.limit, f, (err) -> cb(fail))
+            (cb) =>
+                if not chunk_ids?
+                    cb(); return
+                dbg("delete index")
+                @db.delete
+                    table : 'storage'
+                    where : {id : @id, name : opts.name}
+                    cb    : cb
+        ], (err) => opts.cb?(err))
+
+    # Sync back and forth between a path and the database:
+    #
+    # Files with the same name and size are considered equal (for our application
+    # this is fine).
+
+    sync_diff: (opts) =>
+        opts = defaults opts,
+            path : required,
+            cb   : required     # cb(err, {local_only:local_only_files, db_only:db_only_files})
+
+        dbg = (m) => @dbg('sync_diff', opts.path, m)
+        db_files    = {}  # map filename:size with keys the db files
+        local_files = {}  # map filename:size with keys the local files
+        async.series([
+            (cb) =>
+                dbg("files in database")
+                @ls
+                    cb : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            for f in x
+                                db_files[f.name] = f.size
+                            cb()
+            (cb) =>
+                dbg("get files in path")
+                misc_node.execute_code
+                    command     : 'find'
+                    args        : [opts.path, '-type', 'f', '-printf', '%s %P\n']  # size_bytes filename
+                    timeout     : 360
+                    err_on_exit : true
+                    path        : process.cwd()
+                    cb          : (err, output) ->
+                        if err
+                            cb(err)
+                        else
+                            for x in output.stdout.split('\n')
+                                v = misc.split(x)
+                                if v.length == 2
+                                    local_files[v[1]] = parseInt(v[0])
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                local_only_files = (name for name, size of local_files when db_files[name] != size)
+                db_only_files    = (name for name, size of db_files when local_files[name] != size)
+                opts.cb(undefined, {local_only:local_only_files, db_only:db_only_files})
+        )
+
+
+    # Copy any files in path not in database *to* the database.
+    sync_put: (opts) =>
+        opts = defaults opts,
+            path   : required
+            delete : false          # if true, deletes anything in the database not in the path
+            cb     : undefined
+        dbg = (m) => @dbg('sync_put', opts.path, m)
+        diff = undefined
+        copied = {}
+        async.series([
+            (cb) =>
+                @sync_diff
+                    path : opts.path
+                    cb   : (err, x) =>
+                        diff = x
+                        cb(err)
+            (cb) =>
+                if diff.local_only.length == 0
+                    cb(); return
+                dbg("copy all new local files to database")
+                f = (name, c) =>
+                    copied[name] = true
+                    @put
+                        name     : name
+                        filename : opts.path + '/'+name
+                        cb       : c
+                async.mapLimit(diff.local_only, 3, f, cb)  # up to 3 files at once
+
+            (cb) =>
+                if opts.delete
+                    to_delete = (name for name in diff.db_only when not copied[name])
+                    if to_delete.length == 0
+                        cb(); return
+                    dbg("delete #{to_delete.length} files in database not in local path")
+                    f = (name, c) =>
+                        @delete
+                            name : name
+                            cb   : c
+                    async.map(to_delete, f, cb)   # no limit -- deleting is easy.
+                else
+                    cb()
+        ], (err) => opts.cb?(err))
+
+
+    # Copy any files not in path *from* the database to the local directory.
+    sync_get: (opts) =>
+        opts = defaults opts,
+            path   : required
+            delete : false       # if true, deletes local files not in database, after doing the copy successfully.
+            cb     : undefined
+        dbg = (m) => @dbg('sync_get', opts.path, m)
+        diff = undefined
+        copied = {}
+        async.series([
+            (cb) =>
+                @sync_diff
+                    path : opts.path
+                    cb   : (err, x) =>
+                        diff = x
+                        cb(err)
+            (cb) =>
+                if diff.db_only.length == 0
+                    cb(); return
+                dbg("get all files only (or changed) in db")
+                f = (name, c) =>
+                    copied[name] = true
+                    @get
+                        name     : name
+                        filename : opts.path + '/' + name
+                        cb       : c
+                async.mapLimit(diff.db_only, 3, f, cb)  # up to 3 files at once
+
+            (cb) =>
+                if opts.delete
+                    to_delete = (name for name in diff.local_only when not copied[name])
+                    if to_delete.length == 0
+                        cb(); return
+                    dbg("delete #{to_delete.length} files locally")
+                    f = (name, c) =>
+                        fs.unlink(opts.path + '/' + name, c)
+                    async.map(to_delete, f, cb)   # no limit -- deleting is easy.
+                else
+                    cb()
+        ], (err) => opts.cb?(err))
+
+
+    # First copy any files from the database to path, and any from path (not in db) back to the database,
+    # so that the same files (the union) are in both.
+    sync: (opts) =>
+        opts = defaults opts,
+            path   : required
+            cb     : undefined
+        async.series([
+            (cb) =>
+                @sync_get
+                    path   : opts.path
+                    delete : false
+                    cb     : cb
+            (cb) =>
+                @sync_put
+                    path   : opts.path
+                    delete : false
+                    cb     : cb
+        ], (err) => opts.cb?(err))
 
 
 quote_if_not_uuid = (s) ->

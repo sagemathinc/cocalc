@@ -1,3 +1,18 @@
+/*
+CREATE KEYSPACE salvus WITH replication = {
+  'class': 'NetworkTopologyStrategy',
+  'DC0': '3',
+  'DC1': '3'
+};
+
+*/
+
+/* NOTE: as explained at https://cloud.sagemath.com/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/files/salvus/salvus/db_schema.cql
+   these blob tables below will store everything with a given name in the *same* single Cassandra column, hence not spread across
+   the cluster.  This is technically bad (though in practice can maybe mean some queries are faster).  It's mainly an issue if the
+   size of the table were huge, which it isn't now.   This should be restructured at some point though.
+*/
+
 CREATE TABLE uuid_blob (
      name varchar,
      uuid uuid,
@@ -551,13 +566,26 @@ CREATE TABLE banned_email_addresses (
 );
 
 
+/*STORAGE */
 
+/*
+  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2'};
+*/
 
+CREATE TABLE storage (
+    id          uuid,
+    name        varchar,
+    size        int,      /* object size in bytes */
+    chunk_size  int,      /* size in bytes it is divided into */
+    chunk_ids   list<uuid>,
+    PRIMARY KEY (id, name)
+);
 
-
-
-
-
+CREATE TABLE storage_chunks (
+    chunk_id    uuid      PRIMARY KEY,
+    size        int,      /* size in bytes */
+    chunk       blob
+);
 
 
 

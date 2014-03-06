@@ -62,6 +62,11 @@ def conf():
         open('/etc/fstab','w').write(fstab0 + '\n#SALVUS -- everything below this is automatically added from /mnt/conf/fstab! \n' + fstab1)
         cmd("mount -a")
 
+    # hostname
+    if os.path.exists('/mnt/conf/hostname'):
+        cmd("cp /mnt/conf/hostname /etc/hostname")
+        cmd("hostname `cat /mnt/conf/hostname`")
+
     # tinc
     if os.path.exists('/mnt/conf/tinc'):
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/etc/tinc")
@@ -70,12 +75,6 @@ def conf():
         cmd("mkdir -p /home/salvus/salvus/salvus/data/local/var/run/")
         cmd("/home/salvus/salvus/salvus/data/local/sbin/tincd -k; sleep 2")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
-
-    # restore project user accounts
-    if os.path.exists('/mnt/conf/etc/'):
-        os.system("cp -rv /mnt/conf/etc/* /etc/")
-    else:
-        os.system("mkdir -p /mnt/conf/etc/")
 
     # Copy over newest version of sudo project creation script, and ensure permissions are right.
     os.system("cp /home/salvus/salvus/salvus/scripts/create_project_user.py /usr/local/bin/; chmod a-w /usr/local/bin/create_project_user.py; chmod a+rx /usr/local/bin/create_project_user.py")
@@ -95,11 +94,19 @@ def conf():
     cmd("chmod og-rwx -R /home/salvus/")
     cmd("chmod og-rwx -R /home/storage/")
 
+    # Copy over newest version of storage management script to storage user.
+    os.system("cp /home/salvus/salvus/salvus/scripts/smc_storage.py /home/storage/; chown storage. /home/storage/smc_storage.py")
+
     # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
     cmd("rm /home/storage/.storage*")
 
     # Import the ZFS pool -- without mounting!
     cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
+
+    # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
+    if hostname.startswith('compute'):
+        os.system("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
+
 
 if __name__ == "__main__":
     if mount_conf():

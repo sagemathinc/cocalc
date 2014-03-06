@@ -61,11 +61,7 @@ Before building, do:
 
     apt-get install build-essential gawk alien fakeroot linux-headers-$(uname -r) zlib1g-dev uuid-dev libblkid-dev libselinux-dev parted lsscsi wget
 
-    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz
-    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz
-
-    tar -xzf spl-0.6.2.tar.gz
-    tar -xzf zfs-0.6.2.tar.gz
+    wget http://archive.zfsonlinux.org/downloads/zfsonlinux/spl/spl-0.6.2.tar.gz && wget http://archive.zfsonlinux.org/downloads/zfsonlinux/zfs/zfs-0.6.2.tar.gz && tar -xzf spl-0.6.2.tar.gz && tar -xzf zfs-0.6.2.tar.gz
 
     # **IMPORTANT**!  See https://github.com/zfsonlinux/zfs/issues/845
     # comment out line 98 in zfs-0.6.2/lib/libshare/libshare.c so have this:
@@ -73,17 +69,7 @@ Before building, do:
     #      /* update_zfs_shares(impl_handle, NULL); */
     #
 
-    cd spl-0.6.2
-    ./configure
-    make deb-utils deb-kmod
-    dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb
-
-    cd ../zfs-0.6.2
-    ./configure
-    make deb-utils deb-kmod
-    cd ..
-
-    dpkg -i */*.deb
+    cd spl-0.6.2 && ./configure && make deb-utils deb-kmod && dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb && cd ../zfs-0.6.2 && ./configure && make deb-utils deb-kmod && cd .. && dpkg -i */*.deb
 
 # LZ4 -- compression
 
@@ -107,6 +93,7 @@ MaxStartups 128
 On Ubuntu 13.10
 
    sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev golang-go libicu-dev libicu-devlibicu-dev libicu-dev libicu-dev iceweasel xvfb
+
 
 
 On Debian 7 (Google)
@@ -192,6 +179,12 @@ tmux -V
     umask 022; sage -i http://snappy.computop.org/get/snappy-2.0.3.spkg
 
 
+# Cartographic Projections Library:
+
+    sage -sh
+    sudo su
+    cd /tmp; wget http://download.osgeo.org/proj/proj-4.8.0.tar.gz; tar xvf proj-4.8.0.tar.gz; cd proj-4.8.0; ./configure --prefix=/usr; make install
+
 # Build Sage (as usual)
 
     umask 022   # always do this so that the resulting build is usable without painful permission hacking.
@@ -202,32 +195,22 @@ tmux -V
     export MAKE="make -j20"
     make
 
-# Make the new Sage able to import stuff installed in the system-wide python, e.g., "import dolfin" (some complicated FEM library)
-
-    cd $SAGE_ROOT/local/lib/python
-    echo "import sys; sys.path.append('/usr/lib/python2.7/dist-packages/'); sys.path.append('/usr/lib/pymodules/python2.7')" >> sitecustomize.py
-    chmod a+r sitecustomize.py
-
 # Workaround bugs in Sage
 
    - http://trac.sagemath.org/ticket/15178 -- bug in pexpect, which breaks ipython !ls.
      (just put f=filename in function which in /usr/local/sage/current/local/lib/python2.7/site-packages/pexpect.py)
 
-# Non-sage Python packages into Sage
+# PIP:
 
     sage -sh
     wget https://raw.github.com/pypa/pip/master/contrib/get-pip.py; python get-pip.py
 
-    sudo su
-    cd /tmp; wget http://download.osgeo.org/proj/proj-4.8.0.tar.gz; tar xvf proj-4.8.0.tar.gz; cd proj-4.8.0; ./configure --prefix=/usr; make install
-
 # pip install each of these in a row: unfortunately "pip install <list of packages>" doesn't work at all.
 # Execute this inside of sage:
 
-    os.environ['PROJ_DIR']='/usr/'; os.environ['NETCDF4_DIR']='/usr'; os.environ['HDF5_DIR']='/usr'
-    [(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image  Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly mahotas'.split()]
+    os.environ['PROJ_DIR']='/usr/'; os.environ['NETCDF4_DIR']='/usr/'; os.environ['HDF5_DIR']='/usr/'; os.environ['C_INCLUDE_PATH']='/usr/lib/openmpi/include'
 
-#('pandas', 'statsmodels', 'lxml')
+    [(s, os.system("pip install %s"%s)) for s in 'tornado virtualenv pandas statsmodels numexpr tables scikit_learn theano scikits-image  Shapely SimPy xlrd xlwt pyproj bitarray h5py netcdf4 patsy lxml munkres oct2py psutil plotly mahotas'.split()]
 
 (Mike Hansen remarks: You can just have a text file with a list of the package names (with or without versions) in say extra_packages.txt and do "pip install -r extra_packages.txt")
 
@@ -235,6 +218,7 @@ Also do this into sage (where the version may change -- check -- https://pypi.py
 
     ./sage -sh
      wget http://www.enthought.com/repo/ets/scimath-4.1.2.tar.gz; tar xvf scimath-4.1.2.tar.gz; cd scimath-4.1.2; python setup.py install; cd ..; rm -rf scimath-4.1.2*
+
 
 # Clawpack: requires a special flag
 
@@ -293,11 +277,18 @@ Test with "import neuron".
 
     ln -s local/share data
 
-    ./sage -i biopython-1.61  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  topcom zeromq stein-watkins-ecdb
+    ./sage -i biopython  chomp database_cremona_ellcurve database_odlyzko_zeta database_pari biopython brian cbc cluster_seed coxeter3 cryptominisat cunningham_tables database_gap database_jones_numfield database_kohel database_sloane_oeis database_symbolic_data dot2tex gap_packages gnuplotpy guppy kash3  lie lrs nauty normaliz nose nzmath p_group_cohomology phc pybtex pycryptoplus pyx pyzmq qhull  topcom zeromq stein-watkins-ecdb
 
 # temporary workaround:
 
     ./sage -i http://sage.math.washington.edu/home/SimonKing/Cohomology/p_group_cohomology-2.1.4.p1.spkg
+
+
+# Make the new Sage able to import stuff installed in the system-wide python, e.g., "import dolfin" (some complicated FEM library). Do this *after* pip is installed.
+
+    cd $SAGE_ROOT/local/lib/python
+    echo "import sys; sys.path.append('/usr/lib/python2.7/dist-packages/'); sys.path.append('/usr/lib/pymodules/python2.7')" >> sitecustomize.py
+    chmod a+r sitecustomize.py
 
 
 # R Packages into Sage's R:
@@ -333,13 +324,13 @@ r packages could be automated like so (?)
 
 # 4ti2 into sage: until the optional spkg gets fixed:
 
-    ./sage -sh
+    ./sage -sh; umask 022
     cd /tmp; wget http://www.4ti2.de/version_1.6/4ti2-1.6.tar.gz && tar xf 4ti2-1.6.tar.gz && cd 4ti2-1.6 ; ./configure --prefix=/usr/local/sage/current/local/; time make -j16
     make install      # this *must* be a separate step!!
     rm -rf /tmp/4ti2*
 
 
-# Update to ipython 1.1.0
+# Update to ipython 1.x
 
     sage -sh
     pip install --upgrade ipython
@@ -348,7 +339,9 @@ r packages could be automated like so (?)
 
 # Fix permissions, just in case.
 
-    cd /usr/local/sage/current; chmod -R a+r *; find . -perm /u+x -execdir chmod a+x {} \;
+    cd /usr/local/sage/current
+    sudo chown -R salvus. .
+    chmod -R a+r *; find . -perm /u+x -execdir chmod a+x {} \;
 
 
 # Delete cached packages
@@ -364,7 +357,7 @@ r packages could be automated like so (?)
 
     sudo su
     umask 022
-    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/; texhash
+    cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
 
 # Setup /usr/local/bin/skel
 
@@ -388,7 +381,7 @@ r packages could be automated like so (?)
    ./make_coffee --all
 
 # GCE problems:
-   julia fails to build: as above
+
    system-wide theano fails to install: /usr/bin/pip install -U theano  # but fine in sage.
 
 """

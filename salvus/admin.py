@@ -1192,7 +1192,7 @@ class Hosts(object):
 
     def nodetool_repair(self):
         # timeout is long since each repair can take quite a while; also, we wait, since we're supposed to do one at a time.
-        self.nodetool('repair', wait=True, timeout=12*60*60)
+        self.nodetool('repair', wait=True, timeout=36*60*60)
 
     def nodetool_snapshot(self):
         # we are supposed to do snapshots all at once.
