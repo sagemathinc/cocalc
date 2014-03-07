@@ -623,7 +623,7 @@ exports.close_stale_projects = (opts) ->
     opts = defaults opts,
         ttl     : 60*60*24  # time in seconds (up to a week)
         dry_run : true      # don't actually close the projects
-        limit   : 5         # number of projects to close simultaneously.
+        limit   : 2         # number of projects to close simultaneously.
         interval: 3000      # space out the project closing to give server a chance to do other things.
         unset_loc : false   # whether to unset the location field in the database after closing the project; if done, then projects will resume later on a random host (which is usually *NOT* desirable).
         cb      : required
@@ -1657,7 +1657,7 @@ exports.diff = diff = (opts) ->
     opts = defaults opts,
         project_id : required
         host       : undefined
-        timeout    : 10
+        timeout    : 180
         cb         : required    # cb(err, list of filenames)
 
     host = opts.host
@@ -2182,8 +2182,9 @@ exports.projects_needing_replication = projects_needing_replication = (opts) ->
 
 exports.replicate_projects_needing_replication = (opts) ->
     opts = defaults opts,
-        age_s     : 5*60  # 5 minutes
-        limit     : 10    # max number to replicate simultaneously
+        age_s     : 10*60  # 10 minutes
+        limit     : 2      # max number to replicate simultaneously
+        interval  : 3000
         cb        : required
     dbg = (m) -> winston.debug("replicate_projects_needing_replication: #{m}")
     projects = undefined
@@ -2209,7 +2210,7 @@ exports.replicate_projects_needing_replication = (opts) ->
                         dbg("\n******************\n**** STATUS: finished #{done}/#{todo}\n**************")
                         if err
                             errors[project_id] = err
-                        cb()
+                        setTimeout(cb, opts.interval)
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) ->
         if err
@@ -3316,12 +3317,4 @@ class exports.Host
             limit  : 5      # maximum number of projects to replicate at once
             cb     : undefined
         @projects
-            cb : (err, projects) =>
-                # TODO.
-
-
-
-
-
-
-
+            cb
