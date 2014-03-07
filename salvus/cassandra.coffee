@@ -2538,11 +2538,14 @@ exports.storage_db = (cb) ->
             cb(err)
         else
             new exports.Salvus
-                hosts    : ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                hosts    : ("10.1.#{i}.1" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                #hosts    : ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                #hosts    : ['localhost']
+                #hosts    : ['128.208.178.200','128.208.178.202','128.208.178.204','128.208.178.206','128.208.178.208', '128.208.178.210','128.208.178.212','128.208.178.214','128.208.178.216','128.208.178.218',                        '128.208.178.220','128.208.178.222','128.208.160.164','128.208.160.207','128.208.160.208','128.208.160.209']
                 keyspace : 'storage'
-                username : 'storage0'
+                #username : 'storage0'
                 consistency : 1
-                password : password.toString().trim()
+                #password : password.toString().trim()
                 cb       : cb
 
 exports.storage_migrate = (opts) ->
@@ -2581,7 +2584,7 @@ exports.storage_migrate = (opts) ->
                 t = misc.walltime()
                 i += 1
                 dbg("syncing #{i}/#{files.length}: #{project_id}")
-                cs = db.chunked_storage(project_id)
+                cs = db.chunked_storage(id:project_id)
                 cs.verbose = opts.verbose
                 cs.sync_put
                     path : opts.streams + '/' + project_id
@@ -2622,52 +2625,48 @@ class ChunkedStorage
         if @verbose
             winston.debug("ChunkedStorage(#{@id}).#{f}(#{misc.to_json(args)}): #{m}")
 
-    # Delete any chunks that aren't referenced by some object -- this is not restricted to
-    # this particular project but all projects.   Running this while objects are being
-    # written would corrupt them as they are written, for obvious reasons.
-    _scrub: (cb) =>
-        dbg = (m) => @dbg('_scrub', '', m)
+    # Delete any chunks that aren't referenced by some object successfully created --
+    # this is not restricted to this particular project but all projects.
+    delete_lost_chunks: (opts) =>
+        opts = defaults opts,
+            age_s : 30*60  # 30 minutes -- delete all chunks associated to any records in storage_active that are at least this old
+            cb    : undefined
+        dbg = (m) => @dbg('delete_lost_chunks', '', m)
 
-        ids = undefined
-        to_delete = undefined
+        results = undefined
+        tm      = exports.seconds_ago(opts.age_s)
         async.series([
             (cb) =>
-                # TODO: this must be re-done to use paging.            
+                dbg("querying the storage_writing table...")
                 @db.select
-                    table     : 'storage'
-                    columns   : ['chunk_ids']
-                    objectify : false
-                    cb        : (err, results) =>
+                    table     : 'storage_writing'
+                    columns   : ['timestamp', 'id', 'name', 'chunk_ids']
+                    objectify : true
+                    cb        : (err, _results) =>
                         if err
                             cb(err)
-                            return
-                        dbg("found #{results.length} files")
-                        ids = {}
-                        for r in results
-                            for chunk_id in r[0]
-                                ids[chunk_id] = true
-                        dbg("found #{misc.len(ids)} valid referenced chunks")
-                        cb()
+                        else
+                            results = _results
+                            dbg("get #{results.length} files")
+                            cb()
             (cb) =>
-                # TODO: this must be re-done to use paging.
-                @db.select
-                    table   : 'storage_chunks'
-                    columns : ['chunk_id']
-                    objectify : false
-                    cb        : (err, results) =>
-                        if err
-                            cb(err)
-                            return
-                        dbg("found #{results.length} chunks")
-                        to_delete = (r[0] for r in results when not ids[r[0]]?)
-                        dbg("made list of #{to_delete.length} chunks to delete")
-                        cb()
-            (cb) =>
-                @db.delete
-                    table  : 'storage_chunks'
-                    where  : {chunk_id:{'in':to_delete}}
-                    cb     : cb
-        ], cb)
+                f = (r, c) =>
+                    if to_iso(new Date(r.timestamp)) > tm
+                        c(); return
+                    dbg("lost file: #{r.name} -- up to #{r.chunk_ids.length} chunks")
+                    @db.delete
+                        table  : 'storage_chunks'
+                        where  : {chunk_id:{'in':r.chunk_ids}}
+                        cb     : (err) =>
+                            if not err
+                                @db.delete
+                                    table : 'storage_writing'
+                                    where : {timestamp:r.timestamp, id:r.id, name:r.name}
+                                    cb    : c
+                            else
+                                c(err)
+                async.map(results, f, cb)
+        ], (err) => opts.cb?(err))
 
     # list of objects in chunked storage for this project
     ls: (opts) =>
@@ -2732,6 +2731,8 @@ class ChunkedStorage
         fd         = undefined
         num_chunks = undefined
         chunk_ids  = undefined
+        chunk_ids_string = undefined
+        timestamp  = undefined
 
         async.series([
             (cb) =>
@@ -2752,10 +2753,17 @@ class ChunkedStorage
                                 cb(err)
 
             (cb) =>
+                dbg("determine number of chunks and chunk ids and save in active table")
                 num_chunks = Math.ceil(size / chunk_size)
                 # do not use Sha1 -- even though that might be nice in theory and for some sort of (highly unlikely!) dedup,
                 # in practice it would require reference counting and making the code much more complicated and error prone.
                 chunk_ids = (uuid.v4() for i in [0...num_chunks])
+                chunk_ids_string = "[#{chunk_ids.join(',')}]"
+                timestamp = now()
+                query = "UPDATE storage_writing SET chunk_ids=#{chunk_ids_string}, size=?, chunk_size=? WHERE id=? AND name=? AND timestamp=?"
+                @db.cql(query, [size, chunk_size, @id, opts.name, timestamp], cb)
+
+            (cb) =>
 
                 dbg("saving the chunks")
                 get_chunk = (start, end, c) =>
@@ -2802,11 +2810,16 @@ class ChunkedStorage
                         if err
                             # ignoring this at worse leaks storage at this point.
                             dbg("ignoring error deleting previous chunks: #{err}")
-                        b = "[#{chunk_ids.join(',')}]"
-                        dbg("writing index to new chunks: #{b}")
-                        query = "UPDATE storage SET chunk_ids=#{b}, size=?, chunk_size=? WHERE id=? AND name=?"
+                        dbg("writing index to new chunks: #{chunk_ids_string}")
+                        query = "UPDATE storage SET chunk_ids=#{chunk_ids_string}, size=?, chunk_size=? WHERE id=? AND name=?"
                         dbg(query)
                         @db.cql(query, [size, chunk_size, @id, opts.name], cb)
+            (cb) =>
+                dbg("remove storage_writing active record")
+                @db.delete
+                    table : 'storage_writing'
+                    where : {id:@id, name:opts.name, timestamp:timestamp}
+                    cb    : cb
         ], (err) =>
             dbg("total time: #{misc.walltime(total_time)}")
             opts.cb?(err)

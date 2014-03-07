@@ -572,11 +572,28 @@ CREATE TABLE banned_email_addresses (
   CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2'};
 */
 
+
+/*
+  - write this right before storing the object -- delete when object successfully stored.
+  - scrub will periodically go through and delete sufficiently old chunks left around from writing records.
+  - querying the writing table is an easy way to see what writes are happening right now.
+*/
+CREATE TABLE storage_writing (
+    timestamp   timestamp,
+    id          uuid,
+    name        varchar,
+    size        int,      /* object size in bytes */
+    chunk_size  int,      /* size in bytes that file/object is divided into */
+    chunk_ids   list<uuid>,
+    PRIMARY KEY (timestamp, id, name)
+);
+
+/* write this once the object is stored. */
 CREATE TABLE storage (
     id          uuid,
     name        varchar,
     size        int,      /* object size in bytes */
-    chunk_size  int,      /* size in bytes it is divided into */
+    chunk_size  int,      /* size in bytes that file/object is divided into */
     chunk_ids   list<uuid>,
     PRIMARY KEY (id, name)
 );
