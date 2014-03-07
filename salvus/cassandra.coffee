@@ -2532,27 +2532,83 @@ class exports.Salvus extends exports.Cassandra
 # This uses the storage and storage_blob tables.
 ############################################################################
 
-exports.storage_db = (cb) ->
+exports.storage_db = (opts) ->
+    opts = defaults opts,
+        hosts : ['10.1.3.1', '10.1.10.1']
+        cb    : required
+
     fs.readFile "#{process.cwd()}/data/secrets/storage/salvus", (err, password) ->
         if err
-            cb(err)
+            opts.cb(err)
         else
             new exports.Salvus
-                hosts    : ("10.1.#{i}.1" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                hosts    : opts.hosts
                 keyspace : 'storage'
                 username : 'salvus'
                 consistency : 1
                 password : password.toString().trim()
-                cb       : cb
+                cb       : opts.cb
+
+exports.storage_sync = (opts) ->
+    opts = defaults opts,
+        project_ids : required
+        streams     : '/storage/streams'
+        limit       : 3           # max to sync at once
+        verbose     : true
+        cb          : undefined
+    if opts.verbose
+        dbg = (m) -> winston.debug("storage_sync: #{m}")
+    else
+        dbg = (m) ->
+    db = undefined
+    errors = {}
+    async.series([
+        (cb) ->
+            dbg("get database connection")
+            exports.storage_db
+                hosts : ['10.1.3.1', '10.1.10.1']
+                cb : (err, x) ->
+                    db = x
+                    cb(err)
+        (cb) ->
+            i = 0
+            n = opts.project_ids.length
+            f = (project_id, c) ->
+                t = misc.walltime()
+                i += 1
+                j = i
+                dbg("syncing #{j}/#{n}: #{project_id}")
+                cs = db.chunked_storage(id:project_id)
+                cs.verbose = opts.verbose
+                cs.sync
+                    path : opts.streams + '/' + project_id
+                    cb   : (err) ->
+                        dbg("********************************************************************")
+                        dbg("** FINISHED (#{j}/#{n}) syncing #{project_id} in #{misc.walltime(t)} seconds **")
+                        dbg("********************************************************************")
+                        if err
+                            dbg("syncing #{project_id} resulted in error: #{err}")
+                            errors[project_id] = err
+            async.mapLimit(opts.project_ids, opts.limit, f, cb)
+    ], (err) ->
+        if misc.len(errors) > 0
+            dbg("ERRORS -- #{misc.to_json(errors)}")
+            opts.cb?(errors)
+            return
+        if err
+            dbg("ERROR -- #{err}")
+        opts.cb?(err)
+    )
+
 
 exports.storage_migrate = (opts) ->
     opts = defaults opts,
         start   : required  # integer
         stop    : required  # integer
         streams : required  # path to streams
-        limit   : 1         # number to sync to DB at once.
+        limit   : 5         # number to sync to DB at once.
         verbose : false
-        timeout : 5         # wait this many seconds after each sync to give database time to "breath"
+        timeout : 0         # wait this many seconds after each sync to give database time to "breath"
         db      : undefined
         cb      : undefined
 
@@ -2565,9 +2621,11 @@ exports.storage_migrate = (opts) ->
             if db?
                 cb(); return
             dbg("getting db")
-            exports.storage_db (err, x) ->
-                db = x
-                cb(err)
+            exports.storage_db
+                hosts : ("10.1.#{i}.1" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                cb : (err, x) ->
+                    db = x
+                    cb(err)
         (cb) ->
             dbg("reading dirctory")
             fs.readdir opts.streams, (err, x) ->
@@ -2583,13 +2641,16 @@ exports.storage_migrate = (opts) ->
             f = (project_id, c) ->
                 t = misc.walltime()
                 i += 1
-                dbg("syncing #{i}/#{files.length}: #{project_id}")
+                j = i
+                dbg("syncing #{j}/#{files.length}: #{project_id}")
                 cs = db.chunked_storage(id:project_id)
                 cs.verbose = opts.verbose
                 cs.sync_put
                     path : opts.streams + '/' + project_id
                     cb   : (err) ->
-                        dbg("done syncing #{project_id} in #{misc.walltime(t)} seconds")
+                        dbg("********************************************************************")
+                        dbg("** FINISHED (#{j}/#{files.length}) syncing #{project_id} in #{misc.walltime(t)} seconds **")
+                        dbg("********************************************************************")
                         if err
                             dbg("syncing #{project_id} resulted in error: #{err}")
                             errors[project_id] = err
@@ -3069,6 +3130,13 @@ class ChunkedStorage
                                 db_files[f.name] = f.size
                             cb()
             (cb) =>
+                dbg("ensure path exists")
+                fs.exists opts.path, (exists) =>
+                    if not exists
+                        fs.mkdir(opts.path, 0o700, cb)
+                    else
+                        cb()
+            (cb) =>
                 dbg("get files in path")
                 misc_node.execute_code
                     command     : 'find'
@@ -3236,3 +3304,10 @@ exports.db_test1 = (n, m) ->
 
         async.series tasks, (cb) ->
             console.log('done!')
+
+
+
+#### handle storage sync for chunked object store
+
+if process.argv[1] == 'storage_sync'
+    exports.storage_sync(project_ids:process.argv.slice(2))
