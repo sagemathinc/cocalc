@@ -3316,5 +3316,5 @@ class exports.Host
         opts = required opts,
             limit  : 5      # maximum number of projects to replicate at once
             cb     : undefined
-        @projects
-            cb
+        #@projects
+        #    cb
