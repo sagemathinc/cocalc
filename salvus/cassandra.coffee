@@ -2789,7 +2789,12 @@ class ChunkedStorage
                                 dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
                                 c(err)
 
-                async.mapLimit [0...num_chunks], opts.limit, f, (err) =>
+                g = (i, c) =>
+                    h = (c) =>
+                        f(i,c)
+                    misc.retry_until_success_wrapper(f:h, start_delay:0, max_delay:5000, exp_factor:1.4, max_tries:20)(c)
+
+                async.mapLimit [0...num_chunks], opts.limit, g, (err) =>
                     if err
                         dbg("something went wrong writing chunks (#{err}): delete any chunks we just wrote")
                         g = (id, c) =>
@@ -2926,7 +2931,11 @@ class ChunkedStorage
                                         c()
                                 else
                                     c()
-                async.mapLimit([0...chunk_ids.length], opts.limit, f, cb)
+                g = (i, c) =>
+                    h = (c) =>
+                        f(i,c)
+                    misc.retry_until_success_wrapper(f:h, start_delay:0, max_delay:5000, exp_factor:1.4, max_tries:20)(c)
+                async.mapLimit([0...chunk_ids.length], opts.limit, g, cb)
             (cb) =>
                 if opts.filename?
                     dbg("write any remaining chunks to file")
