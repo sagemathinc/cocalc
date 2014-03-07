@@ -582,7 +582,7 @@ CREATE TABLE storage_writing (
     timestamp   timestamp,
     id          uuid,
     name        varchar,
-    size        int,      /* object size in bytes */
+    size        varchar,   /* object size (too big for 32 bit int and bigint+node.js=pain) */
     chunk_size  int,      /* size in bytes that file/object is divided into */
     chunk_ids   list<uuid>,
     PRIMARY KEY (timestamp, id, name)
@@ -592,7 +592,7 @@ CREATE TABLE storage_writing (
 CREATE TABLE storage (
     id          uuid,
     name        varchar,
-    size        int,      /* object size in bytes */
+    size        varchar,  /* object size (too big for 32 bit int and bigint+node.js=pain) */
     chunk_size  int,      /* size in bytes that file/object is divided into */
     chunk_ids   list<uuid>,
     PRIMARY KEY (id, name)
@@ -600,7 +600,7 @@ CREATE TABLE storage (
 
 CREATE TABLE storage_chunks (
     chunk_id    uuid      PRIMARY KEY,
-    size        int,      /* size in bytes */
+    size        int,      /* size in bytes (32-bit) */
     chunk       blob
 );
 

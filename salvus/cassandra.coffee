@@ -2533,19 +2533,16 @@ class exports.Salvus extends exports.Cassandra
 ############################################################################
 
 exports.storage_db = (cb) ->
-    fs.readFile "#{process.cwd()}/data/secrets/cassandra/storage0", (err, password) ->
+    fs.readFile "#{process.cwd()}/data/secrets/storage/salvus", (err, password) ->
         if err
             cb(err)
         else
             new exports.Salvus
                 hosts    : ("10.1.#{i}.1" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
-                #hosts    : ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
-                #hosts    : ['localhost']
-                #hosts    : ['128.208.178.200','128.208.178.202','128.208.178.204','128.208.178.206','128.208.178.208', '128.208.178.210','128.208.178.212','128.208.178.214','128.208.178.216','128.208.178.218',                        '128.208.178.220','128.208.178.222','128.208.160.164','128.208.160.207','128.208.160.208','128.208.160.209']
                 keyspace : 'storage'
-                #username : 'storage0'
+                username : 'salvus'
                 consistency : 1
-                #password : password.toString().trim()
+                password : password.toString().trim()
                 cb       : cb
 
 exports.storage_migrate = (opts) ->
@@ -2553,17 +2550,20 @@ exports.storage_migrate = (opts) ->
         start   : required  # integer
         stop    : required  # integer
         streams : required  # path to streams
-        limit   : 1
+        limit   : 1         # number to sync to DB at once.
         verbose : false
-        timeout : 5         # wait this many seconds after each sync to give database time to breath
+        timeout : 5         # wait this many seconds after each sync to give database time to "breath"
+        db      : undefined
         cb      : undefined
 
     dbg = (m) -> winston.debug("storage_migrate: #{m}")
-    db = undefined
+    db = opts.db
     files = undefined
     errors = {}
     async.series([
         (cb) ->
+            if db?
+                cb(); return
             dbg("getting db")
             exports.storage_db (err, x) ->
                 db = x
@@ -2625,6 +2625,25 @@ class ChunkedStorage
         if @verbose
             winston.debug("ChunkedStorage(#{@id}).#{f}(#{misc.to_json(args)}): #{m}")
 
+
+    active_files: (opts) =>
+        opts = defaults opts,
+            cb    : required
+        dbg = (m) => @dbg('active_files', '', m)
+        results = undefined
+        dbg("querying the storage_writing table...")
+        @db.select
+            table     : 'storage_writing'
+            columns   : ['timestamp', 'name', 'size']
+            objectify : true
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    for r in results
+                        r.timestamp = new Date(r.timestamp)
+                    opts.cb(undefined, results)
+
     # Delete any chunks that aren't referenced by some object successfully created --
     # this is not restricted to this particular project but all projects.
     delete_lost_chunks: (opts) =>
@@ -2677,7 +2696,12 @@ class ChunkedStorage
             where     : {id:@id}
             columns   : ['name', 'size']
             objectify : true
-            cb        : opts.cb
+            cb        : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, ({name:r.name, size:parseInt(r.size)} for r in results))
+
 
     # total usage of all objects
     size: (opts) =>
@@ -2761,7 +2785,7 @@ class ChunkedStorage
                 chunk_ids_string = "[#{chunk_ids.join(',')}]"
                 timestamp = now()
                 query = "UPDATE storage_writing SET chunk_ids=#{chunk_ids_string}, size=?, chunk_size=? WHERE id=? AND name=? AND timestamp=?"
-                @db.cql(query, [size, chunk_size, @id, opts.name, timestamp], cb)
+                @db.cql(query, [""+size, chunk_size, @id, opts.name, timestamp], cb)
 
             (cb) =>
 
@@ -2818,7 +2842,7 @@ class ChunkedStorage
                         dbg("writing index to new chunks: #{chunk_ids_string}")
                         query = "UPDATE storage SET chunk_ids=#{chunk_ids_string}, size=?, chunk_size=? WHERE id=? AND name=?"
                         dbg(query)
-                        @db.cql(query, [size, chunk_size, @id, opts.name], cb)
+                        @db.cql(query, [""+size, chunk_size, @id, opts.name], cb)
             (cb) =>
                 dbg("remove storage_writing active record")
                 @db.delete
@@ -2826,6 +2850,8 @@ class ChunkedStorage
                     where : {id:@id, name:opts.name, timestamp:timestamp}
                     cb    : cb
         ], (err) =>
+            if fd?
+                fs.close(fd)
             dbg("total time: #{misc.walltime(total_time)}")
             opts.cb?(err)
         )
@@ -2881,7 +2907,10 @@ class ChunkedStorage
             (cb) =>
                 if opts.filename?
                     dbg("open output file #{opts.filename}")
-                    misc_node.ensure_containing_directory_exists process.cwd()+'/'+opts.filename, (err) =>
+                    p = opts.filename
+                    if p[0] != '/'
+                        p = process.cwd()+'/'+p
+                    misc_node.ensure_containing_directory_exists p, (err) =>
                         if err
                             cb(err)
                         else
@@ -3047,6 +3076,7 @@ class ChunkedStorage
                     timeout     : 360
                     err_on_exit : true
                     path        : process.cwd()
+                    verbose     : @verbose
                     cb          : (err, output) ->
                         if err
                             cb(err)
@@ -3104,7 +3134,7 @@ class ChunkedStorage
                         @delete
                             name : name
                             cb   : c
-                    async.map(to_delete, f, cb)   # no limit -- deleting is easy.
+                    async.mapLimit(to_delete, 10, f, cb)   # less restrictive limit -- deleting is easies
                 else
                     cb()
         ], (err) => opts.cb?(err))
@@ -3146,7 +3176,7 @@ class ChunkedStorage
                     dbg("delete #{to_delete.length} files locally")
                     f = (name, c) =>
                         fs.unlink(opts.path + '/' + name, c)
-                    async.map(to_delete, f, cb)   # no limit -- deleting is easy.
+                    async.mapLimit(to_delete, 10, f, cb)   # no limit -- deleting is easy.
                 else
                     cb()
         ], (err) => opts.cb?(err))
