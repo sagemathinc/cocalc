@@ -3307,4 +3307,7 @@ exports.db_test1 = (n, m) ->
 
 
 
-#### handle stora
+#### handle storage sync for chunked object store
+
+if process.argv[1] == 'storage_sync'
+    exports.storage_sync(project_ids:process.argv.slice(2))

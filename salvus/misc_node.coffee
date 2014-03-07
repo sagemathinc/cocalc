@@ -2,7 +2,7 @@
 #
 # misc JS functionality that only makes sense on the node side (not on
 # the client)
-#
+# 
 ####################################################################
 
 assert = require('assert')

@@ -471,8 +471,8 @@ if __name__ == "__main__":
 
     parser.add_argument("project_id", help="project id", type=str)
 
-    parser.add_argument("--pool", help="ZFS pool (default:'projects-new')", default="projects-new", type=str)
-    parser.add_argument("--mnt", help="mountpoint for the project (default:'/[pool]/[project_id]')", default="", type=str)
+    parser.add_argument("--pool", help="ZFS pool (default:'storage')", default="storage", type=str)
+    parser.add_argument("--mnt", help="mountpoint for the project (default:'/projects/[project_id]')", default="", type=str)
     parser.add_argument("--stream_path", help="directory where streams are stored for this project(default: '/[pool]/streams/[project_id]')", default="", type=str)
 
     parser_create = subparsers.add_parser('create', help='create filesystem')
@@ -524,7 +524,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not args.mnt:
-        args.mnt = '/' + os.path.join(args.pool, args.project_id)
+        args.mnt = '/' + os.path.join('projects', args.project_id)
     if not args.stream_path:
         args.stream_path = '/' + os.path.join(args.pool, 'streams', args.project_id)
 
