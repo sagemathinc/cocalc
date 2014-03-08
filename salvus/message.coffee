@@ -1154,3 +1154,16 @@ message
     ttl       : undefined    # ttl in seconds of the blob if saved; 0=infinite
     error     : undefined    # if not saving, a message explaining why.
 
+
+
+message
+    event     : 'storage_sign_in'
+    id        : undefined
+    password  : required
+
+message
+    event     : 'storage'
+    action    : required    # open, save, snapshot, latest_snapshot, close
+    param     : undefined
+    id        : undefined
+    name      : required

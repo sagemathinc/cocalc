@@ -579,13 +579,14 @@ CREATE TABLE banned_email_addresses (
   - querying the writing table is an easy way to see what writes are happening right now.
 */
 CREATE TABLE storage_writing (
+    dummy       boolean,    /* so we can easily do a select * on this table */
     timestamp   timestamp,
     id          uuid,
     name        varchar,
     size        varchar,   /* object size (too big for 32 bit int and bigint+node.js=pain) */
     chunk_size  int,      /* size in bytes that file/object is divided into */
     chunk_ids   list<uuid>,
-    PRIMARY KEY (timestamp, id, name)
+    PRIMARY KEY (dummy, timestamp, id, name)
 );
 
 /* write this once the object is stored. */

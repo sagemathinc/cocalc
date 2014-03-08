@@ -2535,6 +2535,7 @@ class exports.Salvus extends exports.Cassandra
 exports.storage_db = (opts) ->
     opts = defaults opts,
         hosts : ['10.1.3.1', '10.1.10.1']
+        consistency : 1
         cb    : required
 
     fs.readFile "#{process.cwd()}/data/secrets/storage/salvus", (err, password) ->
@@ -2545,7 +2546,7 @@ exports.storage_db = (opts) ->
                 hosts    : opts.hosts
                 keyspace : 'storage'
                 username : 'salvus'
-                consistency : 1
+                consistency : opts.consistency
                 password : password.toString().trim()
                 cb       : opts.cb
 
@@ -2696,6 +2697,7 @@ class ChunkedStorage
         @db.select
             table     : 'storage_writing'
             columns   : ['timestamp', 'name', 'size']
+            where     : {dummy:true}
             objectify : true
             cb        : (err, results) =>
                 if err
@@ -2721,6 +2723,7 @@ class ChunkedStorage
                 @db.select
                     table     : 'storage_writing'
                     columns   : ['timestamp', 'id', 'name', 'chunk_ids']
+                    where     : {dummy:true}
                     objectify : true
                     cb        : (err, _results) =>
                         if err
@@ -2732,18 +2735,21 @@ class ChunkedStorage
             (cb) =>
                 f = (r, c) =>
                     if to_iso(new Date(r.timestamp)) > tm
+                        dbg("skipping: #{r.id}/#{r.name} -- too new")
                         c(); return
-                    dbg("lost file: #{r.name} -- up to #{r.chunk_ids.length} chunks")
+                    dbg("lost file: #{r.id}/#{r.name} -- #{r.chunk_ids.length} chunks")
                     @db.delete
                         table  : 'storage_chunks'
                         where  : {chunk_id:{'in':r.chunk_ids}}
                         cb     : (err) =>
                             if not err
+                                dbg("deleting chunks for #{r.id}/#{r.name}; now removing from storage_writing table")
                                 @db.delete
                                     table : 'storage_writing'
-                                    where : {timestamp:r.timestamp, id:r.id, name:r.name}
+                                    where : {timestamp:r.timestamp, id:r.id, name:r.name, dummy:true}
                                     cb    : c
                             else
+                                dbg("error deleting chunks for file #{r.id}/#{r.name}")
                                 c(err)
                 async.map(results, f, cb)
         ], (err) => opts.cb?(err))
@@ -2845,8 +2851,8 @@ class ChunkedStorage
                 chunk_ids = (uuid.v4() for i in [0...num_chunks])
                 chunk_ids_string = "[#{chunk_ids.join(',')}]"
                 timestamp = now()
-                query = "UPDATE storage_writing SET chunk_ids=#{chunk_ids_string}, size=?, chunk_size=? WHERE id=? AND name=? AND timestamp=?"
-                @db.cql(query, [""+size, chunk_size, @id, opts.name, timestamp], cb)
+                query = "UPDATE storage_writing SET chunk_ids=#{chunk_ids_string}, size=?, chunk_size=? WHERE dummy=? AND id=? AND name=? AND timestamp=?"
+                @db.cql(query, [""+size, chunk_size, true, @id, opts.name, timestamp], cb)
 
             (cb) =>
 
@@ -2877,7 +2883,12 @@ class ChunkedStorage
                 g = (i, c) =>
                     h = (c) =>
                         f(i,c)
-                    misc.retry_until_success_wrapper(f:h, start_delay:0, max_delay:5000, exp_factor:1.4, max_tries:20)(c)
+
+                    misc.retry_until_success
+                        f         : h
+                        max_tries : 15
+                        max_delay : 5000
+                        cb        : c
 
                 async.mapLimit [0...num_chunks], opts.limit, g, (err) =>
                     if err
@@ -2908,7 +2919,7 @@ class ChunkedStorage
                 dbg("remove storage_writing active record")
                 @db.delete
                     table : 'storage_writing'
-                    where : {id:@id, name:opts.name, timestamp:timestamp}
+                    where : {id:@id, name:opts.name, timestamp:timestamp, dummy:true}
                     cb    : cb
         ], (err) =>
             if fd?
