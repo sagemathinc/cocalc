@@ -2,21 +2,21 @@
 
 """
 
-* The salvus use that sues this script must have visudo setup like this:
+# The salvus use that sues this script must have visudo setup like this:
 
-    salvus ALL=(ALL) NOPASSWD: /sbin/zfs *
-    salvus ALL=(ALL) NOPASSWD: /sbin/zpool *
-    salvus ALL=(ALL) NOPASSWD: /usr/bin/pkill *
+salvus ALL=(ALL) NOPASSWD: /sbin/zfs *
+salvus ALL=(ALL) NOPASSWD: /sbin/zpool *
+salvus ALL=(ALL) NOPASSWD: /usr/bin/pkill *
 
-* Migration commands can only be run as root; everything else should be run as storage user.
+# While migrating, we also need all the following.  REMOVE these from visudo after migration.
 
-    salvus ALL=(ALL) NOPASSWD: /usr/bin/passwd *
-    salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
-    salvus ALL=(ALL) NOPASSWD: /bin/chown *
-    salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupadd *
-    salvus ALL=(ALL) NOPASSWD: /usr/sbin/useradd *
-    salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupdel *
-    salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
+salvus ALL=(ALL) NOPASSWD: /usr/bin/passwd *
+salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
+salvus ALL=(ALL) NOPASSWD: /bin/chown *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupadd *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/useradd *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupdel *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
 
 
 """
@@ -447,9 +447,10 @@ class Project(object):
         quota = cmd("sudo /sbin/zfs get -H quota projects/%s"%self.project_id).split()[2]
         self.create(quota)
         log("now migrate all snapshots")
-        self.migrate_snapshots()
+        n = self.migrate_snapshots()
+        log("migrated %s snapshots"%n)
         log("done -- now close the project")
-        self.close(kill=False)
+        self.close(kill=False, save=n>0)
 
     def migrate_snapshots(self, snapshot=None):
         """
@@ -457,6 +458,7 @@ class Project(object):
         contents of this project equal to that snapshot.
 
         If snapshot is not given, copy over in order all snapshots we don't currently have.
+        In that case, it returns the number of copied snapshots.
 
         We use this only to migrate from the old to the new format.
         """
@@ -496,7 +498,7 @@ class Project(object):
             todo = [snapshot for snapshot in t if snapshot not in s]
             i = 1
             if len(todo) == 0:
-                return
+                return 0
             tm = time.time()
             username, passwd_file = setup_user()
             recent_times = []
@@ -516,6 +518,7 @@ class Project(object):
                 i += 1
 
             remove_user(passwd_file)
+            return len(todo)
         else:
             username, passwd_file = setup_user()
             do_sync(username, passwd_file, snapshot)

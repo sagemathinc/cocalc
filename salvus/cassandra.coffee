@@ -2709,6 +2709,8 @@ class ChunkedStorage
 
     # Delete any chunks that aren't referenced by some object successfully created --
     # this is not restricted to this particular project but all projects.
+    # x={};require('cassandra').storage_db(hosts:['10.1.3.1'],consistency:2, cb:(e,d)->x.d=d;x.c=x.d.chunked_storage(id:'dcce4891-2132-436c-9274-8d659e91bde5'))
+    # 
     delete_lost_chunks: (opts) =>
         opts = defaults opts,
             age_s : 30*60  # 30 minutes -- delete all chunks associated to any records in storage_active that are at least this old

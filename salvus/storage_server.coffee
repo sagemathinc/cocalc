@@ -90,7 +90,9 @@ class Project
             cb      : undefined
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
-        if opts.action == 'sync'
+        if opts.action == "migrate_delete"  # temporary -- during migration only!
+            @migrate_delete(opts.cb)
+        else if opts.action == 'sync'
             @sync(opts.cb)
         else if opts.action == 'sync_put_delete'
             # TODO: disable this action once migration is done -- very dangerous
@@ -104,12 +106,29 @@ class Project
                 timeout : opts.timeout
                 cb      : opts.cb
 
+    migrate_delete: (cb) =>
+        dbg = (m) => @dbg('destructive_migration',[],m)
+        streams = undefined
+        async.series([
+            (cb) =>
+                dbg("syncing with the database")
+                @sync(cb)
+            (cb) =>
+                dbg("doing the migration")
+                @action
+                    action : "migrate"
+                    cb     : cb
+            (cb) =>
+                dbg("migration succeeded -- saving result to database (deleting anything old)")
+                @sync_put_delete(cb)
+        ], cb)
+
     sync_put_delete: (cb) =>
         @chunked_storage.sync_put
             delete : true
             path   : @stream_path
             cb     : cb
-            
+
     sync: (cb) =>
         # Find the chain of streams with newest end time, either locally or in the database,
         # and make sure it is present in both.
