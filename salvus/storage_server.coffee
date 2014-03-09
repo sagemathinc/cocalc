@@ -49,7 +49,7 @@ class Project
         @project_id      = opts.project_id
         @verbose         = opts.verbose
         @mnt             = "/mnt/#{@project_id}"
-        @streams         = "#{program.stream_path}/#{@project_id}"
+        @stream_path     = "#{program.stream_path}/#{@project_id}"
         @chunked_storage = database.chunked_storage(id:@project_id, verbose:@verbose)
 
     dbg: (f, args, m) =>
@@ -62,7 +62,7 @@ class Project
             timeout : 3600
             cb      : required
 
-        args = ["--pool", program.pool, "--mnt", @mnt, "--stream_path", program.stream_path]
+        args = ["--pool", program.pool, "--mnt", @mnt, "--stream_path", @stream_path]
 
         for a in opts.args
             args.push(a)
@@ -75,7 +75,7 @@ class Project
             args    : args
             timeout : opts.timeout
             cb      : (err, output) =>
-                if err or output.stderr
+                if err
                     opts.cb(output.stderr)
                 else
                     opts.cb()
@@ -89,7 +89,7 @@ class Project
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
         if opts.action == 'sync'
-            @chunked_storage.sync(path: @streams, cb:opts.cb)
+            @chunked_storage.sync(path: @stream_path, cb:opts.cb)
         else
             args = [opts.action]
             if opts.params?
@@ -107,6 +107,7 @@ get_project = (project_id) ->
 
 handle_mesg = (socket, mesg) ->
     winston.debug("storage_server: handling '#{misc.to_safe_str(mesg)}'")
+    id = mesg.id
     if mesg.event == 'storage'
         project = get_project(mesg.project_id)
         project.action
@@ -114,17 +115,16 @@ handle_mesg = (socket, mesg) ->
             params : mesg.params
             cb     : (err) ->
                 if err
-                    resp = message.error(error:err)
+                    resp = message.error(error:err, id:id)
                 else
-                    resp = message.success()
+                    resp = message.success(id:id)
+                socket.write_mesg('json', resp)
     else
-        resp   = message.error(error:"unknown event type: '#{mesg.event}'")
-    resp.id = mesg.id
-    winston.debug("storage_server: sending response to #{misc.to_safe_str(mesg)}: #{misc.to_safe_str(resp)}")
-    socket.write_mesg('json', resp)
+        socket.write_mesg('json', message.error(id:id,error:"unknown event type: '#{mesg.event}'"))
 
 register_with_database = () ->
-    @database.update
+    database.update
+        table : 'storage_servers'
         set   : {port : program.port}
         where : {dummy:true, hostname:program.address}
         ttl   : REGISTRATION_TTL
@@ -144,6 +144,7 @@ start_tcp_server = (cb) ->
             if err
                 winston.debug("ERROR: unable to unlock socket -- #{err}")
             else
+                winston.debug("unlocked connection")
                 misc_node.enable_mesg(socket)
                 socket.on 'mesg', (type, mesg) ->
                     if type == "json"   # other types ignored -- we only deal with json
@@ -156,12 +157,15 @@ start_tcp_server = (cb) ->
 
     server.listen program.port, program.address, () ->
         program.port = server.address().port
-        winston.info("listening on #{program.address}:#{program.port}")
+        winston.debug("listening on #{program.address}:#{program.port}")
+        register_with_database()
         setInterval(register_with_database, REGISTRATION_INTERVAL)
         fs.writeFile(program.portfile, program.port, cb)
 
 read_password = (cb) ->
+    winston.debug("read_password")
     if password?
+        cb()
         return
     fs.readFile "#{DATA}/secrets/storage/storage_server", (err, _password) ->
         if err
@@ -171,10 +175,11 @@ read_password = (cb) ->
             cb()
 
 connect_to_database = (cb) ->
+    winston.debug("connect_to_database")
     if database?
-        cb()
+        cb?()
         return
-    database = new exports.Salvus
+    database = new cassandra.Salvus
         hosts       : program.database_nodes.split(',')
         keyspace    : program.keyspace
         username    : program.username
@@ -183,6 +188,7 @@ connect_to_database = (cb) ->
         cb          : cb
 
 start_server = () ->
+    winston.debug("start_server")
     async.series [read_password, connect_to_database, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
@@ -197,35 +203,17 @@ class Client
                 dbg("ensure password")
                 read_password(cb)
             (cb) =>
-                timer = undefined
-                timed_out = () ->
-                    cb("timed out trying to connect to locked socket on port #{port}")
-                    @socket.end()
-                    @socket = undefined
-                    timer = undefined
-                timer  = setTimeout(timed_out, timeout*1000)
-                @socket = net.connect {host:@hostname, port:@port}, () =>
-                    listener = (data) =>
-                        dbg("got back response: #{data}")
-                        @socket.removeListener('data', listener)
-                        if data.toString() == 'y'
-                            if timer?
-                                clearTimeout(timer)
-                                cb(false)
-                        else
-                            @socket.destroy()
-                            @socket = undefined
-                            if timer?
-                                clearTimeout(timer)
-                                cb("Permission denied (invalid secret token) when connecting to the local hub.")
-                    dbg("connected, now sending secret")
-                    @socket.write(password)
-                # This is called in case there is an error trying to make the connection, e.g., "connection refused".
-                @socket.on "error", (err) =>
-                    if timer?
-                        clearTimeout(timer)
-                    cb(err)
-        ], opts.cb)
+                dbg("connect to locked socket")
+                misc_node.connect_to_locked_socket
+                    host    : @hostname
+                    port    : @port
+                    token   : password
+                    timeout : timeout
+                    cb      : (err, socket) =>
+                        @socket = socket
+                        misc_node.enable_mesg(@socket)
+                        cb(err)
+        ], cb)
 
     dbg: (f, args, m) =>
         if @verbose
@@ -257,6 +245,7 @@ class Client
     action: (opts) =>
         opts = defaults opts,
             action     : required    # 'sync', 'create', 'mount', 'save', 'snapshot', 'close'
+            param      : undefined
             project_id : required
             timeout    : undefined   # different defaults depending on the action
             cb         : undefined
@@ -264,22 +253,47 @@ class Client
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
         @call
-            mesg    : @mesg(opts.project_id, opts.action)
+            mesg    : @mesg(opts.project_id, opts.action, opts.param)
             timeout : opts.timeout
             cb      : opts.cb
 
 exports.client = (opts) ->
     opts = defaults opts,
         hostname : required
-        port     : required
+        port     : undefined
         timeout  : 30
         cb       : required
 
-    c = new Client opts.hostname, opts.port, opts.timeout, (err) ->
+    client = undefined
+    async.series([
+        (cb) ->
+            if opts.port?
+                cb()
+            else
+                async.series [read_password, connect_to_database], (err) ->
+                    if err
+                        cb(err)
+                    else
+                        database.select_one
+                            table : 'storage_servers'
+                            where : {dummy:true, hostname:opts.hostname}
+                            columns : ['port']
+                            objectify : true
+                            cb        : (err, result) ->
+                                if err
+                                    cb(err)
+                                else
+                                    opts.port = result.port
+                                    winston.debug("connecting to storage_server on #{opts.hostname}: got port = #{opts.port}")
+                                    cb()
+        (cb) ->
+            client = new Client opts.hostname, opts.port, opts.timeout, cb
+    ], (err) ->
         if err
             opts.cb(err)
         else
-            opts.cb(undefined, c)
+            opts.cb(undefined, client)
+    )
 
 program.usage('[start/stop/restart/status] [options]')
 
@@ -315,9 +329,7 @@ main = () ->
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
     process.addListener "uncaughtException", (err) ->
-        winston.error "Uncaught exception: " + err
-        if console? and console.trace?
-            console.trace()
+        winston.error("Uncaught exception: #{err}")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
 
 if program._name == 'storage_server.js'

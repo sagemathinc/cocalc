@@ -59,13 +59,13 @@ def sync():
 
 def filesystem_exists(fs):
     try:
-        cmd("sudo zfs list %s"%fs)
+        cmd("sudo /sbin/zfs list %s"%fs)
         return True
     except:
         return False
 
 def newest_snapshot(fs):
-    out = cmd("sudo zfs list -r -t snapshot -o name -s creation %s |tail -1"%fs)
+    out = cmd("sudo /sbin/zfs list -r -t snapshot -o name -s creation %s |tail -1"%fs)
     if 'dataset does not exist' in out:
         return None
     if 'no datasets available' in out:
@@ -80,8 +80,8 @@ def snapshots(filesystem):
     return [x.split('@')[1].strip() for x in w if '@' in x]
 
 def mount(mountpoint, fs):
-    cmd("sudo zfs set mountpoint='%s' %s"%(mountpoint, fs))
-    e = cmd("sudo zfs mount %s"%fs, ignore_errors=True)
+    cmd("sudo /sbin/zfs set mountpoint='%s' %s"%(mountpoint, fs))
+    e = cmd("sudo /sbin/zfs mount %s"%fs, ignore_errors=True)
     if not e or 'filesystem already mounted' in e:
         return
     raise RuntimeError(e)
@@ -108,7 +108,7 @@ class Stream(object):
         """
         if self.project.is_project_pool_imported():
             raise RuntimeError("cannot receive stream while pool already imported")
-        cmd("cat '%s' | lz4c -d - | sudo zfs recv -v %s"%(self.path, self.project.image_fs))
+        cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -v %s"%(self.path, self.project.image_fs))
 
 class Project(object):
     def __init__(self, project_id, pool, mnt, stream_path):
@@ -141,15 +141,15 @@ class Project(object):
         if len(os.listdir(self.stream_path)) > 0:
             return
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
-        cmd("sudo zfs create %s"%self.image_fs)
+        cmd("sudo /sbin/zfs create %s"%self.image_fs)
         mount('/'+self.image_fs, self.image_fs)
         log("create a sparse image file of size %s"%quota)
         u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())
         cmd("truncate -s%s %s"%(quota, u))
         log("create a pool projects-project_id on the sparse image")
-        cmd("sudo zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, u))
-        cmd("sudo zfs set compression=lz4 %s"%self.project_pool)
-        cmd("sudo zfs set dedup=on %s"%self.project_pool)
+        cmd("sudo /sbin/zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, u))
+        cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
+        cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
         os.chown(self.project_mnt, self.uid, self.uid)
 
     def umount(self, kill=True):
@@ -160,22 +160,22 @@ class Project(object):
         log("exporting project pool")
         if kill:
             log("killing all processes by user with id %s"%self.uid)
-            cmd("sudo pkill -u %s; sleep 1; sudo pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
-        e = cmd("sudo zpool export %s"%self.project_pool, ignore_errors=True)
+            cmd("sudo /usr/bin/pkill -u %s; sleep 1; sudo /usr/bin/pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
+        e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
         sync()
         log("unmounting image filesystem")
-        e = cmd("sudo zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
+        e = cmd("sudo /sbin/zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
         if os.path.exists('/'+self.image_fs):
             os.rmdir('/' + self.image_fs)
-        if os.path.exists(self.project_mnt):
-            os.rmdir(self.project_mnt)
+        #if os.path.exists(self.project_mnt):
+        #    os.rmdir(self.project_mnt)
 
     def is_project_pool_imported(self):
-        s = cmd("sudo zpool list %s"%self.project_pool, ignore_errors=True)
+        s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
         if 'no such pool' in s:
             return False
         elif 'ONLINE' in s:
@@ -193,7 +193,7 @@ class Project(object):
             self.recv_streams()
             mount('/'+self.image_fs, self.image_fs)
             log("now importing project pool from /%s"%self.image_fs)
-            cmd("sudo zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
+            cmd("sudo /sbin/zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
         log("setting mountpoint to %s"%self.project_mnt)
         mount(self.project_mnt, self.project_pool)
 
@@ -233,7 +233,7 @@ class Project(object):
         sync()
         end = now()
         log("snapshotting image filesystem %s"%end)
-        e = cmd("sudo zfs snapshot %s@%s"%(self.image_fs, end), ignore_errors=True)
+        e = cmd("sudo /sbin/zfs snapshot %s@%s"%(self.image_fs, end), ignore_errors=True)
         if e:
             if 'dataset does not exist' in e:
                 # not mounted -- nothing to do
@@ -260,7 +260,7 @@ class Project(object):
         try:
             log("sending new stream: %s"%target)
             try:
-                cmd("sudo zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
+                cmd("sudo /sbin/zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
             except:
                 os.unlink("%s.partial"%target)
                 raise
@@ -314,7 +314,7 @@ class Project(object):
         log("creating sparse image file %s of size %s"%(u, amount))
         cmd("truncate -s%s %s"%(amount, u))
         log("adding sparse image file %s to pool %s"%(u, self.project_pool))
-        cmd("sudo zpool add %s %s"%(self.project_pool, u))
+        cmd("sudo /sbin/zpool add %s %s"%(self.project_pool, u))
 
     def close(self, kill=True):
         """
@@ -342,7 +342,7 @@ class Project(object):
         Destroy the image filesystem.
         """
         log = self._log("destroy_image_fs")
-        e = cmd("sudo zfs destroy -r %s"%self.image_fs, ignore_errors=True)
+        e = cmd("sudo /sbin/zfs destroy -r %s"%self.image_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
 
