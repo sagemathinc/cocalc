@@ -27,10 +27,12 @@ cassandra = require('cassandra')
 TIMEOUTS =
     sync     : 3600
     create   : 120
-    mount    : 300
-    save     : 900
-    snapshot : 120
-    close    : 900
+    mount    : 3600
+    save     : 3600
+    snapshot : 300
+    close    : 3600
+    migrate  : 60*60*24
+    migrate_snapshots  : 60*60*24
 
 REGISTRATION_INTERVAL = 20*1000      # register with the database every 20 seconds
 REGISTRATION_TTL      = 30*1000      # ttl for registration record
@@ -227,6 +229,7 @@ handle_mesg = (socket, mesg) ->
     winston.debug("storage_server: handling '#{misc.to_safe_str(mesg)}'")
     id = mesg.id
     if mesg.event == 'storage'
+        t = misc.walltime()
         project = get_project(mesg.project_id)
         project.action
             action : mesg.action
@@ -236,6 +239,7 @@ handle_mesg = (socket, mesg) ->
                     resp = message.error(error:err, id:id)
                 else
                     resp = message.success(id:id)
+                resp.time_s = misc.walltime(t)
                 socket.write_mesg('json', resp)
     else
         socket.write_mesg('json', message.error(id:id,error:"unknown event type: '#{mesg.event}'"))
