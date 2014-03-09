@@ -80,6 +80,10 @@ def snapshots(filesystem):
     return [x.split('@')[1].strip() for x in w if '@' in x]
 
 def mount(mountpoint, fs):
+    if cmd("sudo /sbin/zfs get -H mounted %s"%fs).split()[2] == 'yes' and cmd("sudo /sbin/zfs get -H mountpoint %s"%fs).split()[2] == mountpoint:
+        # already done.
+        return
+
     cmd("sudo /sbin/zfs set mountpoint='%s' %s"%(mountpoint, fs))
     e = cmd("sudo /sbin/zfs mount %s"%fs, ignore_errors=True)
     if not e or 'filesystem already mounted' in e:
@@ -108,7 +112,49 @@ class Stream(object):
         """
         if self.project.is_project_pool_imported():
             raise RuntimeError("cannot receive stream while pool already imported")
-        cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -v %s"%(self.path, self.project.image_fs))
+        cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -F %s"%(self.path, self.project.image_fs))
+
+def optimal_stream_sequence(v):
+    if len(v) == 0:
+        return v
+    v = list(v) # make a copy
+    def f(a,b):
+        if a.end > b.end:
+            # newest ending is earliest
+            return -1
+        elif a.end < b.end:
+            # newest ending is earliest
+            return +1
+        else:
+            # both have same ending; take the one with longest interval, i.e., earlier start, as before
+            if a.start < b.start:
+                return -1
+            elif a.start > b.start:
+                return +1
+            else:
+                return 0
+    v.sort(f)
+    while True:
+        if len(v) == 0:
+            return []
+        w = []
+        i = 0
+        while i < len(v):
+            x = v[i]
+            w.append(x)
+            # now move i forward to find an element of v whose end equals the start of x
+            start = x.start
+            i += 1
+            while i < len(v):
+                if v[i].end == start:
+                    break
+                i += 1
+        # Did we end with a an interval of length 0, i.e., a valid sequence?
+        x = w[-1]
+        if x.start == x.end:
+            return w
+        if len(v) > 0:
+            del v[0]  # delete first element -- it's not the end of a valid sequence.
 
 class Project(object):
     def __init__(self, project_id, pool, mnt, stream_path):
@@ -219,7 +265,7 @@ class Project(object):
         log = self._log("recv_streams")
         head = newest_snapshot(self.image_fs)
         log("newest known snapshot is %s"%head)
-        for stream in self.streams():
+        for stream in optimal_stream_sequence(self.streams()):
             if stream.end > head:
                 log("found newer %s so applying it"%stream.end)
                 stream.apply()
