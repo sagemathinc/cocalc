@@ -2,14 +2,21 @@
 
 """
 
-* The storage user, which uses this script, must have visudo setup like this:
+* The salvus use that sues this script must have visudo setup like this:
 
-    storage ALL=(ALL) NOPASSWD: /sbin/zfs *
-    storage ALL=(ALL) NOPASSWD: /sbin/zpool *
-    storage ALL=(ALL) NOPASSWD: /usr/bin/pkill *
+    salvus ALL=(ALL) NOPASSWD: /sbin/zfs *
+    salvus ALL=(ALL) NOPASSWD: /sbin/zpool *
+    salvus ALL=(ALL) NOPASSWD: /usr/bin/pkill *
 
 * Migration commands can only be run as root; everything else should be run as storage user.
 
+    salvus ALL=(ALL) NOPASSWD: /usr/bin/passwd *
+    salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
+    salvus ALL=(ALL) NOPASSWD: /bin/chown *
+    salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupadd *
+    salvus ALL=(ALL) NOPASSWD: /usr/sbin/useradd *
+    salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupdel *
+    salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
 
 
 """
@@ -189,6 +196,7 @@ class Project(object):
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
         cmd("sudo /sbin/zfs create %s"%self.image_fs)
         mount('/'+self.image_fs, self.image_fs)
+        cmd("sudo chown %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
         log("create a sparse image file of size %s"%quota)
         u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())
         cmd("truncate -s%s %s"%(quota, u))
@@ -196,7 +204,9 @@ class Project(object):
         cmd("sudo /sbin/zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, u))
         cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
         cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
-        os.chown(self.project_mnt, self.uid, self.uid)
+        cmd("sudo chown %s:%s %s"%(self.uid, self.uid, self.project_mnt))
+
+        #os.chown(self.project_mnt, self.uid, self.uid)
 
     def umount(self, kill=True):
         """
@@ -418,14 +428,14 @@ class Project(object):
         u = self.uid
         username = 'migrate%s'%u
         self._delete_migrate_user()
-        cmd('groupadd -g %s -o %s'%(u,username))
-        cmd('useradd -u %s -g %s -o %s'%(u,u,username))
+        cmd('sudo /usr/sbin/groupadd -g %s -o %s'%(u,username))
+        cmd('sudo /usr/sbin/useradd -u %s -g %s -o %s'%(u,u,username))
         return username
 
     def _delete_migrate_user(self):
         u = self.uid
         username = 'migrate%s'%u
-        cmd('userdel %s; groupdel %s'%(username, username), ignore_errors=True)
+        cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(username, username), ignore_errors=True)
 
     def migrate(self):
         """
@@ -434,7 +444,7 @@ class Project(object):
         """
         log = self._log("migrate")
         log("figure out original quota")
-        quota = cmd("zfs get -H quota projects/%s"%self.project_id).split()[2]
+        quota = cmd("sudo /sbin/zfs get -H quota projects/%s"%self.project_id).split()[2]
         self.create(quota)
         log("now migrate all snapshots")
         self.migrate_snapshots()
@@ -464,13 +474,13 @@ class Project(object):
             username = self._create_migrate_user()
             alpha = string.lowercase + string.digits
             passwd = ''.join([random.choice(alpha) for _ in range(16)])
-            passwd_file = os.path.join('/root', username)
+            passwd_file = os.path.join(os.environ['HOME'], username)
             open(passwd_file,'w').write(passwd+'\n'+passwd)
-            cmd("cat %s | passwd %s"%(passwd_file, username))
+            cmd("cat %s | sudo /usr/bin/passwd %s"%(passwd_file, username))
             return username, passwd_file
 
         def do_sync(username, passwd_file, snapshot):
-            cmd("sshpass -f %s rsync -axH --delete /%s/.zfs/snapshot/%s/ %s@localhost:%s/"%(
+            cmd("sshpass -f %s sudo /usr/bin/rsync -axH --delete /%s/.zfs/snapshot/%s/ %s@localhost:%s/"%(
                                          passwd_file, fs, snapshot, username, self.project_mnt))
             self.snapshot(snapshot)
 
@@ -496,7 +506,7 @@ class Project(object):
                     tr = (time_per * (len(todo)-i+1))/60.0
                 else:
                     tr = 999999
-                log("migrating missing snapshot (%s/%s; set time remaining: %.1f minutes): %s"%(
+                log("migrating missing snapshot (%s/%s) --  time remaining: %.1f minutes: %s"%(
                               i, len(todo), tr, snapshot))
                 tm0 = time.time()
                 do_sync(username, passwd_file, snapshot)
