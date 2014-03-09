@@ -1,0 +1,41 @@
+# YAML topology configuration file for Cassandra,
+# to be used with YamlFileNetworkTopologySnitch.
+
+# The topology, as a list of data centers.
+topology:
+    - dc_name: DC0   # UW 4545
+      racks:
+          # Each rack has a name and a list of nodes.
+          - rack_name: r1
+            nodes:
+                - broadcast_address: 128.208.178.200   # cloud10
+                - broadcast_address: 128.208.178.202   # cloud11
+                - broadcast_address: 128.208.178.204   # cloud12
+                - broadcast_address: 128.208.178.206   # cloud13
+                - broadcast_address: 128.208.178.208   # cloud14
+                - broadcast_address: 128.208.178.210   # cloud15
+                - broadcast_address: 128.208.178.212   # cloud16
+                - broadcast_address: 128.208.178.214   # cloud17
+                - broadcast_address: 128.208.178.216   # cloud18
+                - broadcast_address: 128.208.178.218   # cloud19
+                - broadcast_address: 128.208.178.220   # cloud20
+                - broadcast_address: 128.208.178.222   # cloud21
+
+    - dc_name: DC1  # UW padelford
+      racks:
+          # Each rack has a name and a list of nodes.
+          - rack_name: r1
+            nodes:
+                - broadcast_address: 128.208.160.164   # cloud1
+                - broadcast_address: 128.208.160.166   # cloud2
+                #- broadcast_address: 128.95.224.237    # cloud3
+                #- broadcast_address: 128.95.224.230    # cloud4
+                - broadcast_address: 128.208.160.207   # cloud5
+                - broadcast_address: 128.208.160.208   # cloud6
+                - broadcast_address: 128.208.160.209   # cloud7
+
+# Default data center name for unknown nodes; defaults to "UNKNOWN"
+# default_dc_name: UNKNOWN
+
+# Default rack name for unknown nodes
+# default_rack_name: UNKNOWN; defaults to "UNKNOWN"

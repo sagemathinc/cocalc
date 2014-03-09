@@ -12,7 +12,7 @@ if hostname == "salvus-base":
     sys.exit(0)
 
 # Enable swap
-if not os.path.exists("/mnt/home/"):
+if not os.path.exists("/mnt/home/") and not hostname.startswith('cassandra'):   # no swap on cassandra -- http://www.datastax.com/documentation/cassandra/2.0/cassandra/install/installRecommendSettings.html
     os.system("swapon /dev/salvus-base/swap")
 
 # Mount tmp

@@ -2,7 +2,7 @@
 #
 # misc JS functionality that only makes sense on the node side (not on
 # the client)
-#
+# 
 ####################################################################
 
 assert = require('assert')
@@ -253,10 +253,12 @@ exports.execute_code = execute_code = (opts) ->
         uid        : undefined
         gid        : undefined
         env        : undefined   # if given, added to exec environment
+        verbose    : true
         cb         : undefined
 
     start_time = walltime()
-    winston.debug("execute_code: \"#{opts.command} #{opts.args.join(' ')}\"")
+    if opts.verbose
+        winston.debug("execute_code: \"#{opts.command} #{opts.args.join(' ')}\"")
 
     s = opts.command.split(/\s+/g) # split on whitespace
     if opts.args.length == 0 and s.length > 1
@@ -300,7 +302,8 @@ exports.execute_code = execute_code = (opts) ->
             else
                 cmd = opts.command
 
-            winston.debug("execute_code: writing temporary file that contains bash program.")
+            if opts.verbose
+                winston.debug("execute_code: writing temporary file that contains bash program.")
             temp.open '', (err, info) ->
                 if err
                     c(err)
@@ -318,7 +321,8 @@ exports.execute_code = execute_code = (opts) ->
                 c()
 
         (c) ->
-            winston.debug("Spawn the command #{opts.command} with given args #{opts.args}")
+            if opts.verbose
+                winston.debug("Spawn the command #{opts.command} with given args #{opts.args}")
             o = {cwd:opts.path}
             if env?
                 o.env = env
@@ -330,7 +334,8 @@ exports.execute_code = execute_code = (opts) ->
             r = child_process.spawn(opts.command, opts.args, o)
             ran_code = true
 
-            winston.debug("Listen for stdout, stderr and exit events.")
+            if opts.verbose
+                winston.debug("Listen for stdout, stderr and exit events.")
             stdout = ''
             r.stdout.on 'data', (data) ->
                 data = data.toString()
@@ -382,11 +387,13 @@ exports.execute_code = execute_code = (opts) ->
             if opts.timeout?
                 f = () ->
                     if r.exitCode == null
-                        winston.debug("execute_code: subprocess did not exit after #{opts.timeout} seconds, so killing with SIGKILL")
+                        if opts.verbose
+                            winston.debug("execute_code: subprocess did not exit after #{opts.timeout} seconds, so killing with SIGKILL")
                         try
                             r.kill("SIGKILL")  # this does not kill the process group :-(
                         catch e
                             # Exceptions can happen, which left uncaught messes up calling code bigtime.
+                        if opts.verbose
                             winston.debug("execute_code: r.kill raised an exception.")
                         if not callback_done
                             callback_done = true
@@ -403,7 +410,8 @@ exports.execute_code = execute_code = (opts) ->
         if tmpfilename?
             fs.unlink(tmpfilename)
 
-        winston.debug("finished exec of #{opts.command}")
+        if opts.verbose
+            winston.debug("finished exec of #{opts.command}")
         if not opts.err_on_exit and ran_code
             # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
             opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})
