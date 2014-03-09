@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-PW=`cat $HOME/salvus/salvus/data/secrets/cassandra/storage0`
-cqlsh -k storage -u storage0 -p $PW $1
+PW=`cat $HOME/salvus/salvus/data/secrets/storage/salvus`
+cqlsh -k storage -u salvus -p $PW $1
