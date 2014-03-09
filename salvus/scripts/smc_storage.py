@@ -159,7 +159,7 @@ def optimal_stream_sequence(v):
         # Did we end with a an interval of length 0, i.e., a valid sequence?
         x = w[-1]
         if x.start == x.end:
-            return w
+            return list(reversed(w))
         if len(v) > 0:
             del v[0]  # delete first element -- it's not the end of a valid sequence.
 
@@ -192,6 +192,7 @@ class Project(object):
         """
         log = self._log("create")
         if len(os.listdir(self.stream_path)) > 0:
+            self.mount()
             return
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
         cmd("sudo /sbin/zfs create %s"%self.image_fs)
