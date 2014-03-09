@@ -12,13 +12,13 @@ if hostname == "salvus-base":
     sys.exit(0)
 
 # Enable swap
-if not os.path.exists("/mnt/home/") and not hostname.startswith('cassandra'):   # no swap on cassandra -- http://www.datastax.com/documentation/cassandra/2.0/cassandra/install/installRecommendSettings.html
+if not hostname.startswith('compute') and not hostname.startswith('cassandra'):   # no swap on cassandra -- http://www.datastax.com/documentation/cassandra/2.0/cassandra/install/installRecommendSettings.html
     os.system("swapon /dev/salvus-base/swap")
 
 # Mount tmp
 os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 
-if os.path.exists('/mnt/home/'):
+if hostname.startswith('compute'):
 
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets')
