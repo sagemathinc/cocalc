@@ -71,7 +71,6 @@ class Project
         args.push(@project_id)
 
         @dbg("exec", opts.args, args)
-
         misc_node.execute_code
             command : "smc_storage.py"
             args    : args
@@ -82,29 +81,88 @@ class Project
                 else
                     opts.cb()
 
+    # write to database log for this project
+    log_action: (opts) =>
+        opts = defaults opts,
+            action : required    # 'sync', 'create', 'mount', 'save', 'snapshot', 'close', etc.
+            param  : undefined   # if given, should be an array
+            error  : undefined
+            time_s : undefined
+            cb     : undefined
+
+        database.update
+            table : 'storage_log'
+            set   :
+                action : opts.action
+                param  : opts.param
+                error  : opts.error
+                time_s : opts.time_s
+            where :
+                id        : @project_id
+                timestamp : cassandra.now()
+            json  : ['param', 'error']
+            cb    : (err) => opts.cb?(err)
+
+    # get action log for this project from the database
+    log: (opts) =>
+        opts = defaults opts,
+            max_age_m : undefined     # integer -- if given, only return log entries that are at most this old, in minutes.
+            cb        : required
+        if opts.age_d?
+            where = {timestamp:{'>=':cassandra.minutes_ago(opts.max_age_m)}}
+        else
+            where = {}
+        where.id = @project_id
+        database.select
+            table     : 'storage_log'
+            columns   : ['timestamp', 'action', 'param', 'time_s', 'error']
+            where     : where
+            json      : ['param', 'error']
+            objectify : true
+            cb        : opts.cb
+
     action: (opts) =>
+        cb = opts.cb
+        t = misc.walltime()
+        opts.cb = (err, result) =>
+            if opts.action not in ['log']   # actions to not log
+                @log_action
+                    action : opts.action
+                    param  : opts.param
+                    error  : err
+                    time_s : misc.walltime(t)
+            cb?(err, result)
+        @_action(opts)
+
+    _action: (opts) =>
         opts = defaults opts,
             action  : required    # 'sync', 'create', 'mount', 'save', 'snapshot', 'close'
-            params  : undefined   # if given, should be an array
+            param   : undefined   # if given, should be an array
             timeout : undefined   # different defaults depending on the action
-            cb      : undefined
+            cb      : undefined   # cb?(err)
+
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
-        if opts.action == "migrate_delete"  # temporary -- during migration only!
-            @migrate_delete(opts.cb)
-        else if opts.action == 'sync'
-            @sync(opts.cb)
-        else if opts.action == 'sync_put_delete'
-            # TODO: disable this action once migration is done -- very dangerous
-            @sync_put_delete(opts.cb)
-        else
-            args = [opts.action]
-            if opts.params?
-                args = args.extend(opts.params)
-            @exec
-                args    : args
-                timeout : opts.timeout
-                cb      : opts.cb
+        switch opts.action
+            when "migrate_delete"  # temporary -- during migration only!
+                @migrate_delete(opts.cb)
+            when 'sync'
+                @sync(opts.cb)
+            when 'sync_put_delete'
+                # TODO: disable this action once migration is done -- very dangerous
+                @sync_put_delete(opts.cb)
+            when 'log'
+                @log
+                    max_age_m : opts.param
+                    cb        : opts.cb
+            else
+                args = [opts.action]
+                if opts.param?
+                    args = args.extend(opts.param)
+                @exec
+                    args    : args
+                    timeout : opts.timeout
+                    cb      : opts.cb
 
     migrate_delete: (cb) =>
         dbg = (m) => @dbg('destructive_migration',[],m)
@@ -261,12 +319,14 @@ handle_mesg = (socket, mesg) ->
         project = get_project(mesg.project_id)
         project.action
             action : mesg.action
-            params : mesg.params
-            cb     : (err) ->
+            param  : mesg.param
+            cb     : (err, result) ->
                 if err
                     resp = message.error(error:err, id:id)
                 else
                     resp = message.success(id:id)
+                if result?
+                    resp.result = result
                 resp.time_s = misc.walltime(t)
                 socket.write_mesg('json', resp)
     else
@@ -387,10 +447,14 @@ class Client
                 opts.cb?(err)
             else
                 @socket.recv_mesg
-                    type : 'json'
-                    id   : opts.mesg.id
+                    type    : 'json'
+                    id      : opts.mesg.id
                     timeout : opts.timeout
-                    cb      : opts.cb
+                    cb      : (mesg) =>
+                        if mesg.event == 'error'
+                            opts.cb?(mesg.error)
+                        else
+                            opts.cb?(undefined, {time_s:mesg.time_s, result:mesg.result})
 
     action: (opts) =>
         opts = defaults opts,

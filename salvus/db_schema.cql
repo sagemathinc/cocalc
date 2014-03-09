@@ -616,5 +616,14 @@ CREATE TABLE storage_servers (
     PRIMARY KEY (dummy, hostname)
 );
 
+CREATE TABLE storage_log (
+    id          uuid,
+    timestamp   timestamp,
+    action      varchar,
+    param       varchar,     /* JSON */
+    error       varchar,     /* JSON */
+    time_s      float,         /* elapsed time for action */
+    PRIMARY KEY (id, timestamp)
+);
 
 
