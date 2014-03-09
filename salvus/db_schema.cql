@@ -605,5 +605,16 @@ CREATE TABLE storage_chunks (
     chunk       blob
 );
 
+/*
+   When a storage server is started running on a compute VM it will periodically put an entry
+   for itself in this table with a small TTL (so if something is here, it should be working).
+*/
+CREATE TABLE storage_servers (
+    dummy       boolean,     /* so select * fast */
+    hostname    varchar,     /* ip address of the compute vm */
+    port        int,
+    PRIMARY KEY (dummy, hostname)
+);
+
 
 

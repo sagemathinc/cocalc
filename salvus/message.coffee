@@ -1157,13 +1157,11 @@ message
 
 
 message
-    event     : 'storage_sign_in'
-    id        : undefined
-    password  : required
+    event      : 'storage'
+    project_id : required
+    action     : required    # open, save, snapshot, latest_snapshot, close
+    param      : undefined
+    id         : undefined
 
-message
-    event     : 'storage'
-    action    : required    # open, save, snapshot, latest_snapshot, close
-    param     : undefined
-    id        : undefined
-    name      : required
+
+    
