@@ -1166,7 +1166,7 @@ exports.snapshot = snapshot = (opts) ->
             execute_on
                 host    : opts.host
                 command : "sudo zfs snapshot #{name}"
-                timeout : 120
+                timeout : 600
                 cb      : cb
         (cb) ->
             dbg("record in database that we made a snapshot")

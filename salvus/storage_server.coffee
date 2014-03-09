@@ -89,7 +89,7 @@ class Project
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
         if opts.action == 'sync'
-            @chunked_storage.sync(path: @stream_path, cb:opts.cb)
+            @sync(opts.cb)
         else
             args = [opts.action]
             if opts.params?
@@ -98,6 +98,124 @@ class Project
                 args    : args
                 timeout : opts.timeout
                 cb      : opts.cb
+
+    sync: (cb) =>
+        # Find the chain of streams with newest end time, either locally or in the database,
+        # and make sure it is present in both.
+        dbg = (m) => @dbg('sync',[],m)
+        dbg()
+        put          = undefined
+        remote_files = undefined
+        local_files  = undefined
+
+        async.series([
+            (cb) =>
+                @chunked_storage.ls
+                    cb   : (err, files) =>
+                        if err
+                            cb(err)
+                        else
+                            remote_files = (f.name for f in files)
+                            dbg("remote_files=#{misc.to_json(remote_files)}")
+                            cb()
+            (cb) =>
+                fs.exists @stream_path, (exists) =>
+                    if not exists
+                        fs.mkdir(@stream_path, 0o700, cb)
+                    else
+                        cb()
+            (cb) =>
+                fs.readdir @stream_path, (err, files) =>
+                    if err
+                        cb(err)
+                    else
+                        local_files = files
+                        dbg("local_files=#{misc.to_json(local_files)}")
+                        cb()
+            (cb) =>
+                # streams are of this form:  2014-03-02T05:34:21--2014-03-09T01:41:47    (40 characters, with --).
+                if local_files.length == 0
+                    # nothing locally: get data from database
+                    put = false
+                    cb()
+                else if remote_files.length == 0
+                    # nothing in db: put local data in database
+                    put = true
+                    cb()
+                else
+                    local_times = (x.split('--')[1] for x in local_files)
+                    local_times.sort()
+                    remote_times = (x.split('--')[1] for x in remote_files)
+                    remote_times.sort()
+                    # put = true if local is newer.
+                    put = local_times[local_times.length-1] > remote_times[remote_times.length-1]
+                    cb()
+            (cb) =>
+                if put
+                    dbg("put: from local to database")
+                    f = (name, cb) =>
+                        @chunked_storage.put
+                            name     : name
+                            filename : @stream_path + '/' + name
+                            cb       : cb
+                    async.mapLimit((a for a in optimal_stream(local_files) when a not in remote_files), 3, f, cb)
+                else
+                    dbg("get: from database to local")
+                    f = (name, cb) =>
+                        @chunked_storage.get
+                            name     : name
+                            filename : @stream_path + '/' + name
+                            cb       : cb
+                    async.mapLimit((a for a in optimal_stream(remote_files) when a not in local_files), 3, f, cb)
+        ], cb)
+
+
+optimal_stream = (v) ->
+    # given a array of stream filenames that represent date ranges, of this form:
+    #     [UTC date]--[UTC date]
+    # find the optimal sequence, i.e., the linear subarray that ends with the newest date,
+    # and starts with an empty interval.
+    if v.length == 0
+        return v
+    v = v.slice(0) # make a copy
+    v.sort (a,b) ->
+        a = a.split('--')
+        b = b.split('--')
+        if a[1] > b[1]
+            # newest ending is earliest
+            return -1
+        else if a[1] < b[1]
+            # newest ending is earliest
+            return +1
+        else
+            # both have same ending; take the one with longest interval, i.e., earlier start, as before
+            if a[0] < b[0]
+                return -1
+            else if a[0] > b[0]
+                return +1
+            else
+                return 0
+    while true
+        if v.length ==0
+            return []
+        w = []
+        i = 0
+        while i < v.length
+            x = v[i]
+            w.push(x)
+            # now move i forward to find an element of v whose end equals the start of x
+            start = x.split('--')[0]
+            i += 1
+            while i < v.length
+                if v[i].split('--')[1] == start
+                    break
+                i += 1
+        # Did we end with a an interval of length 0, i.e., a valid sequence?
+        x = w[w.length-1].split('--')
+        if x[0] == x[1]
+            return w
+        v = v.shift()  # delete first element -- it's not the end of a valid sequence.
+
 
 projects = {}
 get_project = (project_id) ->

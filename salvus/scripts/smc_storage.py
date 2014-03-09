@@ -122,7 +122,7 @@ class Project(object):
         self.project_pool = "project-%s"%self.project_id
         self.project_mnt  = mnt
         self.uid = uid(project_id)
-        self.stream_thresh_mb = 25
+        self.stream_thresh_mb = 10
 
     def __repr__(self):
         return "Project(%s)"%project_id
@@ -316,12 +316,15 @@ class Project(object):
         log("adding sparse image file %s to pool %s"%(u, self.project_pool))
         cmd("sudo /sbin/zpool add %s %s"%(self.project_pool, u))
 
-    def close(self, kill=True):
+    def close(self, kill=True, save=True):
         """
-        Save, unmount, then destroy image filesystem, leaving only streams.
+        Save (if save is true), unmount, then destroy image filesystem, leaving only streams.
+
+        Dangeorus with save=False.
         """
         log = self._log("close")
-        self.save()
+        if save:
+            self.save()
         self.umount(kill=kill)
         self.destroy_image_fs()
 
@@ -495,7 +498,8 @@ if __name__ == "__main__":
     parser_replicate.set_defaults(func=lambda args: project.replicate(args.target, delete=args.delete))
 
     parser_close = subparsers.add_parser('close', help='save, unmount, destroy images, etc., leaving only streams')
-    parser_close.set_defaults(func=lambda args: project.close())
+    parser_close.add_argument("--nosave", help="if given, don't save first: DANGEROUS", default=False, action="store_const", const=True)
+    parser_close.set_defaults(func=lambda args: project.close(save=not args.nosave))
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
     parser_destroy.set_defaults(func=lambda args: project.destroy())
