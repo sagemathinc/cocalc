@@ -619,6 +619,7 @@ CREATE TABLE storage_servers (
 CREATE TABLE storage_log (
     id          uuid,
     timestamp   timestamp,
+    host        varchar,
     action      varchar,
     param       varchar,     /* JSON */
     error       varchar,     /* JSON */

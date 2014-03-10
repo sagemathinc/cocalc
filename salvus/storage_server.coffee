@@ -98,6 +98,7 @@ class Project
                 param  : opts.param
                 error  : opts.error
                 time_s : opts.time_s
+                host   : program.address
             where :
                 id        : @project_id
                 timestamp : cassandra.now()
@@ -117,7 +118,7 @@ class Project
         where.id = @project_id
         database.select
             table     : 'storage_log'
-            columns   : ['timestamp', 'action', 'param', 'time_s', 'error']
+            columns   : ['timestamp', 'action', 'param', 'time_s', 'error', 'host']
             where     : where
             json      : ['param', 'error']
             objectify : true
