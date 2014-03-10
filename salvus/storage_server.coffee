@@ -406,10 +406,45 @@ start_server = () ->
         else
             winston.debug("Successfully started server.")
 
+get_port = (hostname, cb) ->
+    winston.debug("getting port for server at #{hostname}...")
+    async.series [read_password, connect_to_database], (err) ->
+        if err
+            cb(err)
+        else
+            database.select_one
+                table : 'storage_servers'
+                where : {dummy:true, hostname:hostname}
+                columns : ['port']
+                objectify : true
+                cb        : (err, result) ->
+                    if err
+                        winston.debug("no server running at #{hostname} right now")
+                        cb(err)
+                    else
+                        winston.debug("got port of #{hostname}: #{result.port}")
+                        cb(undefined, result.port)
+
 class Client
-    constructor: (@hostname, @port, timeout, cb) ->
+    constructor: (@hostname, @port, @verbose, cb) ->
+        @connect (err) =>
+            cb?(err, @)
+
+    dbg: (f, args, m) =>
+        if @verbose
+            winston.debug("storage Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
+
+    connect: (cb) =>
         dbg = (m) -> winston.debug("Storage client (#{@hostname}:#{@port}): #{m}")
         async.series([
+            (cb) =>
+                if not @port?
+                    dbg("get port")
+                    get_port @hostname, (err, port) =>
+                        @port = port
+                        cb(err)
+                else
+                    cb()
             (cb) =>
                 dbg("ensure password")
                 read_password(cb)
@@ -419,16 +454,17 @@ class Client
                     host    : @hostname
                     port    : @port
                     token   : password
-                    timeout : timeout
+                    timeout : 60
                     cb      : (err, socket) =>
-                        @socket = socket
-                        misc_node.enable_mesg(@socket)
-                        cb(err)
+                        if err
+                            @socket = undefined
+                            cb(err)
+                        else
+                            @socket = socket
+                            misc_node.enable_mesg(@socket)
+                            cb()
         ], cb)
 
-    dbg: (f, args, m) =>
-        if @verbose
-            winston.debug("storage Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
 
     mesg: (project_id, action, param) =>
         mesg = message.storage
@@ -443,15 +479,51 @@ class Client
             mesg    : required
             timeout : 60
             cb      : undefined
+        async.series([
+            (cb) =>
+                if not @socket?
+                    @port = undefined                    
+                    @connect(cb)
+                else
+                    cb()
+            (cb) =>
+                @_call(opts)
+                cb()
+        ])
+
+    _call: (opts) =>
+        opts = defaults opts,
+            mesg    : required
+            timeout : 60
+            cb      : undefined
+        @dbg("call", opts, "start call")
         @socket.write_mesg 'json', opts.mesg, (err) =>
+            @dbg("call", opts, "got response from socket write mesg: #{err}")
             if err
-                opts.cb?(err)
+                if not @socket?   # extra messages but socket already gone -- already being handled below
+                    return
+                if err == "socket not writable"
+                    @socket = undefined
+                    @dbg("call",opts,"socket closed: reconnect and try again...")
+                    @port = undefined
+                    @connect (err) =>
+                        if err
+                            opts.cb?(err)
+                        else
+                            @call
+                                mesg    : opts.mesg
+                                timeout : opts.timeout
+                                cb      : opts.cb
+                else
+                    opts.cb?(err)
             else
+                @dbg("call",opts,"waiting to receive response")
                 @socket.recv_mesg
                     type    : 'json'
                     id      : opts.mesg.id
                     timeout : opts.timeout
                     cb      : (mesg) =>
+                        @dbg("call",opts,"got response -- #{misc.to_json(mesg)}")
                         if mesg.event == 'error'
                             opts.cb?(mesg.error)
                         else
@@ -476,39 +548,12 @@ exports.client = (opts) ->
     opts = defaults opts,
         hostname : required
         port     : undefined
-        timeout  : 30
+        verbose  : true
         cb       : required
 
-    client = undefined
-    async.series([
-        (cb) ->
-            if opts.port?
-                cb()
-            else
-                async.series [read_password, connect_to_database], (err) ->
-                    if err
-                        cb(err)
-                    else
-                        database.select_one
-                            table : 'storage_servers'
-                            where : {dummy:true, hostname:opts.hostname}
-                            columns : ['port']
-                            objectify : true
-                            cb        : (err, result) ->
-                                if err
-                                    cb(err)
-                                else
-                                    opts.port = result.port
-                                    winston.debug("connecting to storage_server on #{opts.hostname}: got port = #{opts.port}")
-                                    cb()
-        (cb) ->
-            client = new Client opts.hostname, opts.port, opts.timeout, cb
-    ], (err) ->
-        if err
-            opts.cb(err)
-        else
-            opts.cb(undefined, client)
-    )
+    C = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
+    return
+
 
 program.usage('[start/stop/restart/status] [options]')
 
