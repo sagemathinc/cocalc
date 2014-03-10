@@ -109,7 +109,7 @@ def conf():
 
     if hostname.startswith("cassandra"):
         # Import the zpool, copy custom config, start cassandra Daemon
-        os.system("zpool import -f cassandra && cp /cassandra/etc/* /etc/cassandra/ && service cassandra start")
+        os.system("zpool import -f cassandra && rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/ && service cassandra start")
 
 
 if __name__ == "__main__":
