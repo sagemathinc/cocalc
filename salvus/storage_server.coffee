@@ -33,6 +33,7 @@ TIMEOUTS =
     close    : 3600
     migrate  : 60*60*24
     migrate_snapshots  : 60*60*24
+    migrate_delete : 60*60*24
 
 REGISTRATION_INTERVAL = 20*1000      # register with the database every 20 seconds
 REGISTRATION_TTL      = 30*1000      # ttl for registration record
@@ -180,7 +181,7 @@ class Project
             (cb) =>
                 dbg("migration succeeded -- saving result to database (deleting anything old)")
                 @sync_put_delete(cb)
-        ], cb)
+        ], (err) => cb(err))
 
     sync_put_delete: (cb) =>
         @chunked_storage.sync_put
@@ -482,7 +483,7 @@ class Client
         async.series([
             (cb) =>
                 if not @socket?
-                    @port = undefined                    
+                    @port = undefined
                     @connect(cb)
                 else
                     cb()
@@ -494,7 +495,7 @@ class Client
     _call: (opts) =>
         opts = defaults opts,
             mesg    : required
-            timeout : 60
+            timeout : 300
             cb      : undefined
         @dbg("call", opts, "start call")
         @socket.write_mesg 'json', opts.mesg, (err) =>
@@ -524,25 +525,43 @@ class Client
                     timeout : opts.timeout
                     cb      : (mesg) =>
                         @dbg("call",opts,"got response -- #{misc.to_json(mesg)}")
+                        mesg.project_id = opts.mesg.project_id
                         if mesg.event == 'error'
                             opts.cb?(mesg.error)
                         else
-                            opts.cb?(undefined, {time_s:mesg.time_s, result:mesg.result})
+                            delete mesg.id
+                            opts.cb?(undefined, mesg)
 
     action: (opts) =>
         opts = defaults opts,
             action     : required    # 'sync', 'create', 'mount', 'save', 'snapshot', 'close'
             param      : undefined
-            project_id : required
+            project_id : undefined   # a single project id
+            project_ids: undefined   # or a list of project ids -- in which case, do the actions in parallel with limit at once
             timeout    : undefined   # different defaults depending on the action
+            limit      : 3
             cb         : undefined
 
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
-        @call
-            mesg    : @mesg(opts.project_id, opts.action, opts.param)
-            timeout : opts.timeout
-            cb      : opts.cb
+
+        errors = {}
+        f = (project_id, cb) =>
+            @call
+                mesg    : @mesg(project_id, opts.action, opts.param)
+                timeout : opts.timeout
+                cb      : (err, result) =>
+                    if err
+                        errors[project_id] = err
+                    cb(undefined, result)
+
+        if opts.project_id?
+            f(project_id, opts.cb)
+        if opts.project_ids?
+            async.mapLimit opts.project_ids, opts.limit, f, (ignore, results) =>
+                if misc.len(errors) == 0
+                    errors = undefined
+                opts.cb(errors, results)
 
 exports.client = (opts) ->
     opts = defaults opts,

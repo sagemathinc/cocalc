@@ -3176,8 +3176,26 @@ exports.all_projects_on_host = (opts) ->
                 opts.cb(err); return
             winston.debug("got #{projects.length} projects")
             v = filter_by_host(projects, opts.host)
-            winston.debug("of these,#{v.length} are on '#{opts.host}'")
+            winston.debug("of these, #{v.length} are on '#{opts.host}'")
             opts.cb(undefined, v)
+
+exports.all_projects_with_location_host = (opts) ->
+    opts = defaults opts,
+        host : required  # ip address
+        cb   : required  # cb(err, [list of project id's])
+    database.select
+        table   : 'projects'
+        columns : ['project_id', 'location']
+        json    : ['location']
+        limit   : 100000   # TODO: stupidly slow
+        cb      : (err, projects) ->
+            if err
+                opts.cb(err); return
+            winston.debug("got #{projects.length} projects")
+            v = (x[0] for x in projects when x[1]?.host == opts.host)
+            winston.debug("of these, #{v.length} are on '#{opts.host}'")
+            opts.cb(undefined, v)
+
 
 #  x={}; s.projects_on_node(host:'10.1.2.4',cb:(e,t)->x.t=t)
 #   fs.writeFileSync('projects-day',x.t.join('\n'))

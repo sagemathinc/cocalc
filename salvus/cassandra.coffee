@@ -2538,14 +2538,14 @@ exports.storage_db = (opts) ->
         consistency : 1
         cb    : required
 
-    fs.readFile "#{process.cwd()}/data/secrets/storage/salvus", (err, password) ->
+    fs.readFile "#{process.cwd()}/data/secrets/storage/storage_server", (err, password) ->
         if err
             opts.cb(err)
         else
             new exports.Salvus
                 hosts    : opts.hosts
                 keyspace : 'storage'
-                username : 'salvus'
+                username : 'storage_server'
                 consistency : opts.consistency
                 password : password.toString().trim()
                 cb       : opts.cb
@@ -3202,7 +3202,7 @@ class ChunkedStorage
                         name     : name
                         filename : opts.path + '/'+name
                         cb       : c
-                async.mapLimit(diff.local_only, 3, f, cb)  # up to 3 files at once
+                async.mapLimit(diff.local_only, 3, f, (err,r)=>cb(err))  # up to 3 files at once
 
             (cb) =>
                 if opts.delete
@@ -3214,7 +3214,7 @@ class ChunkedStorage
                         @delete
                             name : name
                             cb   : c
-                    async.mapLimit(to_delete, 10, f, cb)   # less restrictive limit -- deleting is easies
+                    async.mapLimit(to_delete, 10, f, (err,r)=>cb(err))   # less restrictive limit -- deleting is easies
                 else
                     cb()
         ], (err) => opts.cb?(err))
