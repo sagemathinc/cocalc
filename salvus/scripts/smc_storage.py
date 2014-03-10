@@ -2,14 +2,21 @@
 
 """
 
-* The storage user, which uses this script, must have visudo setup like this:
+# The salvus use that sues this script must have visudo setup like this:
 
-    storage ALL=(ALL) NOPASSWD: /sbin/zfs *
-    storage ALL=(ALL) NOPASSWD: /sbin/zpool *
-    storage ALL=(ALL) NOPASSWD: /usr/bin/pkill *
+salvus ALL=(ALL) NOPASSWD: /sbin/zfs *
+salvus ALL=(ALL) NOPASSWD: /sbin/zpool *
+salvus ALL=(ALL) NOPASSWD: /usr/bin/pkill *
 
-* Migration commands can only be run as root; everything else should be run as storage user.
+# While migrating, we also need all the following.  REMOVE these from visudo after migration.
 
+salvus ALL=(ALL) NOPASSWD: /usr/bin/passwd *
+salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
+salvus ALL=(ALL) NOPASSWD: /bin/chown *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupadd *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/useradd *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupdel *
+salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
 
 
 """
@@ -59,13 +66,13 @@ def sync():
 
 def filesystem_exists(fs):
     try:
-        cmd("sudo zfs list %s"%fs)
+        cmd("sudo /sbin/zfs list %s"%fs)
         return True
     except:
         return False
 
 def newest_snapshot(fs):
-    out = cmd("sudo zfs list -r -t snapshot -o name -s creation %s |tail -1"%fs)
+    out = cmd("sudo /sbin/zfs list -r -t snapshot -o name -s creation %s |tail -1"%fs)
     if 'dataset does not exist' in out:
         return None
     if 'no datasets available' in out:
@@ -80,8 +87,12 @@ def snapshots(filesystem):
     return [x.split('@')[1].strip() for x in w if '@' in x]
 
 def mount(mountpoint, fs):
-    cmd("sudo zfs set mountpoint='%s' %s"%(mountpoint, fs))
-    e = cmd("sudo zfs mount %s"%fs, ignore_errors=True)
+    if cmd("sudo /sbin/zfs get -H mounted %s"%fs).split()[2] == 'yes' and cmd("sudo /sbin/zfs get -H mountpoint %s"%fs).split()[2] == mountpoint:
+        # already done.
+        return
+
+    cmd("sudo /sbin/zfs set mountpoint='%s' %s"%(mountpoint, fs))
+    e = cmd("sudo /sbin/zfs mount %s"%fs, ignore_errors=True)
     if not e or 'filesystem already mounted' in e:
         return
     raise RuntimeError(e)
@@ -108,10 +119,54 @@ class Stream(object):
         """
         if self.project.is_project_pool_imported():
             raise RuntimeError("cannot receive stream while pool already imported")
-        cmd("cat '%s' | lz4c -d - | sudo zfs recv -v %s"%(self.path, self.project.image_fs))
+        cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -F %s"%(self.path, self.project.image_fs))
+
+def optimal_stream_sequence(v):
+    if len(v) == 0:
+        return v
+    v = list(v) # make a copy
+    def f(a,b):
+        if a.end > b.end:
+            # newest ending is earliest
+            return -1
+        elif a.end < b.end:
+            # newest ending is earliest
+            return +1
+        else:
+            # both have same ending; take the one with longest interval, i.e., earlier start, as before
+            if a.start < b.start:
+                return -1
+            elif a.start > b.start:
+                return +1
+            else:
+                return 0
+    v.sort(f)
+    while True:
+        if len(v) == 0:
+            return []
+        w = []
+        i = 0
+        while i < len(v):
+            x = v[i]
+            w.append(x)
+            # now move i forward to find an element of v whose end equals the start of x
+            start = x.start
+            i += 1
+            while i < len(v):
+                if v[i].end == start:
+                    break
+                i += 1
+        # Did we end with a an interval of length 0, i.e., a valid sequence?
+        x = w[-1]
+        if x.start == x.end:
+            return list(reversed(w))
+        if len(v) > 0:
+            del v[0]  # delete first element -- it's not the end of a valid sequence.
 
 class Project(object):
     def __init__(self, project_id, pool, mnt, stream_path):
+        if uuid.UUID(project_id).get_version() != 4:
+            raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id = project_id
         self.pool = pool
         self.uid = uid(project_id)
@@ -122,7 +177,7 @@ class Project(object):
         self.project_pool = "project-%s"%self.project_id
         self.project_mnt  = mnt
         self.uid = uid(project_id)
-        self.stream_thresh_mb = 25
+        self.stream_thresh_mb = 10
 
     def __repr__(self):
         return "Project(%s)"%project_id
@@ -139,20 +194,24 @@ class Project(object):
         """
         log = self._log("create")
         if len(os.listdir(self.stream_path)) > 0:
+            self.mount()
             return
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
-        cmd("sudo zfs create %s"%self.image_fs)
+        cmd("sudo /sbin/zfs create %s"%self.image_fs)
         mount('/'+self.image_fs, self.image_fs)
+        cmd("sudo chown %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
         log("create a sparse image file of size %s"%quota)
         u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())
         cmd("truncate -s%s %s"%(quota, u))
         log("create a pool projects-project_id on the sparse image")
-        cmd("sudo zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, u))
-        cmd("sudo zfs set compression=lz4 %s"%self.project_pool)
-        cmd("sudo zfs set dedup=on %s"%self.project_pool)
-        os.chown(self.project_mnt, self.uid, self.uid)
+        cmd("sudo /sbin/zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, u))
+        cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
+        cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
+        cmd("sudo chown %s:%s %s"%(self.uid, self.uid, self.project_mnt))
 
-    def umount(self, kill=True):
+        #os.chown(self.project_mnt, self.uid, self.uid)
+
+    def umount(self, kill=False):
         """
         Unmount the given project.
         """
@@ -160,22 +219,22 @@ class Project(object):
         log("exporting project pool")
         if kill:
             log("killing all processes by user with id %s"%self.uid)
-            cmd("sudo pkill -u %s; sleep 1; sudo pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
-        e = cmd("sudo zpool export %s"%self.project_pool, ignore_errors=True)
+            cmd("sudo /usr/bin/pkill -u %s; sleep 1; sudo /usr/bin/pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
+        e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
         sync()
         log("unmounting image filesystem")
-        e = cmd("sudo zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
+        e = cmd("sudo /sbin/zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
         if os.path.exists('/'+self.image_fs):
             os.rmdir('/' + self.image_fs)
-        if os.path.exists(self.project_mnt):
-            os.rmdir(self.project_mnt)
+        #if os.path.exists(self.project_mnt):
+        #    os.rmdir(self.project_mnt)
 
     def is_project_pool_imported(self):
-        s = cmd("sudo zpool list %s"%self.project_pool, ignore_errors=True)
+        s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
         if 'no such pool' in s:
             return False
         elif 'ONLINE' in s:
@@ -193,7 +252,7 @@ class Project(object):
             self.recv_streams()
             mount('/'+self.image_fs, self.image_fs)
             log("now importing project pool from /%s"%self.image_fs)
-            cmd("sudo zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
+            cmd("sudo /sbin/zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
         log("setting mountpoint to %s"%self.project_mnt)
         mount(self.project_mnt, self.project_pool)
 
@@ -219,7 +278,7 @@ class Project(object):
         log = self._log("recv_streams")
         head = newest_snapshot(self.image_fs)
         log("newest known snapshot is %s"%head)
-        for stream in self.streams():
+        for stream in optimal_stream_sequence(self.streams()):
             if stream.end > head:
                 log("found newer %s so applying it"%stream.end)
                 stream.apply()
@@ -233,7 +292,7 @@ class Project(object):
         sync()
         end = now()
         log("snapshotting image filesystem %s"%end)
-        e = cmd("sudo zfs snapshot %s@%s"%(self.image_fs, end), ignore_errors=True)
+        e = cmd("sudo /sbin/zfs snapshot %s@%s"%(self.image_fs, end), ignore_errors=True)
         if e:
             if 'dataset does not exist' in e:
                 # not mounted -- nothing to do
@@ -260,7 +319,7 @@ class Project(object):
         try:
             log("sending new stream: %s"%target)
             try:
-                cmd("sudo zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
+                cmd("sudo /sbin/zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
             except:
                 os.unlink("%s.partial"%target)
                 raise
@@ -314,14 +373,17 @@ class Project(object):
         log("creating sparse image file %s of size %s"%(u, amount))
         cmd("truncate -s%s %s"%(amount, u))
         log("adding sparse image file %s to pool %s"%(u, self.project_pool))
-        cmd("sudo zpool add %s %s"%(self.project_pool, u))
+        cmd("sudo /sbin/zpool add %s %s"%(self.project_pool, u))
 
-    def close(self, kill=True):
+    def close(self, kill=False, save=True):
         """
-        Save, unmount, then destroy image filesystem, leaving only streams.
+        Save (if save is true), unmount, then destroy image filesystem, leaving only streams.
+
+        Dangeorus with save=False.
         """
         log = self._log("close")
-        self.save()
+        if save:
+            self.save()
         self.umount(kill=kill)
         self.destroy_image_fs()
 
@@ -342,7 +404,7 @@ class Project(object):
         Destroy the image filesystem.
         """
         log = self._log("destroy_image_fs")
-        e = cmd("sudo zfs destroy -r %s"%self.image_fs, ignore_errors=True)
+        e = cmd("sudo /sbin/zfs destroy -r %s"%self.image_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
 
@@ -354,11 +416,11 @@ class Project(object):
         log("removing the entire directory tree: '%s'"%self.stream_path)
         shutil.rmtree(self.stream_path)
 
-    def destroy(self):
+    def destroy(self,kill=False):
         """
         Delete all traces of this project from this machine.  *VERY DANGEROUS.*
         """
-        self.umount()
+        self.umount(kill=kill)
         self.destroy_image_fs()
         self.destroy_streams()
 
@@ -369,14 +431,14 @@ class Project(object):
         u = self.uid
         username = 'migrate%s'%u
         self._delete_migrate_user()
-        cmd('groupadd -g %s -o %s'%(u,username))
-        cmd('useradd -u %s -g %s -o %s'%(u,u,username))
+        cmd('sudo /usr/sbin/groupadd -g %s -o %s'%(u,username))
+        cmd('sudo /usr/sbin/useradd -u %s -g %s -o %s'%(u,u,username))
         return username
 
     def _delete_migrate_user(self):
         u = self.uid
         username = 'migrate%s'%u
-        cmd('userdel %s; groupdel %s'%(username, username), ignore_errors=True)
+        cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(username, username), ignore_errors=True)
 
     def migrate(self):
         """
@@ -385,12 +447,13 @@ class Project(object):
         """
         log = self._log("migrate")
         log("figure out original quota")
-        quota = cmd("zfs get -H quota projects/%s"%self.project_id).split()[2]
+        quota = cmd("sudo /sbin/zfs get -H quota projects/%s"%self.project_id).split()[2]
         self.create(quota)
         log("now migrate all snapshots")
-        self.migrate_snapshots()
+        n = self.migrate_snapshots()
+        log("migrated %s snapshots"%n)
         log("done -- now close the project")
-        self.close(kill=False)
+        self.close(kill=False, save=n>0)
 
     def migrate_snapshots(self, snapshot=None):
         """
@@ -398,6 +461,7 @@ class Project(object):
         contents of this project equal to that snapshot.
 
         If snapshot is not given, copy over in order all snapshots we don't currently have.
+        In that case, it returns the number of copied snapshots.
 
         We use this only to migrate from the old to the new format.
         """
@@ -415,13 +479,13 @@ class Project(object):
             username = self._create_migrate_user()
             alpha = string.lowercase + string.digits
             passwd = ''.join([random.choice(alpha) for _ in range(16)])
-            passwd_file = os.path.join('/root', username)
+            passwd_file = os.path.join(os.environ['HOME'], username)
             open(passwd_file,'w').write(passwd+'\n'+passwd)
-            cmd("cat %s | passwd %s"%(passwd_file, username))
+            cmd("cat %s | sudo /usr/bin/passwd %s"%(passwd_file, username))
             return username, passwd_file
 
         def do_sync(username, passwd_file, snapshot):
-            cmd("sshpass -f %s rsync -axH --delete /%s/.zfs/snapshot/%s/ %s@localhost:%s/"%(
+            cmd("sshpass -f %s sudo /usr/bin/rsync -axH --delete /%s/.zfs/snapshot/%s/ %s@localhost:%s/"%(
                                          passwd_file, fs, snapshot, username, self.project_mnt))
             self.snapshot(snapshot)
 
@@ -437,7 +501,7 @@ class Project(object):
             todo = [snapshot for snapshot in t if snapshot not in s]
             i = 1
             if len(todo) == 0:
-                return
+                return 0
             tm = time.time()
             username, passwd_file = setup_user()
             recent_times = []
@@ -447,7 +511,7 @@ class Project(object):
                     tr = (time_per * (len(todo)-i+1))/60.0
                 else:
                     tr = 999999
-                log("migrating missing snapshot (%s/%s; set time remaining: %.1f minutes): %s"%(
+                log("migrating missing snapshot (%s/%s) --  time remaining: %.1f minutes: %s"%(
                               i, len(todo), tr, snapshot))
                 tm0 = time.time()
                 do_sync(username, passwd_file, snapshot)
@@ -457,6 +521,7 @@ class Project(object):
                 i += 1
 
             remove_user(passwd_file)
+            return len(todo)
         else:
             username, passwd_file = setup_user()
             do_sync(username, passwd_file, snapshot)
@@ -471,8 +536,8 @@ if __name__ == "__main__":
 
     parser.add_argument("project_id", help="project id", type=str)
 
-    parser.add_argument("--pool", help="ZFS pool (default:'projects-new')", default="projects-new", type=str)
-    parser.add_argument("--mnt", help="mountpoint for the project (default:'/[pool]/[project_id]')", default="", type=str)
+    parser.add_argument("--pool", help="ZFS pool (default:'storage')", default="storage", type=str)
+    parser.add_argument("--mnt", help="mountpoint for the project (default:'/projects/[project_id]')", default="", type=str)
     parser.add_argument("--stream_path", help="directory where streams are stored for this project(default: '/[pool]/streams/[project_id]')", default="", type=str)
 
     parser_create = subparsers.add_parser('create', help='create filesystem')
@@ -480,7 +545,9 @@ if __name__ == "__main__":
     parser_create.set_defaults(func=lambda args: project.create(quota=args.quota))
 
     parser_umount = subparsers.add_parser('umount', help='unmount filesystem')
-    parser_umount.set_defaults(func=lambda args: project.umount())
+    parser_umount.add_argument("--kill", help="kill all processes by user first",
+                                   dest="kill", default=False, action="store_const", const=True)
+    parser_umount.set_defaults(func=lambda args: project.umount(kill=args.kill))
 
     parser_mount = subparsers.add_parser('mount', help='mount filesystem')
     parser_mount.set_defaults(func=lambda args: project.mount())
@@ -495,10 +562,15 @@ if __name__ == "__main__":
     parser_replicate.set_defaults(func=lambda args: project.replicate(args.target, delete=args.delete))
 
     parser_close = subparsers.add_parser('close', help='save, unmount, destroy images, etc., leaving only streams')
-    parser_close.set_defaults(func=lambda args: project.close())
+    parser_close.add_argument("--nosave", help="if given, don't save first: DANGEROUS", default=False, action="store_const", const=True)
+    parser_close.add_argument("--kill", help="kill all processes by user first",
+                                   dest="kill", default=False, action="store_const", const=True)
+    parser_close.set_defaults(func=lambda args: project.close(save=not args.nosave, kill=args.kill))
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
-    parser_destroy.set_defaults(func=lambda args: project.destroy())
+    parser_destroy.add_argument("--kill", help="kill all processes by user first",
+                                   dest="kill", default=False, action="store_const", const=True)
+    parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
 
     parser_snapshot = subparsers.add_parser('snapshot', help='snapshot the project')
     parser_snapshot.add_argument("--name", dest="name", help="name of snapshot (default: ISO date)", type=str, default='')
@@ -524,7 +596,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if not args.mnt:
-        args.mnt = '/' + os.path.join(args.pool, args.project_id)
+        args.mnt = '/' + os.path.join('projects', args.project_id)
     if not args.stream_path:
         args.stream_path = '/' + os.path.join(args.pool, 'streams', args.project_id)
 

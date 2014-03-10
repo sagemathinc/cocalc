@@ -1436,7 +1436,7 @@ class Monitor(object):
                     # site must return and be valid json
                     json.loads(urllib2.urlopen('https://%s/stats'%ip_address, timeout=timeout).read())
                     entry['status'] = 'up'
-                except urllib2.URLError:
+                except:   # urllib2.URLError:  # there are other possible errors
                     entry['status'] = 'down'
         except (RuntimeError, ValueError):
             ans = [{'host':SITENAME, 'service':'stats', 'status':'down'}]

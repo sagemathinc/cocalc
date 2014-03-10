@@ -339,17 +339,23 @@ exports.retry_until_success = (opts) ->
         start_delay : 100             # milliseconds
         max_delay   : 30000           # milliseconds -- stop increasing time at this point
         factor      : 1.5             # multiply delay by this each time
-        cb          : undefined       # called with cb() on *success* only -- obviously no way for this function to return an error
+        max_tries   : undefined
+        cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
 
     delta = opts.start_delay
+    tries = 0
     g = () ->
+        tries += 1
         opts.f (err)->
             if err
-                delta = Math.min(opts.max_delay, opts.factor * delta)
-                setTimeout(g, delta)
+                if opts.max_tries? and opts.max_tries <= tries
+                    opts.cb?("maximum tries exceeded")
+                else
+                    delta = Math.min(opts.max_delay, opts.factor * delta)
+                    setTimeout(g, delta)
             else
                 opts.cb?()
-    setTimeout(g, delta)
+    g()
 
 
 # Attempt (using exponential backoff) to execute the given function.

@@ -12,16 +12,16 @@ if hostname == "salvus-base":
     sys.exit(0)
 
 # Enable swap
-if not os.path.exists("/mnt/home/"):
+if not hostname.startswith('compute') and not hostname.startswith('cassandra'):   # no swap on cassandra -- http://www.datastax.com/documentation/cassandra/2.0/cassandra/install/installRecommendSettings.html
     os.system("swapon /dev/salvus-base/swap")
 
 # Mount tmp
 os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 
-if os.path.exists('/mnt/home/'):
+if hostname.startswith('compute'):
 
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
-    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets')
+    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
 
     # Delete ssh private key not needed for the *compute machines*; not deleting this
     # would be a security risk, since this key could provide access to a database node
@@ -69,6 +69,7 @@ if os.path.exists('/mnt/home/'):
 
     # Import the ZFS pool -- without mounting!
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
+
 
 else:
 

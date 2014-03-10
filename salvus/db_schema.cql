@@ -572,20 +572,59 @@ CREATE TABLE banned_email_addresses (
   CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2'};
 */
 
+
+/*
+  - write this right before storing the object -- delete when object successfully stored.
+  - scrub will periodically go through and delete sufficiently old chunks left around from writing records.
+  - querying the writing table is an easy way to see what writes are happening right now.
+*/
+CREATE TABLE storage_writing (
+    dummy       boolean,    /* so we can easily do a select * on this table */
+    timestamp   timestamp,
+    id          uuid,
+    name        varchar,
+    size        varchar,   /* object size (too big for 32 bit int and bigint+node.js=pain) */
+    chunk_size  int,      /* size in bytes that file/object is divided into */
+    chunk_ids   list<uuid>,
+    PRIMARY KEY (dummy, timestamp, id, name)
+);
+
+/* write this once the object is stored. */
 CREATE TABLE storage (
     id          uuid,
     name        varchar,
-    size        int,      /* object size in bytes */
-    chunk_size  int,      /* size in bytes it is divided into */
+    size        varchar,  /* object size (too big for 32 bit int and bigint+node.js=pain) */
+    chunk_size  int,      /* size in bytes that file/object is divided into */
     chunk_ids   list<uuid>,
     PRIMARY KEY (id, name)
 );
 
 CREATE TABLE storage_chunks (
     chunk_id    uuid      PRIMARY KEY,
-    size        int,      /* size in bytes */
+    size        int,      /* size in bytes (32-bit) */
     chunk       blob
 );
 
+/*
+   When a storage server is started running on a compute VM it will periodically put an entry
+   for itself in this table with a small TTL (so if something is here, it should be working).
+*/
+CREATE TABLE storage_servers (
+    dummy       boolean,     /* so select * fast */
+    hostname    varchar,     /* ip address of the compute vm */
+    port        int,
+    PRIMARY KEY (dummy, hostname)
+);
+
+CREATE TABLE storage_log (
+    id          uuid,
+    timestamp   timestamp,
+    host        varchar,
+    action      varchar,
+    param       varchar,     /* JSON */
+    error       varchar,     /* JSON */
+    time_s      float,         /* elapsed time for action */
+    PRIMARY KEY (id, timestamp)
+);
 
 

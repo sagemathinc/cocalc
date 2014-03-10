@@ -76,6 +76,8 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
         #################################
         # create disk images
         #################################
+        tmp_path = tempfile.mkdtemp()  # put here so finally below will work.
+
         # Transient image based on our template
         sh['qemu-img', 'create', '-b', base_img, '-f', 'qcow2', new_img]
         log.info("created %s in %s seconds", new_img, time.time()-t); t = time.time()
@@ -115,7 +117,6 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
         #################################
         # - mount the image in a temp directory
         vmhost_tincname = socket.gethostname().replace('-','_')
-        tmp_path = tempfile.mkdtemp()
         try:
             run(['guestmount', '-i', '-a', new_img, '--rw', tmp_path], maxtime=60)
 
