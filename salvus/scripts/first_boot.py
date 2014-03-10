@@ -21,7 +21,7 @@ os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 if hostname.startswith('compute'):
 
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
-    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets')
+    os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
 
     # Delete ssh private key not needed for the *compute machines*; not deleting this
     # would be a security risk, since this key could provide access to a database node
@@ -69,6 +69,7 @@ if hostname.startswith('compute'):
 
     # Import the ZFS pool -- without mounting!
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
+
 
 else:
 
