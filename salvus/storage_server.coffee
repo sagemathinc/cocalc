@@ -556,7 +556,7 @@ class Client
                     cb(undefined, result)
 
         if opts.project_id?
-            f(project_id, opts.cb)
+            f(opts.project_id, opts.cb)
         if opts.project_ids?
             async.mapLimit opts.project_ids, opts.limit, f, (ignore, results) =>
                 if misc.len(errors) == 0
