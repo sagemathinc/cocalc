@@ -5,6 +5,8 @@
 
 import os, socket
 
+hostname = socket.gethostname()
+
 def cmd(s):
     print s
     from subprocess import Popen, PIPE
@@ -105,11 +107,13 @@ def conf():
 
     # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
     if hostname.startswith('compute'):
-        os.system("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
+        cmd("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
+        cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra")
 
     if hostname.startswith("cassandra"):
         # Import the zpool, copy custom config, start cassandra Daemon
-        os.system("zpool import -f cassandra && rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/ && service cassandra start")
+        cmd("zpool import -f cassandra; rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  service cassandra start")
+        cmd("rm -rf /home/salvus/salvus/salvus/data/secrets")
 
 
 if __name__ == "__main__":
