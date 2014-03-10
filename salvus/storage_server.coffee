@@ -108,10 +108,11 @@ class Project
         opts = defaults opts,
             max_age_m : undefined     # integer -- if given, only return log entries that are at most this old, in minutes.
             cb        : required
-        if opts.age_d?
+        if opts.max_age_m?
             where = {timestamp:{'>=':cassandra.minutes_ago(opts.max_age_m)}}
         else
             where = {}
+        @dbg("log",where,"getting log...")
         where.id = @project_id
         database.select
             table     : 'storage_log'
@@ -140,7 +141,7 @@ class Project
             param   : undefined   # if given, should be an array
             timeout : undefined   # different defaults depending on the action
             cb      : undefined   # cb?(err)
-
+        @dbg("_action", opts, "doing an action...")
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
         switch opts.action
