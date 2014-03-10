@@ -107,6 +107,10 @@ def conf():
     if hostname.startswith('compute'):
         os.system("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
 
+    if hostname.startswith("cassandra"):
+        # Import the zpool, copy custom config, start cassandra Daemon
+        os.system("zpool import -f cassandra && cp /cassandra/etc/* /etc/cassandra/ && service cassandra start")
+
 
 if __name__ == "__main__":
     if mount_conf():
