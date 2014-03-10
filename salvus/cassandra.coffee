@@ -3059,10 +3059,24 @@ class ChunkedStorage
                     opts.cb()
         )
 
+    # DANGEROUS!! -- delete *every single file* in this storage object
+    # USE WITH CAUTION.
+    delete_everything: (opts) =>
+        opts = defaults opts,
+            limit      : 3             # number to files delete at once
+            cb         : undefined
+        f = (name, cb) =>
+            @delete
+                name : name
+                cb   : cb
+        @ls
+            cb: (err, files) =>
+                async.mapLimit((file.name for file in files), opts.limit, f, (err) => opts.cb?(err))
+
     delete: (opts) =>
         opts = defaults opts,
             name       : required
-            limit      : undefined           # number to delete at once
+            limit      : undefined           # number of chunks to delete at once
             cb         : undefined
         if not opts.limit?
             opts.limit = @limit

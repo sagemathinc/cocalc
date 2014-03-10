@@ -3181,7 +3181,7 @@ exports.all_projects_on_host = (opts) ->
 
 exports.all_projects_with_location_host = (opts) ->
     opts = defaults opts,
-        host : required  # ip address
+        host : undefined  # ip address
         cb   : required  # cb(err, [list of project id's])
     database.select
         table   : 'projects'

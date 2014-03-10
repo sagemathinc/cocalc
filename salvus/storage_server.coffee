@@ -139,7 +139,7 @@ class Project
     _action: (opts) =>
         opts = defaults opts,
             action  : required    # 'sync', 'create', 'mount', 'save', 'snapshot', 'close'
-            param   : undefined   # if given, should be an array
+            param   : undefined   # if given, should be an array or string
             timeout : undefined   # different defaults depending on the action
             cb      : undefined   # cb?(err)
         @dbg("_action", opts, "doing an action...")
@@ -148,6 +148,8 @@ class Project
         switch opts.action
             when "migrate_delete"  # temporary -- during migration only!
                 @migrate_delete(opts.cb)
+            when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
+                @delete_from_database(opts.cb)
             when 'sync'
                 @sync(opts.cb)
             when 'sync_put_delete'
@@ -160,7 +162,9 @@ class Project
             else
                 args = [opts.action]
                 if opts.param?
-                    args = args.extend(opts.param)
+                    if typeof opts.param == 'string'
+                        opts.param = misc.split(opts.param)  # turn it into an array
+                    args = args.concat(opts.param)
                 @exec
                     args    : args
                     timeout : opts.timeout
@@ -182,6 +186,10 @@ class Project
                 dbg("migration succeeded -- saving result to database (deleting anything old)")
                 @sync_put_delete(cb)
         ], (err) => cb(err))
+
+    delete_from_database: (cb) =>
+        @dbg('delete_from_database',[],"")
+        @chunked_storage.delete_everything(cb:cb)
 
     sync_put_delete: (cb) =>
         @chunked_storage.sync_put
@@ -341,6 +349,7 @@ register_with_database = () ->
         where : {dummy:true, hostname:program.address}
         ttl   : REGISTRATION_TTL
         cb    : (err) ->
+            return  # this logging is not needed and too verbose
             if err
                 winston.debug("error registering storage server with database: #{err}")
             else
@@ -556,7 +565,8 @@ class Client
                     cb(undefined, result)
 
         if opts.project_id?
-            f(opts.project_id, opts.cb)
+            f(opts.project_id, (ignore, result) => opts.cb(errors[opts.project_id], result))
+
         if opts.project_ids?
             async.mapLimit opts.project_ids, opts.limit, f, (ignore, results) =>
                 if misc.len(errors) == 0

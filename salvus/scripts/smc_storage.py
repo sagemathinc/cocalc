@@ -165,6 +165,8 @@ def optimal_stream_sequence(v):
 
 class Project(object):
     def __init__(self, project_id, pool, mnt, stream_path):
+        if uuid.UUID(project_id).get_version() != 4:
+            raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id = project_id
         self.pool = pool
         self.uid = uid(project_id)
@@ -209,7 +211,7 @@ class Project(object):
 
         #os.chown(self.project_mnt, self.uid, self.uid)
 
-    def umount(self, kill=True):
+    def umount(self, kill=False):
         """
         Unmount the given project.
         """
@@ -373,7 +375,7 @@ class Project(object):
         log("adding sparse image file %s to pool %s"%(u, self.project_pool))
         cmd("sudo /sbin/zpool add %s %s"%(self.project_pool, u))
 
-    def close(self, kill=True, save=True):
+    def close(self, kill=False, save=True):
         """
         Save (if save is true), unmount, then destroy image filesystem, leaving only streams.
 
@@ -414,11 +416,11 @@ class Project(object):
         log("removing the entire directory tree: '%s'"%self.stream_path)
         shutil.rmtree(self.stream_path)
 
-    def destroy(self):
+    def destroy(self,kill=False):
         """
         Delete all traces of this project from this machine.  *VERY DANGEROUS.*
         """
-        self.umount()
+        self.umount(kill=kill)
         self.destroy_image_fs()
         self.destroy_streams()
 
@@ -543,7 +545,9 @@ if __name__ == "__main__":
     parser_create.set_defaults(func=lambda args: project.create(quota=args.quota))
 
     parser_umount = subparsers.add_parser('umount', help='unmount filesystem')
-    parser_umount.set_defaults(func=lambda args: project.umount())
+    parser_umount.add_argument("--kill", help="kill all processes by user first",
+                                   dest="kill", default=False, action="store_const", const=True)
+    parser_umount.set_defaults(func=lambda args: project.umount(kill=args.kill))
 
     parser_mount = subparsers.add_parser('mount', help='mount filesystem')
     parser_mount.set_defaults(func=lambda args: project.mount())
@@ -559,10 +563,14 @@ if __name__ == "__main__":
 
     parser_close = subparsers.add_parser('close', help='save, unmount, destroy images, etc., leaving only streams')
     parser_close.add_argument("--nosave", help="if given, don't save first: DANGEROUS", default=False, action="store_const", const=True)
-    parser_close.set_defaults(func=lambda args: project.close(save=not args.nosave))
+    parser_close.add_argument("--kill", help="kill all processes by user first",
+                                   dest="kill", default=False, action="store_const", const=True)
+    parser_close.set_defaults(func=lambda args: project.close(save=not args.nosave, kill=args.kill))
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
-    parser_destroy.set_defaults(func=lambda args: project.destroy())
+    parser_destroy.add_argument("--kill", help="kill all processes by user first",
+                                   dest="kill", default=False, action="store_const", const=True)
+    parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
 
     parser_snapshot = subparsers.add_parser('snapshot', help='snapshot the project')
     parser_snapshot.add_argument("--name", dest="name", help="name of snapshot (default: ISO date)", type=str, default='')
