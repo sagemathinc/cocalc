@@ -292,6 +292,11 @@ CREATE TABLE projects (
      errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
 
      last_migrated    timestamp, // DEPRECATED: used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
+
+     last_migrated2   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
+     location2        varchar,   // location in new ZFS/cassandra setup used for migration.
+     last_migrate2_error varchar, // DEPRECATED: used for migrating2
+
      old_location     varchar,   // DEPRECATED: used for migrating... (so can delete after that is done).
 
      backup           varchar,  // DEPRECATED: hosts on which files are backed up (via rsnapshot): JSON format not yet determined

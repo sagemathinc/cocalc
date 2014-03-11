@@ -343,6 +343,9 @@ handle_mesg = (socket, mesg) ->
     else
         socket.write_mesg('json', message.error(id:id,error:"unknown event type: '#{mesg.event}'"))
 
+exports.database = () ->
+    return database
+
 register_with_database = () ->
     database.update
         table : 'storage_servers'
@@ -396,7 +399,7 @@ read_password = (cb) ->
             password = _password.toString().trim()
             cb()
 
-connect_to_database = (cb) ->
+exports.connect_to_database = connect_to_database = (cb) ->
     winston.debug("connect_to_database")
     if database?
         cb?()
@@ -419,6 +422,9 @@ start_server = () ->
 
 get_port = (hostname, cb) ->
     winston.debug("getting port for server at #{hostname}...")
+    if typeof(hostname) != 'string'
+        cb("hostname=#{misc.to_json(hostname)} should be a string not of type #{typeof(hostname)}")
+        return
     async.series [read_password, connect_to_database], (err) ->
         if err
             cb(err)
@@ -574,6 +580,8 @@ class Client
                     errors = undefined
                 opts.cb(errors, results)
 
+client_cache = {}
+
 exports.client = (opts) ->
     opts = defaults opts,
         hostname : required
@@ -581,8 +589,12 @@ exports.client = (opts) ->
         verbose  : true
         cb       : required
 
-    C = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
-    return
+    C = client_cache[opts.hostname]
+    if C?
+        opts.cb(undefined, C)
+        return C
+    else
+        client_cache[opts.hostname] = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
 
 
 program.usage('[start/stop/restart/status] [options]')
@@ -596,7 +608,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--port [integer]', 'port to listen on (default: OS-assigned)', String, '0')
     .option('--address [string]', 'address to listen on (default: the tinc network)', String, '')
 
-    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, '10.1.1.1,10.1.7.1,10.1.10.1,10.1.21.1')
+    .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster (default: hard coded)', String, '')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "storage")', String, 'storage')
     .option('--username [string]', 'Cassandra username to use (default: "storage_server")', String, 'storage_server')
     .option('--consistency [number]', 'Cassandra consistency level (default: 2)', String, '2')
@@ -605,16 +617,30 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pool [string]', 'Storage pool used for images (default: storage)', String, 'storage')
     .parse(process.argv)
 
+if not program.address
+    program.address = require('os').networkInterfaces().tun0[0].address
+    if not program.address
+        console.log("No tinc network: you must specify --address")
+        return
+
+if not program.database_nodes
+    v = program.address.split('.')
+    a = parseInt(v[1]); b = parseInt(v[3])
+    if a == 1 and b>=1 and b<=7
+        program.database_nodes = ("10.1.#{i}.1" for i in [1..7]).join(',')
+    else if a == 1 and b>=10 and b<=21
+        program.database_nodes = ("10.1.#{i}.1" for i in [10..21]).join(',')
+    else if a == 3
+        # for now, until the new data center's nodes are spun up:
+        program.database_nodes = ("10.1.#{i}.1" for i in [1..7]).join(',')
+        # once the new cassandra nodes at Google are up to date:
+        #program.database_nodes = ("10.3.#{i}.1" for i in [1..4])
+
 main = () ->
     if program.debug
         winston.remove(winston.transports.Console)
         winston.add(winston.transports.Console, level: program.debug)
 
-    if not program.address
-        program.address = require('os').networkInterfaces().tun0[0].address
-        if not program.address
-            console.log("No tinc network: you must specify --address")
-            return
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
