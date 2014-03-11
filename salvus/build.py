@@ -380,9 +380,16 @@ r packages could be automated like so (?)
    cp scripts/skel/.sagemathcloud/node_modules/*.js local_hub_template/node_modules/
    ./make_coffee --all
 
-# GCE problems:
+# System-wide Cassandra: http://www.datastax.com/documentation/cassandra/2.0/cassandra/install/installDeb_t.html
 
-   system-wide theano fails to install: /usr/bin/pip install -U theano  # but fine in sage.
+       add-apt-repository ppa:webupd8team/java; apt-get update; apt-get install oracle-java7-installer libjna-java
+           # if the above goes wrong, do this:
+           #  rm /var/lib/dpkg/info/oracle-java7-installer*; apt-get purge oracle-java7-installer*; rm /etc/apt/sources.list.d/*java*
+
+       echo "deb http://debian.datastax.com/community stable main" | sudo tee -a /etc/apt/sources.list.d/cassandra.sources.list
+       curl -L http://debian.datastax.com/debian/repo_key | sudo apt-key add -
+       apt-get update; apt-get install dsc20; service cassandra stop; rm -rf /var/lib/cassandra/data/system/*
+
 
 """
 

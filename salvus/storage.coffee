@@ -3336,3 +3336,151 @@ class exports.Host
             cb     : undefined
         #@projects
         #    cb
+
+exports.migrate2 = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        status     : undefined
+        cb         : required
+    dbg = (m) -> winston.debug("migrate2(#{opts.project_id}): #{m}")
+    dbg("migrate2 (or update) the data for project with given id to the new format2")
+    needs_update = undefined
+    last_migrated2 = cassandra.now()
+    host = undefined
+    client = undefined
+    async.series([
+        (cb) ->
+            dbg("project not deployed, so choose best host based on snapshots")
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                        v = ([snaps[0], host] for host, snaps of snapshots when snaps?.length >=1)
+                        v.sort()
+                        v.reverse()
+                        dbg("v = #{misc.to_json(v)}")
+                        if v.length == 0
+                            # nothing to do -- project never opened
+                            cb()
+                        else
+                            newest = v[0][0]
+                            dbg("v=#{misc.to_json(v)}")
+                            w = (x for x in v when x[1].slice(0,4) != '10.3' and x[1] != '10.1.3.4')
+                            dbg("w=#{misc.to_json(w)}")
+                            if w.length == 0 or w[0][0] != newest
+                                # newest good is too old, so go with a possibly bad node :-(
+                                host = v[0][1]
+                            else
+                                host = w[0][1]
+                            cb()
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("connect to host #{host}")
+            if opts.status?
+                opts.status.host = host
+            require('storage_server').client
+                hostname : host
+                cb       : (err, _client) ->
+                    client = _client
+                    cb(err)
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("do migrate_delete action")
+            client.action
+                project_id : opts.project_id
+                action     : 'migrate_delete'
+                cb         : (err, resp) ->
+                    dbg("migrate_delete returned: #{misc.to_json(resp)}")
+                    cb(err)
+        (cb) ->
+            dbg("success -- record time of successful migration start in database")
+            database.update
+                table : 'projects'
+                set   : {last_migrated2 : last_migrated2,  location2:host, last_migrate2_error:undefined}
+                where : {project_id : opts.project_id}
+                cb    : cb
+    ], (err) =>
+        if err
+            database.update
+                table : 'projects'
+                set   : {last_migrate2_error : misc.to_json(err), last_migrated2 : last_migrated2}
+                where : {project_id : opts.project_id}
+        opts.cb(err)
+    )
+
+
+exports.migrate2_all = (opts) ->
+    opts = defaults opts,
+        limit : 10  # no more than this many projects will be migrated simultaneously
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        exclude : undefined    # if given, any project_id in this array is skipped
+        retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
+        status: undefined      # if given, should be a map, which will get status for projects as they are running.
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+
+    projects = undefined
+    errors   = {}
+    done = 0
+    fail = 0
+    todo = undefined
+    dbg = (m) -> winston.debug("migrate2_all(start=#{opts.start}, stop=#{opts.stop}): #{m}")
+    t = misc.walltime()
+
+    async.series([
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'last_snapshot', 'last_migrated2', 'last_migrate2_error']
+                limit   : 1000000                 # should page, but no need since this is throw-away code.
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
+                        result.sort()
+                        if opts.start? and opts.stop?
+                            result = result.slice(opts.start, opts.stop)
+                        if opts.retry_errors
+                            projects = (x[0] for x in result when x[3]? or (not x[2]? or x[1] > x[2]))
+                        else
+                            # don't try any projects with errors, unless they have been newly modified
+                            projects = (x[0] for x in result when (not x[2]? or x[1] > x[2]))
+                        if opts.exclude?
+                            v = {}
+                            for p in opts.exclude
+                                v[p] = true
+                            projects = (p for p in projects when not v[p])
+                        todo = projects.length
+                        dbg("of these -- #{todo} in the range remain to be migrated")
+                    cb(err)
+        (cb) ->
+            i = 1
+            f = (i, cb) ->
+                project_id = projects[i]
+                dbg("*******************************************")
+                dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
+                dbg("*******************************************")
+                if opts.status?
+                    stat = opts.status[project_id] = {status:'migrating...'}
+                exports.migrate2
+                    project_id : project_id
+                    status     : stat
+                    cb         : (err) ->
+                        if err
+                            if stat?
+                                stat.status='failed'
+                                stat.error = err
+                            fail += 1
+                        else
+                            if stat?
+                                stat.status='done'
+                            done += 1
+                        dbg("*******************************************")
+                        dbg("MIGRATE_ALL STATUS: (done=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
+                        dbg("*******************************************")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            async.mapLimit([0...projects.length], opts.limit, f, cb)
+    ], (err) -> opts.cb?(err, errors))
