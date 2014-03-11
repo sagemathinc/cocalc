@@ -2816,6 +2816,7 @@ class ChunkedStorage
                 opts.name = opts.filename
 
         dbg = (m) => @dbg('put', opts.name, m)
+        dbg()
         total_time = misc.walltime()
 
         chunk_size = opts.chunk_size_mb * 1000000
@@ -2938,6 +2939,8 @@ class ChunkedStorage
             cb         : required
 
         total_time = misc.walltime()
+        dbg = (m) => @dbg('get', {name:opts.name,filename:opts.filename}, m)
+        dbg()
 
         if not opts.limit?
             opts.limit = @limit
@@ -2976,10 +2979,12 @@ class ChunkedStorage
                     writing_chunks = false
                     cb(err)
 
+        tmp_filename = undefined
         async.series([
             (cb) =>
                 if opts.filename?
-                    dbg("open output file #{opts.filename}")
+                    tmp_filename = opts.filename+'.tmp'
+                    dbg("open output file #{tmp_filename}")
                     p = opts.filename
                     if p[0] != '/'
                         p = process.cwd()+'/'+p
@@ -2987,7 +2992,7 @@ class ChunkedStorage
                         if err
                             cb(err)
                         else
-                            fs.open opts.filename, 'w', (err, _fd) =>
+                            fs.open tmp_filename, 'w', (err, _fd) =>
                                 fd = _fd
                                 cb(err)
                 else
@@ -3049,14 +3054,17 @@ class ChunkedStorage
             if fd?
                 fs.close(fd)
             if err
-                opts.cb(err)
+                dbg("error reading file from database; removing #{tmp_filename}}")
+                fs.unlink tmp_filename, (ignore) =>
+                    opts.cb(err)
             else
                 if not opts.filename?
                     dbg("assembling in memory buffers together to make blob")
                     blob = Buffer.concat( (chunks[chunk_id].chunk for chunk_id in chunk_ids) )
                     opts.cb(undefined, blob)
                 else
-                    opts.cb()
+                    dbg("tmp file wrote -- moving to real file: #{tmp_filename} --> #{opts.filename}")
+                    fs.rename(tmp_filename, opts.filename, opts.cb)
         )
 
     # DANGEROUS!! -- delete *every single file* in this storage object

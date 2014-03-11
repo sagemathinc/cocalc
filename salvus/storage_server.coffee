@@ -228,7 +228,7 @@ class Project
                     if err
                         cb(err)
                     else
-                        local_files = files
+                        local_files = (x for x in files when x.slice(x.length-4) != '.tmp')
                         dbg("local_files=#{misc.to_json(local_files)}")
                         cb()
             (cb) =>
@@ -242,30 +242,32 @@ class Project
                     put = true
                     cb()
                 else
-                    local_times = (x.split('--')[1] for x in local_files)
+                    local_times = (x.split('--')[1] for x in local_files when x.length == 40)
                     local_times.sort()
-                    remote_times = (x.split('--')[1] for x in remote_files)
+                    remote_times = (x.split('--')[1] for x in remote_files when x.length == 40)
                     remote_times.sort()
                     # put = true if local is newer.
                     put = local_times[local_times.length-1] > remote_times[remote_times.length-1]
                     cb()
             (cb) =>
                 if put
-                    dbg("put: from local to database")
+                    to_put = (a for a in optimal_stream(local_files) when a not in remote_files)
+                    dbg("put: from local to database: #{misc.to_json(to_put)}")
                     f = (name, cb) =>
                         @chunked_storage.put
                             name     : name
                             filename : @stream_path + '/' + name
                             cb       : cb
-                    async.mapLimit((a for a in optimal_stream(local_files) when a not in remote_files), 3, f, cb)
+                    async.mapLimit(to_put, 3, f, cb)
                 else
-                    dbg("get: from database to local")
+                    to_get = (a for a in optimal_stream(remote_files) when a not in local_files)
+                    dbg("get: from database to local: #{misc.to_json(to_get)}")
                     f = (name, cb) =>
                         @chunked_storage.get
                             name     : name
                             filename : @stream_path + '/' + name
                             cb       : cb
-                    async.mapLimit((a for a in optimal_stream(remote_files) when a not in local_files), 3, f, cb)
+                    async.mapLimit(to_get, 3, f, cb)
         ], cb)
 
 
