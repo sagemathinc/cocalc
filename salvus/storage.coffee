@@ -291,7 +291,7 @@ exports.open_project = open_project = (opts) ->
             dbg("test login")
             execute_on
                 host    : opts.host
-                timeout : 20
+                timeout : 30
                 user    : username(opts.project_id)
                 command : "pwd"
                 cb      : (err, output) ->
@@ -3348,15 +3348,38 @@ exports.migrate2 = (opts) ->
     last_migrated2 = cassandra.now()
     host = undefined
     client = undefined
+    last_migrate2_error = undefined   # could be useful to know below...
     async.series([
+        (cb) ->
+            dbg("getting last migration error...")
+            database.select_one
+                table : 'projects'
+                columns : ['last_migrate2_error']
+                where : {project_id : opts.project_id}
+                cb    : (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        last_migrate2_error = result[0]
+                        dbg("last_migrate2_error = #{last_migrate2_error}")
+                        cb()
+        (cb) ->
+            dbg("setting last_migrate2_error to start...")
+            database.update
+                table : 'projects'
+                set   : {last_migrate2_error : 'start'}
+                where : {project_id : opts.project_id}
+                cb    : cb
         (cb) ->
             dbg("project not deployed, so choose best host based on snapshots")
             get_snapshots
                 project_id : opts.project_id
                 cb         : (err, snapshots) ->
-                        v = ([snaps[0], host] for host, snaps of snapshots when snaps?.length >=1)
+                        # randomize so not all in DC0...
+                        v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
                         v.sort()
                         v.reverse()
+                        v = ([x[0], x[2]] for x in v)
                         dbg("v = #{misc.to_json(v)}")
                         if v.length == 0
                             # nothing to do -- project never opened
@@ -3417,7 +3440,7 @@ exports.migrate2_all = (opts) ->
         stop  : undefined
         exclude : undefined    # if given, any project_id in this array is skipped
         retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
-        status: undefined      # if given, should be a map, which will get status for projects as they are running.
+        status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
     projects = undefined
@@ -3462,7 +3485,8 @@ exports.migrate2_all = (opts) ->
                 dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
                 dbg("*******************************************")
                 if opts.status?
-                    stat = opts.status[project_id] = {status:'migrating...'}
+                    stat = {status:'migrating...', project_id:project_id}
+                    opts.status.push(stat)
                 exports.migrate2
                     project_id : project_id
                     status     : stat
@@ -3477,7 +3501,7 @@ exports.migrate2_all = (opts) ->
                                 stat.status='done'
                             done += 1
                         dbg("*******************************************")
-                        dbg("MIGRATE_ALL STATUS: (done=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
+                        dbg("MIGRATE_ALL STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
                         dbg("*******************************************")
                         if err
                             errors[project_id] = err
