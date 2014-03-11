@@ -253,7 +253,7 @@ exports.open_project = open_project = (opts) ->
             dbg("mount filesystem")
             execute_on
                 host    : opts.host
-                timeout : 15  # relatively small timeout due to zfs deadlocks -- just move onto another host
+                timeout : 60  # relatively small timeout due to zfs deadlocks -- just move onto another host
                 command : "sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{filesystem(opts.project_id)}&&sudo zfs mount #{filesystem(opts.project_id)}"
                 cb      : (err, output) ->
                     if err
@@ -291,7 +291,7 @@ exports.open_project = open_project = (opts) ->
             dbg("test login")
             execute_on
                 host    : opts.host
-                timeout : 20
+                timeout : 30
                 user    : username(opts.project_id)
                 command : "pwd"
                 cb      : (err, output) ->
@@ -3354,9 +3354,11 @@ exports.migrate2 = (opts) ->
             get_snapshots
                 project_id : opts.project_id
                 cb         : (err, snapshots) ->
-                        v = ([snaps[0], host] for host, snaps of snapshots when snaps?.length >=1)
+                        # randomize so not all in DC0...
+                        v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
                         v.sort()
                         v.reverse()
+                        v = ([x[0], x[2]] for x in v)
                         dbg("v = #{misc.to_json(v)}")
                         if v.length == 0
                             # nothing to do -- project never opened
@@ -3477,7 +3479,7 @@ exports.migrate2_all = (opts) ->
                                 stat.status='done'
                             done += 1
                         dbg("*******************************************")
-                        dbg("MIGRATE_ALL STATUS: (done=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
+                        dbg("MIGRATE_ALL STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
                         dbg("*******************************************")
                         if err
                             errors[project_id] = err
