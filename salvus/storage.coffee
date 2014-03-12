@@ -3341,6 +3341,8 @@ exports.migrate2 = (opts) ->
     opts = defaults opts,
         project_id : required
         status     : undefined
+        destroy    : false     # if true, completely destroy the old images and do a new migration from scratch
+        exclude_hosts : ['10.1.3.4', '10.1.19.4', '10.3.1.4', '10.3.2.4', '10.3.3.4', '10.3.4.4', '10.3.5.4', '10.3.6.4', '10.3.7.4', '10.3.8.4']
         cb         : required
     dbg = (m) -> winston.debug("migrate2(#{opts.project_id}): #{m}")
     dbg("migrate2 (or update) the data for project with given id to the new format2")
@@ -3387,7 +3389,7 @@ exports.migrate2 = (opts) ->
                         else
                             newest = v[0][0]
                             dbg("v=#{misc.to_json(v)}")
-                            w = (x for x in v when x[1].slice(0,4) != '10.3' and x[1] != '10.1.3.4')
+                            w = (x for x in v when x[1] not in opts.exclude_hosts)
                             dbg("w=#{misc.to_json(w)}")
                             if w.length == 0 or w[0][0] != newest
                                 # newest good is too old, so go with a possibly bad node :-(
@@ -3439,6 +3441,7 @@ exports.migrate2_all = (opts) ->
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
         exclude : undefined    # if given, any project_id in this array is skipped
+        exclude_hosts : undefined  # don't migrate using any host in this list
         retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
@@ -3464,6 +3467,10 @@ exports.migrate2_all = (opts) ->
                         result.sort()
                         if opts.start? and opts.stop?
                             result = result.slice(opts.start, opts.stop)
+                        else if opts.start?
+                            result = result.slice(opts.start)
+                        else if opts.stop?
+                            result = result.slice(0, opts.stop)
                         if opts.retry_errors
                             projects = (x[0] for x in result when x[3]? or (not x[2]? or x[1] > x[2]))
                         else
@@ -3490,6 +3497,7 @@ exports.migrate2_all = (opts) ->
                 exports.migrate2
                     project_id : project_id
                     status     : stat
+                    exclude_hosts : opts.exclude_hosts
                     cb         : (err) ->
                         if err
                             if stat?

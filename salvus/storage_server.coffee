@@ -148,7 +148,7 @@ class Project
             opts.timeout = TIMEOUTS[opts.action]
         switch opts.action
             when "migrate_delete"  # temporary -- during migration only!
-                @migrate_delete(opts.cb)
+                @migrate_delete(cb:opts.cb, destroy:opts.param)
             when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
                 @delete_from_database(opts.cb)
             when 'sync'
@@ -171,13 +171,19 @@ class Project
                     timeout : opts.timeout
                     cb      : opts.cb
 
-    migrate_delete: (cb) =>
+    migrate_delete: (cb, destroy) =>
         dbg = (m) => @dbg('destructive_migration',[],m)
         streams = undefined
         async.series([
             (cb) =>
-                dbg("syncing with the database")
-                @sync(cb)
+                if destroy
+                    dbg("destroying everything first -- start with a clean slate!")
+                    @action
+                        action : 'destroy'
+                        cb     : cb
+                else
+                    dbg("syncing with the database first")
+                    @sync(cb)
             (cb) =>
                 dbg("doing the migration")
                 @action
@@ -228,7 +234,7 @@ class Project
                     if err
                         cb(err)
                     else
-                        local_files = files
+                        local_files = (x for x in files when x.slice(x.length-4) != '.tmp')
                         dbg("local_files=#{misc.to_json(local_files)}")
                         cb()
             (cb) =>
@@ -242,30 +248,32 @@ class Project
                     put = true
                     cb()
                 else
-                    local_times = (x.split('--')[1] for x in local_files)
+                    local_times = (x.split('--')[1] for x in local_files when x.length == 40)
                     local_times.sort()
-                    remote_times = (x.split('--')[1] for x in remote_files)
+                    remote_times = (x.split('--')[1] for x in remote_files when x.length == 40)
                     remote_times.sort()
                     # put = true if local is newer.
                     put = local_times[local_times.length-1] > remote_times[remote_times.length-1]
                     cb()
             (cb) =>
                 if put
-                    dbg("put: from local to database")
+                    to_put = (a for a in optimal_stream(local_files) when a not in remote_files)
+                    dbg("put: from local to database: #{misc.to_json(to_put)}")
                     f = (name, cb) =>
                         @chunked_storage.put
                             name     : name
                             filename : @stream_path + '/' + name
                             cb       : cb
-                    async.mapLimit((a for a in optimal_stream(local_files) when a not in remote_files), 3, f, cb)
+                    async.mapLimit(to_put, 3, f, cb)
                 else
-                    dbg("get: from database to local")
+                    to_get = (a for a in optimal_stream(remote_files) when a not in local_files)
+                    dbg("get: from database to local: #{misc.to_json(to_get)}")
                     f = (name, cb) =>
                         @chunked_storage.get
                             name     : name
                             filename : @stream_path + '/' + name
                             cb       : cb
-                    async.mapLimit((a for a in optimal_stream(remote_files) when a not in local_files), 3, f, cb)
+                    async.mapLimit(to_get, 3, f, cb)
         ], cb)
 
 
@@ -452,7 +460,7 @@ class Client
             winston.debug("storage Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
 
     connect: (cb) =>
-        dbg = (m) -> winston.debug("Storage client (#{@hostname}:#{@port}): #{m}")
+        dbg = (m) => winston.debug("Storage client (#{@hostname}:#{@port}): #{m}")
         async.series([
             (cb) =>
                 if not @port?
@@ -471,12 +479,14 @@ class Client
                     host    : @hostname
                     port    : @port
                     token   : password
-                    timeout : 60
+                    timeout : 20
                     cb      : (err, socket) =>
                         if err
+                            dbg("failed to connect: #{err}")
                             @socket = undefined
                             cb(err)
                         else
+                            dbg("successfully connected")
                             @socket = socket
                             misc_node.enable_mesg(@socket)
                             cb()
@@ -572,13 +582,13 @@ class Client
                     cb(undefined, result)
 
         if opts.project_id?
-            f(opts.project_id, (ignore, result) => opts.cb(errors[opts.project_id], result))
+            f(opts.project_id, (ignore, result) => opts.cb?(errors[opts.project_id], result))
 
         if opts.project_ids?
             async.mapLimit opts.project_ids, opts.limit, f, (ignore, results) =>
                 if misc.len(errors) == 0
                     errors = undefined
-                opts.cb(errors, results)
+                opts.cb?(errors, results)
 
 client_cache = {}
 
@@ -591,10 +601,10 @@ exports.client = (opts) ->
 
     C = client_cache[opts.hostname]
     if C?
-        opts.cb(undefined, C)
-        return C
+        opts.cb?(undefined, C)
     else
-        client_cache[opts.hostname] = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
+        C = client_cache[opts.hostname] = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
+    return C
 
 
 program.usage('[start/stop/restart/status] [options]')

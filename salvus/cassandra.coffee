@@ -605,7 +605,7 @@ class exports.Cassandra extends EventEmitter
                 cb(false, results[0])
         @select(opts)
 
-    cql: (query, vals, consistency, cb) ->
+    cql: (query, vals, consistency, cb) =>
         if typeof vals == 'function'
             cb = vals
             vals = []
@@ -615,13 +615,32 @@ class exports.Cassandra extends EventEmitter
             consistency = undefined
         if not consistency?
             consistency = @consistency
-        try
-            @conn.execute query, vals, consistency, (error, results) =>
-                if error
-                    winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
-                cb?(error, results?.rows)
-        catch e
-            cb?("exception doing cql query -- #{misc.to_json(e).slice(0,1000)}")
+        f = (c) =>
+            try
+                @conn.execute query, vals, consistency, (error, results) =>
+                    if error
+                        winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
+                    # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
+                    if error? and "#{error}".indexOf("peration timed out") != -1
+                        winston.error("... so probably re-doing query")
+                        c(error)
+                    else
+                        cb?(error, results?.rows)
+                        c()
+            catch e
+                m = "exception doing cql query -- #{misc.to_json(e).slice(0,1000)}"
+                winston.error(m)
+                cb?(m)
+                c()
+
+        # If a query fails due to "Operation timed out", then we will keep retrying, up to 10 times, with exponential backoff.
+        # ** This is ABSOLUTELY critical, if we have a loaded system, slow nodes, want to use consistency level > 1, etc, **
+        # since otherwise all our client code would have to do this...
+        misc.retry_until_success
+            f         : f
+            max_tries : 10
+            max_delay : 3000
+
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)
@@ -735,7 +754,6 @@ class exports.Salvus extends exports.Cassandra
             consistency : 1     # since we really want optimal speed, and missing something temporarily is ok.
             limit     : 1000000  # TODO: probably start failing due to timeouts around 100K users (?) -- will have to cursor or query multiple times then?
             cb        : (err, results) =>
-                console.log("queried...", err, results.length)
                 if err and not @_all_users?
                     cb(err); return
                 v = []
@@ -2816,6 +2834,7 @@ class ChunkedStorage
                 opts.name = opts.filename
 
         dbg = (m) => @dbg('put', opts.name, m)
+        dbg()
         total_time = misc.walltime()
 
         chunk_size = opts.chunk_size_mb * 1000000
@@ -2938,6 +2957,8 @@ class ChunkedStorage
             cb         : required
 
         total_time = misc.walltime()
+        dbg = (m) => @dbg('get', {name:opts.name,filename:opts.filename}, m)
+        dbg()
 
         if not opts.limit?
             opts.limit = @limit
@@ -2976,10 +2997,12 @@ class ChunkedStorage
                     writing_chunks = false
                     cb(err)
 
+        tmp_filename = undefined
         async.series([
             (cb) =>
                 if opts.filename?
-                    dbg("open output file #{opts.filename}")
+                    tmp_filename = opts.filename+'.tmp'
+                    dbg("open output file #{tmp_filename}")
                     p = opts.filename
                     if p[0] != '/'
                         p = process.cwd()+'/'+p
@@ -2987,7 +3010,7 @@ class ChunkedStorage
                         if err
                             cb(err)
                         else
-                            fs.open opts.filename, 'w', (err, _fd) =>
+                            fs.open tmp_filename, 'w', (err, _fd) =>
                                 fd = _fd
                                 cb(err)
                 else
@@ -3049,14 +3072,17 @@ class ChunkedStorage
             if fd?
                 fs.close(fd)
             if err
-                opts.cb(err)
+                dbg("error reading file from database; removing #{tmp_filename}}")
+                fs.unlink tmp_filename, (ignore) =>
+                    opts.cb(err)
             else
                 if not opts.filename?
                     dbg("assembling in memory buffers together to make blob")
                     blob = Buffer.concat( (chunks[chunk_id].chunk for chunk_id in chunk_ids) )
                     opts.cb(undefined, blob)
                 else
-                    opts.cb()
+                    dbg("tmp file wrote -- moving to real file: #{tmp_filename} --> #{opts.filename}")
+                    fs.rename(tmp_filename, opts.filename, opts.cb)
         )
 
     # DANGEROUS!! -- delete *every single file* in this storage object
