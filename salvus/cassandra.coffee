@@ -750,7 +750,6 @@ class exports.Salvus extends exports.Cassandra
             consistency : 1     # since we really want optimal speed, and missing something temporarily is ok.
             limit     : 1000000  # TODO: probably start failing due to timeouts around 100K users (?) -- will have to cursor or query multiple times then?
             cb        : (err, results) =>
-                console.log("queried...", err, results.length)
                 if err and not @_all_users?
                     cb(err); return
                 v = []
