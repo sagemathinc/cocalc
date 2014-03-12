@@ -70,6 +70,9 @@ if hostname.startswith('compute'):
     # Import the ZFS pool -- without mounting!
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
+    # Start the storage server:
+    os.system("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
+
 
 else:
 
@@ -95,6 +98,8 @@ if hostname.startswith('backup'):
 
 
 if hostname.startswith('cassandra'):
+    # Delete data that doesn't need to be on this node
+    os.system("rm -rf /home/salvus/salvus/salvus/data/secrets/")
     # import and mount the relevant ZFS pool -- do this blocking, since once the machine is up we had better
     # be able to start cassandra itself.
     os.system("zpool import -f cassandra ")

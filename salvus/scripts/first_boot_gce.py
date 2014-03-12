@@ -105,12 +105,17 @@ def conf():
     # Import the ZFS pool -- without mounting!
     cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
-    # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
     if hostname.startswith('compute'):
+        # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
         cmd("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
+        # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra")
+        # Start the storage server 
+        cmd("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
 
     if hostname.startswith("cassandra"):
+        # Delete data that doesn't need to be on this node
+        cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/")
         # Import the zpool, copy custom config, start cassandra Daemon
         cmd("zpool import -f cassandra; rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  service cassandra start")
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets")
