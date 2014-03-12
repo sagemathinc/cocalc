@@ -454,7 +454,7 @@ class Client
             winston.debug("storage Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
 
     connect: (cb) =>
-        dbg = (m) -> winston.debug("Storage client (#{@hostname}:#{@port}): #{m}")
+        dbg = (m) => winston.debug("Storage client (#{@hostname}:#{@port}): #{m}")
         async.series([
             (cb) =>
                 if not @port?
@@ -473,12 +473,14 @@ class Client
                     host    : @hostname
                     port    : @port
                     token   : password
-                    timeout : 60
+                    timeout : 20
                     cb      : (err, socket) =>
                         if err
+                            dbg("failed to connect: #{err}")
                             @socket = undefined
                             cb(err)
                         else
+                            dbg("successfully connected")
                             @socket = socket
                             misc_node.enable_mesg(@socket)
                             cb()

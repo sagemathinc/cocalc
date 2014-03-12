@@ -605,7 +605,7 @@ class exports.Cassandra extends EventEmitter
                 cb(false, results[0])
         @select(opts)
 
-    cql: (query, vals, consistency, cb) ->
+    cql: (query, vals, consistency, cb) =>
         if typeof vals == 'function'
             cb = vals
             vals = []
@@ -615,13 +615,28 @@ class exports.Cassandra extends EventEmitter
             consistency = undefined
         if not consistency?
             consistency = @consistency
-        try
-            @conn.execute query, vals, consistency, (error, results) =>
-                if error
-                    winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
-                cb?(error, results?.rows)
-        catch e
-            cb?("exception doing cql query -- #{misc.to_json(e).slice(0,1000)}")
+        f = (c) =>
+            try
+                @conn.execute query, vals, consistency, (error, results) =>
+                    if error
+                        winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
+                    if error? and error.indexOf("ResponseError: Operation timed out") != -1
+                        winston.error("... so probably re-doing query")
+                        c(error)
+                    else
+                        cb?(error, results?.rows)
+                        c()
+            catch e
+                m = "exception doing cql query -- #{misc.to_json(e).slice(0,1000)}"
+                winston.error(m)
+                cb?(m)
+                c()
+
+        misc.retry_until_success
+            f         : f
+            max_tries : 10
+            max_delay : 3000
+
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
         new KeyValueStore(@, opts)
