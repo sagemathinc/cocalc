@@ -633,6 +633,9 @@ class exports.Cassandra extends EventEmitter
                 cb?(m)
                 c()
 
+        # If a query fails due to "Operation timed out", then we will keep retrying, up to 10 times, with exponential backoff.
+        # ** This is ABSOLUTELY critical, if we have a loaded system, slow nodes, want to use consistency level > 1, etc, **
+        # since otherwise all our client code would have to do this...
         misc.retry_until_success
             f         : f
             max_tries : 10

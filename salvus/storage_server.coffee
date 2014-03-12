@@ -148,7 +148,7 @@ class Project
             opts.timeout = TIMEOUTS[opts.action]
         switch opts.action
             when "migrate_delete"  # temporary -- during migration only!
-                @migrate_delete(opts.cb)
+                @migrate_delete(cb:opts.cb, destroy:opts.param)
             when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
                 @delete_from_database(opts.cb)
             when 'sync'
@@ -171,13 +171,19 @@ class Project
                     timeout : opts.timeout
                     cb      : opts.cb
 
-    migrate_delete: (cb) =>
+    migrate_delete: (cb, destroy) =>
         dbg = (m) => @dbg('destructive_migration',[],m)
         streams = undefined
         async.series([
             (cb) =>
-                dbg("syncing with the database")
-                @sync(cb)
+                if destroy
+                    dbg("destroying everything first -- start with a clean slate!")
+                    @action
+                        action : 'destroy'
+                        cb     : cb
+                else
+                    dbg("syncing with the database first")
+                    @sync(cb)
             (cb) =>
                 dbg("doing the migration")
                 @action
@@ -576,13 +582,13 @@ class Client
                     cb(undefined, result)
 
         if opts.project_id?
-            f(opts.project_id, (ignore, result) => opts.cb(errors[opts.project_id], result))
+            f(opts.project_id, (ignore, result) => opts.cb?(errors[opts.project_id], result))
 
         if opts.project_ids?
             async.mapLimit opts.project_ids, opts.limit, f, (ignore, results) =>
                 if misc.len(errors) == 0
                     errors = undefined
-                opts.cb(errors, results)
+                opts.cb?(errors, results)
 
 client_cache = {}
 
@@ -595,10 +601,10 @@ exports.client = (opts) ->
 
     C = client_cache[opts.hostname]
     if C?
-        opts.cb(undefined, C)
-        return C
+        opts.cb?(undefined, C)
     else
-        client_cache[opts.hostname] = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
+        C = client_cache[opts.hostname] = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
+    return C
 
 
 program.usage('[start/stop/restart/status] [options]')
