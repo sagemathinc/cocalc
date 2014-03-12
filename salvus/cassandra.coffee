@@ -620,7 +620,8 @@ class exports.Cassandra extends EventEmitter
                 @conn.execute query, vals, consistency, (error, results) =>
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
-                    if error? and error.indexOf("ResponseError: Operation timed out") != -1
+                    # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
+                    if error? and "#{error}".indexOf("peration timed out") != -1
                         winston.error("... so probably re-doing query")
                         c(error)
                     else
