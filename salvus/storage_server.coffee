@@ -262,7 +262,7 @@ class Project
         start_sync = cassandra.now()
         async.series([
             (cb) =>
-                query = "UPDATE project_storage_host SET projects=projects+{?} AND up_since={?} WHERE host=?"
+                query = "UPDATE project_storage_host SET projects=projects+{?}, up_since=? WHERE host=?"
                 database.cql(query, [@project_id, boot_time, program.address], cb)
             (cb) =>
                 @chunked_storage.ls
