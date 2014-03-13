@@ -3373,6 +3373,18 @@ exports.migrate2 = (opts) ->
                 where : {project_id : opts.project_id}
                 cb    : cb
         (cb) ->
+            dbg("get current location of project from database")
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    if x not in opts.exclude_hosts
+                        host = x
+                    else
+                        host = undefined
+                    cb(err)
+        (cb) ->
+            if host?
+                cb(); return
             dbg("project not deployed, so choose best host based on snapshots")
             get_snapshots
                 project_id : opts.project_id
@@ -3516,3 +3528,47 @@ exports.migrate2_all = (opts) ->
                         cb()
             async.mapLimit([0...projects.length], opts.limit, f, cb)
     ], (err) -> opts.cb?(err, errors))
+
+exports.migrate2_all_status = (opts) ->
+    opts = defaults opts,
+        start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        cb    : undefined  # cb(err, {errors:projects with errors, update:projects needing update})
+
+    projects = undefined
+    errors   = {}
+    done = 0
+    fail = 0
+    todo = undefined
+    dbg = (m) -> winston.debug("migrate2_all_status(start=#{opts.start}, stop=#{opts.stop}): #{m}")
+    t = misc.walltime()
+
+    dbg("querying database...")
+    database.select
+        table   : 'projects'
+        columns : ['project_id', 'last_snapshot', 'last_migrated2', 'last_migrate2_error']
+        limit   : 1000000                 # should page, but no need since this is throw-away code.
+        cb      : (err, result) ->
+            if err
+                opts.cb?(err)
+                return
+            dbg("got #{result.length} projects from the database in #{misc.walltime(t)} seconds")
+            result.sort()
+            if opts.start? and opts.stop?
+                result = result.slice(opts.start, opts.stop)
+            else if opts.start?
+                result = result.slice(opts.start)
+            else if opts.stop?
+                result = result.slice(0, opts.stop)
+
+            v = (x for x in result when x[2]? and not x[3]?)
+            dbg("#{v.length} projects have been successfully migrated")
+            dbg("#{result.length - v.length} projects still need to be migrated")
+
+            v_errors = (x for x in result when x[3]?)
+            dbg("#{v_errors.length} projects failed to migrate due to ERRORS")
+
+            v_update = ([x[0],new Date(x[1]), new Date(x[2])] for x in result when not x[3]? and x[1]? and x[2]? and x[1]>x[2])
+            dbg("#{v_update.length} projects have been successfully migrated already but need to be updated due to project usage")
+
+            opts.cb?(err, {errors:v_errors,update:v_update})

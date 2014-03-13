@@ -2731,7 +2731,7 @@ class ChunkedStorage
     #
     delete_lost_chunks: (opts) =>
         opts = defaults opts,
-            age_s : 30*60  # 30 minutes -- delete all chunks associated to any records in storage_active that are at least this old
+            age_s : 120*60  # 2 hours -- delete all chunks associated to any records in storage_active that are at least this old
             cb    : undefined
         dbg = (m) => @dbg('delete_lost_chunks', '', m)
 
