@@ -42,6 +42,15 @@ DATA = 'data'
 
 database = undefined  # defined during connect_to_database
 password = undefined  # defined during connect_to_database
+boot_time = undefined
+
+get_boot_time = (cb) ->
+    fs.readFile "/proc/uptime", (err, data) ->
+        if err
+            cb(err)
+        else
+            boot_time = cassandra.seconds_ago(misc.split(data.toString())[0])
+            cb()
 
 class Project
     constructor: (opts) ->
@@ -89,21 +98,53 @@ class Project
             param  : undefined   # if given, should be an array
             error  : undefined
             time_s : undefined
+            timestamp : undefined
             cb     : undefined
 
-        database.update
-            table : 'storage_log'
-            set   :
-                action : opts.action
-                param  : opts.param
-                error  : opts.error
-                time_s : opts.time_s
-                host   : program.address
-            where :
-                id        : @project_id
-                timestamp : cassandra.now()
-            json  : ['param', 'error']
-            cb    : (err) => opts.cb?(err)
+        if not opts.timestamp?
+            opts.timestamp = cassandra.now()
+
+        async.series([
+            (cb) =>
+                if opts.error?
+                    cb(); return
+                set = undefined
+                switch opts.action
+                    when 'sync_streams', 'recv_streams', 'send_streams', 'import_pool', 'snapshot_pool', 'scrub_pool'
+                        set = {}
+                        set[opts.action] = opts.timestamp
+                    when 'export_pool'
+                        set = {import_pool: undefined}
+                    when 'destroy_image_fs'
+                        set = {recv_streams: undefined, import_pool: undefined}
+                    when 'destroy_streams'
+                        set = {sync_streams: undefined}
+                    when 'destroy'
+                        set ={recv_streams: undefined, import_pool: undefined, sync_streams: undefined}
+                if set?
+                    database.update
+                        table : 'project_storage'
+                        set   : set
+                        where : {project_id : @project_id, host : program.address}
+                        cb    : cb
+                else
+                    cb()
+            (cb) =>
+                database.update
+                    table : 'storage_log'
+                    set   :
+                        action : opts.action
+                        param  : opts.param
+                        error  : opts.error
+                        time_s : opts.time_s
+                        host   : program.address
+                    where :
+                        id        : @project_id
+                        timestamp : opts.timestamp
+                    json  : ['param', 'error']
+                    cb    : cb
+        ], (err) => opts.cb?(err))
+
 
     # get action log for this project from the database
     log: (opts) =>
@@ -126,14 +167,16 @@ class Project
 
     action: (opts) =>
         cb = opts.cb
+        start_time = cassandra.now()
         t = misc.walltime()
         opts.cb = (err, result) =>
             if opts.action not in ['log']   # actions to not log
                 @log_action
-                    action : opts.action
-                    param  : opts.param
-                    error  : err
-                    time_s : misc.walltime(t)
+                    action    : opts.action
+                    param     : opts.param
+                    error     : err
+                    timestamp : start_time
+                    time_s    : misc.walltime(t)
             cb?(err, result)
         @_action(opts)
 
@@ -147,15 +190,18 @@ class Project
         if not opts.timeout?
             opts.timeout = TIMEOUTS[opts.action]
         switch opts.action
+
             when "migrate_delete"  # temporary -- during migration only!
                 @migrate_delete(cb:opts.cb, destroy:opts.param)
             when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
                 @delete_from_database(opts.cb)
-            when 'sync'
-                @sync(opts.cb)
             when 'sync_put_delete'
                 # TODO: disable this action once migration is done -- very dangerous
                 @sync_put_delete(opts.cb)
+
+            when 'sync_streams'
+                @sync_streams(opts.cb)
+
             when 'log'
                 @log
                     max_age_m : opts.param
@@ -204,7 +250,7 @@ class Project
             path   : @stream_path
             cb     : cb
 
-    sync: (cb) =>
+    sync_streams: (cb) =>
         # Find the chain of streams with newest end time, either locally or in the database,
         # and make sure it is present in both.
         dbg = (m) => @dbg('sync',[],m)
@@ -213,7 +259,11 @@ class Project
         remote_files = undefined
         local_files  = undefined
 
+        start_sync = cassandra.now()
         async.series([
+            (cb) =>
+                query = "UPDATE project_storage_host SET projects=projects+{?} AND up_since={?} WHERE host=?"
+                database.cql(query, [@project_id, boot_time, program.address], cb)
             (cb) =>
                 @chunked_storage.ls
                     cb   : (err, files) =>
@@ -422,7 +472,7 @@ exports.connect_to_database = connect_to_database = (cb) ->
 
 start_server = () ->
     winston.debug("start_server")
-    async.series [read_password, connect_to_database, start_tcp_server], (err) ->
+    async.series [get_boot_time, read_password, connect_to_database, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
@@ -597,7 +647,7 @@ exports.client = (opts) ->
         hostname : required
         port     : undefined
         verbose  : true
-        cb       : required
+        cb       : undefined
 
     C = client_cache[opts.hostname]
     if C?

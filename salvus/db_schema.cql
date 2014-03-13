@@ -633,3 +633,42 @@ CREATE TABLE storage_log (
 );
 
 
+
+CREATE TABLE project_storage (
+    project_id     uuid,
+    host           inet,
+    sync_streams   timestamp,    /* last time to sync with database */
+    recv_streams   timestamp,    /* last recv time */
+    send_streams   timestamp,    /* snapshot time of last successful image send */
+    import_pool    timestamp,    /* last zpool import; undefined if exported */
+    snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
+    scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
+    PRIMARY KEY    (project_id, host)
+);
+
+
+/* Use this table to get a global view on what projects are on a host, e.g., as a consistency check (when host dies).
+   This is basically just a "CREATE INDEX on project_storage(host)", except that it isn't dog slow and useless. */
+
+CREATE TABLE project_storage_host (
+    host           inet PRIMARY KEY,
+    up_since       timestamp,    /* time when this host became fully operational; undefined if known down */
+    projects       set<uuid>,    /* projects on this host */
+);
+
+
+CREATE USER storage_server WITH PASSWORD '...';
+GRANT MODIFY ON table storage TO storage_server;
+GRANT MODIFY ON table storage_writing TO storage_server;
+GRANT MODIFY ON table storage_chunks TO storage_server;
+GRANT MODIFY ON table storage_servers TO storage_server;
+GRANT SELECT ON table storage TO storage_server;
+GRANT SELECT ON table storage_writing TO storage_server;
+GRANT SELECT ON table storage_chunks TO storage_server;
+GRANT SELECT ON table storage_servers TO storage_server;
+GRANT SELECT ON table storage_log TO storage_server;
+GRANT MODIFY ON table storage_log TO storage_server;
+GRANT SELECT ON table project_storage  TO storage_server;
+GRANT MODIFY ON table project_storage  TO storage_server;
+GRANT SELECT ON table project_storage_host TO storage_server;
+GRANT MODIFY ON table project_storage_host TO storage_server;
