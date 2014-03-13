@@ -614,10 +614,11 @@ CREATE TABLE storage_log (
     id          uuid,
     timestamp   timestamp,
     host        varchar,
+    compute_id  uuid,        /* id of the compute machine on which which the action was taken */
     action      varchar,
     param       varchar,     /* JSON */
     error       varchar,     /* JSON */
-    time_s      float,         /* elapsed time for action */
+    time_s      float,       /* elapsed time for action */
     PRIMARY KEY (id, timestamp)
 );
 

@@ -116,11 +116,12 @@ class Project
                 database.update
                     table : 'storage_log'
                     set   :
-                        action : opts.action
-                        param  : opts.param
-                        error  : opts.error
-                        time_s : opts.time_s
-                        host   : program.address
+                        action     : opts.action
+                        param      : opts.param
+                        error      : opts.error
+                        time_s     : opts.time_s
+                        host       : program.address
+                        compute_id : compute_id
                     where :
                         id        : @project_id
                         timestamp : opts.timestamp
@@ -142,7 +143,7 @@ class Project
         where.id = @project_id
         database.select
             table     : 'storage_log'
-            columns   : ['timestamp', 'action', 'param', 'time_s', 'error', 'host']
+            columns   : ['timestamp', 'action', 'param', 'time_s', 'error', 'host', 'compute_id']
             where     : where
             json      : ['param', 'error']
             objectify : true
