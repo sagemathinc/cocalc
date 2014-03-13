@@ -1213,8 +1213,24 @@ class CodeMirrorSession
             return
         @diffsync_fileclient.sync (err) =>
             if err
-                cb?("codemirror fileclient sync error -- '#{err}'")
+                # Example error: 'reset -- checksum mismatch (29089 != 28959)'
+                winston.debug("@diffsync_fileclient.sync -- returned an error -- #{err}")
+                @diffsync_fileserver.kill() # stop autosaving and watching files
+                # Completely recreate diffsync file connection and try to sync once more.
+                @diffsync_fileserver = new DiffSyncFile_server @, (err, ignore_content) =>
+                    if err
+                        winston.debug("@diffsync_fileclient.sync -- making new server failed: #{err}")
+                        cb(err); return
+                    @diffsync_fileclient = new DiffSyncFile_client(@diffsync_fileserver)
+                    @diffsync_fileclient.live = @content
+                    @diffsync_fileclient.sync (err) =>
+                        if err
+                            winston.debug("@diffsync_fileclient.sync -- making server worked but re-sync failed -- #{err}")
+                            cb?("codemirror fileclient sync error -- '#{err}'")
+                        else
+                            cb?()
                 return
+
             if @diffsync_fileclient.live != @content
                 @set_content(@diffsync_fileclient.live)
                 # recommend all global hubs sync
