@@ -24,33 +24,16 @@ cassandra = require('cassandra')
 
 {defaults, required} = misc
 
-TIMEOUTS =
-    sync     : 3600
-    create   : 120
-    mount    : 3600
-    save     : 3600
-    snapshot : 300
-    close    : 3600
-    migrate  : 60*60*24
-    migrate_snapshots  : 60*60*24
-    migrate_delete : 60*60*24
 
-REGISTRATION_INTERVAL = 20*1000      # register with the database every 20 seconds
-REGISTRATION_TTL      = 30*1000      # ttl for registration record
+REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
+REGISTRATION_TTL_S      = 30       # ttl for registration record
+
+TIMEOUT = 12*3600
 
 DATA = 'data'
 
 database = undefined  # defined during connect_to_database
 password = undefined  # defined during connect_to_database
-boot_time = undefined
-
-get_boot_time = (cb) ->
-    fs.readFile "/proc/uptime", (err, data) ->
-        if err
-            cb(err)
-        else
-            boot_time = cassandra.seconds_ago(misc.split(data.toString())[0])
-            cb()
 
 class Project
     constructor: (opts) ->
@@ -71,7 +54,7 @@ class Project
     exec: (opts) =>
         opts = defaults opts,
             args    : required
-            timeout : 3600
+            timeout : TIMEOUT
             cb      : required
 
         args = ["--pool", program.pool, "--mnt", @mnt, "--stream_path", @stream_path]
@@ -123,9 +106,9 @@ class Project
                         set ={recv_streams: undefined, import_pool: undefined, sync_streams: undefined}
                 if set?
                     database.update
-                        table : 'project_storage'
+                        table : 'project_state'
                         set   : set
-                        where : {project_id : @project_id, host : program.address}
+                        where : {project_id : @project_id, compute_id : compute_id}
                         cb    : cb
                 else
                     cb()
@@ -184,13 +167,10 @@ class Project
         opts = defaults opts,
             action  : required    # 'sync', 'create', 'mount', 'save', 'snapshot', 'close'
             param   : undefined   # if given, should be an array or string
-            timeout : undefined   # different defaults depending on the action
+            timeout : TIMEOUT
             cb      : undefined   # cb?(err)
         @dbg("_action", opts, "doing an action...")
-        if not opts.timeout?
-            opts.timeout = TIMEOUTS[opts.action]
         switch opts.action
-
             when "migrate_delete"  # temporary -- during migration only!
                 @migrate_delete(cb:opts.cb, destroy:opts.param)
             when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
@@ -261,9 +241,6 @@ class Project
 
         start_sync = cassandra.now()
         async.series([
-            (cb) =>
-                query = "UPDATE project_storage_host SET projects=projects+{?}, up_since=? WHERE host=?"
-                database.cql(query, [@project_id, boot_time, program.address], cb)
             (cb) =>
                 @chunked_storage.ls
                     cb   : (err, files) =>
@@ -404,18 +381,65 @@ handle_mesg = (socket, mesg) ->
 exports.database = () ->
     return database
 
-register_with_database = () ->
+up_since = undefined
+init_up_since = (cb) ->
+    fs.readFile "/proc/uptime", (err, data) ->
+        if err
+            cb(err)
+        else
+            up_since = cassandra.seconds_ago(misc.split(data.toString())[0])
+            cb()
+
+compute_id = undefined
+
+init_compute_id = (cb) ->
+    # sudo zfs create storage/conf; sudo chown salvus. /storage/conf
+    file = "/storage/conf/compute_id"
+    fs.exists file, (exists) ->
+        if not exists
+            compute_id = uuid.v4()
+            fs.writeFile file, compute_id, (err) ->
+                if err
+                    winston.debug("Error writing compute_id file!")
+                    cb(err)
+                else
+                    # this also ensures /storage/conf/ is mounted...
+                    winston.debug("Wrote new compute_id =#{compute_id}")
+                    cb()
+        else
+            fs.readFile file, (err, data) ->
+                if err
+                    cb(err)
+                else
+                    compute_id = data.toString()
+                    cb()
+
+update_register_with_database = () ->
     database.update
-        table : 'storage_servers'
-        set   : {port : program.port}
-        where : {dummy:true, hostname:program.address}
-        ttl   : REGISTRATION_TTL
+        table : 'compute_hosts'
+        set   : {port : program.port, up_since:up_since}
+        where : {dummy:true, compute_id:compute_id}
+        ttl   : REGISTRATION_TTL_S
         cb    : (err) ->
-            return  # this logging is not needed and too verbose
+            return  # not needed and too verbose
             if err
                 winston.debug("error registering storage server with database: #{err}")
             else
                 winston.debug("registered with database")
+
+register_with_database = (cb) ->
+    database.update
+        table : 'compute_hosts'
+        set   : {host:program.address}
+        where : {dummy:true, compute_id:compute_id}
+        cb    : (err) ->
+            if err
+                winston.debug("error registering storage server #{compute_id} with database: #{err}")
+            else
+                winston.debug("registered storage server #{compute_id} with database")
+                update_register_with_database()
+                setInterval(update_register_with_database, REGISTRATION_INTERVAL_S*1000)
+            cb(err)
 
 start_tcp_server = (cb) ->
     winston.info("starting tcp server...")
@@ -440,10 +464,12 @@ start_tcp_server = (cb) ->
 
     server.listen program.port, program.address, () ->
         program.port = server.address().port
-        winston.debug("listening on #{program.address}:#{program.port}")
-        register_with_database()
-        setInterval(register_with_database, REGISTRATION_INTERVAL)
         fs.writeFile(program.portfile, program.port, cb)
+        winston.debug("listening on #{program.address}:#{program.port}")
+        misc.retry_until_success
+            f         : register_with_database
+            max_tries : 100
+            max_delay : 5000
 
 read_password = (cb) ->
     winston.debug("read_password")
@@ -472,52 +498,53 @@ exports.connect_to_database = connect_to_database = (cb) ->
 
 start_server = () ->
     winston.debug("start_server")
-    async.series [get_boot_time, read_password, connect_to_database, start_tcp_server], (err) ->
+    async.series [init_compute_id, init_up_since, read_password, connect_to_database, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
             winston.debug("Successfully started server.")
 
-get_port = (hostname, cb) ->
-    winston.debug("getting port for server at #{hostname}...")
-    if typeof(hostname) != 'string'
-        cb("hostname=#{misc.to_json(hostname)} should be a string not of type #{typeof(hostname)}")
-        return
+get_host_and_port = (compute_id, cb) ->
+    winston.debug("getting host and port for server #{compute_id}...")
     async.series [read_password, connect_to_database], (err) ->
         if err
             cb(err)
         else
             database.select_one
-                table : 'storage_servers'
-                where : {dummy:true, hostname:hostname}
-                columns : ['port']
+                table     : 'compute_hosts'
+                where     : {dummy:true, compute_id:compute_id}
+                columns   : ['port', 'host']
                 objectify : true
                 cb        : (err, result) ->
-                    if err
-                        winston.debug("no server running at #{hostname} right now")
+                    if err or not result.port?
+                        winston.debug("#{compute_id} is not running right now")
                         cb(err)
                     else
-                        winston.debug("got port of #{hostname}: #{result.port}")
-                        cb(undefined, result.port)
+                        result.host = cassandra.inet_to_str(result.host)
+                        console.log("result=",result)
+                        winston.debug("got location of #{compute_id} --   #{result.host}:#{result.port}")
+                        cb(undefined, result)
 
 class Client
-    constructor: (@hostname, @port, @verbose, cb) ->
-        @connect (err) =>
-            cb?(err, @)
+    constructor: (@compute_id, @verbose) ->
 
     dbg: (f, args, m) =>
         if @verbose
             winston.debug("storage Client(#{@host}:#{@port}).#{f}(#{misc.to_json(args)}): #{m}")
 
     connect: (cb) =>
-        dbg = (m) => winston.debug("Storage client (#{@hostname}:#{@port}): #{m}")
+        dbg = (m) => winston.debug("Storage client (#{@host}:#{@port}): #{m}")
         async.series([
             (cb) =>
                 if not @port?
-                    dbg("get port")
-                    get_port @hostname, (err, port) =>
-                        @port = port
-                        cb(err)
+                    dbg("get host and port")
+                    get_host_and_port @compute_id, (err, host_and_port) =>
+                        if err
+                            cb(err)
+                        else
+                            @host = host_and_port.host
+                            @port = host_and_port.port
+                            cb()
                 else
                     cb()
             (cb) =>
@@ -526,7 +553,7 @@ class Client
             (cb) =>
                 dbg("connect to locked socket")
                 misc_node.connect_to_locked_socket
-                    host    : @hostname
+                    host    : @host
                     port    : @port
                     token   : password
                     timeout : 20
@@ -614,12 +641,9 @@ class Client
             param      : undefined
             project_id : undefined   # a single project id
             project_ids: undefined   # or a list of project ids -- in which case, do the actions in parallel with limit at once
-            timeout    : undefined   # different defaults depending on the action
+            timeout    : TIMEOUT   # different defaults depending on the action
             limit      : 3
             cb         : undefined
-
-        if not opts.timeout?
-            opts.timeout = TIMEOUTS[opts.action]
 
         errors = {}
         f = (project_id, cb) =>
@@ -640,21 +664,75 @@ class Client
                     errors = undefined
                 opts.cb?(errors, results)
 
+get_available_compute_host = (opts) ->
+    opts = defaults opts,
+        host : undefined
+        cb   : required
+    # choose an optimal available host.
+    x = undefined
+    async.series([
+        (cb) ->
+            read_password(cb)
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            where = {dummy:true}
+            if opts.host?
+                where.host = opts.host
+            database.select
+                table     : 'compute_hosts'
+                columns   : ['compute_id', 'host', 'port', 'up_since', 'health']
+                where     : where
+                objectify : true
+                cb        : (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        r = ([x.health, x] for x in results when x.port? and x.host? and x.up_since?)
+                        r.sort()
+                        if r.length == 0
+                            cb("no available hosts")
+                        else
+                            # TODO: currently just ignoring health...  Can't just take the healthiest either
+                            # since that one would get quickly overloaded, so be careful!
+                            x = misc.random_choice(r)[1]
+                            winston.debug("got host with compute_id=#{x.compute_id}")
+                            cb(undefined)
+    ], (err) -> opts.cb(err, x))
+
+
 client_cache = {}
 
 exports.client = (opts) ->
     opts = defaults opts,
-        hostname : required
-        port     : undefined
-        verbose  : true
-        cb       : undefined
-
-    C = client_cache[opts.hostname]
-    if C?
-        opts.cb?(undefined, C)
-    else
-        C = client_cache[opts.hostname] = new Client(opts.hostname, opts.port, opts.verbose, opts.cb)
-    return C
+        compute_id : undefined
+        host       : undefined
+        verbose    : true
+        cb         : required
+    dbg = (m) -> winston.debug("client(#{opts.compute_id},#{opts.hostname}): #{m}")
+    dbg()
+    C = undefined
+    async.series([
+        (cb) ->
+            if opts.compute_id?
+                cb()
+            else
+                dbg("determine a compute_id....")
+                get_available_compute_host
+                    host : opts.host
+                    cb   : (err, result) ->
+                        if err
+                            cb(err)
+                        else
+                            dbg("got compute_id = #{result.compute_id}")
+                            opts.compute_id = result.compute_id
+                            cb()
+        (cb) ->
+            C = client_cache[opts.compute_id]
+            if not C?
+                C = client_cache[opts.compute_id] = new Client(opts.compute_id, opts.verbose)
+            cb()
+    ], (err) -> opts.cb(err, C))
 
 
 program.usage('[start/stop/restart/status] [options]')

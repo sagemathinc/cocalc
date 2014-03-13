@@ -610,17 +610,6 @@ CREATE TABLE storage_chunks (
     chunk       blob
 );
 
-/*
-   When a storage server is started running on a compute VM it will periodically put an entry
-   for itself in this table with a small TTL (so if something is here, it should be working).
-*/
-CREATE TABLE storage_servers (
-    dummy       boolean,     /* so select * fast */
-    hostname    varchar,     /* ip address of the compute vm */
-    port        int,
-    PRIMARY KEY (dummy, hostname)
-);
-
 CREATE TABLE storage_log (
     id          uuid,
     timestamp   timestamp,
@@ -634,41 +623,45 @@ CREATE TABLE storage_log (
 
 
 
-CREATE TABLE project_storage (
+CREATE TABLE project_state (
     project_id     uuid,
-    host           inet,
+    compute_id     uuid,         /* uuid of the compute VM that is hosting some version of this project */
     sync_streams   timestamp,    /* last time to sync with database */
     recv_streams   timestamp,    /* last recv time */
     send_streams   timestamp,    /* snapshot time of last successful image send */
     import_pool    timestamp,    /* last zpool import; undefined if exported */
     snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
     scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
-    PRIMARY KEY    (project_id, host)
+    PRIMARY KEY    (project_id, compute_id)
 );
-
 
 /* Use this table to get a global view on what projects are on a host, e.g., as a consistency check (when host dies).
    This is basically just a "CREATE INDEX on project_storage(host)", except that it isn't dog slow and useless. */
 
-CREATE TABLE project_storage_host (
-    host           inet PRIMARY KEY,
-    up_since       timestamp,    /* time when this host became fully operational; undefined if known down */
-    projects       set<uuid>,    /* projects on this host */
+CREATE TABLE compute_hosts (
+    dummy          boolean,      /* localize all data so "select *" is fast (table is very small) */
+    compute_id     uuid,         /* random uuid of this particular compute host */
+    host           inet,         /* ip address */
+    port           int,          /* port of storage server: undefined if down -- set frequently with a ttl */
+    up_since       timestamp,    /* time when this host became fully operational; undefined if down -- set frequently with a ttl! */
+    health         float,        /* 0 is bad, 1 is good */
+    projects       set<uuid>,    /* projects with data on this compute host */
+    PRIMARY KEY (dummy, compute_id)
 );
 
+CREATE INDEX on compute_hosts(host);
 
 CREATE USER storage_server WITH PASSWORD '...';
+
+GRANT SELECT ON table storage TO storage_server;
 GRANT MODIFY ON table storage TO storage_server;
 GRANT MODIFY ON table storage_writing TO storage_server;
-GRANT MODIFY ON table storage_chunks TO storage_server;
-GRANT MODIFY ON table storage_servers TO storage_server;
-GRANT SELECT ON table storage TO storage_server;
 GRANT SELECT ON table storage_writing TO storage_server;
+GRANT MODIFY ON table storage_chunks TO storage_server;
 GRANT SELECT ON table storage_chunks TO storage_server;
-GRANT SELECT ON table storage_servers TO storage_server;
 GRANT SELECT ON table storage_log TO storage_server;
 GRANT MODIFY ON table storage_log TO storage_server;
-GRANT SELECT ON table project_storage  TO storage_server;
-GRANT MODIFY ON table project_storage  TO storage_server;
-GRANT SELECT ON table project_storage_host TO storage_server;
-GRANT MODIFY ON table project_storage_host TO storage_server;
+GRANT SELECT ON table project_state  TO storage_server;
+GRANT MODIFY ON table project_state  TO storage_server;
+GRANT SELECT ON table compute_hosts TO storage_server;
+GRANT MODIFY ON table compute_hosts TO storage_server;

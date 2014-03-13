@@ -65,6 +65,11 @@ exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
+# inet type: see https://github.com/jorgebay/node-cassandra-cql/issues/61
+
+exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
+
+
 #########################################################################
 
 PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted'].concat(PROJECT_GROUPS)
