@@ -21,6 +21,8 @@ salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
 
 """
 
+DEFAULT_QUOTA='5G'
+
 import argparse, hashlib, os, random, shutil, string, sys, time, uuid, json
 from subprocess import Popen, PIPE
 
@@ -210,7 +212,7 @@ class Project(object):
         cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(self.username, self.username), ignore_errors=True)
 
 
-    def create(self, quota):
+    def create(self, quota=DEFAULT_QUOTA):
         """
         Create and mount storage for the given project.
         """
@@ -265,7 +267,7 @@ class Project(object):
         log = self._log("import_pool")
         if len(os.listdir(self.stream_path)) == 0:
             log("no streams, so just created a new empty pool.")
-            self.create()
+            self.create(DEFAULT_QUOTA)
             return
         if not self.is_project_pool_imported():
             log("project pool not imported, so receiving streams")
@@ -535,7 +537,7 @@ class Project(object):
         log = self._log("migrate")
         log("figure out original quota")
         quota = cmd("sudo /sbin/zfs get -H quota projects/%s"%self.project_id).split()[2]
-        self.create(quota)
+        self.create(DEFAULT_QUOTA)
         log("now migrate all snapshots")
         n = self.migrate_snapshots()
         log("migrated %s snapshots"%n)
@@ -629,7 +631,7 @@ if __name__ == "__main__":
     parser.add_argument("--stream_path", help="directory where streams are stored for this project(default: '/[pool]/streams/[project_id]')", default="", type=str)
 
     parser_create = subparsers.add_parser('create', help='create filesystem')
-    parser_create.add_argument("--quota", dest="quota", help="disk quota (default: '5G')", type=str, default='5G')
+    parser_create.add_argument("--quota", dest="quota", help="disk quota (default: '%s')"%DEFAULT_QUOTA, type=str, default=DEFAULT_QUOTA)
     parser_create.set_defaults(func=lambda args: project.create(quota=args.quota))
 
     parser_umount = subparsers.add_parser('umount', help='unmount filesystem')

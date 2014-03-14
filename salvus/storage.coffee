@@ -3342,7 +3342,7 @@ exports.migrate2 = (opts) ->
         project_id : required
         status     : undefined
         destroy    : false     # if true, completely destroy the old images and do a new migration from scratch
-        exclude_hosts : ['10.1.3.4', '10.1.19.4', '10.3.1.4', '10.3.2.4', '10.3.3.4', '10.3.4.4', '10.3.5.4', '10.3.6.4', '10.3.7.4', '10.3.8.4']
+        exclude_hosts : ['10.3.1.4', '10.3.2.4', '10.3.3.4', '10.3.4.4', '10.3.5.4', '10.3.6.4', '10.3.7.4', '10.3.8.4']
         cb         : required
     dbg = (m) -> winston.debug("migrate2(#{opts.project_id}): #{m}")
     dbg("migrate2 (or update) the data for project with given id to the new format2")
