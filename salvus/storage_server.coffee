@@ -192,9 +192,8 @@ class Project
             cb      : undefined   # cb?(err)
         @dbg("_action", opts, "doing an action...")
         switch opts.action
-            when "migrate_delete"  # temporary -- during migration only!
-                @migrate_delete(opts.param, opts.cb)
-
+            when "migrate"  # temporary -- during migration only!
+                @migrate(opts.cb)
             when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
                 @delete_from_database(opts.cb)
             when 'sync_put_delete'
@@ -219,28 +218,14 @@ class Project
                     timeout : opts.timeout
                     cb      : opts.cb
 
-    migrate_delete: (destroy, cb) =>
-        dbg = (m) => @dbg('destructive_migration',[],m)
-        streams = undefined
-        async.series([
-            (cb) =>
-                if destroy
-                    dbg("destroying everything first -- start with a clean slate!")
-                    @action
-                        action : 'destroy'
-                        cb     : cb
-                else
-                    dbg("syncing with the database first")
-                    @sync_streams(cb)
-            (cb) =>
-                dbg("doing the migration")
-                @action
-                    action : "migrate"
-                    cb     : cb
-            (cb) =>
-                dbg("migration succeeded -- saving result to database (deleting anything old)")
-                @sync_put_delete(cb)
-        ], (err) => cb?(err))
+    migrate: (cb) =>
+        dbg = (m) => @dbg('migration',[],m)
+        f = (action, cb) =>
+            @action
+                action : action
+                cb     :cb
+        steps = ['export_pool', 'sync_streams', 'recv_streams', 'import_pool', 'migrate_snapshots', 'export_pool', 'send_streams', 'sync_put_delete']
+        async.mapSeries(steps, f, cb)
 
     delete_from_database: (cb) =>
         @dbg('delete_from_database',[],"")

@@ -3342,13 +3342,14 @@ exports.migrate2 = (opts) ->
         project_id : required
         status     : undefined
         destroy    : false     # if true, completely destroy the old images and do a new migration from scratch
+        host       : undefined
         exclude_hosts : ['10.3.1.4', '10.3.2.4', '10.3.3.4', '10.3.4.4', '10.3.5.4', '10.3.6.4', '10.3.7.4', '10.3.8.4']
         cb         : required
     dbg = (m) -> winston.debug("migrate2(#{opts.project_id}): #{m}")
     dbg("migrate2 (or update) the data for project with given id to the new format2")
     needs_update = undefined
     last_migrated2 = cassandra.now()
-    host = undefined
+    host = opts.host
     client = undefined
     last_migrate2_error = undefined   # could be useful to know below...
     async.series([
@@ -3373,6 +3374,8 @@ exports.migrate2 = (opts) ->
                 where : {project_id : opts.project_id}
                 cb    : cb
         (cb) ->
+            if host?
+                cb(); return
             dbg("get current location of project from database")
             get_current_location
                 project_id : opts.project_id
@@ -3426,7 +3429,7 @@ exports.migrate2 = (opts) ->
             dbg("do migrate_delete action")
             client.action
                 project_id : opts.project_id
-                action     : 'migrate_delete'
+                action     : 'migrate'
                 cb         : (err, resp) ->
                     dbg("migrate_delete returned: #{misc.to_json(resp)}")
                     cb(err)

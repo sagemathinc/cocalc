@@ -265,14 +265,18 @@ class Project(object):
         Import the zpool from the images in the image filesystem and mount it.
         """
         log = self._log("import_pool")
+        s = '/'+self.image_fs
         if len(os.listdir(self.stream_path)) == 0:
-            log("no streams, so just created a new empty pool.")
-            self.create(DEFAULT_QUOTA)
-            return
+            if os.path.exists(s) and len(os.listdir(s)) > 0:
+                pass
+            else:
+                log("no streams, so just created a new empty pool.")
+                self.create(DEFAULT_QUOTA)
+                return
         if not self.is_project_pool_imported():
             log("project pool not imported, so receiving streams")
             self.recv_streams()
-            mount('/'+self.image_fs, self.image_fs)
+            mount(s, self.image_fs)
             log("now importing project pool from /%s"%self.image_fs)
             cmd("sudo /sbin/zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
         log("setting mountpoint to %s"%self.project_mnt)
@@ -537,7 +541,7 @@ class Project(object):
         log = self._log("migrate")
         log("figure out original quota")
         quota = cmd("sudo /sbin/zfs get -H quota projects/%s"%self.project_id).split()[2]
-        self.create(DEFAULT_QUOTA)
+        self.create(quota)
         log("now migrate all snapshots")
         n = self.migrate_snapshots()
         log("migrated %s snapshots"%n)
