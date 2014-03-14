@@ -355,7 +355,7 @@ optimal_stream = (v) ->
         x = w[w.length-1].split('--')
         if x[0] == x[1]
             return w
-        v = v.shift()  # delete first element -- it's not the end of a valid sequence.
+        v.shift()  # delete first element -- it's not the end of a valid sequence.
 
 
 projects = {}
