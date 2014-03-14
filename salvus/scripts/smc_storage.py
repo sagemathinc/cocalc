@@ -357,6 +357,7 @@ class Project(object):
         log = self._log("send_streams")
         sync()
         end = now()
+
         log("snapshotting image filesystem %s"%end)
         e = cmd("sudo /sbin/zfs snapshot %s@%s"%(self.image_fs, end), ignore_errors=True)
         if e:
@@ -365,37 +366,49 @@ class Project(object):
                 return
             else:
                 raise RuntimeError(e)
+
+
         v = self.streams()
         log("there are %s streams already"%len(v))
-        if len(v) > 0 and v[-1].size_mb() < self.stream_thresh_mb:
-            log("last stream is small -- on success discard")
-            discard = v[-1]
-            del v[-1]
-        else:
-            discard = None
 
-        if len(v) == 0:
-            start = end
+        # We locate the newest snapshot that we have in our image_fs
+        # such that there is also a stream that ends there,
+        # which isn't too small. Then send starting from that point.
+        snaps = snapshots(self.image_fs)
+        big_stream_ends = set([x.end for x in v if x.size_mb() >= self.stream_thresh_mb])
+        start = end
+        for snap in reversed(snaps):
+            if snap in big_stream_ends:
+                # a stream ends here and this is newest.
+                start = snap
+                break
+        if start == end:
             snap = "%s@%s"%(self.image_fs, end)
         else:
-            start = v[-1].end
             snap = " -i %s@%s %s@%s"%(self.image_fs, start, self.image_fs, end)
 
         target = os.path.join(self.stream_path, "%s--%s"%(start, end))
         try:
             log("sending new stream: %s"%target)
             try:
-                cmd("sudo /sbin/zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
+                out = cmd("sudo /sbin/zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
+                if 'does not exist' in out:  # does not result in nonzero error code, due to use of streams
+                    raise RuntimeError(out)
             except:
                 os.unlink("%s.partial"%target)
                 raise
-            if discard is not None:
-                log("success; now discarding a previous stream: %s"%discard.path)
-                os.unlink(discard.path)
+            # Now discard any streams we no longer need...
+            for x in v:
+                if x.start >= start:
+                    log("discarding old stream: %s"%x.path)
+                    os.unlink(x.path)
         except RuntimeError:
             log("problem sending stream -- don't leave a broken stream around")
             try:
                 os.unlink(target)
+            except: pass
+            try:
+                os.unlink(target+'.partial')
             except: pass
             raise
 

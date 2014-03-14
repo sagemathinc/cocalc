@@ -1074,7 +1074,20 @@ class ClientProject
                     where     : {project_id : @project_id}
                     cb        : (err) => opts.cb?(err)
 
-
+    # copy over any snapshots from the old version of the project on the host where project is opened.
+    migrate_snapshots: (opts) =>
+        opts = defaults opts,
+            cb   : undefined
+        @dbg('migrate', opts.name, "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?
+                opts.cb?("not opened"); return
+            @action
+                compute_id : @compute_id
+                action     : 'migrate_snapshots'
+                cb         : opts.cb
 
 
 client_project_cache = {}
