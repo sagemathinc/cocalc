@@ -83,8 +83,11 @@ def newest_snapshot(fs):
         return out[len(fs)+1:].strip()
 
 def snapshots(filesystem):
-    w = cmd(['sudo', 'zfs', 'list', '-r', '-t', 'snapshot', '-o', 'name', '-s', 'creation', filesystem], verbose=1).split()
-    return [x.split('@')[1].strip() for x in w if '@' in x]
+    w = cmd(['sudo', 'zfs', 'list', '-r', '-t', 'snapshot', '-o', 'name', '-s', 'creation', filesystem], verbose=1, ignore_errors=True)
+    if 'dataset does not exist' in w or 'no datasets available' in w:
+        return []
+    else:
+        return [x.split('@')[1].strip() for x in w.split() if '@' in x]
 
 def mount(mountpoint, fs):
     if cmd("sudo /sbin/zfs get -H mounted %s"%fs).split()[2] == 'yes' and cmd("sudo /sbin/zfs get -H mountpoint %s"%fs).split()[2] == mountpoint:
@@ -317,15 +320,35 @@ class Project(object):
             return
         if self.is_project_pool_imported():
             raise RuntimeError('cannot recv streams since project pool is already imported')
-        head = newest_snapshot(self.image_fs)
-        log("newest known snapshot is %s"%head)
-        v = optimal_stream_sequence(self.streams())
-        log("optimal stream sequence: %s"%v)
-        for stream in v:
-            if stream.end > head:
-                log("found newer %s so applying it"%stream.end)
-                stream.apply()
-                head = newest_snapshot(self.image_fs)
+        snaps   = snapshots(self.image_fs)
+        streams = optimal_stream_sequence(self.streams())
+        log("optimal stream sequence: %s"%[x.filename for x in streams])
+        i = 0
+        while i < min(len(snaps), len(streams)):
+            if snaps[i] == streams[i].end:
+                i += 1
+            else:
+                break
+
+        # snaps that we know longer need -- if these are here, we can't recv.
+        bad_snaps = snaps[i:]
+
+        # streams that need to be applied
+        streams = streams[i:]
+        if len(streams) == 0:
+            log("no streams need to be applied")
+            return
+
+        if len(bad_snaps) > 0:
+            log("rollback the image file system -- removing %s snapshots"%len(bad_snaps))
+            if i == 0:
+                self.destroy_image_fs()
+            else:
+                cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[i-1]))
+
+        log("now applying %s incoming streams"%len(streams))
+        for stream in streams:
+            stream.apply()
 
     def send_streams(self):
         """
