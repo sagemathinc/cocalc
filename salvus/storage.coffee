@@ -3416,8 +3416,8 @@ exports.migrate2 = (opts) ->
             if opts.status?
                 opts.status.host = host
             require('storage_server').client
-                hostname : host
-                cb       : (err, _client) ->
+                host : host
+                cb   : (err, _client) ->
                     client = _client
                     cb(err)
         (cb) ->

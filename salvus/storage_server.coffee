@@ -193,7 +193,8 @@ class Project
         @dbg("_action", opts, "doing an action...")
         switch opts.action
             when "migrate_delete"  # temporary -- during migration only!
-                @migrate_delete(cb:opts.cb, destroy:opts.param)
+                @migrate_delete(opts.param, opts.cb)
+
             when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
                 @delete_from_database(opts.cb)
             when 'sync_put_delete'
@@ -218,7 +219,7 @@ class Project
                     timeout : opts.timeout
                     cb      : opts.cb
 
-    migrate_delete: (cb, destroy) =>
+    migrate_delete: (destroy, cb) =>
         dbg = (m) => @dbg('destructive_migration',[],m)
         streams = undefined
         async.series([
@@ -230,7 +231,7 @@ class Project
                         cb     : cb
                 else
                     dbg("syncing with the database first")
-                    @sync(cb)
+                    @sync_streams(cb)
             (cb) =>
                 dbg("doing the migration")
                 @action
@@ -239,7 +240,7 @@ class Project
             (cb) =>
                 dbg("migration succeeded -- saving result to database (deleting anything old)")
                 @sync_put_delete(cb)
-        ], (err) => cb(err))
+        ], (err) => cb?(err))
 
     delete_from_database: (cb) =>
         @dbg('delete_from_database',[],"")
@@ -782,7 +783,7 @@ exports.client = (opts) ->
             if opts.compute_id?
                 cb()
             else
-                host_to_compute_id opts.host, (err, compute_id) ->
+                exports.host_to_compute_id opts.host, (err, compute_id) ->
                     if err
                         cb(err)
                     else
