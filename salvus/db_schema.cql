@@ -633,6 +633,7 @@ CREATE TABLE project_state (
     import_pool    timestamp,    /* last zpool import; undefined if exported */
     snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
     scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
+
     PRIMARY KEY    (project_id, compute_id)
 );
 
@@ -649,6 +650,16 @@ CREATE TABLE compute_hosts (
     projects       set<uuid>,    /* projects with data on this compute host */
     PRIMARY KEY (dummy, compute_id)
 );
+
+/* TODO: only here for the migration. */
+CREATE TABLE project_new (
+    project_id  uuid PRIMARY KEY,
+    new         boolean,      /* if true, mount and *run* using the new storage format */
+);
+GRANT SELECT ON table project_new TO storage_server;
+GRANT MODIFY ON table project_new TO storage_server;
+
+
 
 CREATE INDEX on compute_hosts(host);
 
