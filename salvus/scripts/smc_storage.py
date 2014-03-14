@@ -319,7 +319,9 @@ class Project(object):
             raise RuntimeError('cannot recv streams since project pool is already imported')
         head = newest_snapshot(self.image_fs)
         log("newest known snapshot is %s"%head)
-        for stream in optimal_stream_sequence(self.streams()):
+        v = optimal_stream_sequence(self.streams())
+        log("optimal stream sequence: %s"%v)
+        for stream in v:
             if stream.end > head:
                 log("found newer %s so applying it"%stream.end)
                 stream.apply()

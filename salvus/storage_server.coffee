@@ -530,7 +530,6 @@ get_database = (cb) ->
     async.series([read_password, connect_to_database], (err) -> cb(err, database))
 
 exports.compute_id_to_host = compute_id_to_host = (compute_id, cb) ->
-    # TODO: cache (?)
     get_database (err, db) ->
         if err
             cb(err)
@@ -544,6 +543,16 @@ exports.compute_id_to_host = compute_id_to_host = (compute_id, cb) ->
                         cb(err)
                     else
                         cb(undefined, cassandra.inet_to_str(result[0]))
+
+exports.host_to_compute_id = (host, cb) ->
+    get_available_compute_host
+        host : host
+        cb   : (err, result) ->
+            if err
+                cb(err)
+            else
+                cb(undefined, result.compute_id)
+
 
 start_server = () ->
     winston.debug("start_server")
@@ -773,16 +782,12 @@ exports.client = (opts) ->
             if opts.compute_id?
                 cb()
             else
-                dbg("determine a compute_id....")
-                get_available_compute_host
-                    host : opts.host
-                    cb   : (err, result) ->
-                        if err
-                            cb(err)
-                        else
-                            dbg("got compute_id = #{result.compute_id}")
-                            opts.compute_id = result.compute_id
-                            cb()
+                host_to_compute_id opts.host, (err, compute_id) ->
+                    if err
+                        cb(err)
+                    else
+                        opts.compute_id = compute_id
+                        cb()
         (cb) ->
             C = client_cache[opts.compute_id]
             if not C?
@@ -941,34 +946,44 @@ class ClientProject
 
     open: (opts) =>
         opts = defaults opts,
-            cb      : undefined    # (err, compute_id of host)
+            compute_id : undefined  # if given, try to open on this machine
+            cb         : undefined    # (err, {compute_id:compute_id of host, host:ip address})
         @dbg('open', '', "")
         @_update_compute_id (err) =>
             if err
                 opts.cb(err); return
             if @compute_id?  # already opened
-                opts.cb?(undefined, @compute_id); return
+                if opts.compute_id? and @compute_id != opts.compute_id
+                    opts.cb?('already opened on a different host (#{@compute_id})')
+                    return
+                compute_id_to_host @compute_id, (err, host) =>
+                    opts.cb?(err, {compute_id:@compute_id, host:host})
+                return
 
             compute_id = undefined
             async.series([
                 (cb) =>
-                    @state (err, state) =>
-                        if err
-                            cb(err); return
-                        v = ([x.sync_streams, x] for x in state when x.sync_streams?)
-                        v.sort()
-                        @dbg('open','',"number of hosts where project is at least partly cached: #{v.length}")
-                        if v.length > 0
-                            compute_id = v[v.length-1][1].compute_id
-                            cb()
-                        else
-                            exports.client
-                                cb : (err, client) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        compute_id = client.compute_id
-                                        cb(err)
+                    if opts.compute_id?
+                        compute_id = opts.compute_id
+                        cb()
+                    else
+                        @state (err, state) =>
+                            if err
+                                cb(err); return
+                            v = ([x.sync_streams, x] for x in state when x.sync_streams?)
+                            v.sort()
+                            @dbg('open','',"number of hosts where project is at least partly cached: #{v.length}")
+                            if v.length > 0
+                                compute_id = v[v.length-1][1].compute_id
+                                cb()
+                            else
+                                exports.client
+                                    cb : (err, client) =>
+                                        if err
+                                            cb(err)
+                                        else
+                                            compute_id = client.compute_id
+                                            cb(err)
                 (cb) =>
                     @action
                         compute_id : compute_id
@@ -990,11 +1005,12 @@ class ClientProject
                     opts.cb?(err)
                 else
                     @compute_id = compute_id
-                    opts.cb?(undefined, @compute_id)
+                    compute_id_to_host @compute_id, (err, host) =>
+                        opts.cb?(err, {compute_id:@compute_id, host:host})
             )
 
 
-    cache: (opts) =>
+    sync_streams: (opts) =>
         opts = defaults opts,
             compute_id   : undefined  # if given, update streams on this host; if not, update on all hosts where project isn't opened
             recv_streams : false      # also ensure that image filesystems of the copies are already recv'd
@@ -1020,19 +1036,30 @@ class ClientProject
                 v = (x.compute_id for x in state when not x.import_pool?)
                 async.map(v, sync, (err) => opts.cb(err))
 
-    # remove all traces of this project from the give compute host, leaving only what is in the database
-    remove: (opts) =>
+    # destroy all traces of this project from the give compute host, leaving only what is in the database
+    destroy: (opts) =>
         opts = defaults opts,
             compute_id : required
             cb         : undefined
-        @dbg('remove', opts.compute_id)
+        @dbg('destroy', opts.compute_id)
         @action
             compute_id : opts.compute_id
             action     : 'destroy'
             cb         : opts.cb
 
-    # mark a particular compute host for this project as broken
-    broken: (opts) =>
+    # destroy the image filesystem, leaving the stream cache
+    destroy_image_fs: (opts) =>
+        opts = defaults opts,
+            compute_id : required
+            cb         : undefined
+        @dbg('destroy_image_fs', opts.compute_id)
+        @action
+            compute_id : opts.compute_id
+            action     : 'destroy_image_fs'
+            cb         : opts.cb
+
+    # mark a particular compute host for this project as broken, so it won't be opened.
+    mark_broken: (opts) =>
         opts = defaults opts,
             compute_id : required
             cb         : undefined
