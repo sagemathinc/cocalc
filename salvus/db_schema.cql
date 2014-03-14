@@ -633,7 +633,7 @@ CREATE TABLE project_state (
     import_pool    timestamp,    /* last zpool import; undefined if exported */
     snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
     scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
-
+    broken         boolean,      /* set to true of we consider this copy of the project broken: change once fixed */      
     PRIMARY KEY    (project_id, compute_id)
 );
 

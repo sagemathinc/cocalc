@@ -38,7 +38,7 @@ password = undefined  # defined during connect_to_database
 
 # TEMPORARY -- for migration
 # TODO: DELETE this whole select thing once we finish migration!
-is_project_new = (project_id, cb) ->   #  cb(err, true if project should be run using the new storage system)
+is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true if project should be run using the new storage system)
     database.select
         table   : 'project_new'
         columns : ['new']
@@ -48,8 +48,6 @@ is_project_new = (project_id, cb) ->   #  cb(err, true if project should be run 
                 cb(err)
             else
                 cb(undefined, results.length > 0 and results[0][0])
-
-
 
 
 ###########################
@@ -125,12 +123,12 @@ class Project
                     when 'destroy_streams'
                         set = {sync_streams: undefined}
                     when 'destroy'
-                        set ={recv_streams: undefined, import_pool: undefined, sync_streams: undefined}
+                        set ={recv_streams: undefined, import_pool: undefined, sync_streams: undefined, broken:undefined}
                 if set?
                     database.update
                         table : 'project_state'
                         set   : set
-                        where : {project_id : @project_id, compute_id : compute_id}
+                        where : {project_id : @project_id, compute_id : server_compute_id}
                         cb    : cb
                 else
                     cb()
@@ -143,7 +141,7 @@ class Project
                         error      : opts.error
                         time_s     : opts.time_s
                         host       : program.address
-                        compute_id : compute_id
+                        compute_id : server_compute_id
                     where :
                         id        : @project_id
                         timestamp : opts.timestamp
@@ -422,35 +420,35 @@ init_up_since = (cb) ->
             up_since = cassandra.seconds_ago(misc.split(data.toString())[0])
             cb()
 
-compute_id = undefined
+server_compute_id = undefined
 
 init_compute_id = (cb) ->
     # sudo zfs create storage/conf; sudo chown salvus. /storage/conf
     file = "/storage/conf/compute_id"
     fs.exists file, (exists) ->
         if not exists
-            compute_id = uuid.v4()
-            fs.writeFile file, compute_id, (err) ->
+            server_compute_id = uuid.v4()
+            fs.writeFile file, server_compute_id, (err) ->
                 if err
                     winston.debug("Error writing compute_id file!")
                     cb(err)
                 else
                     # this also ensures /storage/conf/ is mounted...
-                    winston.debug("Wrote new compute_id =#{compute_id}")
+                    winston.debug("Wrote new compute_id =#{server_compute_id}")
                     cb()
         else
             fs.readFile file, (err, data) ->
                 if err
                     cb(err)
                 else
-                    compute_id = data.toString()
+                    server_compute_id = data.toString()
                     cb()
 
 update_register_with_database = () ->
     database.update
         table : 'compute_hosts'
         set   : {port : program.port, up_since:up_since}
-        where : {dummy:true, compute_id:compute_id}
+        where : {dummy:true, compute_id:server_compute_id}
         ttl   : REGISTRATION_TTL_S
         cb    : (err) ->
             return  # not needed and too verbose
@@ -463,12 +461,12 @@ register_with_database = (cb) ->
     database.update
         table : 'compute_hosts'
         set   : {host:program.address}
-        where : {dummy:true, compute_id:compute_id}
+        where : {dummy:true, compute_id:server_compute_id}
         cb    : (err) ->
             if err
-                winston.debug("error registering storage server #{compute_id} with database: #{err}")
+                winston.debug("error registering storage server #{server_compute_id} with database: #{err}")
             else
-                winston.debug("registered storage server #{compute_id} with database")
+                winston.debug("registered storage server #{server_compute_id} with database")
                 update_register_with_database()
                 setInterval(update_register_with_database, REGISTRATION_INTERVAL_S*1000)
             cb(err)
@@ -527,6 +525,25 @@ exports.connect_to_database = connect_to_database = (cb) ->
         consistency : program.consistency
         password    : password
         cb          : cb
+
+get_database = (cb) ->
+    async.series([read_password, connect_to_database], (err) -> cb(err, database))
+
+exports.compute_id_to_host = compute_id_to_host = (compute_id, cb) ->
+    # TODO: cache (?)
+    get_database (err, db) ->
+        if err
+            cb(err)
+        else
+            db.select_one
+                table   : 'compute_hosts'
+                where   : {compute_id : compute_id, dummy:true}
+                columns : ['host']
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        cb(undefined, cassandra.inet_to_str(result[0]))
 
 start_server = () ->
     winston.debug("start_server")
@@ -780,7 +797,271 @@ exports.client = (opts) ->
 
 class ClientProject
     constructor: (@project_id) ->
+        @dbg("constructor",[],"initializing...")
 
+    _update_compute_id: (cb) =>
+        @state (err, state) =>
+            if err
+                cb(err); return
+            v = ([x.import_pool, x] for x in state when x.import_pool? and not x.broken)
+            v.sort()
+            @dbg('constructor',[],"number of hosts where pool is imported: #{v.length}")
+            if v.length > 0
+                @compute_id = v[v.length-1][1].compute_id
+                if v.length > 1
+                    @dbg('constructor','',"should never have more than one pool -- repair")
+                    for y in v.slice(0,v.length-1)
+                        @action
+                            compute_id : y[1].compute_id
+                            action     : 'export_pool'
+            else
+                @compute_id = undefined  # means no zpool currently imported
+            cb()
+
+    dbg: (f, args, m) =>
+        winston.debug("storage ClientProject(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
+
+    action: (opts) =>
+        opts = defaults opts,
+            compute_id : required
+            action     : required
+            param      : undefined
+            timeout    : TIMEOUT
+            limit      : 3
+            cb         : undefined
+        @dbg('action', opts)
+        exports.client
+            compute_id : opts.compute_id
+            cb         : (err, client) =>
+                if err
+                    opts.cb?(err)
+                    return
+
+                client.action
+                    project_id : @project_id
+                    action     : opts.action
+                    param      : opts.param
+                    timeout    : opts.timeout
+                    limit      : opts.limit
+                    cb         : opts.cb
+
+    state: (cb) =>
+        @dbg('state', '', "getting state")
+        get_database (err) =>
+            if err
+                cb(err)
+            else
+                database.select
+                    table     : 'project_state'
+                    where     : {project_id : @project_id}
+                    columns   : ['compute_id', 'sync_streams', 'recv_streams', 'send_streams', 'import_pool', 'snapshot_pool', 'scrub_pool', 'broken']
+                    objectify : true
+                    cb        : cb
+
+    close: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        @dbg('close', '', "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?
+                opts.cb?(); return
+            async.series([
+                (cb) =>
+                    @save(cb:cb)
+                (cb) =>
+                    @action
+                        compute_id : @compute_id
+                        action     : 'export_pool'
+                        cb         : cb
+            ], (err) =>
+                if err
+                    opts.cb?(err)
+                else
+                    @compute_id = undefined
+                    opts.cb?()
+            )
+
+    save: (opts) =>
+        opts = defaults opts,
+            cb   : undefined
+        @dbg('save', '', "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?
+                opts.cb?(); return
+            async.series([
+                (cb) =>
+                    @action
+                        compute_id : @compute_id
+                        action     : 'send_streams'
+                        cb         : cb
+                (cb) =>
+                    @action
+                        compute_id : @compute_id
+                        action     : 'sync_streams'
+                        cb         : cb
+            ], (err) => opts.cb?(err))
+
+    snapshot: (opts) =>
+        opts = defaults opts,
+            name : undefined
+            cb   : undefined
+        @dbg('snapshot', '', "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?
+                opts.cb?("not opened"); return
+            z =
+                compute_id : @compute_id
+                action     : 'snapshot_pool'
+                cb         : opts.cb
+            if opts.name?
+                z.param = ['--name', opts.name]
+            @action(z)
+
+    destroy_snapshot: (opts) =>
+        opts = defaults opts,
+            name : required
+            cb   : undefined
+        @dbg('destroy_snapshot', opts.name, "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?
+                opts.cb?("not opened"); return
+            @action
+                compute_id : @compute_id
+                action     : 'destroy_snapshot_of_pool'
+                param      : ['--name', opts.name]
+                cb         : opts.cb
+
+    open: (opts) =>
+        opts = defaults opts,
+            cb      : undefined    # (err, compute_id of host)
+        @dbg('open', '', "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if @compute_id?  # already opened
+                opts.cb?(undefined, @compute_id); return
+
+            compute_id = undefined
+            async.series([
+                (cb) =>
+                    @state (err, state) =>
+                        if err
+                            cb(err); return
+                        v = ([x.sync_streams, x] for x in state when x.sync_streams?)
+                        v.sort()
+                        @dbg('open','',"number of hosts where project is at least partly cached: #{v.length}")
+                        if v.length > 0
+                            compute_id = v[v.length-1][1].compute_id
+                            cb()
+                        else
+                            exports.client
+                                cb : (err, client) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        compute_id = client.compute_id
+                                        cb(err)
+                (cb) =>
+                    @action
+                        compute_id : compute_id
+                        action     : 'sync_streams'
+                        cb         : cb
+                (cb) =>
+                    @action
+                        compute_id : compute_id
+                        action     : 'recv_streams'
+                        cb         : cb
+                (cb) =>
+                    @action
+                        compute_id : compute_id
+                        action     : 'import_pool'
+                        cb         : cb
+
+            ], (err) =>
+                if err
+                    opts.cb?(err)
+                else
+                    @compute_id = compute_id
+                    opts.cb?(undefined, @compute_id)
+            )
+
+
+    cache: (opts) =>
+        opts = defaults opts,
+            compute_id   : undefined  # if given, update streams on this host; if not, update on all hosts where project isn't opened
+            recv_streams : false      # also ensure that image filesystems of the copies are already recv'd
+            cb           : undefined
+        @dbg('cache', opts, "")
+        @state (err, state) =>
+            if err
+                cb(err); return
+            sync = (compute_id, cb) =>
+                @action
+                    compute_id : compute_id
+                    action     : 'sync_streams'
+                    cb         : (err) =>
+                        if err or not opts.recv_streams
+                            cb(err); return
+                        @action
+                            compute_id : x.compute_id
+                            action     : 'recv_streams'
+                            cb         : cb
+            if opts.compute_id?
+                sync(opts.compute_id, opts.cb)
+            else
+                v = (x.compute_id for x in state when not x.import_pool?)
+                async.map(v, sync, (err) => opts.cb(err))
+
+    # remove all traces of this project from the give compute host, leaving only what is in the database
+    remove: (opts) =>
+        opts = defaults opts,
+            compute_id : required
+            cb         : undefined
+        @dbg('remove', opts.compute_id)
+        @action
+            compute_id : opts.compute_id
+            action     : 'destroy'
+            cb         : opts.cb
+
+    # mark a particular compute host for this project as broken
+    broken: (opts) =>
+        opts = defaults opts,
+            compute_id : required
+            cb         : undefined
+        @dbg('broken', opts.compute_id)
+        get_database (err) =>
+            if err
+                opts.cb?(err)
+            else
+                database.update
+                    table     : 'project_state'
+                    set       : {broken : true}
+                    where     : {project_id : @project_id}
+                    cb        : (err) => opts.cb?(err)
+
+
+
+
+client_project_cache = {}
+
+exports.client_project = (project_id) ->
+    P = client_project_cache[project_id]
+    if P?
+        return P
+    else
+        return new ClientProject(project_id)
+
+###########################
+## Command line interface
+###########################
 
 program.usage('[start/stop/restart/status] [options]')
 

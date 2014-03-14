@@ -218,7 +218,7 @@ class Project(object):
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
         cmd("sudo /sbin/zfs create %s"%self.image_fs)
         mount('/'+self.image_fs, self.image_fs)
-        cmd("sudo chown %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
+        cmd("sudo /bin/chown %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
         log("create a sparse image file of size %s"%quota)
         u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())
         cmd("truncate -s%s %s"%(quota, u))
@@ -226,7 +226,7 @@ class Project(object):
         cmd("sudo /sbin/zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, u))
         cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
         cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
-        cmd("sudo chown %s:%s %s"%(self.uid, self.uid, self.project_mnt))
+        cmd("sudo /bin/chown %s:%s %s"%(self.uid, self.uid, self.project_mnt))
 
         #os.chown(self.project_mnt, self.uid, self.uid)
 
@@ -259,7 +259,11 @@ class Project(object):
         """
         Import the zpool from the images in the image filesystem and mount it.
         """
-        log = self._log("mount")
+        log = self._log("import_pool")
+        if len(os.listdir(self.stream_path)) == 0:
+            log("no streams, so just created a new empty pool.")
+            self.create()
+            return
         if not self.is_project_pool_imported():
             log("project pool not imported, so receiving streams")
             self.recv_streams()
@@ -309,6 +313,8 @@ class Project(object):
         Receive any streams that haven't been applied to the image filesystem.
         """
         log = self._log("recv_streams")
+        if len(os.listdir(self.stream_path)) == 0:
+            return
         if self.is_project_pool_imported():
             raise RuntimeError('cannot recv streams since project pool is already imported')
         head = newest_snapshot(self.image_fs)
