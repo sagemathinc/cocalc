@@ -65,6 +65,11 @@ exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
+# inet type: see https://github.com/jorgebay/node-cassandra-cql/issues/61
+
+exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
+
+
 #########################################################################
 
 PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted'].concat(PROJECT_GROUPS)
@@ -2731,7 +2736,7 @@ class ChunkedStorage
     #
     delete_lost_chunks: (opts) =>
         opts = defaults opts,
-            age_s : 30*60  # 30 minutes -- delete all chunks associated to any records in storage_active that are at least this old
+            age_s : 120*60  # 2 hours -- delete all chunks associated to any records in storage_active that are at least this old
             cb    : undefined
         dbg = (m) => @dbg('delete_lost_chunks', '', m)
 

@@ -1,3 +1,99 @@
+
+
+
+
+
+            compute_id : undefined
+    _create: (cb) =>
+
+    _open_somewhere: (ssh_timeout, cb) =>
+        # assuming that the project is *not* "zpool imported'" on any host, choose a host and set everything up there.
+        # Willi create the project if that hasn't happened yet.
+        dbg = (m) -> @dbg("_open_somewhere",[ssh_timeout],m)
+        cb()
+
+    _close_all_but_one: (open_state, cb) =>
+        # Assuming that the project currently is "zpool imported" on *multiple* hosts, choose the one with most
+        # recent activity, and export the others (also sending their streams, and saving to the db.... just in case).
+        dbg = (m) -> @dbg("_close_all_but_one",open_state,m)
+        cb()
+
+    _verify_project_works_at: (compute_id, ssh_timeout, cb) =>  # cb(err)
+        # Determine whether or not it is possible to ssh from this host to the compute host
+        # and login as the project user within ssh_timeout seconds.
+        dbg = (m) -> @dbg("_verify_project_works_at",[compute_id, ssh_timeout],m)
+        cb()
+
+    open: (opts) =>
+        opts = defaults opts,
+            ssh_timeout : 15
+            cb          : required      # cb(err, ip_address of computer on which project is ready to use)
+        dbg = (m) -> @dbg("open_project",[],m)
+        state      = undefined
+        compute_id = undefined
+        works      = undefined
+        host       = undefined
+        async.series([
+            (cb) =>
+                dbg('get state')
+                @state (err, _state) =>
+                    state = _state
+                    cb(err)
+            (cb) =>
+                open = (x for x in state when x.import_pool?)
+                dbg('already open on #{open.length} hosts')
+                if open.length == 0
+                    @_open_somewhere opts.ssh_timeout, (err, _compute_id) =>
+                        if err
+                            cb(err)
+                        else
+                            compute_id = _compute_id
+                            works = true
+                            cb()
+                else if open.length == 1
+                    compute_id = open[0].compute_id
+                    cb()
+                else
+                    @_close_all_but_one open, (err, _compute_id) =>
+                        compute_id = _compute_id
+                        cb(err)
+            (cb) =>
+                if works
+                    cb()
+                else
+                    dbg('verify that project really works at @{compute_id}')
+                    @_verify_project_works_at compute_id, opts.ssh_timeout, (err) =>
+                        if err
+                            dbg("it doesn't work at @{compute_id}")
+                            @_open_somewhere (err, _compute_id) =>
+                                compute_id = _compute_id
+                                cb(err)
+                        else
+                            dbg("yep, it works")
+                            cb()
+            (cb) =>
+                compute_id_to_host compute_id, (err, _host) =>
+                    host = _host; cb(err)
+        ], (err) =>
+            if not err
+                @compute_id = compute_id
+            opts.cb(err, host)
+        )
+
+
+
+
+
+
+
+
+
+#############
+
+
+
+
+
 ###
 # pool must be an array [['hostname', port, 'token_key...'], ...]
 exports.client = (opts) ->   # cb(err, client)

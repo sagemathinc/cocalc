@@ -391,6 +391,18 @@ r packages could be automated like so (?)
        apt-get update; apt-get install dsc20; service cassandra stop; rm -rf /var/lib/cassandra/data/system/*
 
 
+#HOSTS
+
+On the VM hosts, some things are critical:
+
+
+    # Do this or VM's may be unstartable for a very, very long time.
+    echo never > /sys/kernel/mm/transparent_hugepage/enabled; echo never > /sys/kernel/mm/transparent_hugepage/defrag
+
+    # put this in cron since it's so critical that the perms are right... or vm's won't start
+    */10 * * * * sudo chmod a+r /boot/vmlinuz-*; sudo chmod a+rw /dev/fuse
+
+
 """
 
 TINC_VERSION='1.0.23'       # options here -- http://tinc-vpn.org/packages/

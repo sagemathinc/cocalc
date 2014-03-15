@@ -112,6 +112,8 @@ def conf():
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra")
         # Start the storage server 
         cmd("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
+        # Get rid of private ssh key, which isn't needed on compute vm's
+        cmd("rm /home/salvus/.ssh/id_rsa") 
 
     if hostname.startswith("cassandra"):
         # Delete data that doesn't need to be on this node
