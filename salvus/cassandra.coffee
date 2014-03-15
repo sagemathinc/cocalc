@@ -3049,6 +3049,7 @@ class ChunkedStorage
                         consistency : 1     # if we get a response with a chunk from any server it must be valid; if get 0 responses, it's an error and we'll retry
                         cb          : (err, result) =>
                             if err
+                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; will likely retry")
                                 c(err)
                             else
                                 dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
@@ -3065,7 +3066,7 @@ class ChunkedStorage
                 g = (i, c) =>
                     h = (c) =>
                         f(i,c)
-                    misc.retry_until_success_wrapper(f:h, start_delay:0, max_delay:5000, exp_factor:1.4, max_tries:20)(c)
+                    misc.retry_until_success_wrapper(f:h, start_delay:1, max_delay:5000, exp_factor:1.2, max_tries:10)(c)
                 async.mapLimit([0...chunk_ids.length], opts.limit, g, cb)
             (cb) =>
                 if opts.filename?

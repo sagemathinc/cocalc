@@ -54,6 +54,48 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 ## server-side: Storage server code
 ###########################
 
+# Execute a command using the smc_storage script.
+_smc_storage_no_queue = (opts) =>
+    opts = defaults opts,
+        args    : required
+        timeout : TIMEOUT
+        cb      : required
+    winston.debug("_smc_storage_no_queue: #{misc.to_json(opts.args)}")
+    misc_node.execute_code
+        command : "smc_storage.py"
+        args    : args
+        timeout : opts.timeout
+        cb      : (err, output) =>
+            if err
+                opts.cb(output.stderr)
+            else
+                opts.cb()
+
+_smc_storage_queue = []
+_smc_storage_queue_lock = false
+
+smc_storage = (opts) =>
+    opts = defaults opts,
+        args    : required
+        timeout : TIMEOUT
+        cb      : required
+    _smc_storage_queue.push(opts)
+    process_smc_storage_queue()
+
+process_smc_storage_queue = () ->
+    if _smc_storage_queue_lock
+        return
+    if _smc_storage_queue.length > 0
+        opts = _smc_storage_queue.shift()
+        _smc_storage_queue_lock = true
+        cb = opts.cb
+        opts.cb = (err, output) =>
+            _smc_storage_queue_lock = false
+            process_smc_storage_queue()
+            cb(err, output)
+        _smc_storage_no_queue(opts)
+
+
 # A project from the point of view of the storage server
 class Project
     constructor: (opts) ->
@@ -83,9 +125,8 @@ class Project
             args.push(a)
         args.push(@project_id)
 
-        @dbg("exec", opts.args, args)
-        misc_node.execute_code
-            command : "smc_storage.py"
+        @dbg("exec", opts.args, "executing smc script")
+        smc_storage
             args    : args
             timeout : opts.timeout
             cb      : (err, output) =>
