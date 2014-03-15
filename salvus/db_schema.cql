@@ -292,6 +292,11 @@ CREATE TABLE projects (
      errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
 
      last_migrated    timestamp, // DEPRECATED: used for migrating from /mnt/home to new ZFS /projects/ format.  delete/ignore when done.
+
+     last_migrated2   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
+     location2        varchar,   // location in new ZFS/cassandra setup used for migration.
+     last_migrate2_error varchar, // DEPRECATED: used for migrating2
+
      old_location     varchar,   // DEPRECATED: used for migrating... (so can delete after that is done).
 
      backup           varchar,  // DEPRECATED: hosts on which files are backed up (via rsnapshot): JSON format not yet determined
@@ -605,26 +610,70 @@ CREATE TABLE storage_chunks (
     chunk       blob
 );
 
-/*
-   When a storage server is started running on a compute VM it will periodically put an entry
-   for itself in this table with a small TTL (so if something is here, it should be working).
-*/
-CREATE TABLE storage_servers (
-    dummy       boolean,     /* so select * fast */
-    hostname    varchar,     /* ip address of the compute vm */
-    port        int,
-    PRIMARY KEY (dummy, hostname)
-);
-
 CREATE TABLE storage_log (
     id          uuid,
     timestamp   timestamp,
     host        varchar,
+    compute_id  uuid,        /* id of the compute machine on which which the action was taken */
     action      varchar,
     param       varchar,     /* JSON */
     error       varchar,     /* JSON */
-    time_s      float,         /* elapsed time for action */
+    time_s      float,       /* elapsed time for action */
     PRIMARY KEY (id, timestamp)
 );
 
 
+
+CREATE TABLE project_state (
+    project_id     uuid,
+    compute_id     uuid,         /* uuid of the compute VM that is hosting some version of this project */
+    sync_streams   timestamp,    /* last time to sync with database */
+    recv_streams   timestamp,    /* last recv time */
+    send_streams   timestamp,    /* snapshot time of last successful image send */
+    import_pool    timestamp,    /* last zpool import; undefined if exported */
+    snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
+    scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
+    broken         boolean,      /* set to true of we consider this copy of the project broken: change once fixed */      
+    PRIMARY KEY    (project_id, compute_id)
+);
+
+/* Use this table to get a global view on what projects are on a host, e.g., as a consistency check (when host dies).
+   This is basically just a "CREATE INDEX on project_storage(host)", except that it isn't dog slow and useless. */
+
+CREATE TABLE compute_hosts (
+    dummy          boolean,      /* localize all data so "select *" is fast (table is very small) */
+    compute_id     uuid,         /* random uuid of this particular compute host */
+    host           inet,         /* ip address */
+    port           int,          /* port of storage server: undefined if down -- set frequently with a ttl */
+    up_since       timestamp,    /* time when this host became fully operational; undefined if down -- set frequently with a ttl! */
+    health         float,        /* 0 is bad, 1 is good */
+    projects       set<uuid>,    /* projects with data on this compute host */
+    PRIMARY KEY (dummy, compute_id)
+);
+
+/* TODO: only here for the migration. */
+CREATE TABLE project_new (
+    project_id  uuid PRIMARY KEY,
+    new         boolean,      /* if true, mount and *run* using the new storage format */
+);
+GRANT SELECT ON table project_new TO storage_server;
+GRANT MODIFY ON table project_new TO storage_server;
+
+
+
+CREATE INDEX on compute_hosts(host);
+
+CREATE USER storage_server WITH PASSWORD '...';
+
+GRANT SELECT ON table storage TO storage_server;
+GRANT MODIFY ON table storage TO storage_server;
+GRANT MODIFY ON table storage_writing TO storage_server;
+GRANT SELECT ON table storage_writing TO storage_server;
+GRANT MODIFY ON table storage_chunks TO storage_server;
+GRANT SELECT ON table storage_chunks TO storage_server;
+GRANT SELECT ON table storage_log TO storage_server;
+GRANT MODIFY ON table storage_log TO storage_server;
+GRANT SELECT ON table project_state  TO storage_server;
+GRANT MODIFY ON table project_state  TO storage_server;
+GRANT SELECT ON table compute_hosts TO storage_server;
+GRANT MODIFY ON table compute_hosts TO storage_server;

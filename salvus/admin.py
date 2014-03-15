@@ -1564,7 +1564,15 @@ class Monitor(object):
                 #print "%s minutes since epoch"%now
                 if now % interval == residue:
                     last_time = now
-                    self._go()
+                    try:
+                        self._go()
+                    except Exception, msg:
+                        print "ERROR -- %s"%msg
+                        try:
+                            self._go()
+                        except Exception, msg:
+                            print "ERROR -- %s"%msg
+                       
             time.sleep(20)
 
 class Services(object):

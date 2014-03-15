@@ -2983,7 +2983,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     timeout : opts.timeout
                     cb      : (mesg) =>
                         if mesg.event == 'error'
-                            opts.cb(true, mesg.error)
+                            opts.cb(mesg.error)
                         else
                             opts.cb(false, mesg)
 

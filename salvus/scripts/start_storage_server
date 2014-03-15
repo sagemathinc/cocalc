@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+cd $HOME/salvus/salvus; . salvus-env; storage_server start

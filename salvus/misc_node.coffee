@@ -2,7 +2,7 @@
 #
 # misc JS functionality that only makes sense on the node side (not on
 # the client)
-# 
+#
 ####################################################################
 
 assert = require('assert')
@@ -182,7 +182,9 @@ exports.connect_to_locked_socket = (opts) ->
     timer = undefined
 
     timed_out = () ->
-        cb("Timed out trying to connect to locked socket on port #{port}")
+        m = "Timed out trying to connect to locked socket on port #{port}"
+        winston.debug(m)
+        cb(m)
         socket.end()
         timer = undefined
 
