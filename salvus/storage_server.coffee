@@ -63,7 +63,7 @@ _smc_storage_no_queue = (opts) =>
     winston.debug("_smc_storage_no_queue: #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "smc_storage.py"
-        args    : args
+        args    : opts.args
         timeout : opts.timeout
         cb      : (err, output) =>
             if err
