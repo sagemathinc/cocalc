@@ -539,7 +539,7 @@ exports.compute_id_to_host = compute_id_to_host = (compute_id, cb) ->
                         else
                             cb(undefined, w)
 
-exports.host_to_compute_id = (host, cb) ->
+exports.host_to_compute_id = host_to_compute_id = (host, cb) ->
     get_available_compute_host
         host : host
         cb   : (err, result) ->
@@ -765,13 +765,18 @@ client_cache = {}
 
 exports.client = (opts) ->
     opts = defaults opts,
-        compute_id : undefined
+        compute_id : undefined     # uuid;  can also give an ip address instead
         host       : undefined
         verbose    : true
         cb         : required
     dbg = (m) -> winston.debug("client(#{opts.compute_id},#{opts.hostname}): #{m}")
     dbg()
     C = undefined
+
+    # allow a hostname for compute_id
+    if opts.compute_id? and not misc.is_valid_uuid_string(opts.compute_id)
+        opts.cb("invalid compute_id=#{opts.compute_id}")
+        return
     async.series([
         (cb) ->
             if opts.compute_id?
@@ -1016,6 +1021,7 @@ class ClientProject
     open: (opts) =>
         opts = defaults opts,
             compute_id : undefined  # if given, try to open on this machine
+            host       : undefined  # if given use this machine
             cb         : undefined    # (err, {compute_id:compute_id of host, host:ip address})
         @dbg('open', '', "")
         @_update_compute_id (err) =>
@@ -1023,7 +1029,7 @@ class ClientProject
                 opts.cb?(err); return
             if @compute_id?  # already opened
                 if opts.compute_id? and @compute_id != opts.compute_id
-                    opts.cb?('already opened on a different host (#{@compute_id})')
+                    opts.cb?("already opened on a different host (#{@compute_id})")
                     return
                 compute_id_to_host @compute_id, (err, host) =>
                     opts.cb?(err, {compute_id:@compute_id, host:host})
@@ -1031,6 +1037,16 @@ class ClientProject
 
             compute_id = undefined
             async.series([
+                (cb) =>
+                    if opts.host? and not opts.compute_id?
+                        host_to_compute_id opts.host, (err, compute_id) =>
+                            if err
+                                cb(err)
+                            else
+                                opts.compute_id = compute_id
+                                cb()
+                    else
+                        cb()
                 (cb) =>
                     if opts.compute_id?
                         compute_id = opts.compute_id
@@ -1105,10 +1121,10 @@ class ClientProject
                 v = (x.compute_id for x in state when not x.import_pool?)
                 async.map(v, sync, (err) => opts.cb(err))
 
-    # destroy all traces of this project from the give compute host, leaving only what is in the database
+    # destroy all traces of this project on the give compute host, leaving only what is in the database
     destroy: (opts) =>
         opts = defaults opts,
-            compute_id : required
+            compute_id : required    # hostname, compute_id, or 'all'=destroy on *all* hosts
             cb         : undefined
         @dbg('destroy', opts.compute_id)
         @action

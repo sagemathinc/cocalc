@@ -2901,7 +2901,7 @@ class ChunkedStorage
                             c(err)
                         else
                             query = "UPDATE storage_chunks SET chunk=?, size=? WHERE chunk_id=?"
-                            @db.cql query, [chunk, chunk.length, chunk_id], (err) =>
+                            @db.cql query, [chunk, chunk.length, chunk_id], 1, (err) =>
                                 dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
                                 c(err)
 
@@ -3042,11 +3042,12 @@ class ChunkedStorage
                 f = (i, c) =>
                     t = misc.walltime()
                     @db.select_one
-                        table : 'storage_chunks'
-                        where : {chunk_id:chunk_ids[i]}
-                        columns : ['chunk']
-                        objectify : false
-                        cb        : (err, result) =>
+                        table       : 'storage_chunks'
+                        where       : {chunk_id:chunk_ids[i]}
+                        columns     : ['chunk']
+                        objectify   : false
+                        consistency : 1     # if we get a response with a chunk from any server it must be valid; if get 0 responses, it's an error and we'll retry
+                        cb          : (err, result) =>
                             if err
                                 c(err)
                             else
