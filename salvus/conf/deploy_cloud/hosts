@@ -82,6 +82,7 @@
 10.1.15.2 kvm           cassandra15    cassandra 
 10.1.15.3 kvm       hub nginx   web15
 10.1.15.4 kvm       compute         compute15a
+10.1.15.5 kvm       webdev
 
 # DC0:RAC0   cloud16   
 10.1.16.1 kvm-host  edge            cloud16    # 64gb ram; 16 cores; 2tb disk
