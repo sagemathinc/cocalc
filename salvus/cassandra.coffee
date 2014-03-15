@@ -603,9 +603,9 @@ class exports.Cassandra extends EventEmitter
             if err
                 cb(err)
             else if results.length == 0
-                cb("No row in table '#{opts.table}' matched condition '#{opts.where}'")
+                cb("No row in table '#{opts.table}' matched condition '#{misc.to_json(opts.where)}'")
             else if results.length > 1
-                cb("More than one row in table '#{opts.table}' matched condition '#{opts.where}'")
+                cb("More than one row in table '#{opts.table}' matched condition '#{misc.to_json(opts.where)}'")
             else
                 cb(false, results[0])
         @select(opts)
@@ -3078,7 +3078,7 @@ class ChunkedStorage
             if fd?
                 fs.close(fd)
             if err
-                dbg("error reading file from database; removing #{tmp_filename}}")
+                dbg("error reading file from database -- #{err}; removing #{tmp_filename}}")
                 fs.unlink tmp_filename, (ignore) =>
                     opts.cb(err)
             else

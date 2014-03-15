@@ -2716,7 +2716,7 @@ exports.backup_project = backup_project = (opts) ->
 #    - temporarily allow ssh key access to root@[all compute nodes]
 #    - temporarily allow root to ssh to any project
 #
-exports.migrate = (opts) ->
+exports.xxx_migrate = (opts) ->
     opts = defaults opts,
         project_id : required
         force      : false
@@ -2887,7 +2887,7 @@ exports.migrate = (opts) ->
     )
 
 
-exports.migrate_all = (opts) ->
+exports.xxx_migrate_all = (opts) ->
     opts = defaults opts,
         limit : 10  # no more than this many projects will be migrated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
