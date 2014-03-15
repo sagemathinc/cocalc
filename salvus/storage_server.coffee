@@ -791,7 +791,7 @@ class ClientProject
         @dbg("constructor",[],"initializing...")
 
     _update_compute_id: (cb) =>
-        @state (err, state) =>
+        @state cb: (err, state) =>
             if err
                 cb(err); return
             v = ([x.import_pool, x] for x in state when x.import_pool? and not x.broken)
@@ -836,18 +836,27 @@ class ClientProject
                     limit      : opts.limit
                     cb         : opts.cb
 
-    state: (cb) =>
+    state: (opts) =>
+        opts = defaults opts,
+            cb : required
         @dbg('state', '', "getting state")
         get_database (err) =>
             if err
-                cb(err)
+                opts.cb(err)
             else
                 database.select
                     table     : 'project_state'
                     where     : {project_id : @project_id}
                     columns   : ['compute_id', 'sync_streams', 'recv_streams', 'send_streams', 'import_pool', 'snapshot_pool', 'scrub_pool', 'broken']
                     objectify : true
-                    cb        : cb
+                    cb        : (err, result) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            v = ([r.import_pool, r.sync_streams, r] for r in result)
+                            v.sort()
+                            v.reverse()
+                            opts.cb(undefined, (x[x.length-1] for x in v))
 
     close: (opts) =>
         opts = defaults opts,
@@ -896,6 +905,28 @@ class ClientProject
                         cb         : cb
             ], (err) => opts.cb?(err))
 
+    # Increase the quota of the project.
+    increase_quota: (opts) =>
+        opts = defaults opts,
+            amount : '1G'
+            cb     : undefined
+        @dbg("increase_quota",{amount:opts.amount},"")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?  # not opened
+                opts.cb?("cannot increase quota unless project is opened somewhere"); return
+            async.series([
+                (cb) =>
+                    @action
+                        compute_id : @compute_id
+                        action     : 'increase_quota'
+                        param      : ['--amount',opts.amount]
+                        cb         : cb
+                (cb) =>
+                    @save(cb:cb)
+            ], (err) => opts.cb?(err))
+
     snapshot: (opts) =>
         opts = defaults opts,
             name : undefined
@@ -937,7 +968,7 @@ class ClientProject
         @dbg('open', '', "")
         @_update_compute_id (err) =>
             if err
-                opts.cb(err); return
+                opts.cb?(err); return
             if @compute_id?  # already opened
                 if opts.compute_id? and @compute_id != opts.compute_id
                     opts.cb?('already opened on a different host (#{@compute_id})')
@@ -953,7 +984,7 @@ class ClientProject
                         compute_id = opts.compute_id
                         cb()
                     else
-                        @state (err, state) =>
+                        @state cb: (err, state) =>
                             if err
                                 cb(err); return
                             v = ([x.sync_streams, x] for x in state when x.sync_streams?)
@@ -1002,7 +1033,7 @@ class ClientProject
             recv_streams : false      # also ensure that image filesystems of the copies are already recv'd
             cb           : undefined
         @dbg('cache', opts, "")
-        @state (err, state) =>
+        @state cb: (err, state) =>
             if err
                 cb(err); return
             sync = (compute_id, cb) =>
@@ -1078,12 +1109,18 @@ class ClientProject
 
 client_project_cache = {}
 
-exports.client_project = (project_id) ->
-    P = client_project_cache[project_id]
-    if P?
-        return P
-    else
-        return new ClientProject(project_id)
+exports.client_project = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : undefined
+    if not misc.is_valid_uuid_string(opts.project_id)
+        opts.cb?("invalid project id")
+        return "invalid project_id"
+    P = client_project_cache[opts.project_id]
+    if not P?
+        P = client_project_cache[opts.project_id] = new ClientProject(opts.project_id)
+    opts.cb?(undefined, P)
+    return P
 
 ###########################
 ## Command line interface

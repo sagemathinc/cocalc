@@ -448,6 +448,9 @@ class Project(object):
         Increase the quota of the project by the given amount.
         """
         log = self._log("increase_quota")
+        log("chowning /%s to salvus user in case stream fs owned by root"%self.image_fs)
+        cmd("sudo /bin/chown -R %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
+        
         log("create a new sparse image file of size %s"%amount)
         for i in range(100):
             u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())
