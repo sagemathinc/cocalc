@@ -1,7 +1,7 @@
 # services
-base = 'salvus-2014-03-12-0914'
+base = 'salvus-2014-03-15-1251'
 
-cassandra_ram = 10 
+cassandra_ram = 8
 cassandra_cpu = 2
 
 web_ram       = 4
@@ -18,7 +18,7 @@ compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it
 
 # database nodes
 cloud1    {'hostname':'cassandra1', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra:256:none:qcow2'}
-cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'/dev/mapper/cassandra2-cassandra::none'}
+cloud2    {'hostname':'cassandra2', 'vcpus':cassandra_cpu, 'ram':6, 'base':base, 'disk':'/dev/mapper/cassandra2-cassandra::none'}
 cloud3    {'hostname':'cassandra3', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud4    {'hostname':'cassandra4', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
 cloud5    {'hostname':'cassandra5', 'vcpus':cassandra_cpu, 'ram':cassandra_ram, 'base':base, 'disk':'cassandra-zfs:100:none:qcow2'}
@@ -51,6 +51,7 @@ cloud12  {'hostname':'web12',      'vcpus':web_cpu,       'ram':web_ram,       '
 cloud13  {'hostname':'web13',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 cloud14  {'hostname':'web14',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 cloud15  {'hostname':'web15',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
+cloud15  {'hostname':'webdev',     'vcpus':2,       'ram':4,       'base':base}
 cloud16  {'hostname':'web16',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 cloud17  {'hostname':'web17',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 cloud18  {'hostname':'web18',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
@@ -60,10 +61,10 @@ cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       '
 
 # compute vm's
 cloud1   {'hostname':'compute1a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
-cloud2   {'hostname':'compute2a',  'vcpus':8,   'ram':20,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,/dev/mapper/compute2a-projects::none,tmpdump:1500:ext4:qcow2,storage:512:none:qcow2', 'vnc':13000}
+cloud2   {'hostname':'compute2a',  'vcpus':6,   'ram':16,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,/dev/mapper/compute2a-projects::none,tmpdump:1500:ext4:qcow2,storage:512:none:qcow2', 'vnc':13000}
 cloud3   {'hostname':'compute3a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 cloud4   {'hostname':'compute4a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
-cloud2   {'hostname':'compute5a',  'vcpus':6,   'ram':12,   'base':base, 'disk':'projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13002}
+cloud2   {'hostname':'compute5a',  'vcpus':6,   'ram':16,   'base':base, 'disk':'projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13002}
 cloud6   {'hostname':'compute6a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 cloud7   {'hostname':'compute7a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'projects:512:none:qcow2,projects2:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
 cloud10  {'hostname':'compute10a', 'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
@@ -109,14 +110,16 @@ cassandra21    {'seed':False,  'topology':'DC0:RAC0', 'num_tokens':256}
 
 [stunnel] {'sudo':True}
 edge
-#web1gce1
+webdev
 
 [haproxy] {'sudo':True, 'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
 edge
 #web1gce1 {'hub_servers':[{'ip':'10.3.1.3','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.3.1.3','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.3.1.3','maxconn':100,'proxy_port':'5001'}]}
+webdev {'hub_servers':[{'ip':'10.1.15.5','maxconn':100,'port':'5000'}], 'nginx_servers':[{'ip':'10.1.15.5','maxconn':10000, 'port':8080}], 'proxy_servers':[{'ip':'10.1.15.5','maxconn':100,'proxy_port':'5001'}]}
 
 [nginx]
 nginx
+webdev
 #web1gce1
 
 [hub]
@@ -125,4 +128,7 @@ hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
 hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
 hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
 #web1gce1 {'id':'0', 'port':'5000', 'proxy_port':'5001','monitor_database':'10.1.3.2:9042'}
+webdev {'id':'0', 'port':'5000', 'proxy_port':'5001', 'monitor_database':'10.1.15.2:9042'}
+
+
 
