@@ -199,10 +199,8 @@ class Project
             when 'sync_put_delete'
                 # TODO: disable this action once migration is done -- very dangerous
                 @sync_put_delete(opts.cb)
-
             when 'sync_streams'
                 @sync_streams(opts.cb)
-
             when 'log'
                 @log
                     max_age_m : opts.param
@@ -575,12 +573,12 @@ get_host_and_port = (compute_id, cb) ->
                 columns   : ['port', 'host']
                 objectify : true
                 cb        : (err, result) ->
-                    if err or not result.port?
-                        winston.debug("#{compute_id} is not running right now")
+                    if err
                         cb(err)
+                    else if not result.port?
+                        cb("#{compute_id} is not running right now")
                     else
                         result.host = cassandra.inet_to_str(result.host)
-                        console.log("result=",result)
                         winston.debug("got location of #{compute_id} --   #{result.host}:#{result.port}")
                         cb(undefined, result)
 
@@ -1084,7 +1082,6 @@ class ClientProject
                         compute_id : compute_id
                         action     : 'import_pool'
                         cb         : cb
-
             ], (err) =>
                 if err
                     opts.cb?(err)
@@ -1143,6 +1140,7 @@ class ClientProject
             action     : 'destroy_image_fs'
             cb         : opts.cb
 
+
     # temporarily mark a particular compute host for this project as broken, so it won't be opened.
     mark_broken: (opts) =>
         opts = defaults opts,
@@ -1171,6 +1169,46 @@ class ClientProject
                         ttl       : opts.ttl
                         cb        : cb
         ], (err) => opts.cb?(err))
+
+    chunked_storage: (opts) =>
+        opts = defaults opts,
+            cb         : required
+        get_database (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, database.chunked_storage(id:@project_id))
+
+    delete_nonoptimal_streams_from_database: (opts) =>
+        opts = defaults opts,
+            cb         : undefined
+        @dbg('delete_nonoptimal_streams_from_database', opts.compute_id)
+        cs        = undefined
+        to_remove = undefined
+        async.series([
+            (cb) =>
+                @chunked_storage
+                    cb: (err, _cs) =>
+                        cs=_cs; cb(err)
+            (cb) =>
+                cs.ls
+                    cb: (err, files) =>
+                        if err
+                            cb(err)
+                        else
+                            to_keep = {}
+                            for f in optimal_stream((a.name for a in files))
+                                to_keep[f] = true
+                            to_remove = (f.name for f in files when not to_keep[f.name])
+                            cb()
+            (cb) =>
+                f = (name, c) =>
+                    cs.delete
+                        name : name
+                        cb   : c
+                async.map(to_remove, f, cb)
+        ], (err) => opts.cb?(err))
+
 
     # copy over any snapshots from the old version of the project on the host where project is opened.
     migrate_snapshots: (opts) =>
