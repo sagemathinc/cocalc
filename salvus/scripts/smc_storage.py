@@ -295,6 +295,7 @@ class Project(object):
         if kill:
             log("killing all processes by user with id %s"%self.uid)
             cmd("sudo /usr/bin/pkill -u %s; sleep 1; sudo /usr/bin/pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
+        cmd("sudo /sbin/zfs umount %s"%self.project_pool, ignore_errors=True)
         e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
@@ -450,7 +451,7 @@ class Project(object):
         log = self._log("increase_quota")
         log("chowning /%s to salvus user in case stream fs owned by root"%self.image_fs)
         cmd("sudo /bin/chown -R %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
-        
+
         log("create a new sparse image file of size %s"%amount)
         for i in range(100):
             u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())

@@ -515,20 +515,29 @@ exports.connect_to_database = connect_to_database = (cb) ->
 get_database = (cb) ->
     async.series([read_password, connect_to_database], (err) -> cb(err, database))
 
+# compute_id = string or array of strings
 exports.compute_id_to_host = compute_id_to_host = (compute_id, cb) ->
+    if typeof compute_id == 'string'
+        v = [compute_id]
+    else
+        v = compute_id
     get_database (err, db) ->
         if err
             cb(err)
         else
-            db.select_one
+            db.select
                 table   : 'compute_hosts'
-                where   : {compute_id : compute_id, dummy:true}
+                where   : {compute_id : {'in':v}, dummy:true}
                 columns : ['host']
                 cb      : (err, result) ->
                     if err
                         cb(err)
                     else
-                        cb(undefined, cassandra.inet_to_str(result[0]))
+                        w = (cassandra.inet_to_str(r[0]) for r in result)
+                        if typeof compute_id == 'string'
+                            cb(undefined, w[0])
+                        else
+                            cb(undefined, w)
 
 exports.host_to_compute_id = (host, cb) ->
     get_available_compute_host
@@ -838,25 +847,44 @@ class ClientProject
 
     state: (opts) =>
         opts = defaults opts,
-            cb : required
+            host : false            # if true, look up hostname for each compute_id -- mainly for interactive convenience
+            include_broken : false  # if true, also include broken hosts in result
+            cb   : required
         @dbg('state', '', "getting state")
-        get_database (err) =>
-            if err
-                opts.cb(err)
-            else
+        result = undefined
+        async.series([
+            (cb) =>
+                get_database(cb)
+            (cb) =>
                 database.select
                     table     : 'project_state'
                     where     : {project_id : @project_id}
                     columns   : ['compute_id', 'sync_streams', 'recv_streams', 'send_streams', 'import_pool', 'snapshot_pool', 'scrub_pool', 'broken']
                     objectify : true
-                    cb        : (err, result) =>
+                    cb        : (err, _result) =>
                         if err
-                            opts.cb(err)
+                            cb(err)
                         else
-                            v = ([r.import_pool, r.sync_streams, r] for r in result)
+                            v = ([r.import_pool, r.sync_streams, r] for r in _result)
                             v.sort()
                             v.reverse()
-                            opts.cb(undefined, (x[x.length-1] for x in v))
+                            result = (x[x.length-1] for x in v)
+                            if not opts.include_broken
+                                result = (x for x in result when not x.broken)
+                            cb()
+            (cb) =>
+                if not opts.host
+                    cb(); return
+                compute_id_to_host (r.compute_id for r in result), (err, hosts) =>
+                    if err
+                        cb(err)
+                    else
+                        i = 0
+                        for r in result
+                            r.host = hosts[i]
+                            i += 1
+                        cb()
+        ], (err) => opts.cb(err, result))
 
     close: (opts) =>
         opts = defaults opts,
@@ -960,6 +988,30 @@ class ClientProject
                 action     : 'destroy_snapshot_of_pool'
                 param      : ['--name', opts.name]
                 cb         : opts.cb
+
+    last_snapshot: (opts) =>
+        opts = defaults opts,
+            cb         : required    # (err, UTC ISO timestamp of most recent snapshot) -- undefined if not known
+        @dbg('last_snapshot', '', "getting most recent snapshot time")
+        get_database (err) =>
+            if err
+                opts.cb(err)
+            else
+                database.select
+                    table     : 'project_state'
+                    where     : {project_id : @project_id}
+                    columns   : ['snapshot_pool']
+                    objectify : false
+                    cb        : (err, result) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            v = (r[0] for r in result when r[0]?)
+                            v.sort()
+                            if v.length == 0
+                                opts.cb(undefined, undefined)
+                            else
+                                opts.cb(undefined, misc.to_iso(new Date(v[v.length-1])))
 
     open: (opts) =>
         opts = defaults opts,
@@ -1075,21 +1127,34 @@ class ClientProject
             action     : 'destroy_image_fs'
             cb         : opts.cb
 
-    # mark a particular compute host for this project as broken, so it won't be opened.
+    # temporarily mark a particular compute host for this project as broken, so it won't be opened.
     mark_broken: (opts) =>
         opts = defaults opts,
-            compute_id : required
+            compute_id : undefined  # if not given, uses machine it is currently opened on, if opened; no-op if not given and not opened.
+            ttl        : 60*15      # marks host with given compute_id as bad for this many seconds (default "15 minutes")
             cb         : undefined
         @dbg('broken', opts.compute_id)
-        get_database (err) =>
-            if err
-                opts.cb?(err)
-            else
-                database.update
-                    table     : 'project_state'
-                    set       : {broken : true}
-                    where     : {project_id : @project_id}
-                    cb        : (err) => opts.cb?(err)
+        async.series([
+            (cb) =>
+                get_database(cb)
+            (cb) =>
+                if opts.compute_id?
+                    cb()
+                else
+                    @_update_compute_id (err) =>
+                        opts.compute_id = @compute_id
+                        cb(err)
+            (cb) =>
+                if not opts.compute_id?
+                    cb() #NO-OP
+                else
+                    database.update
+                        table     : 'project_state'
+                        set       : {broken : true}
+                        where     : {project_id : @project_id, compute_id:opts.compute_id}
+                        ttl       : opts.ttl
+                        cb        : cb
+        ], (err) => opts.cb?(err))
 
     # copy over any snapshots from the old version of the project on the host where project is opened.
     migrate_snapshots: (opts) =>
