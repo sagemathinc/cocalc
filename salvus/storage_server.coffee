@@ -67,7 +67,10 @@ _smc_storage_no_queue = (opts) =>
         timeout : opts.timeout
         cb      : (err, output) =>
             if err
-                opts.cb(output.stderr)
+                if output?.stderr
+                    opts.cb(output.stderr)
+                else
+                    opts.cb(err)
             else
                 opts.cb()
 
@@ -129,11 +132,7 @@ class Project
         smc_storage
             args    : args
             timeout : opts.timeout
-            cb      : (err, output) =>
-                if err
-                    opts.cb(output.stderr)
-                else
-                    opts.cb()
+            cb      : opts.cb
 
     # write to database log for this project
     log_action: (opts) =>

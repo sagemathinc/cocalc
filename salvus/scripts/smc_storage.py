@@ -330,18 +330,32 @@ class Project(object):
         snaps   = snapshots(self.image_fs)
         streams = optimal_stream_sequence(self.streams())
         log("optimal stream sequence: %s"%[x.filename for x in streams])
-        i = 0
-        while i < min(len(snaps), len(streams)):
-            if snaps[i] == streams[i].end:
-                i += 1
-            else:
-                break
+        rollback_to = len(snaps)
+        apply_starting_with = 0
+        if len(snaps) > 0:
+            # figure out which streams to apply, and also possibly pop off some snapshots
+            newest = snaps[rollback_to-1]
+            i = len(streams) - 1
+            while i >= 0:
+                 if streams[i].start == newest:
+                     # apply starting here
+                     apply_starting_with = i
+                     break
+                 elif streams[i].end == newest:
+                     # end of a block in the optimal sequence is the newest snapshot; in this case,
+                     # this must be the last step in the optimal sequence, or we would have exited
+                     # in the above if.  So there is nothing to apply.
+                     return
+                 elif streams[i].start < newest and streams[i].end >= newest:
+                     rollback_to -= 1
+                     newest = snaps[rollback_to-1]
+                 i -= 1
 
-        # snaps that we know longer need -- if these are here, we can't recv.
-        bad_snaps = snaps[i:]
+        # snaps that we no longer need: if these are here, we can't recv.
+        bad_snaps = snaps[rollback_to:]
 
         # streams that need to be applied
-        streams = streams[i:]
+        streams = streams[apply_starting_with:]
         if len(streams) == 0:
             log("no streams need to be applied")
             return
@@ -356,6 +370,14 @@ class Project(object):
         log("now applying %s incoming streams"%len(streams))
         for stream in streams:
             stream.apply()
+
+        # The sync below is *critical*; without it, we always get total deadlock from this following simple example:
+        #     zfs rollback -r storage/images/bec33943-51b7-4ebb-b51b-15998a83775b@2014-03-14T16:22:43
+        #     cat /storage/streams/bec33943-51b7-4ebb-b51b-15998a83775b/2014-03-14T16:22:43--2014-03-15T22:51:56 | lz4c -d - | sudo zfs recv storage/images/bec33943-51b7-4ebb-b51b-15998a83775b
+        #     zpool import -fN project-bec33943-51b7-4ebb-b51b-15998a83775b -d /storage/images/bec33943-51b7-4ebb-b51b-15998a83775b/
+
+        sync()
+
 
     def send_streams(self):
         """

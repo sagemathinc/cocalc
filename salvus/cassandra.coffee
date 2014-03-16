@@ -3039,17 +3039,26 @@ class ChunkedStorage
                 if not chunk_ids?  # 0-length file
                     cb(); return
                 dbg("get chunks")
+                consistency = {}
                 f = (i, c) =>
                     t = misc.walltime()
+
+                    # For each i, we first try with a consistency of 1 -- if that doesn't work, we increase it to 2, since the
+                    # data *is* there.
+                    if not consistency[i]?
+                        consistency[i] = 1
+                    else
+                        consistency[i] += 1
                     @db.select_one
                         table       : 'storage_chunks'
                         where       : {chunk_id:chunk_ids[i]}
                         columns     : ['chunk']
                         objectify   : false
-                        consistency : 1     # if we get a response with a chunk from any server it must be valid; if get 0 responses, it's an error and we'll retry
+                        consistency : consistency[i]
                         cb          : (err, result) =>
                             if err
-                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; will likely retry")
+                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; will likely retry with higher consistency level")
+                                consistency[i] = true
                                 c(err)
                             else
                                 dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
