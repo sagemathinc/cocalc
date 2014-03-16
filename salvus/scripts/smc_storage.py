@@ -275,8 +275,14 @@ class Project(object):
                 return
         if not self.is_project_pool_imported():
             log("project pool not imported, so receiving streams")
+            # The syncs below are *critical*; without it, we always get total deadlock from this following simple example:
+            #     zfs rollback -r storage/images/bec33943-51b7-4ebb-b51b-15998a83775b@2014-03-14T16:22:43
+            #     cat /storage/streams/bec33943-51b7-4ebb-b51b-15998a83775b/2014-03-14T16:22:43--2014-03-15T22:51:56 | lz4c -d - | sudo zfs recv storage/images/bec33943-51b7-4ebb-b51b-15998a83775b
+            #     zpool import -fN project-bec33943-51b7-4ebb-b51b-15998a83775b -d /storage/images/bec33943-51b7-4ebb-b51b-15998a83775b/
             self.recv_streams()
+            sync()
             mount(s, self.image_fs)
+            sync()
             log("now importing project pool from /%s"%self.image_fs)
             cmd("sudo /sbin/zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
         log("setting mountpoint to %s"%self.project_mnt)
@@ -402,13 +408,6 @@ class Project(object):
         log("now applying %s incoming streams"%len(streams))
         for stream in streams:
             stream.apply()
-
-        # The sync below is *critical*; without it, we always get total deadlock from this following simple example:
-        #     zfs rollback -r storage/images/bec33943-51b7-4ebb-b51b-15998a83775b@2014-03-14T16:22:43
-        #     cat /storage/streams/bec33943-51b7-4ebb-b51b-15998a83775b/2014-03-14T16:22:43--2014-03-15T22:51:56 | lz4c -d - | sudo zfs recv storage/images/bec33943-51b7-4ebb-b51b-15998a83775b
-        #     zpool import -fN project-bec33943-51b7-4ebb-b51b-15998a83775b -d /storage/images/bec33943-51b7-4ebb-b51b-15998a83775b/
-
-        sync()
 
 
     def send_streams(self):

@@ -160,7 +160,7 @@ class Project
                 set = undefined
                 switch opts.action
                     when 'sync_streams', 'recv_streams', 'send_streams', 'import_pool', 'snapshot_pool', 'scrub_pool'
-                        set = {}
+                        set = {broken:undefined}  # successful completion of action = not broken anymore, since it worked to do something.
                         set[opts.action] = opts.timestamp
                     when 'export_pool'
                         set = {import_pool: undefined}
@@ -169,7 +169,7 @@ class Project
                     when 'destroy_streams'
                         set = {sync_streams: undefined}
                     when 'destroy'
-                        set ={recv_streams: undefined, send_streams:undefined, import_pool: undefined, sync_streams: undefined, broken:undefined}
+                        set ={recv_streams: undefined, send_streams:undefined, import_pool: undefined, sync_streams: undefined}
                 if set?
                     database.update
                         table : 'project_state'
@@ -312,7 +312,7 @@ class Project
         async.map(steps, f, cb)
 
     migrate_clean: (cb) =>
-        dbg = (m) => @dbg('migrate_clean',[],m)
+        @dbg('migrate_clean')
         f = (action, cb) =>
             @action
                 action : action
@@ -321,28 +321,44 @@ class Project
         async.map(steps, f, cb)
 
     open: (cb) =>
-        dbg = (m) => @dbg('open',[],m)
+        @dbg('open')
+        if @_opening?
+            @_opening.push(cb)
+            return
+        @_opening = [cb]
         f = (action, cb) =>
             @action
                 action : action
                 cb     : cb
         steps = ['sync_streams', 'recv_streams', 'import_pool']
-        async.map(steps, f, cb)
+        async.map steps, f, (err, result) =>
+            for cb in @_opening
+                cb(err, result)
+            delete @_opening
 
     save: (cb) =>
-        dbg = (m) => @dbg('open',[],m)
+        @dbg('save')
+        if @_saving?
+            @_saving.push(cb)
+            return
+        @_saving = [cb]
+
         f = (action, cb) =>
             @action
                 action : action
                 cb     : cb
         steps = ['send_streams', 'sync_streams']
-        async.map(steps, f, cb)
+        async.map steps, f, (err, result) =>
+            for cb in @_saving
+                cb(err, result)
+            delete @_saving
 
     delete_from_database: (cb) =>
-        @dbg('delete_from_database',[],"")
+        @dbg('delete_from_database')
         @chunked_storage.delete_everything(cb:cb)
 
     sync_put_delete: (cb) =>
+        @dbg('sync_put_delete')
         @chunked_storage.sync_put
             delete : true
             path   : @stream_path
@@ -351,7 +367,7 @@ class Project
     sync_streams: (cb) =>
         # Find the optimal sequence of streams with newest end time, either locally or in the database,
         # and make sure it is present in both.
-        dbg = (m) => @dbg('sync',[],m)
+        dbg = (m) => @dbg('sync_streams',[],m)
         dbg()
         put          = undefined
         remote_files = undefined
@@ -360,6 +376,7 @@ class Project
         start_sync = cassandra.now()
         async.series([
             (cb) =>
+                dbg("get listing of files from database")
                 @chunked_storage.ls
                     cb   : (err, files) =>
                         if err
@@ -369,12 +386,14 @@ class Project
                             dbg("remote_files=#{misc.to_json(remote_files)}")
                             cb()
             (cb) =>
+                dbg("check for #{@stream_path} and make directory if not there")
                 fs.exists @stream_path, (exists) =>
                     if not exists
                         fs.mkdir(@stream_path, 0o700, cb)
                     else
                         cb()
             (cb) =>
+                dbg("get files from filesystem")
                 fs.readdir @stream_path, (err, files) =>
                     if err
                         cb(err)
@@ -639,16 +658,22 @@ exports.compute_id_to_host = compute_id_to_host = (compute_id, cb) ->
             db.select
                 table   : 'compute_hosts'
                 where   : {compute_id : {'in':v}, dummy:true}
-                columns : ['host']
+                columns : ['compute_id','host']
                 cb      : (err, result) ->
                     if err
                         cb(err)
                     else
-                        w = (cassandra.inet_to_str(r[0]) for r in result)
+                        w = ([r[0],cassandra.inet_to_str(r[1])] for r in result)
                         if typeof compute_id == 'string'
-                            cb(undefined, w[0])
+                            if w.length == 0
+                                cb("no compute server with id #{compute_id}")
+                            else
+                                cb(undefined, w[0][1])
                         else
-                            cb(undefined, w)
+                            z = {}
+                            for r in w
+                                z[r[0]] = r[1]
+                            cb(undefined, (z[c] for c in compute_id))
 
 exports.host_to_compute_id = host_to_compute_id = (host, cb) ->
     get_available_compute_host
@@ -705,6 +730,7 @@ class Client
 
     connect: (cb) =>
         dbg = (m) => winston.debug("Storage client (#{@host}:#{@port}): #{m}")
+        dbg()
         async.series([
             (cb) =>
                 if not @port?
@@ -758,7 +784,12 @@ class Client
             (cb) =>
                 if not @socket?
                     @port = undefined
-                    @connect(cb)
+                    @connect (err) =>
+                        if err
+                            opts.cb?(err)
+                            cb(err)
+                        else
+                            cb()
                 else
                     cb()
             (cb) =>
