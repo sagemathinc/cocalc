@@ -21,9 +21,10 @@ misc      = require('misc')
 misc_node = require('misc_node')
 uuid      = require('node-uuid')
 cassandra = require('cassandra')
-
+cql     = require("node-cassandra-cql")
 {defaults, required} = misc
 
+STATE_CONSISTENCY = cql.types.consistencies.eachQuorum   # very slow, but guaranteed consistency
 
 REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 30       # ttl for registration record
@@ -172,6 +173,7 @@ class Project
                     database.update
                         table : 'project_state'
                         set   : set
+                        consistency : STATE_CONSISTENCY
                         where : {project_id : @project_id, compute_id : server_compute_id}
                         cb    : cb
                 else
@@ -905,6 +907,7 @@ class ClientProject
             (cb) =>
                 database.select
                     table     : 'project_state'
+                    consistency : STATE_CONSISTENCY
                     where     : {project_id : @project_id}
                     columns   : ['compute_id', 'sync_streams', 'recv_streams', 'send_streams', 'import_pool', 'snapshot_pool', 'scrub_pool', 'broken']
                     objectify : true
@@ -1048,6 +1051,7 @@ class ClientProject
                     table     : 'project_state'
                     where     : {project_id : @project_id}
                     columns   : ['snapshot_pool']
+                    consistency : STATE_CONSISTENCY
                     objectify : false
                     cb        : (err, result) =>
                         if err
@@ -1208,6 +1212,7 @@ class ClientProject
                 else
                     database.update
                         table     : 'project_state'
+                        consistency : STATE_CONSISTENCY
                         set       : {broken : true}
                         where     : {project_id : @project_id, compute_id:opts.compute_id}
                         ttl       : opts.ttl

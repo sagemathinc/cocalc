@@ -43,7 +43,8 @@ assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
-Client  = require("node-cassandra-cql").Client  # https://github.com/jorgebay/node-cassandra-cql
+cql     = require("node-cassandra-cql")
+Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
@@ -53,6 +54,23 @@ storage = require('storage')
 
 _ = require('underscore')
 
+CONSISTENCIES = (cql.types.consistencies[k] for k in ['any', 'one', 'two', 'three', 'quorum', 'localQuorum', 'eachQuorum', 'all'])
+
+higher_consistency = (consistency) ->
+    if not consistency?
+        return cql.types.consistencies.any
+    else if consistency == 1
+        consistency = 'one'
+    else if consistency == 2
+        consistency = 'two'
+    else if consistency == 3
+        consistency = 'three'
+    i = CONSISTENCIES.indexOf(consistency)
+    if i == -1
+        # unknown -- ?
+        return cql.types.consistencies.quorum # official default
+    else
+        return CONSISTENCIES[Math.min(CONSISTENCIES.length-1,i+1)]
 
 
 # the time right now, in iso format ready to insert into the database:
@@ -3044,12 +3062,13 @@ class ChunkedStorage
                 f = (i, c) =>
                     t = misc.walltime()
 
-                    # For each i, we first try with a consistency of 1 -- if that doesn't work, we increase it to 2, since the
-                    # data *is* there.
+                    # Keep increasing consistency until it works.
                     if not consistency[i]?
-                        consistency[i] = 1
+                        consistency[i] = cql.types.consistencies.one
                     else
-                        consistency[i] += 1
+                        consistency[i] = higher_consistency(consistency[i])
+                        dbg("increasing read consistency for chunk #{i} to #{consistency[i]}")
+
                     @db.select_one
                         table       : 'storage_chunks'
                         where       : {chunk_id:chunk_ids[i]}
@@ -3058,8 +3077,7 @@ class ChunkedStorage
                         consistency : consistency[i]
                         cb          : (err, result) =>
                             if err
-                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; retry with higher consistency level")
-                                consistency[i] = true
+                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; may retry with higher consistency")
                                 c(err)
                             else
                                 num_chunks += 1
@@ -3079,7 +3097,7 @@ class ChunkedStorage
                         f(i,c)
                     misc.retry_until_success
                         f         : h
-                        max_tries : 15
+                        max_tries : CONSISTENCIES.length + 1
                         max_delay : 3000
                         cb        : c
                 async.mapLimit([0...chunk_ids.length], opts.limit, g, cb)
