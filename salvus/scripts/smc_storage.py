@@ -330,10 +330,23 @@ class Project(object):
         snaps   = snapshots(self.image_fs)
         streams = optimal_stream_sequence(self.streams())
         log("optimal stream sequence: %s"%[x.filename for x in streams])
+
+        # rollback the snapshot snaps[rollback_to] (if defined), so that snapshot no longer exists.
         rollback_to = len(snaps)
+
+        # apply streams starting with streams[apply_starting_with]
         apply_starting_with = 0
-        if len(snaps) > 0:
-            # figure out which streams to apply, and also possibly pop off some snapshots
+
+        if len(snaps) == 0:
+            pass # easy -- just apply all streams and no rollback needed
+        elif len(snaps) == 1:
+            if snaps[0] == streams[0].start:
+                apply_starting_with = 1  # start with streams[1]; don't rollback at all
+            else:
+                apply_starting_with = 0  # apply all
+                rollback_to = 0  # get rid of all snapshots
+        else:
+            # figure out which streams to apply, and whether we need to rollback anything
             newest = snaps[rollback_to-1]
             i = len(streams) - 1
             while i >= 0:
@@ -351,21 +364,18 @@ class Project(object):
                      newest = snaps[rollback_to-1]
                  i -= 1
 
-        # snaps that we no longer need: if these are here, we can't recv.
-        bad_snaps = snaps[rollback_to:]
-
         # streams that need to be applied
         streams = streams[apply_starting_with:]
         if len(streams) == 0:
             log("no streams need to be applied")
             return
 
-        if len(bad_snaps) > 0:
-            log("rollback the image file system -- removing %s snapshots"%len(bad_snaps))
-            if rollback_to == 0:
-                self.destroy_image_fs()
-            else:
-                cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[rollback_to-1]))
+        if rollback_to == 0:
+            # have to delete them all
+            self.destroy_image_fs()
+        elif rollback_to < len(snaps):
+            log("rollback the image file system -- removing %s snapshots"%(len(snaps[rollback_to-1:])))
+            cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[rollback_to-1]))
 
         log("now applying %s incoming streams"%len(streams))
         for stream in streams:
