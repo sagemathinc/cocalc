@@ -562,21 +562,23 @@ class exports.Cassandra extends EventEmitter
             set       : {}
             ttl       : 0
             cb        : undefined
+            consistency : undefined  # default...
             json      : []          # list of columns to convert to JSON
         vals = []
         set = @_set(opts.set, vals, opts.json)
         where = @_where(opts.where, vals, opts.json)
-        @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.cb)
+        @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.consistency, opts.cb)
 
     delete: (opts={}) ->
         opts = defaults opts,
             table : undefined
             where : {}
             thing : ''
+            consistency : undefined  # default...
             cb    : undefined
         vals = []
         where = @_where(opts.where, vals)
-        @cql("DELETE #{opts.thing} FROM #{opts.table} WHERE #{where}", vals, opts.cb)
+        @cql("DELETE #{opts.thing} FROM #{opts.table} WHERE #{where}", vals, opts.consistency, opts.cb)
 
     select: (opts={}) =>
         opts = defaults opts,

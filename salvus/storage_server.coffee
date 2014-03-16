@@ -24,7 +24,7 @@ cassandra = require('cassandra')
 cql     = require("node-cassandra-cql")
 {defaults, required} = misc
 
-STATE_CONSISTENCY = cql.types.consistencies.eachQuorum   # very slow, but guaranteed consistency
+STATE_CONSISTENCY = cql.types.consistencies.quorum
 
 REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 30       # ttl for registration record
@@ -57,7 +57,7 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 
 # We limit the maximum number of simultaneous smc_storage.py calls to allow at once, since
 # this allows us to control ZFS contention, deadlocking, etc.
-SMC_STORAGE_LIMIT = 3
+SMC_STORAGE_LIMIT = 5
 
 # Execute a command using the smc_storage script.
 _smc_storage_no_queue = (opts) =>
@@ -111,6 +111,7 @@ class Project
             project_id : required
             verbose    : true
 
+        @_action_queue   = []
         @project_id      = opts.project_id
         @verbose         = opts.verbose
         @mnt             = "/mnt/#{@project_id}"
@@ -168,7 +169,7 @@ class Project
                     when 'destroy_streams'
                         set = {sync_streams: undefined}
                     when 'destroy'
-                        set ={recv_streams: undefined, import_pool: undefined, sync_streams: undefined, broken:undefined}
+                        set ={recv_streams: undefined, send_streams:undefined, import_pool: undefined, sync_streams: undefined, broken:undefined}
                 if set?
                     database.update
                         table : 'project_state'
@@ -195,32 +196,12 @@ class Project
                     cb    : cb
         ], (err) => opts.cb?(err))
 
-
-    # get action log for this project from the database
-    log: (opts) =>
-        opts = defaults opts,
-            max_age_m : undefined     # integer -- if given, only return log entries that are at most this old, in minutes.
-            cb        : required
-        if opts.max_age_m?
-            where = {timestamp:{'>=':cassandra.minutes_ago(opts.max_age_m)}}
-        else
-            where = {}
-        @dbg("log",where,"getting log...")
-        where.id = @project_id
-        database.select
-            table     : 'storage_log'
-            columns   : ['timestamp', 'action', 'param', 'time_s', 'error', 'host', 'compute_id']
-            where     : where
-            json      : ['param', 'error']
-            objectify : true
-            cb        : opts.cb
-
     action: (opts) =>
         cb = opts.cb
         start_time = cassandra.now()
         t = misc.walltime()
         opts.cb = (err, result) =>
-            if opts.action not in ['log']   # actions to not log
+            if opts.action not in ['queue', 'delete_queue']   # actions to not log
                 @log_action
                     action    : opts.action
                     param     : opts.param
@@ -228,7 +209,40 @@ class Project
                     timestamp : start_time
                     time_s    : misc.walltime(t)
             cb?(err, result)
-        @_action(opts)
+        if opts.action in ['queue', 'delete_queue', 'open', 'save', 'migrate']   # put at least anything here that is implemented via other calls to action -- or we get a recursive deadlock.
+            @_action(opts)
+        else
+            @_enque_action(opts)
+
+    _enque_action: (opts) =>
+        if not opts?
+            # doing that would be bad.
+            return
+        @_action_queue.push(opts)
+        @_process_action_queue()
+
+    _process_action_queue: () =>
+        if @_action_queue_current?
+            return
+        if @_action_queue.length > 0
+            opts = @_action_queue.shift()
+            @_action_queue_current = opts
+            cb = opts.cb
+            opts.cb = (err,x,y,z) =>
+                delete @_action_queue_current
+                if err
+                    # clear the queue
+                    for o in @_action_queue
+                        o.cb?("action '#{o.action}' failed")
+                    @_action_queue = []
+                else
+                    @_process_action_queue()
+                cb?(err,x,y,z)
+            @_action(opts)
+
+    delete_queue: () =>  # DANGEROUS -- ignores anything "in progress"
+        @_action_queue = []
+        @_action_queue_running = 0
 
     _action: (opts) =>
         opts = defaults opts,
@@ -236,22 +250,45 @@ class Project
             param   : undefined   # if given, should be an array or string
             timeout : TIMEOUT
             cb      : undefined   # cb?(err)
-        @dbg("_action", opts, "doing an action...")
+        dbg = (m) => @dbg("_action", opts, m)
+        dbg()
         switch opts.action
+            when "queue"
+                q = {queue:({action:x.action, param:x.param} for x in @_action_queue) }
+                if @_action_queue_current?
+                    q.current = {action:@_action_queue_current.action, param:@_action_queue_current.param}
+                dbg("returning the queue -- #{misc.to_json(q)}")
+                opts.cb?(undefined, q)
+            when "delete_queue"
+                dbg("deleting the queue")
+                @delete_queue()
+                opts.cb?()
             when "migrate"  # temporary -- during migration only!
+                dbg("migrating project")
                 @migrate(opts.cb)
+            when "open"
+                dbg("opening project")
+                @open(opts.cb)
+            when "save"
+                dbg("saving project")
+                @save(opts.cb)
             when "delete_from_database"  # VERY DANGEROUS -- deletes from the database
+                dbg("deleting project from database -- DANGEROUS")
                 @delete_from_database(opts.cb)
             when 'sync_put_delete'
                 # TODO: disable this action once migration is done -- very dangerous
+                dbg("syncing by pushing local -- DANGEROUS")
                 @sync_put_delete(opts.cb)
             when 'sync_streams'
+                dbg("syncing streams")
                 @sync_streams(opts.cb)
             when 'log'
+                dbg("getting the log")
                 @log
                     max_age_m : opts.param
                     cb        : opts.cb
             else
+                dbg("Doing action #{opts.action} that involves executing script")
                 args = [opts.action]
                 if opts.param?
                     if typeof opts.param == 'string'
@@ -270,6 +307,24 @@ class Project
                 cb     :cb
         steps = ['export_pool', 'sync_streams', 'recv_streams', 'import_pool', 'migrate_snapshots', 'export_pool', 'send_streams', 'sync_put_delete']
         async.mapSeries(steps, f, cb)
+
+    open: (cb) =>
+        dbg = (m) => @dbg('open',[],m)
+        f = (action, cb) =>
+            @action
+                action : action
+                cb     : cb
+        steps = ['sync_streams', 'recv_streams', 'import_pool']
+        async.map(steps, f, cb)
+
+    save: (cb) =>
+        dbg = (m) => @dbg('open',[],m)
+        f = (action, cb) =>
+            @action
+                action : action
+                cb     : cb
+        steps = ['send_streams', 'sync_streams']
+        async.map(steps, f, cb)
 
     delete_from_database: (cb) =>
         @dbg('delete_from_database',[],"")
@@ -867,32 +922,144 @@ class ClientProject
                 @compute_id = undefined  # means no zpool currently imported
             cb()
 
+    location: (opts) =>
+        opts = defaults opts,
+            cb : required      # (err, {host:inet address, compute_id:uuid} of best compute host)
+        @dbg('location', '', "")
+        compute_id = undefined
+        async.series([
+            (cb) =>
+                @_update_compute_id (err) =>
+                    if err
+                        cb(err)
+                    else
+                        compute_id = @compute_id
+                        cb()
+            (cb) =>
+                if compute_id?
+                    cb(); return
+                @state cb: (err, state) =>
+                    if err
+                        cb(err); return
+                    v = ([x.sync_streams, x] for x in state when x.sync_streams?)
+                    v.sort()
+                    @dbg('location','',"number of hosts where project is at least partly cached: #{v.length}")
+                    if v.length > 0
+                        compute_id = v[v.length-1][1].compute_id
+                        cb()
+                    else
+                        exports.client
+                            cb : (err, client) =>
+                                if err
+                                    cb(err)
+                                else
+                                    compute_id = client.compute_id
+                                    cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                compute_id_to_host compute_id, (err, host) =>
+                    opts.cb(err, {compute_id:compute_id, host:host, is_open:@compute_id?})
+        )
+
     dbg: (f, args, m) =>
         winston.debug("storage ClientProject(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
 
     action: (opts) =>
         opts = defaults opts,
-            compute_id : required
+            compute_id : undefined
             action     : required
             param      : undefined
             timeout    : TIMEOUT
             limit      : 3
             cb         : undefined
-        @dbg('action', opts)
-        exports.client
-            compute_id : opts.compute_id
-            cb         : (err, client) =>
-                if err
-                    opts.cb?(err)
-                    return
 
-                client.action
-                    project_id : @project_id
-                    action     : opts.action
-                    param      : opts.param
-                    timeout    : opts.timeout
-                    limit      : opts.limit
-                    cb         : opts.cb
+        @dbg('action', opts)
+
+        f = (cb) =>
+            if opts.compute_id?
+                cb()
+            else
+                @location
+                    cb : (err, loc) =>
+                        if err
+                            cb(err)
+                        else
+                            opts.compute_id = loc.compute_id
+                            cb()
+
+        f (err) =>
+            if err
+                opts.cb?(err)
+            else
+                exports.client
+                    compute_id : opts.compute_id
+                    cb         : (err, client) =>
+                        if err
+                            opts.cb?(err)
+                            return
+                        client.action
+                            project_id : @project_id
+                            action     : opts.action
+                            param      : opts.param
+                            timeout    : opts.timeout
+                            limit      : opts.limit
+                            cb         : opts.cb
+
+
+    queue: (opts) =>
+        opts = defaults opts,
+            compute_id : undefined
+            cb         : required
+        @action
+            compute_id : opts.compute_id
+            action     : 'queue'
+            cb         : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.result)
+
+
+    log: (opts) =>
+        opts = defaults opts,
+            compute_id : undefined
+            host       : undefined
+            action     : undefined
+            max_age_m  : 60*24      # integer -- if given, only return log entries that are at most this old, in minutes.
+            cb         : required
+        if opts.max_age_m?
+            where = {timestamp:{'>=':cassandra.minutes_ago(opts.max_age_m)}}
+        else
+            where = {}
+        @dbg("log",where,"getting log...")
+        where.id = @project_id
+
+        get_database (err) =>
+            if err
+                opts.cb(err)
+            else
+                database.select
+                    table     : 'storage_log'
+                    columns   : ['timestamp', 'action', 'param', 'time_s', 'error', 'host', 'compute_id']
+                    where     : where
+                    json      : ['param', 'error']
+                    objectify : true
+                    order_by  : 'timestamp'
+                    cb        : (err, results) =>
+                        if err
+                            opts.cb(err); return
+                        # client-side filtering
+                        if opts.compute_id?
+                            results = (x for x in results when x.compute_id == opts.compute_id)
+                        if opts.host?
+                            results = (x for x in results when x.host == opts.host)
+                        if opts.action?
+                            results = (x for x in results when x.action == opts.action)
+                        for x in results
+                            x.timestamp = new Date(x.timestamp)
+                        opts.cb(undefined, results)
 
     state: (opts) =>
         opts = defaults opts,
@@ -967,21 +1134,13 @@ class ClientProject
         @dbg('save', '', "")
         @_update_compute_id (err) =>
             if err
-                opts.cb(err); return
+                opts.cb?(err); return
             if not @compute_id?
                 opts.cb?(); return
-            async.series([
-                (cb) =>
-                    @action
-                        compute_id : @compute_id
-                        action     : 'send_streams'
-                        cb         : cb
-                (cb) =>
-                    @action
-                        compute_id : @compute_id
-                        action     : 'sync_streams'
-                        cb         : cb
-            ], (err) => opts.cb?(err))
+            @action
+                compute_id : @compute_id
+                action     : 'save'
+                cb         : opts.cb
 
     # Increase the quota of the project.
     increase_quota: (opts) =>
@@ -1118,17 +1277,7 @@ class ClientProject
                 (cb) =>
                     @action
                         compute_id : compute_id
-                        action     : 'sync_streams'
-                        cb         : cb
-                (cb) =>
-                    @action
-                        compute_id : compute_id
-                        action     : 'recv_streams'
-                        cb         : cb
-                (cb) =>
-                    @action
-                        compute_id : compute_id
-                        action     : 'import_pool'
+                        action     : 'open'
                         cb         : cb
             ], (err) =>
                 if err
@@ -1169,7 +1318,7 @@ class ClientProject
     # destroy all traces of this project on the give compute host, leaving only what is in the database
     destroy: (opts) =>
         opts = defaults opts,
-            compute_id : required    # hostname, compute_id, or 'all'=destroy on *all* hosts
+            compute_id : undefined
             cb         : undefined
         @dbg('destroy', opts.compute_id)
         @action
@@ -1180,7 +1329,7 @@ class ClientProject
     # destroy the image filesystem, leaving the stream cache
     destroy_image_fs: (opts) =>
         opts = defaults opts,
-            compute_id : required
+            compute_id : undefined
             cb         : undefined
         @dbg('destroy_image_fs', opts.compute_id)
         @action
@@ -1192,31 +1341,30 @@ class ClientProject
     # temporarily mark a particular compute host for this project as broken, so it won't be opened.
     mark_broken: (opts) =>
         opts = defaults opts,
-            compute_id : undefined  # if not given, uses machine it is currently opened on, if opened; no-op if not given and not opened.
+            compute_id : undefined
             ttl        : 60*15      # marks host with given compute_id as bad for this many seconds (default "15 minutes")
             cb         : undefined
         @dbg('broken', opts.compute_id)
         async.series([
             (cb) =>
-                get_database(cb)
-            (cb) =>
                 if opts.compute_id?
                     cb()
                 else
-                    @_update_compute_id (err) =>
-                        opts.compute_id = @compute_id
-                        cb(err)
+                    @location
+                        cb : (err, loc) =>
+                            if err
+                                cb(err)
+                            else
+                                opts.compute_id = loc.compute_id
+                                cb()
             (cb) =>
-                if not opts.compute_id?
-                    cb() #NO-OP
-                else
-                    database.update
-                        table     : 'project_state'
-                        consistency : STATE_CONSISTENCY
-                        set       : {broken : true}
-                        where     : {project_id : @project_id, compute_id:opts.compute_id}
-                        ttl       : opts.ttl
-                        cb        : cb
+                database.update
+                    table     : 'project_state'
+                    consistency : STATE_CONSISTENCY
+                    set       : {broken : true}
+                    where     : {project_id : @project_id, compute_id:opts.compute_id}
+                    ttl       : opts.ttl
+                    cb        : cb
         ], (err) => opts.cb?(err))
 
     chunked_storage: (opts) =>
