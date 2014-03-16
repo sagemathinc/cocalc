@@ -21,9 +21,10 @@ misc      = require('misc')
 misc_node = require('misc_node')
 uuid      = require('node-uuid')
 cassandra = require('cassandra')
-
+cql     = require("node-cassandra-cql")
 {defaults, required} = misc
 
+STATE_CONSISTENCY = cql.types.consistencies.eachQuorum   # very slow, but guaranteed consistency
 
 REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 30       # ttl for registration record
@@ -54,6 +55,55 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 ## server-side: Storage server code
 ###########################
 
+# We limit the maximum number of simultaneous smc_storage.py calls to allow at once, since
+# this allows us to control ZFS contention, deadlocking, etc.
+SMC_STORAGE_LIMIT = 3
+
+# Execute a command using the smc_storage script.
+_smc_storage_no_queue = (opts) =>
+    opts = defaults opts,
+        args    : required
+        timeout : TIMEOUT
+        cb      : required
+    winston.debug("_smc_storage_no_queue: #{misc.to_json(opts.args)}")
+    misc_node.execute_code
+        command : "smc_storage.py"
+        args    : opts.args
+        timeout : opts.timeout
+        cb      : (err, output) =>
+            if err
+                if output?.stderr
+                    opts.cb(output.stderr)
+                else
+                    opts.cb(err)
+            else
+                opts.cb()
+
+_smc_storage_queue = []
+_smc_storage_queue_running = 0
+
+smc_storage = (opts) =>
+    opts = defaults opts,
+        args    : required
+        timeout : TIMEOUT
+        cb      : required
+    _smc_storage_queue.push(opts)
+    process_smc_storage_queue()
+
+process_smc_storage_queue = () ->
+    if _smc_storage_queue_running >= SMC_STORAGE_LIMIT
+        return
+    if _smc_storage_queue.length > 0
+        opts = _smc_storage_queue.shift()
+        _smc_storage_queue_running += 1
+        cb = opts.cb
+        opts.cb = (err, output) =>
+            _smc_storage_queue_running -= 1
+            process_smc_storage_queue()
+            cb(err, output)
+        _smc_storage_no_queue(opts)
+
+
 # A project from the point of view of the storage server
 class Project
     constructor: (opts) ->
@@ -83,16 +133,11 @@ class Project
             args.push(a)
         args.push(@project_id)
 
-        @dbg("exec", opts.args, args)
-        misc_node.execute_code
-            command : "smc_storage.py"
+        @dbg("exec", opts.args, "executing smc script")
+        smc_storage
             args    : args
             timeout : opts.timeout
-            cb      : (err, output) =>
-                if err
-                    opts.cb(output.stderr)
-                else
-                    opts.cb()
+            cb      : opts.cb
 
     # write to database log for this project
     log_action: (opts) =>
@@ -128,6 +173,7 @@ class Project
                     database.update
                         table : 'project_state'
                         set   : set
+                        consistency : STATE_CONSISTENCY
                         where : {project_id : @project_id, compute_id : server_compute_id}
                         cb    : cb
                 else
@@ -199,10 +245,8 @@ class Project
             when 'sync_put_delete'
                 # TODO: disable this action once migration is done -- very dangerous
                 @sync_put_delete(opts.cb)
-
             when 'sync_streams'
                 @sync_streams(opts.cb)
-
             when 'log'
                 @log
                     max_age_m : opts.param
@@ -515,22 +559,31 @@ exports.connect_to_database = connect_to_database = (cb) ->
 get_database = (cb) ->
     async.series([read_password, connect_to_database], (err) -> cb(err, database))
 
+# compute_id = string or array of strings
 exports.compute_id_to_host = compute_id_to_host = (compute_id, cb) ->
+    if typeof compute_id == 'string'
+        v = [compute_id]
+    else
+        v = compute_id
     get_database (err, db) ->
         if err
             cb(err)
         else
-            db.select_one
+            db.select
                 table   : 'compute_hosts'
-                where   : {compute_id : compute_id, dummy:true}
+                where   : {compute_id : {'in':v}, dummy:true}
                 columns : ['host']
                 cb      : (err, result) ->
                     if err
                         cb(err)
                     else
-                        cb(undefined, cassandra.inet_to_str(result[0]))
+                        w = (cassandra.inet_to_str(r[0]) for r in result)
+                        if typeof compute_id == 'string'
+                            cb(undefined, w[0])
+                        else
+                            cb(undefined, w)
 
-exports.host_to_compute_id = (host, cb) ->
+exports.host_to_compute_id = host_to_compute_id = (host, cb) ->
     get_available_compute_host
         host : host
         cb   : (err, result) ->
@@ -566,12 +619,12 @@ get_host_and_port = (compute_id, cb) ->
                 columns   : ['port', 'host']
                 objectify : true
                 cb        : (err, result) ->
-                    if err or not result.port?
-                        winston.debug("#{compute_id} is not running right now")
+                    if err
                         cb(err)
+                    else if not result.port?
+                        cb("#{compute_id} is not running right now")
                     else
                         result.host = cassandra.inet_to_str(result.host)
-                        console.log("result=",result)
                         winston.debug("got location of #{compute_id} --   #{result.host}:#{result.port}")
                         cb(undefined, result)
 
@@ -756,13 +809,18 @@ client_cache = {}
 
 exports.client = (opts) ->
     opts = defaults opts,
-        compute_id : undefined
+        compute_id : undefined     # uuid;  can also give an ip address instead
         host       : undefined
         verbose    : true
         cb         : required
     dbg = (m) -> winston.debug("client(#{opts.compute_id},#{opts.hostname}): #{m}")
     dbg()
     C = undefined
+
+    # allow a hostname for compute_id
+    if opts.compute_id? and not misc.is_valid_uuid_string(opts.compute_id)
+        opts.cb("invalid compute_id=#{opts.compute_id}")
+        return
     async.series([
         (cb) ->
             if opts.compute_id?
@@ -838,25 +896,45 @@ class ClientProject
 
     state: (opts) =>
         opts = defaults opts,
-            cb : required
+            host : false            # if true, look up hostname for each compute_id -- mainly for interactive convenience
+            include_broken : false  # if true, also include broken hosts in result
+            cb   : required
         @dbg('state', '', "getting state")
-        get_database (err) =>
-            if err
-                opts.cb(err)
-            else
+        result = undefined
+        async.series([
+            (cb) =>
+                get_database(cb)
+            (cb) =>
                 database.select
                     table     : 'project_state'
+                    consistency : STATE_CONSISTENCY
                     where     : {project_id : @project_id}
                     columns   : ['compute_id', 'sync_streams', 'recv_streams', 'send_streams', 'import_pool', 'snapshot_pool', 'scrub_pool', 'broken']
                     objectify : true
-                    cb        : (err, result) =>
+                    cb        : (err, _result) =>
                         if err
-                            opts.cb(err)
+                            cb(err)
                         else
-                            v = ([r.import_pool, r.sync_streams, r] for r in result)
+                            v = ([r.import_pool, r.sync_streams, r] for r in _result)
                             v.sort()
                             v.reverse()
-                            opts.cb(undefined, (x[x.length-1] for x in v))
+                            result = (x[x.length-1] for x in v)
+                            if not opts.include_broken
+                                result = (x for x in result when not x.broken)
+                            cb()
+            (cb) =>
+                if not opts.host
+                    cb(); return
+                compute_id_to_host (r.compute_id for r in result), (err, hosts) =>
+                    if err
+                        cb(err)
+                    else
+                        i = 0
+                        for r in result
+                            r.host = hosts[i]
+                            i += 1
+                        cb()
+        ], (err) => opts.cb(err, result))
 
     close: (opts) =>
         opts = defaults opts,
@@ -961,9 +1039,35 @@ class ClientProject
                 param      : ['--name', opts.name]
                 cb         : opts.cb
 
+    last_snapshot: (opts) =>
+        opts = defaults opts,
+            cb         : required    # (err, UTC ISO timestamp of most recent snapshot) -- undefined if not known
+        @dbg('last_snapshot', '', "getting most recent snapshot time")
+        get_database (err) =>
+            if err
+                opts.cb(err)
+            else
+                database.select
+                    table     : 'project_state'
+                    where     : {project_id : @project_id}
+                    columns   : ['snapshot_pool']
+                    consistency : STATE_CONSISTENCY
+                    objectify : false
+                    cb        : (err, result) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            v = (r[0] for r in result when r[0]?)
+                            v.sort()
+                            if v.length == 0
+                                opts.cb(undefined, undefined)
+                            else
+                                opts.cb(undefined, misc.to_iso(new Date(v[v.length-1])))
+
     open: (opts) =>
         opts = defaults opts,
             compute_id : undefined  # if given, try to open on this machine
+            host       : undefined  # if given use this machine
             cb         : undefined    # (err, {compute_id:compute_id of host, host:ip address})
         @dbg('open', '', "")
         @_update_compute_id (err) =>
@@ -971,7 +1075,7 @@ class ClientProject
                 opts.cb?(err); return
             if @compute_id?  # already opened
                 if opts.compute_id? and @compute_id != opts.compute_id
-                    opts.cb?('already opened on a different host (#{@compute_id})')
+                    opts.cb?("already opened on a different host (#{@compute_id})")
                     return
                 compute_id_to_host @compute_id, (err, host) =>
                     opts.cb?(err, {compute_id:@compute_id, host:host})
@@ -979,6 +1083,16 @@ class ClientProject
 
             compute_id = undefined
             async.series([
+                (cb) =>
+                    if opts.host? and not opts.compute_id?
+                        host_to_compute_id opts.host, (err, compute_id) =>
+                            if err
+                                cb(err)
+                            else
+                                opts.compute_id = compute_id
+                                cb()
+                    else
+                        cb()
                 (cb) =>
                     if opts.compute_id?
                         compute_id = opts.compute_id
@@ -1016,7 +1130,6 @@ class ClientProject
                         compute_id : compute_id
                         action     : 'import_pool'
                         cb         : cb
-
             ], (err) =>
                 if err
                     opts.cb?(err)
@@ -1053,10 +1166,10 @@ class ClientProject
                 v = (x.compute_id for x in state when not x.import_pool?)
                 async.map(v, sync, (err) => opts.cb(err))
 
-    # destroy all traces of this project from the give compute host, leaving only what is in the database
+    # destroy all traces of this project on the give compute host, leaving only what is in the database
     destroy: (opts) =>
         opts = defaults opts,
-            compute_id : required
+            compute_id : required    # hostname, compute_id, or 'all'=destroy on *all* hosts
             cb         : undefined
         @dbg('destroy', opts.compute_id)
         @action
@@ -1075,21 +1188,76 @@ class ClientProject
             action     : 'destroy_image_fs'
             cb         : opts.cb
 
-    # mark a particular compute host for this project as broken, so it won't be opened.
+
+    # temporarily mark a particular compute host for this project as broken, so it won't be opened.
     mark_broken: (opts) =>
         opts = defaults opts,
-            compute_id : required
+            compute_id : undefined  # if not given, uses machine it is currently opened on, if opened; no-op if not given and not opened.
+            ttl        : 60*15      # marks host with given compute_id as bad for this many seconds (default "15 minutes")
             cb         : undefined
         @dbg('broken', opts.compute_id)
+        async.series([
+            (cb) =>
+                get_database(cb)
+            (cb) =>
+                if opts.compute_id?
+                    cb()
+                else
+                    @_update_compute_id (err) =>
+                        opts.compute_id = @compute_id
+                        cb(err)
+            (cb) =>
+                if not opts.compute_id?
+                    cb() #NO-OP
+                else
+                    database.update
+                        table     : 'project_state'
+                        consistency : STATE_CONSISTENCY
+                        set       : {broken : true}
+                        where     : {project_id : @project_id, compute_id:opts.compute_id}
+                        ttl       : opts.ttl
+                        cb        : cb
+        ], (err) => opts.cb?(err))
+
+    chunked_storage: (opts) =>
+        opts = defaults opts,
+            cb         : required
         get_database (err) =>
             if err
-                opts.cb?(err)
+                opts.cb(err)
             else
-                database.update
-                    table     : 'project_state'
-                    set       : {broken : true}
-                    where     : {project_id : @project_id}
-                    cb        : (err) => opts.cb?(err)
+                opts.cb(undefined, database.chunked_storage(id:@project_id))
+
+    delete_nonoptimal_streams_from_database: (opts) =>
+        opts = defaults opts,
+            cb         : undefined
+        @dbg('delete_nonoptimal_streams_from_database', opts.compute_id)
+        cs        = undefined
+        to_remove = undefined
+        async.series([
+            (cb) =>
+                @chunked_storage
+                    cb: (err, _cs) =>
+                        cs=_cs; cb(err)
+            (cb) =>
+                cs.ls
+                    cb: (err, files) =>
+                        if err
+                            cb(err)
+                        else
+                            to_keep = {}
+                            for f in optimal_stream((a.name for a in files))
+                                to_keep[f] = true
+                            to_remove = (f.name for f in files when not to_keep[f.name])
+                            cb()
+            (cb) =>
+                f = (name, c) =>
+                    cs.delete
+                        name : name
+                        cb   : c
+                async.map(to_remove, f, cb)
+        ], (err) => opts.cb?(err))
+
 
     # copy over any snapshots from the old version of the project on the host where project is opened.
     migrate_snapshots: (opts) =>

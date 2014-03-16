@@ -43,7 +43,8 @@ assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
-Client  = require("node-cassandra-cql").Client  # https://github.com/jorgebay/node-cassandra-cql
+cql     = require("node-cassandra-cql")
+Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
@@ -53,6 +54,23 @@ storage = require('storage')
 
 _ = require('underscore')
 
+CONSISTENCIES = (cql.types.consistencies[k] for k in ['any', 'one', 'two', 'three', 'quorum', 'localQuorum', 'eachQuorum', 'all'])
+
+higher_consistency = (consistency) ->
+    if not consistency?
+        return cql.types.consistencies.any
+    else if consistency == 1
+        consistency = 'one'
+    else if consistency == 2
+        consistency = 'two'
+    else if consistency == 3
+        consistency = 'three'
+    i = CONSISTENCIES.indexOf(consistency)
+    if i == -1
+        # unknown -- ?
+        return cql.types.consistencies.quorum # official default
+    else
+        return CONSISTENCIES[Math.min(CONSISTENCIES.length-1,i+1)]
 
 
 # the time right now, in iso format ready to insert into the database:
@@ -603,9 +621,9 @@ class exports.Cassandra extends EventEmitter
             if err
                 cb(err)
             else if results.length == 0
-                cb("No row in table '#{opts.table}' matched condition '#{opts.where}'")
+                cb("No row in table '#{opts.table}' matched condition '#{misc.to_json(opts.where)}'")
             else if results.length > 1
-                cb("More than one row in table '#{opts.table}' matched condition '#{opts.where}'")
+                cb("More than one row in table '#{opts.table}' matched condition '#{misc.to_json(opts.where)}'")
             else
                 cb(false, results[0])
         @select(opts)
@@ -2901,7 +2919,7 @@ class ChunkedStorage
                             c(err)
                         else
                             query = "UPDATE storage_chunks SET chunk=?, size=? WHERE chunk_id=?"
-                            @db.cql query, [chunk, chunk.length, chunk_id], (err) =>
+                            @db.cql query, [chunk, chunk.length, chunk_id], 1, (err) =>
                                 dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
                                 c(err)
 
@@ -3039,18 +3057,31 @@ class ChunkedStorage
                 if not chunk_ids?  # 0-length file
                     cb(); return
                 dbg("get chunks")
+                consistency = {}
+                num_chunks = 0
                 f = (i, c) =>
                     t = misc.walltime()
+
+                    # Keep increasing consistency until it works.
+                    if not consistency[i]?
+                        consistency[i] = cql.types.consistencies.one
+                    else
+                        consistency[i] = higher_consistency(consistency[i])
+                        dbg("increasing read consistency for chunk #{i} to #{consistency[i]}")
+
                     @db.select_one
-                        table : 'storage_chunks'
-                        where : {chunk_id:chunk_ids[i]}
-                        columns : ['chunk']
-                        objectify : false
-                        cb        : (err, result) =>
+                        table       : 'storage_chunks'
+                        where       : {chunk_id:chunk_ids[i]}
+                        columns     : ['chunk']
+                        objectify   : false
+                        consistency : consistency[i]
+                        cb          : (err, result) =>
                             if err
+                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; may retry with higher consistency")
                                 c(err)
                             else
-                                dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
+                                num_chunks += 1
+                                dbg("got chunk #{i}:  #{num_chunks} of #{chunk_ids.length-1} chunks (time: #{misc.walltime(t)}s)")
                                 chunk = result[0]
                                 chunks[chunk_ids[i]] = {chunk:chunk, start:i*chunk_size, chunk_id:chunk_ids[i]}
                                 if opts.filename?
@@ -3064,7 +3095,11 @@ class ChunkedStorage
                 g = (i, c) =>
                     h = (c) =>
                         f(i,c)
-                    misc.retry_until_success_wrapper(f:h, start_delay:0, max_delay:5000, exp_factor:1.4, max_tries:20)(c)
+                    misc.retry_until_success
+                        f         : h
+                        max_tries : CONSISTENCIES.length + 1
+                        max_delay : 3000
+                        cb        : c
                 async.mapLimit([0...chunk_ids.length], opts.limit, g, cb)
             (cb) =>
                 if opts.filename?
@@ -3077,7 +3112,7 @@ class ChunkedStorage
             if fd?
                 fs.close(fd)
             if err
-                dbg("error reading file from database; removing #{tmp_filename}}")
+                dbg("error reading file from database -- #{err}; removing #{tmp_filename}}")
                 fs.unlink tmp_filename, (ignore) =>
                     opts.cb(err)
             else

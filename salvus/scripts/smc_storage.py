@@ -217,7 +217,7 @@ class Project(object):
         Create and mount storage for the given project.
         """
         log = self._log("create")
-        if len(os.listdir(self.stream_path)) > 0:
+        if len(optimal_stream_sequence(self.streams())) > 0:
             self.import_pool()
             return
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
@@ -295,6 +295,7 @@ class Project(object):
         if kill:
             log("killing all processes by user with id %s"%self.uid)
             cmd("sudo /usr/bin/pkill -u %s; sleep 1; sudo /usr/bin/pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
+        cmd("sudo /sbin/zfs umount %s"%self.project_pool, ignore_errors=True)
         e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
@@ -329,32 +330,64 @@ class Project(object):
         snaps   = snapshots(self.image_fs)
         streams = optimal_stream_sequence(self.streams())
         log("optimal stream sequence: %s"%[x.filename for x in streams])
-        i = 0
-        while i < min(len(snaps), len(streams)):
-            if snaps[i] == streams[i].end:
-                i += 1
-            else:
-                break
 
-        # snaps that we know longer need -- if these are here, we can't recv.
-        bad_snaps = snaps[i:]
+        # rollback the snapshot snaps[rollback_to] (if defined), so that snapshot no longer exists.
+        rollback_to = len(snaps)
+
+        # apply streams starting with streams[apply_starting_with]
+        apply_starting_with = 0
+
+        if len(snaps) == 0:
+            pass # easy -- just apply all streams and no rollback needed
+        elif len(snaps) == 1:
+            if snaps[0] == streams[0].start:
+                apply_starting_with = 1  # start with streams[1]; don't rollback at all
+            else:
+                apply_starting_with = 0  # apply all
+                rollback_to = 0  # get rid of all snapshots
+        else:
+            # figure out which streams to apply, and whether we need to rollback anything
+            newest = snaps[rollback_to-1]
+            i = len(streams) - 1
+            while i >= 0:
+                 if streams[i].start == newest:
+                     # apply starting here
+                     apply_starting_with = i
+                     break
+                 elif streams[i].end == newest:
+                     # end of a block in the optimal sequence is the newest snapshot; in this case,
+                     # this must be the last step in the optimal sequence, or we would have exited
+                     # in the above if.  So there is nothing to apply.
+                     return
+                 elif streams[i].start < newest and streams[i].end >= newest:
+                     rollback_to -= 1
+                     newest = snaps[rollback_to-1]
+                 i -= 1
 
         # streams that need to be applied
-        streams = streams[i:]
+        streams = streams[apply_starting_with:]
         if len(streams) == 0:
             log("no streams need to be applied")
             return
 
-        if len(bad_snaps) > 0:
-            log("rollback the image file system -- removing %s snapshots"%len(bad_snaps))
-            if i == 0:
-                self.destroy_image_fs()
-            else:
-                cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[i-1]))
+        if rollback_to == 0:
+            # have to delete them all
+            self.destroy_image_fs()
+        elif rollback_to < len(snaps):
+            log("rollback the image file system -- removing %s snapshots"%(len(snaps[rollback_to-1:])))
+            cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[rollback_to-1]))
 
         log("now applying %s incoming streams"%len(streams))
         for stream in streams:
             stream.apply()
+
+        # The sync below is *critical*; without it, we always get total deadlock from this following simple example:
+        #     zfs rollback -r storage/images/bec33943-51b7-4ebb-b51b-15998a83775b@2014-03-14T16:22:43
+        #     cat /storage/streams/bec33943-51b7-4ebb-b51b-15998a83775b/2014-03-14T16:22:43--2014-03-15T22:51:56 | lz4c -d - | sudo zfs recv storage/images/bec33943-51b7-4ebb-b51b-15998a83775b
+        #     zpool import -fN project-bec33943-51b7-4ebb-b51b-15998a83775b -d /storage/images/bec33943-51b7-4ebb-b51b-15998a83775b/
+
+        sync()
+
 
     def send_streams(self):
         """
@@ -450,7 +483,7 @@ class Project(object):
         log = self._log("increase_quota")
         log("chowning /%s to salvus user in case stream fs owned by root"%self.image_fs)
         cmd("sudo /bin/chown -R %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
-        
+
         log("create a new sparse image file of size %s"%amount)
         for i in range(100):
             u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())

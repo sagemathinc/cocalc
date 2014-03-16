@@ -349,7 +349,7 @@ exports.retry_until_success = (opts) ->
         opts.f (err)->
             if err
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries exceeded")
+                    opts.cb?("maximum tries exceeded - last error #{err}")
                 else
                     delta = Math.min(opts.max_delay, opts.factor * delta)
                     setTimeout(g, delta)
