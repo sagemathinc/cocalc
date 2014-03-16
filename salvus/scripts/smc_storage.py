@@ -362,10 +362,10 @@ class Project(object):
 
         if len(bad_snaps) > 0:
             log("rollback the image file system -- removing %s snapshots"%len(bad_snaps))
-            if i == 0:
+            if rollback_to == 0:
                 self.destroy_image_fs()
             else:
-                cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[i-1]))
+                cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[rollback_to-1]))
 
         log("now applying %s incoming streams"%len(streams))
         for stream in streams:
