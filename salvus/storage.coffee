@@ -3426,12 +3426,16 @@ exports.migrate2 = (opts) ->
         (cb) ->
             if not host?
                 cb(); return
-            dbg("do migrate_delete action")
+            dbg("do migrate action")
+            if opts.destroy
+                action = 'migrate_clean'
+            else
+                action = 'migrate'
             client.action
                 project_id : opts.project_id
-                action     : 'migrate'
+                action     : action
                 cb         : (err, resp) ->
-                    dbg("migrate_delete returned: #{misc.to_json(resp)}")
+                    dbg("#{action} returned: #{misc.to_json(resp)}")
                     cb(err)
         (cb) ->
             dbg("success -- record time of successful migration start in database")

@@ -209,7 +209,7 @@ class Project
                     timestamp : start_time
                     time_s    : misc.walltime(t)
             cb?(err, result)
-        if opts.action in ['queue', 'delete_queue', 'open', 'save', 'migrate']   # put at least anything here that is implemented via other calls to action -- or we get a recursive deadlock.
+        if opts.action in ['queue', 'delete_queue', 'open', 'save', 'migrate', 'migrate_clean']   # put at least anything here that is implemented via other calls to action -- or we get a recursive deadlock.
             @_action(opts)
         else
             @_enque_action(opts)
@@ -266,6 +266,9 @@ class Project
             when "migrate"  # temporary -- during migration only!
                 dbg("migrating project")
                 @migrate(opts.cb)
+            when "migrate_clean"  # temporary -- during migration only!
+                dbg("migrating project from SCRATCH")
+                @migrate_clean(opts.cb)
             when "open"
                 dbg("opening project")
                 @open(opts.cb)
@@ -300,12 +303,21 @@ class Project
                     cb      : opts.cb
 
     migrate: (cb) =>
-        dbg = (m) => @dbg('migration',[],m)
+        dbg = (m) => @dbg('migrate',[],m)
         f = (action, cb) =>
             @action
                 action : action
                 cb     :cb
         steps = ['export_pool', 'sync_streams', 'recv_streams', 'import_pool', 'migrate_snapshots', 'export_pool', 'send_streams', 'sync_put_delete']
+        async.map(steps, f, cb)
+
+    migrate_clean: (cb) =>
+        dbg = (m) => @dbg('migrate_clean',[],m)
+        f = (action, cb) =>
+            @action
+                action : action
+                cb     :cb
+        steps = ['destroy', 'create', 'import_pool', 'migrate_snapshots', 'export_pool', 'send_streams', 'sync_put_delete']
         async.map(steps, f, cb)
 
     open: (cb) =>

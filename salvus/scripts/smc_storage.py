@@ -346,24 +346,37 @@ class Project(object):
             else:
                 apply_starting_with = 0  # apply all
                 rollback_to = 0  # get rid of all snapshots
+        elif len(streams) == 1:
+            if len(snaps) == 0 and snaps[0] == streams.start:
+                # nothing to do -- there's only one and it's applied
+                return
+            else:
+                # must apply everything
+                rollback_to = 0
+                apply_starting_with = 0
         else:
             # figure out which streams to apply, and whether we need to rollback anything
             newest_snap = snaps[-1]
             apply_starting_with = len(streams) - 1
             while apply_starting_with >= 0 and rollback_to >= 1:
-                 if streams[apply_starting_with].start == newest_snap:
-                     # apply starting here
-                     break
-                 elif streams[apply_starting_with].end == newest_snap:
-                     # end of a block in the optimal sequence is the newest snapshot; in this case,
-                     # this must be the last step in the optimal sequence, or we would have exited
-                     # in the above if.  So there is nothing to apply.
-                     return
-                 elif streams[apply_starting_with].start < newest_snap and streams[apply_starting_with].end > newest_snap:
-                     rollback_to -= 1
-                     newest_snap = snaps[rollback_to-1]
-                 else:
-                     apply_starting_with -= 1
+                print apply_starting_with, rollback_to
+                if streams[apply_starting_with].start == newest_snap:
+                    print "branch 0"
+                    # apply starting here
+                    break
+                elif streams[apply_starting_with].end == newest_snap:
+                    print "branch 1"
+                    # end of a block in the optimal sequence is the newest snapshot; in this case,
+                    # this must be the last step in the optimal sequence, or we would have exited
+                    # in the above if.  So there is nothing to apply.
+                    return
+                elif streams[apply_starting_with].start < newest_snap and streams[apply_starting_with].end > newest_snap:
+                    print "branch 2"
+                    rollback_to -= 1
+                    newest_snap = snaps[rollback_to-1]
+                else:
+                    print "branch 3"
+                    apply_starting_with -= 1
 
         log("apply_starting_with = %s"%apply_starting_with)
         log("rollback_to = %s"%rollback_to)
@@ -443,7 +456,7 @@ class Project(object):
                 raise
             # Now discard any streams we no longer need...
             for x in v:
-                if x.start >= start:
+                if x.start != x.end and x.start >= start:
                     log("discarding old stream: %s"%x.path)
                     os.unlink(x.path)
         except RuntimeError:
