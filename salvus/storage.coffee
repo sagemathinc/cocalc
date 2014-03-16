@@ -3472,6 +3472,7 @@ exports.migrate2_all = (opts) ->
     todo = undefined
     dbg = (m) -> winston.debug("migrate2_all(start=#{opts.start}, stop=#{opts.stop}): #{m}")
     t = misc.walltime()
+    limit = 100000
 
     async.series([
         (cb) ->
@@ -3479,7 +3480,7 @@ exports.migrate2_all = (opts) ->
             database.select
                 table   : 'projects'
                 columns : ['project_id', 'last_snapshot', 'last_migrated2', 'last_migrate2_error']
-                limit   : 1000000                 # should page, but no need since this is throw-away code.
+                limit   : limit                 # should page, but no need since this is throw-away code.
                 cb      : (err, result) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")

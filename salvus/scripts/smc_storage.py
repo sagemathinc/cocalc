@@ -312,8 +312,12 @@ class Project(object):
         v = []
         for x in os.listdir(self.stream_path):
             p = os.path.join(self.stream_path, x)
-            if os.path.isfile(p) and not x.endswith(".partial"):
-                v.append(Stream(self, p))
+            if os.path.isfile(p) and not x.endswith(".partial") and not x.endswith('.tmp'):
+                if os.path.getsize(p) == 15 and open(p).read() == '\x04"M\x18dp\xb9\x00\x00\x00\x00\x05]\xcc\x02':
+                    # left over files from a bug which was fixed....
+                    os.unlink(p)
+                else:
+                    v.append(Stream(self, p))
         v.sort()
         log("found %s streams"%len(v))
         return v

@@ -57,7 +57,7 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 
 # We limit the maximum number of simultaneous smc_storage.py calls to allow at once, since
 # this allows us to control ZFS contention, deadlocking, etc.
-SMC_STORAGE_LIMIT = 5
+SMC_STORAGE_LIMIT = 1
 
 # Execute a command using the smc_storage script.
 _smc_storage_no_queue = (opts) =>
@@ -349,7 +349,7 @@ class Project
             cb     : cb
 
     sync_streams: (cb) =>
-        # Find the chain of streams with newest end time, either locally or in the database,
+        # Find the optimal sequence of streams with newest end time, either locally or in the database,
         # and make sure it is present in both.
         dbg = (m) => @dbg('sync',[],m)
         dbg()
@@ -1388,10 +1388,34 @@ class ClientProject
             else
                 opts.cb(undefined, database.chunked_storage(id:@project_id))
 
-    delete_nonoptimal_streams_from_database: (opts) =>
+    streams: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @dbg('streams', opts.compute_id)
+        @chunked_storage
+            cb: (err, cs) =>
+                if err
+                    opts.cb(err)
+                else
+                    cs.ls(cb:opts.cb)
+
+    # how much space this project uses in the database
+    size: (opts) =>
+        opts = defaults opts,
+            cb : required       # cb(err, total size in *bytes* occupied by streams in database)
+        @dbg('size', opts.compute_id)
+        @streams
+            cb : (err, streams) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, (x.size for x in streams).reduce (t,s) -> t+s)
+
+
+    delete_nonoptimal_streams: (opts) =>
         opts = defaults opts,
             cb         : undefined
-        @dbg('delete_nonoptimal_streams_from_database', opts.compute_id)
+        @dbg('delete_nonoptimal_streams', opts.compute_id)
         cs        = undefined
         to_remove = undefined
         async.series([
@@ -1468,11 +1492,15 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster (default: hard coded)', String, '')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "storage")', String, 'storage')
     .option('--username [string]', 'Cassandra username to use (default: "storage_server")', String, 'storage_server')
-    .option('--consistency [number]', 'Cassandra consistency level (default: 2)', String, '2')
+    .option('--consistency [number]', 'Cassandra consistency level (default: quorum)', String, 'quorum')
 
     .option('--stream_path [string]', 'Path where streams are stored (default: /storage/streams)', String, '/storage/streams')
     .option('--pool [string]', 'Storage pool used for images (default: storage)', String, 'storage')
     .parse(process.argv)
+
+program.consistency = cql.types.consistencies[program.consistency]
+if not program.consistency?
+    winston.debug("consistency options: #{misc.to_json(misc.keys(cql.types.consistencies))}")
 
 if not program.address
     program.address = require('os').networkInterfaces().tun0[0].address
