@@ -217,7 +217,7 @@ class Project(object):
         Create and mount storage for the given project.
         """
         log = self._log("create")
-        if len(os.listdir(self.stream_path)) > 0:
+        if len(optimal_stream_sequence(self.streams())) > 0:
             self.import_pool()
             return
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")

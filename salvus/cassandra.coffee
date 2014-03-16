@@ -3040,6 +3040,7 @@ class ChunkedStorage
                     cb(); return
                 dbg("get chunks")
                 consistency = {}
+                num_chunks = 0
                 f = (i, c) =>
                     t = misc.walltime()
 
@@ -3057,11 +3058,12 @@ class ChunkedStorage
                         consistency : consistency[i]
                         cb          : (err, result) =>
                             if err
-                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; will likely retry with higher consistency level")
+                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; retry with higher consistency level")
                                 consistency[i] = true
                                 c(err)
                             else
-                                dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
+                                num_chunks += 1
+                                dbg("got chunk #{i}:  #{num_chunks} of #{chunk_ids.length-1} chunks (time: #{misc.walltime(t)}s)")
                                 chunk = result[0]
                                 chunks[chunk_ids[i]] = {chunk:chunk, start:i*chunk_size, chunk_id:chunk_ids[i]}
                                 if opts.filename?
@@ -3075,7 +3077,11 @@ class ChunkedStorage
                 g = (i, c) =>
                     h = (c) =>
                         f(i,c)
-                    misc.retry_until_success_wrapper(f:h, start_delay:1, max_delay:5000, exp_factor:1.2, max_tries:10)(c)
+                    misc.retry_until_success
+                        f         : h
+                        max_tries : 15
+                        max_delay : 3000
+                        cb        : c
                 async.mapLimit([0...chunk_ids.length], opts.limit, g, cb)
             (cb) =>
                 if opts.filename?

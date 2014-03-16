@@ -54,6 +54,8 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 ## server-side: Storage server code
 ###########################
 
+SMC_STORAGE_LIMIT = 1   # maximum number of simultaneous smc_storage.py calls to allow at once
+
 # Execute a command using the smc_storage script.
 _smc_storage_no_queue = (opts) =>
     opts = defaults opts,
