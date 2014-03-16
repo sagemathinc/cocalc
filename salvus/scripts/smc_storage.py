@@ -330,6 +330,7 @@ class Project(object):
         snaps   = snapshots(self.image_fs)
         streams = optimal_stream_sequence(self.streams())
         log("optimal stream sequence: %s"%[x.filename for x in streams])
+        log("snapshot sequence: %s"%snaps)
 
         # rollback the snapshot snaps[rollback_to] (if defined), so that snapshot no longer exists.
         rollback_to = len(snaps)
@@ -347,22 +348,26 @@ class Project(object):
                 rollback_to = 0  # get rid of all snapshots
         else:
             # figure out which streams to apply, and whether we need to rollback anything
-            newest = snaps[rollback_to-1]
-            i = len(streams) - 1
-            while i >= 0:
-                 if streams[i].start == newest:
+            newest_snap = snaps[-1]
+            apply_starting_with = len(streams) - 1
+            while apply_starting_with >= 0 and rollback_to >= 1:
+                 if streams[apply_starting_with].start == newest_snap:
                      # apply starting here
-                     apply_starting_with = i
                      break
-                 elif streams[i].end == newest:
+                 elif streams[apply_starting_with].end == newest_snap:
                      # end of a block in the optimal sequence is the newest snapshot; in this case,
                      # this must be the last step in the optimal sequence, or we would have exited
                      # in the above if.  So there is nothing to apply.
                      return
-                 elif streams[i].start < newest and streams[i].end >= newest:
+                 elif streams[apply_starting_with].start < newest_snap and streams[apply_starting_with].end > newest_snap:
                      rollback_to -= 1
-                     newest = snaps[rollback_to-1]
-                 i -= 1
+                     newest_snap = snaps[rollback_to-1]
+                 else:
+                     apply_starting_with -= 1
+
+        log("apply_starting_with = %s"%apply_starting_with)
+        log("rollback_to = %s"%rollback_to)
+
 
         # streams that need to be applied
         streams = streams[apply_starting_with:]

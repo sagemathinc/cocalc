@@ -233,7 +233,7 @@ class Project
                 if err
                     # clear the queue
                     for o in @_action_queue
-                        o.cb?("action '#{o.action}' failed")
+                        o.cb?("earlier action '#{o.action}' failed -- #{err}")
                     @_action_queue = []
                 else
                     @_process_action_queue()
@@ -306,7 +306,7 @@ class Project
                 action : action
                 cb     :cb
         steps = ['export_pool', 'sync_streams', 'recv_streams', 'import_pool', 'migrate_snapshots', 'export_pool', 'send_streams', 'sync_put_delete']
-        async.mapSeries(steps, f, cb)
+        async.map(steps, f, cb)
 
     open: (cb) =>
         dbg = (m) => @dbg('open',[],m)
