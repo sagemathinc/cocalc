@@ -54,7 +54,9 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 ## server-side: Storage server code
 ###########################
 
-SMC_STORAGE_LIMIT = 1   # maximum number of simultaneous smc_storage.py calls to allow at once
+# We limit the maximum number of simultaneous smc_storage.py calls to allow at once, since
+# this allows us to control ZFS contention, deadlocking, etc.
+SMC_STORAGE_LIMIT = 3
 
 # Execute a command using the smc_storage script.
 _smc_storage_no_queue = (opts) =>
@@ -77,7 +79,7 @@ _smc_storage_no_queue = (opts) =>
                 opts.cb()
 
 _smc_storage_queue = []
-_smc_storage_queue_lock = false
+_smc_storage_queue_running = 0
 
 smc_storage = (opts) =>
     opts = defaults opts,
@@ -88,14 +90,14 @@ smc_storage = (opts) =>
     process_smc_storage_queue()
 
 process_smc_storage_queue = () ->
-    if _smc_storage_queue_lock
+    if _smc_storage_queue_running >= SMC_STORAGE_LIMIT
         return
     if _smc_storage_queue.length > 0
         opts = _smc_storage_queue.shift()
-        _smc_storage_queue_lock = true
+        _smc_storage_queue_running += 1
         cb = opts.cb
         opts.cb = (err, output) =>
-            _smc_storage_queue_lock = false
+            _smc_storage_queue_running -= 1
             process_smc_storage_queue()
             cb(err, output)
         _smc_storage_no_queue(opts)
