@@ -266,11 +266,11 @@ class Project(object):
         """
         log = self._log("import_pool")
         s = '/'+self.image_fs
-        if len(os.listdir(self.stream_path)) == 0:
+        if len(optimal_stream_sequence(self.streams())) == 0:
             if os.path.exists(s) and len(os.listdir(s)) > 0:
                 pass
             else:
-                log("no streams, so just created a new empty pool.")
+                log("no streams and no images, so just create a new empty pool.")
                 self.create(DEFAULT_QUOTA)
                 return
         if not self.is_project_pool_imported():
