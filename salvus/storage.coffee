@@ -35,7 +35,8 @@ connect_to_database = (cb) ->
             cb(err)
         else
             new cassandra.Salvus
-                hosts    : if process.env.USER=='wstein' then ['localhost'] else ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                #hosts    : if process.env.USER=='wstein' then ['localhost'] else ("10.1.#{i}.2" for i in [1,2,3,4,5,7,10,11,12,13,14,15,16,17,18,19,20,21])
+                hosts    : if process.env.USER=='wstein' then ['localhost'] else ("10.1.#{i}.2" for i in [10,21])
                 keyspace : if process.env.USER=='wstein' then 'test' else 'salvus'        # TODO
                 username : if process.env.USER=='wstein' then 'salvus' else 'hub'         # TODO
                 consistency : 1
@@ -3580,3 +3581,111 @@ exports.migrate2_all_status = (opts) ->
             dbg("#{v_update.length} projects have been successfully migrated already but need to be updated due to project usage")
 
             opts.cb?(err, {errors:v_errors,update:v_update})
+
+
+
+
+
+
+
+
+
+
+exports.migrate3 = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        server     : undefined   # rsync here...
+        cb         : required
+    dbg = (m) -> winston.debug("migrate3(#{opts.project_id}): #{m}")
+    dbg()
+
+    needs_update = undefined
+    last_migrated3 = cassandra.now()
+    host = opts.host
+    client = undefined
+    last_migrate3_error = undefined   # could be useful to know below...
+    async.series([
+        (cb) ->
+            dbg("getting last migration error...")
+            database.select_one
+                table : 'projects'
+                columns : ['last_migrate3_error']
+                where : {project_id : opts.project_id}
+                cb    : (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        last_migrate3_error = result[0]
+                        dbg("last_migrate3_error = #{last_migrate3_error}")
+                        cb()
+        (cb) ->
+            dbg("setting last_migrate3_error to start...")
+            database.update
+                table : 'projects'
+                set   : {last_migrate3_error : 'start'}
+                where : {project_id : opts.project_id}
+                cb    : cb
+        (cb) ->
+            if host?
+                cb(); return
+            dbg("get current location of project from database")
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    host = x
+                    cb(err)
+        (cb) ->
+            if host?
+                cb(); return
+            dbg("project not deployed, so choose best host based on snapshots")
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                    # randomize so not all in DC0...
+                    v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
+                    v.sort()
+                    v.reverse()
+                    dbg("v = #{misc.to_json(v)}")
+                    if v.length == 0
+                        # nothing to do -- project never opened
+                        cb()
+                    else
+                        host = v[0][2]
+                        cb()
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("project is on #{host}")
+            if opts.status?
+                opts.status.host = host
+            client = require('storage_server').client_project(project_id : opts.project_id)
+            client.open
+                host : opts.server
+                cb   : cb
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("do migrate action")
+            client.migrate_from
+                host : host
+                cb   : cb
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("now save and close project")
+            client.close(cb:cb)
+        (cb) ->
+            dbg("success -- record time of successful migration start in database")
+            database.update
+                table : 'projects'
+                set   : {last_migrated3 : last_migrated3,  last_migrate3_error:undefined}
+                where : {project_id : opts.project_id}
+                cb    : cb
+    ], (err) =>
+        if err
+            database.update
+                table : 'projects'
+                set   : {last_migrate3_error : misc.to_json(err), last_migrated3 : last_migrated3}
+                where : {project_id : opts.project_id}
+        opts.cb(err)
+    )

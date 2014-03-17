@@ -297,6 +297,9 @@ CREATE TABLE projects (
      location2        varchar,   // location in new ZFS/cassandra setup used for migration.
      last_migrate2_error varchar, // DEPRECATED: used for migrating2
 
+     last_migrated3   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
+     last_migrate3_error varchar, // DEPRECATED: used for migrating2
+
      old_location     varchar,   // DEPRECATED: used for migrating... (so can delete after that is done).
 
      backup           varchar,  // DEPRECATED: hosts on which files are backed up (via rsnapshot): JSON format not yet determined

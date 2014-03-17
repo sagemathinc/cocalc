@@ -27,7 +27,7 @@ cql     = require("node-cassandra-cql")
 STATE_CONSISTENCY = cql.types.consistencies.quorum
 
 REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
-REGISTRATION_TTL_S      = 30       # ttl for registration record
+REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*3600
 
@@ -70,12 +70,13 @@ _zvol_storage_no_queue = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("_zvol_storage_no_queue: #{misc.to_json(opts.args)}")
+    winston.debug("_zvol_storage_no_queue: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "zvol_storage.py"
         args    : opts.args
         timeout : opts.timeout
         cb      : (err, output) =>
+            winston.debug("_zvol_storage_no_queue: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -96,6 +97,7 @@ zvol_storage = (opts) =>
     process_zvol_storage_queue()
 
 process_zvol_storage_queue = () ->
+    winston.debug("process_zvol_storage_queue: _zvol_storage_queue_running=#{_zvol_storage_queue_running}; _zvol_storage_queue.length=#{_zvol_storage_queue.length}")
     if _zvol_storage_queue_running >= ZVOL_STORAGE_LIMIT
         return
     if _zvol_storage_queue.length > 0
@@ -565,7 +567,6 @@ update_register_with_database = () ->
         where : {dummy:true, compute_id:server_compute_id}
         ttl   : REGISTRATION_TTL_S
         cb    : (err) ->
-            return  # not needed and too verbose
             if err
                 winston.debug("error registering storage server with database: #{err}")
             else
