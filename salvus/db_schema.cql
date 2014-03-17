@@ -659,8 +659,6 @@ CREATE TABLE project_new (
     new         boolean,      /* if true, mount and *run* using the new storage format */
 );
 
-
-
 CREATE INDEX on compute_hosts(host);
 
 CREATE USER salvus WITH PASSWORD '...'  SUPERUSER;

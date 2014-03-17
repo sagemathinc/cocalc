@@ -119,7 +119,7 @@ class Project
         @_action_queue   = []
         @project_id      = opts.project_id
         @verbose         = opts.verbose
-        @mnt             = "/mnt/#{@project_id}"
+        @mnt             = "/projects/#{@project_id}"
         @stream_path     = "#{program.stream_path}/#{@project_id}"
         @chunked_storage = database.chunked_storage(id:@project_id, verbose:@verbose)
 
@@ -505,28 +505,20 @@ handle_mesg = (socket, mesg) ->
     id = mesg.id
     if mesg.event == 'storage'
         t = misc.walltime()
-        is_project_new mesg.project_id, (err, is_new) ->
-            if err
-                socket.write_mesg('json', message.error(error:err, id:id))
-                return
+        project = get_project(mesg.project_id)
 
-            project = get_project(mesg.project_id)
-
-            if is_new
-                project.mnt = "/projects/#{mesg.project_id}"
-
-            project.action
-                action : mesg.action
-                param  : mesg.param
-                cb     : (err, result) ->
-                    if err
-                        resp = message.error(error:err, id:id)
-                    else
-                        resp = message.success(id:id)
-                    if result?
-                        resp.result = result
-                    resp.time_s = misc.walltime(t)
-                    socket.write_mesg('json', resp)
+        project.action
+            action : mesg.action
+            param  : mesg.param
+            cb     : (err, result) ->
+                if err
+                    resp = message.error(error:err, id:id)
+                else
+                    resp = message.success(id:id)
+                if result?
+                    resp.result = result
+                resp.time_s = misc.walltime(t)
+                socket.write_mesg('json', resp)
     else
         socket.write_mesg('json', message.error(id:id,error:"unknown event type: '#{mesg.event}'"))
 
