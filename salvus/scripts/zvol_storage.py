@@ -506,7 +506,7 @@ class Project(object):
         # never shrink, which would *destroy the pool horribly!*
         new_size = int(math.ceil(float(amount[:-1]) + float(size[:-1])))
         cmd("sudo /sbin/zfs set volsize=%sG %s"%(new_size, self.zvol_fs))
-        cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_device_name()))
+        cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_dev))
 
     def zvol_device_name(self):
         return os.path.split(os.readlink(self.zvol_dev))[-1]

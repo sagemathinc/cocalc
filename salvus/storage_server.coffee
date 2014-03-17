@@ -446,7 +446,7 @@ class Project
         ], cb)
 
 
-optimal_stream = (v) ->
+exports.optimal_stream = optimal_stream = (v) ->
     # given a array of stream filenames that represent date ranges, of this form:
     #     [UTC date]--[UTC date]ZVOL_EXTENSION
     # find the optimal sequence, i.e., the linear subarray that ends with the newest date,
@@ -1470,6 +1470,7 @@ class ClientProject
                             for f in optimal_stream((a.name for a in files))
                                 to_keep[f] = true
                             to_remove = (f.name for f in files when not to_keep[f.name])
+                            @dbg("delete_nonoptimal_streams: removing #{misc.to_json(to_remove)}")
                             cb()
             (cb) =>
                 f = (name, c) =>

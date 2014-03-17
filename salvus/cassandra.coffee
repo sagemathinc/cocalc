@@ -2719,7 +2719,7 @@ class ChunkedStorage
             db      : required     # db = a database connection
             id      : required     # id = a uuid
             verbose : true   # verbose = if true, log a lot about what happens.
-            limit   : 5
+            limit   : 10
         @db = opts.db
         @id = opts.id
         @verbose = opts.verbose
