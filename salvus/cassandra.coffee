@@ -2834,7 +2834,7 @@ class ChunkedStorage
             name          : undefined  # defaults to equal filename if given; if filename not given, name *must* be given
             blob          : undefined  # Buffer  # EXACTLY ONE of blob or path must be defined
             filename      : undefined  # filename  -- instead read blob directly from file, which will work even if file is HUGE
-            chunk_size_mb : 10         # 10MB
+            chunk_size_mb : 4          # 4MB
             limit         : undefined          # max number of chunks to save at once
             cb            : undefined
 

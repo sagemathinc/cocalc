@@ -55,21 +55,21 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 ## server-side: Storage server code
 ###########################
 
-# We limit the maximum number of simultaneous smc_storage.py calls to allow at once, since
+# We limit the maximum number of simultaneous zvol_storage.py calls to allow at once, since
 # this allows us to control ZFS contention, deadlocking, etc.
 # This is *CRITICAL*.  For better or worse, ZFS is incredibly broken when you try to do
 # multiple operations on a pool at once.  It's really sad.  But one at a time it works fine.
-SMC_STORAGE_LIMIT = 1
+ZVOL_STORAGE_LIMIT = 1
 
-# Execute a command using the smc_storage script.
-_smc_storage_no_queue = (opts) =>
+# Execute a command using the zvol_storage script.
+_zvol_storage_no_queue = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("_smc_storage_no_queue: #{misc.to_json(opts.args)}")
+    winston.debug("_zvol_storage_no_queue: #{misc.to_json(opts.args)}")
     misc_node.execute_code
-        command : "smc_storage.py"
+        command : "zvol_storage.py"
         args    : opts.args
         timeout : opts.timeout
         cb      : (err, output) =>
@@ -81,29 +81,29 @@ _smc_storage_no_queue = (opts) =>
             else
                 opts.cb()
 
-_smc_storage_queue = []
-_smc_storage_queue_running = 0
+_zvol_storage_queue = []
+_zvol_storage_queue_running = 0
 
-smc_storage = (opts) =>
+zvol_storage = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    _smc_storage_queue.push(opts)
-    process_smc_storage_queue()
+    _zvol_storage_queue.push(opts)
+    process_zvol_storage_queue()
 
-process_smc_storage_queue = () ->
-    if _smc_storage_queue_running >= SMC_STORAGE_LIMIT
+process_zvol_storage_queue = () ->
+    if _zvol_storage_queue_running >= ZVOL_STORAGE_LIMIT
         return
-    if _smc_storage_queue.length > 0
-        opts = _smc_storage_queue.shift()
-        _smc_storage_queue_running += 1
+    if _zvol_storage_queue.length > 0
+        opts = _zvol_storage_queue.shift()
+        _zvol_storage_queue_running += 1
         cb = opts.cb
         opts.cb = (err, output) =>
-            _smc_storage_queue_running -= 1
-            process_smc_storage_queue()
+            _zvol_storage_queue_running -= 1
+            process_zvol_storage_queue()
             cb(err, output)
-        _smc_storage_no_queue(opts)
+        _zvol_storage_no_queue(opts)
 
 
 # A project from the point of view of the storage server
@@ -137,7 +137,7 @@ class Project
         args.push(@project_id)
 
         @dbg("exec", opts.args, "executing smc script")
-        smc_storage
+        zvol_storage
             args    : args
             timeout : opts.timeout
             cb      : opts.cb
@@ -1480,7 +1480,7 @@ class ClientProject
     migrate_snapshots: (opts) =>
         opts = defaults opts,
             cb   : undefined
-        @dbg('migrate', opts.name, "")
+        @dbg('migrate_snapshots', '', "")
         @_update_compute_id (err) =>
             if err
                 opts.cb(err); return
@@ -1489,6 +1489,22 @@ class ClientProject
             @action
                 compute_id : @compute_id
                 action     : 'migrate_snapshots'
+                cb         : opts.cb
+
+    migrate_from: (opts) =>
+        opts = defaults opts,
+            host : required
+            cb   : undefined
+        @dbg('migrate_from', opts.host, "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?
+                opts.cb?("not opened"); return
+            @action
+                compute_id : @compute_id
+                action     : 'migrate_from'
+                param      : ['--host', opts.host]
                 cb         : opts.cb
 
 

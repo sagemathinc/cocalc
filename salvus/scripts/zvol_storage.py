@@ -591,6 +591,16 @@ class Project(object):
         self.destroy_zvol_fs()
         self.destroy_streams()
 
+    def migrate_from(self, host):
+        if not host:
+            raise ValueError("must provide the host")
+        c = 'time rsync -axH --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh %s:./ ./'%host
+        try:
+            cmd("sudo /bin/cp -r /home/salvus/.ssh %s/"%self.project_mnt)
+            cmd("sudo /bin/chown -R %s %s/.ssh"%(self.username, self.project_mnt))
+            cmd("sudo /bin/su - %s -c '%s'"%(self.username, c))
+        finally:
+            cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
 
     def _create_migrate_user(self):
         u = self.uid
@@ -657,7 +667,6 @@ class Project(object):
         def remove_user(passwd_file):
             os.unlink(passwd_file)
             self._delete_migrate_user()
-
 
         if snapshot is None:
             log("migrating all missing snapshots")
@@ -777,6 +786,10 @@ if __name__ == "__main__":
 
     parser_migrate_snapshots = subparsers.add_parser('migrate_snapshots', help='ensure new project has all snapshots from old project')
     parser_migrate_snapshots.set_defaults(func=lambda args: project.migrate_snapshots())
+
+    parser_migrate_from = subparsers.add_parser('migrate_from', help='get content from')
+    parser_migrate_from.add_argument("--host", dest="host", help="required hostname", type=str, default='')
+    parser_migrate_from.set_defaults(func=lambda args: project.migrate_from(host=args.host))
 
     args = parser.parse_args()
 
