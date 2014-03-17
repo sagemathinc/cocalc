@@ -31,6 +31,9 @@ REGISTRATION_TTL_S      = 30       # ttl for registration record
 
 TIMEOUT = 12*3600
 
+
+ZVOL_EXTENSION = '.zvol.lz4'
+
 DATA = 'data'
 
 database = undefined  # defined during connect_to_database
@@ -384,7 +387,7 @@ class Project
                         if err
                             cb(err)
                         else
-                            remote_files = (f.name for f in files)
+                            remote_files = (f.name for f in files when misc.endswith(f.name, ZVOL_EXTENSION))
                             dbg("remote_files=#{misc.to_json(remote_files)}")
                             cb()
             (cb) =>
@@ -400,7 +403,7 @@ class Project
                     if err
                         cb(err)
                     else
-                        local_files = (x for x in files when x.slice(x.length-4) != '.tmp')
+                        local_files = (x for x in files when misc.endswith(x, ZVOL_EXTENSION))
                         dbg("local_files=#{misc.to_json(local_files)}")
                         cb()
             (cb) =>
@@ -414,9 +417,9 @@ class Project
                     put = true
                     cb()
                 else
-                    local_times = (x.split('--')[1] for x in local_files when x.length == 40)
+                    local_times = (x.slice(0,40).split('--')[1] for x in local_files when misc.endswith(x, ZVOL_EXTENSION))
                     local_times.sort()
-                    remote_times = (x.split('--')[1] for x in remote_files when x.length == 40)
+                    remote_times = (x.slice(0,40).split('--')[1] for x in remote_files when misc.endswith(x, ZVOL_EXTENSION))
                     remote_times.sort()
                     # put = true if local is newer.
                     put = local_times[local_times.length-1] > remote_times[remote_times.length-1]
@@ -445,12 +448,13 @@ class Project
 
 optimal_stream = (v) ->
     # given a array of stream filenames that represent date ranges, of this form:
-    #     [UTC date]--[UTC date]
+    #     [UTC date]--[UTC date]ZVOL_EXTENSION
     # find the optimal sequence, i.e., the linear subarray that ends with the newest date,
     # and starts with an empty interval.
     if v.length == 0
         return v
-    v = v.slice(0) # make a copy
+    # get rid of extension
+    v = (x.slice(0,40) for x in v)
     v.sort (a,b) ->
         a = a.split('--')
         b = b.split('--')
@@ -486,7 +490,7 @@ optimal_stream = (v) ->
         # Did we end with a an interval of length 0, i.e., a valid sequence?
         x = w[w.length-1].split('--')
         if x[0] == x[1]
-            return w
+            return (f+ZVOL_EXTENSION for f in w)
         v.shift()  # delete first element -- it's not the end of a valid sequence.
 
 

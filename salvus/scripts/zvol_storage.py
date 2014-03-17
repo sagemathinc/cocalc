@@ -23,7 +23,7 @@ dd if=/dev/zero of=$1 bs=8M; rm $1
 
 # While migrating, we also need all the following.  REMOVE these from visudo after migration.
 
-salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
+salvus ALL=(ALL) NOPASSWD: /bin/su *
 
 
 
