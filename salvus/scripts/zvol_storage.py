@@ -7,16 +7,24 @@
 salvus ALL=(ALL) NOPASSWD: /sbin/zfs *
 salvus ALL=(ALL) NOPASSWD: /sbin/zpool *
 salvus ALL=(ALL) NOPASSWD: /usr/bin/pkill *
-
-# While migrating, we also need all the following.  REMOVE these from visudo after migration.
-
 salvus ALL=(ALL) NOPASSWD: /usr/bin/passwd *
-salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
-salvus ALL=(ALL) NOPASSWD: /bin/chown *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupadd *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/useradd *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupdel *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
+salvus ALL=(ALL) NOPASSWD: /bin/chown *
+salvus ALL=(ALL) NOPASSWD: /bin/chmod *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/compact_zvol *
+
+Here compact_zvol is the little script:
+
+#!/bin/sh
+dd if=/dev/zero of=$1 bs=8M; rm $1
+
+# While migrating, we also need all the following.  REMOVE these from visudo after migration.
+
+salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
+
 
 
 """
@@ -243,6 +251,7 @@ class Project(object):
         cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
         cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)  # no problem at all locally.
         cmd("sudo /bin/chown %s:%s %s"%(self.uid, self.uid, self.project_mnt))
+        cmd("sudo /bin/chmod og-rwx %s"%self.project_mnt)
 
         #os.chown(self.project_mnt, self.uid, self.uid)
 
@@ -271,6 +280,8 @@ class Project(object):
         if len(optimal_stream_sequence(self.streams())) == 0 and not filesystem_exists(self.zvol_fs):
             log("no streams and no zvol, so just create a new empty pool.")
             self.create(DEFAULT_QUOTA)
+            if self._is_new:
+                self.create_user()
             return
         if not self.is_project_pool_imported():
             log("project pool not imported, so receiving streams")
@@ -495,7 +506,33 @@ class Project(object):
         # never shrink, which would *destroy the pool horribly!*
         new_size = int(math.ceil(float(amount[:-1]) + float(size[:-1])))
         cmd("sudo /sbin/zfs set volsize=%sG %s"%(new_size, self.zvol_fs))
-        cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_dev))
+        cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_device_name()))
+
+    def zvol_device_name(self):
+        return os.path.split(os.readlink(self.zvol_dev))[-1]
+
+    def compact_zvol(self):
+        """
+        This takes "about 10-15 seconds per gigabyte".
+         1. *ensure* that compression is enabled on the pool that contains the zvol but not on the
+            pool that is live on the zvol!
+         2. Inside the mounted zpool do this:  "dd if=/dev/zero of=MYFILE bs=1M; rm MYFILE"
+         3. We will only do this shrinking rarely, when doing a save *and* the size of the user's
+            zpool is (significantly) smaller than the zvol.  It only takes about 5s/gb.
+            We'll disable compression, do the shrink, then re-enable compression.
+            This isn't the worst trick ever.
+        Discussion here: http://comments.gmane.org/gmane.os.solaris.opensolaris.zfs/35630
+        """
+        tmp = None
+        try:
+            cmd("sudo /sbin/zfs set compression=off %s"%self.project_pool)
+            cmd("sudo /sbin/zfs set dedup=off %s"%self.project_pool)
+            tmp = os.path.join(self.project_mnt, "." + str(uuid.uuid4()))
+            #cmd("dd if=/dev/zero of='%s' bs=8M"%tmp, ignore_errors=True)   # this *will* error when we run out of space
+            cmd("sudo /usr/local/bin/compact_zvol %s"%tmp, ignore_errors=True)
+        finally:
+            cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
+            cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
 
     def close(self, kill=None, send_streams=True):
         """
@@ -716,6 +753,9 @@ if __name__ == "__main__":
 
     parser_destroy_streams = subparsers.add_parser('destroy_streams', help='destroy all streams stored locally')
     parser_destroy_streams.set_defaults(func=lambda args: project.destroy_streams())
+
+    parser_compact_zvol = subparsers.add_parser('compact_zvol', help='compact the zvol, so exporting it will take way less space in case it has blown up and shrunk -- would only make sense after deleting snapshots')
+    parser_compact_zvol.set_defaults(func=lambda args: project.compact_zvol())
 
     parser_snapshot_pool = subparsers.add_parser('snapshot_pool', help='snapshot the project zpool')
     parser_snapshot_pool.add_argument("--name", dest="name", help="name of snapshot (default: ISO date)", type=str, default='')
