@@ -253,7 +253,7 @@ exports.open_project = open_project = (opts) ->
             dbg("mount filesystem")
             execute_on
                 host    : opts.host
-                timeout : 15  # relatively small timeout due to zfs deadlocks -- just move onto another host
+                timeout : 25   # relatively small timeout due to zfs deadlocks -- just move onto another host
                 command : "sudo zfs set mountpoint=#{mountpoint(opts.project_id)} #{filesystem(opts.project_id)}&&sudo zfs mount #{filesystem(opts.project_id)}"
                 cb      : (err, output) ->
                     if err
@@ -1794,7 +1794,7 @@ exports.init2 = (cb) ->
 exports.locations = locations = (opts) ->
     opts = defaults opts,
         project_id : required
-        number     : 2         # number per data center to return
+        number     : 1        # number per data center to return
 
     return (ring.range(opts.project_id, opts.number) for dc, ring of hashrings)
 
