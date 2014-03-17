@@ -71,6 +71,11 @@ Before building, do:
 
     cd spl-0.6.2 && ./configure && make deb-utils deb-kmod && dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb && cd ../zfs-0.6.2 && ./configure && make deb-utils deb-kmod && cd .. && dpkg -i */*.deb
 
+    # To remove:
+    dpkg -r kmod-spl-3.2.0-59-generic kmod-spl-devel kmod-spl-devel-3.2.0-59-generic spl kmod-zfs-3.2.0-59-generic kmod-zfs-devel kmod-zfs-devel-3.2.0-59-generic zfs zfs-devel zfs-dracut zfs-test
+
+
+
 # LZ4 -- compression
 
     # Ubuntu

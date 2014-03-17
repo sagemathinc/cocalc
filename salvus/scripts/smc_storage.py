@@ -242,14 +242,18 @@ class Project(object):
         if kill is None:
             kill = self._kill
         self.export_pool(kill=kill)
+        self.umount_image_fs()
+
+    def umount_image_fs(self):
+        """
+        Unmount the given project.
+        """
         log("unmounting image filesystem")
         e = cmd("sudo /sbin/zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
         if os.path.exists('/'+self.image_fs):
             os.rmdir('/' + self.image_fs)
-        #if os.path.exists(self.project_mnt):
-        #    os.rmdir(self.project_mnt)
 
     def is_project_pool_imported(self):
         s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
@@ -459,8 +463,12 @@ class Project(object):
                 raise
             # Now discard any streams we no longer need...
             for x in v:
-                if x.start != x.end and x.start >= start:
-                    log("discarding old stream: %s"%x.path)
+                if x.start != x.end:
+                    if x.start >= start:
+                        log("discarding old stream: %s"%x.path)
+                        os.unlink(x.path)
+                elif start == end and x.start < start:
+                    log("discarding old initial stream: %s"%x.path)
                     os.unlink(x.path)
         except RuntimeError:
             log("problem sending stream -- don't leave a broken stream around")
@@ -526,9 +534,10 @@ class Project(object):
         if kill is None:
             kill = self._kill
         log = self._log("close")
+        self.export_pool(kill=kill)
         if send_streams:
             self.send_streams()
-        self.umount(kill=kill)
+        self.umount_image_fs()
         self.destroy_image_fs()
 
     def replicate(self, target, delete=False):
@@ -723,17 +732,17 @@ if __name__ == "__main__":
     parser_close = subparsers.add_parser('close', help='send_streams, unmount, destroy images, etc., leaving only streams')
     parser_close.add_argument("--nosend_streams", help="if given, don't send_streams first: DANGEROUS", default=False, action="store_const", const=True)
     parser_close.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_close.set_defaults(func=lambda args: project.close(send_streams=not args.nosend_streams, kill=args.kill))
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
     parser_destroy.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
 
     parser_destroy_image_fs = subparsers.add_parser('destroy_image_fs', help='export project pool and destroy the image filesystem, leaving only streams')
     parser_destroy_image_fs.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_destroy_image_fs.set_defaults(func=lambda args: project.destroy_image_fs(kill=args.kill))
 
     parser_destroy_streams = subparsers.add_parser('destroy_streams', help='destroy all streams stored locally')

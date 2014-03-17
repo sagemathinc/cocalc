@@ -25,7 +25,7 @@ DEFAULT_QUOTA='2G'
 
 STREAM_EXTENSION = '.zvol.lz4'
 
-import argparse, hashlib, os, random, shutil, string, sys, time, uuid, json
+import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json
 from subprocess import Popen, PIPE
 
 def print_json(s):
@@ -79,13 +79,13 @@ def filesystem_size_b(fs):
     """
     Return the size of the filesystem in bytes.
     """
-    return int(cmd("sudo /sbin/zfs get volsize -Hp %s"%fs).read().split()[2])
+    return int(cmd("sudo /sbin/zfs get volsize -Hp %s"%fs).split()[2])
 
 def filesystem_size(fs):
     """
     Return the size of the filesystem as a human-readable string returned by ZFS.
     """
-    return cmd("sudo /sbin/zfs get volsize -H %s"%fs).read().split()[2]
+    return cmd("sudo /sbin/zfs get volsize -H %s"%fs).split()[2]
 
 def newest_snapshot(fs):
     out = cmd("sudo /sbin/zfs list -r -t snapshot -o name -s creation %s |tail -1"%fs)
@@ -289,10 +289,10 @@ class Project(object):
         if kill is None:
             kill = self._kill
         log = self._log("umount")
-        log("exporting project pool")
+        log("exporting project pool (kill=%s)"%kill)
         if kill:
             log("killing all processes by user with id %s"%self.uid)
-            cmd("sudo /usr/bin/pkill -u %s; sleep 1; sudo /usr/bin/pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
+            cmd("sudo /usr/bin/pkill -u %s; sleep .25; sudo /usr/bin/pkill -9 -u %s; sleep .25"%(self.uid,self.uid), ignore_errors=True)
         e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
@@ -427,7 +427,7 @@ class Project(object):
         else:
             snap = " -i %s@%s %s@%s"%(self.zvol_fs, start, self.zvol_fs, end)
 
-        target = os.path.join(self.stream_path, "%s--%s.%s"%(start, end, STREAM_EXTENSION))
+        target = os.path.join(self.stream_path, "%s--%s%s"%(start, end, STREAM_EXTENSION))
         try:
             log("sending new stream: %s"%target)
             try:
@@ -439,8 +439,12 @@ class Project(object):
                 raise
             # Now discard any streams we no longer need...
             for x in v:
-                if x.start != x.end and x.start >= start:
-                    log("discarding old stream: %s"%x.path)
+                if x.start != x.end:
+                    if x.start >= start:
+                        log("discarding old stream: %s"%x.path)
+                        os.unlink(x.path)
+                elif start == end and x.start < start:
+                    log("discarding old initial stream: %s"%x.path)
                     os.unlink(x.path)
         except RuntimeError:
             log("problem sending stream -- don't leave a broken stream around")
@@ -482,14 +486,16 @@ class Project(object):
         Increase the quota of the project by the given amount.
         """
         log = self._log("increase_quota")
-        if amount.endswith('G'):
-            amount = int(1000000000*float(amount[:-1]))
-        else:
-            raise NotImplementedError("amount must be in units of gigabytes")
+        if not amount.endswith('G'):
+            raise RuntimeError("amount must be of the form '[number]G'")
         log("expanding the zvol by size %s"%amount)
-        new_size = filesystem_size_b(self.zvol_fs) + amount
-        cmd("sudo /sbin/zfs set volsize=%s %s"%(new_size, self.zvol_fs))
-        cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_fs))
+        size = filesystem_size(self.zvol_fs)
+        if not size.endswith("G"):
+            raise NotImplementedError("filesystem size must end in G")
+        # never shrink, which would *destroy the pool horribly!*
+        new_size = int(math.ceil(float(amount[:-1]) + float(size[:-1])))
+        cmd("sudo /sbin/zfs set volsize=%sG %s"%(new_size, self.zvol_fs))
+        cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_dev))
 
     def close(self, kill=None, send_streams=True):
         """
@@ -500,9 +506,9 @@ class Project(object):
         if kill is None:
             kill = self._kill
         log = self._log("close")
+        self.umount(kill=kill)
         if send_streams:
             self.send_streams()
-        self.umount(kill=kill)
         self.destroy_zvol_fs()
 
     def replicate(self, target, delete=False):
@@ -695,17 +701,17 @@ if __name__ == "__main__":
     parser_close = subparsers.add_parser('close', help='send_streams, unmount, destroy images, etc., leaving only streams')
     parser_close.add_argument("--nosend_streams", help="if given, don't send_streams first: DANGEROUS", default=False, action="store_const", const=True)
     parser_close.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_close.set_defaults(func=lambda args: project.close(send_streams=not args.nosend_streams, kill=args.kill))
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
     parser_destroy.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
 
     parser_destroy_zvol_fs = subparsers.add_parser('destroy_zvol_fs', help='export project pool and destroy the image filesystem, leaving only streams')
     parser_destroy_zvol_fs.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_destroy_zvol_fs.set_defaults(func=lambda args: project.destroy_zvol_fs(kill=args.kill))
 
     parser_destroy_streams = subparsers.add_parser('destroy_streams', help='destroy all streams stored locally')

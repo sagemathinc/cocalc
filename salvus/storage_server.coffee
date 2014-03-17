@@ -57,6 +57,8 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 
 # We limit the maximum number of simultaneous smc_storage.py calls to allow at once, since
 # this allows us to control ZFS contention, deadlocking, etc.
+# This is *CRITICAL*.  For better or worse, ZFS is incredibly broken when you try to do
+# multiple operations on a pool at once.  It's really sad.  But one at a time it works fine.
 SMC_STORAGE_LIMIT = 1
 
 # Execute a command using the smc_storage script.
