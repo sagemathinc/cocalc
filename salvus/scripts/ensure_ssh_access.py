@@ -15,10 +15,10 @@ if not os.path.exists(dot_ssh):
     os.makedirs(dot_ssh)
 
 target = os.path.join(dot_ssh, 'authorized_keys')
-authorized_keys = open(sys.argv[2]).read()
+authorized_keys = '\n' + open(sys.argv[2]).read() + '\n'
 
 if not os.path.exists(target) or authorized_keys not in open(target).read():
-    open(target,'w').write('\n'+authorized_keys)
+    open(target,'w').write(authorized_keys)
 
 s = os.stat(path)
 

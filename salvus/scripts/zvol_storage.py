@@ -17,6 +17,7 @@ salvus ALL=(ALL) NOPASSWD: /bin/chmod *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/compact_zvol *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_ssh_access.py *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/zvol_storage.py *
+salvus ALL=(ALL) NOPASSWD: /bin/ln *
 
 Here compact_zvol is the little script:
 
@@ -677,11 +678,11 @@ class Project(object):
             self.create_sagemathcloud_fs()
         else:
             log('get latest snapshot')
-            snap = newest_sagemathcloud_template_snapshot()
+            snap = self.newest_sagemathcloud_template_snapshot()
             log('make sure we can ssh in')
             self.ensure_ssh_access()
             log('rsync over files')
-            cmd("rsync -axH  %s/.zfs/snapshot/%s/ %s@localhost:/%s/"%(self.sagemathcloud_template_fs, snap, self.username, self.sagemathcloud_fs))
+            cmd("rsync -axH  /%s/.zfs/snapshot/%s/ %s@localhost:/%s/"%(self.sagemathcloud_template_fs, snap, self.username, self.sagemathcloud_fs))
 
     def create_sagemathcloud_fs(self):
         """
@@ -703,7 +704,7 @@ class Project(object):
     def destroy_sagemathcloud_fs(self):
         log = self._log('destroy_sagemathcloud_fs')
         log('destroying')
-        cmd("zfs destroy -r %s"%self.sagemathcloud_fs)
+        cmd("sudo /sbin/zfs destroy -r %s"%self.sagemathcloud_fs)
 
     def ensure_ssh_access(self):
         log = self._log('ensure_ssh_access')
@@ -900,8 +901,11 @@ if __name__ == "__main__":
     parser_sagemathcloud = subparsers.add_parser('sagemathcloud', help='control the ~/.sagemathcloud filesystem (give either --create, --destroy or both)')
     parser_sagemathcloud.add_argument("--create", help="if given, create the .sagemathcloud filesystem", default=False, action="store_const", const=True)
     parser_sagemathcloud.add_argument("--destroy", help="if given, destroy the .sagemathcloud filesystem", default=False, action="store_const", const=True)
-    parser_sagemathcloud.add_argument("--update", help="if given, update the .sagemathcloud filesystem in place using rsync (so no need to killall)", default=False, action="store_const", const=True)
+    parser_sagemathcloud.add_argument("--update", help="if given, update the .sagemathcloud filesystem in place using rsync from newest template (so no need to killall)", default=False, action="store_const", const=True)
+    parser_sagemathcloud.add_argument("--update-template", dest='update_template', help="if given, update the template itself", default=False, action="store_const", const=True)
     def sagemathcloud(args):
+        if args.update_template:
+            project.update_sagemathcloud_template()
         if args.destroy:
             project.destroy_sagemathcloud_fs()
         if args.create:
