@@ -384,7 +384,7 @@ class exports.Cassandra extends EventEmitter
             keyspace        : undefined
             username        : undefined
             password        : undefined
-            query_timeout_s : 45    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
+            query_timeout_s : 60    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
             query_max_retry : 10    # max number of retries
             consistency     : undefined
             verbose         : false # quick hack for debugging...
@@ -666,7 +666,7 @@ class exports.Cassandra extends EventEmitter
 
         f = (c) =>
             failed = () =>
-                m = "query #{query} timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
                 winston.error(m)
                 c(m)
                 c = undefined # ensure only called once
@@ -682,6 +682,11 @@ class exports.Cassandra extends EventEmitter
             f         : f
             max_tries : @query_max_retry
             max_delay : 3000
+            cb        : (err) =>
+                if err
+                    cb?("query failed even after #{@query_max_retry} attempts -- giving up -- #{err}")
+                else
+                    cb?()
 
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")

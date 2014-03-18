@@ -52,7 +52,7 @@ DEFAULT_CORE_QUOTA = 2   # -1=no limit; 2 = up to two cores
 
 STREAM_EXTENSION = '.zvol.lz4'
 
-SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/scripts/skel/.sagemathcloud/"
+SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/local_hub_template/"
 BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
 BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
@@ -619,7 +619,7 @@ class Project(object):
 
         - delete -- boolean (default: False); if true, deletes any files on target not here. DANGEROUS!
         """
-        cmd("rsync -axvH %s %s/ %s:%s/"%('--delete' if delete else '', self.stream_path, target, self.stream_path))
+        cmd("rsync -axH %s %s/ %s:%s/"%('--delete' if delete else '', self.stream_path, target, self.stream_path))
 
     def destroy_zvol_fs(self):
         """
@@ -670,7 +670,7 @@ class Project(object):
         cmd("sudo /bin/chown salvus. /%s"%self.sagemathcloud_template_fs)
 
         log("rsync'ing over updated template... (this should take about a minute the first time)")
-        cmd("rsync -axH --delete %s/ /%s/"%(SAGEMATHCLOUD_TEMPLATE, self.sagemathcloud_template_fs))
+        cmd("rsync -axHL --delete %s/ /%s/"%(SAGEMATHCLOUD_TEMPLATE, self.sagemathcloud_template_fs))
         log("taking a snapshot of the template")
         cmd("sudo /sbin/zfs snapshot %s@%s"%(self.sagemathcloud_template_fs, now()))
 
