@@ -29,9 +29,18 @@ salvus ALL=(ALL) NOPASSWD: /bin/su *
 
 """
 
+# Default amount of disk space
 DEFAULT_QUOTA='5G'
 
+DEFAULT_MEMORY_G=8
+DEFAULT_CPU_SHARES=256
+DEFAULT_CFS_QUOTA=-1   # no limit
+
 STREAM_EXTENSION = '.zvol.lz4'
+
+SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/scripts/skel/.sagemathcloud/"
+
+SSH_ACCESS_PUBLIC_KEY = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys"
 
 import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
@@ -162,7 +171,7 @@ class Stream(object):
         """
         Apply this stream to the zvol for this project.
         """
-        if self.project.is_project_pool_imported():
+        if self.project.project_pool_is_imported():
             raise RuntimeError("cannot receive stream while pool already imported")
         cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -F %s"%(self.path, self.project.zvol_fs))
 
@@ -208,6 +217,9 @@ def optimal_stream_sequence(v):
         if len(v) > 0:
             del v[0]  # delete first element -- it's not the end of a valid sequence.
 
+
+
+
 class Project(object):
     def __init__(self, project_id, pool, mnt, stream_path, login_shell='/bin/bash'):
         if mnt.startswith('/projects/'):
@@ -233,6 +245,9 @@ class Project(object):
         self.stream_thresh_mb = 10
         self.username = self.project_id.replace('-','')
         self.login_shell = login_shell
+        self.sagemathcloud_base_fs = os.path.join(self.pool, 'sagemathcloud')
+        self.sagemathcloud_template_fs = os.path.join(self.sagemathcloud_base_fs, 'template')
+        self.sagemathcloud_fs = os.path.join(self.sagemathcloud_base_fs, project_id)
 
     def __repr__(self):
         return "Project(%s)"%project_id
@@ -251,7 +266,6 @@ class Project(object):
     def delete_user(self):
         u = self.uid
         cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(self.username, self.username), ignore_errors=True)
-
 
     def create(self, quota=DEFAULT_QUOTA):
         """
@@ -281,7 +295,7 @@ class Project(object):
             kill = self._kill
         self.export_pool(kill=kill)
 
-    def is_project_pool_imported(self):
+    def project_pool_is_imported(self):
         s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
         if 'no such pool' in s:
             return False
@@ -301,7 +315,7 @@ class Project(object):
             if self._is_new:
                 self.create_user()
             return
-        if not self.is_project_pool_imported():
+        if not self.project_pool_is_imported():
             log("project pool not imported, so receiving streams")
             self.recv_streams()
             log("now importing project pool which is at /%s"%self.zvol_dev)
@@ -325,9 +339,9 @@ class Project(object):
         e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
-        sync()
         if self._is_new:
             self.delete_user()
+        self.destroy_sagemathcloud_fs()
 
     def streams(self):
         """
@@ -350,7 +364,7 @@ class Project(object):
         log = self._log("recv_streams")
         if len(os.listdir(self.stream_path)) == 0:
             return
-        if self.is_project_pool_imported():
+        if self.project_pool_is_imported():
             raise RuntimeError('cannot recv streams since project pool is already imported')
         snaps   = snapshots(self.zvol_fs)
         streams = optimal_stream_sequence(self.streams())
@@ -572,6 +586,7 @@ class Project(object):
         if send_streams:
             self.send_streams()
         self.destroy_zvol_fs()
+        self.destroy_sagemathcloud_fs()
 
     def replicate(self, target, delete=False):
         """
@@ -592,7 +607,7 @@ class Project(object):
         if kill is None:
             kill = self._kill
         log = self._log("destroy_zvol_fs")
-        if self.is_project_pool_imported():
+        if self.project_pool_is_imported():
             self.export_pool(kill=kill)
         e = cmd("sudo /sbin/zfs destroy -r %s"%self.zvol_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
@@ -615,6 +630,95 @@ class Project(object):
         self.umount(kill=kill)
         self.destroy_zvol_fs()
         self.destroy_streams()
+        self.destroy_sagemathcloud_fs()
+
+    def update_sagemathcloud_template(self):
+        log = self._log('update_sagemathcloud_template')
+
+        log("check if filesystem exists")
+        if not filesystem_exists(self.sagemathcloud_base_fs):
+            log('does not exist -- creating ')
+            cmd("sudo /sbin/zfs create %s"%self.sagemathcloud_base_fs)
+            cmd("sudo /sbin/zfs create %s"%self.sagemathcloud_template_fs)
+        elif not filesystem_exists(self.sagemathcloud_template_fs):
+            log('template does not exists so creating just it')
+            cmd("sudo /sbin/zfs create %s"%self.sagemathcloud_template_fs)
+
+        log("mounting template")
+        cmd("sudo /sbin/zfs set mountpoint=/%s %s; sudo /sbin/zfs mount %s"%(
+             self.sagemathcloud_template_fs, self.sagemathcloud_template_fs, self.sagemathcloud_template_fs),
+            ignore_errors=True)
+
+        log("setting template owner to salvus")
+        cmd("sudo /bin/chown salvus. /%s"%self.sagemathcloud_template_fs)
+
+        log("rsync'ing over updated template... (this should take about a minute the first time)")
+        cmd("rsync -axH --delete %s/ /%s/"%(SAGEMATHCLOUD_TEMPLATE, self.sagemathcloud_template_fs))
+        log("taking a snapshot of the template")
+        cmd("sudo /sbin/zfs snapshot %s@%s"%(self.sagemathcloud_template_fs, now()))
+
+    def newest_sagemathcloud_template_snapshot(self):
+        log = self._log('newest_sagemathcloud_template_snapshot')
+        log('check if exists')
+        if not filesystem_exists(self.sagemathcloud_template_fs):
+            self.update_sagemathcloud_template()
+        log('get directory listing')
+        v = os.listdir(os.path.join('/'+self.sagemathcloud_template_fs, '.zfs', 'snapshot'))
+        v.sort()
+        return v[-1]
+
+    def update_sagemathcloud_fs(self):
+        log = self._log('update_sagemathcloud_fs')
+        log('ensure sagemathcloud_fs exists')
+        if not filesystem_exists(self.sagemathcloud_fs):
+            self.create_sagemathcloud_fs()
+        else:
+            log('get latest snapshot')
+            snap = newest_sagemathcloud_template_snapshot()
+            log('make sure we can ssh in')
+            self.ensure_ssh_access()
+            log('rsync over files')
+            cmd("rsync -axH  %s/.zfs/snapshot/%s/ %s@localhost:/%s/"%(self.sagemathcloud_template_fs, snap, self.username, self.sagemathcloud_fs))
+
+    def create_sagemathcloud_fs(self):
+        """
+        Setup the ~/.sagemathcloud directory for this project.
+        If the project pool is not imported it will be.
+        """
+        log = self._log('create_sagemathcloud_fs')
+        log('ensure user/pool exist and imported')
+        if not self.project_pool_is_imported():
+            self.import_pool()
+        log('make sure the sagemathcloud fs exists')
+        if not filesystem_exists(self.sagemathcloud_fs):
+            snap = self.newest_sagemathcloud_template_snapshot()
+            cmd("sudo /sbin/zfs clone %s@%s %s"%(self.sagemathcloud_template_fs, snap, self.sagemathcloud_fs))
+            cmd("sudo /bin/chown -R %s. /%s"%(self.username, self.sagemathcloud_fs))
+        log('create the symlink')
+        cmd("sudo /bin/ln -sf /%s %s/.sagemathcloud"%(self.sagemathcloud_fs, self.project_mnt))
+
+    def destroy_sagemathcloud_fs(self):
+        log = self._log('destroy_sagemathcloud_fs')
+        log('destroying')
+        cmd("zfs destroy -r %s"%self.sagemathcloud_fs)
+
+    def ensure_ssh_access(self):
+        log = self._log('ensure_ssh_access')
+        log("first check that pool is imported")
+        if not self.project_pool_is_imported():
+            self.import_pool()
+        log("now make sure .ssh/authorized_keys file good")
+        cmd("sudo /usr/local/bin/ensure_ssh_access.py %s %s"%(self.project_mnt, SSH_ACCESS_PUBLIC_KEY))
+
+    def cgroup(self, memory_G, cpu_shares, cfs_quota):
+        log = self._log('cgroup')
+        log("configuring cgroups...")
+        cmd("sudo /usr/local/bin/cgroup.py %s %s %s %s"%(self.username, memory_G, cpu_shares, cfs_quota))
+
+
+    #########################################################################
+    ### Migration code below -- all will get deleted once migration done! ###
+    #########################################################################
 
     def migrate_from(self, host, timeout=120):
         """
@@ -789,6 +893,36 @@ if __name__ == "__main__":
 
     parser_send_streams = subparsers.add_parser('send_streams', help='updates streams to reflect state of image filesystem')
     parser_send_streams.set_defaults(func=lambda args: project.send_streams())
+
+    parser_sagemathcloud = subparsers.add_parser('sagemathcloud', help='control the ~/.sagemathcloud filesystem (give either --create, --destroy or both)')
+    parser_sagemathcloud.add_argument("--create", help="if given, create the .sagemathcloud filesystem", default=False, action="store_const", const=True)
+    parser_sagemathcloud.add_argument("--destroy", help="if given, destroy the .sagemathcloud filesystem", default=False, action="store_const", const=True)
+    parser_sagemathcloud.add_argument("--update", help="if given, update the .sagemathcloud filesystem in place using rsync (so no need to killall)", default=False, action="store_const", const=True)
+    def sagemathcloud(args):
+        if args.destroy:
+            project.destroy_sagemathcloud_fs()
+        if args.create:
+            project.create_sagemathcloud_fs()
+        if args.update:
+            project.update_sagemathcloud_fs()
+    parser_sagemathcloud.set_defaults(func=sagemathcloud)
+
+    parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
+    parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
+
+    parser_cgroup = subparsers.add_parser('cgroup', help='configure cgroup for this user')
+    parser_cgroup.add_argument("--memory_G", dest="memory_G", help="memory quota in gigabytes (default: '%s')"%DEFAULT_MEMORY_G,
+                               type=int, default=DEFAULT_MEMORY_G)
+    parser_cgroup.add_argument("--cpu_shares", dest="cpu_shares", help="share of the cpu (default: '%s')"%DEFAULT_CPU_SHARES,
+                               type=int, default=DEFAULT_CPU_SHARES)
+    parser_cgroup.add_argument("--cfs_quota", dest="cfs_quota", help="microseconds of scheduling (default: '%s')"%DEFAULT_CFS_QUOTA,
+                               type=int, default=DEFAULT_CFS_QUOTA)
+                                # use cfs_quota this with an option like 200000 to throttle user even if machine otherwise idle
+    parser_cgroup.set_defaults(func=lambda args: project.cgroup(
+                    memory_G=args.memory_G, cpu_shares=args.cpu_shares, cfs_quota=args.cfs_quota))
+
+    parser_destroy_sagemathcloud_fs = subparsers.add_parser('destroy_sagemathcloud_fs', help='destroy the ~/.sagemathcloud filesystem')
+    parser_destroy_sagemathcloud_fs.set_defaults(func=lambda args: project.destroy_sagemathcloud_fs())
 
     parser_replicate = subparsers.add_parser('replicate', help='directly send streams to another host via rsync (instead of database)')
     parser_replicate.add_argument("--delete", help="deletes any files on target not here (DANGEROUS); off by default",

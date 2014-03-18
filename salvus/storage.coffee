@@ -3781,7 +3781,7 @@ exports.migrate3_all = (opts) ->
                         tm = misc.walltime(start)
                         times.push(tm)
                         avg_time = times.reduce((t,s)->t+s)/times.length
-                        eta_time = (todo - times.length) / avg_time
+                        eta_time = ((todo - times.length) * avg_time)/opts.limit
                         if err
                             if stat?
                                 stat.status='failed'
@@ -3794,9 +3794,9 @@ exports.migrate3_all = (opts) ->
                             done += 1
                         dbg("******************************************* ")
                         dbg("finished #{project_id} in #{tm} seconds     ")
-                        dbg("MIGRATE_ALL STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
+                        dbg("MIGRATE_ALL (#{opts.limit} at once) STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}; #{todo-done-fail} left")
                         dbg("    avg time so far: #{avg_time}s/each")
-                        dbg("    eta estimate   : #{eta_time/60}m")
+                        dbg("    eta estimate   : #{eta_time/3600}h")
                         dbg("*******************************************")
                         if err
                             errors[project_id] = err
