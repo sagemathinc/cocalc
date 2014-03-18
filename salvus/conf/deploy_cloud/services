@@ -64,7 +64,7 @@ cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       '
 
 # new compute vm's
 cloud1   {'hostname':'compute1dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud2   {'hostname':'compute2dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud5   {'hostname':'compute2dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13102}
 cloud3   {'hostname':'compute3dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
 cloud4   {'hostname':'compute4dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
 cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
