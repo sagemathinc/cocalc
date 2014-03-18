@@ -17,6 +17,7 @@ salvus ALL=(ALL) NOPASSWD: /bin/chmod *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/compact_zvol *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_ssh_access.py *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_file_exists.py *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/cgroup.py *
 salvus ALL=(ALL) NOPASSWD: /bin/ln *
 
 Here compact_zvol is the little script:

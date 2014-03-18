@@ -79,7 +79,7 @@ def conf():
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
     # Copy over newest version of certain scripts and set permissions
-    for s in ['create_project_user.py', 'ensure_ssh_access.py', 'ensure_file_exists.py', 'compact_zvol']:
+    for s in ['create_project_user.py', 'ensure_ssh_access.py', 'ensure_file_exists.py', 'compact_zvol', 'cgroup.py']:
         os.system("cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"%(s,s,s))
 
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
