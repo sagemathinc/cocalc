@@ -3792,7 +3792,8 @@ exports.migrate3_all = (opts) ->
                             if stat?
                                 stat.status='done'
                             done += 1
-                        dbg("******************************************* (time=#{tm}s)")
+                        dbg("******************************************* ")
+                        dbg("finished #{project_id} in #{tm} seconds     ")
                         dbg("MIGRATE_ALL STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
                         dbg("    avg time so far: #{avg_time}s/each")
                         dbg("    eta estimate   : #{eta_time/60}m")

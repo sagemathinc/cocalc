@@ -369,6 +369,15 @@ exports.execute_code = execute_code = (opts) ->
                 exit_code = code
                 finish()
 
+            # This can happen, e.g., "Error: spawn ENOMEM" if there is no memory.  Without this handler,
+            # an unhandled exception gets raised, which is nasty.
+            # From docs: "Note that the exit-event may or may not fire after an error has occured. "
+            r.on 'error', (err) ->
+                if not exit_code?
+                    exit_code = 1
+                stderr += to_json(err)
+                finish()
+
             callback_done = false
             finish = () ->
                 if stdout_is_done and stderr_is_done and exit_code?
