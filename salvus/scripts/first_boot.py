@@ -72,8 +72,12 @@ if hostname.startswith('compute'):
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
     # Start the storage server:
-    os.system("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
+    if 'dc' in hostname:
+        os.system("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
 
+    else:
+        # needed for migration
+        os.system("cp /home/salvus/.ssh/authorized_keys /root/.ssh/")
 
 else:
 
