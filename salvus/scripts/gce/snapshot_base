@@ -1,4 +1,9 @@
 
 set -v
 
-gcutil --service_version="v1" --project="sagemathcloud" addsnapshot --source_disk "compute-base-disk" --wait_until_complete compute-base-disk-`date +"%Y-%m-%d-%H%M"`
+export NAME=compute-base-disk-`date +"%Y-%m-%d-%H%M"`
+
+gcutil --service_version="v1" --project="sagemathcloud" addsnapshot --source_disk "compute-base-disk" --wait_until_complete $NAME
+
+echo $NAME>BASE
+
