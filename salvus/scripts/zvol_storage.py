@@ -594,11 +594,17 @@ class Project(object):
     def migrate_from(self, host):
         if not host:
             raise ValueError("must provide the host")
-        c = 'time rsync -axH --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh %s:./ ./'%host
+
+        mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s"'%(
+              host, self.project_id, self.project_id, self.project_id)
+        rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
+        umnt  = 'ssh %s "sudo zfs umount projects/%s"'%(host, self.project_id)
         try:
             cmd("sudo /bin/cp -r /home/salvus/.ssh %s/"%self.project_mnt)
             cmd("sudo /bin/chown -R %s %s/.ssh"%(self.username, self.project_mnt))
-            cmd("sudo /bin/su - %s -c '%s'"%(self.username, c))
+            cmd(mnt, ignore_errors=True)
+            cmd("sudo /bin/su - %s -c '%s'"%(self.username, rsync))
+            cmd(umnt, ignore_errors=True)
         finally:
             cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
 
