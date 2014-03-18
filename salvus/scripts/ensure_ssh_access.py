@@ -7,18 +7,22 @@ if not os.path.exists(path):
     raise RuntimeError("no such directory -- %s"%path)
 
 dot_ssh = os.path.join(path, '.ssh')
-os.makedirs(dot_ssh)
+
+if os.path.exists(dot_ssh) and not os.path.isdir(dot_ssh):
+    os.unlink(dot_ssh)
+
+if not os.path.exists(dot_ssh):
+    os.makedirs(dot_ssh)
 
 target = os.path.join(dot_ssh, 'authorized_keys')
-
-t = open(target).read()
 authorized_keys = open(sys.argv[2]).read()
-if authorized_keys not in t:
+
+if not os.path.exists(target) or authorized_keys not in open(target).read():
     open(target,'w').write('\n'+authorized_keys)
 
 s = os.stat(path)
 
-if os.system('chown -R %s:%s %s'%(s.uid, s.gid, dot_ssh)):
+if os.system('chown -R %s:%s %s'%(s.st_uid, s.st_gid, dot_ssh)):
     raise RuntimeError("failed to chown")
 
 if os.system('chmod og-rwx -R %s'%dot_ssh):

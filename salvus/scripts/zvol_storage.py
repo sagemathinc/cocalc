@@ -15,6 +15,8 @@ salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
 salvus ALL=(ALL) NOPASSWD: /bin/chown *
 salvus ALL=(ALL) NOPASSWD: /bin/chmod *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/compact_zvol *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_ssh_access.py *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/zvol_storage.py *
 
 Here compact_zvol is the little script:
 
@@ -24,7 +26,8 @@ dd if=/dev/zero of=$1 bs=8M; rm $1
 # While migrating, we also need all the following.  REMOVE these from visudo after migration.
 
 salvus ALL=(ALL) NOPASSWD: /bin/su *
-
+salvus ALL=(ALL) NOPASSWD: /bin/cp *
+salvus ALL=(ALL) NOPASSWD: /bin/rm *
 
 
 """
@@ -40,7 +43,7 @@ STREAM_EXTENSION = '.zvol.lz4'
 
 SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/scripts/skel/.sagemathcloud/"
 
-SSH_ACCESS_PUBLIC_KEY = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys"
+SSH_ACCESS_PUBLIC_KEY = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
 import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
