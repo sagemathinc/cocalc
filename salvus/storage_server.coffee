@@ -1563,10 +1563,7 @@ if not program.database_nodes
     else if a == 1 and b>=10 and b<=21
         program.database_nodes = ("10.1.#{i}.1" for i in [10..21]).join(',')
     else if a == 3
-        # for now, until the new data center's nodes are spun up:
-        program.database_nodes = ("10.1.#{i}.1" for i in [1..7]).join(',')
-        # once the new cassandra nodes at Google are up to date:
-        #program.database_nodes = ("10.3.#{i}.1" for i in [1..4])
+        program.database_nodes = ("10.3.#{i}.1" for i in [1..4])
 
 main = () ->
     if program.debug
