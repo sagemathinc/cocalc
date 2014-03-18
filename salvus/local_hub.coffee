@@ -1843,7 +1843,7 @@ if program._name == 'local_hub.js'
     console.log("setting up conf path")
     init_confpath()
     console.log("start daemon")
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile}, start_server)
+    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
     console.log("after daemon")
 
 

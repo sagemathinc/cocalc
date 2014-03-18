@@ -174,6 +174,6 @@ if program._name == 'console_server.js'
         winston.error "Uncaught exception: " + err
         if console? and console.trace?
             console.trace()
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile}, start_server)
+    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
 
 
