@@ -16,6 +16,7 @@ salvus ALL=(ALL) NOPASSWD: /bin/chown *
 salvus ALL=(ALL) NOPASSWD: /bin/chmod *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/compact_zvol *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_ssh_access.py *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_file_exists.py *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/zvol_storage.py *
 salvus ALL=(ALL) NOPASSWD: /bin/ln *
 
@@ -43,8 +44,9 @@ DEFAULT_CFS_QUOTA=-1   # no limit
 STREAM_EXTENSION = '.zvol.lz4'
 
 SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/scripts/skel/.sagemathcloud/"
+BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
 
-SSH_ACCESS_PUBLIC_KEY = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
+SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
 import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
@@ -714,6 +716,7 @@ class Project(object):
             self.import_pool()
         log("now make sure .ssh/authorized_keys file good")
         cmd("sudo /usr/local/bin/ensure_ssh_access.py %s %s"%(self.project_mnt, SSH_ACCESS_PUBLIC_KEY))
+        cmd("sudo /usr/local/bin/ensure_file_exists.py %s %s/.bashrc"%(BASHRC_TEMPLATE, self.project_mnt))
 
     def cgroup(self, memory_G, cpu_shares, cfs_quota):
         log = self._log('cgroup')
@@ -725,7 +728,7 @@ class Project(object):
     ### Migration code below -- all will get deleted once migration done! ###
     #########################################################################
 
-    def migrate_from(self, host, timeout=120):
+    def migrate_from(self, host, timeout=180):
         """
         The timeout is for initially mounting the remote filesystem.
         """
