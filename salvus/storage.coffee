@@ -3796,7 +3796,7 @@ exports.migrate3_all = (opts) ->
                         dbg("finished #{project_id} in #{tm} seconds     ")
                         dbg("MIGRATE_ALL (#{opts.limit} at once) STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}; #{todo-done-fail} left")
                         dbg("    avg time so far: #{avg_time}s/each")
-                        dbg("    eta estimate   : #{eta_time/3600}h")
+                        dbg("    eta estimate   : #{eta_time/3600}h or #{eta_time/60}m")
                         dbg("*******************************************")
                         if err
                             errors[project_id] = err

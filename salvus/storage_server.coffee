@@ -561,10 +561,12 @@ init_compute_id = (cb) ->
                     server_compute_id = data.toString()
                     cb()
 
+zfs_queue_len = () -> _zvol_storage_queue.length + _zvol_storage_queue_running
+
 update_register_with_database = () ->
     database.update
         table : 'compute_hosts'
-        set   : {port : program.port, up_since:up_since}
+        set   : {port : program.port, up_since:up_since, zfs_queue_len:zfs_queue_len()}
         where : {dummy:true, compute_id:server_compute_id}
         ttl   : REGISTRATION_TTL_S
         cb    : (err) ->
@@ -883,21 +885,23 @@ get_available_compute_host = (opts) ->
                 where.host = opts.host
             database.select
                 table     : 'compute_hosts'
-                columns   : ['compute_id', 'host', 'port', 'up_since', 'health']
+                columns   : ['compute_id', 'host', 'port', 'up_since', 'health', 'zfs_queue_len']
                 where     : where
                 objectify : true
                 cb        : (err, results) ->
                     if err
                         cb(err)
                     else
-                        r = ([x.health, x] for x in results when x.port? and x.host? and x.up_since?)
+                        # randomize amongst servers with the same health and queue length
+                        r = ([x.health, x.zfs_queue_len, Math.random(), x] for x in results when x.port? and x.host? and x.up_since?)
                         r.sort()
                         if r.length == 0
                             cb("no available hosts")
                         else
                             # TODO: currently just ignoring health...  Can't just take the healthiest either
                             # since that one would get quickly overloaded, so be careful!
-                            x = misc.random_choice(r)[1]
+                            z = r[0]
+                            x = z[z.length-1]
                             winston.debug("got host with compute_id=#{x.compute_id}")
                             cb(undefined)
     ], (err) -> opts.cb(err, x))

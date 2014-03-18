@@ -652,6 +652,7 @@ CREATE TABLE compute_hosts (
     port           int,          /* port of storage server: undefined if down -- set frequently with a ttl */
     up_since       timestamp,    /* time when this host became fully operational; undefined if down -- set frequently with a ttl! */
     health         float,        /* 0 is bad, 1 is good */
+    zfs_queue_len  int,          /* zfs ops: first come, first served: is queue is big, mounting even a small project could take a while */
     projects       set<uuid>,    /* projects with data on this compute host */
     PRIMARY KEY (dummy, compute_id)
 );
