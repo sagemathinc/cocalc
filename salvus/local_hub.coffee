@@ -85,6 +85,21 @@ init_confpath = () ->
             fs.chmod(secret_token_filename, 0o600, cb)
     ])
 
+INFO = undefined
+init_info_json = () ->
+    winston.debug("writing info.json")
+    filename = "#{process.env['SAGEMATHCLOUD']}/info.json"
+    v = process.env['HOME'].split('/')
+    project_id = v[v.length-1]
+    username   = project_id.replace(/-/g,'')
+    host       = require('os').networkInterfaces().tun0[0].address
+    base_url   = ''
+    port       = 22
+    INFO =
+        project_id : project_id
+        location   : {host:host, username:username, port:port, path:'.'}
+        base_url   : base_url
+    fs.writeFileSync(filename, misc.to_json(INFO))
 
 ###############################################
 # Console sessions
@@ -1728,26 +1743,8 @@ raw_server_domain.on 'error', (err) ->
 start_raw_server = (cb) ->
     raw_server_domain.run () ->
         winston.info("starting raw server...")
-        # It's fine to move these lines to the outer scope... when they are needed there.
-        try
-            info = fs.readFileSync("#{process.env['SAGEMATHCLOUD']}/info.json")
-            winston.debug("info = #{info}")
-            info = JSON.parse(info)
-            # We do the following for backward compatibility -- old projects may have an
-            # old base_url laying around.
-            if not info.base_url?
-                info.base_url = ''
-        catch e
-            winston.debug("Missing or corrupt info.json file -- waiting for a new one. #{e}")
-            # There is really nothing the local hub can do if the info.json file is missing
-            # or corrupt, except to wait for a global hub to copy over a new good version.
-            # A global hub should do this on local hub restart or project connection...
-            # Try again soon.
-            f = () ->
-                start_raw_server(()->)
-            setTimeout(f, 1000)
-            cb() # no error, since other stuff needs to happen
-            return
+        info = INFO
+        winston.debug("info = #{info}")
 
         express = require('express')
         raw_server = express()
@@ -1842,6 +1839,7 @@ if program._name == 'local_hub.js'
             console.trace()
     console.log("setting up conf path")
     init_confpath()
+    init_info_json()
     console.log("start daemon")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
     console.log("after daemon")
