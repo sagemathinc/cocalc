@@ -704,7 +704,7 @@ class Project(object):
     def destroy_sagemathcloud_fs(self):
         log = self._log('destroy_sagemathcloud_fs')
         log('destroying')
-        cmd("sudo /sbin/zfs destroy -r %s"%self.sagemathcloud_fs)
+        cmd("sudo /sbin/zfs destroy -r %s"%self.sagemathcloud_fs, ignore_errors=True)  # error if doesn't exist or user on it.
 
     def ensure_ssh_access(self):
         log = self._log('ensure_ssh_access')
