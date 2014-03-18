@@ -23,7 +23,7 @@ def cmd(s, ignore_errors=False):
 cmd("cgcreate -g memory,cpu:%s"%username)
 open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%username,'w').write("%sG"%memory_G)
 open("/sys/fs/cgroup/cpu/%s/cpu.shares"%username,'w').write(cpu_shares)
-open("/sys/fs/cgroup/cpu/%s/cfs_quota_us"%username,'w').write(cfs_quota)
+open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%username,'w').write(cfs_quota)
 
 z = "\n%s  cpu,memory  %s\n"%(username, username)
 cur = open("/etc/cgrules.conf").read()

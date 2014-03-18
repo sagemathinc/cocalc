@@ -39,7 +39,7 @@ DEFAULT_QUOTA='5G'
 
 DEFAULT_MEMORY_G=8
 DEFAULT_CPU_SHARES=256
-DEFAULT_CFS_QUOTA=-1   # no limit
+DEFAULT_CORE_QUOTA=-1   # -1=no limit
 
 STREAM_EXTENSION = '.zvol.lz4'
 
@@ -720,9 +720,13 @@ class Project(object):
         cmd("sudo /usr/local/bin/ensure_file_exists.py %s %s/.bashrc"%(BASHRC_TEMPLATE, self.project_mnt))
         cmd("sudo /usr/local/bin/ensure_file_exists.py %s %s/.bash_profile"%(BASH_PROFILE_TEMPLATE, self.project_mnt))
 
-    def cgroup(self, memory_G, cpu_shares, cfs_quota):
+    def cgroup(self, memory_G, cpu_shares, core_quota):
         log = self._log('cgroup')
         log("configuring cgroups...")
+        if core_quota <= 0:
+            cfs_quota = -1
+        else:
+            cfs_quota = int(100000*core_quota)
         cmd("sudo /usr/local/bin/cgroup.py %s %s %s %s"%(self.username, memory_G, cpu_shares, cfs_quota))
 
 
@@ -928,11 +932,10 @@ if __name__ == "__main__":
                                type=int, default=DEFAULT_MEMORY_G)
     parser_cgroup.add_argument("--cpu_shares", dest="cpu_shares", help="share of the cpu (default: '%s')"%DEFAULT_CPU_SHARES,
                                type=int, default=DEFAULT_CPU_SHARES)
-    parser_cgroup.add_argument("--cfs_quota", dest="cfs_quota", help="microseconds of scheduling (default: '%s')"%DEFAULT_CFS_QUOTA,
-                               type=int, default=DEFAULT_CFS_QUOTA)
-                                # use cfs_quota this with an option like 200000 to throttle user even if machine otherwise idle
+    parser_cgroup.add_argument("--core_quota", dest="core_quota", help="max number of cores -- can be float (default: '%s')"%DEFAULT_CORE_QUOTA,
+                               type=int, default=DEFAULT_CORE_QUOTA)
     parser_cgroup.set_defaults(func=lambda args: project.cgroup(
-                    memory_G=args.memory_G, cpu_shares=args.cpu_shares, cfs_quota=args.cfs_quota))
+                    memory_G=args.memory_G, cpu_shares=args.cpu_shares, core_quota=args.core_quota))
 
     parser_destroy_sagemathcloud_fs = subparsers.add_parser('destroy_sagemathcloud_fs', help='destroy the ~/.sagemathcloud filesystem')
     parser_destroy_sagemathcloud_fs.set_defaults(func=lambda args: project.destroy_sagemathcloud_fs())
