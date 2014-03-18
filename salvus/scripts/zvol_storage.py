@@ -634,7 +634,7 @@ class Project(object):
             # if the host is zfs foo-bared locked, then this will timeout...
             a = cmd(mnt, ignore_errors=True, timeout=timeout)
             if "TIMEOUT" in a:
-                raise RuntimeError("unable to connect to %s and mount project within %s seconds"%timeout)
+                raise RuntimeError("MOUNT ERROR: unable to connect to %s and mount project within %s seconds"%(host, timeout))
 
             i = a.find("quota")
             if i == -1:
