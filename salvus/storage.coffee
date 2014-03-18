@@ -3656,7 +3656,7 @@ exports.migrate3 = (opts) ->
         (cb) ->
             if not host?
                 cb(); return
-            dbg("project is on #{host}")
+            dbg("project is available on #{host}")
             if opts.status?
                 opts.status.project_host = host
             client = require('storage_server').client_project(project_id : opts.project_id)
@@ -3709,6 +3709,7 @@ exports.migrate3_all = (opts) ->
         retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
         retry_all : false      # if true, just redo everything
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
+        max_age_h : undefined  # if given, only consider projects that were snapshot-ed in the last max_age_h hours.
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
     projects = undefined
@@ -3716,11 +3717,14 @@ exports.migrate3_all = (opts) ->
     done = 0
     fail = 0
     todo = undefined
-    dbg = (m) -> winston.debug("migrate3_all(start=#{opts.start}, stop=#{opts.stop}): #{m}")
+    dbg = (m) -> winston.debug("#{new Date()}\nmigrate3_all(start=#{opts.start}, stop=#{opts.stop}): #{m}")
     t = misc.walltime()
     limit = 100000
 
+
     async.series([
+        (cb) ->
+            connect_to_database(cb)
         (cb) ->
             dbg("querying database...")
             database.select
@@ -3731,12 +3735,18 @@ exports.migrate3_all = (opts) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
                         result.sort()
+
                         if opts.start? and opts.stop?
                             result = result.slice(opts.start, opts.stop)
                         else if opts.start?
                             result = result.slice(opts.start)
                         else if opts.stop?
                             result = result.slice(0, opts.stop)
+
+                        if opts.max_age_h?
+                            cutoff = cassandra.hours_ago(opts.max_age_h)
+                            result = (x for x in result when x[1]? and misc.to_iso(new Date(x[1])) >= cutoff)
+                            dbg("considering only the #{result.length} projects that have a snapshot from within the last #{opts.max_age_h} hours")
                         if opts.retry_all
                             projects = (x[0] for x in result)
                         else if opts.retry_errors
@@ -3754,11 +3764,13 @@ exports.migrate3_all = (opts) ->
                     cb(err)
         (cb) ->
             i = 1
+            times = []
             f = (i, cb) ->
                 project_id = projects[i]
                 dbg("*******************************************")
                 dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
                 dbg("*******************************************")
+                start = misc.walltime()
                 if opts.status?
                     stat = {status:'migrating...', project_id:project_id}
                     opts.status.push(stat)
@@ -3766,17 +3778,24 @@ exports.migrate3_all = (opts) ->
                     project_id : project_id
                     status     : stat
                     cb         : (err) ->
+                        tm = misc.walltime(start)
+                        times.push(tm)
+                        avg_time = times.reduce((t,s)->t+s)/times.length
+                        eta_time = (todo - times.length) / avg_time
                         if err
                             if stat?
                                 stat.status='failed'
                                 stat.error = err
+                                stat.walltime = misc.walltime(tm)
                             fail += 1
                         else
                             if stat?
                                 stat.status='done'
                             done += 1
-                        dbg("*******************************************")
+                        dbg("******************************************* (time=#{tm}s)")
                         dbg("MIGRATE_ALL STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}")
+                        dbg("    avg time so far: #{avg_time}s/each")
+                        dbg("    eta estimate   : #{eta_time/60}m")
                         dbg("*******************************************")
                         if err
                             errors[project_id] = err

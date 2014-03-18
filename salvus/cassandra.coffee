@@ -2760,6 +2760,8 @@ class ChunkedStorage
             cb    : undefined
         dbg = (m) => @dbg('delete_lost_chunks', '', m)
 
+        opts.cb("TODO: do not use this yet -- it should be changed to verify that lost data *really* is lost!  Since the way things are done, the data could be perfectly written and the only problem is deleting the storage writing record.")
+
         results = undefined
         tm      = exports.seconds_ago(opts.age_s)
         async.series([
@@ -2910,6 +2912,7 @@ class ChunkedStorage
                         fs.read fd, chunk, 0, chunk.length, start, (err) =>
                             c(err, chunk)
 
+                num_saved = 0
                 f = (i, c) =>
                     t = misc.walltime()
                     chunk_id = chunk_ids[i]
@@ -2922,20 +2925,11 @@ class ChunkedStorage
                         else
                             query = "UPDATE storage_chunks SET chunk=?, size=? WHERE chunk_id=?"
                             @db.cql query, [chunk, chunk.length, chunk_id], 1, (err) =>
-                                dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
+                                num_saved += 1
+                                dbg("saved chunk #{i} -- now #{num_saved} of #{num_chunks-1} done.  (#{misc.walltime(t)} s)")
                                 c(err)
 
-                g = (i, c) =>
-                    h = (c) =>
-                        f(i,c)
-
-                    misc.retry_until_success
-                        f         : h
-                        max_tries : 15
-                        max_delay : 5000
-                        cb        : c
-
-                async.mapLimit [0...num_chunks], opts.limit, g, (err) =>
+                async.mapLimit [0...num_chunks], opts.limit, f, (err) =>
                     if err
                         dbg("something went wrong writing chunks (#{err}): delete any chunks we just wrote")
                         g = (id, c) =>

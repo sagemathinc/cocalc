@@ -250,6 +250,7 @@ class Project
     delete_queue: () =>  # DANGEROUS -- ignores anything "in progress"
         @_action_queue = []
         @_action_queue_running = 0
+        delete @_action_queue_current
 
     _action: (opts) =>
         opts = defaults opts,
@@ -1063,6 +1064,19 @@ class ClientProject
                 else
                     opts.cb(undefined, resp.result)
 
+    delete_queue: (opts) =>
+        opts = defaults opts,
+            compute_id : undefined
+            cb         : required
+        @action
+            compute_id : opts.compute_id
+            action     : 'delete_queue'
+            cb         : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.result)
+
 
     log: (opts) =>
         opts = defaults opts,
@@ -1355,7 +1369,7 @@ class ClientProject
                 sync(opts.compute_id, opts.cb)
             else
                 v = (x.compute_id for x in state when not x.import_pool?)
-                async.map(v, sync, (err) => opts.cb(err))
+                async.map(v, sync, (err) => opts.cb?(err))
 
     # destroy all traces of this project on the give compute host, leaving only what is in the database
     destroy: (opts) =>

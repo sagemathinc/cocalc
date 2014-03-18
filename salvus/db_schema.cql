@@ -589,7 +589,7 @@ CREATE TABLE banned_email_addresses (
   - querying the writing table is an easy way to see what writes are happening right now.
 */
 CREATE TABLE storage_writing (
-    dummy       boolean,    /* so we can easily do a select * on this table */
+    dummy       boolean,    /* so can do:   select id,name,size from storage_writing where dummy=true    */
     timestamp   timestamp,
     id          uuid,
     name        varchar,
