@@ -164,6 +164,7 @@ program.usage('[start/stop/restart/status] [options]')
     abspath("#{DATA}/console_server.pid"))
     .option('--logfile [string]', 'write log to this file (default: "$SAGEMATHCLOUD/data/console_server.log")', String,
     abspath("${DATA}/console_server.log"))
+    .option('--forever_logfile [string]', 'write forever log to this file', String, abspath("#{DATA}/forever_console_server.log"))
     .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")   # important for security reasons to prevent user binding more specific host attack
     .parse(process.argv)
 
@@ -173,6 +174,6 @@ if program._name == 'console_server.js'
         winston.error "Uncaught exception: " + err
         if console? and console.trace?
             console.trace()
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile}, start_server)
 
 

@@ -3765,6 +3765,7 @@ exports.migrate3_all = (opts) ->
         (cb) ->
             i = 1
             times = []
+            start0 = misc.walltime()
             f = (i, cb) ->
                 project_id = projects[i]
                 dbg("*******************************************")
@@ -3778,10 +3779,16 @@ exports.migrate3_all = (opts) ->
                     project_id : project_id
                     status     : stat
                     cb         : (err) ->
+
                         tm = misc.walltime(start)
                         times.push(tm)
                         avg_time = times.reduce((t,s)->t+s)/times.length
                         eta_time = ((todo - times.length) * avg_time)/opts.limit
+
+                        total_time = misc.walltime(start0)
+                        avg_time2 = total_time / times.length
+                        eta_time2 = (todo - times.length) * avg_time2
+
                         if err
                             if stat?
                                 stat.status='failed'
@@ -3795,8 +3802,11 @@ exports.migrate3_all = (opts) ->
                         dbg("******************************************* ")
                         dbg("finished #{project_id} in #{tm} seconds     ")
                         dbg("MIGRATE_ALL (#{opts.limit} at once) STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}; #{todo-done-fail} left")
-                        dbg("    avg time so far: #{avg_time}s/each")
-                        dbg("    eta estimate   : #{eta_time/3600}h or #{eta_time/60}m")
+                        dbg("    total time     : #{total_time}")
+                        dbg("    avg time per   : #{avg_time}s/each")
+                        dbg("    eta if per     : #{eta_time/3600}h or #{eta_time/60}m")
+                        dbg("    effective avg  : #{avg_time2}s/each")
+                        dbg("    effective eta  : #{eta_time2/3600}h or #{eta_time2/60}m")
                         dbg("*******************************************")
                         if err
                             errors[project_id] = err

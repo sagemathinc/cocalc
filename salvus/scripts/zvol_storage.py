@@ -697,6 +697,7 @@ class Project(object):
         if not filesystem_exists(self.sagemathcloud_fs):
             snap = self.newest_sagemathcloud_template_snapshot()
             cmd("sudo /sbin/zfs clone %s@%s %s"%(self.sagemathcloud_template_fs, snap, self.sagemathcloud_fs))
+            cmd("sudo /sbin/zfs set quota=256M %s"%self.sagemathcloud_fs)
             cmd("sudo /bin/chown -R %s. /%s"%(self.username, self.sagemathcloud_fs))
         log('create the symlink')
         cmd("sudo /bin/ln -sf /%s %s/.sagemathcloud"%(self.sagemathcloud_fs, self.project_mnt))
