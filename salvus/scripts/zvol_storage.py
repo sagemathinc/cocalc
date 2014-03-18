@@ -230,11 +230,8 @@ def optimal_stream_sequence(v):
 class Project(object):
     def __init__(self, project_id, pool, mnt, stream_path, login_shell='/bin/bash'):
         if mnt.startswith('/projects/'):
-            # kill by default when unmounting, exporting, etc., since use could be running code in there.
-            self._kill = True
             self._is_new = True
         else:
-            self._kill = False
             self._is_new = False
         if uuid.UUID(project_id).get_version() != 4:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
@@ -294,13 +291,11 @@ class Project(object):
 
         #os.chown(self.project_mnt, self.uid, self.uid)
 
-    def umount(self, kill=None):
+    def umount(self):
         """
         Unmount the given project.
         """
-        if kill is None:
-            kill = self._kill
-        self.export_pool(kill=kill)
+        self.export_pool()
 
     def project_pool_is_imported(self):
         s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
@@ -332,17 +327,17 @@ class Project(object):
         if self._is_new:
             self.create_user()
 
-    def export_pool(self, kill=None):
+    def kill(self):
+        log("killing all processes by user with id %s"%self.uid)
+        cmd("sudo /usr/bin/pkill -u %s; sleep .25; sudo /usr/bin/pkill -9 -u %s; sleep .25"%(self.uid,self.uid), ignore_errors=True)
+
+    def export_pool(self):
         """
         Export the zpool.
         """
-        if kill is None:
-            kill = self._kill
         log = self._log("umount")
-        log("exporting project pool (kill=%s)"%kill)
-        if kill:
-            log("killing all processes by user with id %s"%self.uid)
-            cmd("sudo /usr/bin/pkill -u %s; sleep .25; sudo /usr/bin/pkill -9 -u %s; sleep .25"%(self.uid,self.uid), ignore_errors=True)
+        log("exporting project pool")
+        self.kill()
         e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
@@ -580,16 +575,14 @@ class Project(object):
             cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
             cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
 
-    def close(self, kill=None, send_streams=True):
+    def close(self, send_streams=True):
         """
         send_streams (if send_streams is true), unmount, then destroy image filesystem, leaving only streams.
 
         VERY Dangeorus with send_streams=False.
         """
-        if kill is None:
-            kill = self._kill
         log = self._log("close")
-        self.umount(kill=kill)
+        self.umount()
         if send_streams:
             self.send_streams()
         self.destroy_zvol_fs()
@@ -607,15 +600,13 @@ class Project(object):
         """
         cmd("rsync -axvH %s %s/ %s:%s/"%('--delete' if delete else '', self.stream_path, target, self.stream_path))
 
-    def destroy_zvol_fs(self,kill=None):
+    def destroy_zvol_fs(self):
         """
         Destroy the zvol.
         """
-        if kill is None:
-            kill = self._kill
         log = self._log("destroy_zvol_fs")
         if self.project_pool_is_imported():
-            self.export_pool(kill=kill)
+            self.export_pool()
         e = cmd("sudo /sbin/zfs destroy -r %s"%self.zvol_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
@@ -628,13 +619,11 @@ class Project(object):
         log("removing the entire directory tree: '%s'"%self.stream_path)
         shutil.rmtree(self.stream_path)
 
-    def destroy(self,kill=None):
+    def destroy(self):
         """
         Delete all traces of this project from this machine.  *VERY DANGEROUS.*
         """
-        if kill is None:
-            kill = self._kill
-        self.umount(kill=kill)
+        self.umount()
         self.destroy_zvol_fs()
         self.destroy_streams()
         self.destroy_sagemathcloud_fs()
@@ -730,10 +719,6 @@ class Project(object):
         cmd("sudo /usr/local/bin/cgroup.py %s %s %s %s"%(self.username, memory_G, cpu_shares, cfs_quota))
 
 
-    #########################################################################
-    ### Migration code below -- all will get deleted once migration done! ###
-    #########################################################################
-
     def migrate_from(self, host, timeout=180):
         """
         The timeout is for initially mounting the remote filesystem.
@@ -772,105 +757,6 @@ class Project(object):
         finally:
             cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
 
-    def _create_migrate_user(self):
-        u = self.uid
-        username = 'migrate%s'%u
-        self._delete_migrate_user()
-        cmd('sudo /usr/sbin/groupadd -g %s -o %s'%(u,username))
-        cmd('sudo /usr/sbin/useradd -u %s -g %s -o %s'%(u,u,username))
-        return username
-
-    def _delete_migrate_user(self):
-        u = self.uid
-        username = 'migrate%s'%u
-        cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(username, username), ignore_errors=True)
-
-    def migrate(self):
-        """
-        Create the project with the appropriate quota, then migrate over all snapshots.
-        Assumes the project has not already been created.
-        """
-        log = self._log("migrate")
-        log("figure out original quota")
-        quota = cmd("sudo /sbin/zfs get -H quota projects/%s"%self.project_id).split()[2]
-        self.create(quota)
-        log("now migrate all snapshots")
-        n = self.migrate_snapshots()
-        log("migrated %s snapshots"%n)
-        log("done -- now close the project")
-        self.close(kill=False, send_streams=n>0)
-
-    def migrate_snapshots(self, snapshot=None):
-        """
-        Copy over the given snapshot from the old project, and also make the current live
-        contents of this project equal to that snapshot.
-
-        If snapshot is not given, copy over in order all snapshots we don't currently have.
-        In that case, it returns the number of copied snapshots.
-
-        We use this only to migrate from the old to the new format.
-        """
-        if snapshot is not None:
-            log = self._log("migrate_snapshots", snapshot=snapshot)
-        else:
-            log = self._log("migrate_snapshots")
-
-        self.import_pool()
-        fs = 'projects/%s'%self.project_id
-        mount('/' + fs, fs)
-
-        def setup_user():
-            global passwd
-            username = self._create_migrate_user()
-            alpha = string.lowercase + string.digits
-            passwd = ''.join([random.choice(alpha) for _ in range(16)])
-            passwd_file = os.path.join(os.environ['HOME'], username)
-            open(passwd_file,'w').write(passwd+'\n'+passwd)
-            cmd("cat %s | sudo /usr/bin/passwd %s"%(passwd_file, username))
-            return username, passwd_file
-
-        def do_sync(username, passwd_file, snapshot):
-            cmd("sshpass -f %s sudo /usr/bin/rsync -axH --delete /%s/.zfs/snapshot/%s/ %s@localhost:%s/"%(
-                                         passwd_file, fs, snapshot, username, self.project_mnt))
-            self.snapshot_pool(snapshot)
-
-        def remove_user(passwd_file):
-            os.unlink(passwd_file)
-            self._delete_migrate_user()
-
-        if snapshot is None:
-            log("migrating all missing snapshots")
-            s = set(self.snapshots())
-            t = snapshots(fs)
-            todo = [snapshot for snapshot in t if snapshot not in s]
-            i = 1
-            if len(todo) == 0:
-                return 0
-            tm = time.time()
-            username, passwd_file = setup_user()
-            recent_times = []
-            for snapshot in todo:
-                if len(recent_times)>0:
-                    time_per = sum(recent_times)/len(recent_times)
-                    tr = (time_per * (len(todo)-i+1))/60.0
-                else:
-                    tr = 999999
-                log("migrating missing snapshot (%s/%s) --  time remaining: %.1f minutes: %s"%(
-                              i, len(todo), tr, snapshot))
-                tm0 = time.time()
-                do_sync(username, passwd_file, snapshot)
-                recent_times.append(time.time() - tm0)
-                if len(recent_times) > 10:
-                    del recent_times[0]
-                i += 1
-
-            remove_user(passwd_file)
-            return len(todo)
-        else:
-            username, passwd_file = setup_user()
-            do_sync(username, passwd_file, snapshot)
-            remove_user(passwd_file)
-
 
 if __name__ == "__main__":
 
@@ -890,17 +776,13 @@ if __name__ == "__main__":
     parser_create.set_defaults(func=lambda args: project.create(quota=args.quota))
 
     parser_umount = subparsers.add_parser('umount', help='unmount filesystem')
-    parser_umount.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_umount.set_defaults(func=lambda args: project.umount(kill=args.kill))
+    parser_umount.set_defaults(func=lambda args: project.umount())
 
     parser_import_pool = subparsers.add_parser('import_pool', help='import the zpool from the images in the image filesystem and mount it')
     parser_import_pool.set_defaults(func=lambda args: project.import_pool())
 
     parser_export_pool = subparsers.add_parser('export_pool', help='export the zpool')
-    parser_export_pool.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_export_pool.set_defaults(func=lambda args: project.export_pool(kill=args.kill))
+    parser_export_pool.set_defaults(func=lambda args: project.export_pool())
 
     parser_recv_streams = subparsers.add_parser('recv_streams', help='receive any streams that have not yet been applied to the image filesystem; error if zpool is mounted')
     parser_recv_streams.set_defaults(func=lambda args: project.recv_streams())
@@ -933,7 +815,7 @@ if __name__ == "__main__":
     parser_cgroup.add_argument("--cpu_shares", dest="cpu_shares", help="share of the cpu (default: '%s')"%DEFAULT_CPU_SHARES,
                                type=int, default=DEFAULT_CPU_SHARES)
     parser_cgroup.add_argument("--core_quota", dest="core_quota", help="max number of cores -- can be float (default: '%s')"%DEFAULT_CORE_QUOTA,
-                               type=int, default=DEFAULT_CORE_QUOTA)
+                               type=float, default=DEFAULT_CORE_QUOTA)
     parser_cgroup.set_defaults(func=lambda args: project.cgroup(
                     memory_G=args.memory_G, cpu_shares=args.cpu_shares, core_quota=args.core_quota))
 
@@ -948,19 +830,16 @@ if __name__ == "__main__":
 
     parser_close = subparsers.add_parser('close', help='send_streams, unmount, destroy images, etc., leaving only streams')
     parser_close.add_argument("--nosend_streams", help="if given, don't send_streams first: DANGEROUS", default=False, action="store_const", const=True)
-    parser_close.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_close.set_defaults(func=lambda args: project.close(send_streams=not args.nosend_streams, kill=args.kill))
+    parser_close.set_defaults(func=lambda args: project.close(send_streams=not args.nosend_streams))
+
+    parser_kill = subparsers.add_parser('kill', help='Kill all processes running as this user.')
+    parser_kill.set_defaults(func=lambda args: project.kill())
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
-    parser_destroy.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
+    parser_destroy.set_defaults(func=lambda args: project.destroy())
 
     parser_destroy_zvol_fs = subparsers.add_parser('destroy_zvol_fs', help='export project pool and destroy the image filesystem, leaving only streams')
-    parser_destroy_zvol_fs.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_destroy_zvol_fs.set_defaults(func=lambda args: project.destroy_zvol_fs(kill=args.kill))
+    parser_destroy_zvol_fs.set_defaults(func=lambda args: project.destroy_zvol_fs())
 
     parser_destroy_streams = subparsers.add_parser('destroy_streams', help='destroy all streams stored locally')
     parser_destroy_streams.set_defaults(func=lambda args: project.destroy_streams())
@@ -982,12 +861,6 @@ if __name__ == "__main__":
     parser_increase_quota = subparsers.add_parser('increase_quota', help='increase quota')
     parser_increase_quota.add_argument("--amount", dest="amount", help="amount (default: '5G')", type=str, default='5G')
     parser_increase_quota.set_defaults(func=lambda args: project.increase_quota(amount=args.amount))
-
-    parser_migrate = subparsers.add_parser('migrate', help='migrate old project: creates, migrate all snapshots, then close')
-    parser_migrate.set_defaults(func=lambda args: project.migrate())
-
-    parser_migrate_snapshots = subparsers.add_parser('migrate_snapshots', help='ensure new project has all snapshots from old project')
-    parser_migrate_snapshots.set_defaults(func=lambda args: project.migrate_snapshots())
 
     parser_migrate_from = subparsers.add_parser('migrate_from', help='get content from')
     parser_migrate_from.add_argument("--host", dest="host", help="required hostname", type=str, default='')
