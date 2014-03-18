@@ -45,6 +45,7 @@ STREAM_EXTENSION = '.zvol.lz4'
 
 SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/scripts/skel/.sagemathcloud/"
 BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
+BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
 SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
@@ -717,6 +718,7 @@ class Project(object):
         log("now make sure .ssh/authorized_keys file good")
         cmd("sudo /usr/local/bin/ensure_ssh_access.py %s %s"%(self.project_mnt, SSH_ACCESS_PUBLIC_KEY))
         cmd("sudo /usr/local/bin/ensure_file_exists.py %s %s/.bashrc"%(BASHRC_TEMPLATE, self.project_mnt))
+        cmd("sudo /usr/local/bin/ensure_file_exists.py %s %s/.bash_profile"%(BASH_PROFILE_TEMPLATE, self.project_mnt))
 
     def cgroup(self, memory_G, cpu_shares, cfs_quota):
         log = self._log('cgroup')
