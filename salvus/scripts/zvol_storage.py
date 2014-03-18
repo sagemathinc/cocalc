@@ -29,11 +29,11 @@ salvus ALL=(ALL) NOPASSWD: /bin/su *
 
 """
 
-DEFAULT_QUOTA='2G'
+DEFAULT_QUOTA='5G'
 
 STREAM_EXTENSION = '.zvol.lz4'
 
-import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json
+import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
 
 def print_json(s):
@@ -54,23 +54,41 @@ def log(m):
     sys.stderr.write(str(m)+'\n')
     sys.stderr.flush()
 
-def cmd(s, ignore_errors=False, verbose=2):
+def cmd(s, ignore_errors=False, verbose=2, timeout=None):
     if verbose >= 1:
         log(s)
     t = time.time()
-    out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
-    x = out.stdout.read() + out.stderr.read()
-    e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
-    if e:
-        if ignore_errors:
-            return (x + "ERROR").strip()
-        else:
-            raise RuntimeError(x)
-    if verbose>=2:
-        log("(%s seconds): %s"%(time.time()-t, x))
-    elif verbose >= 1:
-        log("(%s seconds)"%(time.time()-t))
-    return x.strip()
+
+    mesg = "ERROR"
+    if timeout:
+        mesg = "TIMEOUT: running '%s' took more than %s seconds, so killed"%(s, timeout)
+        def handle(*a):
+
+            if ignore_errors:
+                return mesg
+            else:
+                raise KeyboardInterrupt(mesg)
+        signal.signal(signal.SIGALRM, handle)
+        signal.alarm(timeout)
+    try:
+        out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
+        x = out.stdout.read() + out.stderr.read()
+        e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        if e:
+            if ignore_errors:
+                return (x + "ERROR").strip()
+            else:
+                raise RuntimeError(x)
+        if verbose>=2:
+            log("(%s seconds): %s"%(time.time()-t, x))
+        elif verbose >= 1:
+            log("(%s seconds)"%(time.time()-t))
+        return x.strip()
+    except IOError:
+        return mesg
+    finally:
+        if timeout:
+            signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
 def sync():
     print("syncing file system")
@@ -506,7 +524,14 @@ class Project(object):
         # never shrink, which would *destroy the pool horribly!*
         new_size = int(math.ceil(float(amount[:-1]) + float(size[:-1])))
         cmd("sudo /sbin/zfs set volsize=%sG %s"%(new_size, self.zvol_fs))
-        cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_dev))
+        e = cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_dev), ignore_errors=True)
+        if 'ERROR' not in e:
+            return
+        if 'no such device in pool' in e:
+            # sometimes the zvol_dev is required and sometimes the actual device name; I don't know how to tell which.
+            cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_device_name()))
+        else:
+            raise RuntimeError(e)
 
     def zvol_device_name(self):
         return os.path.split(os.readlink(self.zvol_dev))[-1]
@@ -591,20 +616,41 @@ class Project(object):
         self.destroy_zvol_fs()
         self.destroy_streams()
 
-    def migrate_from(self, host):
+    def migrate_from(self, host, timeout=120):
+        """
+        The timeout is for initially mounting the remote filesystem.
+        """
         if not host:
             raise ValueError("must provide the host")
 
-        mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s"'%(
-              host, self.project_id, self.project_id, self.project_id)
+        mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s; sudo zfs get -H quota projects/%s"'%(
+              host, self.project_id, self.project_id, self.project_id, self.project_id)
         rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
         umnt  = 'ssh %s "sudo zfs umount projects/%s"'%(host, self.project_id)
         try:
             cmd("sudo /bin/cp -r /home/salvus/.ssh %s/"%self.project_mnt)
             cmd("sudo /bin/chown -R %s %s/.ssh"%(self.username, self.project_mnt))
-            cmd(mnt, ignore_errors=True)
-            cmd("sudo /bin/su - %s -c '%s'"%(self.username, rsync))
-            cmd(umnt, ignore_errors=True)
+
+            # if the host is zfs foo-bared locked, then this will timeout...
+            a = cmd(mnt, ignore_errors=True, timeout=timeout)
+            if "TIMEOUT" in a:
+                raise RuntimeError("unable to connect to %s and mount project within %s seconds"%timeout)
+
+            i = a.find("quota")
+            if i == -1:
+                raise RuntimeError("unable to get quota")
+            quota = a[i:].split()[1]  # next after quota
+            size = filesystem_size(self.zvol_fs)
+            if not size.endswith("G"):
+                raise NotImplementedError("filesystem size must end in G")
+            q = math.ceil(float(quota[:-1]))
+            s = math.ceil(float(size[:-1]))
+            if s < q:
+                self.increase_quota("%sG"%(q-s))
+
+            cmd("sudo /bin/su - %s -c '%s'"%(self.username, rsync), timeout=60*60)  # can't take more than an hour
+
+            cmd(umnt, ignore_errors=True, timeout=30)  # not a big deal if unmount isn't guaranteed
         finally:
             cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
 

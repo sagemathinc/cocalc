@@ -3338,7 +3338,7 @@ class exports.Host
         #@projects
         #    cb
 
-exports.migrate2 = (opts) ->
+exports.xxx_migrate2 = (opts) ->
     opts = defaults opts,
         project_id : required
         status     : undefined
@@ -3455,7 +3455,7 @@ exports.migrate2 = (opts) ->
     )
 
 
-exports.migrate2_all = (opts) ->
+exports.xxxx_migrate2_all = (opts) ->
     opts = defaults opts,
         limit : 10  # no more than this many projects will be migrated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
@@ -3538,7 +3538,7 @@ exports.migrate2_all = (opts) ->
             async.mapLimit([0...projects.length], opts.limit, f, cb)
     ], (err) -> opts.cb?(err, errors))
 
-exports.migrate2_all_status = (opts) ->
+exports.xxxx_migrate2_all_status = (opts) ->
     opts = defaults opts,
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
@@ -3670,6 +3670,9 @@ exports.migrate3 = (opts) ->
                             opts.status.migrate_host = data.host
                         cb()
         (cb) ->
+            dbg("wait 2 seconds to let database catch up...")
+            setTimeout(cb, 2000)
+        (cb) ->
             if not host?
                 cb(); return
             dbg("do migrate action")
@@ -3704,6 +3707,7 @@ exports.migrate3_all = (opts) ->
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
         retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
+        retry_all : false      # if true, just redo everything
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
@@ -3733,7 +3737,9 @@ exports.migrate3_all = (opts) ->
                             result = result.slice(opts.start)
                         else if opts.stop?
                             result = result.slice(0, opts.stop)
-                        if opts.retry_errors
+                        if opts.retry_all
+                            projects = (x[0] for x in result)
+                        else if opts.retry_errors
                             projects = (x[0] for x in result when x[3]? or (not x[2]? or x[1] > x[2]))
                         else
                             # don't try any projects with errors, unless they have been newly modified

@@ -141,7 +141,7 @@ class Project
             args.push(a)
         args.push(@project_id)
 
-        @dbg("exec", opts.args, "executing smc script")
+        @dbg("exec", opts.args, "executing zvol_storage.py script")
         zvol_storage
             args    : args
             timeout : opts.timeout
@@ -569,8 +569,8 @@ update_register_with_database = () ->
         cb    : (err) ->
             if err
                 winston.debug("error registering storage server with database: #{err}")
-            else
-                winston.debug("registered with database")
+            #else
+                #winston.debug("registered with database")
 
 register_with_database = (cb) ->
     database.update
