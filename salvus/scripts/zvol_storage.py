@@ -347,7 +347,7 @@ class Project(object):
                 break
 
     def pids(self):
-        return [int(x) for x in cmd("pgrep -u %s"%self.uid).split()]
+        return [int(x) for x in cmd("pgrep -u %s"%self.uid, ignore_errors=True).replace('ERROR','').split()]
 
     def num_procs(self):
         return len(self.pids())
