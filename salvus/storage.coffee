@@ -3709,7 +3709,7 @@ exports.migrate3_all = (opts) ->
         retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
         retry_all : false      # if true, just redo everything
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
-        max_age_h : undefined  # if given, only consider projects that were snapshot-ed in the last max_age_h hours.
+        max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
     projects = undefined
@@ -3729,7 +3729,7 @@ exports.migrate3_all = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['project_id', 'last_snapshot', 'last_migrated3', 'last_migrate3_error']
+                columns : ['project_id', 'last_edited', 'last_migrated3', 'last_migrate3_error']
                 limit   : limit                 # should page, but no need since this is throw-away code.
                 cb      : (err, result) ->
                     if result?
