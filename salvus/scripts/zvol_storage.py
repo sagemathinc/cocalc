@@ -35,11 +35,20 @@ salvus ALL=(ALL) NOPASSWD: /bin/rm *
 """
 
 # Default amount of disk space
-DEFAULT_QUOTA='5G'
+DEFAULT_QUOTA      = '5G'
 
-DEFAULT_MEMORY_G=8
-DEFAULT_CPU_SHARES=256
-DEFAULT_CORE_QUOTA=-1   # -1=no limit
+# Default cap on amount of RAM in Gigbaytes
+DEFAULT_MEMORY_G   = 8
+
+# Default share of the CPU
+DEFAULT_CPU_SHARES = 256
+
+# Cap on number of simultaneous cores
+DEFAULT_CORE_QUOTA = 2   # -1=no limit; 2 = up to two cores
+
+
+
+
 
 STREAM_EXTENSION = '.zvol.lz4'
 
@@ -327,9 +336,21 @@ class Project(object):
         if self._is_new:
             self.create_user()
 
-    def kill(self):
+    def kill(self, grace_s=0.25):
         log("killing all processes by user with id %s"%self.uid)
-        cmd("sudo /usr/bin/pkill -u %s; sleep .25; sudo /usr/bin/pkill -9 -u %s; sleep .25"%(self.uid,self.uid), ignore_errors=True)
+        MAX_TRIES=10
+        for i in range(MAX_TRIES):
+            cmd("sudo /usr/bin/pkill -u %s; sleep %s; sudo /usr/bin/pkill -9 -u %s"%(self.uid, grace_s, self.uid), ignore_errors=True)
+            n = self.num_procs()
+            log("kill attempt left %s procs"%n)
+            if n == 0:
+                break
+
+    def pids(self):
+        return [int(x) for x in cmd("pgrep -u %s"%self.uid).split()]
+
+    def num_procs(self):
+        return len(self.pids())
 
     def export_pool(self):
         """
