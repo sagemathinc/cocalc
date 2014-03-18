@@ -746,7 +746,8 @@ class Project(object):
         """
         if not host:
             raise ValueError("must provide the host")
-
+        self.create_user()
+        
         mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s; sudo zfs get -H quota projects/%s"'%(
               host, self.project_id, self.project_id, self.project_id, self.project_id)
         rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
