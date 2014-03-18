@@ -7,23 +7,33 @@
 salvus ALL=(ALL) NOPASSWD: /sbin/zfs *
 salvus ALL=(ALL) NOPASSWD: /sbin/zpool *
 salvus ALL=(ALL) NOPASSWD: /usr/bin/pkill *
-
-# While migrating, we also need all the following.  REMOVE these from visudo after migration.
-
 salvus ALL=(ALL) NOPASSWD: /usr/bin/passwd *
-salvus ALL=(ALL) NOPASSWD: /usr/bin/rsync *
-salvus ALL=(ALL) NOPASSWD: /bin/chown *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupadd *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/useradd *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/groupdel *
 salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
+salvus ALL=(ALL) NOPASSWD: /bin/chown *
+salvus ALL=(ALL) NOPASSWD: /bin/chmod *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/compact_zvol *
+
+Here compact_zvol is the little script:
+
+#!/bin/sh
+dd if=/dev/zero of=$1 bs=8M; rm $1
+
+# While migrating, we also need all the following.  REMOVE these from visudo after migration.
+
+salvus ALL=(ALL) NOPASSWD: /bin/su *
+
 
 
 """
 
 DEFAULT_QUOTA='5G'
 
-import argparse, hashlib, os, random, shutil, string, sys, time, uuid, json
+STREAM_EXTENSION = '.zvol.lz4'
+
+import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
 
 def print_json(s):
@@ -44,23 +54,41 @@ def log(m):
     sys.stderr.write(str(m)+'\n')
     sys.stderr.flush()
 
-def cmd(s, ignore_errors=False, verbose=2):
+def cmd(s, ignore_errors=False, verbose=2, timeout=None):
     if verbose >= 1:
         log(s)
     t = time.time()
-    out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
-    x = out.stdout.read() + out.stderr.read()
-    e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
-    if e:
-        if ignore_errors:
-            return (x + "ERROR").strip()
-        else:
-            raise RuntimeError(x)
-    if verbose>=2:
-        log("(%s seconds): %s"%(time.time()-t, x))
-    elif verbose >= 1:
-        log("(%s seconds)"%(time.time()-t))
-    return x.strip()
+
+    mesg = "ERROR"
+    if timeout:
+        mesg = "TIMEOUT: running '%s' took more than %s seconds, so killed"%(s, timeout)
+        def handle(*a):
+
+            if ignore_errors:
+                return mesg
+            else:
+                raise KeyboardInterrupt(mesg)
+        signal.signal(signal.SIGALRM, handle)
+        signal.alarm(timeout)
+    try:
+        out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
+        x = out.stdout.read() + out.stderr.read()
+        e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
+        if e:
+            if ignore_errors:
+                return (x + "ERROR").strip()
+            else:
+                raise RuntimeError(x)
+        if verbose>=2:
+            log("(%s seconds): %s"%(time.time()-t, x))
+        elif verbose >= 1:
+            log("(%s seconds)"%(time.time()-t))
+        return x.strip()
+    except IOError:
+        return mesg
+    finally:
+        if timeout:
+            signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
 def sync():
     print("syncing file system")
@@ -72,6 +100,18 @@ def filesystem_exists(fs):
         return True
     except:
         return False
+
+def filesystem_size_b(fs):
+    """
+    Return the size of the filesystem in bytes.
+    """
+    return int(cmd("sudo /sbin/zfs get volsize -Hp %s"%fs).split()[2])
+
+def filesystem_size(fs):
+    """
+    Return the size of the filesystem as a human-readable string returned by ZFS.
+    """
+    return cmd("sudo /sbin/zfs get volsize -H %s"%fs).split()[2]
 
 def newest_snapshot(fs):
     out = cmd("sudo /sbin/zfs list -r -t snapshot -o name -s creation %s |tail -1"%fs)
@@ -107,7 +147,7 @@ class Stream(object):
         self.project = project
         self.path    = path
         self.filename = os.path.split(path)[-1]
-        self.start, self.end = self.filename.split('--')
+        self.start, self.end = self.filename.split('.')[0].split('--')   # [date]--[date].zvol.lz4
 
     def __repr__(self):
         return "Stream(%s): %s to %s stored in %s"%(self.project.project_id, self.start, self.end, self.path)
@@ -120,11 +160,11 @@ class Stream(object):
 
     def apply(self):
         """
-        Apply this stream to the image storage for its project.
+        Apply this stream to the zvol for this project.
         """
         if self.project.is_project_pool_imported():
             raise RuntimeError("cannot receive stream while pool already imported")
-        cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -F %s"%(self.path, self.project.image_fs))
+        cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -F %s"%(self.path, self.project.zvol_fs))
 
 def optimal_stream_sequence(v):
     if len(v) == 0:
@@ -185,8 +225,9 @@ class Project(object):
         self.stream_path = stream_path
         if not os.path.exists(self.stream_path):
             os.makedirs(self.stream_path)
-        self.image_fs = os.path.join(self.pool, 'images', project_id)
-        self.project_pool = "project-%s"%self.project_id
+        self.zvol_fs = os.path.join(self.pool, 'zvols', project_id)
+        self.zvol_dev = os.path.join('/dev/zvol/', self.zvol_fs)
+        self.project_pool = "projects-%s"%self.project_id
         self.project_mnt  = mnt
         self.uid = uid(project_id)
         self.stream_thresh_mb = 10
@@ -220,18 +261,15 @@ class Project(object):
         if len(optimal_stream_sequence(self.streams())) > 0:
             self.import_pool()
             return
-        log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
-        cmd("sudo /sbin/zfs create %s"%self.image_fs)
-        mount('/'+self.image_fs, self.image_fs)
-        cmd("sudo /bin/chown %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
-        log("create a sparse image file of size %s"%quota)
-        u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())
-        cmd("truncate -s%s %s"%(quota, u))
-        log("create a pool projects-project_id on the sparse image")
-        cmd("sudo /sbin/zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, u))
+        log("create new sparse zvol POOL/zvols/project_id (error if it exists already)")
+        cmd("sudo /sbin/zfs create -V %s -s %s"%(quota, self.zvol_fs))
+        cmd("sudo /sbin/zfs set sync=disabled %s"%self.zvol_fs)  # CRITICAL to set sync=disabled -- or it is a million times slower
+        log("create a pool on the zvol")
+        cmd("sudo /sbin/zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, self.zvol_dev))
         cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
-        cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
+        cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)  # no problem at all locally.
         cmd("sudo /bin/chown %s:%s %s"%(self.uid, self.uid, self.project_mnt))
+        cmd("sudo /bin/chmod og-rwx %s"%self.project_mnt)
 
         #os.chown(self.project_mnt, self.uid, self.uid)
 
@@ -242,18 +280,6 @@ class Project(object):
         if kill is None:
             kill = self._kill
         self.export_pool(kill=kill)
-        self.umount_image_fs()
-
-    def umount_image_fs(self):
-        """
-        Unmount the given project.
-        """
-        log("unmounting image filesystem")
-        e = cmd("sudo /sbin/zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
-        if e and 'dataset does not exist' not in e:
-            raise RuntimeError(e)
-        if os.path.exists('/'+self.image_fs):
-            os.rmdir('/' + self.image_fs)
 
     def is_project_pool_imported(self):
         s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
@@ -266,29 +292,20 @@ class Project(object):
 
     def import_pool(self):
         """
-        Import the zpool from the images in the image filesystem and mount it.
+        Import the zpool from the zvol and mount it.
         """
         log = self._log("import_pool")
-        s = '/'+self.image_fs
-        if len(optimal_stream_sequence(self.streams())) == 0:
-            if os.path.exists(s) and len(os.listdir(s)) > 0:
-                pass
-            else:
-                log("no streams and no images, so just create a new empty pool.")
-                self.create(DEFAULT_QUOTA)
-                return
+        if len(optimal_stream_sequence(self.streams())) == 0 and not filesystem_exists(self.zvol_fs):
+            log("no streams and no zvol, so just create a new empty pool.")
+            self.create(DEFAULT_QUOTA)
+            if self._is_new:
+                self.create_user()
+            return
         if not self.is_project_pool_imported():
             log("project pool not imported, so receiving streams")
-            # The syncs below are *critical*; without it, we always get total deadlock from this following simple example:
-            #     zfs rollback -r storage/images/bec33943-51b7-4ebb-b51b-15998a83775b@2014-03-14T16:22:43
-            #     cat /storage/streams/bec33943-51b7-4ebb-b51b-15998a83775b/2014-03-14T16:22:43--2014-03-15T22:51:56 | lz4c -d - | sudo zfs recv storage/images/bec33943-51b7-4ebb-b51b-15998a83775b
-            #     zpool import -fN project-bec33943-51b7-4ebb-b51b-15998a83775b -d /storage/images/bec33943-51b7-4ebb-b51b-15998a83775b/
             self.recv_streams()
-            sync()
-            mount(s, self.image_fs)
-            sync()
-            log("now importing project pool from /%s"%self.image_fs)
-            cmd("sudo /sbin/zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
+            log("now importing project pool which is at /%s"%self.zvol_dev)
+            cmd("sudo /sbin/zpool import -fN %s"%self.project_pool)
         log("setting mountpoint to %s"%self.project_mnt)
         mount(self.project_mnt, self.project_pool)
         if self._is_new:
@@ -296,16 +313,15 @@ class Project(object):
 
     def export_pool(self, kill=None):
         """
-        Export the zpool mounted on the image files.
+        Export the zpool.
         """
         if kill is None:
             kill = self._kill
         log = self._log("umount")
-        log("exporting project pool")
+        log("exporting project pool (kill=%s)"%kill)
         if kill:
             log("killing all processes by user with id %s"%self.uid)
-            cmd("sudo /usr/bin/pkill -u %s; sleep 1; sudo /usr/bin/pkill -9 -u %s; sleep 1"%(self.uid,self.uid), ignore_errors=True)
-        cmd("sudo /sbin/zfs umount %s"%self.project_pool, ignore_errors=True)
+            cmd("sudo /usr/bin/pkill -u %s; sleep .25; sudo /usr/bin/pkill -9 -u %s; sleep .25"%(self.uid,self.uid), ignore_errors=True)
         e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
@@ -321,13 +337,8 @@ class Project(object):
         log("getting streams from %s"%self.stream_path)
         v = []
         for x in os.listdir(self.stream_path):
-            p = os.path.join(self.stream_path, x)
-            if os.path.isfile(p) and not x.endswith(".partial") and not x.endswith('.tmp'):
-                if os.path.getsize(p) == 15 and open(p).read() == '\x04"M\x18dp\xb9\x00\x00\x00\x00\x05]\xcc\x02':
-                    # left over files from a bug which was fixed....
-                    os.unlink(p)
-                else:
-                    v.append(Stream(self, p))
+            if x.endswith(STREAM_EXTENSION):
+                v.append(Stream(self, os.path.join(self.stream_path, x)))
         v.sort()
         log("found %s streams"%len(v))
         return v
@@ -341,7 +352,7 @@ class Project(object):
             return
         if self.is_project_pool_imported():
             raise RuntimeError('cannot recv streams since project pool is already imported')
-        snaps   = snapshots(self.image_fs)
+        snaps   = snapshots(self.zvol_fs)
         streams = optimal_stream_sequence(self.streams())
         log("optimal stream sequence: %s"%[x.filename for x in streams])
         log("snapshot sequence: %s"%snaps)
@@ -373,28 +384,22 @@ class Project(object):
             newest_snap = snaps[-1]
             apply_starting_with = len(streams) - 1
             while apply_starting_with >= 0 and rollback_to >= 1:
-                print apply_starting_with, rollback_to
                 if streams[apply_starting_with].start == newest_snap:
-                    print "branch 0"
                     # apply starting here
                     break
                 elif streams[apply_starting_with].end == newest_snap:
-                    print "branch 1"
                     # end of a block in the optimal sequence is the newest snapshot; in this case,
                     # this must be the last step in the optimal sequence, or we would have exited
                     # in the above if.  So there is nothing to apply.
                     return
                 elif streams[apply_starting_with].start < newest_snap and streams[apply_starting_with].end > newest_snap:
-                    print "branch 2"
                     rollback_to -= 1
                     newest_snap = snaps[rollback_to-1]
                 else:
-                    print "branch 3"
                     apply_starting_with -= 1
 
         log("apply_starting_with = %s"%apply_starting_with)
         log("rollback_to = %s"%rollback_to)
-
 
         # streams that need to be applied
         streams = streams[apply_starting_with:]
@@ -404,10 +409,10 @@ class Project(object):
 
         if rollback_to == 0:
             # have to delete them all
-            self.destroy_image_fs()
+            self.destroy_zvol_fs()
         elif rollback_to < len(snaps):
             log("rollback the image file system -- removing %s snapshots"%(len(snaps[rollback_to-1:])))
-            cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.image_fs, snaps[rollback_to-1]))
+            cmd("sudo /sbin/zfs rollback -r %s@%s"%(self.zvol_fs, snaps[rollback_to-1]))
 
         log("now applying %s incoming streams"%len(streams))
         for stream in streams:
@@ -423,7 +428,7 @@ class Project(object):
         end = now()
 
         log("snapshotting image filesystem %s"%end)
-        e = cmd("sudo /sbin/zfs snapshot %s@%s"%(self.image_fs, end), ignore_errors=True)
+        e = cmd("sudo /sbin/zfs snapshot %s@%s"%(self.zvol_fs, end), ignore_errors=True)
         if e:
             if 'dataset does not exist' in e:
                 # not mounted -- nothing to do
@@ -435,10 +440,10 @@ class Project(object):
         v = self.streams()
         log("there are %s streams already"%len(v))
 
-        # We locate the newest snapshot that we have in our image_fs
+        # We locate the newest snapshot that we have in our zvol_fs
         # such that there is also a stream that ends there,
         # which isn't too small. Then send starting from that point.
-        snaps = snapshots(self.image_fs)
+        snaps = snapshots(self.zvol_fs)
         big_stream_ends = set([x.end for x in v if x.size_mb() >= self.stream_thresh_mb])
         start = end
         for snap in reversed(snaps):
@@ -447,11 +452,11 @@ class Project(object):
                 start = snap
                 break
         if start == end:
-            snap = "%s@%s"%(self.image_fs, end)
+            snap = "%s@%s"%(self.zvol_fs, end)
         else:
-            snap = " -i %s@%s %s@%s"%(self.image_fs, start, self.image_fs, end)
+            snap = " -i %s@%s %s@%s"%(self.zvol_fs, start, self.zvol_fs, end)
 
-        target = os.path.join(self.stream_path, "%s--%s"%(start, end))
+        target = os.path.join(self.stream_path, "%s--%s%s"%(start, end, STREAM_EXTENSION))
         try:
             log("sending new stream: %s"%target)
             try:
@@ -510,35 +515,63 @@ class Project(object):
         Increase the quota of the project by the given amount.
         """
         log = self._log("increase_quota")
-        log("chowning /%s to salvus user in case stream fs owned by root"%self.image_fs)
-        cmd("sudo /bin/chown -R %s:%s /%s"%(os.getuid(), os.getgid(), self.image_fs))
+        if not amount.endswith('G'):
+            raise RuntimeError("amount must be of the form '[number]G'")
+        log("expanding the zvol by size %s"%amount)
+        size = filesystem_size(self.zvol_fs)
+        if not size.endswith("G"):
+            raise NotImplementedError("filesystem size must end in G")
+        # never shrink, which would *destroy the pool horribly!*
+        new_size = int(math.ceil(float(amount[:-1]) + float(size[:-1])))
+        cmd("sudo /sbin/zfs set volsize=%sG %s"%(new_size, self.zvol_fs))
+        e = cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_dev), ignore_errors=True)
+        if 'ERROR' not in e:
+            return
+        if 'no such device in pool' in e:
+            # sometimes the zvol_dev is required and sometimes the actual device name; I don't know how to tell which.
+            cmd("sudo /sbin/zpool online -e %s %s"%(self.project_pool, self.zvol_device_name()))
+        else:
+            raise RuntimeError(e)
 
-        log("create a new sparse image file of size %s"%amount)
-        for i in range(100):
-            u = "/%s/%s.img"%(self.image_fs, uuid.uuid4())
-            if not os.path.exists(u):
-                break
-        if os.path.exists(u):
-            raise RuntimeError("impossible situation with uuid not being random.")
-        log("creating sparse image file %s of size %s"%(u, amount))
-        cmd("truncate -s%s %s"%(amount, u))
-        log("adding sparse image file %s to pool %s"%(u, self.project_pool))
-        cmd("sudo /sbin/zpool add %s %s"%(self.project_pool, u))
+    def zvol_device_name(self):
+        return os.path.split(os.readlink(self.zvol_dev))[-1]
+
+    def compact_zvol(self):
+        """
+        This takes "about 10-15 seconds per gigabyte".
+         1. *ensure* that compression is enabled on the pool that contains the zvol but not on the
+            pool that is live on the zvol!
+         2. Inside the mounted zpool do this:  "dd if=/dev/zero of=MYFILE bs=1M; rm MYFILE"
+         3. We will only do this shrinking rarely, when doing a save *and* the size of the user's
+            zpool is (significantly) smaller than the zvol.  It only takes about 5s/gb.
+            We'll disable compression, do the shrink, then re-enable compression.
+            This isn't the worst trick ever.
+        Discussion here: http://comments.gmane.org/gmane.os.solaris.opensolaris.zfs/35630
+        """
+        tmp = None
+        try:
+            cmd("sudo /sbin/zfs set compression=off %s"%self.project_pool)
+            cmd("sudo /sbin/zfs set dedup=off %s"%self.project_pool)
+            tmp = os.path.join(self.project_mnt, "." + str(uuid.uuid4()))
+            #cmd("dd if=/dev/zero of='%s' bs=8M"%tmp, ignore_errors=True)   # this *will* error when we run out of space
+            cmd("sudo /usr/local/bin/compact_zvol %s"%tmp, ignore_errors=True)
+        finally:
+            cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
+            cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
 
     def close(self, kill=None, send_streams=True):
         """
         send_streams (if send_streams is true), unmount, then destroy image filesystem, leaving only streams.
 
-        Dangeorus with send_streams=False.
+        VERY Dangeorus with send_streams=False.
         """
         if kill is None:
             kill = self._kill
         log = self._log("close")
-        self.export_pool(kill=kill)
+        self.umount(kill=kill)
         if send_streams:
             self.send_streams()
-        self.umount_image_fs()
-        self.destroy_image_fs()
+        self.destroy_zvol_fs()
 
     def replicate(self, target, delete=False):
         """
@@ -552,16 +585,16 @@ class Project(object):
         """
         cmd("rsync -axvH %s %s/ %s:%s/"%('--delete' if delete else '', self.stream_path, target, self.stream_path))
 
-    def destroy_image_fs(self,kill=None):
+    def destroy_zvol_fs(self,kill=None):
         """
-        Destroy the image filesystem.
+        Destroy the zvol.
         """
         if kill is None:
             kill = self._kill
-        log = self._log("destroy_image_fs")
+        log = self._log("destroy_zvol_fs")
         if self.is_project_pool_imported():
             self.export_pool(kill=kill)
-        e = cmd("sudo /sbin/zfs destroy -r %s"%self.image_fs, ignore_errors=True)
+        e = cmd("sudo /sbin/zfs destroy -r %s"%self.zvol_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
 
@@ -580,11 +613,46 @@ class Project(object):
         if kill is None:
             kill = self._kill
         self.umount(kill=kill)
-        self.destroy_image_fs()
+        self.destroy_zvol_fs()
         self.destroy_streams()
 
+    def migrate_from(self, host, timeout=120):
+        """
+        The timeout is for initially mounting the remote filesystem.
+        """
+        if not host:
+            raise ValueError("must provide the host")
 
-    # NOTE -- all migrate stuff must be run as root. #
+        mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s; sudo zfs get -H quota projects/%s"'%(
+              host, self.project_id, self.project_id, self.project_id, self.project_id)
+        rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
+        umnt  = 'ssh %s "sudo zfs umount projects/%s"'%(host, self.project_id)
+        try:
+            cmd("sudo /bin/cp -r /home/salvus/.ssh %s/"%self.project_mnt)
+            cmd("sudo /bin/chown -R %s %s/.ssh"%(self.username, self.project_mnt))
+
+            # if the host is zfs foo-bared locked, then this will timeout...
+            a = cmd(mnt, ignore_errors=True, timeout=timeout)
+            if "TIMEOUT" in a:
+                raise RuntimeError("MOUNT ERROR: unable to connect to %s and mount project within %s seconds"%(host, timeout))
+
+            i = a.find("quota")
+            if i == -1:
+                raise RuntimeError("unable to get quota")
+            quota = a[i:].split()[1]  # next after quota
+            size = filesystem_size(self.zvol_fs)
+            if not size.endswith("G"):
+                raise NotImplementedError("filesystem size must end in G")
+            q = math.ceil(float(quota[:-1]))
+            s = math.ceil(float(size[:-1]))
+            if s < q:
+                self.increase_quota("%sG"%(q-s))
+
+            cmd("sudo /bin/su - %s -c '%s'"%(self.username, rsync), timeout=60*60)  # can't take more than an hour
+
+            cmd(umnt, ignore_errors=True, timeout=30)  # not a big deal if unmount isn't guaranteed
+        finally:
+            cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
 
     def _create_migrate_user(self):
         u = self.uid
@@ -651,7 +719,6 @@ class Project(object):
         def remove_user(passwd_file):
             os.unlink(passwd_file)
             self._delete_migrate_user()
-
 
         if snapshot is None:
             log("migrating all missing snapshots")
@@ -740,13 +807,16 @@ if __name__ == "__main__":
                                    dest="kill", default=None, action="store_const", const=True)
     parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
 
-    parser_destroy_image_fs = subparsers.add_parser('destroy_image_fs', help='export project pool and destroy the image filesystem, leaving only streams')
-    parser_destroy_image_fs.add_argument("--kill", help="kill all processes by user first",
+    parser_destroy_zvol_fs = subparsers.add_parser('destroy_zvol_fs', help='export project pool and destroy the image filesystem, leaving only streams')
+    parser_destroy_zvol_fs.add_argument("--kill", help="kill all processes by user first",
                                    dest="kill", default=None, action="store_const", const=True)
-    parser_destroy_image_fs.set_defaults(func=lambda args: project.destroy_image_fs(kill=args.kill))
+    parser_destroy_zvol_fs.set_defaults(func=lambda args: project.destroy_zvol_fs(kill=args.kill))
 
     parser_destroy_streams = subparsers.add_parser('destroy_streams', help='destroy all streams stored locally')
     parser_destroy_streams.set_defaults(func=lambda args: project.destroy_streams())
+
+    parser_compact_zvol = subparsers.add_parser('compact_zvol', help='compact the zvol, so exporting it will take way less space in case it has blown up and shrunk -- would only make sense after deleting snapshots')
+    parser_compact_zvol.set_defaults(func=lambda args: project.compact_zvol())
 
     parser_snapshot_pool = subparsers.add_parser('snapshot_pool', help='snapshot the project zpool')
     parser_snapshot_pool.add_argument("--name", dest="name", help="name of snapshot (default: ISO date)", type=str, default='')
@@ -768,6 +838,10 @@ if __name__ == "__main__":
 
     parser_migrate_snapshots = subparsers.add_parser('migrate_snapshots', help='ensure new project has all snapshots from old project')
     parser_migrate_snapshots.set_defaults(func=lambda args: project.migrate_snapshots())
+
+    parser_migrate_from = subparsers.add_parser('migrate_from', help='get content from')
+    parser_migrate_from.add_argument("--host", dest="host", help="required hostname", type=str, default='')
+    parser_migrate_from.set_defaults(func=lambda args: project.migrate_from(host=args.host))
 
     args = parser.parse_args()
 

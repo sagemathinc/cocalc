@@ -516,6 +516,8 @@ exports.uniquify_string = (s) ->
             seen_already[c] = true
     return t
 
+exports.endswith = (s, t) ->
+    return s.slice(s.length - t.length) == t
 
 # Return string t=s+'\n'*k so that t ends in at least n newlines.
 # Returns s itself (so no copy made) if s already ends in n newlines (a common case).

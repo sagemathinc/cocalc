@@ -31,7 +31,8 @@ if hostname.startswith('compute'):
     # machine on the VPN.  However, even that is destroyed when the machine is restarted
     # (at least at UW) and I think being on the vpn doesn't immediately provide a way
     # to break in; it's just a step.
-    os.system('rm -rf /home/salvus/.ssh/id_rsa')
+    if 'dc' not in hostname:  # temporarily disable since we need this for migration3
+        os.system('rm -rf /home/salvus/.ssh/id_rsa')
 
     # Restore existing user accounts
     if os.path.exists('/mnt/home/etc/'):

@@ -27,9 +27,12 @@ cql     = require("node-cassandra-cql")
 STATE_CONSISTENCY = cql.types.consistencies.quorum
 
 REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
-REGISTRATION_TTL_S      = 30       # ttl for registration record
+REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*3600
+
+
+ZVOL_EXTENSION = '.zvol.lz4'
 
 DATA = 'data'
 
@@ -55,22 +58,25 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 ## server-side: Storage server code
 ###########################
 
-# We limit the maximum number of simultaneous smc_storage.py calls to allow at once, since
+# We limit the maximum number of simultaneous zvol_storage.py calls to allow at once, since
 # this allows us to control ZFS contention, deadlocking, etc.
-SMC_STORAGE_LIMIT = 1
+# This is *CRITICAL*.  For better or worse, ZFS is incredibly broken when you try to do
+# multiple operations on a pool at once.  It's really sad.  But one at a time it works fine.
+ZVOL_STORAGE_LIMIT = 1
 
-# Execute a command using the smc_storage script.
-_smc_storage_no_queue = (opts) =>
+# Execute a command using the zvol_storage script.
+_zvol_storage_no_queue = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("_smc_storage_no_queue: #{misc.to_json(opts.args)}")
+    winston.debug("_zvol_storage_no_queue: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
-        command : "smc_storage.py"
+        command : "zvol_storage.py"
         args    : opts.args
         timeout : opts.timeout
         cb      : (err, output) =>
+            winston.debug("_zvol_storage_no_queue: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -79,29 +85,30 @@ _smc_storage_no_queue = (opts) =>
             else
                 opts.cb()
 
-_smc_storage_queue = []
-_smc_storage_queue_running = 0
+_zvol_storage_queue = []
+_zvol_storage_queue_running = 0
 
-smc_storage = (opts) =>
+zvol_storage = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    _smc_storage_queue.push(opts)
-    process_smc_storage_queue()
+    _zvol_storage_queue.push(opts)
+    process_zvol_storage_queue()
 
-process_smc_storage_queue = () ->
-    if _smc_storage_queue_running >= SMC_STORAGE_LIMIT
+process_zvol_storage_queue = () ->
+    winston.debug("process_zvol_storage_queue: _zvol_storage_queue_running=#{_zvol_storage_queue_running}; _zvol_storage_queue.length=#{_zvol_storage_queue.length}")
+    if _zvol_storage_queue_running >= ZVOL_STORAGE_LIMIT
         return
-    if _smc_storage_queue.length > 0
-        opts = _smc_storage_queue.shift()
-        _smc_storage_queue_running += 1
+    if _zvol_storage_queue.length > 0
+        opts = _zvol_storage_queue.shift()
+        _zvol_storage_queue_running += 1
         cb = opts.cb
         opts.cb = (err, output) =>
-            _smc_storage_queue_running -= 1
-            process_smc_storage_queue()
+            _zvol_storage_queue_running -= 1
+            process_zvol_storage_queue()
             cb(err, output)
-        _smc_storage_no_queue(opts)
+        _zvol_storage_no_queue(opts)
 
 
 # A project from the point of view of the storage server
@@ -114,7 +121,7 @@ class Project
         @_action_queue   = []
         @project_id      = opts.project_id
         @verbose         = opts.verbose
-        @mnt             = "/mnt/#{@project_id}"
+        @mnt             = "/projects/#{@project_id}"
         @stream_path     = "#{program.stream_path}/#{@project_id}"
         @chunked_storage = database.chunked_storage(id:@project_id, verbose:@verbose)
 
@@ -134,8 +141,8 @@ class Project
             args.push(a)
         args.push(@project_id)
 
-        @dbg("exec", opts.args, "executing smc script")
-        smc_storage
+        @dbg("exec", opts.args, "executing zvol_storage.py script")
+        zvol_storage
             args    : args
             timeout : opts.timeout
             cb      : opts.cb
@@ -382,7 +389,7 @@ class Project
                         if err
                             cb(err)
                         else
-                            remote_files = (f.name for f in files)
+                            remote_files = (f.name for f in files when misc.endswith(f.name, ZVOL_EXTENSION))
                             dbg("remote_files=#{misc.to_json(remote_files)}")
                             cb()
             (cb) =>
@@ -398,7 +405,7 @@ class Project
                     if err
                         cb(err)
                     else
-                        local_files = (x for x in files when x.slice(x.length-4) != '.tmp')
+                        local_files = (x for x in files when misc.endswith(x, ZVOL_EXTENSION))
                         dbg("local_files=#{misc.to_json(local_files)}")
                         cb()
             (cb) =>
@@ -412,9 +419,9 @@ class Project
                     put = true
                     cb()
                 else
-                    local_times = (x.split('--')[1] for x in local_files when x.length == 40)
+                    local_times = (x.slice(0,40).split('--')[1] for x in local_files when misc.endswith(x, ZVOL_EXTENSION))
                     local_times.sort()
-                    remote_times = (x.split('--')[1] for x in remote_files when x.length == 40)
+                    remote_times = (x.slice(0,40).split('--')[1] for x in remote_files when misc.endswith(x, ZVOL_EXTENSION))
                     remote_times.sort()
                     # put = true if local is newer.
                     put = local_times[local_times.length-1] > remote_times[remote_times.length-1]
@@ -441,14 +448,15 @@ class Project
         ], cb)
 
 
-optimal_stream = (v) ->
+exports.optimal_stream = optimal_stream = (v) ->
     # given a array of stream filenames that represent date ranges, of this form:
-    #     [UTC date]--[UTC date]
+    #     [UTC date]--[UTC date]ZVOL_EXTENSION
     # find the optimal sequence, i.e., the linear subarray that ends with the newest date,
     # and starts with an empty interval.
     if v.length == 0
         return v
-    v = v.slice(0) # make a copy
+    # get rid of extension
+    v = (x.slice(0,40) for x in v)
     v.sort (a,b) ->
         a = a.split('--')
         b = b.split('--')
@@ -484,7 +492,7 @@ optimal_stream = (v) ->
         # Did we end with a an interval of length 0, i.e., a valid sequence?
         x = w[w.length-1].split('--')
         if x[0] == x[1]
-            return w
+            return (f+ZVOL_EXTENSION for f in w)
         v.shift()  # delete first element -- it's not the end of a valid sequence.
 
 
@@ -499,28 +507,20 @@ handle_mesg = (socket, mesg) ->
     id = mesg.id
     if mesg.event == 'storage'
         t = misc.walltime()
-        is_project_new mesg.project_id, (err, is_new) ->
-            if err
-                socket.write_mesg('json', message.error(error:err, id:id))
-                return
+        project = get_project(mesg.project_id)
 
-            project = get_project(mesg.project_id)
-
-            if is_new
-                project.mnt = "/projects/#{mesg.project_id}"
-
-            project.action
-                action : mesg.action
-                param  : mesg.param
-                cb     : (err, result) ->
-                    if err
-                        resp = message.error(error:err, id:id)
-                    else
-                        resp = message.success(id:id)
-                    if result?
-                        resp.result = result
-                    resp.time_s = misc.walltime(t)
-                    socket.write_mesg('json', resp)
+        project.action
+            action : mesg.action
+            param  : mesg.param
+            cb     : (err, result) ->
+                if err
+                    resp = message.error(error:err, id:id)
+                else
+                    resp = message.success(id:id)
+                if result?
+                    resp.result = result
+                resp.time_s = misc.walltime(t)
+                socket.write_mesg('json', resp)
     else
         socket.write_mesg('json', message.error(id:id,error:"unknown event type: '#{mesg.event}'"))
 
@@ -567,11 +567,10 @@ update_register_with_database = () ->
         where : {dummy:true, compute_id:server_compute_id}
         ttl   : REGISTRATION_TTL_S
         cb    : (err) ->
-            return  # not needed and too verbose
             if err
                 winston.debug("error registering storage server with database: #{err}")
-            else
-                winston.debug("registered with database")
+            #else
+                #winston.debug("registered with database")
 
 register_with_database = (cb) ->
     database.update
@@ -1464,6 +1463,7 @@ class ClientProject
                             for f in optimal_stream((a.name for a in files))
                                 to_keep[f] = true
                             to_remove = (f.name for f in files when not to_keep[f.name])
+                            @dbg("delete_nonoptimal_streams: removing #{misc.to_json(to_remove)}")
                             cb()
             (cb) =>
                 f = (name, c) =>
@@ -1478,7 +1478,7 @@ class ClientProject
     migrate_snapshots: (opts) =>
         opts = defaults opts,
             cb   : undefined
-        @dbg('migrate', opts.name, "")
+        @dbg('migrate_snapshots', '', "")
         @_update_compute_id (err) =>
             if err
                 opts.cb(err); return
@@ -1487,6 +1487,22 @@ class ClientProject
             @action
                 compute_id : @compute_id
                 action     : 'migrate_snapshots'
+                cb         : opts.cb
+
+    migrate_from: (opts) =>
+        opts = defaults opts,
+            host : required
+            cb   : undefined
+        @dbg('migrate_from', opts.host, "")
+        @_update_compute_id (err) =>
+            if err
+                opts.cb(err); return
+            if not @compute_id?
+                opts.cb?("not opened"); return
+            @action
+                compute_id : @compute_id
+                action     : 'migrate_from'
+                param      : ['--host', opts.host]
                 cb         : opts.cb
 
 
