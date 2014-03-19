@@ -24,9 +24,9 @@ cassandra = require('cassandra')
 cql     = require("node-cassandra-cql")
 {defaults, required} = misc
 
-STATE_CONSISTENCY = cql.types.consistencies.quorum
+STATE_CONSISTENCY = cql.types.consistencies.two
 
-REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
+REGISTRATION_INTERVAL_S = 15       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*3600
@@ -250,6 +250,7 @@ class Project
     delete_queue: () =>  # DANGEROUS -- ignores anything "in progress"
         @_action_queue = []
         @_action_queue_running = 0
+        delete @_action_queue_current
 
     _action: (opts) =>
         opts = defaults opts,
@@ -560,10 +561,15 @@ init_compute_id = (cb) ->
                     server_compute_id = data.toString()
                     cb()
 
+zfs_queue_len = () ->
+    n = _zvol_storage_queue.length + _zvol_storage_queue_running
+    #winston.debug("zfs_queue_len = #{n} = #{_zvol_storage_queue.length} + #{_zvol_storage_queue_running} ")
+    return n
+
 update_register_with_database = () ->
     database.update
         table : 'compute_hosts'
-        set   : {port : program.port, up_since:up_since}
+        set   : {port : program.port, up_since:up_since, zfs_queue_len:zfs_queue_len()}
         where : {dummy:true, compute_id:server_compute_id}
         ttl   : REGISTRATION_TTL_S
         cb    : (err) ->
@@ -882,21 +888,23 @@ get_available_compute_host = (opts) ->
                 where.host = opts.host
             database.select
                 table     : 'compute_hosts'
-                columns   : ['compute_id', 'host', 'port', 'up_since', 'health']
+                columns   : ['compute_id', 'host', 'port', 'up_since', 'health', 'zfs_queue_len']
                 where     : where
                 objectify : true
                 cb        : (err, results) ->
                     if err
                         cb(err)
                     else
-                        r = ([x.health, x] for x in results when x.port? and x.host? and x.up_since?)
+                        # randomize amongst servers with the same health and queue length
+                        r = ([x.health, x.zfs_queue_len, Math.random(), x] for x in results when x.port? and x.host? and x.up_since?)
                         r.sort()
                         if r.length == 0
                             cb("no available hosts")
                         else
                             # TODO: currently just ignoring health...  Can't just take the healthiest either
                             # since that one would get quickly overloaded, so be careful!
-                            x = misc.random_choice(r)[1]
+                            z = r[0]
+                            x = z[z.length-1]
                             winston.debug("got host with compute_id=#{x.compute_id}")
                             cb(undefined)
     ], (err) -> opts.cb(err, x))
@@ -1057,6 +1065,19 @@ class ClientProject
         @action
             compute_id : opts.compute_id
             action     : 'queue'
+            cb         : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.result)
+
+    delete_queue: (opts) =>
+        opts = defaults opts,
+            compute_id : undefined
+            cb         : required
+        @action
+            compute_id : opts.compute_id
+            action     : 'delete_queue'
             cb         : (err, resp) =>
                 if err
                     opts.cb(err)
@@ -1278,8 +1299,16 @@ class ClientProject
                 if opts.compute_id? and @compute_id != opts.compute_id
                     opts.cb?("already opened on a different host (#{@compute_id})")
                     return
-                compute_id_to_host @compute_id, (err, host) =>
-                    opts.cb?(err, {compute_id:@compute_id, host:host})
+                # already opened according to database -- ensure that it is *really* open
+                @action
+                    compute_id : compute_id
+                    action     : 'import_pool'
+                    cb         : (err) =>
+                        if err
+                            opts.cb?(err)
+                        else
+                            compute_id_to_host @compute_id, (err, host) =>
+                                opts.cb?(err, {compute_id:@compute_id, host:host})
                 return
 
             compute_id = undefined
@@ -1355,9 +1384,9 @@ class ClientProject
                 sync(opts.compute_id, opts.cb)
             else
                 v = (x.compute_id for x in state when not x.import_pool?)
-                async.map(v, sync, (err) => opts.cb(err))
+                async.map(v, sync, (err) => opts.cb?(err))
 
-    # destroy all traces of this project on the give compute host, leaving only what is in the database
+    # destroy all traces of this project on the given compute host
     destroy: (opts) =>
         opts = defaults opts,
             compute_id : undefined
@@ -1473,37 +1502,23 @@ class ClientProject
                 async.map(to_remove, f, cb)
         ], (err) => opts.cb?(err))
 
-
-    # copy over any snapshots from the old version of the project on the host where project is opened.
-    migrate_snapshots: (opts) =>
-        opts = defaults opts,
-            cb   : undefined
-        @dbg('migrate_snapshots', '', "")
-        @_update_compute_id (err) =>
-            if err
-                opts.cb(err); return
-            if not @compute_id?
-                opts.cb?("not opened"); return
-            @action
-                compute_id : @compute_id
-                action     : 'migrate_snapshots'
-                cb         : opts.cb
-
     migrate_from: (opts) =>
         opts = defaults opts,
             host : required
             cb   : undefined
         @dbg('migrate_from', opts.host, "")
-        @_update_compute_id (err) =>
-            if err
-                opts.cb(err); return
-            if not @compute_id?
-                opts.cb?("not opened"); return
-            @action
-                compute_id : @compute_id
-                action     : 'migrate_from'
-                param      : ['--host', opts.host]
-                cb         : opts.cb
+        async.series([
+            (cb) =>
+                @open
+                    host : opts.host
+                    cb         : cb
+            (cb) =>
+                @action
+                    compute_id : @compute_id
+                    action     : 'migrate_from'
+                    param      : ['--host', opts.host]
+                    cb         : cb
+        ], opts.cb)
 
 
 client_project_cache = {}
@@ -1539,7 +1554,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster (default: hard coded)', String, '')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "storage")', String, 'storage')
     .option('--username [string]', 'Cassandra username to use (default: "storage_server")', String, 'storage_server')
-    .option('--consistency [number]', 'Cassandra consistency level (default: quorum)', String, 'quorum')
+    .option('--consistency [number]', 'Cassandra consistency level (default: two)', String, 'two')
 
     .option('--stream_path [string]', 'Path where streams are stored (default: /storage/streams)', String, '/storage/streams')
     .option('--pool [string]', 'Storage pool used for images (default: storage)', String, 'storage')
@@ -1563,10 +1578,7 @@ if not program.database_nodes
     else if a == 1 and b>=10 and b<=21
         program.database_nodes = ("10.1.#{i}.1" for i in [10..21]).join(',')
     else if a == 3
-        # for now, until the new data center's nodes are spun up:
-        program.database_nodes = ("10.1.#{i}.1" for i in [1..7]).join(',')
-        # once the new cassandra nodes at Google are up to date:
-        #program.database_nodes = ("10.3.#{i}.1" for i in [1..4])
+        program.database_nodes = ("10.3.#{i}.1" for i in [1..4])
 
 main = () ->
     if program.debug

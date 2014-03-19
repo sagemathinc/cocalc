@@ -379,16 +379,20 @@ exports.from_cassandra = from_cassandra = (value, json) ->
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
         opts = defaults opts,
-            hosts    : ['localhost']
-            cb       : undefined
-            keyspace : undefined
-            username : undefined
-            password : undefined
-            consistency : undefined
-            verbose : false # quick hack for debugging...
+            hosts           : ['localhost']
+            cb              : undefined
+            keyspace        : undefined
+            username        : undefined
+            password        : undefined
+            query_timeout_s : 60    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
+            query_max_retry : 10    # max number of retries
+            consistency     : undefined
+            verbose         : false # quick hack for debugging...
             conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
 
         @keyspace = opts.keyspace
+        @query_timeout_s = opts.query_timeout_s
+        @query_max_retry = opts.query_max_retry
 
         if opts.hosts.length == 1
             # the default QUORUM won't work if there is only one node.
@@ -640,7 +644,7 @@ class exports.Cassandra extends EventEmitter
             consistency = undefined
         if not consistency?
             consistency = @consistency
-        f = (c) =>
+        g = (c) =>
             try
                 @conn.execute query, vals, consistency, (error, results) =>
                     if error
@@ -651,20 +655,38 @@ class exports.Cassandra extends EventEmitter
                         c(error)
                     else
                         cb?(error, results?.rows)
+                        cb = undefined  # ensure is only called once
                         c()
             catch e
                 m = "exception doing cql query -- #{misc.to_json(e).slice(0,1000)}"
                 winston.error(m)
                 cb?(m)
+                cb = undefined  # ensure is only called once
                 c()
+
+        f = (c) =>
+            failed = () =>
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
+                winston.error(m)
+                c(m)
+                c = undefined # ensure only called once
+            _timer = setTimeout(failed, 1000*@query_timeout_s)
+            g (err) =>
+                clearTimeout(_timer)
+                c?(err)
 
         # If a query fails due to "Operation timed out", then we will keep retrying, up to 10 times, with exponential backoff.
         # ** This is ABSOLUTELY critical, if we have a loaded system, slow nodes, want to use consistency level > 1, etc, **
         # since otherwise all our client code would have to do this...
         misc.retry_until_success
             f         : f
-            max_tries : 10
+            max_tries : @query_max_retry
             max_delay : 3000
+            cb        : (err) =>
+                if err
+                    cb?("query failed even after #{@query_max_retry} attempts -- giving up -- #{err}")
+                else
+                    cb?()
 
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
@@ -2719,7 +2741,7 @@ class ChunkedStorage
             db      : required     # db = a database connection
             id      : required     # id = a uuid
             verbose : true   # verbose = if true, log a lot about what happens.
-            limit   : 10
+            limit   : 3
         @db = opts.db
         @id = opts.id
         @verbose = opts.verbose
@@ -2759,6 +2781,8 @@ class ChunkedStorage
             age_s : 120*60  # 2 hours -- delete all chunks associated to any records in storage_active that are at least this old
             cb    : undefined
         dbg = (m) => @dbg('delete_lost_chunks', '', m)
+
+        opts.cb("TODO: do not use this yet -- it should be changed to verify that lost data *really* is lost!  Since the way things are done, the data could be perfectly written and the only problem is deleting the storage writing record.")
 
         results = undefined
         tm      = exports.seconds_ago(opts.age_s)
@@ -2835,7 +2859,7 @@ class ChunkedStorage
             blob          : undefined  # Buffer  # EXACTLY ONE of blob or path must be defined
             filename      : undefined  # filename  -- instead read blob directly from file, which will work even if file is HUGE
             chunk_size_mb : 4          # 4MB
-            limit         : undefined          # max number of chunks to save at once
+            limit         : undefined  # max number of chunks to save at once
             cb            : undefined
 
         if not opts.limit?
@@ -2910,6 +2934,7 @@ class ChunkedStorage
                         fs.read fd, chunk, 0, chunk.length, start, (err) =>
                             c(err, chunk)
 
+                num_saved = 0
                 f = (i, c) =>
                     t = misc.walltime()
                     chunk_id = chunk_ids[i]
@@ -2922,22 +2947,13 @@ class ChunkedStorage
                         else
                             query = "UPDATE storage_chunks SET chunk=?, size=? WHERE chunk_id=?"
                             @db.cql query, [chunk, chunk.length, chunk_id], 1, (err) =>
-                                dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
+                                num_saved += 1
+                                dbg("saved chunk #{i} -- now #{num_saved} of #{num_chunks} done.  (#{misc.walltime(t)} s)")
                                 c(err)
 
-                g = (i, c) =>
-                    h = (c) =>
-                        f(i,c)
-
-                    misc.retry_until_success
-                        f         : h
-                        max_tries : 15
-                        max_delay : 5000
-                        cb        : c
-
-                async.mapLimit [0...num_chunks], opts.limit, g, (err) =>
+                async.mapLimit [0...num_chunks], opts.limit, f, (err) =>
                     if err
-                        dbg("something went wrong writing chunks (#{err}): delete any chunks we just wrote")
+                        dbg("something went wrong writing chunks (#{misc.to_json(err)}): delete any chunks we just wrote")
                         g = (id, c) =>
                             @db.delete
                                 table : 'storage_chunks'

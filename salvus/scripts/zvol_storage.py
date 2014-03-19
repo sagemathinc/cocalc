@@ -15,6 +15,10 @@ salvus ALL=(ALL) NOPASSWD: /usr/sbin/userdel *
 salvus ALL=(ALL) NOPASSWD: /bin/chown *
 salvus ALL=(ALL) NOPASSWD: /bin/chmod *
 salvus ALL=(ALL) NOPASSWD: /usr/local/bin/compact_zvol *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_ssh_access.py *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/ensure_file_exists.py *
+salvus ALL=(ALL) NOPASSWD: /usr/local/bin/cgroup.py *
+salvus ALL=(ALL) NOPASSWD: /bin/ln *
 
 Here compact_zvol is the little script:
 
@@ -24,14 +28,35 @@ dd if=/dev/zero of=$1 bs=8M; rm $1
 # While migrating, we also need all the following.  REMOVE these from visudo after migration.
 
 salvus ALL=(ALL) NOPASSWD: /bin/su *
-
+salvus ALL=(ALL) NOPASSWD: /bin/cp *
+salvus ALL=(ALL) NOPASSWD: /bin/rm *
 
 
 """
 
-DEFAULT_QUOTA='5G'
+# Default amount of disk space
+DEFAULT_QUOTA      = '5G'
+
+# Default cap on amount of RAM in Gigbaytes
+DEFAULT_MEMORY_G   = 8
+
+# Default share of the CPU
+DEFAULT_CPU_SHARES = 256
+
+# Cap on number of simultaneous cores
+DEFAULT_CORE_QUOTA = 2   # -1=no limit; 2 = up to two cores
+
+
+
+
 
 STREAM_EXTENSION = '.zvol.lz4'
+
+SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/local_hub_template/"
+BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
+BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
+
+SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
 import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
@@ -162,7 +187,7 @@ class Stream(object):
         """
         Apply this stream to the zvol for this project.
         """
-        if self.project.is_project_pool_imported():
+        if self.project.project_pool_is_imported():
             raise RuntimeError("cannot receive stream while pool already imported")
         cmd("cat '%s' | lz4c -d - | sudo /sbin/zfs recv -F %s"%(self.path, self.project.zvol_fs))
 
@@ -208,14 +233,14 @@ def optimal_stream_sequence(v):
         if len(v) > 0:
             del v[0]  # delete first element -- it's not the end of a valid sequence.
 
+
+
+
 class Project(object):
     def __init__(self, project_id, pool, mnt, stream_path, login_shell='/bin/bash'):
         if mnt.startswith('/projects/'):
-            # kill by default when unmounting, exporting, etc., since use could be running code in there.
-            self._kill = True
             self._is_new = True
         else:
-            self._kill = False
             self._is_new = False
         if uuid.UUID(project_id).get_version() != 4:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
@@ -233,6 +258,9 @@ class Project(object):
         self.stream_thresh_mb = 10
         self.username = self.project_id.replace('-','')
         self.login_shell = login_shell
+        self.sagemathcloud_base_fs = os.path.join(self.pool, 'sagemathcloud')
+        self.sagemathcloud_template_fs = os.path.join(self.sagemathcloud_base_fs, 'template')
+        self.sagemathcloud_fs = os.path.join(self.sagemathcloud_base_fs, project_id)
 
     def __repr__(self):
         return "Project(%s)"%project_id
@@ -251,7 +279,6 @@ class Project(object):
     def delete_user(self):
         u = self.uid
         cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(self.username, self.username), ignore_errors=True)
-
 
     def create(self, quota=DEFAULT_QUOTA):
         """
@@ -273,15 +300,13 @@ class Project(object):
 
         #os.chown(self.project_mnt, self.uid, self.uid)
 
-    def umount(self, kill=None):
+    def umount(self):
         """
         Unmount the given project.
         """
-        if kill is None:
-            kill = self._kill
-        self.export_pool(kill=kill)
+        self.export_pool()
 
-    def is_project_pool_imported(self):
+    def project_pool_is_imported(self):
         s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
         if 'no such pool' in s:
             return False
@@ -301,7 +326,7 @@ class Project(object):
             if self._is_new:
                 self.create_user()
             return
-        if not self.is_project_pool_imported():
+        if not self.project_pool_is_imported():
             log("project pool not imported, so receiving streams")
             self.recv_streams()
             log("now importing project pool which is at /%s"%self.zvol_dev)
@@ -311,23 +336,35 @@ class Project(object):
         if self._is_new:
             self.create_user()
 
-    def export_pool(self, kill=None):
+    def kill(self, grace_s=0.25):
+        log("killing all processes by user with id %s"%self.uid)
+        MAX_TRIES=10
+        for i in range(MAX_TRIES):
+            cmd("sudo /usr/bin/pkill -u %s; sleep %s; sudo /usr/bin/pkill -9 -u %s"%(self.uid, grace_s, self.uid), ignore_errors=True)
+            n = self.num_procs()
+            log("kill attempt left %s procs"%n)
+            if n == 0:
+                break
+
+    def pids(self):
+        return [int(x) for x in cmd("pgrep -u %s"%self.uid, ignore_errors=True).replace('ERROR','').split()]
+
+    def num_procs(self):
+        return len(self.pids())
+
+    def export_pool(self):
         """
         Export the zpool.
         """
-        if kill is None:
-            kill = self._kill
         log = self._log("umount")
-        log("exporting project pool (kill=%s)"%kill)
-        if kill:
-            log("killing all processes by user with id %s"%self.uid)
-            cmd("sudo /usr/bin/pkill -u %s; sleep .25; sudo /usr/bin/pkill -9 -u %s; sleep .25"%(self.uid,self.uid), ignore_errors=True)
+        log("exporting project pool")
+        self.kill()
         e = cmd("sudo /sbin/zpool export %s"%self.project_pool, ignore_errors=True)
         if e and 'no such pool' not in e:
             raise RuntimeError(e)
-        sync()
         if self._is_new:
             self.delete_user()
+        self.destroy_sagemathcloud_fs()
 
     def streams(self):
         """
@@ -350,7 +387,7 @@ class Project(object):
         log = self._log("recv_streams")
         if len(os.listdir(self.stream_path)) == 0:
             return
-        if self.is_project_pool_imported():
+        if self.project_pool_is_imported():
             raise RuntimeError('cannot recv streams since project pool is already imported')
         snaps   = snapshots(self.zvol_fs)
         streams = optimal_stream_sequence(self.streams())
@@ -559,19 +596,18 @@ class Project(object):
             cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
             cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)
 
-    def close(self, kill=None, send_streams=True):
+    def close(self, send_streams=True):
         """
         send_streams (if send_streams is true), unmount, then destroy image filesystem, leaving only streams.
 
         VERY Dangeorus with send_streams=False.
         """
-        if kill is None:
-            kill = self._kill
         log = self._log("close")
-        self.umount(kill=kill)
+        self.umount()
         if send_streams:
             self.send_streams()
         self.destroy_zvol_fs()
+        self.destroy_sagemathcloud_fs()
 
     def replicate(self, target, delete=False):
         """
@@ -583,17 +619,15 @@ class Project(object):
 
         - delete -- boolean (default: False); if true, deletes any files on target not here. DANGEROUS!
         """
-        cmd("rsync -axvH %s %s/ %s:%s/"%('--delete' if delete else '', self.stream_path, target, self.stream_path))
+        cmd("rsync -axH %s %s/ %s:%s/"%('--delete' if delete else '', self.stream_path, target, self.stream_path))
 
-    def destroy_zvol_fs(self,kill=None):
+    def destroy_zvol_fs(self):
         """
         Destroy the zvol.
         """
-        if kill is None:
-            kill = self._kill
         log = self._log("destroy_zvol_fs")
-        if self.is_project_pool_imported():
-            self.export_pool(kill=kill)
+        if self.project_pool_is_imported():
+            self.export_pool()
         e = cmd("sudo /sbin/zfs destroy -r %s"%self.zvol_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
@@ -606,152 +640,169 @@ class Project(object):
         log("removing the entire directory tree: '%s'"%self.stream_path)
         shutil.rmtree(self.stream_path)
 
-    def destroy(self,kill=None):
+    def destroy(self):
         """
         Delete all traces of this project from this machine.  *VERY DANGEROUS.*
         """
-        if kill is None:
-            kill = self._kill
-        self.umount(kill=kill)
+        self.umount()
         self.destroy_zvol_fs()
         self.destroy_streams()
+        self.destroy_sagemathcloud_fs()
 
-    def migrate_from(self, host, timeout=120):
+    def update_sagemathcloud_template(self):
+        log = self._log('update_sagemathcloud_template')
+
+        log("check if filesystem exists")
+        if not filesystem_exists(self.sagemathcloud_base_fs):
+            log('does not exist -- creating ')
+            cmd("sudo /sbin/zfs create %s"%self.sagemathcloud_base_fs)
+            cmd("sudo /sbin/zfs create %s"%self.sagemathcloud_template_fs)
+        elif not filesystem_exists(self.sagemathcloud_template_fs):
+            log('template does not exists so creating just it')
+            cmd("sudo /sbin/zfs create %s"%self.sagemathcloud_template_fs)
+
+        log("mounting template")
+        cmd("sudo /sbin/zfs set mountpoint=/%s %s; sudo /sbin/zfs mount %s"%(
+             self.sagemathcloud_template_fs, self.sagemathcloud_template_fs, self.sagemathcloud_template_fs),
+            ignore_errors=True)
+
+        log("setting template owner to salvus")
+        cmd("sudo /bin/chown salvus. /%s"%self.sagemathcloud_template_fs)
+
+        log("rsync'ing over updated template... (this should take about a minute the first time)")
+        cmd("rsync -axHL --delete %s/ /%s/"%(SAGEMATHCLOUD_TEMPLATE, self.sagemathcloud_template_fs))
+        log("taking a snapshot of the template")
+        cmd("sudo /sbin/zfs snapshot %s@%s"%(self.sagemathcloud_template_fs, now()))
+
+    def newest_sagemathcloud_template_snapshot(self):
+        log = self._log('newest_sagemathcloud_template_snapshot')
+        log('check if exists')
+        if not filesystem_exists(self.sagemathcloud_template_fs):
+            self.update_sagemathcloud_template()
+        log('get directory listing')
+        v = os.listdir(os.path.join('/'+self.sagemathcloud_template_fs, '.zfs', 'snapshot'))
+        v.sort()
+        return v[-1]
+
+    def update_sagemathcloud_fs(self):
+        log = self._log('update_sagemathcloud_fs')
+        log('ensure sagemathcloud_fs exists')
+        if not filesystem_exists(self.sagemathcloud_fs):
+            self.create_sagemathcloud_fs()
+        else:
+            log('get latest snapshot')
+            snap = self.newest_sagemathcloud_template_snapshot()
+            log('make sure we can ssh in')
+            self.ensure_ssh_access()
+            log('rsync over files')
+            cmd("rsync -axH  /%s/.zfs/snapshot/%s/ %s@localhost:/%s/"%(self.sagemathcloud_template_fs, snap, self.username, self.sagemathcloud_fs))
+
+    def create_sagemathcloud_fs(self):
         """
-        The timeout is for initially mounting the remote filesystem.
+        Setup the ~/.sagemathcloud directory for this project.
+        If the project pool is not imported it will be.
         """
+        log = self._log('create_sagemathcloud_fs')
+        log('ensure user/pool exist and imported')
+        if not self.project_pool_is_imported():
+            self.import_pool()
+        log('make sure the sagemathcloud fs exists')
+        if not filesystem_exists(self.sagemathcloud_fs):
+            snap = self.newest_sagemathcloud_template_snapshot()
+            cmd("sudo /sbin/zfs clone %s@%s %s"%(self.sagemathcloud_template_fs, snap, self.sagemathcloud_fs))
+            cmd("sudo /sbin/zfs set quota=256M %s"%self.sagemathcloud_fs)
+            cmd("sudo /bin/chown -R %s. /%s"%(self.username, self.sagemathcloud_fs))
+        log('create the symlink')
+        cmd("sudo /bin/ln -sf /%s %s/.sagemathcloud"%(self.sagemathcloud_fs, self.project_mnt))
+
+    def destroy_sagemathcloud_fs(self):
+        log = self._log('destroy_sagemathcloud_fs')
+        log('destroying')
+        cmd("sudo /sbin/zfs destroy -r %s"%self.sagemathcloud_fs, ignore_errors=True)  # error if doesn't exist or user on it.
+
+    def ensure_ssh_access(self):
+        log = self._log('ensure_ssh_access')
+        log("first check that pool is imported")
+        if not self.project_pool_is_imported():
+            self.import_pool()
+        log("now make sure .ssh/authorized_keys file good")
+        cmd("sudo /usr/local/bin/ensure_ssh_access.py %s %s"%(self.project_mnt, SSH_ACCESS_PUBLIC_KEY))
+        cmd("sudo /usr/local/bin/ensure_file_exists.py %s %s/.bashrc"%(BASHRC_TEMPLATE, self.project_mnt))
+        cmd("sudo /usr/local/bin/ensure_file_exists.py %s %s/.bash_profile"%(BASH_PROFILE_TEMPLATE, self.project_mnt))
+
+    def cgroup(self, memory_G, cpu_shares, core_quota):
+        log = self._log('cgroup')
+        log("configuring cgroups...")
+        if core_quota <= 0:
+            cfs_quota = -1
+        else:
+            cfs_quota = int(100000*core_quota)
+        cmd("sudo /usr/local/bin/cgroup.py %s %s %s %s"%(self.username, memory_G, cpu_shares, cfs_quota))
+
+
+    def migrate_from(self, host):
         if not host:
             raise ValueError("must provide the host")
+        self.create_user()
+        log = self._log("migrate_from")
 
-        mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s; sudo zfs get -H quota projects/%s"'%(
-              host, self.project_id, self.project_id, self.project_id, self.project_id)
-        rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
-        umnt  = 'ssh %s "sudo zfs umount projects/%s"'%(host, self.project_id)
+        timeout = 60
         try:
+            log('temporary ssh')
             cmd("sudo /bin/cp -r /home/salvus/.ssh %s/"%self.project_mnt)
             cmd("sudo /bin/chown -R %s %s/.ssh"%(self.username, self.project_mnt))
+            src = "/projects/%s"%self.project_id
 
-            # if the host is zfs foo-bared locked, then this will timeout...
-            a = cmd(mnt, ignore_errors=True, timeout=timeout)
-            if "TIMEOUT" in a:
-                raise RuntimeError("MOUNT ERROR: unable to connect to %s and mount project within %s seconds"%(host, timeout))
+            def get_quota():
+                log('get quota')
+                try:
+                    a = cmd("ssh %s 'df -h %s'"%(host, src), timeout=timeout).splitlines()[1].split()
+                    quota      = a[1]
+                    mountpoint = a[5]
+                    if mountpoint != src:
+                        # not mounted
+                        return 0
+                    if quota[-1] != 'G':
+                        quota = DEFAULT_QUOTA
+                    return max(2, math.ceil(float(quota[:-1])))
+                except RuntimeError:
+                    return 0
 
-            i = a.find("quota")
-            if i == -1:
-                raise RuntimeError("unable to get quota")
-            quota = a[i:].split()[1]  # next after quota
+            we_mounted_it = False
+            q = get_quota()
+            if q == 0:
+                # try to mount
+                cmd('ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s"'%(
+                              host, self.project_id, self.project_id, self.project_id), timeout=timeout, ignore_errors=True)
+                we_mounted_it = True
+                q = get_quota()
+                if q == 0:
+                    raise RuntimeError("unable to mount remote filesystem and get quota")
+                else:
+                    we_mounted_it = True
+
             size = filesystem_size(self.zvol_fs)
             if not size.endswith("G"):
                 raise NotImplementedError("filesystem size must end in G")
-            q = math.ceil(float(quota[:-1]))
             s = math.ceil(float(size[:-1]))
             if s < q:
+                log("increasing quota since %s < %s"%(s,q))
                 self.increase_quota("%sG"%(q-s))
+
+            log("doing rsync")
+            rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
 
             cmd("sudo /bin/su - %s -c '%s'"%(self.username, rsync), timeout=60*60)  # can't take more than an hour
 
-            cmd(umnt, ignore_errors=True, timeout=30)  # not a big deal if unmount isn't guaranteed
+            log("umounting")
+            if we_mounted_it:
+                umnt  = 'ssh %s "sudo zfs umount projects/%s"'%(host, self.project_id)
+                cmd(umnt, ignore_errors=True, timeout=30)  # not a big deal if unmount isn't guaranteed
+
         finally:
+
+            log("remove .ssh")
             cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
-
-    def _create_migrate_user(self):
-        u = self.uid
-        username = 'migrate%s'%u
-        self._delete_migrate_user()
-        cmd('sudo /usr/sbin/groupadd -g %s -o %s'%(u,username))
-        cmd('sudo /usr/sbin/useradd -u %s -g %s -o %s'%(u,u,username))
-        return username
-
-    def _delete_migrate_user(self):
-        u = self.uid
-        username = 'migrate%s'%u
-        cmd('sudo /usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(username, username), ignore_errors=True)
-
-    def migrate(self):
-        """
-        Create the project with the appropriate quota, then migrate over all snapshots.
-        Assumes the project has not already been created.
-        """
-        log = self._log("migrate")
-        log("figure out original quota")
-        quota = cmd("sudo /sbin/zfs get -H quota projects/%s"%self.project_id).split()[2]
-        self.create(quota)
-        log("now migrate all snapshots")
-        n = self.migrate_snapshots()
-        log("migrated %s snapshots"%n)
-        log("done -- now close the project")
-        self.close(kill=False, send_streams=n>0)
-
-    def migrate_snapshots(self, snapshot=None):
-        """
-        Copy over the given snapshot from the old project, and also make the current live
-        contents of this project equal to that snapshot.
-
-        If snapshot is not given, copy over in order all snapshots we don't currently have.
-        In that case, it returns the number of copied snapshots.
-
-        We use this only to migrate from the old to the new format.
-        """
-        if snapshot is not None:
-            log = self._log("migrate_snapshots", snapshot=snapshot)
-        else:
-            log = self._log("migrate_snapshots")
-
-        self.import_pool()
-        fs = 'projects/%s'%self.project_id
-        mount('/' + fs, fs)
-
-        def setup_user():
-            global passwd
-            username = self._create_migrate_user()
-            alpha = string.lowercase + string.digits
-            passwd = ''.join([random.choice(alpha) for _ in range(16)])
-            passwd_file = os.path.join(os.environ['HOME'], username)
-            open(passwd_file,'w').write(passwd+'\n'+passwd)
-            cmd("cat %s | sudo /usr/bin/passwd %s"%(passwd_file, username))
-            return username, passwd_file
-
-        def do_sync(username, passwd_file, snapshot):
-            cmd("sshpass -f %s sudo /usr/bin/rsync -axH --delete /%s/.zfs/snapshot/%s/ %s@localhost:%s/"%(
-                                         passwd_file, fs, snapshot, username, self.project_mnt))
-            self.snapshot_pool(snapshot)
-
-        def remove_user(passwd_file):
-            os.unlink(passwd_file)
-            self._delete_migrate_user()
-
-        if snapshot is None:
-            log("migrating all missing snapshots")
-            s = set(self.snapshots())
-            t = snapshots(fs)
-            todo = [snapshot for snapshot in t if snapshot not in s]
-            i = 1
-            if len(todo) == 0:
-                return 0
-            tm = time.time()
-            username, passwd_file = setup_user()
-            recent_times = []
-            for snapshot in todo:
-                if len(recent_times)>0:
-                    time_per = sum(recent_times)/len(recent_times)
-                    tr = (time_per * (len(todo)-i+1))/60.0
-                else:
-                    tr = 999999
-                log("migrating missing snapshot (%s/%s) --  time remaining: %.1f minutes: %s"%(
-                              i, len(todo), tr, snapshot))
-                tm0 = time.time()
-                do_sync(username, passwd_file, snapshot)
-                recent_times.append(time.time() - tm0)
-                if len(recent_times) > 10:
-                    del recent_times[0]
-                i += 1
-
-            remove_user(passwd_file)
-            return len(todo)
-        else:
-            username, passwd_file = setup_user()
-            do_sync(username, passwd_file, snapshot)
-            remove_user(passwd_file)
 
 
 if __name__ == "__main__":
@@ -772,23 +823,51 @@ if __name__ == "__main__":
     parser_create.set_defaults(func=lambda args: project.create(quota=args.quota))
 
     parser_umount = subparsers.add_parser('umount', help='unmount filesystem')
-    parser_umount.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_umount.set_defaults(func=lambda args: project.umount(kill=args.kill))
+    parser_umount.set_defaults(func=lambda args: project.umount())
 
     parser_import_pool = subparsers.add_parser('import_pool', help='import the zpool from the images in the image filesystem and mount it')
     parser_import_pool.set_defaults(func=lambda args: project.import_pool())
 
     parser_export_pool = subparsers.add_parser('export_pool', help='export the zpool')
-    parser_export_pool.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_export_pool.set_defaults(func=lambda args: project.export_pool(kill=args.kill))
+    parser_export_pool.set_defaults(func=lambda args: project.export_pool())
 
     parser_recv_streams = subparsers.add_parser('recv_streams', help='receive any streams that have not yet been applied to the image filesystem; error if zpool is mounted')
     parser_recv_streams.set_defaults(func=lambda args: project.recv_streams())
 
     parser_send_streams = subparsers.add_parser('send_streams', help='updates streams to reflect state of image filesystem')
     parser_send_streams.set_defaults(func=lambda args: project.send_streams())
+
+    parser_sagemathcloud = subparsers.add_parser('sagemathcloud', help='control the ~/.sagemathcloud filesystem (give either --create, --destroy or both)')
+    parser_sagemathcloud.add_argument("--create", help="if given, create the .sagemathcloud filesystem", default=False, action="store_const", const=True)
+    parser_sagemathcloud.add_argument("--destroy", help="if given, destroy the .sagemathcloud filesystem", default=False, action="store_const", const=True)
+    parser_sagemathcloud.add_argument("--update", help="if given, update the .sagemathcloud filesystem in place using rsync from newest template (so no need to killall)", default=False, action="store_const", const=True)
+    parser_sagemathcloud.add_argument("--update-template", dest='update_template', help="if given, update the template itself", default=False, action="store_const", const=True)
+    def sagemathcloud(args):
+        if args.update_template:
+            project.update_sagemathcloud_template()
+        if args.destroy:
+            project.destroy_sagemathcloud_fs()
+        if args.create:
+            project.create_sagemathcloud_fs()
+        if args.update:
+            project.update_sagemathcloud_fs()
+    parser_sagemathcloud.set_defaults(func=sagemathcloud)
+
+    parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
+    parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
+
+    parser_cgroup = subparsers.add_parser('cgroup', help='configure cgroup for this user')
+    parser_cgroup.add_argument("--memory_G", dest="memory_G", help="memory quota in gigabytes (default: '%s')"%DEFAULT_MEMORY_G,
+                               type=int, default=DEFAULT_MEMORY_G)
+    parser_cgroup.add_argument("--cpu_shares", dest="cpu_shares", help="share of the cpu (default: '%s')"%DEFAULT_CPU_SHARES,
+                               type=int, default=DEFAULT_CPU_SHARES)
+    parser_cgroup.add_argument("--core_quota", dest="core_quota", help="max number of cores -- can be float (default: '%s')"%DEFAULT_CORE_QUOTA,
+                               type=float, default=DEFAULT_CORE_QUOTA)
+    parser_cgroup.set_defaults(func=lambda args: project.cgroup(
+                    memory_G=args.memory_G, cpu_shares=args.cpu_shares, core_quota=args.core_quota))
+
+    parser_destroy_sagemathcloud_fs = subparsers.add_parser('destroy_sagemathcloud_fs', help='destroy the ~/.sagemathcloud filesystem')
+    parser_destroy_sagemathcloud_fs.set_defaults(func=lambda args: project.destroy_sagemathcloud_fs())
 
     parser_replicate = subparsers.add_parser('replicate', help='directly send streams to another host via rsync (instead of database)')
     parser_replicate.add_argument("--delete", help="deletes any files on target not here (DANGEROUS); off by default",
@@ -798,19 +877,16 @@ if __name__ == "__main__":
 
     parser_close = subparsers.add_parser('close', help='send_streams, unmount, destroy images, etc., leaving only streams')
     parser_close.add_argument("--nosend_streams", help="if given, don't send_streams first: DANGEROUS", default=False, action="store_const", const=True)
-    parser_close.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_close.set_defaults(func=lambda args: project.close(send_streams=not args.nosend_streams, kill=args.kill))
+    parser_close.set_defaults(func=lambda args: project.close(send_streams=not args.nosend_streams))
+
+    parser_kill = subparsers.add_parser('kill', help='Kill all processes running as this user.')
+    parser_kill.set_defaults(func=lambda args: project.kill())
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
-    parser_destroy.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
+    parser_destroy.set_defaults(func=lambda args: project.destroy())
 
     parser_destroy_zvol_fs = subparsers.add_parser('destroy_zvol_fs', help='export project pool and destroy the image filesystem, leaving only streams')
-    parser_destroy_zvol_fs.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=None, action="store_const", const=True)
-    parser_destroy_zvol_fs.set_defaults(func=lambda args: project.destroy_zvol_fs(kill=args.kill))
+    parser_destroy_zvol_fs.set_defaults(func=lambda args: project.destroy_zvol_fs())
 
     parser_destroy_streams = subparsers.add_parser('destroy_streams', help='destroy all streams stored locally')
     parser_destroy_streams.set_defaults(func=lambda args: project.destroy_streams())
@@ -832,12 +908,6 @@ if __name__ == "__main__":
     parser_increase_quota = subparsers.add_parser('increase_quota', help='increase quota')
     parser_increase_quota.add_argument("--amount", dest="amount", help="amount (default: '5G')", type=str, default='5G')
     parser_increase_quota.set_defaults(func=lambda args: project.increase_quota(amount=args.amount))
-
-    parser_migrate = subparsers.add_parser('migrate', help='migrate old project: creates, migrate all snapshots, then close')
-    parser_migrate.set_defaults(func=lambda args: project.migrate())
-
-    parser_migrate_snapshots = subparsers.add_parser('migrate_snapshots', help='ensure new project has all snapshots from old project')
-    parser_migrate_snapshots.set_defaults(func=lambda args: project.migrate_snapshots())
 
     parser_migrate_from = subparsers.add_parser('migrate_from', help='get content from')
     parser_migrate_from.add_argument("--host", dest="host", help="required hostname", type=str, default='')

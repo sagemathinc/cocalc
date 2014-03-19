@@ -333,7 +333,13 @@ exports.execute_code = execute_code = (opts) ->
             if opts.gid
                 o.gid = opts.gid
 
-            r = child_process.spawn(opts.command, opts.args, o)
+            try
+                r = child_process.spawn(opts.command, opts.args, o)
+            catch e
+                # Yes, spawn can cause this error if there is no memory, and there's no event! --  Error: spawn ENOMEM
+                c("error #{misc.to_json(e)}")
+                return
+
             ran_code = true
 
             if opts.verbose
@@ -367,6 +373,15 @@ exports.execute_code = execute_code = (opts) ->
 
             r.on 'exit', (code) ->
                 exit_code = code
+                finish()
+
+            # This can happen, e.g., "Error: spawn ENOMEM" if there is no memory.  Without this handler,
+            # an unhandled exception gets raised, which is nasty.
+            # From docs: "Note that the exit-event may or may not fire after an error has occured. "
+            r.on 'error', (err) ->
+                if not exit_code?
+                    exit_code = 1
+                stderr += to_json(err)
                 finish()
 
             callback_done = false
@@ -410,7 +425,11 @@ exports.execute_code = execute_code = (opts) ->
         # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
         # Do not litter:
         if tmpfilename?
-            fs.unlink(tmpfilename)
+            try
+                fs.unlink(tmpfilename)
+            catch e
+                winston.debug("failed to unlink #{tmpfilename}")
+
 
         if opts.verbose
             winston.debug("finished exec of #{opts.command}")

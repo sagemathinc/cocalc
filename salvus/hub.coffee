@@ -2307,7 +2307,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
             mesg : message.codemirror_get_session(path:@path, project_id:@project_id, session_uuid:@session_uuid)
             cb   : (err, resp) =>
                 if err
-                    winston.debug("local_hub --> hub: (connect) error -- #{err}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
+                    winston.debug("local_hub --> hub: (connect) error -- #{to_json(err)}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
                     if resp?.path? and resp?.path.indexOf("sage_server.port") != -1
                         err = "The Sage Worksheet server is not running.  The system may be very heavily loaded, you may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or contact <a href='mailto:wstein@uw.edu' target='_blank'>wstein@uw.edu</a> for help."
                     #@local_hub.reconnect()
@@ -2399,8 +2399,12 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         # Message from some client reporting new edits; we apply them,
         # generate new edits, and send those out so that the client
         # can complete the sync cycle.
+        MAX_LOCK_TIME_S = 30
 
         if @_sync_lock
+            if misc.walltime(@_sync_lock) > MAX_LOCK_TIME_S
+                 # something is very suspicious -- if we can't sync for this long give up.
+                 @destroy()        
             client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
             return
 
@@ -2417,7 +2421,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
             setTimeout(f, 1000)
             return
 
-        @_sync_lock = true
+        @_sync_lock = misc.walltime()
         before = @diffsync_server.live
         ds_client.recv_edits    mesg.edit_stack, mesg.last_version_ack, (err) =>
             if err
@@ -2460,7 +2464,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
 
     _sync: (cb) =>    # cb(err)
         winston.debug("codemirror session -- syncing with local hub")
-        @_sync_lock = true
+        @_sync_lock = misc.walltime()
         before = @diffsync_server.live
         @diffsync_server.push_edits (err) =>
             after = @diffsync_server.live
@@ -3151,7 +3155,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 #@dbg("local_hub get_codemirror_session: got session '#{opts.path}' from cache")
                 opts.cb(false, session)
                 return
-        if not (opts.path? and opts.project_id?)
+        if not (opts.path? or opts.project_id?)
             @dbg("get_codemirror_session: reconnect error -- we need the path or project_id")
             opts.cb("reconnect")  # caller should  send path when it tries next.
             return

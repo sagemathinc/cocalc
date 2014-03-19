@@ -53,8 +53,9 @@ if hostname.startswith('compute'):
     # Scratch is persistent but not backed up.
     #os.system("mkdir -p /mnt/home/scratch; mkdir -p /scratch; chmod +t /mnt/home/tmp; mount -o bind /mnt/home/scratch /scratch;  chmod a+rwx /mnt/home/scratch/")
 
-    # Copy over newest version of sudo project creation script, and ensure permissions are right.
-    os.system("cp /home/salvus/salvus/salvus/scripts/create_project_user.py /usr/local/bin/; chmod og-w /usr/local/bin/create_project_user.py; chmod og+rx /usr/local/bin/create_project_user.py")
+    # Copy over newest version of certain scripts and set permissions
+    for s in ['create_project_user.py', 'ensure_ssh_access.py', 'ensure_file_exists.py', 'compact_zvol', 'cgroup.py']:
+        os.system("cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"%(s,s,s))
 
     # Re-create the storage user
     os.system("groupadd -g 999 -o storage")
@@ -72,8 +73,12 @@ if hostname.startswith('compute'):
     os.system("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
     # Start the storage server:
-    os.system("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
+    if 'dc' in hostname:
+        os.system("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
 
+    else:
+        # needed for migration
+        os.system("cp /home/salvus/.ssh/authorized_keys /root/.ssh/")
 
 else:
 
