@@ -3155,7 +3155,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 #@dbg("local_hub get_codemirror_session: got session '#{opts.path}' from cache")
                 opts.cb(false, session)
                 return
-        if not (opts.path? and opts.project_id?)
+        if not (opts.path? or opts.project_id?)
             @dbg("get_codemirror_session: reconnect error -- we need the path or project_id")
             opts.cb("reconnect")  # caller should  send path when it tries next.
             return
