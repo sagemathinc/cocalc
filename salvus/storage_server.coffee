@@ -24,7 +24,7 @@ cassandra = require('cassandra')
 cql     = require("node-cassandra-cql")
 {defaults, required} = misc
 
-STATE_CONSISTENCY = cql.types.consistencies.quorum
+STATE_CONSISTENCY = cql.types.consistencies.two
 
 REGISTRATION_INTERVAL_S = 15       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
@@ -1554,7 +1554,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster (default: hard coded)', String, '')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "storage")', String, 'storage')
     .option('--username [string]', 'Cassandra username to use (default: "storage_server")', String, 'storage_server')
-    .option('--consistency [number]', 'Cassandra consistency level (default: localQuorum)', String, 'localQuorum')
+    .option('--consistency [number]', 'Cassandra consistency level (default: two)', String, 'two')
 
     .option('--stream_path [string]', 'Path where streams are stored (default: /storage/streams)', String, '/storage/streams')
     .option('--pool [string]', 'Storage pool used for images (default: storage)', String, 'storage')
