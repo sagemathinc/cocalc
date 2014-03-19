@@ -3661,7 +3661,10 @@ exports.migrate3 = (opts) ->
             if opts.status?
                 opts.status.project_host = host
             client = require('storage_server').client_project(project_id : opts.project_id)
-            cb()
+            if client?
+                cb()
+            else
+                cb("what the heck -- client not defined!?")
         (cb) ->
             if opts.destroy
                 dbg("destroy it")

@@ -26,7 +26,7 @@ cql     = require("node-cassandra-cql")
 
 STATE_CONSISTENCY = cql.types.consistencies.quorum
 
-REGISTRATION_INTERVAL_S = 20       # register with the database every 20 seconds
+REGISTRATION_INTERVAL_S = 15       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*3600
