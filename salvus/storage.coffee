@@ -3666,6 +3666,8 @@ exports.migrate3 = (opts) ->
             else
                 cb("what the heck -- client not defined!?")
         (cb) ->
+            if not host?
+                cb(); return
             if opts.destroy
                 dbg("destroy it")
                 client.destroy
@@ -3673,6 +3675,8 @@ exports.migrate3 = (opts) ->
             else
                 cb()
         (cb) ->
+            if not host?
+                cb(); return
             if opts.destroy
                 dbg("delete it from db")
                 client.action
@@ -3681,6 +3685,8 @@ exports.migrate3 = (opts) ->
             else
                 cb()
         (cb) ->
+            if not host?
+                cb(); return
             client.open
                 host : opts.server
                 cb   : (err, data) =>
@@ -3721,7 +3727,7 @@ exports.migrate3 = (opts) ->
 
 exports.migrate3_all = (opts) ->
     opts = defaults opts,
-        limit : 10  # no more than this many projects will be migrated simultaneously
+        limit : 20  # no more than this many projects will be migrated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
         retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
@@ -3747,12 +3753,13 @@ exports.migrate3_all = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['project_id', 'last_edited', 'last_migrated3', 'last_migrate3_error']
+                columns : ['last_edited', 'project_id', 'last_migrated3', 'last_migrate3_error']
                 limit   : limit                 # should page, but no need since this is throw-away code.
                 cb      : (err, result) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
                         result.sort()
+                        result.reverse()
 
                         if opts.start? and opts.stop?
                             result = result.slice(opts.start, opts.stop)
@@ -3763,15 +3770,15 @@ exports.migrate3_all = (opts) ->
 
                         if opts.max_age_h?
                             cutoff = cassandra.hours_ago(opts.max_age_h)
-                            result = (x for x in result when x[1]? and misc.to_iso(new Date(x[1])) >= cutoff)
+                            result = (x for x in result when x[0]? and misc.to_iso(new Date(x[0])) >= cutoff)
                             dbg("considering only the #{result.length} projects that have a snapshot from within the last #{opts.max_age_h} hours")
                         if opts.retry_all
-                            projects = (x[0] for x in result)
+                            projects = (x[1] for x in result)
                         else if opts.retry_errors
-                            projects = (x[0] for x in result when x[3]? or (not x[2]? or x[1] > x[2]))
+                            projects = (x[1] for x in result when x[3]? or (not x[2]? or x[0] > x[2]))
                         else
                             # don't try any projects with errors, unless they have been newly modified
-                            projects = (x[0] for x in result when (not x[2]? or x[1] > x[2]))
+                            projects = (x[1] for x in result when (not x[2]? or x[0] > x[2]))
                         if opts.exclude?
                             v = {}
                             for p in opts.exclude
