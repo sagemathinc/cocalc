@@ -1386,7 +1386,7 @@ class ClientProject
                 v = (x.compute_id for x in state when not x.import_pool?)
                 async.map(v, sync, (err) => opts.cb?(err))
 
-    # destroy all traces of this project on the give compute host, leaving only what is in the database
+    # destroy all traces of this project on the given compute host
     destroy: (opts) =>
         opts = defaults opts,
             compute_id : undefined

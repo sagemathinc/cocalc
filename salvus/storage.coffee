@@ -3596,6 +3596,7 @@ exports.migrate3 = (opts) ->
         project_id : required
         server     : undefined   # rsync here...
         status     : undefined
+        destroy    : false       # if true, destroy project first
         cb         : required
     dbg = (m) -> winston.debug("migrate3(#{opts.project_id}): #{m}")
     dbg()
@@ -3660,6 +3661,23 @@ exports.migrate3 = (opts) ->
             if opts.status?
                 opts.status.project_host = host
             client = require('storage_server').client_project(project_id : opts.project_id)
+            cb()
+        (cb) ->
+            if opts.destroy
+                dbg("destroy it")
+                client.destroy
+                    cb : cb
+            else
+                cb()
+        (cb) ->
+            if opts.destroy
+                dbg("delete it from db")
+                client.action
+                    action : 'sync_put_delete'
+                    cb     : cb
+            else
+                cb()
+        (cb) ->
             client.open
                 host : opts.server
                 cb   : (err, data) =>
