@@ -740,43 +740,68 @@ class Project(object):
         cmd("sudo /usr/local/bin/cgroup.py %s %s %s %s"%(self.username, memory_G, cpu_shares, cfs_quota))
 
 
-    def migrate_from(self, host, timeout=180):
-        """
-        The timeout is for initially mounting the remote filesystem.
-        """
+    def migrate_from(self, host):
         if not host:
             raise ValueError("must provide the host")
         self.create_user()
-        
-        mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s; sudo zfs get -H quota projects/%s"'%(
-              host, self.project_id, self.project_id, self.project_id, self.project_id)
-        rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
-        umnt  = 'ssh %s "sudo zfs umount projects/%s"'%(host, self.project_id)
+        log = self._log("migrate_from")
+
+        timeout = 120
         try:
+            log('temporary ssh')
             cmd("sudo /bin/cp -r /home/salvus/.ssh %s/"%self.project_mnt)
             cmd("sudo /bin/chown -R %s %s/.ssh"%(self.username, self.project_mnt))
+            src = "/projects/%s"%self.project_id
 
-            # if the host is zfs foo-bared locked, then this will timeout...
-            a = cmd(mnt, ignore_errors=True, timeout=timeout)
-            if "TIMEOUT" in a:
-                raise RuntimeError("MOUNT ERROR: unable to connect to %s and mount project within %s seconds"%(host, timeout))
+            def get_quota():
+                log('get quota')
+                try:
+                    a = cmd("sudo /bin/su - %s -c 'ssh %s \"df -h %s\"'"%(self.username, host, src), timeout=timeout).splitlines()[1].split()
+                    quota      = a[1]
+                    mountpoint = a[5]
+                    if mountpoint != src:
+                        # not mounted
+                        return 0
+                    if quota[-1] != 'G':
+                        quota = DEFAULT_QUOTA
+                    return max(2, math.ceil(float(quota[:-1])))
+                except RuntimeError:
+                    return 0
 
-            i = a.find("quota")
-            if i == -1:
-                raise RuntimeError("unable to get quota")
-            quota = a[i:].split()[1]  # next after quota
+            we_mounted_it = False
+            q = get_quota()
+            if q == 0:
+                # try to mount
+                mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s"'%(
+                              host, self.project_id, self.project_id, self.project_id)
+                we_mounted_it = True
+                q = get_quota()
+                if q == 0:
+                    raise RuntimeError("unable to mount remote filesystem and get quota")
+                else:
+                    we_mounted_it = True
+
             size = filesystem_size(self.zvol_fs)
             if not size.endswith("G"):
                 raise NotImplementedError("filesystem size must end in G")
-            q = math.ceil(float(quota[:-1]))
             s = math.ceil(float(size[:-1]))
             if s < q:
+                log("increasing quota since %s < %s"%(s,q))
                 self.increase_quota("%sG"%(q-s))
+
+            log("doing rsync")
+            rsync = 'rsync -axH --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh root@%s:/projects/%s/ /%s/'%(host, self.project_id, self.project_mnt)
 
             cmd("sudo /bin/su - %s -c '%s'"%(self.username, rsync), timeout=60*60)  # can't take more than an hour
 
-            cmd(umnt, ignore_errors=True, timeout=30)  # not a big deal if unmount isn't guaranteed
+            log("umounting")
+            if we_mounted_it:
+                umnt  = 'ssh %s "sudo zfs umount projects/%s"'%(host, self.project_id)
+                cmd(umnt, ignore_errors=True, timeout=30)  # not a big deal if unmount isn't guaranteed
+
         finally:
+            
+            log("remove .ssh")
             cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
 
 
