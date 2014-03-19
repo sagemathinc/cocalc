@@ -3670,9 +3670,6 @@ exports.migrate3 = (opts) ->
                             opts.status.migrate_host = data.host
                         cb()
         (cb) ->
-            dbg("wait 2 seconds to let database catch up...")
-            setTimeout(cb, 2000)
-        (cb) ->
             if not host?
                 cb(); return
             dbg("do migrate action")

@@ -561,7 +561,10 @@ init_compute_id = (cb) ->
                     server_compute_id = data.toString()
                     cb()
 
-zfs_queue_len = () -> _zvol_storage_queue.length + _zvol_storage_queue_running
+zfs_queue_len = () ->
+    n = _zvol_storage_queue.length + _zvol_storage_queue_running
+    winston.debug("zfs_queue_len = #{n} = #{_zvol_storage_queue.length} + #{_zvol_storage_queue_running} ")
+    return n
 
 update_register_with_database = () ->
     database.update
@@ -1296,8 +1299,16 @@ class ClientProject
                 if opts.compute_id? and @compute_id != opts.compute_id
                     opts.cb?("already opened on a different host (#{@compute_id})")
                     return
-                compute_id_to_host @compute_id, (err, host) =>
-                    opts.cb?(err, {compute_id:@compute_id, host:host})
+                # already opened according to database -- ensure that it is *really* open
+                @action
+                    compute_id : compute_id
+                    action     : 'import_pool'
+                    cb         : (err) =>
+                        if err
+                            opts.cb?(err)
+                        else
+                            compute_id_to_host @compute_id, (err, host) =>
+                                opts.cb?(err, {compute_id:@compute_id, host:host})
                 return
 
             compute_id = undefined
@@ -1491,37 +1502,23 @@ class ClientProject
                 async.map(to_remove, f, cb)
         ], (err) => opts.cb?(err))
 
-
-    # copy over any snapshots from the old version of the project on the host where project is opened.
-    migrate_snapshots: (opts) =>
-        opts = defaults opts,
-            cb   : undefined
-        @dbg('migrate_snapshots', '', "")
-        @_update_compute_id (err) =>
-            if err
-                opts.cb(err); return
-            if not @compute_id?
-                opts.cb?("not opened"); return
-            @action
-                compute_id : @compute_id
-                action     : 'migrate_snapshots'
-                cb         : opts.cb
-
     migrate_from: (opts) =>
         opts = defaults opts,
             host : required
             cb   : undefined
         @dbg('migrate_from', opts.host, "")
-        @_update_compute_id (err) =>
-            if err
-                opts.cb(err); return
-            if not @compute_id?
-                opts.cb?("not opened"); return
-            @action
-                compute_id : @compute_id
-                action     : 'migrate_from'
-                param      : ['--host', opts.host]
-                cb         : opts.cb
+        async.series([
+            (cb) =>
+                @open
+                    host : opts.host
+                    cb         : cb
+            (cb) =>
+                @action
+                    compute_id : @compute_id
+                    action     : 'migrate_from'
+                    param      : ['--host', opts.host]
+                    cb         : cb
+        ], opts.cb)
 
 
 client_project_cache = {}

@@ -756,7 +756,7 @@ class Project(object):
             def get_quota():
                 log('get quota')
                 try:
-                    a = cmd("sudo /bin/su - %s -c 'ssh %s \"df -h %s\"'"%(self.username, host, src), timeout=timeout).splitlines()[1].split()
+                    a = cmd("ssh %s 'df -h %s'"%(host, src), timeout=timeout).splitlines()[1].split()
                     quota      = a[1]
                     mountpoint = a[5]
                     if mountpoint != src:
@@ -800,7 +800,7 @@ class Project(object):
                 cmd(umnt, ignore_errors=True, timeout=30)  # not a big deal if unmount isn't guaranteed
 
         finally:
-            
+
             log("remove .ssh")
             cmd("sudo /bin/rm -rf %s/.ssh"%self.project_mnt)
 

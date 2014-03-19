@@ -427,8 +427,8 @@ exports.execute_code = execute_code = (opts) ->
         if tmpfilename?
             try
                 fs.unlink(tmpfilename)
-            catch
-                # pass
+            catch e
+                winston.debug("failed to unlink #{tmpfilename}")
 
 
         if opts.verbose
