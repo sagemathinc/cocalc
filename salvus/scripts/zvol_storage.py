@@ -746,7 +746,7 @@ class Project(object):
         self.create_user()
         log = self._log("migrate_from")
 
-        timeout = 120
+        timeout = 60
         try:
             log('temporary ssh')
             cmd("sudo /bin/cp -r /home/salvus/.ssh %s/"%self.project_mnt)
@@ -772,8 +772,8 @@ class Project(object):
             q = get_quota()
             if q == 0:
                 # try to mount
-                mnt   = 'ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s"'%(
-                              host, self.project_id, self.project_id, self.project_id)
+                cmd('ssh %s "sudo zfs set mountpoint=/projects/%s projects/%s; sudo zfs mount projects/%s"'%(
+                              host, self.project_id, self.project_id, self.project_id), timeout=timeout, ignore_errors=True)
                 we_mounted_it = True
                 q = get_quota()
                 if q == 0:
