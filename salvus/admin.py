@@ -143,8 +143,10 @@ def run(args, maxtime=30, verbose=True):
 #      sh['list', 'of', ..., 'arguments'] to run a shell command
 
 class SH(object):
+    def __init__(self, maxtime=30):
+        self.maxtime = maxtime
     def __getitem__(self, args):
-        return run([args] if isinstance(args, str) else list(args))
+        return run([args] if isinstance(args, str) else list(args), maxtime=self.maxtime)
 sh = SH()
 
 def process_status(pid, run):
