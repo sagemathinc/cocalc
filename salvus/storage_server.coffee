@@ -1554,7 +1554,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster (default: hard coded)', String, '')
     .option('--keyspace [string]', 'Cassandra keyspace to use (default: "storage")', String, 'storage')
     .option('--username [string]', 'Cassandra username to use (default: "storage_server")', String, 'storage_server')
-    .option('--consistency [number]', 'Cassandra consistency level (default: quorum)', String, 'quorum')
+    .option('--consistency [number]', 'Cassandra consistency level (default: localQuorum)', String, 'localQuorum')
 
     .option('--stream_path [string]', 'Path where streams are stored (default: /storage/streams)', String, '/storage/streams')
     .option('--pool [string]', 'Storage pool used for images (default: storage)', String, 'storage')

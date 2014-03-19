@@ -3707,7 +3707,7 @@ exports.migrate3 = (opts) ->
             if not host?
                 cb(); return
             dbg("take a snapshot")
-            client.snapshot                
+            client.snapshot
                 cb   : cb
         (cb) ->
             if not host?
@@ -3740,6 +3740,8 @@ exports.migrate3_all = (opts) ->
         retry_all : false      # if true, just redo everything
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
+        oldest_first : false
+        timeout : 1800         # timeout on any given migration -- actually leaves them running, but moves on...
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
     projects = undefined
@@ -3747,7 +3749,7 @@ exports.migrate3_all = (opts) ->
     done = 0
     fail = 0
     todo = undefined
-    dbg = (m) -> winston.debug("#{new Date()}\nmigrate3_all(start=#{opts.start}, stop=#{opts.stop}): #{m}")
+    dbg = (m) -> winston.debug("#{new Date()} -- migrate3_all: #{m}")
     t = misc.walltime()
     limit = 100000
 
@@ -3765,7 +3767,8 @@ exports.migrate3_all = (opts) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
                         result.sort()
-                        result.reverse()
+                        if not opts.oldest_first
+                            result.reverse()
 
                         if opts.start? and opts.stop?
                             result = result.slice(opts.start, opts.stop)
@@ -3797,7 +3800,7 @@ exports.migrate3_all = (opts) ->
             i = 1
             times = []
             start0 = misc.walltime()
-            f = (i, cb) ->
+            g = (i, cb) ->
                 project_id = projects[i]
                 dbg("*******************************************")
                 dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
@@ -3842,5 +3845,17 @@ exports.migrate3_all = (opts) ->
                         if err
                             errors[project_id] = err
                         cb()
+            f = (i, cb) ->
+                h = () ->
+                    dbg("timed out #{i}=#{projects[i]} after #{opts.timeout} seconds")
+                    cb()
+                timer = setTimeout(h, opts.timeout*1000)
+                g i, () ->
+                    clearTimeout(timer)
+                    cb()
+
             async.mapLimit([0...projects.length], opts.limit, f, cb)
     ], (err) -> opts.cb?(err, errors))
+
+
+
