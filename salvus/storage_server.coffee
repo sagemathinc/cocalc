@@ -563,7 +563,7 @@ init_compute_id = (cb) ->
 
 zfs_queue_len = () ->
     n = _zvol_storage_queue.length + _zvol_storage_queue_running
-    winston.debug("zfs_queue_len = #{n} = #{_zvol_storage_queue.length} + #{_zvol_storage_queue_running} ")
+    #winston.debug("zfs_queue_len = #{n} = #{_zvol_storage_queue.length} + #{_zvol_storage_queue_running} ")
     return n
 
 update_register_with_database = () ->
