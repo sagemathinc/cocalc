@@ -3706,6 +3706,12 @@ exports.migrate3 = (opts) ->
         (cb) ->
             if not host?
                 cb(); return
+            dbg("take a snapshot")
+            client.snapshot                
+                cb   : cb
+        (cb) ->
+            if not host?
+                cb(); return
             dbg("now save and close project")
             client.close(cb:cb)
         (cb) ->
