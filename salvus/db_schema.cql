@@ -297,6 +297,9 @@ CREATE TABLE projects (
      location2        varchar,   // location in new ZFS/cassandra setup used for migration.
      last_migrate2_error varchar, // DEPRECATED: used for migrating2
 
+     last_migrated3   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
+     last_migrate3_error varchar, // DEPRECATED: used for migrating2
+
      old_location     varchar,   // DEPRECATED: used for migrating... (so can delete after that is done).
 
      backup           varchar,  // DEPRECATED: hosts on which files are backed up (via rsnapshot): JSON format not yet determined
@@ -574,7 +577,9 @@ CREATE TABLE banned_email_addresses (
 /*STORAGE */
 
 /*
-  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2'};
+  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2', 'DC2':'2'};
+
+  ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
 */
 
 
@@ -584,7 +589,7 @@ CREATE TABLE banned_email_addresses (
   - querying the writing table is an easy way to see what writes are happening right now.
 */
 CREATE TABLE storage_writing (
-    dummy       boolean,    /* so we can easily do a select * on this table */
+    dummy       boolean,    /* so can do:   select id,name,size from storage_writing where dummy=true    */
     timestamp   timestamp,
     id          uuid,
     name        varchar,
@@ -633,7 +638,7 @@ CREATE TABLE project_state (
     import_pool    timestamp,    /* last zpool import; undefined if exported */
     snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
     scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
-    broken         boolean,      /* set to true of we consider this copy of the project broken: change once fixed */      
+    broken         boolean,      /* set to true of we consider this copy of the project broken: change once fixed */
     PRIMARY KEY    (project_id, compute_id)
 );
 
@@ -647,6 +652,7 @@ CREATE TABLE compute_hosts (
     port           int,          /* port of storage server: undefined if down -- set frequently with a ttl */
     up_since       timestamp,    /* time when this host became fully operational; undefined if down -- set frequently with a ttl! */
     health         float,        /* 0 is bad, 1 is good */
+    zfs_queue_len  int,          /* zfs ops: first come, first served: is queue is big, mounting even a small project could take a while */
     projects       set<uuid>,    /* projects with data on this compute host */
     PRIMARY KEY (dummy, compute_id)
 );
@@ -656,13 +662,11 @@ CREATE TABLE project_new (
     project_id  uuid PRIMARY KEY,
     new         boolean,      /* if true, mount and *run* using the new storage format */
 );
-GRANT SELECT ON table project_new TO storage_server;
-GRANT MODIFY ON table project_new TO storage_server;
-
-
 
 CREATE INDEX on compute_hosts(host);
 
+CREATE USER salvus WITH PASSWORD '...'  SUPERUSER;
+DROP USER cassandra;
 CREATE USER storage_server WITH PASSWORD '...';
 
 GRANT SELECT ON table storage TO storage_server;
@@ -677,3 +681,6 @@ GRANT SELECT ON table project_state  TO storage_server;
 GRANT MODIFY ON table project_state  TO storage_server;
 GRANT SELECT ON table compute_hosts TO storage_server;
 GRANT MODIFY ON table compute_hosts TO storage_server;
+GRANT SELECT ON table project_new TO storage_server;
+GRANT MODIFY ON table project_new TO storage_server;
+

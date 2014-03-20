@@ -349,7 +349,7 @@ exports.retry_until_success = (opts) ->
         opts.f (err)->
             if err
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries exceeded")
+                    opts.cb?("maximum tries exceeded - last error #{err}")
                 else
                     delta = Math.min(opts.max_delay, opts.factor * delta)
                     setTimeout(g, delta)
@@ -516,6 +516,8 @@ exports.uniquify_string = (s) ->
             seen_already[c] = true
     return t
 
+exports.endswith = (s, t) ->
+    return s.slice(s.length - t.length) == t
 
 # Return string t=s+'\n'*k so that t ends in at least n newlines.
 # Returns s itself (so no copy made) if s already ends in n newlines (a common case).
