@@ -143,8 +143,10 @@ def run(args, maxtime=30, verbose=True):
 #      sh['list', 'of', ..., 'arguments'] to run a shell command
 
 class SH(object):
+    def __init__(self, maxtime=30):
+        self.maxtime = maxtime
     def __getitem__(self, args):
-        return run([args] if isinstance(args, str) else list(args))
+        return run([args] if isinstance(args, str) else list(args), maxtime=self.maxtime)
 sh = SH()
 
 def process_status(pid, run):
@@ -1347,7 +1349,7 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['backup']+self._hosts['cellserver'])
+        exclude = set(self._hosts['cellserver'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []
