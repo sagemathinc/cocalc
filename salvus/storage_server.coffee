@@ -68,7 +68,8 @@ ZVOL_STORAGE_LIMIT = 1
 
 # I'm going to do some testing with bigger values while doing the migration just to see what happens.
 # It's good to know before we go to production.
-ZVOL_STORAGE_LIMIT = 5
+# tried this and pretty quickly got massive slowdown... in throughput.
+# ZVOL_STORAGE_LIMIT = 5
 
 # Execute a command using the zvol_storage script.
 _zvol_storage_no_queue = (opts) =>
