@@ -61,8 +61,14 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 # We limit the maximum number of simultaneous zvol_storage.py calls to allow at once, since
 # this allows us to control ZFS contention, deadlocking, etc.
 # This is *CRITICAL*.  For better or worse, ZFS is incredibly broken when you try to do
-# multiple operations on a pool at once.  It's really sad.  But one at a time it works fine.
+# multiple operations on a pool at once.  It's really sad.
+
+# But one at a time definitely works fine (extensively tested.)
 ZVOL_STORAGE_LIMIT = 1
+
+# I'm going to do some testing with bigger values while doing the migration just to see what happens.
+# It's good to know before we go to production.
+ZVOL_STORAGE_LIMIT = 5
 
 # Execute a command using the zvol_storage script.
 _zvol_storage_no_queue = (opts) =>
