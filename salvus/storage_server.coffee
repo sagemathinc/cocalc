@@ -29,7 +29,7 @@ STATE_CONSISTENCY = cql.types.consistencies.two
 REGISTRATION_INTERVAL_S = 15       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
-TIMEOUT = 12*3600
+TIMEOUT = 20*60   # default timeout on all locking zvol_storage operations (most use ZFS).
 
 
 ZVOL_EXTENSION = '.zvol.lz4'
