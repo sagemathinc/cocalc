@@ -29,7 +29,9 @@ STATE_CONSISTENCY = cql.types.consistencies.two
 REGISTRATION_INTERVAL_S = 15       # register with the database every 20 seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
-TIMEOUT = 20*60   # default timeout on all locking zvol_storage operations (most use ZFS).
+#TIMEOUT = 30*60   # default timeout on all locking zvol_storage operations (most use ZFS).
+
+TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
 
 
 ZVOL_EXTENSION = '.zvol.lz4'
@@ -65,11 +67,10 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 
 # But one at a time definitely works fine (extensively tested.)
 ZVOL_STORAGE_LIMIT = 1
-
 # I'm going to do some testing with bigger values while doing the migration just to see what happens.
 # It's good to know before we go to production.
 # tried this and pretty quickly got massive slowdown... in throughput.
-# ZVOL_STORAGE_LIMIT = 5
+ZVOL_STORAGE_LIMIT = 5
 
 # Execute a command using the zvol_storage script.
 _zvol_storage_no_queue = (opts) =>
