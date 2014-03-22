@@ -113,6 +113,7 @@ process_zvol_storage_queue = () ->
     if _zvol_storage_queue.length > 0
         opts = _zvol_storage_queue.shift()
         _zvol_storage_queue_running += 1
+        update_register_with_database()   # important that queue length is accurate in db, so load balancing is better.
         cb = opts.cb
         opts.cb = (err, output) =>
             _zvol_storage_queue_running -= 1
