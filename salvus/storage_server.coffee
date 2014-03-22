@@ -906,7 +906,7 @@ get_available_compute_host = (opts) ->
                         cb(err)
                     else
                         # randomize amongst servers with the same health and queue length
-                        r = ([x.health, x.zfs_queue_len, Math.random(), x] for x in results when x.port? and x.host? and x.up_since?)
+                        r = ([x.health, -x.zfs_queue_len, Math.random(), x] for x in results when x.port? and x.host? and x.up_since?)
                         r.sort()
                         if r.length == 0
                             cb("no available hosts")
