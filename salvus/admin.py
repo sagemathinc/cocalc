@@ -1390,8 +1390,8 @@ class Monitor(object):
                 dedup = float(x[14][:-1])
                 health = x[15]
                 d.update({'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health})
-                if free < 25 or d['health'] != 'ONLINE':
-                    d['status'] = 'down'  # <64GB free ==> start receiving scary emails!
+                if free < 12 or d['health'] != 'ONLINE':
+                    d['status'] = 'down'  # little free ==> start receiving scary emails!
                 else:
                     d['status'] = 'up'
             except Exception, msg:
@@ -1399,8 +1399,8 @@ class Monitor(object):
                 print "x = ", x
                 d['status'] = 'down'
             ans.append(d)
-        # put anything with < 100 GB free first in list, since we need to worry about it.
-        w = [((d.get('free')>=100, d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
+        # put anything with < 50 GB free first in list, since we need to worry about it.
+        w = [((d.get('free')>=50, d.get('status','down'), -d.get('nproc',0), d.get('host','')), d) for d in ans]
         w.sort()
         return [y for x,y in w]
 
@@ -1791,8 +1791,8 @@ class Services(object):
         elif action == "start":
             # hub hosts can connect to CASSANDRA_CLIENT_PORT and CASSANDRA_NATIVE_PORT
             # cassandra hosts can connect to CASSANDRA_INTERNODE_PORTS
-            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin backup cassandra cellserver']] +
-                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin backup cassandra cellserver']] +
+            commands = (['allow proto tcp from %s to any port %s'%(host, CASSANDRA_CLIENT_PORT) for host in self._hosts['hub admin cassandra cellserver']] +
+                        ['allow proto tcp from %s to any port %s'%(host, CASSANDRA_NATIVE_PORT) for host in self._hosts['hub admin cassandra cellserver']] +
                         ['allow proto tcp from %s to any port %s'%(host, port) for host in self._hosts['cassandra'] for port in CASSANDRA_INTERNODE_PORTS] +
                         ['deny proto tcp from any to any port %s'%(','.join([str(x) for x in CASSANDRA_PORTS]))])
         elif action == 'status':
