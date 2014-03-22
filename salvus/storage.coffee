@@ -1795,7 +1795,7 @@ exports.init2 = (cb) ->
 exports.locations = locations = (opts) ->
     opts = defaults opts,
         project_id : required
-        number     : 1        # number per data center to return
+        number     : 2        # number per data center to return
 
     return (ring.range(opts.project_id, opts.number) for dc, ring of hashrings)
 
