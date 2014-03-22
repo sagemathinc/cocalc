@@ -3741,6 +3741,7 @@ exports.migrate3_all = (opts) ->
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
         oldest_first : false
+        only_new : false       # only try to migrate projects we haven't tried to migrate before.
         timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
@@ -3776,6 +3777,9 @@ exports.migrate3_all = (opts) ->
                             result = result.slice(opts.start)
                         else if opts.stop?
                             result = result.slice(0, opts.stop)
+
+                        if opts.only_new
+                            result = (x for x in result when not x[2]? and not x[3]?)
 
                         if opts.max_age_h?
                             cutoff = cassandra.hours_ago(opts.max_age_h)
