@@ -3741,7 +3741,7 @@ exports.migrate3_all = (opts) ->
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
         oldest_first : false
-        timeout : 1800         # timeout on any given migration -- actually leaves them running, but moves on...
+        timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
     projects = undefined

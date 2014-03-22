@@ -650,7 +650,9 @@ class exports.Cassandra extends EventEmitter
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                     # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
-                    if error? and "#{error}".indexOf("peration timed out") != -1
+                    # The any of its parents is because often when the server is loaded it rejects requests sometimes
+                    # with "no permissions. ... any of its parents".
+                    if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
                         winston.error("... so probably re-doing query")
                         c(error)
                     else

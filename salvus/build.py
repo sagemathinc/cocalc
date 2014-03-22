@@ -407,6 +407,10 @@ On the VM hosts, some things are critical:
     # put this in cron since it's so critical that the perms are right... or vm's won't start
     */10 * * * * sudo chmod a+r /boot/vmlinuz-*; sudo chmod a+rw /dev/fuse
 
+In /etc/sysctl.conf, put:
+
+    vm.swappiness=1
+
 
 """
 
