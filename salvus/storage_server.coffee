@@ -26,7 +26,7 @@ cql     = require("node-cassandra-cql")
 
 STATE_CONSISTENCY = cql.types.consistencies.two
 
-REGISTRATION_INTERVAL_S = 15       # register with the database every 20 seconds
+REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 #TIMEOUT = 30*60   # default timeout on all locking zvol_storage operations (most use ZFS).
@@ -906,7 +906,7 @@ get_available_compute_host = (opts) ->
                         cb(err)
                     else
                         # randomize amongst servers with the same health and queue length
-                        r = ([x.health, -x.zfs_queue_len, Math.random(), x] for x in results when x.port? and x.host? and x.up_since?)
+                        r = ([x.health, x.zfs_queue_len, Math.random(), x] for x in results when x.port? and x.host? and x.up_since?)
                         r.sort()
                         if r.length == 0
                             cb("no available hosts")
