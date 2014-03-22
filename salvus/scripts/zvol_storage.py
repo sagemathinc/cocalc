@@ -497,7 +497,7 @@ class Project(object):
         try:
             log("sending new stream: %s"%target)
             try:
-                out = cmd("sudo /sbin/zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
+                out = cmd("sudo /sbin/zfs send -v %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
                 if 'does not exist' in out:  # does not result in nonzero error code, due to use of streams
                     raise RuntimeError(out)
             except:
