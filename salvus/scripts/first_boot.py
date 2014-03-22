@@ -74,6 +74,7 @@ if hostname.startswith('compute'):
 
     # Start the storage server:
     if 'dc' in hostname:
+        os.system("crontab -r storage")
         os.system("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
 
     else:
