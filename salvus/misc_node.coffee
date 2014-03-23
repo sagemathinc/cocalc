@@ -629,7 +629,12 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
                         cb()
                 (cb) ->
                     fs.mkdir(dir, 0o700, cb)
-            ], (err) -> cb?(err))
+            ], (err) ->
+                if err.code == 'EEXIST'
+                    cb?()
+                else
+                    cb?(err)
+            )
 
 exports.ensure_containing_directory_exists = ensure_containing_directory_exists
 

@@ -47,13 +47,14 @@ if is_update:
 
 v = []
 for i, snapshot in enumerate(snapshots):
+    date = sdate(snapshot)
     print "***** Starting %s/%s ****"%(i+1, len(snapshots))
     t = time.time()
     cmd("rsync -axH  --delete --exclude *.sage-backup --exclude .sage/cache --exclude .trash --exclude .fontconfig --exclude .sage/temp --exclude .zfs --exclude .npm --exclude .sagemathcloud --exclude .node-gyp --exclude .cache --exclude .forever --exclude .ssh %s/%s/ %s/"%(snap_path, snapshot, rsync_path))
-    cmd("chown -R %s:%s %s"%(uid, uid, rsync_path))
+    #cmd("chown -R %s:%s %s"%(uid, uid, rsync_path))
     cmd("bup index %s"%rsync_path)
-    date = sdate(snapshot)
     cmd("bup save %s --strip -n master -d %s"%(rsync_path, date))
+
     v.append(time.time()-t)
     if len(v) > 1:
         avg = float(sum(v[1:])/(len(v)-1))
@@ -61,7 +62,8 @@ for i, snapshot in enumerate(snapshots):
         print "*****\nIt took %s seconds.\nAverage time so far: %s seconds\nETA:%ss=%sm=%sh\n*****"%(v[-1], avg, eta, eta/60, eta/3600)
 
 if not is_update:
-    cmd("cd %s; git gc --aggressive --auto"%bup_path)
+    # This repacks everything into one (?) pack.
+    cmd("cd %s; git repack -lad"%bup_path)
 
 cmd("rm -rf '%s'"%rsync_path)
 

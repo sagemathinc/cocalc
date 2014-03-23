@@ -2888,6 +2888,14 @@ class ChunkedStorage
         dbg()
         total_time = misc.walltime()
 
+        if opts.name and opts.name[opts.name.length-1] == '/'
+            dbg("it's a directory (not file)")
+            query = "UPDATE storage SET chunk_ids=[], size=?, chunk_size=? WHERE id=? AND name=?"
+            dbg(query)
+            @db.cql(query, ["0", chunk_size, @id, opts.name], (err) => opts.cb?(err))
+            return
+
+
         chunk_size = opts.chunk_size_mb * 1000000
         size       = undefined
         fd         = undefined
@@ -3013,6 +3021,36 @@ class ChunkedStorage
             opts.name = opts.filename
 
         dbg = (m) => @dbg('get', opts.name, m)
+        dbg()
+
+        if opts.filename? and opts.filename[opts.filename.length-1] == '/'
+            dbg("directory (not file)")
+            if opts.filename[0] != '/'
+                path = process.cwd()+'/'+opts.filename
+            else
+                path = opts.filename
+            path = path.slice(0,path.length-1)  # get rid of trailing /
+            fs.exists path, (exists) =>
+                if exists
+                    opts.cb()
+                else
+                    misc_node.ensure_containing_directory_exists path, (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            fs.mkdir path, 0o700, (err) =>
+                                if err?
+                                    if err.code == 'EEXIST'
+                                        opts.cb()
+                                    else
+                                        opts.cb(err)
+                                else
+                                    opts.cb()
+
+            return
+
+
+
         chunk_ids = undefined
         chunks = {}
         chunk_size = undefined
@@ -3101,7 +3139,7 @@ class ChunkedStorage
                                 c(err)
                             else
                                 num_chunks += 1
-                                dbg("got chunk #{i}:  #{num_chunks} of #{chunk_ids.length-1} chunks (time: #{misc.walltime(t)}s)")
+                                dbg("got chunk #{i}:  #{num_chunks} of #{chunk_ids.length} chunks (time: #{misc.walltime(t)}s)")
                                 chunk = result[0]
                                 chunks[chunk_ids[i]] = {chunk:chunk, start:i*chunk_size, chunk_id:chunk_ids[i]}
                                 if opts.filename?
@@ -3221,6 +3259,8 @@ class ChunkedStorage
     #
     # Files with the same name and size are considered equal (for our application
     # this is fine).
+    #
+    # Directories are files whose name ends in a slash.
 
     sync_diff: (opts) =>
         opts = defaults opts,
@@ -3252,7 +3292,7 @@ class ChunkedStorage
                 dbg("get files in path")
                 misc_node.execute_code
                     command     : 'find'
-                    args        : [opts.path, '-type', 'f', '-printf', '%s %P\n']  # size_bytes filename
+                    args        : [opts.path, '-printf', '%y %s %P\n']  # type size_bytes filename
                     timeout     : 360
                     err_on_exit : true
                     path        : process.cwd()
@@ -3263,8 +3303,12 @@ class ChunkedStorage
                         else
                             for x in output.stdout.split('\n')
                                 v = misc.split(x)
-                                if v.length == 2
-                                    local_files[v[1]] = parseInt(v[0])
+                                if v.length == 3
+                                    if v[0] == 'd' or v[0] == 'f'  # only files and directories
+                                        name = v[2]
+                                        if v[0] == 'd'
+                                            name += '/'
+                                        local_files[name] = parseInt(v[1])
                             cb()
         ], (err) =>
             if err
