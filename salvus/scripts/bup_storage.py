@@ -7,8 +7,9 @@
 """
 
 # Temporary...
+
 BUP_PATH='/tmp/bup'
-cmd("mkdir -p %s; chmod og-rwx %s"%(BUP_PATH, BUP_PATH))
+PROJECTS_PATH='/tmp/projects'
 
 # Default amount of disk space
 DEFAULT_QUOTA      = '5G'
@@ -92,6 +93,10 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None):
             signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
 
+cmd("mkdir -p %s; chmod og-rwx %s"%(BUP_PATH, BUP_PATH))
+cmd("mkdir -p %s; chmod og+rx %s"%(PROJECTS_PATH, PROJECTS_PATH))
+
+
 class Project(object):
     def __init__(self, project_id, login_shell='/bin/bash'):
         if uuid.UUID(project_id).get_version() != 4:
@@ -101,7 +106,8 @@ class Project(object):
         self.username = self.project_id.replace('-','')
         self.login_shell = login_shell
         self.bup_path = os.path.join(BUP_PATH, project_id)
-        self.project_mnt  = os.path.join('/projects', project_id)
+        self.project_mnt  = os.path.join(PROJECTS_PATH, project_id)
+        self.snap_mnt = os.path.join(self.project_mnt,'.snapshot')
 
     def cmd(self, *args, **kwds):
         os.environ['BUP_DIR'] = self.bup_path
@@ -143,6 +149,15 @@ class Project(object):
         self.create_user()
         self.cmd("/usr/bin/bup restore master/latest/ --outdir=%s"%self.project_mnt)
         self.cmd("chown %s:%s -R %s"%(self.uid, self.uid, self.project_mnt))
+        self.mount_snapshots()
+
+    def umount_snapshots(self):
+        self.cmd("fusermount -uz %s"%self.snap_mnt, ignore_errors=True)
+
+    def mount_snapshots(self):
+        self.umount_snapshots()
+        self.cmd("rm -rf %s; mkdir -p %s; bup fuse -o %s"%(
+                     self.snap_mnt, self.snap_mnt,  self.snap_mnt))
 
     def kill(self, grace_s=0.25):
         log("killing all processes by user with id %s"%self.uid)
@@ -168,6 +183,7 @@ class Project(object):
         log = self._log("remove")
         log("removing users files")
         self.kill()
+        self.umount_snapshots()
         shutil.rmtree(self.project_mnt)
 
     def save(self):
@@ -175,14 +191,17 @@ class Project(object):
         Save a snapshot.
         """
         log = self._log("commit")
-        self.cmd("bup index %s"%self.project_mnt)
-        self.cmd("bup save --strip -n master -d %s"%time.time())
+        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot']
+        exclude = '--exclude=' + ' --exclude='.join([os.path.join(self.project_mnt,e) for e in excludes])
+        self.cmd("bup index -x  %s   %s"%(exclude, self.project_mnt))
+        self.cmd("bup save --strip -n master -d %s %s"%(time.time(),self.project_mnt))
+        self.mount_snapshots()
 
     def snapshots(self):
         """
         Return list of all snapshots in date order of the project pool.
         """
-        return self.cmd("bup ls master/").split()[:-1]
+        return self.cmd("bup ls master/", verbose=0).split()[:-1]
 
     def increase_quota(self, amount):
         """
@@ -194,7 +213,7 @@ class Project(object):
         """
         Compact the bup repo, replacing the large number of git pack files by a small number.
         """
-        self.cmd("cd %s; git git repack -lad"%self.bup_path)
+        self.cmd("cd %s; git repack -lad"%self.bup_path)
 
     def destroy(self):
         """
@@ -223,8 +242,7 @@ class Project(object):
 
         if not os.path.exists(target) or authorized_keys not in open(target).read():
             open(target,'w').write(authorized_keys)
-        self.cmd('chown -R %s:%s %s'%(self.uid, self.uid, dot_ssh)):
-            raise RuntimeError("failed to chown")
+        self.cmd('chown -R %s:%s %s'%(self.uid, self.uid, dot_ssh))
         self.cmd('chmod og-rwx -R %s'%dot_ssh)
 
     def cgroup(self, memory_G, cpu_shares, core_quota):
@@ -306,7 +324,7 @@ if __name__ == "__main__":
     parser_compact = subparsers.add_parser('compact', help='compact the bup repo, reducing the number of distinct pack files')
     parser_compact.set_defaults(func=lambda args: project.compact())
 
-    parser_save = subparsers.add_parser('snapshot_pool', help='save a snapshot')
+    parser_save = subparsers.add_parser('save', help='save a snapshot')
     parser_save.set_defaults(func=lambda args: project.save())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='show list of snapshots of the given project pool (JSON)')
@@ -318,15 +336,10 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if not args.mnt:
-        args.mnt = '/' + os.path.join('projects', args.project_id)
-    if not args.stream_path:
-        args.stream_path = '/' + os.path.join(args.pool, 'streams', args.project_id)
 
     t0 = time.time()
     project = Project(project_id  = args.project_id,
-                      login_shell = args.login_shell,
-                      stream_path = args.stream_path)
+                      login_shell = args.login_shell)
     args.func(args)
     log("total time: %s seconds"%(time.time()-t0))
 
