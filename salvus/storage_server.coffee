@@ -657,7 +657,7 @@ exports.connect_to_database = connect_to_database = (cb) ->
         password    : password
         cb          : cb
 
-get_database = (cb) ->
+exports.get_database = get_database = (cb) ->
     async.series([read_password, connect_to_database], (err) -> cb(err, database))
 
 # compute_id = string or array of strings
