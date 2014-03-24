@@ -577,7 +577,7 @@ CREATE TABLE banned_email_addresses (
 /*STORAGE */
 
 /*
-  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2', 'DC2':'2'};
+  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
 
   ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
 */

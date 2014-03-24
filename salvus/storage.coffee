@@ -3584,14 +3584,7 @@ exports.xxxx_migrate2_all_status = (opts) ->
 
 
 
-
-
-
-
-
-
-
-exports.migrate3 = (opts) ->
+exports.xxx_migrate3 = (opts) ->
     opts = defaults opts,
         project_id : required
         server     : undefined   # rsync here...
@@ -3731,7 +3724,7 @@ exports.migrate3 = (opts) ->
     )
 
 
-exports.migrate3_all = (opts) ->
+exports.xxx_migrate3_all = (opts) ->
     opts = defaults opts,
         limit : 20  # no more than this many projects will be migrated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
@@ -3861,5 +3854,78 @@ exports.migrate3_all = (opts) ->
             async.mapLimit([0...projects.length], opts.limit, f, cb)
     ], (err) -> opts.cb?(err, errors))
 
+
+
+
+exports.migrate4_schedule = (opts) ->
+    opts = defaults opts,
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+    dbg = (m) -> winston.debug("migrate4: #{m}")
+    projects = undefined
+    hosts = {}
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id']
+                limit   : 1000000
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results ")
+                        result.sort()
+                        projects = result
+                    cb(err)
+        (cb) ->
+            dbg("creating schedule")
+            for project_id in projects
+                host = hashrings['1'].range(project_id, 1)[0]
+                if not hosts[host]?
+                    hosts[host] = [project_id]
+                else
+                    hosts[host].push(project_id)
+            dbg("saving schedule to disk")
+            for k, v of hosts
+                fs.writeFileSync(k, v.join('\n'))
+            cb()
+    ], opts.cb?())
+
+
+exports.migrate4_store_repos_in_db = (opts) ->
+    opts = defaults opts,
+        limit : 3   # number to store at once
+        status : required
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+    storage_server = require('storage_server')
+    db = undefined
+    projects = undefined
+    async.series([
+        (cb) ->
+            storage_server.get_database (err, d) ->
+                db = d
+                cb(err)
+        (cb) ->
+            fs.readdir '/home/salvus/bup', (err, files) ->
+                projects = files
+                projects.sort()
+                cb(err)
+        (cb) ->
+            f = (project_id, c) ->
+                s = {project_id:project_id}
+                status.push(s)
+                cs = db.chunked_storage(id:project_id)
+                t = misc.walltime()
+                cs.sync
+                    path : "/home/salvus/bup/#{project_id}"
+                    cb   : (err) ->
+                        s.time = misc.walltime(t)
+                        if err
+                            s.error = err
+                        c(err)
+
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) -> opts.cb?(err))
 
 
