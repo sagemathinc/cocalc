@@ -1,5 +1,6 @@
 # services
-base = 'salvus-2014-03-18-0358'
+base = 'salvus-2014-03-22-0408'
+baset = base
 
 cassandra_ram = 8
 cassandra_cpu = 2
@@ -7,7 +8,7 @@ cassandra_cpu = 2
 web_ram       = 4
 web_cpu       = 2
 
-compute_ram   = 32
+compute_ram   = 28
 compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it, you must rebuild ATLAS, which takes 12 hours.
                      # if you don't rebuild ATLAS, then it will crash on this benchmark
                      # sage: n=1000;import numpy; a=numpy.random.randn(n,n);
@@ -15,7 +16,7 @@ compute_cpu   = 10   # DO *NOT* change compute_cpu willy-nilly; if you change it
                      # 1 loops, best of 3: 183 ms per loop
 
 newcompute_ram = 6
-newcompute_cpu = 4
+newcompute_cpu = 2
 
 [vm]
 
@@ -63,26 +64,40 @@ cloud20  {'hostname':'web20',      'vcpus':web_cpu,       'ram':web_ram,       '
 cloud21  {'hostname':'web21',      'vcpus':web_cpu,       'ram':web_ram,       'base':base}
 
 # new compute vm's
-cloud1   {'hostname':'compute1dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud5   {'hostname':'compute2dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13102}
-cloud3   {'hostname':'compute3dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud4   {'hostname':'compute4dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud6   {'hostname':'compute6dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud7   {'hostname':'compute7dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud1   {'hostname':'compute1dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud5   {'hostname':'compute2dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13102}
+cloud3   {'hostname':'compute3dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud4   {'hostname':'compute4dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud5   {'hostname':'compute5dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud6   {'hostname':'compute6dc1',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud7   {'hostname':'compute7dc1',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
 
-cloud10  {'hostname':'compute10dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud11  {'hostname':'compute11dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud12  {'hostname':'compute12dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud13  {'hostname':'compute13dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud14  {'hostname':'compute14dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud15  {'hostname':'compute15dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud16  {'hostname':'compute16dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud17  {'hostname':'compute17dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud18  {'hostname':'compute18dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud19  {'hostname':'compute19dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud20  {'hostname':'compute20dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
-cloud21  {'hostname':'compute21dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':base, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud10  {'hostname':'compute10dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud11  {'hostname':'compute11dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud12  {'hostname':'compute12dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud13  {'hostname':'compute13dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud14  {'hostname':'compute14dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud15  {'hostname':'compute15dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud16  {'hostname':'compute16dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud17  {'hostname':'compute17dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud18  {'hostname':'compute18dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud19  {'hostname':'compute19dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud20  {'hostname':'compute20dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+cloud21  {'hostname':'compute21dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'storage:512:none:qcow2', 'vnc':13100}
+
+# bup storage
+cloud10  {'hostname':'bup10',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud11  {'hostname':'bup11',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud12  {'hostname':'bup12',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud13  {'hostname':'bup13',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud14  {'hostname':'bup14',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud15  {'hostname':'bup15',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud16  {'hostname':'bup16',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud17  {'hostname':'bup17',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud18  {'hostname':'bup18',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud19  {'hostname':'bup19',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud20  {'hostname':'bup20',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
+cloud21  {'hostname':'bup21',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
 
 
 # compute vm's
