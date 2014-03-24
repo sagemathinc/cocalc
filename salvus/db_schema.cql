@@ -577,9 +577,14 @@ CREATE TABLE banned_email_addresses (
 /*STORAGE */
 
 /*
-  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
+  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2', 'DC2':'2'};
 
   ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
+
+CREATE USER salvus WITH PASSWORD '...'  SUPERUSER;
+DROP USER cassandra;
+CREATE USER storage_server WITH PASSWORD '...';
+
 */
 
 
@@ -665,9 +670,6 @@ CREATE TABLE project_new (
 
 CREATE INDEX on compute_hosts(host);
 
-CREATE USER salvus WITH PASSWORD '...'  SUPERUSER;
-DROP USER cassandra;
-CREATE USER storage_server WITH PASSWORD '...';
 
 GRANT SELECT ON table storage TO storage_server;
 GRANT MODIFY ON table storage TO storage_server;

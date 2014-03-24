@@ -5,11 +5,11 @@
 
 
 """
+import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
+from subprocess import Popen, PIPE
 
-# Temporary...
-
-BUP_PATH='/tmp/bup'
-PROJECTS_PATH='/tmp/projects'
+BUP_PATH=os.environ.get('BUP_PATH','/tmp/bup')
+PROJECTS_PATH=os.environ.get('PROJECTS_PATH','/tmp/projects')
 
 # Default amount of disk space
 DEFAULT_QUOTA      = '5G'
@@ -29,8 +29,6 @@ BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
 SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
-import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
-from subprocess import Popen, PIPE
 
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
