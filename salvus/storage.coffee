@@ -3914,7 +3914,7 @@ exports.migrate4_store_repos_in_db = (opts) ->
         (cb) ->
             f = (project_id, c) ->
                 s = {project_id:project_id}
-                status.push(s)
+                opts.status.push(s)
                 cs = db.chunked_storage(id:project_id)
                 t = misc.walltime()
                 cs.sync
