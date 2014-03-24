@@ -120,7 +120,8 @@ def conf():
         # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/")
         # Import the zpool, copy custom config, start cassandra Daemon
-        cmd("zpool import -f cassandra; rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  service cassandra start")
+        cmd("mkdir /cassandra; mount /dev/sdb2 /cassandra")
+        cmd("rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  service cassandra start")
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets")
 
 
