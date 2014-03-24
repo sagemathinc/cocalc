@@ -3891,3 +3891,41 @@ exports.migrate4_schedule = (opts) ->
                 fs.writeFileSync(k, v.join('\n'))
             cb()
     ], opts.cb?())
+
+
+exports.migrate4_store_repos_in_db = (opts) ->
+    opts = defaults opts,
+        limit : 3   # number to store at once
+        status : required
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+    storage_server = require('storage_server')
+    db = undefined
+    projects = undefined
+    async.series([
+        (cb) ->
+            storage_server.get_database (err, d) ->
+                db = d
+                cb(err)
+        (cb) ->
+            fs.readdir '/home/salvus/bup', (err, files) ->
+                projects = files
+                projects.sort()
+                cb(err)
+        (cb) ->
+            f = (project_id, c) ->
+                s = {project_id:project_id}
+                status.push(s)
+                cs = db.chunked_storage(id:project_id)
+                t = misc.walltime()
+                cs.sync
+                    path : "/home/salvus/bup/#{project_id}"
+                    cb   : (err) ->
+                        s.time = misc.walltime(t)
+                        if err
+                            s.error = err
+                        c(err)
+
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) -> opts.cb?(err))
+
+
