@@ -3584,14 +3584,7 @@ exports.xxxx_migrate2_all_status = (opts) ->
 
 
 
-
-
-
-
-
-
-
-exports.migrate3 = (opts) ->
+exports.xxx_migrate3 = (opts) ->
     opts = defaults opts,
         project_id : required
         server     : undefined   # rsync here...
@@ -3731,7 +3724,7 @@ exports.migrate3 = (opts) ->
     )
 
 
-exports.migrate3_all = (opts) ->
+exports.xxx_migrate3_all = (opts) ->
     opts = defaults opts,
         limit : 20  # no more than this many projects will be migrated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
@@ -3863,3 +3856,38 @@ exports.migrate3_all = (opts) ->
 
 
 
+
+exports.migrate4_schedule = (opts) ->
+    opts = defaults opts,
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+    dbg = (m) -> winston.debug("migrate4: #{m}")
+    projects = undefined
+    hosts = {}
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id']
+                limit   : 1000000
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results ")
+                        result.sort()
+                        projects = result
+                    cb(err)
+        (cb) ->
+            dbg("creating schedule")
+            for project_id in projects
+                host = hashrings['1'].range(project_id, 1)[0]
+                if not hosts[host]?
+                    hosts[host] = [project_id]
+                else
+                    hosts[host].push(project_id)
+            dbg("saving schedule to disk")
+            for k, v of hosts
+                fs.writeFileSync(k, v.join('\n'))
+            cb()
+    ], opts.cb?())

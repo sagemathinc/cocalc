@@ -137,7 +137,7 @@ class Project(object):
         """
         log = self._log("create")
         if not os.path.exists(self.bup_path):
-            self.cmd("/usr/bin/bup init %s"%self.bup_path)
+            self.cmd("/usr/bin/bup init")
         if not os.path.exists(self.project_mnt):
             self.cmd("mkdir -p %s; chown %s:%s -R %s"%(self.project_mnt, self.uid, self.uid, self.project_mnt))
 
@@ -186,16 +186,21 @@ class Project(object):
         self.umount_snapshots()
         shutil.rmtree(self.project_mnt)
 
-    def save(self):
+    def save(self, path=None, timestamp=None, remount=True):
         """
         Save a snapshot.
         """
-        log = self._log("commit")
+        log = self._log("save")
+        if timestamp is None:
+            timestamp = time.time()
+        if path is None:
+            path = self.project_mnt
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot']
-        exclude = '--exclude=' + ' --exclude='.join([os.path.join(self.project_mnt,e) for e in excludes])
-        self.cmd("bup index -x  %s   %s"%(exclude, self.project_mnt))
-        self.cmd("bup save --strip -n master -d %s %s"%(time.time(),self.project_mnt))
-        self.mount_snapshots()
+        exclude = '--exclude=' + ' --exclude='.join([os.path.join(path, e) for e in excludes])
+        self.cmd("bup index -x  %s   %s"%(exclude, path))
+        self.cmd("bup save --strip -n master -d %s %s"%(timestamp, path))
+        if remount:
+            self.mount_snapshots()
 
     def snapshots(self):
         """
@@ -209,9 +214,9 @@ class Project(object):
         """
         raise NotImplementedError
 
-    def compact(self):
+    def repack(self):
         """
-        Compact the bup repo, replacing the large number of git pack files by a small number.
+        repack the bup repo, replacing the large number of git pack files by a small number.
         """
         self.cmd("cd %s; git repack -lad"%self.bup_path)
 
@@ -267,12 +272,23 @@ class Project(object):
 
             try:
                 pids = cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+                cmd("cgclassify %s"%(' '.join(pids)), ignore_errors=True)
+                # ignore cgclassify errors, since processes come and go, etc.n__":
             except RuntimeError:
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
-            if pids:
-                cmd("cgclassify %s"%(' '.join(pids)), ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.n__":
+
+    def migrate(self):
+        self.init()
+        snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
+        snapshots = os.listdir(snap_path)
+        snapshots.sort()
+        if len(snapshots) == 0:
+            timestamp = time.time() # now
+        else:
+            timestamp = time.mktime(time.strptime(snapshots[-1], "%Y-%m-%dT%H:%M:%S"))
+
+        self.save(path='/projects/%s'%self.project_id, timestamp=timestamp, remount=False)
 
 
 
@@ -321,11 +337,14 @@ if __name__ == "__main__":
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
     parser_destroy.set_defaults(func=lambda args: project.destroy())
 
-    parser_compact = subparsers.add_parser('compact', help='compact the bup repo, reducing the number of distinct pack files')
-    parser_compact.set_defaults(func=lambda args: project.compact())
+    parser_repack = subparsers.add_parser('repack', help='repack the bup repo, reducing the number of distinct pack files')
+    parser_repack.set_defaults(func=lambda args: project.repack())
 
     parser_save = subparsers.add_parser('save', help='save a snapshot')
     parser_save.set_defaults(func=lambda args: project.save())
+
+    parser_migrate = subparsers.add_parser('migrate', help='migrate a project')
+    parser_migrate.set_defaults(func=lambda args: project.migrate())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='show list of snapshots of the given project pool (JSON)')
     parser_snapshots.set_defaults(func=lambda args: print_json(project.snapshots()))
