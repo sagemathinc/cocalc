@@ -3922,8 +3922,8 @@ exports.migrate4_store_repos_in_db = (opts) ->
                     cb   : (err) ->
                         s.time = misc.walltime(t)
                         if err
-                            s.error = err
-                        c(err)
+                            s.error = err # error *recorded*
+                        c() # keep going no matter what
 
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) -> opts.cb?(err))
