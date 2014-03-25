@@ -3901,6 +3901,11 @@ exports.migrate4_store_repos_in_db = (opts) ->
     storage_server = require('storage_server')
     db = undefined
     projects = undefined
+
+    # this happens sometimes... due to disconnect from database...
+    process.addListener "uncaughtException", (err) ->
+        winston.error("Uncaught exception: #{err}")
+
     async.series([
         (cb) ->
             storage_server.get_database (err, d) ->
@@ -3912,7 +3917,7 @@ exports.migrate4_store_repos_in_db = (opts) ->
                 projects.sort()
                 cb(err)
         (cb) ->
-            f = (project_id, c) ->
+            g = (project_id, c) ->
                 s = {project_id:project_id}
                 opts.status.push(s)
                 cs = db.chunked_storage(id:project_id)
@@ -3925,6 +3930,15 @@ exports.migrate4_store_repos_in_db = (opts) ->
                             s.error = err # error *recorded*
                         c() # keep going no matter what
 
+            f = (project_id, c) ->
+                h = () ->
+                    dbg("timed out #{project_id} after 15 minutes")
+                    c()
+                    c = undefined
+                timer = setTimeout(h, 15*60*1000)
+                g project_id, () ->
+                    clearTimeout(timer)
+                    c?()
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) -> opts.cb?(err))
 
