@@ -288,6 +288,13 @@ class Project(object):
 
         self.save(path='/projects/%s'%self.project_id, timestamp=timestamp, remount=False)
 
+    def migrate_all(self):
+        self.init()
+        snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
+        snapshots = os.listdir(snap_path)
+        snapshots.sort()
+        for snapshot in snapshots:
+            self.save(path=os.path.join(snap_path, snapshot), timestamp=time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S")), remount=False)
 
 
 if __name__ == "__main__":
@@ -343,6 +350,9 @@ if __name__ == "__main__":
 
     parser_migrate = subparsers.add_parser('migrate', help='migrate a project')
     parser_migrate.set_defaults(func=lambda args: project.migrate())
+
+    parser_migrate = subparsers.add_parser('migrate_all', help='migrate all snapshots of project')
+    parser_migrate.set_defaults(func=lambda args: project.migrate_all())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='show list of snapshots of the given project pool (JSON)')
     parser_snapshots.set_defaults(func=lambda args: print_json(project.snapshots()))
