@@ -2,26 +2,23 @@
 
 """
 
-
+BUP-based Project storage system
 
 """
 import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
 
+# The path where bup repos are stored
 BUP_PATH      = os.path.abspath(os.environ.get('BUP_PATH','/tmp/bup'))
+
+# The path where project working files appear
 PROJECTS_PATH = os.path.abspath(os.environ.get('PROJECTS_PATH','/tmp/projects'))
 
-# Default amount of disk space
-DEFAULT_QUOTA      = '5G'
+# Default Quotas
+# disk in megabytes
+# memory in gigabytes
+DEFAULT_QUOTA = {'disk':3000, 'inode':200000, 'memory':8, 'cpu_shares':256, 'cores':2}
 
-# Default cap on amount of RAM in Gigbaytes
-DEFAULT_MEMORY_G   = 8
-
-# Default share of the CPU
-DEFAULT_CPU_SHARES = 256
-
-# Cap on number of simultaneous cores
-DEFAULT_CORE_QUOTA = 2   # -1=no limit; 2 = up to two cores
 
 SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/local_hub_template/"
 BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
@@ -106,8 +103,9 @@ class Project(object):
         self.username = self.project_id.replace('-','')
         self.login_shell = login_shell
         self.bup_path = os.path.join(BUP_PATH, project_id)
+        self.quota_path = os.path.join(self.bup_path, "quota.json")
         self.project_mnt  = os.path.join(PROJECTS_PATH, project_id)
-        self.snap_mnt = os.path.join(self.project_mnt,'.snapshot')
+        self.snap_mnt = os.path.join(self.project_mnt,'.bup')
         self.branch = open("%s/HEAD"%self.bup_path).read().split('/')[-1]
 
     def cmd(self, *args, **kwds):
@@ -146,14 +144,15 @@ class Project(object):
             self.branch = branch
             open("%s/HEAD"%self.bup_path,'w').write("ref: refs/heads/%s"%branch)
 
-    def checkout(self, snapshot, branch=None):
+    def checkout(self, snapshot, branch=None, use_fuse=True):
         self.set_branch(branch)
         if not os.path.exists(self.project_mnt):
             self.cmd("mkdir -p %s; /usr/bin/bup restore %s/latest/ --outdir=%s"%(self.project_mnt, self.branch, self.project_mnt))
             self.cmd("chown %s:%s -R %s"%(self.uid, self.uid, self.project_mnt))
+            self.mount_snapshots()
         else:
             self.mount_snapshots()
-            self.cmd("rsync -axvH --delete %s/%s/%s/ %s/"%(self.snap_mnt, self.branch, snapshot, self.project_mnt))
+            self.cmd("rsync -axH --delete %s/%s/%s/ %s/"%(self.snap_mnt, self.branch, snapshot, self.project_mnt))
 
     def umount_snapshots(self):
         self.cmd("fusermount -uz %s"%self.snap_mnt, ignore_errors=True)
@@ -200,7 +199,7 @@ class Project(object):
             timestamp = time.time()
         if path is None:
             path = self.project_mnt
-        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot']
+        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot', '.bup']
         exclude = '--exclude=' + ' --exclude='.join([os.path.join(path, e) for e in excludes])
         self.cmd("bup index -x  %s   %s"%(exclude, path))
         self.cmd("bup save --strip -n %s -d %s %s"%(self.branch, timestamp, path))
@@ -221,12 +220,6 @@ class Project(object):
         Return list of all snapshots in date order of the project pool.
         """
         return self.cmd("bup ls %s/"%self.branch, verbose=0).split()[:-1]
-
-    def increase_quota(self, amount):
-        """
-        Increase the quota of the project by the given amount.
-        """
-        raise NotImplementedError
 
     def repack(self):
         """
@@ -266,42 +259,85 @@ class Project(object):
         self.cmd('chown -R %s:%s %s'%(self.uid, self.uid, dot_ssh))
         self.cmd('chmod og-rwx -R %s'%dot_ssh)
 
-    def cgroup(self, memory_G, cpu_shares, core_quota):
-        log = self._log('cgroup')
-        log("configuring cgroups...")
-        if core_quota <= 0:
-            cfs_quota = -1
+    def quota(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None):
+        log = self._log('quota')
+        log("configuring quotas...")
+
+        if os.path.exists(self.quota_path):
+            try:
+                quota = json.loads(open(self.quota_path).read())
+                for k, v in DEFAULT_QUOTA.iteritems():
+                    if k not in quota:
+                        quota[k] = v
+            except (ValueError, IOError), mesg:
+                quota = dict(DEFAULT_QUOTA)
         else:
-            cfs_quota = int(100000*core_quota)
+            quota = dict(DEFAULT_QUOTA)
+        if memory is not None:
+            quota['memory'] = int(memory)
+        else:
+            memory = quota['memory']
+        if cpu_shares is not None:
+            quota['cpu_shares'] = int(cpu_shares)
+        else:
+            cpu_shares = quota['cpu_shares']
+        if cores is not None:
+            quota['cores'] = float(cores)
+        else:
+            cores = quota['cores']
+        if disk is not None:
+            quota['disk'] = int(disk)
+        else:
+            disk = quota['disk']
+        if inode is not None:
+            quota['inode'] = int(inode)
+        else:
+            inode = quota['inode']
+
+        try:
+            s = json.dumps(quota)
+            open(self.quota_path,'w').write(s)
+            print s
+        except IOError:
+            pass
+
+        # Disk space quota
+        #    filesystem options: usrquota,grpquota; then
+        #    sudo su
+        #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
+        disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
+        disk_hard  = disk * 1024
+        inode_soft = inode
+        inode_hard = 2*inode_soft
+        cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
+
+        # Cgroups
+        if cores <= 0:
+            cfs_quota = -1  # no limit
+        else:
+            cfs_quota = int(100000*cores)
 
         self.cmd("cgcreate -g memory,cpu:%s"%self.username)
-        open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory_G)
-        open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(cpu_shares)
-        open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(cfs_quota)
+        open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory)
+        open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
+        open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
 
         z = "\n%s  cpu,memory  %s\n"%(self.username, self.username)
-        cur = open("/etc/cgrules.conf").read()
+        cur = open("/etc/cgrules.conf").read() if os.path.exists("/etc/cgrules.conf") else ''
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
             self.cmd('service cgred restart')
-
             try:
                 pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
                 self.cmd("cgclassify %s"%(' '.join(pids)), ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.n__":
+                # ignore cgclassify errors, since processes come and go, etc.":
             except RuntimeError:
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def migrate_all(self):
-        self.init()
-        snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
-        known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
-        for snapshot in sorted(os.listdir(snap_path)):
-            tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
-            if tm not in known:
-                self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+
+
 
     def sync(self, remote):
         if ':' not in remote:
@@ -321,10 +357,10 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         # sync from local to remote
-        self.cmd("rsync -axvH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+        self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
         # sync from remote back to local
-        back = self.cmd("rsync -axvH  -e 'ssh -o StrictHostKeyChecking=no'  %s/ %s/"%(remote, self.bup_path)).splitlines()
-        if remote_master and len([x for x in back if x.endswith('.pack')]) > 0:
+        back = self.cmd("rsync -axH  -e 'ssh -o StrictHostKeyChecking=no'  %s/ %s/"%(remote, self.bup_path)).splitlines()
+        if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             # there were remote packs possibly not available locally, so make tags that points to them,
             # so user can get their files if anything important got overwritten.
             tag = None
@@ -336,9 +372,19 @@ class Project(object):
                     path = os.path.join(self.bup_path, 'refs', 'tags', tag)
             if tag is not None:
                 # sync back any tags
-                self.cmd("rsync -axvH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+                self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
         if os.path.exists(self.project_mnt):
             self.mount_snapshots()
+
+    def migrate_all(self):
+        self.init()
+        snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
+        known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
+        for snapshot in sorted(os.listdir(snap_path)):
+            tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
+            if tm not in known:
+                self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+
 
 
 if __name__ == "__main__":
@@ -359,7 +405,7 @@ if __name__ == "__main__":
     parser_checkout = subparsers.add_parser('checkout', help='checkout snapshot of project to working directory (DANGEROUS)')
     parser_checkout.add_argument("--snapshot", dest="snapshot", help="which tag or snapshot to checkout (default: latest)", type=str, default='latest')
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
-    parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=self.branch))
+    parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
 
     update_daemon_code = subparsers.add_parser('update_daemon_code', help='control the ~/.sagemathcloud filesystem')
     update_daemon_code.set_defaults(func=lambda args: project.update_daemon_code())
@@ -367,15 +413,17 @@ if __name__ == "__main__":
     parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
     parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
 
-    parser_cgroup = subparsers.add_parser('cgroup', help='configure cgroup for this user')
-    parser_cgroup.add_argument("--memory_G", dest="memory_G", help="memory quota in gigabytes (default: '%s')"%DEFAULT_MEMORY_G,
-                               type=int, default=DEFAULT_MEMORY_G)
-    parser_cgroup.add_argument("--cpu_shares", dest="cpu_shares", help="share of the cpu (default: '%s')"%DEFAULT_CPU_SHARES,
-                               type=int, default=DEFAULT_CPU_SHARES)
-    parser_cgroup.add_argument("--core_quota", dest="core_quota", help="max number of cores -- can be float (default: '%s')"%DEFAULT_CORE_QUOTA,
-                               type=float, default=DEFAULT_CORE_QUOTA)
-    parser_cgroup.set_defaults(func=lambda args: project.cgroup(
-                    memory_G=args.memory_G, cpu_shares=args.cpu_shares, core_quota=args.core_quota))
+    parser_quota = subparsers.add_parser('quota', help='set quota for this user; also outputs settings in JSON')
+    parser_quota.add_argument("--memory", dest="memory", help="memory quota in gigabytes",
+                               type=int, default=None)
+    parser_quota.add_argument("--cpu_shares", dest="cpu_shares", help="shares of the cpu",
+                               type=int, default=None)
+    parser_quota.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
+                               type=float, default=None)
+    parser_quota.add_argument("--disk", dest="disk", help="working disk space in gigabytes", type=int, default=None)
+    parser_quota.add_argument("--inode", dest="inode", help="inode quota", type=int, default=None)
+    parser_quota.set_defaults(func=lambda args: project.quota(
+                    memory=args.memory, cpu_shares=args.cpu_shares, cores=args.cores, disk=args.disk, inode=args.inode))
 
     parser_close = subparsers.add_parser('close', help='deleting working directory')
     parser_close.set_defaults(func=lambda args: project.close())
@@ -385,9 +433,6 @@ if __name__ == "__main__":
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
     parser_destroy.set_defaults(func=lambda args: project.destroy())
-
-    parser_repack = subparsers.add_parser('repack', help='repack the bup repo, reducing the number of distinct pack files')
-    parser_repack.set_defaults(func=lambda args: project.repack())
 
     parser_save = subparsers.add_parser('save', help='save a snapshot')
     parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
@@ -406,7 +451,7 @@ if __name__ == "__main__":
     parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project')
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
 
-    parser_snapshots = subparsers.add_parser('snapshots', help='show list of snapshots of the given project pool (JSON)')
+    parser_snapshots = subparsers.add_parser('snapshots', help='output JSON list of snapshots of current branch')
     parser_snapshots.set_defaults(func=lambda args: print_json(project.snapshots()))
 
     args = parser.parse_args()
