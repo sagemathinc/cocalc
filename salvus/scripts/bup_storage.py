@@ -106,7 +106,8 @@ class Project(object):
         self.quota_path = os.path.join(self.bup_path, "quota.json")
         self.project_mnt  = os.path.join(PROJECTS_PATH, project_id)
         self.snap_mnt = os.path.join(self.project_mnt,'.bup')
-        self.branch = open("%s/HEAD"%self.bup_path).read().split('/')[-1]
+        self.HEAD = "%s/HEAD"%self.bup_path
+        self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
 
     def cmd(self, *args, **kwds):
         os.environ['BUP_DIR'] = self.bup_path
@@ -135,17 +136,20 @@ class Project(object):
         Create user home directory and corresponding bup repo.
         """
         log = self._log("create")
+        if not os.path.exists(self.project_mnt):
+            self.cmd("mkdir -p %s"%self.project_mnt)
         if not os.path.exists(self.bup_path):
             self.cmd("/usr/bin/bup init")
-            self.save(remount=False)
+            self.save()
 
     def set_branch(self, branch=''):
         if branch and branch != self.branch:
             self.branch = branch
-            open("%s/HEAD"%self.bup_path,'w').write("ref: refs/heads/%s"%branch)
+            open(self.HEAD,'w').write("ref: refs/heads/%s"%branch)
 
     def checkout(self, snapshot, branch=None, use_fuse=True):
         self.set_branch(branch)
+        self.create_user()
         if not os.path.exists(self.project_mnt):
             self.cmd("mkdir -p %s; /usr/bin/bup restore %s/latest/ --outdir=%s"%(self.project_mnt, self.branch, self.project_mnt))
             self.cmd("chown %s:%s -R %s"%(self.uid, self.uid, self.project_mnt))
@@ -188,6 +192,7 @@ class Project(object):
         self.kill()
         self.umount_snapshots()
         shutil.rmtree(self.project_mnt)
+        self.delete_user()
 
     def save(self, path=None, timestamp=None, branch=None):
         """
