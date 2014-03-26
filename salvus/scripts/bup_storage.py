@@ -8,8 +8,8 @@
 import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
 
-BUP_PATH=os.environ.get('BUP_PATH','/tmp/bup')
-PROJECTS_PATH=os.environ.get('PROJECTS_PATH','/tmp/projects')
+BUP_PATH      = os.path.abspath(os.environ.get('BUP_PATH','/tmp/bup'))
+PROJECTS_PATH = os.path.abspath(os.environ.get('PROJECTS_PATH','/tmp/projects'))
 
 # Default amount of disk space
 DEFAULT_QUOTA      = '5G'
@@ -54,7 +54,7 @@ def ensure_file_exists(src, target):
         s = os.stat(os.path.split(target)[0])
         os.chown(target, s.st_uid, s.st_gid)
 
-def cmd(s, ignore_errors=False, verbose=2, timeout=None):
+def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if verbose >= 1:
         log(s)
     t = time.time()
@@ -91,8 +91,10 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None):
             signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
 
-cmd("mkdir -p %s; chmod og-rwx %s"%(BUP_PATH, BUP_PATH))
-cmd("mkdir -p %s; chmod og+rx %s"%(PROJECTS_PATH, PROJECTS_PATH))
+if not os.path.exists(BUP_PATH):
+    cmd("mkdir -p %s; chmod og-rwx %s"%(BUP_PATH, BUP_PATH))
+if not os.path.exists(PROJECTS_PATH):
+    cmd("mkdir -p %s; chmod og+rx %s"%(PROJECTS_PATH, PROJECTS_PATH))
 
 
 class Project(object):
@@ -106,6 +108,7 @@ class Project(object):
         self.bup_path = os.path.join(BUP_PATH, project_id)
         self.project_mnt  = os.path.join(PROJECTS_PATH, project_id)
         self.snap_mnt = os.path.join(self.project_mnt,'.snapshot')
+        self.branch = open("%s/HEAD"%self.bup_path).read().split('/')[-1]
 
     def cmd(self, *args, **kwds):
         os.environ['BUP_DIR'] = self.bup_path
@@ -136,26 +139,29 @@ class Project(object):
         log = self._log("create")
         if not os.path.exists(self.bup_path):
             self.cmd("/usr/bin/bup init")
-        if not os.path.exists(self.project_mnt):
-            self.cmd("mkdir -p %s; chown %s:%s -R %s"%(self.project_mnt, self.uid, self.uid, self.project_mnt))
+            self.save(remount=False)
 
-    def open(self, quota=DEFAULT_QUOTA):
-        """
-        Check the most recent snapshot to the user home directory.
-        """
-        log = self._log("checkout")
-        self.create_user()
-        self.cmd("/usr/bin/bup restore master/latest/ --outdir=%s"%self.project_mnt)
-        self.cmd("chown %s:%s -R %s"%(self.uid, self.uid, self.project_mnt))
-        self.mount_snapshots()
+    def set_branch(self, branch=''):
+        if branch and branch != self.branch:
+            self.branch = branch
+            open("%s/HEAD"%self.bup_path,'w').write("ref: refs/heads/%s"%branch)
+
+    def checkout(self, snapshot, branch=None):
+        self.set_branch(branch)
+        if not os.path.exists(self.project_mnt):
+            self.cmd("mkdir -p %s; /usr/bin/bup restore %s/latest/ --outdir=%s"%(self.project_mnt, self.branch, self.project_mnt))
+            self.cmd("chown %s:%s -R %s"%(self.uid, self.uid, self.project_mnt))
+        else:
+            self.mount_snapshots()
+            self.cmd("rsync -axvH --delete %s/%s/%s/ %s/"%(self.snap_mnt, self.branch, snapshot, self.project_mnt))
 
     def umount_snapshots(self):
         self.cmd("fusermount -uz %s"%self.snap_mnt, ignore_errors=True)
 
     def mount_snapshots(self):
         self.umount_snapshots()
-        self.cmd("rm -rf %s; mkdir -p %s; bup fuse -o %s"%(
-                     self.snap_mnt, self.snap_mnt,  self.snap_mnt))
+        self.cmd("rm -rf %s; mkdir -p %s; bup fuse -o --uid=%s --gid=%s %s"%(
+                     self.snap_mnt, self.snap_mnt,  self.uid, self.uid, self.snap_mnt))
 
     def kill(self, grace_s=0.25):
         log("killing all processes by user with id %s"%self.uid)
@@ -184,11 +190,12 @@ class Project(object):
         self.umount_snapshots()
         shutil.rmtree(self.project_mnt)
 
-    def save(self, path=None, timestamp=None, remount=True):
+    def save(self, path=None, timestamp=None, branch=None):
         """
         Save a snapshot.
         """
         log = self._log("save")
+        self.set_branch(branch)
         if timestamp is None:
             timestamp = time.time()
         if path is None:
@@ -196,15 +203,24 @@ class Project(object):
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot']
         exclude = '--exclude=' + ' --exclude='.join([os.path.join(path, e) for e in excludes])
         self.cmd("bup index -x  %s   %s"%(exclude, path))
-        self.cmd("bup save --strip -n master -d %s %s"%(timestamp, path))
-        if remount:
+        self.cmd("bup save --strip -n %s -d %s %s"%(self.branch, timestamp, path))
+        if path == self.project_mnt:
             self.mount_snapshots()
+
+    def tag(self, tag, delete=False):
+        """
+        Tag the latest commit to master or delete a tag.
+        """
+        if delete:
+            self.cmd("bup tag -f -d %s"%tag)
+        else:
+            self.cmd("bup tag -f %s %s"%(tag, self.branch))
 
     def snapshots(self):
         """
         Return list of all snapshots in date order of the project pool.
         """
-        return self.cmd("bup ls master/", verbose=0).split()[:-1]
+        return self.cmd("bup ls %s/"%self.branch, verbose=0).split()[:-1]
 
     def increase_quota(self, amount):
         """
@@ -215,6 +231,8 @@ class Project(object):
     def repack(self):
         """
         repack the bup repo, replacing the large number of git pack files by a small number.
+
+        This doesn't make any sense, given how sync works.  DON'T USE.
         """
         self.cmd("cd %s; git repack -lad"%self.bup_path)
 
@@ -227,7 +245,7 @@ class Project(object):
 
     def update_daemon_code(self):
         log = self._log('update_daemon_code')
-        cmd("rsync -axHL --delete %s/ /%s/.sagemathcloud/"%(SAGEMATHCLOUD_TEMPLATE, self.project_mnt))
+        self.cmd("rsync -axHL --delete %s/ /%s/.sagemathcloud/"%(SAGEMATHCLOUD_TEMPLATE, self.project_mnt))
 
     def ensure_ssh_access(self):
         log = self._log('ensure_ssh_access')
@@ -256,7 +274,7 @@ class Project(object):
         else:
             cfs_quota = int(100000*core_quota)
 
-        cmd("cgcreate -g memory,cpu:%s"%self.username)
+        self.cmd("cgcreate -g memory,cpu:%s"%self.username)
         open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory_G)
         open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(cpu_shares)
         open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(cfs_quota)
@@ -266,35 +284,61 @@ class Project(object):
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
-            cmd('service cgred restart')
+            self.cmd('service cgred restart')
 
             try:
-                pids = cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                cmd("cgclassify %s"%(' '.join(pids)), ignore_errors=True)
+                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+                self.cmd("cgclassify %s"%(' '.join(pids)), ignore_errors=True)
                 # ignore cgclassify errors, since processes come and go, etc.n__":
             except RuntimeError:
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def migrate(self):
-        self.init()
-        snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
-        snapshots = os.listdir(snap_path)
-        snapshots.sort()
-        if len(snapshots) == 0:
-            timestamp = time.time() # now
-        else:
-            timestamp = time.mktime(time.strptime(snapshots[-1], "%Y-%m-%dT%H:%M:%S"))
-
-        self.save(path='/projects/%s'%self.project_id, timestamp=timestamp, remount=False)
-
     def migrate_all(self):
         self.init()
         snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
-        snapshots = os.listdir(snap_path)
-        snapshots.sort()
-        for snapshot in snapshots:
-            self.save(path=os.path.join(snap_path, snapshot), timestamp=time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S")), remount=False)
+        known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
+        for snapshot in sorted(os.listdir(snap_path)):
+            tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
+            if tm not in known:
+                self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+
+    def sync(self, remote):
+        if ':' not in remote:
+            remote += ':' + self.bup_path + '/'
+        if not remote.endswith('/'):
+            remote += '/'
+        host, remote_bup_path = remote.split(':')
+        # get remote heads
+        out = self.cmd("ssh -o StrictHostKeyChecking=no %s 'grep \"\" %s/refs/heads/*'"%(host, remote_bup_path), ignore_errors=True)
+        if 'such file or directory' in out:
+            remote_heads = []
+        else:
+            if 'ERROR' in out:
+                raise RuntimeError(out)
+            remote_heads = []
+            for x in out.splitlines():
+                a, b = x.split(':')[-2:]
+                remote_heads.append((os.path.split(a)[-1], b))
+        # sync from local to remote
+        self.cmd("rsync -axvH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+        # sync from remote back to local
+        back = self.cmd("rsync -axvH  -e 'ssh -o StrictHostKeyChecking=no'  %s/ %s/"%(remote, self.bup_path)).splitlines()
+        if remote_master and len([x for x in back if x.endswith('.pack')]) > 0:
+            # there were remote packs possibly not available locally, so make tags that points to them,
+            # so user can get their files if anything important got overwritten.
+            tag = None
+            for branch, id in remote_heads:
+                # have we ever seen this commit?
+                if id not in open("%s/logs/refs/heads/%s"%(self.bup_path,branch)).read():
+                    # nope, never seen it -- tag it.
+                    tag = 'conflict-%s-%s'%(branch, time.strftime("%Y-%m-%d-%H%M%S"))
+                    path = os.path.join(self.bup_path, 'refs', 'tags', tag)
+            if tag is not None:
+                # sync back any tags
+                self.cmd("rsync -axvH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+        if os.path.exists(self.project_mnt):
+            self.mount_snapshots()
 
 
 if __name__ == "__main__":
@@ -312,10 +356,10 @@ if __name__ == "__main__":
     parser_close = subparsers.add_parser('close', help='')
     parser_close.set_defaults(func=lambda args: project.close())
 
-    parser_open = subparsers.add_parser('open', help='')
-    parser_open.add_argument("--quota", dest="quota", help="disk quota (default: '%s')"%DEFAULT_QUOTA, type=str, default=DEFAULT_QUOTA)
-    parser_open.set_defaults(func=lambda args: project.open(quota=args.quota))
-
+    parser_checkout = subparsers.add_parser('checkout', help='checkout snapshot of project to working directory (DANGEROUS)')
+    parser_checkout.add_argument("--snapshot", dest="snapshot", help="which tag or snapshot to checkout (default: latest)", type=str, default='latest')
+    parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
+    parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=self.branch))
 
     update_daemon_code = subparsers.add_parser('update_daemon_code', help='control the ~/.sagemathcloud filesystem')
     update_daemon_code.set_defaults(func=lambda args: project.update_daemon_code())
@@ -346,20 +390,24 @@ if __name__ == "__main__":
     parser_repack.set_defaults(func=lambda args: project.repack())
 
     parser_save = subparsers.add_parser('save', help='save a snapshot')
-    parser_save.set_defaults(func=lambda args: project.save())
+    parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
+    parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
 
-    parser_migrate = subparsers.add_parser('migrate', help='migrate a project')
-    parser_migrate.set_defaults(func=lambda args: project.migrate())
+    parser_tag = subparsers.add_parser('tag', help='tag the *latest* commit to master, or delete a tag')
+    parser_tag.add_argument("tag", help="tag name", type=str)
+    parser_tag.add_argument("--delete", help="delete the given tag",
+                                   dest="delete", default=False, action="store_const", const=True)
+    parser_tag.set_defaults(func=lambda args: project.tag(tag=args.tag, commit=args.commit, delete=args.delete))
 
-    parser_migrate = subparsers.add_parser('migrate_all', help='migrate all snapshots of project')
-    parser_migrate.set_defaults(func=lambda args: project.migrate_all())
+    parser_sync = subparsers.add_parser('sync', help='sync with a remote bup repo')
+    parser_sync.add_argument("remote", help="hostname[:path], where path defaults to same path as locally", type=str)
+    parser_sync.set_defaults(func=lambda args: project.sync(args.remote))
+
+    parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project')
+    parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='show list of snapshots of the given project pool (JSON)')
     parser_snapshots.set_defaults(func=lambda args: print_json(project.snapshots()))
-
-    parser_increase_quota = subparsers.add_parser('increase_quota', help='increase quota')
-    parser_increase_quota.add_argument("--amount", dest="amount", help="amount (default: '5G')", type=str, default='5G')
-    parser_increase_quota.set_defaults(func=lambda args: project.increase_quota(amount=args.amount))
 
     args = parser.parse_args()
 
