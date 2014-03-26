@@ -215,11 +215,16 @@ class Project(object):
         else:
             self.cmd("bup tag -f %s %s"%(tag, self.branch))
 
-    def snapshots(self):
+    def snapshots(self, branch=''):
         """
         Return list of all snapshots in date order of the project pool.
         """
-        return self.cmd("bup ls %s/"%self.branch, verbose=0).split()[:-1]
+        if not branch:
+            branch = self.branch
+        return self.cmd("bup ls %s/"%branch, verbose=0).split()[:-1]
+
+    def branches(self):
+        return {'branches':self.cmd("bup ls").split(), 'branch':self.branch}
 
     def repack(self):
         """
@@ -442,7 +447,7 @@ if __name__ == "__main__":
     parser_tag.add_argument("tag", help="tag name", type=str)
     parser_tag.add_argument("--delete", help="delete the given tag",
                                    dest="delete", default=False, action="store_const", const=True)
-    parser_tag.set_defaults(func=lambda args: project.tag(tag=args.tag, commit=args.commit, delete=args.delete))
+    parser_tag.set_defaults(func=lambda args: project.tag(tag=args.tag, delete=args.delete))
 
     parser_sync = subparsers.add_parser('sync', help='sync with a remote bup repo')
     parser_sync.add_argument("remote", help="hostname[:path], where path defaults to same path as locally", type=str)
@@ -452,7 +457,12 @@ if __name__ == "__main__":
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='output JSON list of snapshots of current branch')
-    parser_snapshots.set_defaults(func=lambda args: print_json(project.snapshots()))
+    parser_snapshots.add_argument("--branch", dest="branch", help="show for given branch (by default the current one)", type=str, default='')
+    parser_snapshots.set_defaults(func=lambda args: print_json(project.snapshots(branch=args.branch)))
+
+    parser_branches = subparsers.add_parser('branches', help='output JSON {branches:[list of branches], branch:"name"}')
+    parser_branches.set_defaults(func=lambda args: print_json(project.branches()))
+
 
     args = parser.parse_args()
 
