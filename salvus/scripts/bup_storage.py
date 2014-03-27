@@ -100,6 +100,7 @@ class Project(object):
             raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id = project_id
         self.uid = uid(project_id)
+        self.gid = self.uid
         self.username = self.project_id.replace('-','')
         self.login_shell = login_shell
         self.bup_path = os.path.join(BUP_PATH, project_id)
@@ -123,13 +124,18 @@ class Project(object):
         return f
 
     def create_user(self):
-        u = self.uid
-        self.cmd('/usr/sbin/groupadd -g %s -o %s'%(u, self.username), ignore_errors=True)
-        self.cmd('/usr/sbin/useradd -u %s -g %s -o %s -d %s -s %s'%(u,u, self.username, self.project_mnt, self.login_shell), ignore_errors=True)
+        self.cmd('/usr/sbin/groupadd -g %s -o %s'%(self.gid, self.username), ignore_errors=True)
+        self.cmd('/usr/sbin/useradd -u %s -g %s -o %s -d %s -s %s'%(self.uid, self.gid,
+                                            self.username, self.project_mnt, self.login_shell), ignore_errors=True)
 
     def delete_user(self):
-        u = self.uid
         self.cmd('/usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(self.username, self.username), ignore_errors=True)
+
+    def start(self):
+        self.create_user()
+        self.checkout()
+        self.ensure_ssh_access()
+        self.update_daemon_code()
 
     def init(self):
         """
@@ -149,14 +155,13 @@ class Project(object):
 
     def checkout(self, snapshot='latest', branch=None):
         self.set_branch(branch)
-        self.create_user()
         if not os.path.exists(self.project_mnt):
             self.cmd("mkdir -p %s; /usr/bin/bup restore %s/%s/ --outdir=%s"%(self.project_mnt, self.branch, snapshot, self.project_mnt))
-            self.cmd("chown %s:%s -R %s"%(self.uid, self.uid, self.project_mnt))
+            self.chown(self.project_mnt)
             self.mount_snapshots()
         else:
             self.mount_snapshots()
-            self.cmd("rsync -axH --delete %s/%s/%s/ %s/"%(self.snap_mnt, self.branch, snapshot, self.project_mnt))
+            self.cmd("rsync -axH --delete %s %s/%s/%s/ %s/"%(self.rsync_exclude(), self.snap_mnt, self.branch, snapshot, self.project_mnt))
 
     def umount_snapshots(self):
         self.cmd("fusermount -uz %s"%self.snap_mnt, ignore_errors=True)
@@ -164,7 +169,7 @@ class Project(object):
     def mount_snapshots(self):
         self.umount_snapshots()
         self.cmd("rm -rf %s; mkdir -p %s; bup fuse -o --uid=%s --gid=%s %s"%(
-                     self.snap_mnt, self.snap_mnt,  self.uid, self.uid, self.snap_mnt))
+                     self.snap_mnt, self.snap_mnt,  self.uid, self.gid, self.snap_mnt))
 
     def kill(self, grace_s=0.25):
         log("killing all processes by user with id %s"%self.uid)
@@ -194,6 +199,14 @@ class Project(object):
         shutil.rmtree(self.project_mnt)
         self.delete_user()
 
+    def rsync_exclude(self, path=None):
+        if path is None:
+            path = self.project_mnt
+        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot', '.bup']
+        #return '--exclude=' + ' --exclude='.join([os.path.join(path, e) for e in excludes])
+
+        return '--exclude=' + ' --exclude='.join(excludes)
+
     def save(self, path=None, timestamp=None, branch=None):
         """
         Save a snapshot.
@@ -204,9 +217,7 @@ class Project(object):
             timestamp = time.time()
         if path is None:
             path = self.project_mnt
-        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot', '.bup']
-        exclude = '--exclude=' + ' --exclude='.join([os.path.join(path, e) for e in excludes])
-        self.cmd("bup index -x  %s   %s"%(exclude, path))
+        self.cmd("bup index -x  %s   %s"%(self.rsync_exclude(path), path))
         self.cmd("bup save --strip -n %s -d %s %s"%(self.branch, timestamp, path))
         if path == self.project_mnt:
             self.mount_snapshots()
@@ -246,27 +257,45 @@ class Project(object):
         self.close()
         shutil.rmtree(self.bup_path)
 
+
+    def makedirs(self, path):
+        if os.path.exists(path) and not os.path.isdir(path):
+            os.unlink(path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        os.chown(path, self.uid, self.gid)
+
     def update_daemon_code(self):
         log = self._log('update_daemon_code')
-        self.cmd("rsync -axHL --delete %s/ /%s/.sagemathcloud/"%(SAGEMATHCLOUD_TEMPLATE, self.project_mnt))
+        target = '/%s/.sagemathcloud/'%self.project_mnt
+        self.makedirs(target)
+        self.cmd("rsync -axHL %s/ %s"%(SAGEMATHCLOUD_TEMPLATE, target))
+        self.chown(target)
+
+    def chown(self, path):
+        self.cmd("chown %s:%s -R '%s'"%(self.uid, self.gid, path))
+
+    def ensure_file_exists(self, src, target):
+        target = os.path.abspath(target)
+        if not os.path.exists(target):
+            self.makedirs(os.path.split(target)[0])
+            shutil.copyfile(src, target)
+            os.chown(target, self.uid, self.gid)
 
     def ensure_ssh_access(self):
         log = self._log('ensure_ssh_access')
         log("now make sure .ssh/authorized_keys file good")
-        ensure_file_exists(BASHRC_TEMPLATE, os.path.join(self.project_mnt,".bashrc"))
-        ensure_file_exists(BASHRC_PROFILE_TEMPLATE, os.path.join(self.project_mnt,".bash_profile"))
+        self.ensure_file_exists(BASHRC_TEMPLATE, os.path.join(self.project_mnt,".bashrc"))
+        self.ensure_file_exists(BASH_PROFILE_TEMPLATE, os.path.join(self.project_mnt,".bash_profile"))
 
         dot_ssh = os.path.join(self.project_mnt, '.ssh')
-        if os.path.exists(dot_ssh) and not os.path.isdir(dot_ssh):
-            os.unlink(dot_ssh)
-        if not os.path.exists(dot_ssh):
-            os.makedirs(dot_ssh)
+        self.makedirs(dot_ssh)
         target = os.path.join(dot_ssh, 'authorized_keys')
         authorized_keys = '\n' + open(SSH_ACCESS_PUBLIC_KEY).read() + '\n'
 
         if not os.path.exists(target) or authorized_keys not in open(target).read():
             open(target,'w').write(authorized_keys)
-        self.cmd('chown -R %s:%s %s'%(self.uid, self.uid, dot_ssh))
+        self.cmd('chown -R %s:%s %s'%(self.uid, self.gid, dot_ssh))
         self.cmd('chmod og-rwx -R %s'%dot_ssh)
 
     def quota(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None):
@@ -431,8 +460,8 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
 
-    update_daemon_code = subparsers.add_parser('update_daemon_code', help='control the ~/.sagemathcloud filesystem')
-    update_daemon_code.set_defaults(func=lambda args: project.update_daemon_code())
+    update_start = subparsers.add_parser('start', help='create user, setup ssh access and the ~/.sagemathcloud filesystem')
+    update_start.set_defaults(func=lambda args: project.start())
 
     parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
     parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
