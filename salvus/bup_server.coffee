@@ -461,6 +461,14 @@ class Client
                     errors = undefined
                 opts.cb?(errors, results)
 
+    project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        client_project
+            client     : @
+            project_id : opts.project_id
+            cb         : opts.cb
 
 client_cache = {}
 
@@ -477,6 +485,74 @@ exports.client = (opts) ->
     return C
 
 
+class ClientProject
+    constructor: (@client, @project_id) ->
+        @dbg("constructor",[],"")
+
+    dbg: (f, args, m) =>
+        winston.debug("storage ClientProject(#{@project_id}).#{f}(#{misc.to_json(args)}): #{m}")
+
+    action: (opts) =>
+        opts = defaults opts,
+            action     : required
+            param      : undefined
+            timeout    : TIMEOUT
+            cb         : undefined
+        opts.project_id = @project_id
+        @client.action(opts)
+
+    start: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : undefined
+        opts.action = 'start'
+        @action(opts)
+
+    kill: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : undefined
+        opts.action = 'kill'
+        @action(opts)
+
+    save: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : undefined
+        opts.action = 'save'
+        @action(opts)
+
+    sync: (opts) =>
+        opts = defaults opts,
+            remote     : required
+            timeout    : TIMEOUT
+            destructive : false
+            cb         : undefined
+        if opts.destructive
+            param = ' --destructive '
+        else
+            param = ' '
+        @action
+            action  : 'sync'
+            param   : param + ' ' + opts.remote
+            timeout : TIMEOUT
+            cb      : opts.cb
+
+
+client_project_cache = {}
+
+client_project = (opts) ->
+    opts = defaults opts,
+        client     : required
+        project_id : required
+        cb         : required
+    if not misc.is_valid_uuid_string(opts.project_id)
+        opts.cb("invalid project id")
+        return
+    P = client_project_cache[opts.project_id]
+    if not P?
+        P = client_project_cache[opts.project_id] = new ClientProject(opts.client, opts.project_id)
+    opts.cb(undefined, P)
 
 
 ###########################

@@ -20,7 +20,10 @@ PROJECTS_PATH = os.path.abspath(os.environ.get('PROJECTS_PATH','/tmp/projects'))
 DEFAULT_QUOTA = {'disk':3000, 'inode':200000, 'memory':8, 'cpu_shares':256, 'cores':2}
 
 
+# Make sure to copy: 'cp -rv ~/salvus/salvus/scripts/skel/.sagemathcloud/data /home/salvus/salvus/salvus/local_hub_template/"
 SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/local_hub_template/"
+
+
 BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
 BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
@@ -131,11 +134,16 @@ class Project(object):
     def delete_user(self):
         self.cmd('/usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(self.username, self.username), ignore_errors=True)
 
+    def start_daemons(self):
+        self.cmd("su - %s -c 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'"%self.username, timeout=30)
+
     def start(self):
         self.create_user()
-        self.checkout()
+        self.quota()
+        self.ensure_conf_files()
         self.ensure_ssh_access()
         self.update_daemon_code()
+        self.start_daemons()
 
     def init(self):
         """
@@ -259,9 +267,12 @@ class Project(object):
 
 
     def makedirs(self, path):
+        log = self._log('makedirs')
         if os.path.exists(path) and not os.path.isdir(path):
+            log("removing %s"%path)
             os.unlink(path)
         if not os.path.exists(path):
+            log("creating %s"%path)
             os.makedirs(path)
         os.chown(path, self.uid, self.gid)
 
@@ -269,7 +280,7 @@ class Project(object):
         log = self._log('update_daemon_code')
         target = '/%s/.sagemathcloud/'%self.project_mnt
         self.makedirs(target)
-        self.cmd("rsync -axHL %s/ %s"%(SAGEMATHCLOUD_TEMPLATE, target))
+        self.cmd("rsync -axHL --update %s/ %s"%(SAGEMATHCLOUD_TEMPLATE, target))
         self.chown(target)
 
     def chown(self, path):
@@ -282,19 +293,25 @@ class Project(object):
             shutil.copyfile(src, target)
             os.chown(target, self.uid, self.gid)
 
-    def ensure_ssh_access(self):
-        log = self._log('ensure_ssh_access')
-        log("now make sure .ssh/authorized_keys file good")
+    def ensure_conf_files(self):
+        log = self._log('ensure_conf_files')
+        log("ensure there is a bashrc and bash_profile")
         self.ensure_file_exists(BASHRC_TEMPLATE, os.path.join(self.project_mnt,".bashrc"))
         self.ensure_file_exists(BASH_PROFILE_TEMPLATE, os.path.join(self.project_mnt,".bash_profile"))
 
+    def ensure_ssh_access(self):
+        log = self._log('ensure_ssh_access')
+        log("make sure .ssh/authorized_keys file good")
         dot_ssh = os.path.join(self.project_mnt, '.ssh')
         self.makedirs(dot_ssh)
         target = os.path.join(dot_ssh, 'authorized_keys')
         authorized_keys = '\n' + open(SSH_ACCESS_PUBLIC_KEY).read() + '\n'
 
         if not os.path.exists(target) or authorized_keys not in open(target).read():
+            log("writing authorized_keys files")
             open(target,'w').write(authorized_keys)
+        else:
+            log("%s already exists and is good"%target)
         self.cmd('chown -R %s:%s %s'%(self.uid, self.gid, dot_ssh))
         self.cmd('chmod og-rwx -R %s'%dot_ssh)
 
@@ -375,10 +392,13 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, remote, destructive=False):
+    def sync(self, remote, destructive=False, working=True):
         """
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
+
+        If working is True (the default), also destructively sync the working files (if any) to the same path on the remote machine.
+        If working is a string, destructively sync to the path given in the string on remote machine (DANGEROUS).
         """
         log = self._log('sync')
         log("syncing...")
@@ -387,6 +407,13 @@ class Project(object):
             remote += ':' + self.bup_path + '/'
         if not remote.endswith('/'):
             remote += '/'
+        host, remote_bup_path = remote.split(':')
+
+        if working and os.path.exists(self.project_mnt):
+            if working is True:
+                working = self.project_mnt
+            self.cmd("rsync -axH --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s:%s/"%(
+                                                    self.rsync_exclude(), self.project_mnt, host, working))
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
@@ -394,8 +421,7 @@ class Project(object):
             return
 
         log("get remote heads")
-        host, remote_bup_path = remote.split(':')
-        out = self.cmd("ssh -o StrictHostKeyChecking=no %s 'grep \"\" %s/refs/heads/*'"%(host, remote_bup_path), ignore_errors=True)
+        out = self.cmd("ssh -o StrictHostKeyChecking=no %s 'grep -H \"\" %s/refs/heads/*'"%(host, remote_bup_path), ignore_errors=True)
         if 'such file or directory' in out:
             remote_heads = []
         else:

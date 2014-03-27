@@ -92,7 +92,9 @@ init_info_json = () ->
     v = process.env['HOME'].split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
-    host       = require('os').networkInterfaces().tun0[0].address
+    host       = require('os').networkInterfaces().tun0?[0].address
+    if not host?  # some testing setup not on the vpn
+        host = 'localhost'
     base_url   = ''
     port       = 22
     INFO =
