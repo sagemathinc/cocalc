@@ -147,11 +147,11 @@ class Project(object):
             self.branch = branch
             open(self.HEAD,'w').write("ref: refs/heads/%s"%branch)
 
-    def checkout(self, snapshot, branch=None, use_fuse=True):
+    def checkout(self, snapshot='latest', branch=None):
         self.set_branch(branch)
         self.create_user()
         if not os.path.exists(self.project_mnt):
-            self.cmd("mkdir -p %s; /usr/bin/bup restore %s/latest/ --outdir=%s"%(self.project_mnt, self.branch, self.project_mnt))
+            self.cmd("mkdir -p %s; /usr/bin/bup restore %s/%s/ --outdir=%s"%(self.project_mnt, self.branch, snapshot, self.project_mnt))
             self.cmd("chown %s:%s -R %s"%(self.uid, self.uid, self.project_mnt))
             self.mount_snapshots()
         else:
@@ -346,16 +346,26 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
+    def sync(self, remote, destructive=False):
+        """
+        If destructive is true, simply push from local to remote, overwriting anything that is remote.
+        If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
+        """
+        log = self._log('sync')
+        log("syncing...")
 
-
-
-    def sync(self, remote):
         if ':' not in remote:
             remote += ':' + self.bup_path + '/'
         if not remote.endswith('/'):
             remote += '/'
+
+        if destructive:
+            log("push so that remote=local: easier; have to do this after a recompact (say)")
+            self.cmd("rsync -axH --delete -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+            return
+
+        log("get remote heads")
         host, remote_bup_path = remote.split(':')
-        # get remote heads
         out = self.cmd("ssh -o StrictHostKeyChecking=no %s 'grep \"\" %s/refs/heads/*'"%(host, remote_bup_path), ignore_errors=True)
         if 'such file or directory' in out:
             remote_heads = []
@@ -366,24 +376,28 @@ class Project(object):
             for x in out.splitlines():
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
-        # sync from local to remote
+        log("sync from local to remote")
         self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
-        # sync from remote back to local
-        back = self.cmd("rsync -axH  -e 'ssh -o StrictHostKeyChecking=no'  %s/ %s/"%(remote, self.bup_path)).splitlines()
+        log("sync from remote back to local")
+        # the -v is important below!
+        back = self.cmd("rsync -vaxH  -e 'ssh -o StrictHostKeyChecking=no'  %s/ %s/"%(remote, self.bup_path)).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
-            # there were remote packs possibly not available locally, so make tags that points to them,
+            log("there were remote packs possibly not available locally, so make tags that points to them")
             # so user can get their files if anything important got overwritten.
             tag = None
             for branch, id in remote_heads:
                 # have we ever seen this commit?
-                if id not in open("%s/logs/refs/heads/%s"%(self.bup_path,branch)).read():
-                    # nope, never seen it -- tag it.
+                c = "%s/logs/refs/heads/%s"%(self.bup_path,branch)
+                if not os.path.exists(c) or id not in open(c).read():
+                    log("nope, never seen %s -- tag it."%branch)
                     tag = 'conflict-%s-%s'%(branch, time.strftime("%Y-%m-%d-%H%M%S"))
                     path = os.path.join(self.bup_path, 'refs', 'tags', tag)
+                    open(path,'w').write(id)
             if tag is not None:
-                # sync back any tags
+                log("sync back any tags")
                 self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
         if os.path.exists(self.project_mnt):
+            log("mount snapshots")
             self.mount_snapshots()
 
     def migrate_all(self):
@@ -456,7 +470,9 @@ if __name__ == "__main__":
 
     parser_sync = subparsers.add_parser('sync', help='sync with a remote bup repo')
     parser_sync.add_argument("remote", help="hostname[:path], where path defaults to same path as locally", type=str)
-    parser_sync.set_defaults(func=lambda args: project.sync(args.remote))
+    parser_sync.add_argument("--destructive", help="push from local to remote, overwriting anything that is remote (DANGEROUS)",
+                                   dest="destructive", default=False, action="store_const", const=True)
+    parser_sync.set_defaults(func=lambda args: project.sync(remote=args.remote, destructive=args.destructive))
 
     parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project')
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
