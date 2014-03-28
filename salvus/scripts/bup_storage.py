@@ -5,17 +5,21 @@
 BUP-based Project storage system
 
 """
-import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
+import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
+from uuid import UUID, uuid4
 
 # If using ZFS:
 ZPOOL = 'storage'  # must have ZPOOL/bups and ZPOOL/projects filesystems
 
 # The path where bup repos are stored
-BUP_PATH      = os.path.abspath(os.environ.get('BUP_PATH','/bups'))
+BUP_PATH      = '/storage/bups'
+
+# The path where bup repos are stored
+CONF_PATH      = '/storage/conf'
 
 # The path where project working files appear
-PROJECTS_PATH = os.path.abspath(os.environ.get('PROJECTS_PATH','/projects'))
+PROJECTS_PATH = '/projects'
 
 # Default Quotas
 # disk in megabytes
@@ -33,6 +37,32 @@ BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
 SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
+def log(m):
+    sys.stderr.write(str(m)+'\n')
+    sys.stderr.flush()
+
+
+# init SERVER_ID
+path = os.path.join(CONF_PATH, 'server_id')
+if not os.path.exists(path):
+    SERVER_ID=str(uuid4())
+    open(path,'w').write(SERVER_ID)
+else:
+    SERVER_ID=open(path).read()
+
+# init list of known other servers
+path = os.path.join(CONF_PATH, 'servers.json')
+if not os.path.exists(path):
+    SERVERS = {SERVER_ID:{'hostname':socket.gethostname()}}
+    open(path,'w').write(json.dumps(SERVERS))
+else:
+    try:
+        SERVERS = json.loads(open(path).read())
+    except Exception, msg:
+        log(msg)  # reset in case of corruption
+        SERVERS = {SERVER_ID:{'hostname':socket.gethostname()}}
+        open(path,'w').write(json.dumps(SERVERS))
+
 
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
@@ -48,15 +78,16 @@ def uid(project_id):
 def now():
     return time.strftime('%Y-%m-%dT%H:%M:%S')
 
-def log(m):
-    sys.stderr.write(str(m)+'\n')
-    sys.stderr.flush()
-
 def ensure_file_exists(src, target):
     if not os.path.exists(target):
         shutil.copyfile(src, target)
         s = os.stat(os.path.split(target)[0])
         os.chown(target, s.st_uid, s.st_gid)
+
+def check_uuid(uuid):
+    if UUID(uuid).version != 4:
+        raise RuntimeError("invalid uuid")
+
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if verbose >= 1:
@@ -114,7 +145,9 @@ class Project(object):
         self.username = self.project_id.replace('-','')
         self.login_shell = login_shell
         self.bup_path = os.path.join(BUP_PATH, project_id)
-        self.quota_path = os.path.join(self.bup_path, "quota.json")
+        self.conf_path = os.path.join(self.bup_path, "conf")
+        self.quota_path = os.path.join(self.conf_path, "quota.json")
+        self.replicas_path = os.path.join(self.conf_path, "replicas.json")
         self.project_mnt  = os.path.join(PROJECTS_PATH, project_id)
         self.snap_mnt = os.path.join(self.project_mnt,'.bup')
         self.HEAD = "%s/HEAD"%self.bup_path
@@ -325,6 +358,8 @@ class Project(object):
         self.cmd('chmod og-rwx -R %s'%dot_ssh)
 
     def get_quota(self):
+        if not os.path.exists(self.conf_path):
+            os.makedirs(self.conf_path)
         if os.path.exists(self.quota_path):
             try:
                 quota = json.loads(open(self.quota_path).read())
@@ -382,8 +417,11 @@ class Project(object):
             zfs set compression=lz4 storage/projects
             zfs mount storage/projects
             zfs create storage/bups
-            zfs set mountpoint=/bups storage/bups
-            chmod og-rwx /bups
+            zfs set mountpoint=/storage/bups storage/bups
+            chmod og-rwx /storage/bups
+            zfs create storage/conf
+            zfs set mountpoint=/storage/conf storage/conf
+            chmod og-rwx /storage/conf
             """
             cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.username, disk), '%s/projects'%ZPOOL])
 
@@ -427,23 +465,59 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, remote, destructive=False, working=True):
+    def replicas(self, add='', remove=''):
+        log = self._log('quota')
+        log("configuring replicas...")
+        if not os.path.exists(self.conf_path):
+            os.makedirs(self.conf_path)
+        if os.path.exists(self.replicas_path):
+            try:
+                replicas = json.loads(open(self.replicas_path).read())
+            except (ValueError, IOError), mesg:
+                replicas = []
+        else:
+            replicas = []
+        if add:
+            for host_id in add.split(','):
+                if host_id not in replicas:
+                    replicas.append(host_id)
+        if remove:
+            for host_id in remove.split(','):
+                if host_id in replicas:
+                    replicas.remove(host_id)
+        open(self.replicas_path,'w').write(json.dumps(replicas))
+        return replicas
+
+    def sync(self, destructive=False):
+        status = {}
+        for server_id in self.replicas():
+            if server_id != SERVER_ID:
+                s = status[server_id] = {'server_id':server_id}
+                t = time.time()
+                try:
+                    self._sync(server_id)
+                except Exception, err:
+                    s['error'] = str(err)
+                s['time'] = time.time() - t
+        print json.dumps(status)
+
+    def _sync(self, server_id, destructive=False):
         """
+
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
-
-        If working is True (the default), also destructively sync the working files (if any) to the same path on the remote machine.
-        If working is a string, destructively sync to the path given in the string on remote machine (DANGEROUS).
         """
         log = self._log('sync')
         log("syncing...")
 
+        if server_id not in SERVERS:
+            raise RuntimeError("unknown server %s"%server_id)
+
+        remote = SERVERS[server_id]['hostname']
+
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
-        if working and os.path.exists(self.project_mnt):
-            if working is True:
-                working = self.project_mnt
-
+        if os.path.exists(self.project_mnt):
             # set remote disk quota, so rsync doesn't fail due to missing space.
             if QUOTA_FILESYSTEM == 'zfs':
                 self.cmd("ssh -o StrictHostKeyChecking=no %s 'zfs set userquota@%s=%sM %s/projects'"%(
@@ -452,7 +526,7 @@ class Project(object):
                 raise NotImplementedError
 
             self.cmd("rsync -axH --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s:%s/"%(
-                                                    self.rsync_exclude(), self.project_mnt, remote, working))
+                                                    self.rsync_exclude(), self.project_mnt, remote, self.project_mnt))
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
@@ -565,11 +639,18 @@ if __name__ == "__main__":
                                    dest="delete", default=False, action="store_const", const=True)
     parser_tag.set_defaults(func=lambda args: project.tag(tag=args.tag, delete=args.delete))
 
-    parser_sync = subparsers.add_parser('sync', help='sync with a remote bup repo')
-    parser_sync.add_argument("remote", help="hostname[:path], where path defaults to same path as locally", type=str)
-    parser_sync.add_argument("--destructive", help="push from local to remote, overwriting anything that is remote (DANGEROUS)",
+    parser_replicas = subparsers.add_parser('replicas', help='add or remove replicas; always outputs list of replicas in JSON')
+    parser_replicas.add_argument("--add", dest="add", help="add replicas: host1,host2,...", type=str, default='')
+    parser_replicas.add_argument("--remove", dest="remove", help="remove replicas: host1,host2,...", type=str, default='')
+    def replicas(add, remove):
+        print project.replicas(add=add, remove=remove)
+    parser_replicas.set_defaults(func=lambda args: replicas(add=args.add, remove=args.remove))
+
+
+    parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
+    parser_sync.add_argument("--destructive", help="sync, destructively overwriting anything that is remote (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
-    parser_sync.set_defaults(func=lambda args: project.sync(remote=args.remote, destructive=args.destructive))
+    parser_sync.set_defaults(func=lambda args: project.sync(destructive=args.destructive))
 
     parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project')
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
