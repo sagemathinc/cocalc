@@ -35,9 +35,6 @@ ZPOOL = 'storage'  # must have ZPOOL/bups and ZPOOL/projects filesystems
 # The path where bup repos are stored
 BUP_PATH      = '/storage/bups'
 
-# The path where bup repos are stored
-CONF_PATH      = '/storage/conf'
-
 # The path where project working files appear
 PROJECTS_PATH = '/projects'
 
@@ -76,28 +73,6 @@ def log(m):
     sys.stderr.write(str(m)+'\n')
     sys.stderr.flush()
 
-# init SERVER_ID
-path = os.path.join(CONF_PATH, 'server_id')
-if not os.path.exists(path):
-    SERVER_ID=str(uuid4())
-    open(path,'w').write(SERVER_ID)
-else:
-    SERVER_ID=open(path).read()
-
-# init list of known other servers
-path = os.path.join(CONF_PATH, 'servers.json')
-if not os.path.exists(path):
-    SERVERS = {SERVER_ID:{'hostname':socket.gethostname()}}
-    open(path,'w').write(json.dumps(SERVERS))
-else:
-    try:
-        SERVERS = json.loads(open(path).read())
-    except Exception, msg:
-        log(msg)  # reset in case of corruption
-        SERVERS = {SERVER_ID:{'hostname':socket.gethostname()}}
-        open(path,'w').write(json.dumps(SERVERS))
-
-
 def print_json(s):
     print json.dumps(s, separators=(',',':'))
 
@@ -122,6 +97,69 @@ def check_uuid(uuid):
     if UUID(uuid).version != 4:
         raise RuntimeError("invalid uuid")
 
+
+class MultiHashRing(object):
+    def __init__(self, hosts, rep_factor=2):
+        """
+        Read the hashrings from the file topology, which defaults to 'storage-topology'
+        in the same directory as storage.py.
+        """
+        self._rep_factor = rep_factor
+
+        import hashring
+        self.rings = [(dc, hashring.HashRing(d)) for dc, d in data.iteritems()]
+        self.rings.sort()
+        self.topology = data
+
+    def _load(self):
+        v = [x for x in open(self._topology_file).readlines() if x.strip() and not x.strip().startswith('#')]
+        data = {}
+        for x in v:
+            ip, vnodes, datacenter = x.split()
+            print "UPDATE storage_topology set vnodes=%s where data_center='%s' and host='%s';"%(vnodes, datacenter, ip)
+            vnodes = int(vnodes)
+            if datacenter not in data:
+                data[datacenter] = {}
+            dc = data[datacenter]
+            dc[ip] = {'vnodes':vnodes}
+
+    def __call__(self, key):
+        return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
+
+    def locations(self, key):
+        return sum(self.partitioned_locations(key), [])
+
+    def partitioned_locations(self, key):
+        return [r.range(key, self._rep_factor) for (dc,r) in self.rings]
+
+    def locations_by_dc(self, key):
+        return dict(self(key))
+
+    def datacenter_of(self, host_id):
+        for d, nodes in self.topology.iteritems():
+            if host_id in nodes:
+                return d
+        raise RuntimeError("node %s is not in any datacenter"%host_id)
+
+VNODES = 128 # hard coded -- do not change
+
+def get_replicas(project_id, data_centers, replication_factor):
+    """
+    Use consistent hashing to choose replication_factor hosts for the given project_id in each data center.
+    """
+    if not isinstance(replication_factor, list):
+        replication_factor = [replication_factor] * len(data_centers)
+    else:
+        for i in range(len(replication_factor)-len(data_centers)):
+            replication_factor.append(0)
+    import hashring
+    replicas = []
+    for i, data_center in enumerate(data_centers):
+        d = {}
+        for server_id in data_center:
+            d[server_id] = {'vnodes':VNODES}
+        replicas += hashring.HashRing(d).range(project_id, replication_factor[i])
+    return replicas
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     s = [str(x) for x in s]
@@ -231,6 +269,12 @@ class Project(object):
 
     def status(self):
         s = {'username':self.username, 'uid':self.uid, 'gid':self.gid}
+        try:
+            s['newest_snapshot'] = self.newest_snapshot()
+            s['bup'] = 'working'
+        except RuntimeError:
+            s['bup'] = 'corrupt'
+        s['load'] = [float(a) for a in os.popen('uptime').read().split()[-3:]]
         if FILESYSTEM == 'zfs':
             s['zfs'] = self.get_zfs_status()
         try:
@@ -361,6 +405,12 @@ class Project(object):
             self.cmd(["/usr/bin/bup", "tag", "-f", "-d", tag])
         else:
             self.cmd(["/usr/bin/bup", "tag", "-f", tag, self.branch])
+
+    def newest_snapshot(self, branch=''):
+        """
+        Return newest snapshot in current branch.
+        """
+        self.snapshots(branch)[-1]
 
     def snapshots(self, branch=''):
         """
@@ -503,10 +553,6 @@ class Project(object):
             zfs set mountpoint=/storage/bups storage/bups
             chmod og-rwx /storage/bups
 
-            zfs create storage/conf
-            zfs set mountpoint=/storage/conf storage/conf
-            chmod og-rwx /storage/conf
-
             zfs create storage/scratch
             zfs set mountpoint=/scratch storage/scratch
             zfs mount storage/scratch
@@ -558,46 +604,27 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def replicas(self, add='', remove=''):
-        log = self._log('replicas')
-        log("configuring replicas...")
-        if not os.path.exists(self.conf_path):
-            os.makedirs(self.conf_path)
-        if os.path.exists(self.replicas_path):
-            try:
-                replicas = json.loads(open(self.replicas_path).read())
-            except (ValueError, IOError), mesg:
-                replicas = []
-        else:
-            replicas = []
-        if add:
-            for host_id in add.split(','):
-                if host_id not in replicas:
-                    replicas.append(host_id)
-        if remove:
-            for host_id in remove.split(','):
-                if host_id in replicas:
-                    replicas.remove(host_id)
-        open(self.replicas_path,'w').write(json.dumps(replicas))
-        return replicas
-
-    def sync(self, destructive=False):
+    def sync(self, replication_factor, server_id, servers_file, destructive=False):
         status = []
-        for server_id in self.replicas():
-            if server_id != SERVER_ID:
-                s = {'server_id':server_id}
+        servers = json.loads(open(servers_file).read())
+        for replica_id in get_replicas(self.project_id, [x.keys() for x in servers], replication_factor):
+            if replica_id != server_id:
+                s = {'replica_id':replica_id}
                 status.append(s)
-                if server_id in SERVERS:
-                    s['hostname'] = SERVERS[server_id]['hostname']
-                t = time.time()
-                try:
-                    self._sync(server_id)
-                except Exception, err:
-                    s['error'] = str(err)
-                s['time'] = time.time() - t
+                if replica_id in servers:
+                    remote = servers[replica_id]
+                    s['hostname'] = remote
+                    t = time.time()
+                    try:
+                        self._sync(remote)
+                    except Exception, err:
+                        s['error'] = str(err)
+                    s['time'] = time.time() - t
+                else:
+                    s['error'] = 'unknown server'
         print json.dumps(status)
 
-    def _sync(self, server_id, destructive=False):
+    def _sync(self, remote, destructive=False):
         """
 
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
@@ -605,11 +632,6 @@ class Project(object):
         """
         log = self._log('sync')
         log("syncing...")
-
-        if server_id not in SERVERS:
-            raise RuntimeError("unknown server %s"%server_id)
-
-        remote = SERVERS[server_id]['hostname']
 
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
@@ -723,10 +745,14 @@ if __name__ == "__main__":
     parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
 
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
+    parser_sync.add_argument("--replication_factor", help="number of replicas to sync with in each data center or [2,1,3]=2 in dc0, 1 in dc1, etc.",
+                                   dest="replication_factor", default=2, type=int)
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
-    parser_sync.set_defaults(func=lambda args: project.sync(destructive=args.destructive))
-
+    parser_sync.add_argument("server_id", help="uuid of this server", type=str)
+    parser_sync.add_argument("server_id_file", help="required filename with json data about all servers; list of maps", type=str)
+    parser_sync.set_defaults(func=lambda args: project.sync(destructive=args.destructive, replicas=args.replicas,
+                                        server_id_file=args.server_id_file, server_id=args.server_id))
 
     parser_account_settings = subparsers.add_parser('account_settings', help='set account_settings for this user; also outputs settings in JSON')
     parser_account_settings.add_argument("--memory", dest="memory", help="memory account_settings in gigabytes",
@@ -772,13 +798,6 @@ if __name__ == "__main__":
 
     parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
     parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
-
-    parser_replicas = subparsers.add_parser('replicas', help='add or remove replicas; always outputs list of replicas in JSON')
-    parser_replicas.add_argument("--add", dest="add", help="add replicas: host1,host2,...", type=str, default='')
-    parser_replicas.add_argument("--remove", dest="remove", help="remove replicas: host1,host2,...", type=str, default='')
-    def replicas(add, remove):
-        print json.dumps(project.replicas(add=add, remove=remove))
-    parser_replicas.set_defaults(func=lambda args: replicas(add=args.add, remove=args.remove))
 
     parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project from old ZFS format')
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())

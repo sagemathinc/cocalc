@@ -20,7 +20,9 @@ misc      = require('misc')
 misc_node = require('misc_node')
 uuid      = require('node-uuid')
 cassandra = require('cassandra')
-cql     = require("node-cassandra-cql")
+cql       = require("node-cassandra-cql")
+HashRing  = require 'hashring'
+
 {defaults, required} = misc
 
 REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
@@ -191,11 +193,16 @@ handle_mesg = (socket, mesg) ->
     winston.debug("storage_server: handling '#{misc.to_safe_str(mesg)}'")
     id = mesg.id
     if mesg.event == 'storage'
-        if mesg.action == 'compute_id'
-            mesg.compute_id = server_compute_id
+        if mesg.action == 'server_id'
+            mesg.server_id = server_id
             socket.write_mesg('json', mesg)
         else
             t = misc.walltime()
+            if mesg.action == 'sync'
+                if not mesg.param?
+                    mesg.param = []
+                mesg.param.push(program.server_id)
+                mesg.param.push(program.servers_file)
             project = get_project(mesg.project_id)
             project.action
                 action : mesg.action
@@ -221,27 +228,27 @@ init_up_since = (cb) ->
             up_since = cassandra.seconds_ago(misc.split(data.toString())[0])
             cb()
 
-server_compute_id = undefined
+server_id = undefined
 
-init_compute_id = (cb) ->
+init_server_id = (cb) ->
     # sudo zfs create storage/conf; sudo chown salvus. /storage/conf
-    file = program.compute_id_file
+    file = program.server_id_file
     fs.exists file, (exists) ->
         if not exists
-            server_compute_id = uuid.v4()
-            fs.writeFile file, server_compute_id, (err) ->
+            server_id = uuid.v4()
+            fs.writeFile file, server_id, (err) ->
                 if err
-                    winston.debug("Error writing compute_id file!")
+                    winston.debug("Error writing server_id file!")
                     cb(err)
                 else
-                    winston.debug("Wrote new compute_id =#{server_compute_id}")
+                    winston.debug("Wrote new server_id =#{server_id}")
                     cb()
         else
             fs.readFile file, (err, data) ->
                 if err
                     cb(err)
                 else
-                    server_compute_id = data.toString()
+                    server_id = data.toString()
                     cb()
 
 
@@ -308,11 +315,262 @@ read_secret_token = (cb) ->
 
 start_server = () ->
     winston.debug("start_server")
-    async.series [init_compute_id, init_up_since, read_secret_token, start_tcp_server], (err) ->
+    async.series [init_server_id, init_up_since, read_secret_token, start_tcp_server], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
             winston.debug("Successfully started server.")
+
+
+###########################
+## GlobalClient -- client for working with *all* storage/compute servers
+###########################
+
+VNODES = 128 # hard coded -- do not change
+
+class GlobalClient
+    constructor: (opts) ->
+        opts = defaults opts,
+            database : required   # connection to cassandra database
+            replication_factor : 2
+            cb       : required   # cb(err) -- called when initialized
+        @database = opts.database
+        @replication_factor = opts.replication_factor
+        @_update(opts.cb)
+        setInterval(@_update, 1000*60*3)  # update every few minutes
+
+    _update: (cb) =>
+        @database.select
+            table     : 'storage_server'
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'token']
+            objectify : true
+            where     : {dummy:true}
+            cb        : (err, results) =>
+                if err
+                    cb?(err); return
+                @servers = {}
+                x = {}
+                for r in results
+                    @servers[x.server_id] = r
+                    if not x[r.dc]?
+                        x[r.dc] = {}
+                    v = x[r.dc]
+                    v[r.server_id] = {vnodes:VNODES}
+                for dc, obj of x
+                    @hashrings[dc] = new HashRing(obj)
+
+    score: (opts) =>
+        opts = defaults opts,
+            healthy   : undefined     # list of server_ids we have found to be healthy
+            unhealthy : undefined     # list of server_ids we have found to be unhealthy
+            cb        : undefined     # cb(err)
+        s = []
+        if opts.healthy?
+            s = s.extend(opts.healthy)
+        else
+            opts.healthy = []
+        if opts.unhealthy?
+            s = s.extend(opts.unhealthy)
+        else
+            opts.unhealthy = []
+        if s.length == 0:
+            opts.cb?(); return
+        @database.select
+            table     : 'storage_server'
+            columns   : ['server_id', 'health']
+            objectify : true
+            where     : {dummy:true, server_id:{'in':s}}
+            cb        : (err, results) =>
+                f = (result, cb) =>
+                    # TODO: replace formula before by what's done in gossip/cassandra, which is provably sensible.
+                    # There is definitely a potential for "race conditions" below, but it doesn't matter -- it is just health.
+                    if result.server_id in opts.healthy
+                        if not result.health?
+                            result.health = 1
+                        else
+                            result.health = (result.health + 1)/2.0
+                    else if result.server_id in opts.unhealthy
+                        if not result.health?
+                            result.health = 0
+                        else
+                            result.health = (result.health + 0)/2.0
+                    @database.update
+                        table : 'storage_server'
+                        set   : {health:result.health}
+                        where : {dummy:true, server_id:result.server_id}
+                        cb    : cb
+                async.map(results, f, (err) => opts.cb?(err))
+
+
+    replicas: (opts) =>
+        opts = defaults opts,
+            project_id         : required
+            replication_factor : undefined
+        if not opts.replication_factor?
+            opts.replication_factor = @replication_factor
+        if typeof(opts.replication_factor) == 'number'
+            rep = (opts.replication_factor for i in [0...@datacenters.length])
+        else
+            rep = opts.replication_factor
+        v = []
+        for dc, hr of @hashrings
+            for id in hr.range(opts.project_id, rep[i])
+                v.push(id)
+        return v
+
+    create_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required   # cb(err, Project client connection on some host)
+        dbg = (m) => winston.debug("GlobalClient.project(#{opts.project_id}): #{m}")
+
+
+    storage_server: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required
+        if not @servers[opts.server_id]?
+            opts.cb("server #{opts.server_id} unknown")
+            return
+        s = @servers[opts.server_id]
+        if not s.host?
+            opts.cb("no hostname known for #{opts.server_id}")
+            return
+        if not s.port?
+            opts.cb("no port known for #{opts.server_id}")
+            return
+        if not s.token?
+            opts.cb("no token known for #{opts.server_id}")
+            return
+        opts.cb(undefined, exports.storage_server_client(host:s.host, port:s.port, token:s.token))
+
+    project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            server_id  : undefined  # if undefined gets best working client pre-started; if defined connect if possible but don't start anything
+            replication_factor : undefined
+            cb         : required   # cb(err, Project client connection on some host)
+        dbg = (m) => winston.debug("GlobalClient.project(#{opts.project_id}): #{m}")
+        dbg()
+
+        if opts.server_id?
+            dbg("open on a specified client")
+            @storage_server
+                server_id : opts.server_id
+                cb        : (err, s) =>
+                    if err
+                        opts.cb(err); return
+                    s.project
+                        project_id : opts.project_id
+                        cb         : opts.cb
+            return
+
+        bup_location = undefined
+        project      = undefined
+        works        = undefined
+        status       = undefined
+        async.series([
+            (cb) =>
+                dbg("get current bup location in database")
+                @database.select_one
+                    table     : 'projects'
+                    where     : {project_id : opts.project_id}
+                    columns   : ['bup_location']
+                    objectify : false
+                    cb        : (err, result) =>
+                        if err
+                            cb(err)
+                        else
+                            bup_location = result[0]
+                            cb()
+            (cb) =>
+                if not bup_location?
+                    dbg("no current location")
+                    cb()
+                else
+                    dbg("there is current location (=#{bup_location}) and project is working at current location, use it")
+                    @project
+                        project_id : opts.project_id
+                        server_id  : bup_location
+                        cb         : (err, _project) =>
+                            if not err
+                                project = _project
+                            cb()
+            (cb) =>
+                if not project?
+                    dbg("no accessible project currently started...")
+                    cb()
+                else
+                    dbg("if project will start at current location, use it")
+                    project.works (err, _works) =>
+                        if err
+                            project = undefined
+                            cb()
+                        else
+                            works = works
+            (cb) =>
+                if works
+                    cb(); return
+                dbg("try harder: get list of all replicas (except current) and ask in parallel about status of each")
+                @project_status
+                    project_id         : opts.project_id
+                    replication_factor : opts.replication_factor
+                    cb                 : (err, _status) =>
+                        if err
+                            cb(err)
+                        else
+                            status = _status
+                            cb()
+            (cb) =>
+                dbg("until success, choose one that responded with best status and try to start there")
+
+                cb("todo")
+
+        ], (err) =>
+            if not err
+                if project? and works
+                    opts.cb(undefined, project)
+                else
+                    opts.cb("unable to deploy project anywhere")
+            else
+                opts.cb(err)
+        )
+
+        project_status : (opts) =>
+            opts = defaults opts,
+                project_id         : required
+                replication_factor : undefined
+                timeout            : 20   # seconds
+                cb                 : required
+            status = []
+            f = (replica, cb) =>
+                s = {replica_id:replica}
+                status.push(s)
+                @project
+                    project_id : opts.project_id
+                    server_id  : replica
+                    cb         : (err, project) =>
+                        if err
+                            s.error = err
+                            cb()
+                        else
+                            project.status
+                                timeout : opts.timeout
+                                cb      : (err, status) =>
+                                    if err
+                                        @score(unhealthy:[replica])
+                                        opts.cb(err, project)
+                                        s.error = err
+                                        cb()
+                                    else
+                                        @score(healthy:[replica])
+                                        s.status = status
+                                        cb()
+            async.map(@replica(project_id:opts.project_id), f, (err) => opts.cb(undefined, status))
+
+
+
+
 
 
 
@@ -470,21 +728,21 @@ class Client
 
 client_cache = {}
 
-exports.client = (opts) ->
+exports.storage_sever_client = (opts) ->
     opts = defaults opts,
         host       : required
         port       : required
         token      : required
         verbose    : true
-    dbg = (m) -> winston.debug("client(#{opts.compute_id},#{opts.hostname}): #{m}")
+    dbg = (m) -> winston.debug("storage_server_client(#{opts.host}:#{opts.port}): #{m}")
     dbg()
-    C = client_cache[opts.compute_id]
+    C = client_cache[opts.host]
     if C?
         if C.port != opts.port
             C.port = opts.port   # port changed
             C.socket = undefined
     else
-        C = client_cache[opts.compute_id] = new Client(host:opts.host, port:opts.port, verbose:opts.verbose)
+        C = client_cache[opts.host] = new Client(host:opts.host, port:opts.port, verbose:opts.verbose)
     return C
 
 
@@ -532,7 +790,7 @@ class ClientProject
             cb         : undefined
         opts.action = 'restart'
         @action(opts)
-        
+
     save: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
@@ -600,12 +858,16 @@ class ClientProject
 
     sync: (opts) =>
         opts = defaults opts,
-            timeout     : TIMEOUT
-            destructive : false
-            cb          : undefined
+            timeout            : TIMEOUT
+            destructive        : false
+            replication_factor : 2    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
+            cb                 : undefined
+        params = ['--replication_factor', opts.replication_factor]
+        if opts.destructive
+            params.push('--destructive')
         @action
             action  : 'sync'
-            param   : if opts.destructive then ' --destructive '
+            param   : params
             timeout : TIMEOUT
             cb      : opts.cb
 
@@ -635,7 +897,8 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "#{DATA}/logs/bup_server.pid")
     .option('--logfile [string]', 'write log to this file', String, "#{DATA}/logs/bup_server.log")
     .option('--portfile [string]', 'write port number to this file', String, "#{DATA}/logs/bup_server.port")
-    .option('--compute_id_file [string]', 'write (or read) compute id to this file', String, "#{DATA}/logs/bup_compute_id")
+    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{DATA}/logs/bup_server_id")
+    .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{DATA}/logs/bup_servers")
     .option('--secret_file [string]', 'write secret token to this file', String, "#{DATA}/secrets/bup_server.secret")
 
     .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')

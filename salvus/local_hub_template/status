@@ -15,6 +15,7 @@ def set(prop, val):
     status[prop] = val
     if val is False:
         done()
+
 def read(prop, filename, strip=False, int_value=False):
     try:
         s = open(filename).read()
