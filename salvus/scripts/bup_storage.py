@@ -5,6 +5,12 @@
 BUP-based Project storage system
 
 """
+# If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
+# script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
+# there is no reason it should have easy command-line options to overwrite any file
+# on the system with arbitrary content.
+UNSAFE_MODE=False
+
 import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
@@ -21,16 +27,30 @@ CONF_PATH      = '/storage/conf'
 # The path where project working files appear
 PROJECTS_PATH = '/projects'
 
-# Default Quotas
-# disk in megabytes
-# memory in gigabytes
-DEFAULT_QUOTA = {'disk':3000, 'inode':200000, 'memory':8, 'cpu_shares':256, 'cores':2}
 
-QUOTA_FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
+# Default account settings
+
+DEFAULT_ACCOUNT_SETTINGS = {
+    'disk'       : 3000,     # disk in megabytes
+    'inode'      : 200000,   # not used with ZFS
+    'memory'     : 8,        # memory in gigabytes
+    'cpu_shares' : 256,
+    'cores'      : 2
+    'login_shell': '/bin/bash'
+}
+
+FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
+
+if FILESYSTEM == 'ext4':
+    if not os.path.exists(BUP_PATH):
+        cmd("/bin/mkdir -p %s; chmod og-rwx %s"%(BUP_PATH, BUP_PATH))
+
+    if not os.path.exists(PROJECTS_PATH):
+        cmd("/bin/mkdir -p %s; chmod og+rx %s"%(PROJECTS_PATH, PROJECTS_PATH))
+
 
 # Make sure to copy: 'cp -rv ~/salvus/salvus/scripts/skel/.sagemathcloud/data /home/salvus/salvus/salvus/local_hub_template/"
 SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/local_hub_template/"
-
 
 BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
 BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
@@ -40,7 +60,6 @@ SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorize
 def log(m):
     sys.stderr.write(str(m)+'\n')
     sys.stderr.flush()
-
 
 # init SERVER_ID
 path = os.path.join(CONF_PATH, 'server_id')
@@ -90,6 +109,7 @@ def check_uuid(uuid):
 
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
+    s = [str(x) for x in s]
     if verbose >= 1:
         if isinstance(s, list):
             log(' '.join(s))
@@ -128,29 +148,21 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
         if timeout:
             signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
-
-if not os.path.exists(BUP_PATH):
-    cmd("mkdir -p %s; chmod og-rwx %s"%(BUP_PATH, BUP_PATH))
-if not os.path.exists(PROJECTS_PATH):
-    cmd("mkdir -p %s; chmod og+rx %s"%(PROJECTS_PATH, PROJECTS_PATH))
-
-
 class Project(object):
-    def __init__(self, project_id, login_shell='/bin/bash'):
+    def __init__(self, project_id):
         if uuid.UUID(project_id).get_version() != 4:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
-        self.project_id = project_id
-        self.uid = uid(project_id)
-        self.gid = self.uid
-        self.username = self.project_id.replace('-','')
-        self.login_shell = login_shell
-        self.bup_path = os.path.join(BUP_PATH, project_id)
-        self.conf_path = os.path.join(self.bup_path, "conf")
-        self.quota_path = os.path.join(self.conf_path, "quota.json")
-        self.replicas_path = os.path.join(self.conf_path, "replicas.json")
-        self.project_mnt  = os.path.join(PROJECTS_PATH, project_id)
-        self.snap_mnt = os.path.join(self.project_mnt,'.bup')
-        self.HEAD = "%s/HEAD"%self.bup_path
+        self.project_id            = project_id
+        self.uid                   = uid(project_id)
+        self.gid                   = self.uid
+        self.username              = self.project_id.replace('-','')
+        self.bup_path              = os.path.join(BUP_PATH, project_id)
+        self.conf_path             = os.path.join(self.bup_path, "conf")
+        self.account_settings_path = os.path.join(self.conf_path, "account-settings.json")
+        self.replicas_path         = os.path.join(self.conf_path, "replicas.json")
+        self.project_mnt           = os.path.join(PROJECTS_PATH, project_id)
+        self.snap_mnt              = os.path.join(self.project_mnt,'.bup')
+        self.HEAD                  = "%s/HEAD"%self.bup_path
         self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
 
     def cmd(self, *args, **kwds):
@@ -167,20 +179,24 @@ class Project(object):
         return f
 
     def create_user(self):
-        self.cmd('/usr/sbin/groupadd -g %s -o %s'%(self.gid, self.username), ignore_errors=True)
-        self.cmd('/usr/sbin/useradd -u %s -g %s -o %s -d %s -s %s'%(self.uid, self.gid,
-                                            self.username, self.project_mnt, self.login_shell), ignore_errors=True)
+        login_shell = get_account_settings()['login_shell']
+        if self.gid != self.uid:
+            self.cmd(['/usr/sbin/groupadd', '-g', self.gid, '-o', self.username], ignore_errors=True)
+        self.cmd(['/usr/sbin/useradd', '-u', self.uid, '-g', self.gid, '-o', self.username,
+                  '-d', self.project_mnt, '-s', login_shell], ignore_errors=True)
 
     def delete_user(self):
-        self.cmd('/usr/sbin/userdel %s; sudo /usr/sbin/groupdel %s'%(self.username, self.username), ignore_errors=True)
+        self.cmd(['/usr/sbin/userdel', self.username], ignore_errors=True)
+        if self.gid != self.uid:
+            self.cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
 
     def start_daemons(self):
-        self.cmd("su - %s -c 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'"%self.username, timeout=30)
+        self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def start(self):
         self.delete_user()
         self.create_user()
-        self.quota()
+        self.setup_account()
         self.ensure_conf_files()
         self.ensure_ssh_access()
         self.update_daemon_code()
@@ -193,9 +209,10 @@ class Project(object):
         """
         log = self._log("create")
         if not os.path.exists(self.project_mnt):
-            self.cmd("mkdir -p %s"%self.project_mnt)
+            self.makedirs(self.project_mnt)
+        os.chown(self.project_mnt, self.uid, self.gid)
         if not os.path.exists(self.bup_path):
-            self.cmd("/usr/bin/bup init")
+            self.cmd(['/usr/bin/bup', 'init'])
             self.save()
 
     def set_branch(self, branch=''):
@@ -206,55 +223,75 @@ class Project(object):
     def checkout(self, snapshot='latest', branch=None):
         self.set_branch(branch)
         if not os.path.exists(self.project_mnt):
-            self.cmd("mkdir -p %s; /usr/bin/bup restore %s/%s/ --outdir=%s"%(self.project_mnt, self.branch, snapshot, self.project_mnt))
+            self.makedirs(self.project_mnt)
+            self.cmd(['/usr/bin/bup', 'restore', '%s/%s/'%(self.branch, snapshot), '--outdir', self.project_mnt])
             self.chown(self.project_mnt)
             self.mount_snapshots()
         else:
             self.mount_snapshots()
-            self.cmd("rsync -axH --delete %s %s/%s/%s/ %s/"%(self.rsync_exclude(), self.snap_mnt, self.branch, snapshot, self.project_mnt))
+            self.cmd(['rsync', '-axH', '--delete', self.rsync_exclude(),
+                      os.path.join(self.snap_mnt, self.branch, snapshot)+'/',
+                      self.project_mnt+'/'])
 
     def umount_snapshots(self):
-        self.cmd("fusermount -uz %s"%self.snap_mnt, ignore_errors=True)
+        self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
 
     def mount_snapshots(self):
         self.umount_snapshots()
-        self.cmd("rm -rf %s; mkdir -p %s; bup fuse -o --uid=%s --gid=%s %s"%(
-                     self.snap_mnt, self.snap_mnt,  self.uid, self.gid, self.snap_mnt))
+        if os.path.exists(self.snap_mnt):
+            os.rmdir(self.snap_mnt)
+        self.makedirs(self.snap_mnt)
+        self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
 
-    def kill(self, grace_s=0.25):
+    def kill(self, grace_s=0.5):
         log("killing all processes by user with id %s"%self.uid)
         MAX_TRIES=10
+        # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
         for i in range(MAX_TRIES):
-            self.cmd("/usr/bin/pkill -u %s; sleep %s; /usr/bin/pkill -9 -u %s"%(self.uid, grace_s, self.uid), ignore_errors=True)
+            self.cmd(['/usr/bin/killall', '-u', self.username], ignore_errors=True)
+            self.cmd(['/usr/bin/pkill', '-u', self.uid], ignore_errors=True)
+            time.sleep(grace_s)
+            self.cmd(['/usr/bin/killall', '-9', '-u', self.username], ignore_errors=True)
+            self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
             n = self.num_procs()
             log("kill attempt left %s procs"%n)
             if n == 0:
                 break
 
     def pids(self):
-        return [int(x) for x in cmd("pgrep -u %s"%self.uid, ignore_errors=True).replace('ERROR','').split()]
+        return [int(x) for x in cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
 
     def num_procs(self):
         return len(self.pids())
 
-    def close(self):
+    def archive(self):
         """
         Remove the user's files, leaving only the bup repo.
-        DANGEROUS.
+
+        ** DANGEROUS. **
+
+        This would be used when it is highly unlikely the project will ever be used again, e.g.,
+        maybe when one deletes a project, and we want to keep it around for a while for archival
+        purposes, just in case.
         """
-        log = self._log("remove")
-        log("removing users files")
+        log = self._log("archive")
         self.kill()
         self.umount_snapshots()
+        log("removing users files")
         shutil.rmtree(self.project_mnt)
         self.delete_user()
+
+    def destroy(self):
+        """
+        *VERY DANGEROUS.*  Delete all traces of this project from this machine.
+        """
+        self.archive()
+        shutil.rmtree(self.bup_path)
 
     def rsync_exclude(self, path=None):
         if path is None:
             path = self.project_mnt
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshot', '.bup']
-        #return '--exclude=' + ' --exclude='.join([os.path.join(path, e) for e in excludes])
-
         return '--exclude=' + ' --exclude='.join(excludes)
 
     def save(self, path=None, timestamp=None, branch=None):
@@ -263,12 +300,12 @@ class Project(object):
         """
         log = self._log("save")
         self.set_branch(branch)
-        if timestamp is None:
-            timestamp = time.time()
         if path is None:
             path = self.project_mnt
-        self.cmd("bup index -x  %s   %s"%(self.rsync_exclude(path), path))
-        self.cmd("bup save --strip -n %s -d %s %s"%(self.branch, timestamp, path))
+        self.cmd(["/usr/bin/bup", "index", "-x", self.rsync_exclude(path), path])
+        if timestamp is None:
+            timestamp = time.time()
+        self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
         if path == self.project_mnt:
             self.mount_snapshots()
 
@@ -277,9 +314,9 @@ class Project(object):
         Tag the latest commit to master or delete a tag.
         """
         if delete:
-            self.cmd("bup tag -f -d %s"%tag)
+            self.cmd(["/usr/bin/bup", "tag", "-f", "-d", tag])
         else:
-            self.cmd("bup tag -f %s %s"%(tag, self.branch))
+            self.cmd(["/usr/bin/bup", "tag", "-f", tag, self.branch])
 
     def snapshots(self, branch=''):
         """
@@ -287,7 +324,7 @@ class Project(object):
         """
         if not branch:
             branch = self.branch
-        return self.cmd("bup ls %s/"%branch, verbose=0).split()[:-1]
+        return self.cmd(["/usr/bin/bup", "ls", branch+'/'], verbose=0).split()[:-1]
 
     def branches(self):
         return {'branches':self.cmd("bup ls").split(), 'branch':self.branch}
@@ -300,13 +337,6 @@ class Project(object):
         """
         self.cmd("cd %s; git repack -lad"%self.bup_path)
 
-    def destroy(self):
-        """
-        Delete all traces of this project from this machine.  *VERY DANGEROUS.*
-        """
-        self.close()
-        shutil.rmtree(self.bup_path)
-
 
     def makedirs(self, path):
         log = self._log('makedirs')
@@ -315,18 +345,18 @@ class Project(object):
             os.unlink(path)
         if not os.path.exists(path):
             log("creating %s"%path)
-            os.makedirs(path)
+            os.makedirs(path, mode=0700)
         os.chown(path, self.uid, self.gid)
 
     def update_daemon_code(self):
         log = self._log('update_daemon_code')
         target = '/%s/.sagemathcloud/'%self.project_mnt
         self.makedirs(target)
-        self.cmd("rsync -axHL --update %s/ %s"%(SAGEMATHCLOUD_TEMPLATE, target))
+        self.cmd(["rsync", "-axHL", "--update", SAGEMATHCLOUD_TEMPLATE+"/", target])
         self.chown(target)
 
     def chown(self, path):
-        self.cmd("chown %s:%s -R '%s'"%(self.uid, self.gid, path))
+        self.cmd(["chown", "%s:%s"%(self.uid, self.gid), '-R', path])
 
     def ensure_file_exists(self, src, target):
         target = os.path.abspath(target)
@@ -354,61 +384,66 @@ class Project(object):
             open(target,'w').write(authorized_keys)
         else:
             log("%s already exists and is good"%target)
-        self.cmd('chown -R %s:%s %s'%(self.uid, self.gid, dot_ssh))
-        self.cmd('chmod og-rwx -R %s'%dot_ssh)
+        self.cmd(['chown', '-R', '%s:%s'%(self.uid, self.gid), dot_ssh])
+        self.cmd(['chmod', 'og-rwx', '-R', dot_ssh])
 
-    def get_quota(self):
+    def get_account_settings(self):
         if not os.path.exists(self.conf_path):
             os.makedirs(self.conf_path)
-        if os.path.exists(self.quota_path):
+        if os.path.exists(self.account_path):
             try:
-                quota = json.loads(open(self.quota_path).read())
-                for k, v in DEFAULT_QUOTA.iteritems():
-                    if k not in quota:
-                        quota[k] = v
+                account_settings = json.loads(open(self.account_settings_path).read())
+                for k, v in DEFAULT_ACCOUNT_SETTINGS.iteritems():
+                    if k not in account_settings:
+                        account_settings[k] = v
             except (ValueError, IOError), mesg:
-                quota = dict(DEFAULT_QUOTA)
+                account_settings = dict(DEFAULT_ACCOUNT_SETTINGS)
         else:
-            quota = dict(DEFAULT_QUOTA)
-        return quota
+            account_settings = dict(DEFAULT_ACCOUNT_SETTINGS)
+        return account_settings
 
 
-    def quota(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None):
-        log = self._log('quota')
-        log("configuring quotas...")
+    def setup_account(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None, login_shell=None):
+        log = self._log('setup account')
+        log("configuring account...")
 
-        quota = self.get_quota()
+        account_settings = self.get_account_settings()
+
         if memory is not None:
-            quota['memory'] = int(memory)
+            account_settings['memory'] = int(memory)
         else:
-            memory = quota['memory']
+            memory = account_settings['memory']
         if cpu_shares is not None:
-            quota['cpu_shares'] = int(cpu_shares)
+            account_settings['cpu_shares'] = int(cpu_shares)
         else:
-            cpu_shares = quota['cpu_shares']
+            cpu_shares = account_settings['cpu_shares']
         if cores is not None:
-            quota['cores'] = float(cores)
+            account_settings['cores'] = float(cores)
         else:
-            cores = quota['cores']
+            cores = account_settings['cores']
         if disk is not None:
-            quota['disk'] = int(disk)
+            account_settings['disk'] = int(disk)
         else:
-            disk = quota['disk']
+            disk = account_settings['disk']
         if inode is not None:
-            quota['inode'] = int(inode)
+            account_settings['inode'] = int(inode)
         else:
-            inode = quota['inode']
+            inode = account_settings['inode']
+        if login_shell is not None and os.path.exists(login_shell):
+            account_settings['login_shell'] = login_shell
+        else:
+            login_shell = account_settings['login_shell']
 
         try:
-            s = json.dumps(quota)
-            open(self.quota_path,'w').write(s)
+            s = json.dumps(account_settings)
+            open(self.account_settings_path,'w').write(s)
             print s
         except IOError:
             pass
 
         # Disk space quota
 
-        if QUOTA_FILESYSTEM == 'zfs':
+        if FILESYSTEM == 'zfs':
             """
             zpool create -f storage /dev/sdc
             zfs create storage/projects
@@ -425,7 +460,7 @@ class Project(object):
             """
             cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.username, disk), '%s/projects'%ZPOOL])
 
-        elif QUOTA_FILESYSTEM == 'ext4':
+        elif FILESYSTEM == 'ext4':
 
             #    filesystem options: usrquota,grpquota; then
             #    sudo su
@@ -437,7 +472,7 @@ class Project(object):
             cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
 
         else:
-            raise RuntimeError("unknown QUOTA_FILESYSTEM='%s'"%QUOTA_FILESYSTEM)
+            raise RuntimeError("unknown FILESYSTEM='%s'"%FILESYSTEM)
 
 
         # Cgroups
@@ -446,7 +481,7 @@ class Project(object):
         else:
             cfs_quota = int(100000*cores)
 
-        self.cmd("cgcreate -g memory,cpu:%s"%self.username)
+        self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
         open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory)
         open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
         open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
@@ -456,17 +491,20 @@ class Project(object):
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
-            self.cmd('service cgred restart')
+            try:
+                self.cmd(['service', 'cgred', 'restart'])
+            except RuntimeError:
+                raise RuntimeError("cgroup quota service not supported")
             try:
                 pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd("cgclassify %s"%(' '.join(pids)), ignore_errors=True)
+                self.cmd(["cgclassify"] + pids, ignore_errors=True)
                 # ignore cgclassify errors, since processes come and go, etc.":
             except RuntimeError:
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
     def replicas(self, add='', remove=''):
-        log = self._log('quota')
+        log = self._log('replicas')
         log("configuring replicas...")
         if not os.path.exists(self.conf_path):
             os.makedirs(self.conf_path)
@@ -519,23 +557,26 @@ class Project(object):
 
         if os.path.exists(self.project_mnt):
             # set remote disk quota, so rsync doesn't fail due to missing space.
-            if QUOTA_FILESYSTEM == 'zfs':
-                self.cmd("ssh -o StrictHostKeyChecking=no %s 'zfs set userquota@%s=%sM %s/projects'"%(
-                                            remote, self.uid, self.get_quota()['disk'], ZPOOL))
+            if FILESYSTEM == 'zfs':
+                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", remote,
+                          'zfs set userquota@%s=%sM %s/projects'%(
+                                            self.uid, self.get_account_settings()['disk'], ZPOOL)])
             else:
                 raise NotImplementedError
 
-            self.cmd("rsync -axH --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s:%s/"%(
-                                                    self.rsync_exclude(), self.project_mnt, remote, self.project_mnt))
+            self.cmd(["rsync", "-axH", "--delete", self.rsync_exclude(),
+                      '-e', 'ssh -o StrictHostKeyChecking=no',
+                      self.project_mnt+'/', "%s:%s/"%(remote, self.project_mnt)])
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd("rsync -axH --delete -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+            self.cmd(["rsync", "-axH", "--delete", "-e", 'ssh -o StrictHostKeyChecking=no',
+                      self.bup_path+'/', remote+'/'])
             return
 
         log("get remote heads")
-        out = self.cmd("ssh -o StrictHostKeyChecking=no %s 'grep -H \"\" %s/refs/heads/*'"%(
-                                                remote, remote_bup_path), ignore_errors=True)
+        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", remote,
+                        'grep -H \"\" %s/refs/heads/*'%remote_bup_path], ignore_errors=True)
         if 'such file or directory' in out:
             remote_heads = []
         else:
@@ -546,12 +587,12 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s:%s/"%(
-                                       self.bup_path, remote, remote_bup_path))
+        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
+                  self.bup_path + '/', "%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd("rsync -vaxH  -e 'ssh -o StrictHostKeyChecking=no'  %s:%s/ %s/"%(
-                 remote, remote_bup_path, self.bup_path)).splitlines()
+        back = self.cmd(["rsync", "-vaxH", "-e", 'ssh -o StrictHostKeyChecking=no',
+                         "%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
             # so user can get their files if anything important got overwritten.
@@ -566,7 +607,7 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', self.bup_path+'/', remote+'/'])
         if os.path.exists(self.project_mnt):
             log("mount snapshots")
             self.mount_snapshots()
@@ -582,78 +623,60 @@ class Project(object):
 
 
 
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Bup-backed SMC project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
 
-    parser.add_argument("project_id", help="project id", type=str)
-
-    parser.add_argument("--login_shell", help="the login shell used when creating user (default:'/bin/bash')", default="/bin/bash", type=str)
+    parser.add_argument("project_id", help="project id -- most subcommand require this", type=str)
 
     parser_init = subparsers.add_parser('init', help='init project repo and directory')
     parser_init.set_defaults(func=lambda args: project.init())
 
-    parser_close = subparsers.add_parser('close', help='')
-    parser_close.set_defaults(func=lambda args: project.close())
-
-    parser_checkout = subparsers.add_parser('checkout', help='checkout snapshot of project to working directory (DANGEROUS)')
-    parser_checkout.add_argument("--snapshot", dest="snapshot", help="which tag or snapshot to checkout (default: latest)", type=str, default='latest')
-    parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
-    parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
-
     update_start = subparsers.add_parser('start', help='create user, setup ssh access and the ~/.sagemathcloud filesystem')
     update_start.set_defaults(func=lambda args: project.start())
 
-    parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
-    parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
-
-    parser_quota = subparsers.add_parser('quota', help='set quota for this user; also outputs settings in JSON')
-    parser_quota.add_argument("--memory", dest="memory", help="memory quota in gigabytes",
+    parser_account_settings = subparsers.add_parser('account_settings', help='set account_settings for this user; also outputs settings in JSON')
+    parser_account_settings.add_argument("--memory", dest="memory", help="memory account_settings in gigabytes",
                                type=int, default=None)
-    parser_quota.add_argument("--cpu_shares", dest="cpu_shares", help="shares of the cpu",
+    parser_account_settings.add_argument("--cpu_shares", dest="cpu_shares", help="shares of the cpu",
                                type=int, default=None)
-    parser_quota.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
+    parser_account_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
                                type=float, default=None)
-    parser_quota.add_argument("--disk", dest="disk", help="working disk space in gigabytes", type=int, default=None)
-    parser_quota.add_argument("--inode", dest="inode", help="inode quota", type=int, default=None)
-    parser_quota.set_defaults(func=lambda args: project.quota(
-                    memory=args.memory, cpu_shares=args.cpu_shares, cores=args.cores, disk=args.disk, inode=args.inode))
-
-    parser_close = subparsers.add_parser('close', help='deleting working directory')
-    parser_close.set_defaults(func=lambda args: project.close())
+    parser_account_settings.add_argument("--disk", dest="disk", help="working disk space in gigabytes", type=int, default=None)
+    parser_account_settings.add_argument("--inode", dest="inode", help="inode account_settings", type=int, default=None)
+    parser_account_settings.add_argument("--login_shell", help="the login shell used when creating user", default=None, type=str)
+    parser_account_settings.set_defaults(func=lambda args: project.account_settings(
+                    memory=args.memory, cpu_shares=args.cpu_shares,
+                    cores=args.cores, disk=args.disk, inode=args.inode,
+                    login_shell=args.login_shell))
 
     parser_kill = subparsers.add_parser('kill', help='Kill all processes running as this user.')
     parser_kill.set_defaults(func=lambda args: project.kill())
 
-    parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
-    parser_destroy.set_defaults(func=lambda args: project.destroy())
-
     parser_save = subparsers.add_parser('save', help='save a snapshot')
     parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
     parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
-
     parser_tag = subparsers.add_parser('tag', help='tag the *latest* commit to master, or delete a tag')
+
     parser_tag.add_argument("tag", help="tag name", type=str)
     parser_tag.add_argument("--delete", help="delete the given tag",
                                    dest="delete", default=False, action="store_const", const=True)
     parser_tag.set_defaults(func=lambda args: project.tag(tag=args.tag, delete=args.delete))
 
-    parser_replicas = subparsers.add_parser('replicas', help='add or remove replicas; always outputs list of replicas in JSON')
-    parser_replicas.add_argument("--add", dest="add", help="add replicas: host1,host2,...", type=str, default='')
-    parser_replicas.add_argument("--remove", dest="remove", help="remove replicas: host1,host2,...", type=str, default='')
-    def replicas(add, remove):
-        print project.replicas(add=add, remove=remove)
-    parser_replicas.set_defaults(func=lambda args: replicas(add=args.add, remove=args.remove))
-
-
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
-    parser_sync.add_argument("--destructive", help="sync, destructively overwriting anything that is remote (DANGEROUS)",
+    parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.set_defaults(func=lambda args: project.sync(destructive=args.destructive))
 
-    parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project')
-    parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
+
+    if UNSAFE_MODE:
+        parser_archive = subparsers.add_parser('archive', help="*DANGEROUS*: Remove the user's files, leaving only the bup repo.")
+        parser_archive.set_defaults(func=lambda args: project.archive())
+
+        parser_destroy = subparsers.add_parser('destroy', help='**DANGEROUS**: Delete all traces of this project from this machine.')
+        parser_destroy.set_defaults(func=lambda args: project.destroy())
 
     parser_snapshots = subparsers.add_parser('snapshots', help='output JSON list of snapshots of current branch')
     parser_snapshots.add_argument("--branch", dest="branch", help="show for given branch (by default the current one)", type=str, default='')
@@ -662,9 +685,25 @@ if __name__ == "__main__":
     parser_branches = subparsers.add_parser('branches', help='output JSON {branches:[list of branches], branch:"name"}')
     parser_branches.set_defaults(func=lambda args: print_json(project.branches()))
 
+    parser_checkout = subparsers.add_parser('checkout', help='checkout snapshot of project to working directory (DANGEROUS)')
+    parser_checkout.add_argument("--snapshot", dest="snapshot", help="which tag or snapshot to checkout (default: latest)", type=str, default='latest')
+    parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
+    parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
+
+    parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
+    parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
+
+    parser_replicas = subparsers.add_parser('replicas', help='add or remove replicas; always outputs list of replicas in JSON')
+    parser_replicas.add_argument("--add", dest="add", help="add replicas: host1,host2,...", type=str, default='')
+    parser_replicas.add_argument("--remove", dest="remove", help="remove replicas: host1,host2,...", type=str, default='')
+    def replicas(add, remove):
+        print project.replicas(add=add, remove=remove)
+    parser_replicas.set_defaults(func=lambda args: replicas(add=args.add, remove=args.remove))
+
+    parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project from old ZFS format')
+    parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
 
     args = parser.parse_args()
-
 
     t0 = time.time()
     project = Project(project_id  = args.project_id,
