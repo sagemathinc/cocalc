@@ -8,17 +8,21 @@ BUP-based Project storage system
 import argparse, hashlib, math, os, random, shutil, string, sys, time, uuid, json, signal
 from subprocess import Popen, PIPE
 
+# If using ZFS:
+ZPOOL = 'storage'  # must have ZPOOL/bups and ZPOOL/projects filesystems
+
 # The path where bup repos are stored
-BUP_PATH      = os.path.abspath(os.environ.get('BUP_PATH','/tmp/bup'))
+BUP_PATH      = os.path.abspath(os.environ.get('BUP_PATH','/bups'))
 
 # The path where project working files appear
-PROJECTS_PATH = os.path.abspath(os.environ.get('PROJECTS_PATH','/tmp/projects'))
+PROJECTS_PATH = os.path.abspath(os.environ.get('PROJECTS_PATH','/projects'))
 
 # Default Quotas
 # disk in megabytes
 # memory in gigabytes
 DEFAULT_QUOTA = {'disk':3000, 'inode':200000, 'memory':8, 'cpu_shares':256, 'cores':2}
 
+QUOTA_FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
 
 # Make sure to copy: 'cp -rv ~/salvus/salvus/scripts/skel/.sagemathcloud/data /home/salvus/salvus/salvus/local_hub_template/"
 SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/local_hub_template/"
@@ -56,7 +60,10 @@ def ensure_file_exists(src, target):
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if verbose >= 1:
-        log(s)
+        if isinstance(s, list):
+            log(' '.join(s))
+        else:
+            log(s)
     t = time.time()
 
     mesg = "ERROR"
@@ -138,12 +145,14 @@ class Project(object):
         self.cmd("su - %s -c 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'"%self.username, timeout=30)
 
     def start(self):
+        self.delete_user()
         self.create_user()
         self.quota()
         self.ensure_conf_files()
         self.ensure_ssh_access()
         self.update_daemon_code()
         self.start_daemons()
+        self.mount_snapshots()
 
     def init(self):
         """
@@ -315,10 +324,7 @@ class Project(object):
         self.cmd('chown -R %s:%s %s'%(self.uid, self.gid, dot_ssh))
         self.cmd('chmod og-rwx -R %s'%dot_ssh)
 
-    def quota(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None):
-        log = self._log('quota')
-        log("configuring quotas...")
-
+    def get_quota(self):
         if os.path.exists(self.quota_path):
             try:
                 quota = json.loads(open(self.quota_path).read())
@@ -329,6 +335,14 @@ class Project(object):
                 quota = dict(DEFAULT_QUOTA)
         else:
             quota = dict(DEFAULT_QUOTA)
+        return quota
+
+
+    def quota(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None):
+        log = self._log('quota')
+        log("configuring quotas...")
+
+        quota = self.get_quota()
         if memory is not None:
             quota['memory'] = int(memory)
         else:
@@ -358,14 +372,35 @@ class Project(object):
             pass
 
         # Disk space quota
-        #    filesystem options: usrquota,grpquota; then
-        #    sudo su
-        #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
-        disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
-        disk_hard  = disk * 1024
-        inode_soft = inode
-        inode_hard = 2*inode_soft
-        cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
+
+        if QUOTA_FILESYSTEM == 'zfs':
+            """
+            zpool create -f storage /dev/sdc
+            zfs create storage/projects
+            zfs set mountpoint=/projects storage/projects
+            zfs set dedup=on storage/projects
+            zfs set compression=lz4 storage/projects
+            zfs mount storage/projects
+            zfs create storage/bups
+            zfs set mountpoint=/bups storage/bups
+            chmod og-rwx /bups
+            """
+            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.username, disk), '%s/projects'%ZPOOL])
+
+        elif QUOTA_FILESYSTEM == 'ext4':
+
+            #    filesystem options: usrquota,grpquota; then
+            #    sudo su
+            #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
+            disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
+            disk_hard  = disk * 1024
+            inode_soft = inode
+            inode_hard = 2*inode_soft
+            cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
+
+        else:
+            raise RuntimeError("unknown QUOTA_FILESYSTEM='%s'"%QUOTA_FILESYSTEM)
+
 
         # Cgroups
         if cores <= 0:
@@ -403,17 +438,21 @@ class Project(object):
         log = self._log('sync')
         log("syncing...")
 
-        if ':' not in remote:
-            remote += ':' + self.bup_path + '/'
-        if not remote.endswith('/'):
-            remote += '/'
-        host, remote_bup_path = remote.split(':')
+        remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
         if working and os.path.exists(self.project_mnt):
             if working is True:
                 working = self.project_mnt
+
+            # set remote disk quota, so rsync doesn't fail due to missing space.
+            if QUOTA_FILESYSTEM == 'zfs':
+                self.cmd("ssh -o StrictHostKeyChecking=no %s 'zfs set userquota@%s=%sM %s/projects'"%(
+                                            remote, self.uid, self.get_quota()['disk'], ZPOOL))
+            else:
+                raise NotImplementedError
+
             self.cmd("rsync -axH --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s:%s/"%(
-                                                    self.rsync_exclude(), self.project_mnt, host, working))
+                                                    self.rsync_exclude(), self.project_mnt, remote, working))
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
@@ -421,7 +460,8 @@ class Project(object):
             return
 
         log("get remote heads")
-        out = self.cmd("ssh -o StrictHostKeyChecking=no %s 'grep -H \"\" %s/refs/heads/*'"%(host, remote_bup_path), ignore_errors=True)
+        out = self.cmd("ssh -o StrictHostKeyChecking=no %s 'grep -H \"\" %s/refs/heads/*'"%(
+                                                remote, remote_bup_path), ignore_errors=True)
         if 'such file or directory' in out:
             remote_heads = []
         else:
@@ -432,10 +472,12 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/"%(self.bup_path, remote))
+        self.cmd("rsync -axH -e 'ssh -o StrictHostKeyChecking=no' %s/ %s:%s/"%(
+                                       self.bup_path, remote, remote_bup_path))
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd("rsync -vaxH  -e 'ssh -o StrictHostKeyChecking=no'  %s/ %s/"%(remote, self.bup_path)).splitlines()
+        back = self.cmd("rsync -vaxH  -e 'ssh -o StrictHostKeyChecking=no'  %s:%s/ %s/"%(
+                 remote, remote_bup_path, self.bup_path)).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
             # so user can get their files if anything important got overwritten.
