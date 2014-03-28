@@ -11,7 +11,7 @@ BUP-based Project storage system
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal
+import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
@@ -612,14 +612,26 @@ class Project(object):
             log("mount snapshots")
             self.mount_snapshots()
 
-    def migrate_all(self):
+    def migrate_all(self, max_snaps=400):
+        log = self._log('migrate_all')
+        log("determining snapshots...")
         self.init()
         snap_path  = "/projects/%s/.zfs/snapshot"%self.project_id
         known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
-        for snapshot in sorted(os.listdir(snap_path)):
+        v = sorted(os.listdir(snap_path))
+        if len(v) > max_snaps:
+            trim = math.ceil(len(v)/max_snaps)
+            w = [v[i] for i in range(len(v)) if i%trim==0]
+            for i in range(1,5):
+                if w[-i] != v[-i]:
+                    w.append(v[-i])
+            v = w
+
+        v = [snapshot for snapshot in v if snapshot not in known]
+        for i, snapshot in enumerate(v):
+            print "**** %s/%s ****"%(i+1,len(v))
             tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
-            if tm not in known:
-                self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+            self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
 
 
 
