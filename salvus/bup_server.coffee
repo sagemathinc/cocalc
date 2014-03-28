@@ -469,6 +469,7 @@ class GlobalClient
         project      = undefined
         works        = undefined
         status       = undefined
+        errors       = {}
         async.series([
             (cb) =>
                 dbg("get current bup location in database")
@@ -522,51 +523,129 @@ class GlobalClient
                             status = _status
                             cb()
             (cb) =>
+                if works
+                    cb(); return
                 dbg("until success, choose one that responded with best status and try to start there")
-
-                cb("todo")
-
-        ], (err) =>
-            if not err
-                if project? and works
-                    opts.cb(undefined, project)
+                # remove those with error getting status
+                for x in status
+                    if x.error
+                        errors[x.replica_id] = x.error
+                    else if x.status?.bup != 'working'
+                        errors[x.replica_id] = 'bup not working'
+                status = (x.replica_id for x in status when not x.error and x.status?.bup == 'working')
+                f = (replica_id, cb) =>
+                    if works
+                        cb(); return
+                    @project
+                        project_id : opts.project_id
+                        server_id  : replica_id
+                        cb         : (err, _project) =>
+                            if err
+                                dbg("error trying to open project on #{replica_id} -- #{err}")
+                                cb(); return # skip to next
+                            _project.restart
+                                cb : (err) =>
+                                    if not err
+                                        project = _project
+                                        bup_location = replica_id
+                                        works = true
+                                    else
+                                        errors[replica_id] = err
+                                        dbg("error trying to start project on #{replica_id} -- #{err}")
+                                    cb()
+                async.series(status, f, (err) => cb())
+            (cb) =>
+                if works and project? and bup_location?
+                    dbg("succeeded at opening the project at #{bup_location} -- now recording this in DB")
+                    @database.update
+                        table : 'projects'
+                        where : {project_id   : opts.project_id}
+                        set   : {bup_location : bup_location}
+                        cb    : cb
                 else
-                    opts.cb("unable to deploy project anywhere")
+                    cb("unable to open project anywhere")
+        ], (err) =>
+            if err
+                opts.cb("unable to deploy project anywhere -- #{err}, #{misc.to_json(errors)}")
             else
-                opts.cb(err)
+                opts.cb(undefined, project)
         )
 
-        project_status : (opts) =>
-            opts = defaults opts,
-                project_id         : required
-                replication_factor : undefined
-                timeout            : 20   # seconds
-                cb                 : required
-            status = []
-            f = (replica, cb) =>
-                s = {replica_id:replica}
-                status.push(s)
-                @project
-                    project_id : opts.project_id
-                    server_id  : replica
-                    cb         : (err, project) =>
-                        if err
-                            s.error = err
-                            cb()
-                        else
-                            project.status
-                                timeout : opts.timeout
-                                cb      : (err, status) =>
-                                    if err
-                                        @score(unhealthy:[replica])
-                                        opts.cb(err, project)
-                                        s.error = err
-                                        cb()
-                                    else
-                                        @score(healthy:[replica])
-                                        s.status = status
-                                        cb()
-            async.map(@replica(project_id:opts.project_id), f, (err) => opts.cb(undefined, status))
+    project_status : (opts) =>
+        opts = defaults opts,
+            project_id         : required
+            replication_factor : undefined
+            timeout            : 20   # seconds
+            cb                 : required    # cb(err, sorted list of status objects)
+        status = []
+        f = (replica, cb) =>
+            s = {replica_id:replica}
+            status.push(s)
+            @project
+                project_id : opts.project_id
+                server_id  : replica
+                cb         : (err, project) =>
+                    if err
+                        s.error = err
+                        cb()
+                    else
+                        project.status
+                            timeout : opts.timeout
+                            cb      : (err, status) =>
+                                if err
+                                    @score(unhealthy : [replica])
+                                    opts.cb(err, project)
+                                    s.error = err
+                                    cb()
+                                else
+                                    @score(healthy   : [replica])
+                                    s.status = status
+                                    cb()
+        async.map @replica(project_id:opts.project_id), f, (err) =>
+            status.sort (a,b) =>
+                if a.error? and not b.error
+                    # b is better
+                    return 1
+                if b.error? and not a.error?
+                    # a is better
+                    return -1
+                # sort of arbitrary -- mainly care about newest snapshot being newer = better = -1
+                if a.newest_snapshot?
+                    if not b.newest_snapshot?
+                        # a is better
+                        return -1
+                    else if a.newest_snapshot > b.newest_snapshot
+                        # a is better
+                        return -1
+                    else if a.newest_snapshot < b.newest_snapshot
+                        # b is better
+                        return 1
+                else
+                    if b.newest_snapshot?
+                        # b is better
+                        return 1
+                # Next compare health of server
+                health_a = @servers[a.replica_id]?.health
+                health_b = @servers[b.replica_id]?.health
+                if health_a? and health_b?
+                    health_a = Math.round(5*health_a)
+                    health_b = Math.round(5*health_b)
+                    if health_a < health_b
+                        # b is better
+                        return 1
+                    else if health_a > health_b
+                        # a is better
+                        return -1
+                # no error, so load must be defined
+                # smaller load is better -- later take into account free RAM, etc...
+                if a.load[0] < b.load[0]
+                    return -1
+                else if a.load[0] > b.load[0]
+                    return 1
+
+                return 0
+
+            opts.cb(undefined, status)
 
 
 
