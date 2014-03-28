@@ -341,8 +341,8 @@ class GlobalClient
 
     _update: (cb) =>
         @database.select
-            table     : 'storage_server'
-            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'token']
+            table     : 'storage_servers'
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
@@ -373,10 +373,10 @@ class GlobalClient
             s = s.extend(opts.unhealthy)
         else
             opts.unhealthy = []
-        if s.length == 0:
+        if s.length == 0
             opts.cb?(); return
         @database.select
-            table     : 'storage_server'
+            table     : 'storage_servers'
             columns   : ['server_id', 'health']
             objectify : true
             where     : {dummy:true, server_id:{'in':s}}
@@ -395,7 +395,7 @@ class GlobalClient
                         else
                             result.health = (result.health + 0)/2.0
                     @database.update
-                        table : 'storage_server'
+                        table : 'storage_servers'
                         set   : {health:result.health}
                         where : {dummy:true, server_id:result.server_id}
                         cb    : cb
@@ -439,10 +439,10 @@ class GlobalClient
         if not s.port?
             opts.cb("no port known for #{opts.server_id}")
             return
-        if not s.token?
-            opts.cb("no token known for #{opts.server_id}")
+        if not s.secret?
+            opts.cb("no secret token known for #{opts.server_id}")
             return
-        opts.cb(undefined, exports.storage_server_client(host:s.host, port:s.port, token:s.token))
+        opts.cb(undefined, exports.storage_server_client(host:s.host, port:s.port, secret:s.secret))
 
     project: (opts) =>
         opts = defaults opts,
@@ -809,10 +809,10 @@ client_cache = {}
 
 exports.storage_sever_client = (opts) ->
     opts = defaults opts,
-        host       : required
-        port       : required
-        token      : required
-        verbose    : true
+        host    : required
+        port    : required
+        secret  : required
+        verbose : true
     dbg = (m) -> winston.debug("storage_server_client(#{opts.host}:#{opts.port}): #{m}")
     dbg()
     C = client_cache[opts.host]

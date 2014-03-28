@@ -274,6 +274,8 @@ CREATE TABLE projects (
 
      last_edited      timestamp,// timestamp of last modification of the project
 
+     bup_location     uuid,     // location using new bup-based storage system
+
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 
      status           varchar,  // 'new'=just created, 'opened'=right after opening, 'closed'=right after closing, etc. -- maybe "archived" at some pointed (?)
@@ -286,6 +288,7 @@ CREATE TABLE projects (
      last_replication_error varchar, // JSON -- last error message from replication failure.
 
      quota            varchar,
+
 
      quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
      usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
@@ -572,6 +575,18 @@ CREATE TABLE banned_email_addresses (
     email_address varchar PRIMARY KEY,
     dummy         boolean
 );
+
+CREATE TABLE storage_servers (
+    dummy     boolean,
+    server_id uuid,
+    host      inet,
+    port      int,
+    dc        int,
+    health    float,
+    secret    varchar,
+    PRIMARY KEY(dummy, server_id)
+);
+
 
 
 /*STORAGE */
