@@ -4,6 +4,20 @@
 
 BUP-based Project storage system
 
+INSTALL:
+
+In visudo:
+
+    salvus ALL=(ALL) NOPASSWD: /usr/local/bin/bup_storage.py *
+
+Install script:
+
+     cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
+     chown root:salvus /usr/local/bin/bup_storage.py
+     chmod ug+rx /usr/local/bin/bup_storage.py
+     chmod og-w /usr/local/bin/bup_storage.py
+     chmod o-x /usr/local/bin/bup_storage.py
+
 """
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
@@ -32,10 +46,11 @@ PROJECTS_PATH = '/projects'
 
 DEFAULT_ACCOUNT_SETTINGS = {
     'disk'       : 3000,     # disk in megabytes
+    'scratch'    : 10000,    # disk quota on /scratch
     'inode'      : 200000,   # not used with ZFS
     'memory'     : 8,        # memory in gigabytes
     'cpu_shares' : 256,
-    'cores'      : 2
+    'cores'      : 2,
     'login_shell': '/bin/bash'
 }
 
@@ -112,7 +127,8 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
     s = [str(x) for x in s]
     if verbose >= 1:
         if isinstance(s, list):
-            log(' '.join(s))
+            t = [x if len(x.split()) <=1  else "'%s'"%x for x in s]
+            log(' '.join(t))
         else:
             log(s)
     t = time.time()
@@ -179,15 +195,15 @@ class Project(object):
         return f
 
     def create_user(self):
-        login_shell = get_account_settings()['login_shell']
-        if self.gid != self.uid:
+        login_shell = self.get_account_settings()['login_shell']
+        if self.gid == self.uid:
             self.cmd(['/usr/sbin/groupadd', '-g', self.gid, '-o', self.username], ignore_errors=True)
         self.cmd(['/usr/sbin/useradd', '-u', self.uid, '-g', self.gid, '-o', self.username,
                   '-d', self.project_mnt, '-s', login_shell], ignore_errors=True)
 
     def delete_user(self):
         self.cmd(['/usr/sbin/userdel', self.username], ignore_errors=True)
-        if self.gid != self.uid:
+        if self.gid == self.uid:
             self.cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
 
     def start_daemons(self):
@@ -196,12 +212,35 @@ class Project(object):
     def start(self):
         self.delete_user()
         self.create_user()
-        self.setup_account()
+        self.account_settings()
         self.ensure_conf_files()
         self.ensure_ssh_access()
         self.update_daemon_code()
         self.start_daemons()
         self.mount_snapshots()
+
+    def get_zfs_status(self):
+        q = {}
+        try:
+            for x in ['userquota', 'userused']:
+                for y in ['projects', 'scratch']:
+                    q['%s-%s'%(x,y)] = cmd(['zfs', 'get', '-H', '%s@%s'%(x,self.uid), '%s/%s'%(ZPOOL,y)]).split()[2]
+            return q
+        except RuntimeError:
+            return None
+
+    def status(self):
+        s = {'username':self.username, 'uid':self.uid, 'gid':self.gid}
+        if FILESYSTEM == 'zfs':
+            s['zfs'] = self.get_zfs_status()
+        try:
+            t = json.loads(self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30))
+            s.update(t)
+            s['running'] = True
+            return s
+        except:
+            return {'running':False}
+
 
     def init(self):
         """
@@ -243,7 +282,7 @@ class Project(object):
         self.makedirs(self.snap_mnt)
         self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
 
-    def kill(self, grace_s=0.5):
+    def stop(self, grace_s=0.5):
         log("killing all processes by user with id %s"%self.uid)
         MAX_TRIES=10
         # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
@@ -257,6 +296,11 @@ class Project(object):
             log("kill attempt left %s procs"%n)
             if n == 0:
                 break
+        self.delete_user()  # so crontabs, remote logins, etc., won't happen
+
+    def restart(self):
+        self.stop()
+        self.start()
 
     def pids(self):
         return [int(x) for x in cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
@@ -275,7 +319,7 @@ class Project(object):
         purposes, just in case.
         """
         log = self._log("archive")
-        self.kill()
+        self.stop()
         self.umount_snapshots()
         log("removing users files")
         shutil.rmtree(self.project_mnt)
@@ -390,7 +434,7 @@ class Project(object):
     def get_account_settings(self):
         if not os.path.exists(self.conf_path):
             os.makedirs(self.conf_path)
-        if os.path.exists(self.account_path):
+        if os.path.exists(self.account_settings_path):
             try:
                 account_settings = json.loads(open(self.account_settings_path).read())
                 for k, v in DEFAULT_ACCOUNT_SETTINGS.iteritems():
@@ -403,8 +447,8 @@ class Project(object):
         return account_settings
 
 
-    def setup_account(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None, login_shell=None):
-        log = self._log('setup account')
+    def account_settings(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None, login_shell=None, scratch=None):
+        log = self._log('account_settings')
         log("configuring account...")
 
         account_settings = self.get_account_settings()
@@ -425,6 +469,10 @@ class Project(object):
             account_settings['disk'] = int(disk)
         else:
             disk = account_settings['disk']
+        if scratch is not None:
+            account_settings['scratch'] = int(scratch)
+        else:
+            scratch = account_settings['scratch']
         if inode is not None:
             account_settings['inode'] = int(inode)
         else:
@@ -454,11 +502,18 @@ class Project(object):
             zfs create storage/bups
             zfs set mountpoint=/storage/bups storage/bups
             chmod og-rwx /storage/bups
+
             zfs create storage/conf
             zfs set mountpoint=/storage/conf storage/conf
             chmod og-rwx /storage/conf
+
+            zfs create storage/scratch
+            zfs set mountpoint=/scratch storage/scratch
+            zfs mount storage/scratch
+            chmod a+rwx /scratch
             """
-            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.username, disk), '%s/projects'%ZPOOL])
+            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
+            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
 
         elif FILESYSTEM == 'ext4':
 
@@ -527,10 +582,13 @@ class Project(object):
         return replicas
 
     def sync(self, destructive=False):
-        status = {}
+        status = []
         for server_id in self.replicas():
             if server_id != SERVER_ID:
-                s = status[server_id] = {'server_id':server_id}
+                s = {'server_id':server_id}
+                status.append(s)
+                if server_id in SERVERS:
+                    s['hostname'] = SERVERS[server_id]['hostname']
                 t = time.time()
                 try:
                     self._sync(server_id)
@@ -612,7 +670,7 @@ class Project(object):
             log("mount snapshots")
             self.mount_snapshots()
 
-    def migrate_all(self, max_snaps=400):
+    def migrate_all(self, max_snaps=100):
         log = self._log('migrate_all')
         log("determining snapshots...")
         self.init()
@@ -646,8 +704,29 @@ if __name__ == "__main__":
     parser_init = subparsers.add_parser('init', help='init project repo and directory')
     parser_init.set_defaults(func=lambda args: project.init())
 
-    update_start = subparsers.add_parser('start', help='create user, setup ssh access and the ~/.sagemathcloud filesystem')
-    update_start.set_defaults(func=lambda args: project.start())
+    parser_start = subparsers.add_parser('start', help='create user, setup ssh access and the ~/.sagemathcloud filesystem')
+    parser_start.set_defaults(func=lambda args: project.start())
+
+    parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
+    def print_status():
+        print json.dumps(project.status())
+    parser_status.set_defaults(func=lambda args: print_status())
+
+    parser_stop = subparsers.add_parser('stop', help='Kill all processes running as this user and delete user.')
+    parser_stop.set_defaults(func=lambda args: project.stop())
+
+    parser_restart = subparsers.add_parser('restart', help='restart servers')
+    parser_restart.set_defaults(func=lambda args: project.restart())
+
+    parser_save = subparsers.add_parser('save', help='save a snapshot')
+    parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
+    parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
+
+    parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
+    parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
+                                   dest="destructive", default=False, action="store_const", const=True)
+    parser_sync.set_defaults(func=lambda args: project.sync(destructive=args.destructive))
+
 
     parser_account_settings = subparsers.add_parser('account_settings', help='set account_settings for this user; also outputs settings in JSON')
     parser_account_settings.add_argument("--memory", dest="memory", help="memory account_settings in gigabytes",
@@ -656,31 +735,20 @@ if __name__ == "__main__":
                                type=int, default=None)
     parser_account_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
                                type=float, default=None)
-    parser_account_settings.add_argument("--disk", dest="disk", help="working disk space in gigabytes", type=int, default=None)
+    parser_account_settings.add_argument("--disk", dest="disk", help="working disk space in megabytes", type=int, default=None)
+    parser_account_settings.add_argument("--scratch", dest="scratch", help="scratch disk space in megabytes", type=int, default=None)
     parser_account_settings.add_argument("--inode", dest="inode", help="inode account_settings", type=int, default=None)
-    parser_account_settings.add_argument("--login_shell", help="the login shell used when creating user", default=None, type=str)
+    parser_account_settings.add_argument("--login_shell", dest="login_shell", help="the login shell used when creating user", default=None, type=str)
     parser_account_settings.set_defaults(func=lambda args: project.account_settings(
                     memory=args.memory, cpu_shares=args.cpu_shares,
                     cores=args.cores, disk=args.disk, inode=args.inode,
                     login_shell=args.login_shell))
 
-    parser_kill = subparsers.add_parser('kill', help='Kill all processes running as this user.')
-    parser_kill.set_defaults(func=lambda args: project.kill())
-
-    parser_save = subparsers.add_parser('save', help='save a snapshot')
-    parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
-    parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
     parser_tag = subparsers.add_parser('tag', help='tag the *latest* commit to master, or delete a tag')
-
     parser_tag.add_argument("tag", help="tag name", type=str)
     parser_tag.add_argument("--delete", help="delete the given tag",
                                    dest="delete", default=False, action="store_const", const=True)
     parser_tag.set_defaults(func=lambda args: project.tag(tag=args.tag, delete=args.delete))
-
-    parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
-    parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
-                                   dest="destructive", default=False, action="store_const", const=True)
-    parser_sync.set_defaults(func=lambda args: project.sync(destructive=args.destructive))
 
 
     if UNSAFE_MODE:
@@ -709,7 +777,7 @@ if __name__ == "__main__":
     parser_replicas.add_argument("--add", dest="add", help="add replicas: host1,host2,...", type=str, default='')
     parser_replicas.add_argument("--remove", dest="remove", help="remove replicas: host1,host2,...", type=str, default='')
     def replicas(add, remove):
-        print project.replicas(add=add, remove=remove)
+        print json.dumps(project.replicas(add=add, remove=remove))
     parser_replicas.set_defaults(func=lambda args: replicas(add=args.add, remove=args.remove))
 
     parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project from old ZFS format')
@@ -718,8 +786,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     t0 = time.time()
-    project = Project(project_id  = args.project_id,
-                      login_shell = args.login_shell)
+    project = Project(project_id  = args.project_id)
     args.func(args)
     log("total time: %s seconds"%(time.time()-t0))
 

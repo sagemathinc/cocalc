@@ -15,17 +15,24 @@ def set(prop, val):
     status[prop] = val
     if val is False:
         done()
-def read(prop, filename, strip=False):
+def read(prop, filename, strip=False, int_value=False):
     try:
         s = open(filename).read()
         if strip:
             s = s.strip()
+        if '.port' in prop:
+            try:
+                s = int(s)
+            except TypeError:
+                pass
+        if int_value:
+            s = int(s.split('=')[1])
         status[prop] = s
     except:
         status[prop] = False
         done()
 
-read('version', os.path.join(SMC, "version"), strip=True)
+read('version', os.path.join(SMC, "salvus_version.js"), strip=True, int_value=True)
 
 # a simple test that the node modules are probably installed.
 set('installed', os.path.exists(os.path.join(SMC, 'installed')))

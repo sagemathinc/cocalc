@@ -165,8 +165,13 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--logfile [string]', 'write log to this file (default: "$SAGEMATHCLOUD/data/console_server.log")', String,
     abspath("#{DATA}/console_server.log"))
     .option('--forever_logfile [string]', 'write forever log to this file', String, abspath("#{DATA}/forever_console_server.log"))
-    .option('--host [string]', 'bind to only this host (default: "127.0.0.1")', String, "127.0.0.1")   # important for security reasons to prevent user binding more specific host attack
+    .option('--host [string]', 'bind to only this interface (default: tun0 interface)', String, "")
     .parse(process.argv)
+
+if not program.host
+    program.host = require('os').networkInterfaces().tun0?[0].address
+    if not program.host?  # some testing setup not on the vpn
+        program.host = 'localhost'
 
 if program._name == 'console_server.js'
     # run as a server/daemon (otherwise, is being imported as a library)

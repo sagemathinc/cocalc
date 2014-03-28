@@ -23,8 +23,6 @@ cassandra = require('cassandra')
 cql     = require("node-cassandra-cql")
 {defaults, required} = misc
 
-DEFAULT_PORT = 912
-
 REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
@@ -46,8 +44,8 @@ _bup_storage_no_queue = (opts) =>
         cb      : required
     winston.debug("_bup_storage_no_queue: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
-        command : "bup_storage.py"
-        args    : opts.args
+        command : "sudo"
+        args    : ["/usr/local/bin/bup_storage.py"].concat(opts.args)
         timeout : opts.timeout
         cb      : (err, output) =>
             winston.debug("_bup_storage_no_queue: finished running #{misc.to_json(opts.args)} -- #{err}")
@@ -298,7 +296,7 @@ read_secret_token = (cb) ->
                         cb()
                 else
                     winston.debug("create '#{program.secret_file}'")
-                    require('crypto').randomBytes  64, (ex, buf) ->
+                    require('crypto').randomBytes 64, (ex, buf) ->
                         secret_token = buf.toString('base64')
                         fs.writeFile(program.secret_file, secret_token, cb)
 
@@ -475,12 +473,17 @@ client_cache = {}
 exports.client = (opts) ->
     opts = defaults opts,
         host       : required
-        port       : DEFAULT_PORT
+        port       : required
+        token      : required
         verbose    : true
     dbg = (m) -> winston.debug("client(#{opts.compute_id},#{opts.hostname}): #{m}")
     dbg()
     C = client_cache[opts.compute_id]
-    if not C?
+    if C?
+        if C.port != opts.port
+            C.port = opts.port   # port changed
+            C.socket = undefined
+    else
         C = client_cache[opts.compute_id] = new Client(host:opts.host, port:opts.port, verbose:opts.verbose)
     return C
 
@@ -508,13 +511,28 @@ class ClientProject
         opts.action = 'start'
         @action(opts)
 
-    kill: (opts) =>
+    status: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : required
+        opts.action = 'status'
+        @action(opts)
+
+    stop: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
             cb         : undefined
-        opts.action = 'kill'
+        opts.action = 'stop'
         @action(opts)
 
+
+    restart: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : undefined
+        opts.action = 'restart'
+        @action(opts)
+        
     save: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
@@ -522,19 +540,72 @@ class ClientProject
         opts.action = 'save'
         @action(opts)
 
+    init: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : undefined
+        opts.action = 'init'
+        @action(opts)
+
+    snapshots: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : required
+        opts.action = 'snapshots'
+        @action(opts)
+
+    replicas: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            add        : undefined   # string or array of server id's
+            remove     : undefined   # string or array of server ids
+            cb         : undefined   # cb(err, array of server ids)
+        param = []
+        for x in ['add', 'remove']
+            if opts[x]?
+                param.push("--#{x}")
+                if typeof opts[x] == 'string'
+                    param.push(opts[x])
+                else
+                    param.push(opts[x].join(','))
+
+        @action
+            timeout : opts.timeout
+            action  : 'replicas'
+            param   : param
+            cb      : opts.cb
+
+
+    account_settings: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            memory     : undefined
+            cpu_shares : undefined
+            cores      : undefined
+            disk       : undefined
+            inode      : undefined
+            login_shell: undefined
+            cb         : undefined
+
+        param = []
+        for x in ['memory', 'cpu_shares', 'cores', 'disk', 'inode', 'login_shell']
+            if opts[x]?
+                param.push("--#{x}")
+                param.push(opts[x])
+        @action
+            timeout : opts.timeout
+            action  : 'account_settings'
+            param   : param
+            cb      : opts.cb
+
     sync: (opts) =>
         opts = defaults opts,
-            remote     : required
-            timeout    : TIMEOUT
+            timeout     : TIMEOUT
             destructive : false
-            cb         : undefined
-        if opts.destructive
-            param = ' --destructive '
-        else
-            param = ' '
+            cb          : undefined
         @action
             action  : 'sync'
-            param   : param + ' ' + opts.remote
+            param   : if opts.destructive then ' --destructive '
             timeout : TIMEOUT
             cb      : opts.cb
 
@@ -565,12 +636,12 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--logfile [string]', 'write log to this file', String, "#{DATA}/logs/bup_server.log")
     .option('--portfile [string]', 'write port number to this file', String, "#{DATA}/logs/bup_server.port")
     .option('--compute_id_file [string]', 'write (or read) compute id to this file', String, "#{DATA}/logs/bup_compute_id")
-    .option('--secret_file [string]', 'write secret token to this file', String, "#{DATA}/logs/bup_secret")
+    .option('--secret_file [string]', 'write secret token to this file', String, "#{DATA}/secrets/bup_server.secret")
 
     .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--replication [string]', 'replication factor (default: 2)', String, '2')
 
-    .option('--port [integer]', "port to listen on (default: #{DEFAULT_PORT})", String, DEFAULT_PORT)
+    .option('--port [integer]', "port to listen on (default: assigned by OS)", String, 0)
     .option('--address [string]', 'address to listen on (default: the tinc network or 127.0.0.1 if no tinc)', String, '')
 
     .parse(process.argv)
