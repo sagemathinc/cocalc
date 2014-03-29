@@ -30,7 +30,7 @@ REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
 
-CONF = "/storage/conf"
+CONF = "/bup/conf"
 fs.chmod(CONF, 0o700)     # just in case...
 
 DATA = 'data'
@@ -233,7 +233,6 @@ init_up_since = (cb) ->
 server_id = undefined
 
 init_server_id = (cb) ->
-    # sudo zfs create storage/conf; sudo chown salvus. /storage/conf
     file = program.server_id_file
     fs.exists file, (exists) ->
         if not exists

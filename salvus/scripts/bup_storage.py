@@ -30,10 +30,10 @@ from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
 # If using ZFS:
-ZPOOL = 'storage'  # must have ZPOOL/bups and ZPOOL/projects filesystems
+ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
 
 # The path where bup repos are stored
-BUP_PATH      = '/storage/bups'
+BUP_PATH      = '/bup/bups'
 
 # The path where project working files appear
 PROJECTS_PATH = '/projects'
@@ -543,25 +543,23 @@ class Project(object):
 
         if FILESYSTEM == 'zfs':
             """
-            zpool create -f storage /dev/sdc
-            zfs create storage/projects
-            zfs set mountpoint=/projects storage/projects
-            zfs set dedup=on storage/projects
-            zfs set compression=lz4 storage/projects
-            zfs mount storage/projects
-            zfs create storage/bups
-            zfs set mountpoint=/storage/bups storage/bups
-            chmod og-rwx /storage/bups
+            zpool create -f bup /dev/sdc
+            zfs create bup/projects
+            zfs set mountpoint=/projects bup/projects
+            zfs set dedup=on bup/projects
+            zfs set compression=lz4 bup/projects
+            zfs create bup/bups
+            zfs set mountpoint=/bup/bups bup/bups
+            chmod og-rwx /bup/bups
 
-            zfs create storage/conf
-            zfs set mountpoint=/storage/conf storage/conf
-            chmod og-rwx /storage/conf
-            chown salvus. /storage/conf
-
-            zfs create storage/scratch
-            zfs set mountpoint=/scratch storage/scratch
-            zfs mount storage/scratch
+            zfs create bup/scratch
+            zfs set mountpoint=/scratch bup/scratch
             chmod a+rwx /scratch
+
+            zfs create bup/conf
+            zfs set mountpoint=/bup/conf bup/conf
+            chmod og-rwx /bup/conf
+            chown salvus. /bup/conf            
             """
             cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
             cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
