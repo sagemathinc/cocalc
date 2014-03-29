@@ -31,7 +31,10 @@ REGISTRATION_TTL_S      = 60       # ttl for registration record
 TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
 
 CONF = "/bup/conf"
-fs.chmod(CONF, 0o700)     # just in case...
+fs.exists CONF, (exists) ->
+    if exists
+        # only makes sense to do this on server nodes...
+        fs.chmod(CONF, 0o700)     # just in case...
 
 DATA = 'data'
 
@@ -51,6 +54,7 @@ _bup_storage_no_queue = (opts) =>
         command : "sudo"
         args    : ["/usr/local/bin/bup_storage.py"].concat(opts.args)
         timeout : opts.timeout
+        path    : process.cwd()
         cb      : (err, output) =>
             winston.debug("_bup_storage_no_queue: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
@@ -358,38 +362,186 @@ start_server = () ->
 ## GlobalClient -- client for working with *all* storage/compute servers
 ###########################
 
-VNODES = 128 # hard coded -- do not change
+global_client_cache={}
+
+exports.global_client = (opts) ->
+    opts = defaults opts,
+        database           : undefined
+        replication_factor : 2
+        cb                 : required
+    key = misc.to_json(opts.replication_factor)
+    C = global_client_cache[key]
+    if C?
+        opts.cb(undefined, C)
+    else
+        global_client_cache[key] = new GlobalClient(database : opts.database, replication_factor : opts.replication_factor, cb : opts.cb)
+
 
 class GlobalClient
     constructor: (opts) ->
         opts = defaults opts,
-            database : required   # connection to cassandra database
+            database           : undefined   # connection to cassandra database
             replication_factor : 2
-            cb       : required   # cb(err) -- called when initialized
-        @database = opts.database
-        @replication_factor = opts.replication_factor
-        @_update(opts.cb)
-        setInterval(@_update, 1000*60*3)  # update every few minutes
+            cb                 : required   # cb(err, @) -- called when initialized
+        async.series([
+            (cb) =>
+                if opts.database?
+                    @database = opts.database
+                    cb()
+                else
+                    fs.readFile "#{process.cwd()}/data/secrets/cassandra/hub", (err, password) =>
+                        if err
+                            cb(err)
+                        else
+                            if process.env.USER=='wstein'
+                                hosts = ['localhost']
+                            else
+                                v = program.address.split('.')
+                                a = parseInt(v[1]); b = parseInt(v[3])
+                                if a == 1 and b>=1 and b<=7
+                                    hosts = ("10.1.#{i}.1" for i in [1..7]).join(',')
+                                else if a == 1 and b>=10 and b<=21
+                                    hosts = ("10.1.#{i}.1" for i in [10..21]).join(',')
+                                else if a == 3
+                                    # TODO -- change this as soon as we get a DB spun up at Google...
+                                    hosts = ("10.1.#{i}.1" for i in [10..21]).join(',')
+                            @database = new cassandra.Salvus
+                                hosts       : hosts
+                                keyspace    : if process.env.USER=='wstein' then 'test' else 'salvus'
+                                username    : if process.env.USER=='wstein' then 'salvus' else 'hub'
+                                consistency : 2
+                                password    : password.toString().trim()
+                                cb          : cb
+            (cb) =>
+                @replication_factor = opts.replication_factor
+                @_update(cb)
+        ], (err) =>
+            if not err
+                setInterval(@_update, 1000*60*3)  # update every few minutes
+                opts.cb(undefined, @)
+            else
+                opts.cb(err, @)
+        )
+
 
     _update: (cb) =>
+        #dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
+        #dbg("querying for storage servers...")
         @database.select
             table     : 'storage_servers'
-            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret']
+            columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'vnodes']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
+                #dbg("got results; now initializing hashrings")
                 if err
                     cb?(err); return
                 @servers = {}
                 x = {}
                 for r in results
-                    @servers[x.server_id] = r
+                    r.host = cassandra.inet_to_str(r.host)  # parse inet datatype
+                    @servers[r.server_id] = r
                     if not x[r.dc]?
                         x[r.dc] = {}
                     v = x[r.dc]
-                    v[r.server_id] = {vnodes:VNODES}
+                    v[r.server_id] = {vnodes:r.vnodes}
+                @hashrings = {}
                 for dc, obj of x
                     @hashrings[dc] = new HashRing(obj)
+                #dbg("all updated")
+                cb?()
+
+    push_servers_files: (opts) =>
+        opts = defaults opts,
+            timeout : 30           # timeout if scp fails after this much time -- will happen if a server down or stale...
+            cb      : undefined    # cb(err)
+        dbg = (m) -> winston.debug("push_servers_files: #{m}")
+        dbg('')
+        errors = {}
+        file = "#{DATA}/bup_servers"
+        async.series([
+            (cb) =>
+                @_update(cb)
+            (cb) =>
+                # {server_id:{host:'ip address', vnodes:128}, ...}
+                servers_conf = {}
+                for server_id, x of @servers
+                    servers_conf[server_id] = {host:x.host, vnodes:x.vnodes}
+                fs.writeFile(file, misc.to_json(servers_conf), cb)
+            (cb) =>
+                f = (server_id, c) =>
+                    host = @servers[server_id].host
+                    dbg("copying #{file} to #{host}...")
+                    misc_node.execute_code
+                        command : "scp"
+                        timeout : opts.timeout
+                        path    : process.cwd()
+                        args    : ['-o', 'StrictHostKeyChecking=no', file, "#{host}:#{program.servers_file}"]
+                        cb      : (err) =>
+                            if err
+                                errors[server_id] = err
+                            c()
+                async.map misc.keys(@servers), f, (err) =>
+                    if misc.len(errors) == 0
+                        opts.cb?()
+                    else
+                        opts.cb?(errors)
+        ], (err) =>
+            if err
+                dbg(err)
+                opts.cb?(err)
+            else
+                opts.cb?()
+        )
+
+    register_server: (opts) =>
+        opts = defaults opts,
+            host   : required
+            dc     : 0           # 0, 1, 2, .etc.
+            vnodes : 128
+            timeout: 30
+            cb     : undefined
+        dbg = (m) -> winston.debug("GlobalClient.add_storage_server(#{opts.host}, #{opts.dc},#{opts.vnodes}): #{m}")
+        dbg("adding storage server to the database by grabbing server_id files, etc.")
+        get_file = (path, cb) =>
+            dbg("get_file: #{path}")
+            misc_node.execute_code
+                command : "ssh"
+                path    : process.cwd()
+                timeout : opts.timeout
+                args    : ['-o', 'StrictHostKeyChecking=no', opts.host, "cat #{path}"]
+                cb      : (err, output) =>
+                    if err
+                        cb(err)
+                    else if output?.stderr and output.stderr.indexOf('No such file or directory') != -1
+                        cb(output.stderr)
+                    else
+                        cb(undefined, output.stdout)
+
+        set = {host:opts.host, dc:opts.dc, vnodes:opts.vnodes, port:undefined, secret:undefined}
+        where = {server_id:undefined, dummy:true}
+
+        async.series([
+            (cb) =>
+                get_file program.portfile, (err, port) =>
+                    set.port = parseInt(port); cb(err)
+            (cb) =>
+                get_file program.server_id_file, (err, server_id) =>
+                    where.server_id = server_id
+                    cb(err)
+            (cb) =>
+                get_file program.secret_file, (err, secret) =>
+                    set.secret = secret
+                    cb(err)
+            (cb) =>
+                dbg("update database")
+                @database.update
+                    table : 'storage_servers'
+                    set   : set
+                    where : where
+                    cb    : cb
+        ], (err) => opts.cb?(err))
+
 
     score: (opts) =>
         opts = defaults opts,
@@ -1005,9 +1157,9 @@ client_project = (opts) ->
 
 program.usage('[start/stop/restart/status] [options]')
 
-    .option('--pidfile [string]', 'store pid in this file', String, "#{DATA}/logs/bup_server.pid")
-    .option('--logfile [string]', 'write log to this file', String, "#{DATA}/logs/bup_server.log")
-    .option('--portfile [string]', 'write port number to this file', String, "#{DATA}/logs/bup_server.port")
+    .option('--pidfile [string]', 'store pid in this file', String, "#{CONF}/bup_server.pid")
+    .option('--logfile [string]', 'write log to this file', String, "#{CONF}/bup_server.log")
+    .option('--portfile [string]', 'write port number to this file', String, "#{CONF}/bup_server.port")
     .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{CONF}/bup_server_id")
     .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{CONF}/bup_servers")
     .option('--secret_file [string]', 'write secret token to this file', String, "#{CONF}/bup_server.secret")

@@ -141,8 +141,6 @@ class MultiHashRing(object):
                 return d
         raise RuntimeError("node %s is not in any datacenter"%host_id)
 
-VNODES = 128 # hard coded -- do not change
-
 def get_replicas(project_id, data_centers, replication_factor):
     """
     Use consistent hashing to choose replication_factor hosts for the given project_id in each data center.
@@ -156,8 +154,8 @@ def get_replicas(project_id, data_centers, replication_factor):
     replicas = []
     for i, data_center in enumerate(data_centers):
         d = {}
-        for server_id in data_center:
-            d[server_id] = {'vnodes':VNODES}
+        for x in data_center:
+            d[x['server_id']] = {'vnodes':x['vnodes']}
         replicas += hashring.HashRing(d).range(project_id, replication_factor[i])
     return replicas
 
@@ -559,7 +557,7 @@ class Project(object):
             zfs create bup/conf
             zfs set mountpoint=/bup/conf bup/conf
             chmod og-rwx /bup/conf
-            chown salvus. /bup/conf            
+            chown salvus. /bup/conf
             """
             cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
             cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
@@ -609,14 +607,16 @@ class Project(object):
 
     def sync(self, replication_factor, server_id, servers_file, destructive=False):
         status = []
-        servers = json.loads(open(servers_file).read())
-        for replica_id in get_replicas(self.project_id, [x.keys() for x in servers], replication_factor):
+        servers = json.loads(open(servers_file).read())  # {server_id:{host:'ip address', vnodes:128}, ...}
+        v = [{'server_id':id, 'vnodes':x['vnodes']} for server_id, x in servers.iteritems()]
+        replicas = get_replicas(self.project_id, v, replication_factor)
+        for replica_id in replicas:
             if replica_id != server_id:
                 s = {'replica_id':replica_id}
                 status.append(s)
                 if replica_id in servers:
-                    remote = servers[replica_id]
-                    s['hostname'] = remote
+                    remote = servers[replica_id]['host']
+                    s['host'] = remote
                     t = time.time()
                     try:
                         self._sync(remote)
