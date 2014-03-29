@@ -385,14 +385,14 @@ class Project(object):
     def branches(self):
         return {'branches':self.cmd("bup ls").split(), 'branch':self.branch}
 
-    def repack(self):
+    def cleanup(self):
         """
-        repack the bup repo, replacing the large number of git pack files by a small number.
+        Clean up the bup repo, replacing the large number of git pack files by a small number, deleting
+        the bupindex cache, which can get really big, etc.
 
-        This doesn't make any sense, given how sync works.  DON'T USE.
+        After using this, you *must* do a destructive sync to all replicas!
         """
-        self.cmd("cd %s; git repack -lad"%self.bup_path)
-
+        self.cmd("cd %s; rm -f bupindex; rm -f objects/pack/*.midx; rm -f objects/pack/*.midx.tmp && rm -rf objects/*tmp && time git repack -lad"%self.bup_path)
 
     def makedirs(self, path):
         log = self._log('makedirs')
@@ -408,7 +408,7 @@ class Project(object):
         log = self._log('update_daemon_code')
         target = '/%s/.sagemathcloud/'%self.project_mnt
         self.makedirs(target)
-        self.cmd(["rsync", "-axHL", "--update", SAGEMATHCLOUD_TEMPLATE+"/", target])
+        self.cmd(["rsync", "-zaxHL", "--update", SAGEMATHCLOUD_TEMPLATE+"/", target])
         self.chown(target)
 
     def chown(self, path):
@@ -560,7 +560,8 @@ class Project(object):
             try:
                 self.cmd(['service', 'cgred', 'restart'])
             except RuntimeError:
-                raise RuntimeError("cgroup quota service not supported")
+                # cgroup quota service not supported
+                pass
             try:
                 pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
                 self.cmd(["cgclassify"] + pids, ignore_errors=True)
@@ -607,6 +608,9 @@ class Project(object):
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
         """
+        # NOTE: In the rsync's below we compress-in-transit the live project mount (-z),
+        # but *NOT* the bup's, since they are already compressed.
+
         log = self._log('sync')
         log("syncing...")
 
@@ -621,7 +625,7 @@ class Project(object):
             else:
                 raise NotImplementedError
 
-            self.cmd(["rsync", "-axH", "--delete", self.rsync_exclude(),
+            self.cmd(["rsync", "-zaxH", "--delete", self.rsync_exclude(),
                       '-e', 'ssh -o StrictHostKeyChecking=no',
                       self.project_mnt+'/', "%s:%s/"%(remote, self.project_mnt)])
 
@@ -689,6 +693,9 @@ class Project(object):
             print "**** %s/%s ****"%(i+1,len(v))
             tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
             self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+
+        # migrate is assumed to only ever happen when we haven't been live pushing the project into the replication system.
+        self.cleanup()
 
 
 

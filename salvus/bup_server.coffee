@@ -544,7 +544,7 @@ class GlobalClient
         ], (err) => opts.cb?(err))
 
 
-    score: (opts) =>
+    score_servers: (opts) =>
         opts = defaults opts,
             healthy   : undefined     # list of server_ids we have found to be healthy
             unhealthy : undefined     # list of server_ids we have found to be unhealthy
@@ -774,11 +774,11 @@ class GlobalClient
                             timeout : opts.timeout
                             cb      : (err, _status) =>
                                 if err
-                                    @score(unhealthy : [replica])
+                                    @score_servers(unhealthy : [replica])
                                     t.error = err
                                     cb()
                                 else
-                                    @score(healthy   : [replica])
+                                    @score_servers(healthy   : [replica])
                                     t.status = _status
                                     cb()
         async.map @replicas(project_id:opts.project_id), f, (err) =>
