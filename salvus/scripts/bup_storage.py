@@ -276,9 +276,8 @@ class Project(object):
             self.mount_snapshots()
         else:
             self.mount_snapshots()
-            self.cmd(['rsync', '-axH', '--delete', self.rsync_exclude(),
-                      os.path.join(self.snap_mnt, self.branch, snapshot)+'/',
-                      self.project_mnt+'/'])
+            src = os.path.join(self.snap_mnt, self.branch, snapshot)
+            self.cmd(['rsync', '-axH', '--delete', self.rsync_exclude(src), src+'/', self.project_mnt+'/'])
 
     def umount_snapshots(self):
         self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
@@ -344,11 +343,9 @@ class Project(object):
         self.archive()
         shutil.rmtree(self.bup_path)
 
-    def rsync_exclude(self, path=None):
-        if path is None:
-            path = self.project_mnt
+    def rsync_exclude(self, path):
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
-        return '--exclude=' + ' --exclude='.join(excludes)
+        return ['--exclude=%s'%os.path.join(path, x) for x in excludes]
 
     def save(self, path=None, timestamp=None, branch=None):
         """
@@ -358,7 +355,10 @@ class Project(object):
         self.set_branch(branch)
         if path is None:
             path = self.project_mnt
-        self.cmd(["/usr/bin/bup", "index", "-x", self.rsync_exclude(path), path])
+
+        # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
+        # when it hits a fuse filesystem.   TODO: somehow be more careful that each
+        self.cmd(["/usr/bin/bup", "index", "-x"] + self.rsync_exclude(path) + [path], ignore_errors=True)
         if timestamp is None:
             timestamp = time.time()
         self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
@@ -632,8 +632,8 @@ class Project(object):
             else:
                 raise NotImplementedError
 
-            self.cmd(["rsync", "-zaxH", "--delete", self.rsync_exclude(),
-                      '-e', 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-zaxH", "--delete"] + self.rsync_exclude(self.project_mnt) +
+                      ['-e', 'ssh -o StrictHostKeyChecking=no',
                       self.project_mnt+'/', "%s:%s/"%(remote, self.project_mnt)])
 
         if not snapshots:

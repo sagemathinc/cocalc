@@ -3942,4 +3942,134 @@ exports.migrate4_store_repos_in_db = (opts) ->
             async.mapLimit(projects, opts.limit, f, cb)
     ], (err) -> opts.cb?(err))
 
+exports.migrate_bup_all = (opts) ->
+    opts = defaults opts,
+        limit : 20           # no more than this many projects will be migrated simultaneously
+        start : undefined    # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
+        retry_all : false      # if true, just redo everything
+        status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
+        max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
+        oldest_first : false
+        only_new : false       # only try to migrate projects we haven't tried to migrate before.
+        timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+
+    projects = undefined
+    errors   = {}
+    done = 0
+    fail = 0
+    todo = undefined
+    dbg = (m) -> winston.debug("#{new Date()} -- migrate_bup_all: #{m}")
+    t = misc.walltime()
+    limit = 100000
+
+
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['last_edited', 'project_id', 'last_migrate_bup', 'last_migrate_bup_error']
+                limit   : limit                 
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
+                        result.sort()
+                        if not opts.oldest_first
+                            result.reverse()
+
+                        if opts.start? and opts.stop?
+                            result = result.slice(opts.start, opts.stop)
+                        else if opts.start?
+                            result = result.slice(opts.start)
+                        else if opts.stop?
+                            result = result.slice(0, opts.stop)
+
+                        if opts.only_new
+                            result = (x for x in result when not x[2]? and not x[3]?)
+
+                        if opts.max_age_h?
+                            cutoff = cassandra.hours_ago(opts.max_age_h)
+                            result = (x for x in result when x[0]? and misc.to_iso(new Date(x[0])) >= cutoff)
+                            dbg("considering only the #{result.length} projects that have a snapshot from within the last #{opts.max_age_h} hours")
+                        if opts.retry_all
+                            projects = (x[1] for x in result)
+                        else if opts.retry_errors
+                            projects = (x[1] for x in result when x[3]? or (not x[2]? or x[0] > x[2]))
+                        else
+                            # don't try any projects with errors, unless they have been newly modified
+                            projects = (x[1] for x in result when (not x[2]? or x[0] > x[2]))
+                        if opts.exclude?
+                            v = {}
+                            for p in opts.exclude
+                                v[p] = true
+                            projects = (p for p in projects when not v[p])
+                        todo = projects.length
+                        dbg("of these -- #{todo} in the range remain to be migrated")
+                    cb(err)
+        (cb) ->
+            i = 1
+            times = []
+            start0 = misc.walltime()
+            g = (i, cb) ->
+                project_id = projects[i]
+                dbg("*******************************************")
+                dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
+                dbg("*******************************************")
+                start = misc.walltime()
+                if opts.status?
+                    stat = {status:'migrating...', project_id:project_id}
+                    opts.status.push(stat)
+                exports.migrate3
+                    project_id : project_id
+                    status     : stat
+                    cb         : (err) ->
+
+                        tm = misc.walltime(start)
+                        times.push(tm)
+                        avg_time = times.reduce((t,s)->t+s)/times.length
+                        eta_time = ((todo - times.length) * avg_time)/opts.limit
+
+                        total_time = misc.walltime(start0)
+                        avg_time2 = total_time / times.length
+                        eta_time2 = (todo - times.length) * avg_time2
+
+                        if err
+                            if stat?
+                                stat.status='failed'
+                                stat.error = err
+                                stat.walltime = misc.walltime(tm)
+                            fail += 1
+                        else
+                            if stat?
+                                stat.status='done'
+                            done += 1
+                        dbg("******************************************* ")
+                        dbg("finished #{project_id} in #{tm} seconds     ")
+                        dbg("MIGRATE_ALL (#{opts.limit} at once) STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}; #{todo-done-fail} left")
+                        dbg("    total time     : #{total_time}")
+                        dbg("    avg time per   : #{avg_time}s/each")
+                        dbg("    eta if per     : #{eta_time/3600}h or #{eta_time/60}m")
+                        dbg("    effective avg  : #{avg_time2}s/each")
+                        dbg("    effective eta  : #{eta_time2/3600}h or #{eta_time2/60}m")
+                        dbg("*******************************************")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            f = (i, cb) ->
+                h = () ->
+                    dbg("timed out #{i}=#{projects[i]} after #{opts.timeout} seconds")
+                    cb()
+                timer = setTimeout(h, opts.timeout*1000)
+                g i, () ->
+                    clearTimeout(timer)
+                    cb()
+
+            async.mapLimit([0...projects.length], opts.limit, f, cb)
+    ], (err) -> opts.cb?(err, errors))
+
 
