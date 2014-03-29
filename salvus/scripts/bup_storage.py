@@ -2,7 +2,18 @@
 
 """
 
-BUP-based Project storage system
+BUP/ZFS-based project storage system
+
+The basic idea:
+
+   - a bup repo with snapshot history of a project is stored on k machines in each data center, with a way to sync repos
+   - live files are also stored on those same k machines in a directory as part of one big dedup'd and compressed zpool, which is snapshotted regularly
+   - all internode/interdata centerreplication is done via rsync
+   - Loss of files is very hard, because the files and their history is contained in:
+            (1) the bup repos  (backed up offsite)
+            (2) the snapshots of the big single shared zfs filesystem (not backed up)
+     Note that project history may move when new nodes are added, due to consistent hashing.  But the zfs snapshots still exist.
+
 
 INSTALL:
 
@@ -276,8 +287,8 @@ class Project(object):
             self.mount_snapshots()
         else:
             self.mount_snapshots()
-            src = os.path.join(self.snap_mnt, self.branch, snapshot)
-            self.cmd(['rsync', '-axH', '--delete', self.rsync_exclude(src), src+'/', self.project_mnt+'/'])
+            src = os.path.join(self.snap_mnt, self.branch, snapshot)+'/'
+            self.cmd(['rsync', '-axH', '--delete', self.exclude(src), src, self.project_mnt+'/'])
 
     def umount_snapshots(self):
         self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
@@ -343,9 +354,9 @@ class Project(object):
         self.archive()
         shutil.rmtree(self.bup_path)
 
-    def rsync_exclude(self, path):
+    def exclude(self, prefix):
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
-        return ['--exclude=%s'%os.path.join(path, x) for x in excludes]
+        return ['--exclude=%s'%(prefix+x) for x in excludes]
 
     def save(self, path=None, timestamp=None, branch=None):
         """
@@ -358,7 +369,7 @@ class Project(object):
 
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
-        self.cmd(["/usr/bin/bup", "index", "-x"] + self.rsync_exclude(path) + [path], ignore_errors=True)
+        self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
         if timestamp is None:
             timestamp = time.time()
         self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
@@ -632,9 +643,10 @@ class Project(object):
             else:
                 raise NotImplementedError
 
-            self.cmd(["rsync", "-zaxH", "--delete"] + self.rsync_exclude(self.project_mnt) +
+            # ignore errors, since if we fusemounts a directory (bup snapshots!) then that leads to issues.
+            self.cmd(["rsync", "-zaxH", "--delete", "--ignore-errors"] + self.exclude('') +
                       ['-e', 'ssh -o StrictHostKeyChecking=no',
-                      self.project_mnt+'/', "%s:%s/"%(remote, self.project_mnt)])
+                      self.project_mnt+'/', "%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
 
         if not snapshots:
             # nothing further to do -- we already sync'd the live files above, if we have any
