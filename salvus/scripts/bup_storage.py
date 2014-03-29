@@ -370,6 +370,12 @@ class Project(object):
         # We ignore_errors below because unfortunately bup will return a nonzero exit code ("WARNING")
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
         self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
+
+        what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path]).splitlines()
+        if len(what_changed) <= 1:   # 1 since always includes the directory itself
+            # nothing to save -- don't.           
+            return
+
         if timestamp is None:
             timestamp = time.time()
         self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
