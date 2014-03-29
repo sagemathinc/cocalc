@@ -15,7 +15,7 @@
 #
 #         make_coffee && echo "require('local_hub').start_server()" | coffee
 #
-#  (c) William Stein, 2013
+#  (c) William Stein, 2013, 2014
 #
 #################################################################
 
@@ -94,7 +94,9 @@ init_info_json = () ->
     username   = project_id.replace(/-/g,'')
     host       = require('os').networkInterfaces().tun0?[0].address
     if not host?  # some testing setup not on the vpn
-        host = 'localhost'
+        host = require('os').networkInterfaces().eth1?[0].address
+        if not host?
+            host = 'localhost' 
     base_url   = ''
     port       = 22
     INFO =
@@ -694,11 +696,15 @@ class CodeMirrorSession
                             else
                                 fs.close(fd, cb)
             (cb) =>
-                misc_node.is_file_readonly
-                    path : @path
-                    cb   : (err, readonly) =>
-                        @readonly = readonly
-                        cb(err)
+                if @path.indexOf('.snapshots/') != -1
+                    @readonly = true
+                    cb()
+                else
+                    misc_node.is_file_readonly
+                        path : @path
+                        cb   : (err, readonly) =>
+                            @readonly = readonly
+                            cb(err)
             (cb) =>
                 # If this is a non-readonly sagews file, create corresponding sage session.
                 if not @readonly and misc.filename_extension(@path) == 'sagews'
@@ -1591,7 +1597,7 @@ project_exec = (socket, mesg) ->
             if err
                 err_mesg = message.error
                     id    : mesg.id
-                    error : "Error executing code '#{mesg.command}, #{mesg.bash}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
+                    error : "Error executing code command:#{mesg.command}, args:#{mesg.args}, bash:#{mesg.bash}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
                 socket.write_mesg('json', err_mesg)
             else
                 #winston.debug(json(out))
@@ -1728,7 +1734,7 @@ server = net.createServer (socket) ->
 
 start_tcp_server = (cb) ->
     winston.info("starting tcp server...")
-    server.listen program.port, '127.0.0.1', () ->
+    server.listen program.port, '0.0.0.0', () ->
         winston.info("listening on port #{server.address().port}")
         fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
@@ -1763,9 +1769,9 @@ start_raw_server = (cb) ->
                 raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
                 raw_server.use(base, express.static(process.env.HOME, {hidden:true}))
 
-            # NOTE: It is critical to only listen on the host interface, since otherwise other users
+            # NOTE: It is critical to only listen on the host interface (not localhost), since otherwise other users
             # on the same VM could listen in.   We firewall connections from the other VM hosts above
-            # port 1024, so this is safe without authentication.
+            # port 1024, so this is safe without authentication.  That said, I plan to add some sort of auth (?) just in case.
             raw_server.listen port, info.location.host, (err) ->
                 winston.info("err = #{err}")
                 if err

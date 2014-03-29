@@ -50,8 +50,6 @@ uuid    = require('node-uuid')
 
 moment  = require('moment')
 
-storage = require('storage')
-
 _ = require('underscore')
 
 CONSISTENCIES = (cql.types.consistencies[k] for k in ['any', 'one', 'two', 'three', 'quorum', 'localQuorum', 'eachQuorum', 'all'])
@@ -2008,11 +2006,6 @@ class exports.Salvus extends exports.Cassandra
                 delete @_touch_project_cache[id]
 
         @_touch_project_cache[id] = misc.walltime()
-
-        # Try to make a snapshot (will not make them too frequently) if the project is *not* currently being replicated
-        storage.snapshot
-            project_id              : opts.project_id
-            only_if_not_replicating : true  # since making snapshots can mess up replication
 
         set = {last_edited: now()}
         if opts.size

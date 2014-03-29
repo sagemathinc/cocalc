@@ -71,3 +71,4 @@ fi
 
 
 export SHELL=/bin/bash
+export PATH=~/.sagemathcloud:$PATH

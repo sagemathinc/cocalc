@@ -1859,16 +1859,7 @@ register_hub = (cb) ->
 ##-------------------------------
 
 snap_command = (opts) ->
-    opts = defaults opts,
-        command    : required   # "ls", "restore", "log"
-        project_id : required
-        location   : undefined  # used by restore to send files to some non-default location (the default is the project location in the database)
-        path       : '.'
-        timeout    : 60
-        timezone_offset : 0
-        cb         : required   # cb(err, result)
-
-    opts.cb("snap_command is deprecated -- #{misc.to_json(opts)}")
+    opts.cb("snap_command is deprecated")
 
 
 ##############################
@@ -2411,11 +2402,11 @@ connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
         cb           : required
 
     socket = misc_node.connect_to_locked_socket
-        port  : opts.port
-        host  : opts.host
-        token : opts.secret_token
+        port    : opts.port
+        host    : opts.host
+        token   : opts.secret_token
         timeout : opts.timeout
-        cb    : (err) =>
+        cb      : (err) =>
             if err
                 opts.cb(err)
             else
@@ -2448,8 +2439,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     constructor: (@project_id, cb) ->  # NOTE @project may be undefined.
         @_sockets = {}
         @_multi_response = {}
+        @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
-        @bup_server.project
+        bup_server.project
             project_id : @project_id
             cb         : (err, project) =>
                 if err
@@ -2458,7 +2450,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 else
                     @dbg("successful connection")
                     @project = project
-                    cb()
+                    cb(undefined, @)
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{m}")
@@ -2505,7 +2497,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     prefer = [opts.target]
                 else
                     prefer = undefined
-                @bup_server.project
+                bup_server.project
                     project_id : @project_id
                     prefer     : prefer
                     prefer_not : [current]
@@ -2677,6 +2669,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # authenticated via the secret_token, and enhanced
     # to be able to send/receive json and blob messages.
     new_socket: (cb) =>     # cb(err, socket)
+        socket = undefined
         async.series([
             (cb) =>
                 @update_project(cb)
@@ -2695,9 +2688,9 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                                 cb()
             (cb) =>
                 connect_to_a_local_hub
-                    port         : status['local_hub.port']
+                    port         : @_status['local_hub.port']
                     host         : @project.client.host
-                    secret_token : status.secret_token
+                    secret_token : @_status.secret_token
                     cb           : (err, _socket) =>
                         socket = _socket
                         cb(err)
