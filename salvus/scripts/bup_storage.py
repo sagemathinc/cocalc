@@ -98,48 +98,6 @@ def check_uuid(uuid):
         raise RuntimeError("invalid uuid")
 
 
-class MultiHashRing(object):
-    def __init__(self, hosts, rep_factor=2):
-        """
-        Read the hashrings from the file topology, which defaults to 'storage-topology'
-        in the same directory as storage.py.
-        """
-        self._rep_factor = rep_factor
-
-        import hashring
-        self.rings = [(dc, hashring.HashRing(d)) for dc, d in data.iteritems()]
-        self.rings.sort()
-        self.topology = data
-
-    def _load(self):
-        v = [x for x in open(self._topology_file).readlines() if x.strip() and not x.strip().startswith('#')]
-        data = {}
-        for x in v:
-            ip, vnodes, datacenter = x.split()
-            print "UPDATE storage_topology set vnodes=%s where data_center='%s' and host='%s';"%(vnodes, datacenter, ip)
-            vnodes = int(vnodes)
-            if datacenter not in data:
-                data[datacenter] = {}
-            dc = data[datacenter]
-            dc[ip] = {'vnodes':vnodes}
-
-    def __call__(self, key):
-        return [(dc, r.range(key, self._rep_factor)) for (dc,r) in self.rings]
-
-    def locations(self, key):
-        return sum(self.partitioned_locations(key), [])
-
-    def partitioned_locations(self, key):
-        return [r.range(key, self._rep_factor) for (dc,r) in self.rings]
-
-    def locations_by_dc(self, key):
-        return dict(self(key))
-
-    def datacenter_of(self, host_id):
-        for d, nodes in self.topology.iteritems():
-            if host_id in nodes:
-                return d
-        raise RuntimeError("node %s is not in any datacenter"%host_id)
 
 def get_replicas(project_id, data_centers, replication_factor):
     """
@@ -213,7 +171,7 @@ class Project(object):
         self.account_settings_path = os.path.join(self.conf_path, "account-settings.json")
         self.replicas_path         = os.path.join(self.conf_path, "replicas.json")
         self.project_mnt           = os.path.join(PROJECTS_PATH, project_id)
-        self.snap_mnt              = os.path.join(self.project_mnt,'.bup')
+        self.snap_mnt              = os.path.join(self.project_mnt,'.snapshots')
         self.HEAD                  = "%s/HEAD"%self.bup_path
         self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
 
@@ -246,6 +204,7 @@ class Project(object):
         self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def start(self):
+        self.init()
         self.delete_user()
         self.create_user()
         self.account_settings()
@@ -270,9 +229,13 @@ class Project(object):
         try:
             s['newest_snapshot'] = self.newest_snapshot()
             s['bup'] = 'working'
-        except RuntimeError:
-            s['bup'] = 'corrupt'
-        s['load'] = [float(a) for a in os.popen('uptime').read().split()[-3:]]
+        except RuntimeError, mesg:
+            mesg = str(mesg)
+            if 'bup init' in mesg:
+                s['bup'] = 'uninitialized'  # it's just not initialized, which is no problem
+            else:
+                s['bup'] = mesg
+        s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
         if FILESYSTEM == 'zfs':
             s['zfs'] = self.get_zfs_status()
         try:
@@ -281,7 +244,8 @@ class Project(object):
             s['running'] = True
             return s
         except:
-            return {'running':False}
+            s['running'] = False
+            return s
 
 
     def init(self):
@@ -408,7 +372,7 @@ class Project(object):
         """
         Return newest snapshot in current branch.
         """
-        self.snapshots(branch)[-1]
+        return self.snapshots(branch)[-1]
 
     def snapshots(self, branch=''):
         """
@@ -607,9 +571,19 @@ class Project(object):
 
     def sync(self, replication_factor, server_id, servers_file, destructive=False):
         status = []
-        servers = json.loads(open(servers_file).read())  # {server_id:{host:'ip address', vnodes:128}, ...}
-        v = [{'server_id':id, 'vnodes':x['vnodes']} for server_id, x in servers.iteritems()]
-        replicas = get_replicas(self.project_id, v, replication_factor)
+        servers = json.loads(open(servers_file).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
+
+        v = {}
+        for id, server in servers.iteritems():
+            dc = server['dc']
+            if dc not in v:
+                v[dc] = []
+            v[dc].append({'server_id':id, 'vnodes':server['vnodes']})
+        data_centers = [[] for i in range(max(v.keys())+1)]
+        for k, x in v.iteritems():
+            data_centers[k] = x
+        replicas = get_replicas(self.project_id, data_centers, replication_factor)
+
         for replica_id in replicas:
             if replica_id != server_id:
                 s = {'replica_id':replica_id}
@@ -753,9 +727,11 @@ if __name__ == "__main__":
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("server_id", help="uuid of this server", type=str)
-    parser_sync.add_argument("server_id_file", help="required filename with json data about all servers; list of maps", type=str)
-    parser_sync.set_defaults(func=lambda args: project.sync(destructive=args.destructive, replicas=args.replicas,
-                                        server_id_file=args.server_id_file, server_id=args.server_id))
+    parser_sync.add_argument("servers_file", help="required filename with json data about all servers; list of maps", type=str)
+    parser_sync.set_defaults(func=lambda args: project.sync(replication_factor=args.replication_factor,
+                                                            server_id = args.server_id,
+                                                            servers_file = args.servers_file,
+                                                            destructive=args.destructive))
 
     parser_account_settings = subparsers.add_parser('account_settings', help='set account_settings for this user; also outputs settings in JSON')
     parser_account_settings.add_argument("--memory", dest="memory", help="memory account_settings in gigabytes",

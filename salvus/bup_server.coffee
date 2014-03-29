@@ -200,14 +200,14 @@ handle_mesg = (socket, mesg) ->
     id = mesg.id
     if mesg.event == 'storage'
         if mesg.action == 'server_id'
-            mesg.server_id = server_id
+            mesg.server_id = SERVER_ID
             socket.write_mesg('json', mesg)
         else
             t = misc.walltime()
             if mesg.action == 'sync'
                 if not mesg.param?
                     mesg.param = []
-                mesg.param.push(program.server_id)
+                mesg.param.push(SERVER_ID)
                 mesg.param.push(program.servers_file)
             project = get_project(mesg.project_id)
             project.action
@@ -234,26 +234,26 @@ init_up_since = (cb) ->
             up_since = cassandra.seconds_ago(misc.split(data.toString())[0])
             cb()
 
-server_id = undefined
+SERVER_ID = undefined
 
 init_server_id = (cb) ->
     file = program.server_id_file
     fs.exists file, (exists) ->
         if not exists
-            server_id = uuid.v4()
-            fs.writeFile file, server_id, (err) ->
+            SERVER_ID = uuid.v4()
+            fs.writeFile file, SERVER_ID, (err) ->
                 if err
                     winston.debug("Error writing server_id file!")
                     cb(err)
                 else
-                    winston.debug("Wrote new server_id =#{server_id}")
+                    winston.debug("Wrote new SERVER_ID =#{SERVER_ID}")
                     cb()
         else
             fs.readFile file, (err, data) ->
                 if err
                     cb(err)
                 else
-                    server_id = data.toString()
+                    SERVER_ID = data.toString()
                     cb()
 
 
@@ -417,12 +417,11 @@ class GlobalClient
                 @_update(cb)
         ], (err) =>
             if not err
-                setInterval(@_update, 1000*60*3)  # update every few minutes
+                setInterval(@_update, 1000*60)  # update minute
                 opts.cb(undefined, @)
             else
                 opts.cb(err, @)
         )
-
 
     _update: (cb) =>
         #dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
@@ -438,14 +437,16 @@ class GlobalClient
                     cb?(err); return
                 @servers = {}
                 x = {}
+                max_dc = 0
                 for r in results
+                    max_dc = Math.max(max_dc, r.dc)
                     r.host = cassandra.inet_to_str(r.host)  # parse inet datatype
                     @servers[r.server_id] = r
                     if not x[r.dc]?
                         x[r.dc] = {}
                     v = x[r.dc]
                     v[r.server_id] = {vnodes:r.vnodes}
-                @hashrings = {}
+                @hashrings = [undefined for i in [0..max_dc]]
                 for dc, obj of x
                     @hashrings[dc] = new HashRing(obj)
                 #dbg("all updated")
@@ -463,10 +464,10 @@ class GlobalClient
             (cb) =>
                 @_update(cb)
             (cb) =>
-                # {server_id:{host:'ip address', vnodes:128}, ...}
+                # @servers = {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
                 servers_conf = {}
                 for server_id, x of @servers
-                    servers_conf[server_id] = {host:x.host, vnodes:x.vnodes}
+                    servers_conf[server_id] = {host:x.host, vnodes:x.vnodes, dc:x.dc}
                 fs.writeFile(file, misc.to_json(servers_conf), cb)
             (cb) =>
                 f = (server_id, c) =>
@@ -550,11 +551,11 @@ class GlobalClient
             cb        : undefined     # cb(err)
         s = []
         if opts.healthy?
-            s = s.extend(opts.healthy)
+            s = s.concat(opts.healthy)
         else
             opts.healthy = []
         if opts.unhealthy?
-            s = s.extend(opts.unhealthy)
+            s = s.concat(opts.unhealthy)
         else
             opts.unhealthy = []
         if s.length == 0
@@ -593,21 +594,17 @@ class GlobalClient
         if not opts.replication_factor?
             opts.replication_factor = @replication_factor
         if typeof(opts.replication_factor) == 'number'
-            rep = (opts.replication_factor for i in [0...@datacenters.length])
+            rep = (opts.replication_factor for i in [0...@hashrings.length])
         else
             rep = opts.replication_factor
         v = []
-        for dc, hr of @hashrings
-            for id in hr.range(opts.project_id, rep[i])
-                v.push(id)
+        i = 0
+        for hr in @hashrings
+            if rep[i] > 0  # hashring.range doesn't deal with 0 correctly.
+                for id in hr.range(opts.project_id, rep[i], true)
+                    v.push(id)
+            i += 1
         return v
-
-    create_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required   # cb(err, Project client connection on some host)
-        dbg = (m) => winston.debug("GlobalClient.project(#{opts.project_id}): #{m}")
-
 
     storage_server: (opts) =>
         opts = defaults opts,
@@ -626,7 +623,7 @@ class GlobalClient
         if not s.secret?
             opts.cb("no secret token known for #{opts.server_id}")
             return
-        opts.cb(undefined, exports.storage_server_client(host:s.host, port:s.port, secret:s.secret))
+        opts.cb(undefined, storage_server_client(host:s.host, port:s.port, secret:s.secret))
 
     project: (opts) =>
         opts = defaults opts,
@@ -687,12 +684,14 @@ class GlobalClient
                     cb()
                 else
                     dbg("if project will start at current location, use it")
-                    project.works (err, _works) =>
-                        if err
-                            project = undefined
-                            cb()
-                        else
-                            works = works
+                    project.works
+                        cb: (err, _works) =>
+                            if err
+                                project = undefined
+                                cb()
+                            else
+                                works = _works
+                                cb()
             (cb) =>
                 if works
                     cb(); return
@@ -712,11 +711,9 @@ class GlobalClient
                 dbg("until success, choose one that responded with best status and try to start there")
                 # remove those with error getting status
                 for x in status
-                    if x.error
+                    if x.error?
                         errors[x.replica_id] = x.error
-                    else if x.status?.bup != 'working'
-                        errors[x.replica_id] = 'bup not working'
-                status = (x.replica_id for x in status when not x.error and x.status?.bup == 'working')
+                status = (x.replica_id for x in status when not x.error? and x.status?.bup in ['working', 'uninitialized'] )
                 f = (replica_id, cb) =>
                     if works
                         cb(); return
@@ -737,7 +734,7 @@ class GlobalClient
                                         errors[replica_id] = err
                                         dbg("error trying to start project on #{replica_id} -- #{err}")
                                     cb()
-                async.series(status, f, (err) => cb())
+                async.mapSeries(status, f, (err) => cb())
             (cb) =>
                 if works and project? and bup_location?
                     dbg("succeeded at opening the project at #{bup_location} -- now recording this in DB")
@@ -755,7 +752,7 @@ class GlobalClient
                 opts.cb(undefined, project)
         )
 
-    project_status : (opts) =>
+    project_status: (opts) =>
         opts = defaults opts,
             project_id         : required
             replication_factor : undefined
@@ -763,30 +760,31 @@ class GlobalClient
             cb                 : required    # cb(err, sorted list of status objects)
         status = []
         f = (replica, cb) =>
-            s = {replica_id:replica}
-            status.push(s)
+            t = {replica_id:replica}
+            status.push(t)
             @project
                 project_id : opts.project_id
                 server_id  : replica
                 cb         : (err, project) =>
                     if err
-                        s.error = err
+                        t.error = err
                         cb()
                     else
                         project.status
                             timeout : opts.timeout
-                            cb      : (err, status) =>
+                            cb      : (err, _status) =>
                                 if err
                                     @score(unhealthy : [replica])
-                                    opts.cb(err, project)
-                                    s.error = err
+                                    t.error = err
                                     cb()
                                 else
                                     @score(healthy   : [replica])
-                                    s.status = status
+                                    t.status = _status
                                     cb()
-        async.map @replica(project_id:opts.project_id), f, (err) =>
+        async.map @replicas(project_id:opts.project_id), f, (err) =>
             status.sort (a,b) =>
+                if a.error? and b.error?
+                    return 0  # doesn't matter -- both are broken/useless
                 if a.error? and not b.error
                     # b is better
                     return 1
@@ -794,18 +792,18 @@ class GlobalClient
                     # a is better
                     return -1
                 # sort of arbitrary -- mainly care about newest snapshot being newer = better = -1
-                if a.newest_snapshot?
-                    if not b.newest_snapshot?
+                if a.status.newest_snapshot?
+                    if not b.status.newest_snapshot?
                         # a is better
                         return -1
-                    else if a.newest_snapshot > b.newest_snapshot
+                    else if a.status.newest_snapshot > b.status.newest_snapshot
                         # a is better
                         return -1
-                    else if a.newest_snapshot < b.newest_snapshot
+                    else if a.status.newest_snapshot < b.status.newest_snapshot
                         # b is better
                         return 1
                 else
-                    if b.newest_snapshot?
+                    if b.status.newest_snapshot?
                         # b is better
                         return 1
                 # Next compare health of server
@@ -822,9 +820,9 @@ class GlobalClient
                         return -1
                 # no error, so load must be defined
                 # smaller load is better -- later take into account free RAM, etc...
-                if a.load[0] < b.load[0]
+                if a.status.load[0] < b.status.load[0]
                     return -1
-                else if a.load[0] > b.load[0]
+                else if a.status.load[0] > b.status.load[0]
                     return 1
 
                 return 0
@@ -847,9 +845,11 @@ class Client
         opts = defaults opts,
             host : required
             port : required
+            secret : required
             verbose : required
         @host = opts.host
         @port = opts.port
+        @secret = opts.secret
         @verbose = opts.verbose
 
     dbg: (f, args, m) =>
@@ -868,7 +868,7 @@ class Client
                 misc_node.connect_to_locked_socket
                     host    : @host
                     port    : @port
-                    token   : secret_token
+                    token   : @secret
                     timeout : 20
                     cb      : (err, socket) =>
                         if err
@@ -991,7 +991,7 @@ class Client
 
 client_cache = {}
 
-exports.storage_sever_client = (opts) ->
+storage_server_client = (opts) ->
     opts = defaults opts,
         host    : required
         port    : required
@@ -999,13 +999,10 @@ exports.storage_sever_client = (opts) ->
         verbose : true
     dbg = (m) -> winston.debug("storage_server_client(#{opts.host}:#{opts.port}): #{m}")
     dbg()
-    C = client_cache[opts.host]
-    if C?
-        if C.port != opts.port
-            C.port = opts.port   # port changed
-            C.socket = undefined
-    else
-        C = client_cache[opts.host] = new Client(host:opts.host, port:opts.port, verbose:opts.verbose)
+    key = opts.host + opts.port + opts.secret
+    C = client_cache[key]
+    if not C?
+        C = client_cache[key] = new Client(host:opts.host, port:opts.port, secret: opts.secret, verbose:opts.verbose)
     return C
 
 
@@ -1037,7 +1034,23 @@ class ClientProject
             timeout    : TIMEOUT
             cb         : required
         opts.action = 'status'
+        cb = opts.cb
+        opts.cb = (err, resp) =>
+            cb(err, resp?.result)
         @action(opts)
+
+    works: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : required
+        @status
+            timeout : opts.timeout
+            cb      : (err, status) =>
+                if err
+                    opts.cb(undefined, false)   # doesn't work.
+                else
+                    # probably should give a better test (?)
+                    opts.cb(undefined, status?['local_hub.port']?)
 
     stop: (opts) =>
         opts = defaults opts,
@@ -1073,29 +1086,10 @@ class ClientProject
             timeout    : TIMEOUT
             cb         : required
         opts.action = 'snapshots'
+        cb = opts.cb
+        opts.cb = (err, resp) =>
+            cb(err, resp?.result)
         @action(opts)
-
-    replicas: (opts) =>
-        opts = defaults opts,
-            timeout    : TIMEOUT
-            add        : undefined   # string or array of server id's
-            remove     : undefined   # string or array of server ids
-            cb         : undefined   # cb(err, array of server ids)
-        param = []
-        for x in ['add', 'remove']
-            if opts[x]?
-                param.push("--#{x}")
-                if typeof opts[x] == 'string'
-                    param.push(opts[x])
-                else
-                    param.push(opts[x].join(','))
-
-        @action
-            timeout : opts.timeout
-            action  : 'replicas'
-            param   : param
-            cb      : opts.cb
-
 
     account_settings: (opts) =>
         opts = defaults opts,
@@ -1145,9 +1139,10 @@ client_project = (opts) ->
     if not misc.is_valid_uuid_string(opts.project_id)
         opts.cb("invalid project id")
         return
-    P = client_project_cache[opts.project_id]
+    key = "#{opts.client.host}-#{opts.client.port}-#{opts.project_id}"
+    P = client_project_cache[key]
     if not P?
-        P = client_project_cache[opts.project_id] = new ClientProject(opts.client, opts.project_id)
+        P = client_project_cache[key] = new ClientProject(opts.client, opts.project_id)
     opts.cb(undefined, P)
 
 
@@ -1177,6 +1172,8 @@ program.port = parseInt(program.port)
 if not program.address
     program.address = require('os').networkInterfaces().tun0?[0].address
     if not program.address
+        program.address = require('os').networkInterfaces().eth1?[0].address  # my laptop vm...
+    if not program.address  # useless
         program.address = '127.0.0.1'
 
 main = () ->
