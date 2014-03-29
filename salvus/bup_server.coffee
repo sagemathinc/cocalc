@@ -452,6 +452,30 @@ class GlobalClient
                 #dbg("all updated")
                 cb?()
 
+    close_stale_projects: (opts) =>
+        ops = defaults opts,
+            dry_run : false
+            ttl     : 60*60*6  # every 6 hours for now.
+            limit   : 40
+            cb      : required
+        opts.cb()
+
+    replicate_projects_needing_replication: (opts) =>
+        opts = defaults opts,
+            age_s     : 10*60  # 10 minutes
+            limit     : 2      # max number to replicate simultaneously
+            interval  : 3000
+            cb        : required
+        opts.cb()
+
+    replicate_all_with_errors: (opts) =>
+        opts = defaults opts,
+            limit : 10   # no more than this many projects will be replicated simultaneously
+            start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
+            stop  : undefined
+            cb    : required  # cb(err, {project_id:error when replicating that project})
+        opts.cb()
+
     push_servers_files: (opts) =>
         opts = defaults opts,
             timeout : 30           # timeout if scp fails after this much time -- will happen if a server down or stale...
@@ -623,13 +647,32 @@ class GlobalClient
         if not s.secret?
             opts.cb("no secret token known for #{opts.server_id}")
             return
-        opts.cb(undefined, storage_server_client(host:s.host, port:s.port, secret:s.secret))
+        opts.cb(undefined, storage_server_client(host:s.host, port:s.port, secret:s.secret, server_id:opts.server_id))
+
+    project_location: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        winston.debug("project_location(#{opts.project_id}): get current bup project location from database")
+        @database.select_one
+            table     : 'projects'
+            where     : {project_id : opts.project_id}
+            columns   : ['bup_location']
+            objectify : false
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, result[0])
+
 
     project: (opts) =>
         opts = defaults opts,
             project_id : required
             server_id  : undefined  # if undefined gets best working client pre-started; if defined connect if possible but don't start anything
             replication_factor : undefined
+            prefer     : undefined  # if given, should be array of prefered servers -- only used if project isn't already opened somewhere
+            prefer_not : undefined  # array of servers we prefer not to use
             cb         : required   # cb(err, Project client connection on some host)
         dbg = (m) => winston.debug("GlobalClient.project(#{opts.project_id}): #{m}")
         dbg()
@@ -653,18 +696,11 @@ class GlobalClient
         errors       = {}
         async.series([
             (cb) =>
-                dbg("get current bup location in database")
-                @database.select_one
-                    table     : 'projects'
-                    where     : {project_id : opts.project_id}
-                    columns   : ['bup_location']
-                    objectify : false
-                    cb        : (err, result) =>
-                        if err
-                            cb(err)
-                        else
-                            bup_location = result[0]
-                            cb()
+                @project_location
+                    project_id : opts.project_id
+                    cb         : (err, result) =>
+                        bup_location = result
+                        cb(err)
             (cb) =>
                 if not bup_location?
                     dbg("no current location")
@@ -713,7 +749,29 @@ class GlobalClient
                 for x in status
                     if x.error?
                         errors[x.replica_id] = x.error
-                status = (x.replica_id for x in status when not x.error? and x.status?.bup in ['working', 'uninitialized'] )
+                v = (x.replica_id for x in status when not x.error? and x.status?.bup in ['working', 'uninitialized'])
+
+                prefer = opts.prefer; prefer_not = opts.prefer_not
+                if prefer? or prefer_not?
+                    # The following ugly code is basically "status=v" but with some re-ordering based on preference.
+                    # put prefer servers at front of list; prefer_not servers at back; everything else in between
+                    status = []
+                    if prefer?
+                        for s in prefer
+                            if s in v
+                                status.push(s)
+                    if not prefer_not?
+                        prefer_not = []
+                    for s in v
+                        if s not in status and s not in prefer_not
+                            status.push(s)
+                    for s in prefer_not
+                        if s in v
+                            status.push(s)
+                else
+                    status = v
+
+
                 f = (replica_id, cb) =>
                     if works
                         cb(); return
@@ -843,14 +901,16 @@ class GlobalClient
 class Client
     constructor: (opts) ->
         opts = defaults opts,
-            host : required
-            port : required
-            secret : required
-            verbose : required
-        @host = opts.host
-        @port = opts.port
-        @secret = opts.secret
-        @verbose = opts.verbose
+            host      : required
+            port      : required
+            secret    : required
+            server_id : required
+            verbose   : required
+        @host      = opts.host
+        @port      = opts.port
+        @secret    = opts.secret
+        @verbose   = opts.verbose
+        @server_id = opts.server_id
 
     dbg: (f, args, m) =>
         if @verbose
@@ -993,16 +1053,17 @@ client_cache = {}
 
 storage_server_client = (opts) ->
     opts = defaults opts,
-        host    : required
-        port    : required
-        secret  : required
-        verbose : true
+        host      : required
+        port      : required
+        secret    : required
+        server_id : required
+        verbose   : true
     dbg = (m) -> winston.debug("storage_server_client(#{opts.host}:#{opts.port}): #{m}")
     dbg()
     key = opts.host + opts.port + opts.secret
     C = client_cache[key]
     if not C?
-        C = client_cache[key] = new Client(host:opts.host, port:opts.port, secret: opts.secret, verbose:opts.verbose)
+        C = client_cache[key] = new Client(host:opts.host, port:opts.port, secret: opts.secret, verbose:opts.verbose, server_id:opts.server_id)
     return C
 
 
@@ -1118,8 +1179,11 @@ class ClientProject
             timeout            : TIMEOUT
             destructive        : false
             replication_factor : 2    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
+            snapshots          : true   # whether to sync snapshots -- if not given, only syncs live files
             cb                 : undefined
         params = ['--replication_factor', opts.replication_factor]
+        if opts.snapshots
+            params.push('--snapshots')
         if opts.destructive
             params.push('--destructive')
         @action

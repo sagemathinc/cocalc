@@ -559,18 +559,18 @@ class Project(object):
             open("/etc/cgrules.conf",'a').write(z)
             try:
                 self.cmd(['service', 'cgred', 'restart'])
-            except RuntimeError:
+            except:
                 # cgroup quota service not supported
                 pass
             try:
                 pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
                 self.cmd(["cgclassify"] + pids, ignore_errors=True)
                 # ignore cgclassify errors, since processes come and go, etc.":
-            except RuntimeError:
+            except:
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, replication_factor, server_id, servers_file, destructive=False):
+    def sync(self, replication_factor, server_id, servers_file, destructive=False, snapshots=True):
         status = []
         servers = json.loads(open(servers_file).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
 
@@ -594,7 +594,7 @@ class Project(object):
                     s['host'] = remote
                     t = time.time()
                     try:
-                        self._sync(remote)
+                        self._sync(remote=remote, destructive=destructive, snapshots=snapshots)
                     except Exception, err:
                         s['error'] = str(err)
                     s['time'] = time.time() - t
@@ -602,8 +602,9 @@ class Project(object):
                     s['error'] = 'unknown server'
         print json.dumps(status)
 
-    def _sync(self, remote, destructive=False):
+    def _sync(self, remote, destructive=False, snapshots=True):
         """
+        NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
 
         If destructive is true, simply push from local to remote, overwriting anything that is remote.
         If destructive is false, pushes, then pulls, and makes a tag pointing at conflicts.
@@ -628,6 +629,10 @@ class Project(object):
             self.cmd(["rsync", "-zaxH", "--delete", self.rsync_exclude(),
                       '-e', 'ssh -o StrictHostKeyChecking=no',
                       self.project_mnt+'/', "%s:%s/"%(remote, self.project_mnt)])
+
+        if not snapshots:
+            # nothing further to do -- we already sync'd the live files above, if we have any
+            return
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
@@ -733,12 +738,15 @@ if __name__ == "__main__":
                                    dest="replication_factor", default=2, type=int)
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
+    parser_sync.add_argument("--snapshots", help="include snapshots in sync",
+                                   dest="snapshots", default=False, action="store_const", const=True)
     parser_sync.add_argument("server_id", help="uuid of this server", type=str)
     parser_sync.add_argument("servers_file", help="required filename with json data about all servers; list of maps", type=str)
-    parser_sync.set_defaults(func=lambda args: project.sync(replication_factor=args.replication_factor,
-                                                            server_id = args.server_id,
-                                                            servers_file = args.servers_file,
-                                                            destructive=args.destructive))
+    parser_sync.set_defaults(func=lambda args: project.sync(replication_factor = args.replication_factor,
+                                                            server_id          = args.server_id,
+                                                            servers_file       = args.servers_file,
+                                                            destructive        = args.destructive,
+                                                            snapshots          = args.snapshots))
 
     parser_account_settings = subparsers.add_parser('account_settings', help='set account_settings for this user; also outputs settings in JSON')
     parser_account_settings.add_argument("--memory", dest="memory", help="memory account_settings in gigabytes",
