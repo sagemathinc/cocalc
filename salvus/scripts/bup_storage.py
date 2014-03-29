@@ -12,6 +12,7 @@ In visudo:
 
 Install script:
 
+     cp /home/salvus/salvus/salvus/scripts/hashring.py /usr/local/bin/
      cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
      chown root:salvus /usr/local/bin/bup_storage.py
      chmod ug+rx /usr/local/bin/bup_storage.py
@@ -67,7 +68,7 @@ SAGEMATHCLOUD_TEMPLATE = "/home/salvus/salvus/salvus/local_hub_template/"
 BASHRC_TEMPLATE        = "/home/salvus/salvus/salvus/scripts/skel/.bashrc"
 BASH_PROFILE_TEMPLATE  = "/home/salvus/salvus/salvus/scripts/skel/.bash_profile"
 
-SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
+#SSH_ACCESS_PUBLIC_KEY  = "/home/salvus/salvus/salvus/scripts/skel/.ssh/authorized_keys2"
 
 def log(m):
     sys.stderr.write(str(m)+'\n')
@@ -209,7 +210,6 @@ class Project(object):
         self.create_user()
         self.account_settings()
         self.ensure_conf_files()
-        self.ensure_ssh_access()
         self.update_daemon_code()
         self.start_daemons()
         self.mount_snapshots()
@@ -427,7 +427,7 @@ class Project(object):
         self.ensure_file_exists(BASHRC_TEMPLATE, os.path.join(self.project_mnt,".bashrc"))
         self.ensure_file_exists(BASH_PROFILE_TEMPLATE, os.path.join(self.project_mnt,".bash_profile"))
 
-    def ensure_ssh_access(self):
+    def xxx_ensure_ssh_access(self):  # not used!
         log = self._log('ensure_ssh_access')
         log("make sure .ssh/authorized_keys file good")
         dot_ssh = os.path.join(self.project_mnt, '.ssh')
@@ -715,7 +715,7 @@ if __name__ == "__main__":
     parser_init = subparsers.add_parser('init', help='init project repo and directory')
     parser_init.set_defaults(func=lambda args: project.init())
 
-    parser_start = subparsers.add_parser('start', help='create user, setup ssh access and the ~/.sagemathcloud filesystem')
+    parser_start = subparsers.add_parser('start', help='create user and setup the ~/.sagemathcloud filesystem')
     parser_start.set_defaults(func=lambda args: project.start())
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
@@ -789,9 +789,6 @@ if __name__ == "__main__":
     parser_checkout.add_argument("--snapshot", dest="snapshot", help="which tag or snapshot to checkout (default: latest)", type=str, default='latest')
     parser_checkout.add_argument("--branch", dest="branch", help="branch to checkout (default: whatever current branch is)", type=str, default='')
     parser_checkout.set_defaults(func=lambda args: project.checkout(snapshot=args.snapshot, branch=args.branch))
-
-    parser_ensure_ssh_access = subparsers.add_parser('ensure_ssh_access', help='add public key so user can ssh into the project')
-    parser_ensure_ssh_access.set_defaults(func=lambda args: project.ensure_ssh_access())
 
     parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project from old ZFS format')
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
