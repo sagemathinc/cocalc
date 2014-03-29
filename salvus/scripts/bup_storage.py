@@ -553,6 +553,11 @@ class Project(object):
             zfs set mountpoint=/storage/bups storage/bups
             chmod og-rwx /storage/bups
 
+            zfs create storage/conf
+            zfs set mountpoint=/storage/conf storage/conf
+            chmod og-rwx /storage/conf
+            chown salvus. /storage/conf
+
             zfs create storage/scratch
             zfs set mountpoint=/scratch storage/scratch
             zfs mount storage/scratch

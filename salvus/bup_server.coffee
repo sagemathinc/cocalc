@@ -30,6 +30,8 @@ REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
 
+CONF = "/storage/conf"
+fs.chmod(CONF, 0o700)     # just in case...
 
 DATA = 'data'
 
@@ -279,10 +281,41 @@ start_tcp_server = (cb) ->
                             winston.debug(new Error().stack)
                             winston.error "ERROR: '#{e}' handling message '#{misc.to_safe_str(mesg)}'"
 
-    server.listen program.port, program.address, () ->
-        program.port = server.address().port
-        fs.writeFile(program.portfile, program.port, cb)
-        winston.debug("listening on #{program.address}:#{program.port}")
+    get_port = (c) ->
+        if program.port
+            c()
+        else
+            # attempt once to use the same port as in port file, if there is one
+            fs.exists program.portfile, (exists) ->
+                if not exists
+                    program.port = 0
+                    c()
+                else
+                    fs.readFile program.portfile, (err, data) ->
+                        if err
+                            program.port = 0
+                            c()
+                        else
+                            program.port = data.toString()
+                            c()
+    listen = (c) ->
+        winston.debug("trying port #{program.port}")
+        server.listen program.port, program.address, (err) ->
+            if err
+                winston.debug("failed to listen to #{program.port} -- #{err}")
+                c(err)
+            else
+                program.port = server.address().port
+                fs.writeFile(program.portfile, program.port, cb)
+                winston.debug("listening on #{program.address}:#{program.port}")
+                c()
+    get_port () ->
+        listen (err) ->
+            if err
+                winston.debug("fail so let OS assign port...")
+                program.port = 0
+                listen()
+
 
 secret_token = undefined
 read_secret_token = (cb) ->
@@ -976,9 +1009,9 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "#{DATA}/logs/bup_server.pid")
     .option('--logfile [string]', 'write log to this file', String, "#{DATA}/logs/bup_server.log")
     .option('--portfile [string]', 'write port number to this file', String, "#{DATA}/logs/bup_server.port")
-    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{DATA}/logs/bup_server_id")
-    .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{DATA}/logs/bup_servers")
-    .option('--secret_file [string]', 'write secret token to this file', String, "#{DATA}/secrets/bup_server.secret")
+    .option('--server_id_file [string]', 'file in which server_id is stored', String, "#{CONF}/bup_server_id")
+    .option('--servers_file [string]', 'contains JSON mapping {uuid:hostname,...} for all servers', String, "#{CONF}/bup_servers")
+    .option('--secret_file [string]', 'write secret token to this file', String, "#{CONF}/bup_server.secret")
 
     .option('--debug [string]', 'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--replication [string]', 'replication factor (default: 2)', String, '2')
@@ -987,6 +1020,8 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--address [string]', 'address to listen on (default: the tinc network or 127.0.0.1 if no tinc)', String, '')
 
     .parse(process.argv)
+
+program.port = parseInt(program.port)
 
 if not program.address
     program.address = require('os').networkInterfaces().tun0?[0].address
