@@ -1349,7 +1349,7 @@ class Monitor(object):
         """
         cmd = '&&'.join(["host -v google.com > /dev/null"]*rounds) + "; echo $?"
         ans = []
-        exclude = set(self._hosts['cellserver'] + self._hosts['compute-2'])
+        exclude = set(self._hosts['cellserver'] + self._hosts['compute-2'] + self._hosts['webdev'])
         h = ' '.join([host for host in self._hosts[hosts] if host not in exclude])
         if not h:
             return []

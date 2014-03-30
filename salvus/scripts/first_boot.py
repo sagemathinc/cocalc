@@ -20,6 +20,7 @@ os.system("mount /dev/salvus-base/tmp /tmp; chmod +t /tmp; chmod a+rwx /tmp/")
 
 if hostname.startswith('compute'):
 
+
     # Delete secrets that aren't needed for the *compute machines* (only web machines)
     os.system('rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra')
 
@@ -49,7 +50,8 @@ if hostname.startswith('compute'):
     # Start the bup storage server:
     if hostname.startswith('compute'):
         os.system("zpool import -f bup; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
-
+        # Install crontab for snapshotting the bup pool, etc.
+        os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 
 # Lock down some perms a little, just in case I were to mess up somehow at some point
 os.system("chmod og-rwx -R /home/salvus/&")
