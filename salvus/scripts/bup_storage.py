@@ -56,6 +56,8 @@ SERVER_ID_FILE = '/bup/conf/bup_server_id'
 # Where the file containing info about all servers is stored
 SERVERS_FILE   = '/bup/conf/bup_servers'
 
+REPLICATION_FACTOR = 2
+
 # Default account settings
 
 DEFAULT_ACCOUNT_SETTINGS = {
@@ -368,7 +370,7 @@ class Project(object):
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
         return ['--exclude=%s'%(prefix+x) for x in excludes]
 
-    def save(self, path=None, timestamp=None, branch=None):
+    def save(self, path=None, timestamp=None, branch=None, sync=True):
         """
         Save a snapshot.
         """
@@ -391,6 +393,9 @@ class Project(object):
         self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
         if path == self.project_mnt:
             self.mount_snapshots()
+
+        if sync:
+            self.sync()
 
     def tag(self, tag, delete=False):
         """
@@ -605,7 +610,7 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, replication_factor=2, destructive=False, snapshots=True):
+    def sync(self, replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
         status = []
         servers = json.loads(open(SERVERS_FILE).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
 
@@ -755,7 +760,7 @@ class Project(object):
             return
 
         def sync_out():
-            status = self.sync(replication_factor=2, destructive=True, snapshots=True)
+            status = self.sync(replication_factor=REPLICATION_FACTOR, destructive=True, snapshots=True)
             print str(status)
             for r in status:
                 if r.get('error', False):
@@ -878,7 +883,7 @@ if __name__ == "__main__":
     parser_restart = subparsers.add_parser('restart', help='restart servers')
     parser_restart.set_defaults(func=lambda args: project.restart())
 
-    parser_save = subparsers.add_parser('save', help='save a snapshot')
+    parser_save = subparsers.add_parser('save', help='save a snapshot then sync everything out')
     parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
     parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
 
@@ -886,8 +891,8 @@ if __name__ == "__main__":
         status = project.sync(*args, **kwds)
         print json.dumps(status)
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
-    parser_sync.add_argument("--replication_factor", help="number of replicas to sync with in each data center or [2,1,3]=2 in dc0, 1 in dc1, etc.",
-                                   dest="replication_factor", default=2, type=int)
+    parser_sync.add_argument("--replication_factor", help="number of replicas to sync with in each data center or [2,1,3]=2 in dc0, 1 in dc1, etc. (default: %s)"%REPLICATION_FACTOR,
+                                   dest="replication_factor", default=REPLICATION_FACTOR, type=int)
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",

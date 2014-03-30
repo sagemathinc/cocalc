@@ -30,6 +30,8 @@ REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
 
+MIN_SAVE_INTERVAL_S = 120          # never do a save action more frequently than this - more precisely, saves just get ignored until this much time elapses *and* an interesting file changes.
+
 CONF = "/bup/conf"
 fs.exists CONF, (exists) ->
     if exists
@@ -124,7 +126,6 @@ class Project
     action: (opts) =>
         cb = opts.cb
         start_time = cassandra.now()
-        t = misc.walltime()
         @_enque_action(opts)
 
     _enque_action: (opts) =>
@@ -141,15 +142,24 @@ class Project
             opts = @_action_queue.shift()
             @_action_queue_current = opts
             cb = opts.cb
-            opts.cb = (err,x,y,z) =>
-                cb?(err,x,y,z)
+
+            if opts.action == 'save' and @_last_save_time? and misc.walltime() - @_last_save_time < MIN_SAVE_INTERVAL_S
+                cb?(undefined)
                 delete @_action_queue_current
+                @_process_action_queue()
+                return
+
+            opts.cb = (err,x,y,z) =>
+                delete @_action_queue_current
+                cb?(err,x,y,z)
                 if err
                     # clear the queue
                     for o in @_action_queue
                         o.cb?("earlier action '#{o.action}' failed -- #{err}")
                     @_action_queue = []
                 else
+                    if opts.action == 'save'
+                        @_last_save_time = misc.walltime()
                     if opts.action != 'status'
                         # remove all the same actions from the queue, since we consider most actions
                         # idempotent (and even commutative), even if maybe they aren't quite.  This

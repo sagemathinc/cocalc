@@ -1591,8 +1591,6 @@ class Client extends EventEmitter
             cb("CodeMirror session got lost / dropped / or is known to client but not this hub")
         else
             cb(false, session)
-            # Record that a client is actively doing something with this session.
-            database.touch_project(project_id:session.project_id)
 
     mesg_codemirror_disconnect: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
@@ -1613,6 +1611,13 @@ class Client extends EventEmitter
         @get_codemirror_session mesg, (err, session) =>
             if not err
                 session.write_to_disk(@, mesg)
+
+                f = () =>
+                    # Record that a client is actively doing something with this session.
+                    database.touch_project(project_id:session.project_id)
+                    # Send a save request message to the bup server -- user just saved file, so that is a good time to save.
+                    session.local_hub.project.save()
+                setTimeout(f, 3000)  # give local hub a chance to actually do the above save...
 
     mesg_codemirror_read_from_disk: (mesg) =>
         @get_codemirror_session mesg, (err, session) =>
