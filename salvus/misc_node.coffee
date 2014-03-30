@@ -178,11 +178,13 @@ exports.connect_to_locked_socket = (opts) ->
         timeout : 5
         cb      : required
 
+    winston.debug("#{misc.to_json(opts)}")
+
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
 
     timed_out = () ->
-        m = "Timed out trying to connect to locked socket on port #{port}"
+        m = "misc_node: timed out trying to connect to locked socket on port #{port}"
         winston.debug(m)
         cb(m)
         socket.end()
@@ -433,6 +435,7 @@ exports.execute_code = execute_code = (opts) ->
 
         if opts.verbose
             winston.debug("finished exec of #{opts.command}")
+        winston.debug("stdout=#{stdout},stderr=#{stderr},exit_code=#{exit_code}")
         if not opts.err_on_exit and ran_code
             # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
             opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})

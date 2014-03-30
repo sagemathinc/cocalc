@@ -1158,10 +1158,9 @@ message
 
 message
     event      : 'storage'
-    project_id : required
     action     : required    # open, save, snapshot, latest_snapshot, close
+    project_id : undefined
     param      : undefined
     id         : undefined
 
 
-    

@@ -64,7 +64,6 @@ salvus_version = require('salvus_version')
 
 
 snap = require("snap")
-storage = require('storage')
 
 misc_node = require('misc_node')
 
@@ -423,35 +422,35 @@ init_http_proxy_server = () =>
                 if host?
                     cb()
                 else
-                    storage.open_project_somewhere
+                    bup_server.project
                         project_id : project_id
-                        base_url   : program.base_url
-                        cb         : (err, _host) ->
-                            host = _host
-                            cb(err)
+                        cb         : (err, project) ->
+                            if err
+                                cb(err)
+                            else
+                                host = project.client.host
+                                cb()
             (cb) ->
                 # determine the port
                 if type == 'port'
                     port = parseInt(v[3])
                     cb()
                 else if type == 'raw'
-                    new_local_hub
+                    bup_server.project
                         project_id : project_id
-                        cb         : (err, local_hub) ->
+                        cb         : (err, project) ->
                             if err
                                 cb(err)
                             else
-                                # TODO Optimization: getting the status is slow (half second?), so
-                                # we cache this for 15 seconds below; caching longer
-                                # could cause trouble due to project restarts, but we'll
-                                # have to look into that for speed (and maybe use the database
-                                # to better track project restarts).
-                                local_hub._get_local_hub_status (err, status) ->
-                                    if err
-                                        cb(err)
-                                    else
-                                        port = status['raw.port']
-                                        cb()
+                                project.status
+                                    cb : (err, status) ->
+                                        if err
+                                            cb(err)
+                                        else if not status['raw.port']?
+                                            cb("raw port not available")
+                                        else
+                                            port = status['raw.port']
+                                            cb()
                 else
                     cb("unknown url type -- #{type}")
             ], (err) ->
@@ -1281,11 +1280,10 @@ class Client extends EventEmitter
                     cb          : cb
             (cb) =>
                 dbg("create backend project storage")
-                storage.create_project
-                    project_id  : project_id
-                    quota       : DEFAULTS.zfs_quota
-                    cb          : (err, _host) =>
-                        host = _host
+                bup_server.project
+                    project_id : project_id
+                    cb         : (err, project) =>
+                        host = project.client.host
                         cb(err)
         ], (err) =>
             if err
@@ -1861,206 +1859,7 @@ register_hub = (cb) ->
 ##-------------------------------
 
 snap_command = (opts) ->
-    opts = defaults opts,
-        command    : required   # "ls", "restore", "log"
-        project_id : required
-        location   : undefined  # used by restore to send files to some non-default location (the default is the project location in the database)
-        snapshot   : undefined
-        path       : '.'
-        timeout    : 60
-        timezone_offset : 0
-        cb         : required   # cb(err, result)
-
-    switch opts.command
-        when 'ls'
-            delete opts.command
-            snap_command_ls(opts)
-        when 'restore', 'log'
-            snap_command_restore_or_log(opts)
-        when 'last'
-            storage.last_snapshot
-                project_id : opts.project_id
-                cb         : opts.cb
-        when 'status'
-            storage.status_fast
-                project_id : opts.project_id
-                cb         : opts.cb
-        else
-            opts.cb("invalid snap command #{opts.command}")
-
-_snap_server_ids = undefined
-snap_server_ids = (cb) ->   # cb(err, server_ids)
-    if _snap_server_ids?
-        cb(false, _snap_server_ids)
-        return
-    database.snap_servers
-        columns : ['id']
-        cb      : (err, results) ->
-            if err
-                cb(err)
-            else
-                _snap_server_ids = (r.id for r in results)
-                f = () ->
-                    _snap_server_ids = undefined
-                setTimeout(f, 30000)
-                cb(false, _snap_server_ids)
-
-snap_command_restore_or_log = (opts) ->
-    opts = defaults opts,
-        command    : required
-        project_id : required
-        snapshot   : required
-        location   : undefined
-        path       : '.'
-        timeout    : 60
-        timezone_offset : 0
-        cb         : required   # cb(err)
-
-    snap_location = undefined
-    socket = undefined
-    async.series([
-        (cb) ->
-            # find a snap server with this particular snapshot
-            database.snap_locate_commit
-                project_id : opts.project_id
-                timestamp  : opts.snapshot
-                cb         : (err, r) ->
-                    snap_location = r
-                    cb(err)
-       (cb) ->
-            connect_to_snap_server snap_location.server, (err, _socket) ->
-                socket = _socket
-                cb(err)
-        (cb) ->
-            snap.client_snap
-                command    : opts.command
-                socket     : socket
-                project_id : opts.project_id
-                snapshot   : opts.snapshot
-                location   : opts.location
-                repo_id    : snap_location.repo_id
-                path       : opts.path
-                timeout    : opts.timeout
-                cb         : cb
-    ], opts.cb)
-
-
-snap_command_ls = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        snapshot   : undefined  # if undefined gives the snapshot names, sorted from newest to oldest.
-        path       : ''
-        timeout    : 60
-        timezone_offset : 0
-        cb         : required   # cb(err, list of results when meaningful)
-
-    storage.snapshot_listing
-        project_id      : opts.project_id
-        timezone_offset : opts.timezone_offset
-        path            : opts.path
-        cb              : opts.cb
-
-
-_snap_server_socket_cache = {}
-connect_to_snap_server = (server, cb) ->
-    key    = misc.to_json(server)
-    socket = _snap_server_socket_cache[key]
-    if socket? and socket.writable
-        cb(false, socket)
-    else
-        snap.client_socket
-            host  : server.host
-            port  : server.port
-            token : server.key
-            cb    : (err, socket) ->
-                if not err
-                    _snap_server_socket_cache[key] = socket
-                cb(err, socket)
-
-
-# Make some number of snapshots on some minimum distinct number
-# of snapshot servers of the given project, if possible.
-snapshot_project = (opts) ->
-    opts = defaults opts,
-        project_id   : required
-        min_replicas : 1
-        cb           : undefined       # cb(err) -- called only when snapshots definitely have been made and reported to db
-    # TODO!
-    winston.debug("snapshot_project #{opts.project_id} on at least #{opts.min_replicas} nodes -- STUB'")
-    opts.cb?()
-
-
-# Move a project to longterm storage:
-#
-# This function assumes this is safe, i.e., that there is no Project class created on some
-# global hub, which would incorrectly think the project is still allocated somewhere.
-#
-#    - make a snapshot on all running snap servers; at least 2 must succeed
-#    - set location to null in database
-#    - delete files and account (need a "delete account" script to make the create account script).
-#
-# Also, it's an error if the location is not on the 10.x subnet or 'localhost'.
-move_project_to_longterm_storage = (opts) ->
-    opts = defaults opts,
-        project_id   : required
-        min_replicas : 2
-        cb           : undefined
-
-    location = undefined
-    async.series([
-        (cb) ->
-            winston.debug("move_project_to_longterm_storage -- getting location of #{opts.project_id}")
-            database.get_project_location
-                project_id : opts.project_id
-                allow_cache : false   # no point in using a cache here
-                cb         : (err, _location) =>
-                    location = _location
-                    if err
-                        cb(err); return
-                    else if location == "deploying"
-                        cb("project curently being opened, so refusing to move it to storage")
-                    else if not location
-                        cb("done")
-                    else
-                        if location.host == 'localhost' or location.host.slice(0,3) == '10.'
-                            cb()
-                        else
-                            cb("refusing to move project at non-VPN/non-local location (=#{location.host}) to longterm storage!")
-        (cb) ->
-            winston.debug("move_project_to_longterm_storage -- making at least 2 snapshots of #{opts.project_id}")
-            snapshot_project
-                project_id    : opts.project_id
-                min_replicas  : opts.min_replicas
-                cb : cb
-        (cb) ->
-            winston.debug("move_project_to_longterm_storage -- setting location to null in database")
-            database.set_project_location
-                project_id : opts.project_id
-                location   : "" # means not deployed anywhere
-                cb         : cb
-        (cb) ->
-            winston.debug("move_project_to_longterm_storage -- deleting account and all associated files")
-            delete_unix_user
-                location : location
-                cb       : cb
-
-    ], (err) ->
-        winston.debug("move_project_to_longterm_storage -- DONE (err=#{err})")
-        if err == "done"
-            cb?()
-        else
-            cb?(err)
-    )
-
-test_longterm = () ->
-    winston.debug("test_longterm...")
-    move_project_to_longterm_storage
-        project_id : '94ab8b76-672f-4a04-8b58-979fd363d34f'
-        #project_id : 'bed89d12-d2d0-49dd-aaf5-34a2b41b325a'
-        cb         : (err) ->
-            winston.debug("test_longterm err = #{err}")
-
-#setTimeout(test_longterm, 5000)
+    opts.cb("snap_command is deprecated")
 
 
 ##############################
@@ -2404,7 +2203,7 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
         if @_sync_lock
             if misc.walltime(@_sync_lock) > MAX_LOCK_TIME_S
                  # something is very suspicious -- if we can't sync for this long give up.
-                 @destroy()        
+                 @destroy()
             client.push_to_client(message.codemirror_diffsync_retry_later(id:mesg.id))
             return
 
@@ -2597,15 +2396,17 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
 connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
     opts = defaults opts,
         port         : required
+        host         : required
         secret_token : required
         timeout      : 10
         cb           : required
 
     socket = misc_node.connect_to_locked_socket
-        port  : opts.port
-        token : opts.secret_token
+        port    : opts.port
+        host    : opts.host
+        token   : opts.secret_token
         timeout : opts.timeout
-        cb    : (err) =>
+        cb      : (err) =>
             if err
                 opts.cb(err)
             else
@@ -2627,76 +2428,93 @@ new_local_hub = (opts) ->    # cb(err, hub)
         opts.cb(false, H)
     else
         start_time = misc.walltime()
-        H = new LocalHub(opts.project_id)
-        _local_hub_cache[hash] = H
-        opts.cb(false, H)
+        new LocalHub opts.project_id, (err, H) ->
+            if err
+                opts.cb(err)
+            else
+                _local_hub_cache[hash] = H
+                opts.cb(undefined, H)
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@project_id) ->  # NOTE @project may be undefined.
-        @dbg("creating")
-        if program.local
-            @SAGEMATHCLOUD = ".sagemathcloud-local"
-        else
-            @SAGEMATHCLOUD = ".sagemathcloud"
-        @path = '.'  # default
-        @port = 22
+    constructor: (@project_id, cb) ->  # NOTE @project may be undefined.
         @_sockets = {}
         @_multi_response = {}
+        @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
+        @dbg("getting deployed running project")
+        bup_server.project
+            project_id : @project_id
+            cb         : (err, project) =>
+                if err
+                    @dbg("failed to get project -- #{err}")
+                    cb(err)
+                else
+                    @dbg("successful connection")
+                    @project = project
+                    cb(undefined, @)
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{m}")
 
     close: (cb) =>
-        # We snapshot, close project, and update database in order, giving each a *chance*.
-        # If they don't succeed -- e.g., due to host being down, we forge on.
         dbg = (m) -> winston.debug("local_hub.close(#{@project_id}): #{m}")
         dbg()
-        if @_close_lock
-            cb?("Already closing..."); return
-        @_close_lock = true
-
         async.series([
             (cb) =>
-                if @host?
-                    dbg("killall processes running in the project")
-                    storage.create_user
-                        project_id : @project_id
-                        host       : @host
-                        action     : 'kill'
-                        cb         : () =>
-                            cb()
+                dbg("updating project location")
+                @update_project(cb:cb)
+            (cb) =>
+                dbg("saving project")
+                @project.save(cb:cb)
+            (cb) =>
+                dbg("stopping servers running on project; destroying accounts")
+                @project.stop(cb:cb)
+                @_sockets = {}
+            (cb) =>
+                dbg("syncing project out")
+                @project.sync(cb:cb)
+        ], cb)
+
+    move: (opts) =>
+        opts = defaults opts,
+            target : undefined
+            cb     : undefined          # cb(err, {host:hostname})
+        current = @project.client.server_id
+        if current == opts.target
+            opts.cb(undefined, {host:@project.client.host})
+            return
+        async.series([
+            (cb) =>
+                @project.sync
+                    timeout   : 60    # do what you can in 60 seconds
+                    snapshots : false # don't bother trying to sync snaphots
+                    cb        : (err) =>
+                        cb()
+            (cb) =>
+                @project.stop(cb:cb)
+                @_sockets = {}
+            (cb) =>
+                if opts.target?
+                    prefer = [opts.target]
                 else
-                    cb()
-            (cb) =>
-                dbg("attempt snapshot")
-                storage.snapshot
+                    prefer = undefined
+                bup_server.project
                     project_id : @project_id
-                    force      : true
-                    cb         : (err) =>
-                        # we close even if snapshot fails, since closing gives the user the option to
-                        # at least re-open the project somewhere else.
-                        dbg("snapshot output: #{err}")
-                        cb()
-            (cb) =>
-                dbg("close actual deployed project")
-                storage.close_project
-                    project_id : @project_id
-                    unset_loc  : true
-                    wait_for_replicate : true
-                    cb         : (err) =>
-                        dbg("close output: #{err}")
-                        cb()
-            (cb) =>
-                dbg("update database")
-                @_close_lock = false
-                database.update
-                    table : 'projects'
-                    set   : {location:undefined}
-                    where : {project_id : @project_id}
-                    cb    : cb
+                    prefer     : prefer
+                    prefer_not : [current]
+                    cb         : (err, project) =>
+                        if err
+                            @dbg("failed to get project -- #{err}")
+                            cb(err)
+                        else
+                            @dbg("successful connection")
+                            @project = project
+                            cb()
         ], (err) =>
-            @_close_lock = false
-            cb?(err))
+            if err
+                cb(err)
+            else
+                cb(undefined, @project.client.host)
+        )
 
     reconnect:  (cb) =>
         @dbg("reconnecting")
@@ -2722,131 +2540,35 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             else
                 cb?()
 
-    update_project_location: (cb) =>
-        @dbg("update_project_location")
-        database.get_project_location
+    # Get bup_server ClientProject associated to this project; if the bup_location has
+    #   changed in the database the project  is appropriately updated.
+    update_project: (cb) =>  # cb(err, project)
+        bup_server.project_location
             project_id  : @project_id
-            allow_cache : false
             cb          : (err, location) =>
-                #@dbg("update_project_location returned: #{err}, #{misc.to_json(location)}")
-                if err
-                    cb(err)
-                else if not location
-                    @dbg("opening the project somewhere")
-                    storage.open_project_somewhere
+                if location == @project.client.server_id
+                    cb(undefined, @project)
+                else
+                    # it moved, so get new project at new location; also dis-invalidate all open connections
+                    # (they should be connected to killed processes, so die, but being explicit is best)
+                    @_sockets = {}
+                    bup_server.project
                         project_id : @project_id
-                        base_url   : program.base_url
-                        cb         : (err, host) =>
+                        server_id  : location
+                        cb         : (err, project) =>
                             if err
-                                @dbg("opening project failed")
                                 cb(err)
                             else
-                                @dbg("opening project succeeded!")
-                                @username = storage.username(@project_id)
-                                @host     = host
-                                @port     = 22
-                                @address  = "#{@username}@#{@host}"
-                                @path     = "."
-                                @location = {"host":@host,"username":@username,"port":@port,"path":"."}
-                                cb()
-                else
-                    @username = location.username
-                    @host     = location.host
-                    @port     = location.port    # WARNING -- port not 22 not tested at all (and not needed)
-                    @address  = "#{@username}@#{@host}"
-                    cb()
+                                @project = project
+                                cb(undefined, project)
 
     restart: (cb) =>
         @dbg("restart")
-        if @_restart_lock
-            @dbg("local hub restart -- hit a lock")
-            cb("already restarting")
-            return
-        @_restart_lock = true
-        created_remote_lock = false
-        location = undefined
-        lockfile = @SAGEMATHCLOUD + '.lock'
-
-        # Delete all cached synchronized editing sessions
-        for k, session of codemirror_sessions.by_path
-            session.destroy()
-
-        did_killall = false
-        async.series([
-            (cb) =>
-                @dbg("restart: getting project location")
-                @update_project_location (err) =>
-                    if err
-                        @dbg("1: #{err}")
-                        cb(err)
-                    else
-                        location = {username:@username, host:@host, port:@port}
-                        @dbg("2: #{misc.to_json(location)}")
-                        cb()
-            (cb) =>
-                @dbg("restart: ensure that user exists and that ssh into the account works; also updates info.json file")
-                storage.create_user
-                    project_id : @project_id
-                    host       : @host
-                    action     : 'create'
-                    timeout    : 30
-                    cb         : cb
-            (cb) =>
-                @dbg("restart: creating a lock at #{misc.to_json(location)}")
-                snap.create_lock
-                    location : location
-                    lockfile : lockfile
-                    ttl      : 30  # 30 seconds
-                    cb       : cb  # will fail if there is already a lock
-            (cb) =>
-                @dbg("restart: killing all processes")
-                # if we get to this point, *we* created the remote lock -- so we better clean it
-                # up no matter what happens below.
-                created_remote_lock = true
-                u = @username
-                if u.length != 8 and u.length != 32
-                    @dbg("restart: skipping killall since this username #{u} has a suspicous length (=#{u.length})")
-                    cb()
-                else
-                    did_killall = true
-                    @killall (ignore) =>
-                        cb()
-            (cb) =>
-                @dbg("restart: push latest version of code to remote machine...")
-                @_push_local_hub_code (err) =>
-                    if err
-                        @dbg("local hub code push -- failed #{err}; proceeding anyways, since it's critical that the user have access.")
-                    cb()
-            (cb) =>
-                @dbg("restart: (re-)start the local services...")
-                cmd = "start_smc"
-                if not did_killall
-                    cmd = "re" + cmd
-                @_exec_on_local_hub
-                    command             : cmd
-                    timeout             : 45
-                    ignore_restart_lock : true
-                    cb      : (err, output) =>
-                        cb(err)
-            (cb) =>
-                @_restart_lock = false  # no longer needed
-                @dbg("restart: finally opening a port forward")
-                @open(cb)
-        ], (err) =>
+        @update_project (err) =>
             if err
-                @dbg("restart: error at end = #{err}")
-
-            @_restart_lock = false
-
-            if created_remote_lock
-                snap.remove_lock
-                    location : location
-                    lockfile : lockfile
-                    cb       : () =>
-                        cb(err)
-            else
                 cb(err)
-        )
+            else
+                @project.restart(cb:cb)
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
@@ -2910,7 +2632,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 @local_hub_socket  (err,socket) =>
                      socket.write_mesg('json', resp)
 
-    # The unique standing authenticated control socket to the remote local_hub daemon.
+    # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>
         if @_socket?
             cb(false, @_socket)
@@ -2943,32 +2665,46 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 for c in @_local_hub_socket_queue
                     c(false, @_socket)
 
-    # Get a new socket connection to the local_hub; this socket will have been
-    # authenticated via the secret_token, and enhanced to be able to
-    # send/receive json and blob messages.
+    # Get a new connection to the local_hub,
+    # authenticated via the secret_token, and enhanced
+    # to be able to send/receive json and blob messages.
     new_socket: (cb) =>     # cb(err, socket)
-        @open   (err, port, secret_token) =>
-            if err
-                cb(err); return
-            connect_to_a_local_hub
-                port         : port
-                secret_token : secret_token
-                cb           : (err, socket) =>
-                    if not err
-                        cb(err, socket)
-                    else
-                        delete @_status  # forget port and secret token.
+        socket = undefined
+        async.series([
+            (cb) =>
+                @update_project(cb)
+            (cb) =>
+                @project.status
+                    cb : (err, status) =>
+                        if err
+                            cb(err)
+                        else
+                            @_status = status
+                            if not status['local_hub.port']?
+                                cb("local_hub server not running")
+                            else if not status.secret_token?
+                                cb("status didn't return secret_token")
+                            else
+                                cb()
+            (cb) =>
+                connect_to_a_local_hub
+                    port         : @_status['local_hub.port']
+                    host         : @project.client.host
+                    secret_token : @_status.secret_token
+                    cb           : (err, _socket) =>
+                        socket = _socket
                         cb(err)
+        ], (err) => cb(err, socket))
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
 
     call: (opts) =>
         opts = defaults opts,
-            mesg    : required
-            timeout : 10
+            mesg           : required
+            timeout        : 10
             multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
-            cb      : undefined
+            cb             : undefined
 
         if not opts.mesg.id?
             opts.mesg.id = uuid.v4()
@@ -3180,251 +2916,22 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             timeout : 30
             cb      : opts.cb
 
-
-    # Open connection to the remote local_hub if it is not already opened,
-    # and setup everything so we have a persistent ssh connection
-    # between some port on localhost and the remote account, over
-    # which all the action happens.
-    # The callback gets called via "cb(err, port, secret_token)"; if err=false, then
-    # port is supposed to be a valid port portforward to a local_hub somewhere.
-
-    open: (cb) =>    # cb(err, port, secret_token)
-        @dbg("opening connection to the local_hub")
-        if @_status? and @_status.local_port? and @_status.secret_token?
-            # TODO: check here that @_port is actually still open and valid...
-            @dbg("using cached connection")
-            cb(false, @_status.local_port, @_status.secret_token)
-            return
-
-        # Lock so that we don't attempt to open connection more than
-        # once at the same time.
-        if @_opening?
-            n = 0
-            check = () =>
-                n += 1
-                if n >= 100 # 10 seconds max
-                    clearInterval(timer)
-                    cb("Timed out waiting for project to open.")
-                    return
-                if not @_opening?
-                    clearInterval(timer)
-                    @open(cb)
-                    return
-            timer = setInterval(check, 100)
-            return
-
-        # Now open the project.
-        @_opening = true
-        status   = undefined
-        async.series([
-            (cb) =>
-                @_get_local_hub_status (err, _status) =>
-                    @_status = _status
-                    cb(err)
-            (cb) =>
-                if not @_status?.installed
-                    @_exec_on_local_hub
-                        command : 'build'
-                        timeout : 360
-                        cb      : cb
-                else
-                    cb()
-            (cb) =>
-                # If all goes well, the following will make it so @_status
-                # is defined and says all is well.
-                @_restart_local_hub_if_not_all_daemons_running(cb)
-            (cb) =>
-                if @_status.local_port
-                    cb()
-                else
-                    if @_status['local_hub.port']
-                        @update_project_location (err) =>
-                            if err
-                                cb(err)
-                            else
-                                @dbg("forwarding remote port from #{@host}")
-                                misc_node.forward_remote_port_to_localhost
-                                    username    : @username
-                                    host        : @host
-                                    ssh_port    : @port
-                                    remote_port : @_status['local_hub.port']
-                                    cb          : (err, local_port) =>
-                                        if not @_status?  # in some rare cases @_status gets deleted by the time this gets called...
-                                            @_status = {}
-                                        @_status.local_port = local_port
-                                        cb(err)
-                    else
-                        cb("unable to start local_hub daemon on #{@address}")
-            (cb) =>
-                database.update
-                    table : 'projects'
-                    set   : {'status':'opened'}
-                    where : {project_id : @project_id}
-                    cb    : cb
-        ], (err) =>
-            delete @_opening
+    _restart_local_hub_daemons: (cb) =>
+        @dbg("_restart_local_hub_daemon-- #{@username}@#{@host}")
+        @update_project (err) =>
             if err
                 cb(err)
             else
-                cb(false, @_status.local_port, @_status.secret_token)
-        )
-
-
-    _push_local_hub_code: (cb) =>
-        @dbg("pushing latest code")
-        tm = misc.walltime()
-        output = ''
-        async.series([
-            (cb) =>
-                misc_node.execute_code
-                    command : "rsync"
-                    args    : ['-axHL', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                               'local_hub_template/', '--exclude=node_modules/*', "#{@address}:~#{@username}/#{@SAGEMATHCLOUD}/"]
-                    timeout : 60
-                    bash    : false
-                    path    : SALVUS_HOME
-                    cb      : (err, out) =>
-                        if err
-                            cb(err)
-                        else
-                            output += out.stdout + '\n' + out.stderr
-                            cb()
-
-            (cb) =>
-                misc_node.execute_code
-                    command : "rsync"
-                    args    : ['-axH', '-e', "ssh -o StrictHostKeyChecking=no -p #{@port}",
-                               'local_hub_template/node_modules/', "#{@address}:~#{@username}/#{@SAGEMATHCLOUD}/node_modules/"]
-                    timeout : 60
-                    bash    : false
-                    path    : SALVUS_HOME
-                    cb      : (err, out) =>
-                        if err
-                            cb(err)
-                        else
-                            output += out.stdout + '\n' + out.stderr
-                            cb()
-            ], (err) =>
-                @dbg("time to rsync latest code to #{@address}: #{misc.walltime(tm)} seconds -- #{err}")
-                cb(err, output)
-            )
-
-    _exec_on_local_hub: (opts) =>
-        opts = defaults opts,
-            command                : required
-            timeout                : 30
-            dot_sagemathcloud_path : true
-            ignore_restart_lock    : false
-            cb                     : required
-
-        @update_project_location (err) =>
-            if err
-                opts.cb(err); return
-
-            if opts.dot_sagemathcloud_path
-                opts.command = "~#{@username}/#{@SAGEMATHCLOUD}/#{opts.command}"
-
-            if @_restart_lock and not opts.ignore_restart_lock
-                opts.cb("_restart_lock..."); return
-
-            # ssh [user]@[host] [-p port] #{@SAGEMATHCLOUD}/[commmand]
-            tm = misc.walltime()
-            misc_node.execute_code
-                command : "ssh"
-                args    : [@address, '-p', @port, '-o', 'StrictHostKeyChecking=no', opts.command]
-                timeout : opts.timeout
-                bash    : false
-                cb      : (err, output) =>
-                    @dbg("time to exec #{opts.command} on local hub: #{misc.walltime(tm)}") #; output=#{misc.to_json(output)}")
-                    opts.cb(err, output)
-
-    _get_local_hub_status: (cb) =>
-        if not @_local_hub_status_fails?
-            @_local_hub_status_fails = 0
-        @dbg("getting status of remote location (fails=#{@_local_hub_status_fails})")
-        if @_local_hub_status_fails >= 5
-            @dbg("too many local hub status fails -- instead closing local hub")
-            @_local_hub_status_fails = 0
-            @close()
-            cb("too many local hub fails -- closing")
-        else
-            @_exec_on_local_hub
-                command : "status"
-                timeout  : 10
-                cb      : (err, out) =>
-                    if out?.stdout?
-                        try
-                            status = misc.from_json(out.stdout)
-                        catch e
-                            @_local_hub_status_fails += 1
-                            cb("error parsing local hub status")
-                            return
-                    if err
-                        @_local_hub_status_fails += 1
-                    else
-                        @_local_hub_status_fails = 0
-                    cb(err, status)
-
-    _restart_local_hub_daemons: (cb) =>
-        @dbg("_restart_local_hub_daemon-- #{@username}@#{@host}")
-        @dbg("_restart_local_hub_daemon: first push latest version of code to remote machine...")
-        @_push_local_hub_code (err) =>
-            if err
-                @dbg("local hub code push -- failed #{err}")
-            @_exec_on_local_hub
-                command : "start_smc"
-                timeout : 30
-                cb      : cb
+                @project.restart(cb:cb)
 
     killall: (cb) =>
         @dbg("kill all processes running on a local hub (including the local hub itself)")
+        @update_project (err) =>
+            if err
+                cb?(err)
+            else
+                @project.stop(cb:cb)
 
-        if program.local
-            @dbg("killall -- skipping since running with --local=true debug mode")
-            cb?(); return
-
-        async.series([
-            (cb) =>
-                @update_project_location(cb)
-            (cb) =>
-                storage.create_user
-                    project_id : @project_id
-                    host       : @host
-                    action     : 'kill'
-                    timeout    : 30
-                    cb         : cb
-            (cb) =>
-                @_exec_on_local_hub
-                    command                : "rm #{@SAGEMATHCLOUD}/data/*.port #{@SAGEMATHCLOUD}/data/*.pid"
-                    dot_sagemathcloud_path : false
-                    timeout                : 30
-                    ignore_restart_lock    : true
-                    cb                     : cb
-        ], (err) => cb?(err))
-
-    _restart_local_hub_if_not_all_daemons_running: (cb) =>
-        if @_status?.local_hub #and @_status.console_server
-            # NOTE! we do *not* check for @_status.sage_server, since it is easy for a user to mess that up.
-            # If they mess up console_server and local_hub (which should be very hard), they couldn't fix it
-            # anyways -- but messing up the sage server is fixable via the console or file editor.
-            cb()
-        else
-            # TODO: it would be better just to force start only the daemons that need to be started -- doing this is
-            # just a first brutal minimum way to do this!
-            bad = ''
-            if not @_status?.local_hub
-                bad += ' local_hub'
-            if not @_status?.console_server
-                bad += ' console_server'
-            @dbg("not all daemons are running (not running: #{bad}) -- restart required -- #{@username}@#{@host}")
-            @_restart_local_hub_daemons (err) =>
-                if err
-                    cb(err)
-                else
-                    # try one more time:
-                    @_get_local_hub_status (err, _status) =>
-                        @_status = _status
-                        cb(err)
 
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
@@ -3555,139 +3062,7 @@ new_project = (project_id, cb, delay) ->   # cb(err, project)
             cb(err, P)
         )
 
-# Get the location of the given project, or if it isn't located somewhere,
-# then deploy it and report back the location when done deploying.
-# Use database.get_project_location to get the project location without deploying.
 
-get_project_location = (opts) ->
-    opts = defaults opts,
-        project_id  : required
-        allow_cache : false
-        cb          : undefined       # cb(err, location)
-        attempts    : 50
-
-    error = true
-    location = undefined
-    unset_project_location = false
-
-    async.series([
-        (cb) ->
-            database.get_project_location
-                project_id  : opts.project_id
-                allow_cache : opts.allow_cache
-                cb          : (err, _location) =>
-                    location = _location
-                    if err
-                        cb(err)
-                    else if location == "deploying"
-                        winston.debug("get_project_location: another hub is currently deploying #{opts.project_id}")
-                        # Another hub or "thread" of this hub is currently deploying
-                        # the project.  We keep querying every few seconds until this changes.
-                        if opts.attempts <= 0
-                            cb("failed to deploy project (too many attempts)")
-                        else
-                            winston.debug("get_project_location -- try again in 10 seconds (attempts left=#{opts.attempts}).")
-                            f = () ->
-                                get_project_location
-                                    project_id  : opts.project_id
-                                    allow_cache : opts.allow_cache
-                                    cb          : opts.cb
-                                    attempts    : opts.attempts-1
-                            setTimeout(f, 10000)
-                            error = false
-                            cb(true)
-                    else if location
-                        error = false
-                        cb(true)
-                    else
-                        cb() # more to do
-        (cb) ->
-            unset_project_location = true
-            database.set_project_location
-                project_id : opts.project_id
-                location   : "deploying"
-                ttl        : 360
-                cb         : cb
-
-        (cb) ->
-            create_unix_user
-                project_id : opts.project_id
-                cb         : (err, _location) =>
-                    if err
-                        database.set_project_location
-                            project_id : opts.project_id
-                            location   : ""
-                            cb         : () =>
-                                unset_project_location = false
-                                cb("project location not defined -- and allocating new one led to error -- #{err}")
-                    else
-                        location = _location
-                        cb()
-        (cb) ->
-            if program.local  # SMC in SMC development...
-                # special case for development -- don't want to overwrite everything, etc.
-                cb()
-                return
-            # We now initiate a restore; this blocks on getting the project object (because the location must be known to get that)
-            # hence blocks letting the user do other things with the project.   I tried not locking
-            # on this and it is confusing (and terrifying!) as a user to see "no files" at the beginning.
-            # When I improve the UI to be clearer about what is going on, then this could be made optionally non-blocking.
-            restore_project_from_most_recent_snapshot
-                project_id : opts.project_id
-                location   : location
-                cb         : cb
-
-        (cb) ->
-            # To reduce the probability of a very rare possibility of a database race
-            # condition (Cassandra is only eventually consistent),
-            # at this point we check to make sure the project didn't somehow
-            # get deployed by another hub, which would cause database.get_project_location
-            # to not return "deploying".  In this case, we instead return where that deploy
-            # is, and delete the account we just made.
-            database.get_project_location
-                project_id  : opts.project_id
-                allow_cache : false
-                cb          : (err, loc) ->
-                    if err
-                        cb(err); return
-                    if loc == "deploying"
-                        # Contents in database are as expected (no race); we set new location.
-                        # Finally set the project location.
-                        unset_project_location = false
-                        database.set_project_location
-                            project_id : opts.project_id
-                            location   : location
-                            cb         : cb
-                    else
-                        winston.debug("Project #{opts.project_id} somehow magically got deployed by another hub.")
-                        unset_project_location = false
-                        # Let other project win.
-                        # We absolutely don't want two hubs simultaneously believing a project
-                        # is in two locations, since that would potentially lead to data loss
-                        # for the user (though probably not, due to snapshots, but still!)
-                        delete_unix_user
-                            location : location
-                            # no callback -- no point at all in waiting for this.
-                        location = loc
-                        cb()
-        ], (err) ->
-            if unset_project_location
-                database.set_project_location
-                    project_id : opts.project_id
-                    location   : ""
-
-            if err  # early termination of above steps
-                if error   # genuine error -- just report it
-                    opts.cb?(error, err)
-                else       # early term, but not an error
-                    if location != 'deploying'
-                        opts.cb?(false, location)
-                    else
-                        # do nothing -- opts.cb will get called later
-            else
-                # got location, the hard way
-                opts.cb?(false, location)
-        )
 
 class Project
     constructor: (@project_id, cb) ->
@@ -3695,10 +3070,6 @@ class Project
             cb("when creating Project, the project_id must be defined")
             return
         @dbg("instantiating Project class")
-        if program.local
-            @SAGEMATHCLOUD = ".sagemathcloud-local"
-        else
-            @SAGEMATHCLOUD = ".sagemathcloud"
 
         new_local_hub
             project_id : @project_id
@@ -3765,42 +3136,7 @@ class Project
             target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
-        host = @local_hub.host
-        new_host = undefined
-        async.series([
-            (cb) =>
-                @dbg("close the project in case it is open right now")
-                storage.close_project
-                    project_id  : @project_id
-                    unset_loc   : true
-                    wait_for_replicate : false
-                    cb          : (err) =>
-                        if err
-                            @dbg("move_project -- ignore error #{to_json(err)} -- since errors are *why* we want to move")
-                        cb()
-            (cb) =>
-                @dbg("move_project -- open the project somewhere *else* -- target=#{opts.target}")
-                if opts.target?
-                    prefer = [opts.target]
-                else
-                    prefer = undefined
-                storage.open_project_somewhere
-                    project_id  : @project_id
-                    exclude     : [host]
-                    prefer      : prefer
-                    cb          : (err, n) =>
-                        new_host = n
-                        cb(err)
-            (cb) =>
-                @dbg("move_project -- now open a connection to the relocated project at #{new_host} so user has a better experience")
-                @local_hub.open(cb)
-        ], (err) =>
-            if new_host?
-                @dbg("move_project -- success!")
-                # TODO: temporary
-                loc = {host:new_host, username:storage.username(@project_id), port:22, path:'.'}
-            opts.cb(err, loc)
-        )
+        @local_hub.move_project(opts)
 
     undelete_project: (opts) =>
         opts = defaults opts,
@@ -4196,76 +3532,8 @@ is_valid_password = (password) ->
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
 
-# Delete a unix user from some compute vm (as specified by location).
-# NOTE: Since this can get called automatically, and there is the possibility
-# of adding locations not on our VPN, if the location isn't 'localhost' or
-# on the 10.x vpn, then it is an error.
-delete_unix_user = (opts) ->
-    opts = defaults opts,
-        location : required
-        timeout  : 120        # it could take a while to "rm -rf" all files?
-        cb       : undefined
 
-    if opts.location.username.length != 8
-        # this is just a sort of triple check
-        opts.cb?("delete_unix_user: refusing, due to suspicious username (='#{opts.location.username}') with length not 8")
-        return
 
-    misc_node.execute_code
-        command     : 'ssh'
-        args        : ['-o', 'StrictHostKeyChecking=no', opts.location.host, 'sudo',
-                      'delete_unix_user.py', opts.location.username]
-        timeout     : opts.timeout
-        bash        : false
-        err_on_exit : true
-        cb      : (err, output) =>
-            if err
-                winston.debug("failed to delete unix user #{misc.to_json(opts.location)} -- #{err}")
-            opts.cb?(err)
-
-create_unix_user = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        cb         : required
-    host = undefined
-    username = undefined
-    async.series([
-        (cb) ->
-            # first get a computer on which to create an account
-            database.random_compute_server
-                cb  : (err, resp) ->
-                    if err
-                        cb(err)
-                    else
-                        host = resp.host
-                        winston.debug("creating new unix user on #{host}")
-                        cb()
-        (cb) ->
-            # ssh to that computer and create account using script
-            misc_node.execute_code
-                command : 'ssh'
-                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py', opts.project_id]
-                timeout : 45
-                bash    : false
-                err_on_exit: true
-                cb      : (err, output) =>
-                    if err
-                        winston.debug("failed to create new unix user on #{host} -- #{err}")
-                        cb(err)
-                    else
-                        username = output.stdout.replace(/\s/g, '')
-                        if username.length == 0
-                            winston.debug("FAILED to create new user on #{host}; empty username")
-                            cb("error creating user")
-                        else
-                            winston.debug("created new user #{username} on #{host}")
-                            cb()
-    ], (err) ->
-        if err
-            opts.cb(err)
-        else
-            opts.cb(false, {host:host, username:username, port:22, path:'.'})
-    )
 
 create_account = (client, mesg) ->
     id = mesg.id
@@ -5347,12 +4615,27 @@ connect_to_database = (cb) ->
                     else
                         winston.debug("Successfully connected to database.")
                         database = _db
-                        storage.set_database(database)
                         cb()
+
+bup_server = undefined
+init_bup_server = (cb) ->
+    winston.debug("creating bup server global client")
+    require('bup_server').global_client
+        database : database
+        cb       : (err, x) ->
+            if not err
+                winston.debug("bup server created")
+            else
+                winston.debug("ERROR creating bup server -- #{err}")
+            bup_server = x
+            cb?(err)
+
+
+
 
 close_stale_projects = () ->
     winston.debug("closing stale projects...")
-    storage.close_stale_projects
+    bup_server.close_stale_projects
         dry_run : false
         ttl     : 60*60*6  # every 6 hours for now.
         limit   : 40
@@ -5360,14 +4643,14 @@ close_stale_projects = () ->
 
 replicate_projects_needing_replication = () ->
     winston.debug("replicating projects that need replication...")
-    storage.replicate_projects_needing_replication
+    bup_server.replicate_projects_needing_replication
         limit   : 3
         age_s   : 5*60   # 5 minutes
         cb : (err) -> winston.debug("finished replicating projects that need replication (err=#{err})")
 
 replicate_projects_with_replication_errors = () ->
     winston.debug("replicating projects with replication errors")
-    storage.replicate_all_with_errors
+    bup_server.replicate_all_with_errors
         limit   : 3
         cb : (err) -> winston.debug("finished replicating projects that had replication errors (err=#{err})")
 
@@ -5379,7 +4662,6 @@ exports.start_server = start_server = () ->
     # the order of init below is important
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-    snap.set_server_id("#{program.host}:#{program.port}")
 
     # Once we connect to the database, start serving.
     misc.retry_until_success
@@ -5388,6 +4670,7 @@ exports.start_server = start_server = () ->
         max_delay   : 10000
         cb          : () =>
             winston.debug("connected to database.")
+            init_bup_server()
             init_http_server()
             init_http_proxy_server()
 
