@@ -1,0 +1,38 @@
+# Edit this file to introduce tasks to be run by cron.
+# 
+# Each task to run has to be defined through a single line
+# indicating with different fields when the task will be run
+# and what command to run for the task
+# 
+# To define the time you can provide concrete values for
+# minute (m), hour (h), day of month (dom), month (mon),
+# and day of week (dow) or use '*' in these fields (for 'any').# 
+# Notice that tasks will be started based on the cron's system
+# daemon's notion of time and timezones.
+# 
+# Output of the crontab jobs (including errors) is sent through
+# email to the user the crontab file belongs to (unless redirected).
+# 
+# For example, you can run a backup of all your user accounts
+# at 5 a.m every week with:
+# 0 5 * * 1 tar -zcf /var/backups/home.tgz /home/
+# 
+# For more information see the manual pages of crontab(5) and cron(8)
+# 
+# m h  dom mon dow   command
+
+# inspired by http://alblue.bandlem.com/2008/11/crontab-generated-zfs-snapshots.html
+POOL=bup
+@reboot  /sbin/zpool scrub $POOL
+@daily   /sbin/zpool scrub $POOL
+@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs snapshot -r $POOL@AutoH-`date +"\%FT\%H:\%M"`
+@daily   /sbin/zfs snapshot -r $POOL@AutoD-`date +"\%F"`
+@weekly  /sbin/zfs snapshot -r $POOL@AutoW-`date +"\%Y-\%U"`
+@monthly /sbin/zfs snapshot -r $POOL@AutoM-`date +"\%Y-\%m"`
+@yearly  /sbin/zfs snapshot -r $POOL@AutoY-`date +"\%Y"`
+
+@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoH- | /usr/bin/sort -r | /usr/bin/tail -n +26 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+@daily   /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoD- | /usr/bin/sort -r | /usr/bin/tail -n +9 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+@weekly  /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoW- | /usr/bin/sort -r | /usr/bin/tail -n +7 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+@monthly /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoM- | /usr/bin/sort -r | /usr/bin/tail -n +14 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+
