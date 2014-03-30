@@ -494,14 +494,17 @@ class GlobalClient
         opts = defaults opts,
             timeout : 30           # timeout if scp fails after this much time -- will happen if a server down or stale...
             cb      : undefined    # cb(err)
-        dbg = (m) -> winston.debug("push_servers_files: #{m}")
-        dbg('')
+        console.log("starting...")
+        dbg = (m) -> winston.info("push_servers_files: #{m}")
+        dbg('starting... logged')
         errors = {}
         file = "#{DATA}/bup_servers"
         async.series([
             (cb) =>
+                dbg("updating")
                 @_update(cb)
             (cb) =>
+                dbg("writing file")
                 # @servers = {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
                 servers_conf = {}
                 for server_id, x of @servers
@@ -526,6 +529,7 @@ class GlobalClient
                     else
                         opts.cb?(errors)
         ], (err) =>
+            dbg("done!")
             if err
                 dbg(err)
                 opts.cb?(err)
