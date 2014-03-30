@@ -539,7 +539,7 @@ class Project(object):
 
         if FILESYSTEM == 'zfs':
             """
-            zpool create -f bup /dev/vdb
+            zpool create -f bup XXXXX /dev/vdb
             zfs create bup/projects
             zfs set mountpoint=/projects bup/projects
             zfs set dedup=on bup/projects
