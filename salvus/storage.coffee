@@ -4154,7 +4154,7 @@ exports.migrate_bup = (opts) ->
             misc_node.execute_code
                 command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py"
                 args        : ["migrate_remote", host, opts.project_id]
-                timeout     : 60*60*12
+                timeout     : 12*60*60 
                 err_on_exit : false
                 cb          : (err, output) ->
                     if err
