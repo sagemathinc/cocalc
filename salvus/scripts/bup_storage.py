@@ -192,9 +192,7 @@ class Project(object):
         self.account_settings_path = os.path.join(self.conf_path, "account-settings.json")
         self.replicas_path         = os.path.join(self.conf_path, "replicas.json")
         self.project_mnt           = os.path.join(PROJECTS_PATH, project_id)
-        self.snap_path             = os.path.join(self.project_mnt, '.snapshots')
-        self.snap_zfs              = os.path.join(self.snap_path, 'zfs')
-        self.snap_mnt              = os.path.join(self.snap_path, 'bup')
+        self.snap_mnt              = os.path.join(self.project_mnt, '.snapshots')
         self.HEAD                  = "%s/HEAD"%self.bup_path
         self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
 
@@ -310,12 +308,8 @@ class Project(object):
         self.umount_snapshots()
         if os.path.exists(self.snap_mnt):
             os.rmdir(self.snap_mnt)
-        self.makedirs(self.snap_path)
-        self.cmd(['chmod', 'u+rwx', self.snap_path])
         self.makedirs(self.snap_mnt)
         self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
-        if not os.path.exists(self.snap_zfs):
-            self.cmd(['ln', '-sf',  os.path.join(PROJECTS_PATH, '.zfs', 'snapshot'), self.snap_zfs])
 
     def stop(self, grace_s=0.5):
         log("killing all processes by user with id %s"%self.uid)
