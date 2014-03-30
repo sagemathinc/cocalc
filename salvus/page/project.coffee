@@ -2016,6 +2016,7 @@ class ProjectPage
             return false
 
     init_move_project: () =>
+        return
         button = @container.find(".project-settings-move").find(".project-move-button")
 
         button.click () =>

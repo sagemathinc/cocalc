@@ -314,7 +314,7 @@
 .project-id {
     color:#666;
     margin-right:2ex;
-    font-size:9pt;
+    font-size:10pt;
     font-family:monospace;
 }
 
@@ -326,9 +326,10 @@
 }
 
 .project-location {
-    font-size   : 9pt;
+    color:#666;
+    font-size   : 10pt;
     font-family : monospace;
-    cursor      : pointer;
+   /* cursor      : pointer; */
 }
 
 .project-commit-message-input {
