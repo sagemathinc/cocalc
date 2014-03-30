@@ -3951,7 +3951,6 @@ exports.migrate_bup_all = (opts) ->
         retry_all : false      # if true, just redo everything
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
-        oldest_first : false
         only_new : false       # only try to migrate projects we haven't tried to migrate before.
         timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
@@ -3973,15 +3972,12 @@ exports.migrate_bup_all = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['last_edited', 'project_id', 'last_migrate_bup', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
+                columns : ['project_id', 'last_edited', 'last_migrate_bup', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
                 limit   : limit
                 cb      : (err, result) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
                         result.sort()
-                        if not opts.oldest_first
-                            result.reverse()
-
                         if opts.start? and opts.stop?
                             result = result.slice(opts.start, opts.stop)
                         else if opts.start?
@@ -3994,7 +3990,7 @@ exports.migrate_bup_all = (opts) ->
                         dbg("filter out known abusers: after #{result.length}")
 
                         dbg("filter out those that haven't ever had a snapshot: before #{result.length}")
-                        result = (x for x in result when not x[5]?)
+                        result = (x for x in result when x[5]?)
                         dbg("filter out those that haven't ever had a snapshot: after #{result.length}")
 
                         if opts.only_new
@@ -4002,15 +3998,15 @@ exports.migrate_bup_all = (opts) ->
 
                         if opts.max_age_h?
                             cutoff = cassandra.hours_ago(opts.max_age_h)
-                            result = (x for x in result when x[0]? and misc.to_iso(new Date(x[0])) >= cutoff)
+                            result = (x for x in result when x[1]? and misc.to_iso(new Date(x[1])) >= cutoff)
                             dbg("considering only the #{result.length} projects that have a snapshot from within the last #{opts.max_age_h} hours")
                         if opts.retry_all
-                            projects = (x[1] for x in result)
+                            projects = (x[0] for x in result)
                         else if opts.retry_errors
-                            projects = (x[1] for x in result when x[3]? or (not x[2]? or x[0] > x[2]))
+                            projects = (x[0] for x in result when x[3]? or (not x[2]? or x[1] > x[2]))
                         else
                             # don't try any projects with errors, unless they have been newly modified
-                            projects = (x[1] for x in result when (not x[2]? or x[0] > x[2]))
+                            projects = (x[0] for x in result when (not x[2]? or x[1] > x[2]))
                         if opts.exclude?
                             v = {}
                             for p in opts.exclude
@@ -4096,18 +4092,20 @@ exports.migrate_bup = (opts) ->
     client = undefined
     last_migrate_bup_error = undefined   # could be useful to know below...
     abuser = undefined
+    lastmod = undefined
     async.series([
         (cb) ->
             dbg("getting last migration error...")
             database.select_one
                 table : 'projects'
-                columns : ['last_migrate_bup_error']
+                columns : ['last_migrate_bup_error', 'last_snapshot']
                 where : {project_id : opts.project_id}
                 cb    : (err, result) =>
                     if err
                         cb(err)
                     else
                         last_migrate_bup_error = result[0]
+                        lastmod = result[1]
                         dbg("last_migrate_bup_error = #{last_migrate_bup_error}")
                         cb()
         (cb) ->
@@ -4150,15 +4148,15 @@ exports.migrate_bup = (opts) ->
             dbg("project is available on #{host}")
             if opts.status?
                 opts.status.project_host = host
-
+            cb()
         (cb) ->
             if not host?
                 cb(); return
             dbg("run python script to migrate over from remote")
             misc_node.execute_code
                 command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py"
-                args        : ["migrate_remote", host, opts.project_id]
-                timeout     : opts.timeout
+                args        : ["migrate_remote", host, Math.round(lastmod/1000), opts.project_id]
+                timeout     : 12*60*60 
                 err_on_exit : false
                 cb          : (err, output) ->
                     if err
@@ -4183,7 +4181,7 @@ exports.migrate_bup = (opts) ->
         if err
             database.update
                 table : 'projects'
-                set   : {last_migrate3_error : misc.to_json(err), last_migrated3 : last_migrated3}
+                set   : {last_migrate_bup_error : misc.to_json(err), last_migrate_bup : last_migrate_bup}
                 where : {project_id : opts.project_id}
         opts.cb(err)
     )

@@ -135,7 +135,8 @@ def get_replicas(project_id, data_centers, replication_factor):
     return replicas
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
-    s = [str(x) for x in s]
+    if isinstance(s, list):
+        s = [str(x) for x in s]
     if verbose >= 1:
         if isinstance(s, list):
             t = [x if len(x.split()) <=1  else "'%s'"%x for x in s]
@@ -275,12 +276,12 @@ class Project(object):
 
     def init(self):
         """
-        Create user home directory and corresponding bup repo.
+        Create user home directory and  bup repo.
         """
         log = self._log("create")
         if not os.path.exists(self.bup_path):
             self.cmd(['/usr/bin/bup', 'init'])
-            self.save()
+        self.create_home()
 
     def set_branch(self, branch=''):
         if branch and branch != self.branch:
@@ -635,7 +636,7 @@ class Project(object):
                     s['time'] = time.time() - t
                 else:
                     s['error'] = 'unknown server'
-        print json.dumps(status)
+        return status
 
     def _sync(self, remote, destructive=False, snapshots=True):
         """
@@ -664,7 +665,7 @@ class Project(object):
             # ignore errors, since if we fusemounts a directory (bup snapshots!) then that leads to issues.
             self.cmd(["rsync", "-zaxH", "--delete", "--ignore-errors"] + self.exclude('') +
                       ['-e', 'ssh -o StrictHostKeyChecking=no',
-                      self.project_mnt+'/', "%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
+                      self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
 
         if not snapshots:
             # nothing further to do -- we already sync'd the live files above, if we have any
@@ -673,7 +674,7 @@ class Project(object):
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
             self.cmd(["rsync", "-axH", "--delete", "-e", 'ssh -o StrictHostKeyChecking=no',
-                      self.bup_path+'/', remote+'/'])
+                      self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 
         log("get remote heads")
@@ -739,44 +740,32 @@ class Project(object):
         self.cleanup()
 
 
-    def migrate_remote(self, host, max_snaps=75):
+    def migrate_remote(self, host, lastmod, max_snaps=75):
         log = self._log('migrate_remote')
 
         live_path = "/projects/%s/"%self.project_id
-        snap_path  = os.path.join(live_path, '.zfs/snapshot/'%self.project_id)
+        snap_path  = os.path.join(live_path, '.zfs/snapshot/')
 
         log("is it an abusive bitcoin miner?")
-        x = self.cmd("bup ls master/latest/", ignore_errors=True)  # will fail if nothing local
+        x = self.cmd("bup ls master/latest/", verbose=1, ignore_errors=True)  # will fail if nothing local
         if 'minerd' in x or 'coin' in x:
             log("ABUSE")
             print "ABUSE"
             # nothing more to do
             return
-        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls %s/'"%(host, live_path), ignore_errors=True)
-        if 'minerd' in x or 'coin' in x:
-            log("ABUSE")
-            print "ABUSE"
-            # nothing more to do
-            return
-
-        log("maybe they are not a bitcoin miner after all...")
-        self.init()
-
-        log("get list of remote snapshots")
-        remote_snapshots = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path)).readlines()
-        remote_snapshots.sort()
-
-        log("do we need to do anything?")
-        if len(remote_snapshots) == 0:
-            # this shouldn't come up, but well...
-            print "SUCCESS"
-            return
-        remote_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M:%S")) for s in remote_snapshots]
-        newest_remote = remote_snapshot_times[-1]
+       
+        def sync_out():
+            status = self.sync(replication_factor=2, destructive=True, snapshots=True)
+            print str(status)
+            for r in status:
+                if r.get('error', False):
+                    print "FAIL"
+                    return False
+            return True
 
         log("get list of local snapshots")
         try:
-            local_snapshots = self.cmd("bup ls master/").split()[:-1]
+            local_snapshots = self.cmd("bup ls master/", verbose=1).split()[:-1]
         except:
             local_snapshots = []
         local_snapshots.sort()
@@ -787,13 +776,46 @@ class Project(object):
         else:
             newest_local = local_snapshot_times[-1]
 
-        def sync_out():
-            self.sync(replication_factor=2, destructive=True, snapshots=True)
-
-        if newest_remote <= newest_local:
-            log("nothing more to do -- we have enough")
+        log("newest_local=%s, lastmod=%s"%(newest_local, lastmod))
+        if newest_local+3 >= lastmod:  # 3 seconds due to rounding...
             sync_out()
             print "SUCCESS"
+            return 
+
+        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls %s/'"%(host, live_path), ignore_errors=True, verbose=1)
+        if 'minerd' in x or 'coin' in x:
+            log("ABUSE")
+            print "ABUSE"
+            # nothing more to do
+            return
+
+        log("maybe they are not a bitcoin miner after all...")
+        if not os.path.exists(self.bup_path):
+            self.cmd(['/usr/bin/bup', 'init'])
+
+        log("get list of remote snapshots")
+        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=True) 
+        if 'No such file or' in x:
+            # try to mount and try again
+            self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
+                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600) 
+            x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=False) 
+        remote_snapshots = x.splitlines()
+        remote_snapshots.sort()
+
+        log("do we need to do anything?")
+        if len(remote_snapshots) == 0:
+            # this shouldn't come up, but well...
+            print "SUCCESS"
+            return
+        remote_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M:%S")) for s in remote_snapshots]
+        newest_remote = remote_snapshot_times[-1]
+
+
+        if newest_remote < newest_local: 
+            log("nothing more to do -- we have enough")
+            if sync_out():
+                print "SUCCESS"
             return
 
         log("get some more snapshots")
@@ -809,23 +831,25 @@ class Project(object):
                     w.append(v[-i])
             v = w
 
+        log("in fact, get %s more snapshots"%len(v))
+
         for i in v:
-            path = remote_snapshots[i]
+            path = os.path.join(snap_path, remote_snapshots[i])
             tm   = remote_snapshot_times[i]
 
-            self.cmd(["/usr/bin/bup", "on", host, "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
+            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
+            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', '-d', tm, path])
 
-            what_changed = self.cmd(["/usr/bin/bup", "on", host, "index", '-m', path]).splitlines()
-            if len(what_changed) <= 1:   # 1 since always includes the directory itself
-                # nothing to save -- don't.
-                continue
 
-            self.cmd(["/usr/bin/bup", "on", host, "save", "--strip", "-n", 'master', '-d', tm, path])
+        #log("throw in a copy of the live filesystem, just in case, for free!")
+        #self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
+        #self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
+        if len(v) > 10:
+           log("doing a cleanup too, so we start fresh")
+           self.cleanup()
 
-        if len(v)>20:
-            self.cleanup()
-
-        print "SUCCESS"
+        if sync_out():
+            print "SUCCESS"
 
 
 
@@ -858,6 +882,9 @@ if __name__ == "__main__":
     parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
     parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
 
+    def do_sync(*args, **kwds):
+        status = project.sync(*args, **kwds)
+        print json.dumps(status)
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
     parser_sync.add_argument("--replication_factor", help="number of replicas to sync with in each data center or [2,1,3]=2 in dc0, 1 in dc1, etc.",
                                    dest="replication_factor", default=2, type=int)
@@ -865,9 +892,9 @@ if __name__ == "__main__":
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
                                    dest="snapshots", default=False, action="store_const", const=True)
-    parser_sync.set_defaults(func=lambda args: project.sync(replication_factor = args.replication_factor,
-                                                            destructive        = args.destructive,
-                                                            snapshots          = args.snapshots))
+    parser_sync.set_defaults(func=lambda args: do_sync(replication_factor = args.replication_factor,
+                                                       destructive        = args.destructive,
+                                                       snapshots          = args.snapshots))
 
     parser_account_settings = subparsers.add_parser('account_settings', help='set account_settings for this user; also outputs settings in JSON')
     parser_account_settings.add_argument("--memory", dest="memory", help="memory account_settings in gigabytes",
@@ -916,7 +943,8 @@ if __name__ == "__main__":
 
     parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
     parser_migrate_remote.add_argument("host", help="where migrating from", type=str)
-    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host))
+    parser_migrate_remote.add_argument("lastmod", help="last modification time (in seconds since epoch)", type=float)
+    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host,lastmod=args.lastmod))
 
     args = parser.parse_args()
 
