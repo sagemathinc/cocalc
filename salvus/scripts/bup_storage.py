@@ -765,7 +765,13 @@ class Project(object):
             self.cmd(['/usr/bin/bup', 'init'])
 
         log("get list of remote snapshots")
-        remote_snapshots = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1).splitlines()
+        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=True) 
+        if 'No such file or' in x:
+            # try to mount and try again
+            self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
+                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600) 
+            x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=False) 
+        remote_snapshots = x.splitlines()
         remote_snapshots.sort()
 
         log("do we need to do anything?")
@@ -798,7 +804,7 @@ class Project(object):
                     return False
             return True
 
-        if newest_remote < newest_local:
+        if newest_remote < newest_local: 
             log("nothing more to do -- we have enough")
             if sync_out():
                 print "SUCCESS"
@@ -830,8 +836,8 @@ class Project(object):
         self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
         self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
 
-        if len(v)>20:
-            self.cleanup()
+        log("doing a cleanup too, so we start fresh")
+        self.cleanup()
 
         if sync_out():
             print "SUCCESS"
