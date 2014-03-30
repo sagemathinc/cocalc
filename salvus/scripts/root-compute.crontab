@@ -1,4 +1,4 @@
-# Edit this file to introduce tasks to be run by cron.
+B# Edit this file to introduce tasks to be run by cron.
 # 
 # Each task to run has to be defined through a single line
 # indicating with different fields when the task will be run
@@ -25,14 +25,14 @@
 POOL=bup
 @reboot  /sbin/zpool scrub $POOL
 @daily   /sbin/zpool scrub $POOL
-@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs snapshot -r $POOL@AutoH-`date +"\%FT\%H:\%M"`
-@daily   /sbin/zfs snapshot -r $POOL@AutoD-`date +"\%F"`
-@weekly  /sbin/zfs snapshot -r $POOL@AutoW-`date +"\%Y-\%U"`
-@monthly /sbin/zfs snapshot -r $POOL@AutoM-`date +"\%Y-\%m"`
-@yearly  /sbin/zfs snapshot -r $POOL@AutoY-`date +"\%Y"`
+@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs snapshot -r $POOL/projects@AutoH-`date +"\%FT\%H:\%M"`
+@daily   /sbin/zfs snapshot -r $POOL/projects@AutoD-`date +"\%F"`
+@weekly  /sbin/zfs snapshot -r $POOL/projects@AutoW-`date +"\%Y-\%U"`
+@monthly /sbin/zfs snapshot -r $POOL/projects@AutoM-`date +"\%Y-\%m"`
+@yearly  /sbin/zfs snapshot -r $POOL/projects@AutoY-`date +"\%Y"`
 
-@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoH- | /usr/bin/sort -r | /usr/bin/tail -n +26 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
-@daily   /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoD- | /usr/bin/sort -r | /usr/bin/tail -n +9 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
-@weekly  /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoW- | /usr/bin/sort -r | /usr/bin/tail -n +7 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
-@monthly /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL@AutoM- | /usr/bin/sort -r | /usr/bin/tail -n +14 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+@hourly  /sbin/zpool status $POOL | /usr/bin/egrep -q "scrub completed|none requested" && /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoH- | /usr/bin/sort -r | /usr/bin/tail -n +26 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+@daily   /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoD- | /usr/bin/sort -r | /usr/bin/tail -n +9 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+@weekly  /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoW- | /usr/bin/sort -r | /usr/bin/tail -n +7 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
+@monthly /sbin/zfs list -t snapshot -o name | /usr/bin/grep $POOL/projects@AutoM- | /usr/bin/sort -r | /usr/bin/tail -n +14 | /usr/bin/xargs -n 1 /sbin/zfs destroy -r
 
