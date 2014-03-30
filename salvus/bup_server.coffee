@@ -30,7 +30,11 @@ REGISTRATION_TTL_S      = 60       # ttl for registration record
 
 TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
 
-MIN_SAVE_INTERVAL_S = 120          # never do a save action more frequently than this - more precisely, saves just get ignored until this much time elapses *and* an interesting file changes.
+# never do a save action more frequently than this - more precisely, saves just get
+# ignored until this much time elapses *and* an interesting file changes.
+MIN_SAVE_INTERVAL_S = 120
+
+IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds. 
 
 CONF = "/bup/conf"
 fs.exists CONF, (exists) ->
@@ -279,8 +283,58 @@ bup_queue_len = () ->
     return n
 
 
+idle_timeout = () ->
+    dbg = (m) -> winston.debug("idle_timeout: #{m}")
+    dbg('Periodic check for projects that are running and call "kill --only_if_idle" on them all.')
+    uids = []
+    async.series([
+        (cb) ->
+            dbg("get uids of active projects")
+            misc_node.execute_code
+                command : "ps -Ao uid| sort |uniq"
+                timeout : 30
+                bash    : true
+                cb      : (err, output) =>
+                    if err
+                        cb(err); return
+                    v = output.stdout.split('\n')
+                    dbg("got #{v.length} uids")
+                    for uid in v
+                        uid = parseInt(uid)
+                        if uid > 65535
+                            uids.push(uid)
+                    cb()
+        (cb) ->
+            f = (uid, c) ->
+                misc_node.execute_code
+                    command : "getent passwd '#{uid}' | cut -d: -f6"
+                    timeout : 30
+                    bash    : true
+                    cb      : (err, output) =>
+                        if err
+                            dbg("WARNING: error getting username for uid #{uid} -- #{err}")
+                            c()
+                        else if output.stdout.indexOf('nobody') != -1
+                            c()
+                        else
+                            dbg("#{uid} --> #{output.stdout}")
+                            v = output.stdout.split('/')
+                            project_id = v[v.length-1].trim()
+                            get_project(project_id).action
+                                action : 'stop'
+                                param  : '--only_if_idle'
+                                cb     : (err) ->
+                                    if err
+                                        dbg("WARNING: error stopping #{project_id} -- #{err}")
+                                    c()
+            async.map(uids, f, cb)
+    ])
+
+
 start_tcp_server = (cb) ->
     winston.info("starting tcp server...")
+
+    setInterval(idle_timeout, IDLE_TIMEOUT_INTERVAL_S * 1000)
 
     server = net.createServer (socket) ->
         winston.debug("received connection")
@@ -1198,11 +1252,12 @@ class ClientProject
             cores      : undefined
             disk       : undefined
             inode      : undefined
+            mintime    : undefined
             login_shell: undefined
             cb         : undefined
 
         param = []
-        for x in ['memory', 'cpu_shares', 'cores', 'disk', 'inode', 'login_shell']
+        for x in ['memory', 'cpu_shares', 'cores', 'disk', 'inode', 'mintime', 'login_shell']
             if opts[x]?
                 param.push("--#{x}")
                 param.push(opts[x])

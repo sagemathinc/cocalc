@@ -2787,7 +2787,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         # we do not have to get the whole history from the local hub.
                         socket.on 'data', (data) =>
                             # DO NOT Record in database that there was activity in this project, since
-                            # this is *way* too frequent -- a tmux session make it always on for no reason.
+                            # this is *way* too frequent -- a tmux session make it always on...
                             # database.touch_project(project_id:opts.project_id)
                             socket.history += data
                             n = socket.history.length

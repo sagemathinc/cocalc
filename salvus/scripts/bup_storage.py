@@ -67,7 +67,8 @@ DEFAULT_ACCOUNT_SETTINGS = {
     'memory'     : 8,        # memory in gigabytes
     'cpu_shares' : 256,
     'cores'      : 2,
-    'login_shell': '/bin/bash'
+    'login_shell': '/bin/bash',
+    'mintime'    : 60*60*2,  # default = 2 hours idle (no save) time before kill
 }
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
@@ -102,7 +103,7 @@ def uid(project_id):
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
     n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
     n /= 2  # up to 2^31
-    return n if n>2000 else n+2000
+    return n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
 
 def now():
     return time.strftime('%Y-%m-%dT%H:%M:%S')
@@ -181,18 +182,22 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 class Project(object):
     def __init__(self, project_id):
-        if uuid.UUID(project_id).get_version() != 4:
+        try:
+            assert uuid.UUID(project_id).get_version() == 4
+        except (AssertionError, ValueError):
             raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.project_id            = project_id
         self.uid                   = uid(project_id)
         self.gid                   = self.uid
         self.username              = self.project_id.replace('-','')
+        self.groupname             = self.username
         self.bup_path              = os.path.join(BUP_PATH, project_id)
         self.conf_path             = os.path.join(self.bup_path, "conf")
         self.account_settings_path = os.path.join(self.conf_path, "account-settings.json")
         self.replicas_path         = os.path.join(self.conf_path, "replicas.json")
         self.project_mnt           = os.path.join(PROJECTS_PATH, project_id)
         self.snap_mnt              = os.path.join(self.project_mnt, '.snapshots')
+        self.touch_file            = os.path.join(self.bup_path, "conf", "touch")
         self.HEAD                  = "%s/HEAD"%self.bup_path
         self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
 
@@ -232,8 +237,12 @@ class Project(object):
         self.create_user()
         self.account_settings()
         self.ensure_conf_files()
+        self.touch()
         self.update_daemon_code()
         self.start_daemons()
+        self.umount_snapshots()
+        # TODO: remove this chown once uid defn stabilizes
+        self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
         self.mount_snapshots()
 
     def get_zfs_status(self):
@@ -311,7 +320,30 @@ class Project(object):
         self.makedirs(self.snap_mnt)
         self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
 
-    def stop(self, grace_s=0.5):
+    def touch(self):
+        open(self.touch_file,'w')
+
+    def last_touch_time(self):
+        if os.path.exists(self.touch_file):
+            return os.path.getmtime(self.touch_file) 
+        else:
+            return time.time() # now -- since could be just creating project
+
+    def stop(self, grace_s=0.5, only_if_idle=False):
+        log = self._log('stop')
+        if only_if_idle:
+            log("checking if project is idle regarding saves")
+            mintime = self.get_account_settings()['mintime']
+            if mintime <= 0:
+                log("nope -- it has infinite time")
+            else:
+                last = self.last_touch_time()
+                time_since_last = time.time() - last
+                log(" time_since_last = %s and mintime = %s"%( time_since_last , mintime))
+                if  time_since_last  < mintime:
+                    log("hasn't been long enough -- not stopping")
+                    return
+
         log("killing all processes by user with id %s"%self.uid)
         MAX_TRIES=10
         # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
@@ -370,6 +402,7 @@ class Project(object):
         Save a snapshot.
         """
         log = self._log("save")
+        self.touch()
         self.set_branch(branch)
         if path is None:
             path = self.project_mnt
@@ -494,7 +527,8 @@ class Project(object):
         return account_settings
 
 
-    def account_settings(self, memory=None, cpu_shares=None, cores=None, disk=None, inode=None, login_shell=None, scratch=None):
+    def account_settings(self, memory=None, cpu_shares=None, cores=None, disk=None,
+                         inode=None, login_shell=None, scratch=None, mintime=None):
         log = self._log('account_settings')
         log("configuring account...")
 
@@ -524,6 +558,12 @@ class Project(object):
             account_settings['inode'] = int(inode)
         else:
             inode = account_settings['inode']
+
+        if mintime is not None:
+            account_settings['mintime'] = int(mintime)
+        else:
+            mintime= account_settings['mintime']
+
         if login_shell is not None and os.path.exists(login_shell):
             account_settings['login_shell'] = login_shell
         else:
@@ -873,7 +913,9 @@ if __name__ == "__main__":
     parser_status.set_defaults(func=lambda args: print_status())
 
     parser_stop = subparsers.add_parser('stop', help='Kill all processes running as this user and delete user.')
-    parser_stop.set_defaults(func=lambda args: project.stop())
+    parser_stop.add_argument("--only_if_idle", help="only actually stop the project if the project is idle long enough",
+                                   dest="only_if_idle", default=False, action="store_const", const=True)
+    parser_stop.set_defaults(func=lambda args: project.stop(only_if_idle=args.only_if_idle))
 
     parser_restart = subparsers.add_parser('restart', help='restart servers')
     parser_restart.set_defaults(func=lambda args: project.restart())
@@ -904,13 +946,14 @@ if __name__ == "__main__":
     parser_account_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
                                type=float, default=None)
     parser_account_settings.add_argument("--disk", dest="disk", help="working disk space in megabytes", type=int, default=None)
+    parser_account_settings.add_argument("--mintime", dest="mintime", help="minimum time in seconds before this project is automatically stopped if not saved", type=int, default=None)
     parser_account_settings.add_argument("--scratch", dest="scratch", help="scratch disk space in megabytes", type=int, default=None)
     parser_account_settings.add_argument("--inode", dest="inode", help="inode account_settings", type=int, default=None)
     parser_account_settings.add_argument("--login_shell", dest="login_shell", help="the login shell used when creating user", default=None, type=str)
     parser_account_settings.set_defaults(func=lambda args: project.account_settings(
                     memory=args.memory, cpu_shares=args.cpu_shares,
                     cores=args.cores, disk=args.disk, inode=args.inode,
-                    login_shell=args.login_shell))
+                    login_shell=args.login_shell, mintime=args.mintime))
 
     parser_tag = subparsers.add_parser('tag', help='tag the *latest* commit to master, or delete a tag')
     parser_tag.add_argument("tag", help="tag name", type=str)
