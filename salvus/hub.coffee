@@ -3532,76 +3532,8 @@ is_valid_password = (password) ->
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
 
-# Delete a unix user from some compute vm (as specified by location).
-# NOTE: Since this can get called automatically, and there is the possibility
-# of adding locations not on our VPN, if the location isn't 'localhost' or
-# on the 10.x vpn, then it is an error.
-delete_unix_user = (opts) ->
-    opts = defaults opts,
-        location : required
-        timeout  : 120        # it could take a while to "rm -rf" all files?
-        cb       : undefined
 
-    if opts.location.username.length != 8
-        # this is just a sort of triple check
-        opts.cb?("delete_unix_user: refusing, due to suspicious username (='#{opts.location.username}') with length not 8")
-        return
 
-    misc_node.execute_code
-        command     : 'ssh'
-        args        : ['-o', 'StrictHostKeyChecking=no', opts.location.host, 'sudo',
-                      'delete_unix_user.py', opts.location.username]
-        timeout     : opts.timeout
-        bash        : false
-        err_on_exit : true
-        cb      : (err, output) =>
-            if err
-                winston.debug("failed to delete unix user #{misc.to_json(opts.location)} -- #{err}")
-            opts.cb?(err)
-
-create_unix_user = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        cb         : required
-    host = undefined
-    username = undefined
-    async.series([
-        (cb) ->
-            # first get a computer on which to create an account
-            database.random_compute_server
-                cb  : (err, resp) ->
-                    if err
-                        cb(err)
-                    else
-                        host = resp.host
-                        winston.debug("creating new unix user on #{host}")
-                        cb()
-        (cb) ->
-            # ssh to that computer and create account using script
-            misc_node.execute_code
-                command : 'ssh'
-                args    : ['-o', 'StrictHostKeyChecking=no', host, 'sudo', 'create_unix_user.py', opts.project_id]
-                timeout : 45
-                bash    : false
-                err_on_exit: true
-                cb      : (err, output) =>
-                    if err
-                        winston.debug("failed to create new unix user on #{host} -- #{err}")
-                        cb(err)
-                    else
-                        username = output.stdout.replace(/\s/g, '')
-                        if username.length == 0
-                            winston.debug("FAILED to create new user on #{host}; empty username")
-                            cb("error creating user")
-                        else
-                            winston.debug("created new user #{username} on #{host}")
-                            cb()
-    ], (err) ->
-        if err
-            opts.cb(err)
-        else
-            opts.cb(false, {host:host, username:username, port:22, path:'.'})
-    )
 
 create_account = (client, mesg) ->
     id = mesg.id

@@ -373,7 +373,7 @@ class Project(object):
 
         what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path]).splitlines()
         if len(what_changed) <= 1:   # 1 since always includes the directory itself
-            # nothing to save -- don't.           
+            # nothing to save -- don't.
             return
 
         if timestamp is None:
@@ -727,6 +727,49 @@ class Project(object):
         self.cleanup()
 
 
+    def migrate_remote(self, host, servers_file, max_snaps=100):
+        log = self._log('migrate_remote')
+
+        live_path = "/projects/%s/"%self.project_id
+        snap_path  = os.path.join(live_path, '.zfs/snapshot'%self.project_id)
+
+        log("is it an abusive bitcoin miner?")
+        x = self.cmd("bup ls master/latest/", ignore_errors)  # will fail if nothing local
+        if 'minerd' in x or 'coin' in x:
+            log("ABUSE")
+            print "ABUSE"
+            # nothing more to do
+            return
+        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls %s/'"%(host, live_path), ignore_errors=True)
+        if 'minerd' in x or 'coin' in x:
+            log("ABUSE")
+            print "ABUSE"
+            # nothing more to do
+            return
+
+        log("maybe they are not a bitcoin miner after all...")
+
+        known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
+        v = sorted(os.listdir(snap_path))
+        if len(v) > max_snaps:
+            trim = math.ceil(len(v)/max_snaps)
+            w = [v[i] for i in range(len(v)) if i%trim==0]
+            for i in range(1,5):
+                if w[-i] != v[-i]:
+                    w.append(v[-i])
+            v = w
+
+        v = [snapshot for snapshot in v if snapshot not in known]
+        for i, snapshot in enumerate(v):
+            print "**** %s/%s ****"%(i+1,len(v))
+            tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
+            self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+
+        # migrate is assumed to only ever happen when we haven't been live pushing the project into the replication system.
+        self.cleanup()
+
+
+
 
 
 if __name__ == "__main__":
@@ -816,6 +859,9 @@ if __name__ == "__main__":
 
     parser_migrate_all = subparsers.add_parser('migrate_all', help='migrate all snapshots of project from old ZFS format')
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
+
+    parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
+    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote())
 
     args = parser.parse_args()
 

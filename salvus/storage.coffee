@@ -3973,8 +3973,8 @@ exports.migrate_bup_all = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['last_edited', 'project_id', 'last_migrate_bup', 'last_migrate_bup_error']
-                limit   : limit                 
+                columns : ['last_edited', 'project_id', 'last_migrate_bup', 'last_migrate_bup_error', 'abuser']
+                limit   : limit
                 cb      : (err, result) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
@@ -3988,6 +3988,9 @@ exports.migrate_bup_all = (opts) ->
                             result = result.slice(opts.start)
                         else if opts.stop?
                             result = result.slice(0, opts.stop)
+
+                        # filter out abusers
+                        result = (x for x in result when not x[4]?)
 
                         if opts.only_new
                             result = (x for x in result when not x[2]? and not x[3]?)
@@ -4024,7 +4027,7 @@ exports.migrate_bup_all = (opts) ->
                 if opts.status?
                     stat = {status:'migrating...', project_id:project_id}
                     opts.status.push(stat)
-                exports.migrate3
+                exports.migrate_bup
                     project_id : project_id
                     status     : stat
                     cb         : (err) ->
@@ -4071,5 +4074,125 @@ exports.migrate_bup_all = (opts) ->
 
             async.mapLimit([0...projects.length], opts.limit, f, cb)
     ], (err) -> opts.cb?(err, errors))
+
+
+exports.migrate_bup = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        server     : undefined   # rsync here...
+        status     : undefined
+        cb         : required
+    dbg = (m) -> winston.debug("migrate3(#{opts.project_id}): #{m}")
+    dbg()
+
+    needs_update = undefined
+    last_migrate_bup = cassandra.now()
+    host = opts.host
+    client = undefined
+    last_migrate_bup_error = undefined   # could be useful to know below...
+    abuser = undefined
+    async.series([
+        (cb) ->
+            dbg("getting last migration error...")
+            database.select_one
+                table : 'projects'
+                columns : ['last_migrate_bup_error']
+                where : {project_id : opts.project_id}
+                cb    : (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        last_migrate_bup_error = result[0]
+                        dbg("last_migrate_bup_error = #{last_migrate_bup_error}")
+                        cb()
+        (cb) ->
+            dbg("setting last_migrate_bup_error to start...")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error : "start"}
+                where : {project_id : opts.project_id}
+                cb    : cb
+        (cb) ->
+            if host?
+                cb(); return
+            dbg("get current location of project from database")
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    host = x
+                    cb(err)
+        (cb) ->
+            if host?
+                cb(); return
+            dbg("project not deployed, so choose best host based on snapshots")
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                    # randomize so not all in same DC0...
+                    v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
+                    v.sort()
+                    v.reverse()
+                    dbg("v = #{misc.to_json(v)}")
+                    if v.length == 0
+                        # nothing to do -- project never opened
+                        cb()
+                    else
+                        host = v[0][2]
+                        cb()
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("project is available on #{host}")
+            if opts.status?
+                opts.status.project_host = host
+
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("run python script to migrate over from remote")
+            misc_node.execute_code
+                command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py"
+                args        : ["migrate_remote", host, opts.project_id]
+                timeout     : opts.timeout
+                err_on_exit : false
+                cb          : (err, output) ->
+                    if err
+                        cb(err)
+                    else
+                        out = output.stdout + output.stderr
+                        if out.indexOf('ABUSE') != -1
+                            # mark as an abusive project
+                            abuser = true
+                        if out.indexOf('SUCCESS') != -1
+                            cb()
+                        else
+                            cb(out)
+        (cb) ->
+            dbg("success -- record time of successful migration start in database")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup : last_migrate_bup,  last_migrate_bup_error:undefined, abuser:abuser}
+                where : {project_id : opts.project_id}
+                cb    : cb
+    ], (err) =>
+        if err
+            database.update
+                table : 'projects'
+                set   : {last_migrate3_error : misc.to_json(err), last_migrated3 : last_migrated3}
+                where : {project_id : opts.project_id}
+        opts.cb(err)
+    )
+
+
+
+
+
+
+
+
+
+
+
+
 
 
