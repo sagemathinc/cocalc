@@ -100,8 +100,9 @@ def uid(project_id):
     # user could somehow generate an account id of their choosing, this wouldn't help them get the
     # same uid as another user.
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
-    n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)
-    return n if n>1000 else n+1000
+    n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
+    n /= 2  # up to 2^31
+    return n if n>2000 else n+2000
 
 def now():
     return time.strftime('%Y-%m-%dT%H:%M:%S')
