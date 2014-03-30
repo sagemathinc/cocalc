@@ -142,6 +142,7 @@ class Project
             @_action_queue_current = opts
             cb = opts.cb
             opts.cb = (err,x,y,z) =>
+                cb?(err,x,y,z)
                 delete @_action_queue_current
                 if err
                     # clear the queue
@@ -149,8 +150,15 @@ class Project
                         o.cb?("earlier action '#{o.action}' failed -- #{err}")
                     @_action_queue = []
                 else
+                    if opts.action != 'status'
+                        # remove all the same actions from the queue, since we consider most actions
+                        # idempotent (and even commutative), even if maybe they aren't quite.  This
+                        # simplifies things a lot, so that clients don't have to lock or coordinate actions.
+                        for o in @_action_queue
+                            if o.action == opts.action
+                                o.cb?(err, x, y, z)
+                        @_action_queue = (o for o in @_action_queue when o.action != opts.action)
                     @_process_action_queue()
-                cb?(err,x,y,z)
             @_action(opts)
 
     delete_queue: () =>  # DANGEROUS -- ignores anything "in progress"
@@ -160,7 +168,7 @@ class Project
 
     _action: (opts) =>
         opts = defaults opts,
-            action  : required    # 'sync', 'create', 'mount', 'save', 'snapshot', 'close'
+            action  : required    # sync, save, etc.
             param   : undefined   # if given, should be an array or string
             timeout : TIMEOUT
             cb      : undefined   # cb?(err)
