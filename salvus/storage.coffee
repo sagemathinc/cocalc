@@ -3973,7 +3973,7 @@ exports.migrate_bup_all = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['last_edited', 'project_id', 'last_migrate_bup', 'last_migrate_bup_error', 'abuser']
+                columns : ['last_edited', 'project_id', 'last_migrate_bup', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
                 limit   : limit
                 cb      : (err, result) ->
                     if result?
@@ -3989,8 +3989,13 @@ exports.migrate_bup_all = (opts) ->
                         else if opts.stop?
                             result = result.slice(0, opts.stop)
 
-                        # filter out abusers
+                        dbg("filter out known abusers: before #{result.length}")
                         result = (x for x in result when not x[4]?)
+                        dbg("filter out known abusers: after #{result.length}")
+
+                        dbg("filter out those that haven't ever had a snapshot: before #{result.length}")
+                        result = (x for x in result when not x[5]?)
+                        dbg("filter out those that haven't ever had a snapshot: after #{result.length}")
 
                         if opts.only_new
                             result = (x for x in result when not x[2]? and not x[3]?)

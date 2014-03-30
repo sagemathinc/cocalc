@@ -45,11 +45,16 @@ from uuid import UUID, uuid4
 ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
 
 # The path where bup repos are stored
-BUP_PATH      = '/bup/bups'
+BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
-PROJECTS_PATH = '/projects'
+PROJECTS_PATH  = '/projects'
 
+# Where the server_id is stored
+SERVER_ID_FILE = '/bup/conf/bup_server_id'
+
+# Where the file containing info about all servers is stored
+SERVERS_FILE   = '/bup/conf/bup_servers'
 
 # Default account settings
 
@@ -203,6 +208,7 @@ class Project(object):
         return f
 
     def create_user(self):
+        self.create_home()
         login_shell = self.get_account_settings()['login_shell']
         if self.gid == self.uid:
             self.cmd(['/usr/sbin/groupadd', '-g', self.gid, '-o', self.username], ignore_errors=True)
@@ -219,6 +225,7 @@ class Project(object):
 
     def start(self):
         self.init()
+        self.create_home()
         self.delete_user()
         self.create_user()
         self.account_settings()
@@ -260,15 +267,17 @@ class Project(object):
             s['running'] = False
             return s
 
+    def create_home(self):
+        self._log('create_home')
+        if not os.path.exists(self.project_mnt):
+            self.makedirs(self.project_mnt)
+        os.chown(self.project_mnt, self.uid, self.gid)
 
     def init(self):
         """
         Create user home directory and corresponding bup repo.
         """
         log = self._log("create")
-        if not os.path.exists(self.project_mnt):
-            self.makedirs(self.project_mnt)
-        os.chown(self.project_mnt, self.uid, self.gid)
         if not os.path.exists(self.bup_path):
             self.cmd(['/usr/bin/bup', 'init'])
             self.save()
@@ -429,6 +438,7 @@ class Project(object):
 
     def update_daemon_code(self):
         log = self._log('update_daemon_code')
+        self.create_home()
         target = '/%s/.sagemathcloud/'%self.project_mnt
         self.makedirs(target)
         self.cmd(["rsync", "-zaxHL", "--update", SAGEMATHCLOUD_TEMPLATE+"/", target])
@@ -447,6 +457,7 @@ class Project(object):
     def ensure_conf_files(self):
         log = self._log('ensure_conf_files')
         log("ensure there is a bashrc and bash_profile")
+        self.create_home()
         self.ensure_file_exists(BASHRC_TEMPLATE, os.path.join(self.project_mnt,".bashrc"))
         self.ensure_file_exists(BASH_PROFILE_TEMPLATE, os.path.join(self.project_mnt,".bash_profile"))
 
@@ -528,7 +539,7 @@ class Project(object):
 
         if FILESYSTEM == 'zfs':
             """
-            zpool create -f bup /dev/sdc
+            zpool create -f bup /dev/vdb
             zfs create bup/projects
             zfs set mountpoint=/projects bup/projects
             zfs set dedup=on bup/projects
@@ -593,9 +604,9 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, replication_factor, server_id, servers_file, destructive=False, snapshots=True):
+    def sync(self, replication_factor=2, destructive=False, snapshots=True):
         status = []
-        servers = json.loads(open(servers_file).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
+        servers = json.loads(open(SERVERS_FILE).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
 
         v = {}
         for id, server in servers.iteritems():
@@ -608,6 +619,7 @@ class Project(object):
             data_centers[k] = x
         replicas = get_replicas(self.project_id, data_centers, replication_factor)
 
+        server_id = open(SERVER_ID_FILE).read()
         for replica_id in replicas:
             if replica_id != server_id:
                 s = {'replica_id':replica_id}
@@ -727,14 +739,14 @@ class Project(object):
         self.cleanup()
 
 
-    def migrate_remote(self, host, servers_file, max_snaps=100):
+    def migrate_remote(self, host, max_snaps=75):
         log = self._log('migrate_remote')
 
         live_path = "/projects/%s/"%self.project_id
-        snap_path  = os.path.join(live_path, '.zfs/snapshot'%self.project_id)
+        snap_path  = os.path.join(live_path, '.zfs/snapshot/'%self.project_id)
 
         log("is it an abusive bitcoin miner?")
-        x = self.cmd("bup ls master/latest/", ignore_errors)  # will fail if nothing local
+        x = self.cmd("bup ls master/latest/", ignore_errors=True)  # will fail if nothing local
         if 'minerd' in x or 'coin' in x:
             log("ABUSE")
             print "ABUSE"
@@ -748,10 +760,48 @@ class Project(object):
             return
 
         log("maybe they are not a bitcoin miner after all...")
+        self.init()
 
-        known = set([time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in self.snapshots()])
-        v = sorted(os.listdir(snap_path))
+        log("get list of remote snapshots")
+        remote_snapshots = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path)).readlines()
+        remote_snapshots.sort()
+
+        log("do we need to do anything?")
+        if len(remote_snapshots) == 0:
+            # this shouldn't come up, but well...
+            print "SUCCESS"
+            return
+        remote_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M:%S")) for s in remote_snapshots]
+        newest_remote = remote_snapshot_times[-1]
+
+        log("get list of local snapshots")
+        try:
+            local_snapshots = self.cmd("bup ls master/").split()[:-1]
+        except:
+            local_snapshots = []
+        local_snapshots.sort()
+        local_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in local_snapshots]
+
+        if len(local_snapshots) == 0:
+            newest_local = 0
+        else:
+            newest_local = local_snapshot_times[-1]
+
+        def sync_out():
+            self.sync(replication_factor=2, destructive=True, snapshots=True)
+
+        if newest_remote <= newest_local:
+            log("nothing more to do -- we have enough")
+            sync_out()
+            print "SUCCESS"
+            return
+
+        log("get some more snapshots")
+        # v = indices into remote_snapshots list of the snapshots we need
+        v = [i for i in range(len(remote_snapshots)) if remote_snapshot_times[i] not in local_snapshot_times]
+
         if len(v) > max_snaps:
+            log('shrinking list to save time')
             trim = math.ceil(len(v)/max_snaps)
             w = [v[i] for i in range(len(v)) if i%trim==0]
             for i in range(1,5):
@@ -759,15 +809,23 @@ class Project(object):
                     w.append(v[-i])
             v = w
 
-        v = [snapshot for snapshot in v if snapshot not in known]
-        for i, snapshot in enumerate(v):
-            print "**** %s/%s ****"%(i+1,len(v))
-            tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
-            self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
+        for i in v:
+            path = remote_snapshots[i]
+            tm   = remote_snapshot_times[i]
 
-        # migrate is assumed to only ever happen when we haven't been live pushing the project into the replication system.
-        self.cleanup()
+            self.cmd(["/usr/bin/bup", "on", host, "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
 
+            what_changed = self.cmd(["/usr/bin/bup", "on", host, "index", '-m', path]).splitlines()
+            if len(what_changed) <= 1:   # 1 since always includes the directory itself
+                # nothing to save -- don't.
+                continue
+
+            self.cmd(["/usr/bin/bup", "on", host, "save", "--strip", "-n", 'master', '-d', tm, path])
+
+        if len(v)>20:
+            self.cleanup()
+
+        print "SUCCESS"
 
 
 
@@ -807,11 +865,7 @@ if __name__ == "__main__":
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
                                    dest="snapshots", default=False, action="store_const", const=True)
-    parser_sync.add_argument("server_id", help="uuid of this server", type=str)
-    parser_sync.add_argument("servers_file", help="required filename with json data about all servers; list of maps", type=str)
     parser_sync.set_defaults(func=lambda args: project.sync(replication_factor = args.replication_factor,
-                                                            server_id          = args.server_id,
-                                                            servers_file       = args.servers_file,
                                                             destructive        = args.destructive,
                                                             snapshots          = args.snapshots))
 
@@ -861,7 +915,8 @@ if __name__ == "__main__":
     parser_migrate_all.set_defaults(func=lambda args: project.migrate_all())
 
     parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
-    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote())
+    parser_migrate_remote.add_argument("host", help="where migrating from", type=str)
+    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host))
 
     args = parser.parse_args()
 

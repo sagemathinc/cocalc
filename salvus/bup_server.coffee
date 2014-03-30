@@ -207,8 +207,6 @@ handle_mesg = (socket, mesg) ->
             if mesg.action == 'sync'
                 if not mesg.param?
                     mesg.param = []
-                mesg.param.push(SERVER_ID)
-                mesg.param.push(program.servers_file)
             project = get_project(mesg.project_id)
             project.action
                 action : mesg.action
@@ -361,6 +359,22 @@ start_server = () ->
 ###########################
 ## GlobalClient -- client for working with *all* storage/compute servers
 ###########################
+
+###
+
+# Adding new servers form the coffeescript command line and pushing out config files:
+
+ c=require('cassandra');x={};d=new c.Salvus(hosts:['10.1.11.2'], keyspace:'salvus', username:'salvus', password:fs.readFileSync('/home/salvus/salvus/salvus/data/secrets/cassandra/salvus').toString().trim(),consistency:1,cb:((e,d)->console.log(e);x.d=d))
+
+require('bup_server').global_client(database:x.d, replication_factor:1, cb:(e,c)->x.e=e;x.c=c)
+
+(x.c.register_server(host:"10.1.#{i}.5",dc:0,cb:console.log) for i in [10..21])
+
+(x.c.register_server(host:"10.1.#{i}.5",dc:1,cb:console.log) for i in [1..7])
+
+x.c.push_servers_files(cb:console.log)
+
+###
 
 global_client_cache={}
 
