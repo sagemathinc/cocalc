@@ -275,6 +275,7 @@ CREATE TABLE projects (
      last_edited      timestamp,// timestamp of last modification of the project
 
      bup_location     uuid,     // location using new bup-based storage system
+     settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'inode', 'mintime', 'login_shell'
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 

@@ -34,7 +34,7 @@ TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything eve
 # ignored until this much time elapses *and* an interesting file changes.
 MIN_SAVE_INTERVAL_S = 120
 
-IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds. 
+IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
 CONF = "/bup/conf"
 fs.exists CONF, (exists) ->
@@ -1244,26 +1244,27 @@ class ClientProject
             cb(err, resp?.result)
         @action(opts)
 
-    account_settings: (opts) =>
+    settings: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
             memory     : undefined
             cpu_shares : undefined
             cores      : undefined
             disk       : undefined
+            scratch    : undefined
             inode      : undefined
             mintime    : undefined
             login_shell: undefined
             cb         : undefined
 
         param = []
-        for x in ['memory', 'cpu_shares', 'cores', 'disk', 'inode', 'mintime', 'login_shell']
+        for x in ['memory', 'cpu_shares', 'cores', 'disk', 'scratch', 'inode', 'mintime', 'login_shell']
             if opts[x]?
                 param.push("--#{x}")
                 param.push(opts[x])
         @action
             timeout : opts.timeout
-            action  : 'account_settings'
+            action  : 'settings'
             param   : param
             cb      : opts.cb
 

@@ -60,7 +60,7 @@ REPLICATION_FACTOR = 2
 
 # Default account settings
 
-DEFAULT_ACCOUNT_SETTINGS = {
+DEFAULT_SETTINGS = {
     'disk'       : 3000,     # disk in megabytes
     'scratch'    : 10000,    # disk quota on /scratch
     'inode'      : 200000,   # not used with ZFS
@@ -193,7 +193,7 @@ class Project(object):
         self.groupname             = self.username
         self.bup_path              = os.path.join(BUP_PATH, project_id)
         self.conf_path             = os.path.join(self.bup_path, "conf")
-        self.account_settings_path = os.path.join(self.conf_path, "account-settings.json")
+        self.settings_path         = os.path.join(self.conf_path, "settings.json")
         self.replicas_path         = os.path.join(self.conf_path, "replicas.json")
         self.project_mnt           = os.path.join(PROJECTS_PATH, project_id)
         self.snap_mnt              = os.path.join(self.project_mnt, '.snapshots')
@@ -216,7 +216,7 @@ class Project(object):
 
     def create_user(self):
         self.create_home()
-        login_shell = self.get_account_settings()['login_shell']
+        login_shell = self.get_settings()['login_shell']
         if self.gid == self.uid:
             self.cmd(['/usr/sbin/groupadd', '-g', self.gid, '-o', self.username], ignore_errors=True)
         self.cmd(['/usr/sbin/useradd', '-u', self.uid, '-g', self.gid, '-o', self.username,
@@ -235,7 +235,7 @@ class Project(object):
         self.create_home()
         self.delete_user()
         self.create_user()
-        self.account_settings()
+        self.settings()
         self.ensure_conf_files()
         self.touch()
         self.update_daemon_code()
@@ -325,7 +325,7 @@ class Project(object):
 
     def last_touch_time(self):
         if os.path.exists(self.touch_file):
-            return os.path.getmtime(self.touch_file) 
+            return os.path.getmtime(self.touch_file)
         else:
             return time.time() # now -- since could be just creating project
 
@@ -333,7 +333,7 @@ class Project(object):
         log = self._log('stop')
         if only_if_idle:
             log("checking if project is idle regarding saves")
-            mintime = self.get_account_settings()['mintime']
+            mintime = self.get_settings()['mintime']
             if mintime <= 0:
                 log("nope -- it has infinite time")
             else:
@@ -511,67 +511,67 @@ class Project(object):
         self.cmd(['chown', '-R', '%s:%s'%(self.uid, self.gid), dot_ssh])
         self.cmd(['chmod', 'og-rwx', '-R', dot_ssh])
 
-    def get_account_settings(self):
+    def get_settings(self):
         if not os.path.exists(self.conf_path):
             os.makedirs(self.conf_path)
-        if os.path.exists(self.account_settings_path):
+        if os.path.exists(self.settings_path):
             try:
-                account_settings = json.loads(open(self.account_settings_path).read())
-                for k, v in DEFAULT_ACCOUNT_SETTINGS.iteritems():
-                    if k not in account_settings:
-                        account_settings[k] = v
+                settings = json.loads(open(self.settings_path).read())
+                for k, v in DEFAULT_SETTINGS.iteritems():
+                    if k not in settings:
+                        settings[k] = v
             except (ValueError, IOError), mesg:
-                account_settings = dict(DEFAULT_ACCOUNT_SETTINGS)
+                settings = dict(DEFAULT_SETTINGS)
         else:
-            account_settings = dict(DEFAULT_ACCOUNT_SETTINGS)
-        return account_settings
+            settings = dict(DEFAULT_SETTINGS)
+        return settings
 
 
-    def account_settings(self, memory=None, cpu_shares=None, cores=None, disk=None,
+    def settings(self, memory=None, cpu_shares=None, cores=None, disk=None,
                          inode=None, login_shell=None, scratch=None, mintime=None):
-        log = self._log('account_settings')
+        log = self._log('settings')
         log("configuring account...")
 
-        account_settings = self.get_account_settings()
+        settings = self.get_settings()
 
         if memory is not None:
-            account_settings['memory'] = int(memory)
+            settings['memory'] = int(memory)
         else:
-            memory = account_settings['memory']
+            memory = settings['memory']
         if cpu_shares is not None:
-            account_settings['cpu_shares'] = int(cpu_shares)
+            settings['cpu_shares'] = int(cpu_shares)
         else:
-            cpu_shares = account_settings['cpu_shares']
+            cpu_shares = settings['cpu_shares']
         if cores is not None:
-            account_settings['cores'] = float(cores)
+            settings['cores'] = float(cores)
         else:
-            cores = account_settings['cores']
+            cores = settings['cores']
         if disk is not None:
-            account_settings['disk'] = int(disk)
+            settings['disk'] = int(disk)
         else:
-            disk = account_settings['disk']
+            disk = settings['disk']
         if scratch is not None:
-            account_settings['scratch'] = int(scratch)
+            settings['scratch'] = int(scratch)
         else:
-            scratch = account_settings['scratch']
+            scratch = settings['scratch']
         if inode is not None:
-            account_settings['inode'] = int(inode)
+            settings['inode'] = int(inode)
         else:
-            inode = account_settings['inode']
+            inode = settings['inode']
 
         if mintime is not None:
-            account_settings['mintime'] = int(mintime)
+            settings['mintime'] = int(mintime)
         else:
-            mintime= account_settings['mintime']
+            mintime= settings['mintime']
 
         if login_shell is not None and os.path.exists(login_shell):
-            account_settings['login_shell'] = login_shell
+            settings['login_shell'] = login_shell
         else:
-            login_shell = account_settings['login_shell']
+            login_shell = settings['login_shell']
 
         try:
-            s = json.dumps(account_settings)
-            open(self.account_settings_path,'w').write(s)
+            s = json.dumps(settings)
+            open(self.settings_path,'w').write(s)
             print s
         except IOError:
             pass
@@ -698,7 +698,7 @@ class Project(object):
             if FILESYSTEM == 'zfs':
                 self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", remote,
                           'zfs set userquota@%s=%sM %s/projects'%(
-                                            self.uid, self.get_account_settings()['disk'], ZPOOL)])
+                                            self.uid, self.get_settings()['disk'], ZPOOL)])
             else:
                 raise NotImplementedError
 
@@ -938,21 +938,21 @@ if __name__ == "__main__":
                                                        destructive        = args.destructive,
                                                        snapshots          = args.snapshots))
 
-    parser_account_settings = subparsers.add_parser('account_settings', help='set account_settings for this user; also outputs settings in JSON')
-    parser_account_settings.add_argument("--memory", dest="memory", help="memory account_settings in gigabytes",
+    parser_settings = subparsers.add_parser('settings', help='set settings for this user; also outputs settings in JSON')
+    parser_settings.add_argument("--memory", dest="memory", help="memory settings in gigabytes",
                                type=int, default=None)
-    parser_account_settings.add_argument("--cpu_shares", dest="cpu_shares", help="shares of the cpu",
+    parser_settings.add_argument("--cpu_shares", dest="cpu_shares", help="shares of the cpu",
                                type=int, default=None)
-    parser_account_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
+    parser_settings.add_argument("--cores", dest="cores", help="max number of cores (may be float)",
                                type=float, default=None)
-    parser_account_settings.add_argument("--disk", dest="disk", help="working disk space in megabytes", type=int, default=None)
-    parser_account_settings.add_argument("--mintime", dest="mintime", help="minimum time in seconds before this project is automatically stopped if not saved", type=int, default=None)
-    parser_account_settings.add_argument("--scratch", dest="scratch", help="scratch disk space in megabytes", type=int, default=None)
-    parser_account_settings.add_argument("--inode", dest="inode", help="inode account_settings", type=int, default=None)
-    parser_account_settings.add_argument("--login_shell", dest="login_shell", help="the login shell used when creating user", default=None, type=str)
-    parser_account_settings.set_defaults(func=lambda args: project.account_settings(
+    parser_settings.add_argument("--disk", dest="disk", help="working disk space in megabytes", type=int, default=None)
+    parser_settings.add_argument("--mintime", dest="mintime", help="minimum time in seconds before this project is automatically stopped if not saved", type=int, default=None)
+    parser_settings.add_argument("--scratch", dest="scratch", help="scratch disk space in megabytes", type=int, default=None)
+    parser_settings.add_argument("--inode", dest="inode", help="inode settings", type=int, default=None)
+    parser_settings.add_argument("--login_shell", dest="login_shell", help="the login shell used when creating user", default=None, type=str)
+    parser_settings.set_defaults(func=lambda args: project.settings(
                     memory=args.memory, cpu_shares=args.cpu_shares,
-                    cores=args.cores, disk=args.disk, inode=args.inode,
+                    cores=args.cores, disk=args.disk, inode=args.inode, scratch=args.scratch,
                     login_shell=args.login_shell, mintime=args.mintime))
 
     parser_tag = subparsers.add_parser('tag', help='tag the *latest* commit to master, or delete a tag')

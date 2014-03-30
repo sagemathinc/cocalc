@@ -2456,9 +2456,30 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @dbg("successful connection")
                     @project = project
                     cb(undefined, @)
+                    # no need to wait for this
+                    @update_project_settings()
+
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{m}")
+
+    update_project_settings: (cb) =>
+        dbg = (m) -> winston.debug("local_hub.update_project_settings(#{@project_id}): #{m}")
+        dbg()
+        database.select_one
+            table   : 'projects'
+            columns : ['settings']
+            where   : {project_id: @project_id}
+            cb      : (err, result) =>
+                dbg("got settings from database: #{misc.to_json(result[0])}")
+                if err or not result[0]?   # result[0] = undefined if no special settings
+                    cb?(err)
+                else
+                    opts = result[0]
+                    opts.cb = (err) =>
+                        dbg("set settings for project -- #{err}")
+                        cb?(err)
+                    @project.settings(opts)
 
     close: (cb) =>
         dbg = (m) -> winston.debug("local_hub.close(#{@project_id}): #{m}")
@@ -2569,11 +2590,14 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     restart: (cb) =>
         @dbg("restart")
-        @update_project (err) =>
-            if err
-                cb(err)
-            else
+        async.series([
+            (cb) =>
+                @update_project(cb)
+            (cb) =>
                 @project.restart(cb:cb)
+            (cb) =>
+                @update_project_settings(cb)
+        ], cb)
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
@@ -2920,14 +2944,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     project_id   : opts.project_id
             timeout : 30
             cb      : opts.cb
-
-    _restart_local_hub_daemons: (cb) =>
-        @dbg("_restart_local_hub_daemon-- #{@username}@#{@host}")
-        @update_project (err) =>
-            if err
-                cb(err)
-            else
-                @project.restart(cb:cb)
 
     killall: (cb) =>
         @dbg("kill all processes running on a local hub (including the local hub itself)")
