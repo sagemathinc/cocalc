@@ -4092,18 +4092,20 @@ exports.migrate_bup = (opts) ->
     client = undefined
     last_migrate_bup_error = undefined   # could be useful to know below...
     abuser = undefined
+    lastmod = undefined
     async.series([
         (cb) ->
             dbg("getting last migration error...")
             database.select_one
                 table : 'projects'
-                columns : ['last_migrate_bup_error']
+                columns : ['last_migrate_bup_error', 'last_snapshot']
                 where : {project_id : opts.project_id}
                 cb    : (err, result) =>
                     if err
                         cb(err)
                     else
                         last_migrate_bup_error = result[0]
+                        lastmod = result[1]
                         dbg("last_migrate_bup_error = #{last_migrate_bup_error}")
                         cb()
         (cb) ->
@@ -4153,7 +4155,7 @@ exports.migrate_bup = (opts) ->
             dbg("run python script to migrate over from remote")
             misc_node.execute_code
                 command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py"
-                args        : ["migrate_remote", host, opts.project_id]
+                args        : ["migrate_remote", host, Math.round(lastmod/1000), opts.project_id]
                 timeout     : 12*60*60 
                 err_on_exit : false
                 cb          : (err, output) ->

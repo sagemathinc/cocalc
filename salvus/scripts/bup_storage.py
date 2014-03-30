@@ -740,7 +740,7 @@ class Project(object):
         self.cleanup()
 
 
-    def migrate_remote(self, host, max_snaps=75):
+    def migrate_remote(self, host, lastmod, max_snaps=75):
         log = self._log('migrate_remote')
 
         live_path = "/projects/%s/"%self.project_id
@@ -753,6 +753,35 @@ class Project(object):
             print "ABUSE"
             # nothing more to do
             return
+       
+        def sync_out():
+            status = self.sync(replication_factor=2, destructive=True, snapshots=True)
+            print str(status)
+            for r in status:
+                if r.get('error', False):
+                    print "FAIL"
+                    return False
+            return True
+
+        log("get list of local snapshots")
+        try:
+            local_snapshots = self.cmd("bup ls master/", verbose=1).split()[:-1]
+        except:
+            local_snapshots = []
+        local_snapshots.sort()
+        local_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in local_snapshots]
+
+        if len(local_snapshots) == 0:
+            newest_local = 0
+        else:
+            newest_local = local_snapshot_times[-1]
+
+        log("newest_local=%s, lastmod=%s"%(newest_local, lastmod))
+        if newest_local+3 >= lastmod:  # 3 seconds due to rounding...
+            sync_out()
+            print "SUCCESS"
+            return 
+
         x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls %s/'"%(host, live_path), ignore_errors=True, verbose=1)
         if 'minerd' in x or 'coin' in x:
             log("ABUSE")
@@ -782,27 +811,6 @@ class Project(object):
         remote_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M:%S")) for s in remote_snapshots]
         newest_remote = remote_snapshot_times[-1]
 
-        log("get list of local snapshots")
-        try:
-            local_snapshots = self.cmd("bup ls master/", verbose=1).split()[:-1]
-        except:
-            local_snapshots = []
-        local_snapshots.sort()
-        local_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in local_snapshots]
-
-        if len(local_snapshots) == 0:
-            newest_local = 0
-        else:
-            newest_local = local_snapshot_times[-1]
-
-        def sync_out():
-            status = self.sync(replication_factor=2, destructive=True, snapshots=True)
-            print str(status)
-            for r in status:
-                if r.get('error', False):
-                    print "FAIL"
-                    return False
-            return True
 
         if newest_remote < newest_local: 
             log("nothing more to do -- we have enough")
@@ -935,7 +943,8 @@ if __name__ == "__main__":
 
     parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
     parser_migrate_remote.add_argument("host", help="where migrating from", type=str)
-    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host))
+    parser_migrate_remote.add_argument("lastmod", help="last modification time (in seconds since epoch)", type=float)
+    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host,lastmod=args.lastmod))
 
     args = parser.parse_args()
 
