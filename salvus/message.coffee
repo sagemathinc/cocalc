@@ -74,6 +74,17 @@ message
     project_id    : undefined
     info          : undefined
 
+
+
+
+
+message
+    event         : 'project_status'
+    id            : undefined
+    project_id    : undefined
+    status        : undefined
+
+
 #
 # A period ping message must usually be sent by the client to keep a
 # worksheet/console open, except when worksheet/console is explicitly

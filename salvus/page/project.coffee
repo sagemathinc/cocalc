@@ -864,6 +864,17 @@ class ProjectPage
             usage = @container.find(".project-disk_usage")
             # --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage
             @_computing_usage = true
+            salvus_client.project_status
+                project_id : @project.project_id
+                cb         : (err, status) =>
+                    delete @_computing_usage
+                    zfs = status.zfs
+                    usage.show()
+                    for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
+                        usage.find(".salvus-#{a}").text(zfs[a])
+
+
+            ###
             salvus_client.exec
                 project_id : @project.project_id
                 command    : 'df -h $HOME'
@@ -879,6 +890,7 @@ class ProjectPage
                         usage.find(".salvus-usage-used").text(o[2])
                         usage.find(".salvus-usage-avail").text(o[3])
                         usage.find(".salvus-usage-percent").text(o[4])
+            ###
 
         return @
 

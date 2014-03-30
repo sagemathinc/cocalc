@@ -1357,6 +1357,21 @@ class Client extends EventEmitter
                         else
                             @push_to_client(message.project_session_info(id:mesg.id, info:info))
 
+    mesg_project_status: (mesg) =>
+        winston.debug("mesg_project_status")
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            else
+                project.local_hub.project.status
+                    cb   : (err, status) =>
+                        delete status.secret_token
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.project_status(id:mesg.id, status:status))
+
+
 
     mesg_update_project_data: (mesg) =>
         winston.debug("mesg_update_project_data")
