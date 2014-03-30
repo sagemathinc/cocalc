@@ -208,17 +208,6 @@ class ProjectPage
         else
             @container.find(".project-size-label").hide()
 
-        # Set the project location
-        #if @project.location?
-        #    l = @project.location
-        #    l = "#{l.username}@#{l.host}:#{l.path}" + (if l.port != 22 then " -p #{l.port}" else "")
-        #    @container.find(".project-location").text(l)#.attr('contenteditable', true).blur () ->
-            #    alert_message(message:"Changing project location not yet implemented.", type:'info')
-                # TODO -- actually implement project location change -- show a notification and send
-                # a message if makes sense; otherwise, don't.  Also, we should store all past
-                # project location in the database, and make it possible for the user to see them (?).
-                # console.log('changed to ', $(@).text())
-
         # Make it so editing the title and description of the project
         # sends a message to the hub.
         that = @
@@ -344,8 +333,8 @@ class ProjectPage
                 @display_tab("project-search")
 
     set_location: () =>
-        if @project.location? and @project.location.host?
-            x = @project.location.host
+        if @project.bup_location?
+            x = @project.bup_location
         else
             x = "..."
         @container.find(".project-location").text(x)

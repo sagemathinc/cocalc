@@ -753,7 +753,7 @@ class Project(object):
             print "ABUSE"
             # nothing more to do
             return
-       
+
         def sync_out():
             status = self.sync(replication_factor=2, destructive=True, snapshots=True)
             print str(status)
@@ -780,7 +780,7 @@ class Project(object):
         if newest_local+3 >= lastmod:  # 3 seconds due to rounding...
             sync_out()
             print "SUCCESS"
-            return 
+            return
 
         x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls %s/'"%(host, live_path), ignore_errors=True, verbose=1)
         if 'minerd' in x or 'coin' in x:
@@ -794,12 +794,12 @@ class Project(object):
             self.cmd(['/usr/bin/bup', 'init'])
 
         log("get list of remote snapshots")
-        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=True) 
+        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=True)
         if 'No such file or' in x:
             # try to mount and try again
             self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600) 
-            x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=False) 
+                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
+            x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=False)
         remote_snapshots = x.splitlines()
         remote_snapshots.sort()
 
@@ -812,7 +812,7 @@ class Project(object):
         newest_remote = remote_snapshot_times[-1]
 
 
-        if newest_remote < newest_local: 
+        if newest_remote < newest_local:
             log("nothing more to do -- we have enough")
             if sync_out():
                 print "SUCCESS"

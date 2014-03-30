@@ -88,7 +88,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'bup_location', 'size', 'deleted'].concat(PROJECT_GROUPS)
 
 # This is used in account creation right now, so has to be set.
 # It is actually not used in practice and the limits have no meaning.
@@ -2355,7 +2355,6 @@ class exports.Salvus extends exports.Cassandra
                 if error
                     opts.cb(error)
                 else
-
                     for r in results
                         # fill in a default name for the project -- used in the URL
                         if not r.name and r.title?
