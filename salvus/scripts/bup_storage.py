@@ -276,12 +276,12 @@ class Project(object):
 
     def init(self):
         """
-        Create user home directory and corresponding bup repo.
+        Create user home directory and  bup repo.
         """
         log = self._log("create")
         if not os.path.exists(self.bup_path):
             self.cmd(['/usr/bin/bup', 'init'])
-            self.save()
+        self.create_home()
 
     def set_branch(self, branch=''):
         if branch and branch != self.branch:
@@ -761,7 +761,8 @@ class Project(object):
             return
 
         log("maybe they are not a bitcoin miner after all...")
-        self.init()
+        if not os.path.exists(self.bup_path):
+            self.cmd(['/usr/bin/bup', 'init'])
 
         log("get list of remote snapshots")
         remote_snapshots = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1).splitlines()
@@ -797,7 +798,7 @@ class Project(object):
                     return False
             return True
 
-        if newest_remote <= newest_local:
+        if newest_remote < newest_local:
             log("nothing more to do -- we have enough")
             if sync_out():
                 print "SUCCESS"
@@ -816,6 +817,8 @@ class Project(object):
                     w.append(v[-i])
             v = w
 
+        log("in fact, get %s more snapshots"%len(v))
+
         for i in v:
             path = os.path.join(snap_path, remote_snapshots[i])
             tm   = remote_snapshot_times[i]
@@ -823,10 +826,14 @@ class Project(object):
             self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
             self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', '-d', tm, path])
 
+        log("throw in a copy of the live filesystem, just in case, for free!")
+        self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
+        self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
+
         if len(v)>20:
             self.cleanup()
 
-        if self.sync_out():
+        if sync_out():
             print "SUCCESS"
 
 
