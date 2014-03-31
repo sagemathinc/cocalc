@@ -86,20 +86,6 @@ cloud19  {'hostname':'compute19dc0',  'vcpus':newcompute_cpu,   'ram':newcompute
 cloud20  {'hostname':'compute20dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':newbase, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 cloud21  {'hostname':'compute21dc0',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':newbase, 'disk':'bup:1024:none:qcow2', 'vnc':13100}
 
-# bup storage
-cloud10  {'hostname':'bup10',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud11  {'hostname':'bup11',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud12  {'hostname':'bup12',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud13  {'hostname':'bup13',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud14  {'hostname':'bup14',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud15  {'hostname':'bup15',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud16  {'hostname':'bup16',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud17  {'hostname':'bup17',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud18  {'hostname':'bup18',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud19  {'hostname':'bup19',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud20  {'hostname':'bup20',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-cloud21  {'hostname':'bup21',  'vcpus':newcompute_cpu,   'ram':newcompute_ram,   'base':baset, 'disk':'projects:512:none:qcow2', 'vnc':13200}
-
 
 # compute vm's
 cloud1   {'hostname':'compute1a',  'vcpus':compute_cpu,   'ram':compute_ram,   'base':base, 'disk':'home:256:ext4:qcow2,projects:512:none:qcow2,storage:512:none:qcow2', 'vnc':13000}
