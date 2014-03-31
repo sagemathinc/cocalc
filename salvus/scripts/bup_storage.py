@@ -796,7 +796,7 @@ class Project(object):
         if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
             # try to mount and try again
             self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
+                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=180)
             if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
                 print "FAIL -- unable to mount"
                 return
@@ -806,6 +806,7 @@ class Project(object):
 
         log("save local copy to local repo")
         self.save(sync=False, mnt=False)
+        log("cleaning up local repo")
         self.cleanup()
         log("syncing remotely...")
         status = self.sync(replication_factor=REPLICATION_FACTOR, destructive=True, snapshots=True, set_quotas=False)

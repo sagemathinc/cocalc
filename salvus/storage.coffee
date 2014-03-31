@@ -4088,7 +4088,8 @@ exports.migrate_bup = (opts) ->
 
     needs_update = undefined
     last_migrate_bup = cassandra.now()
-    host = opts.host
+    host = undefined 
+    hosts = undefined
     client = undefined
     last_migrate_bup_error = undefined   # could be useful to know below...
     abuser = undefined
@@ -4125,9 +4126,7 @@ exports.migrate_bup = (opts) ->
                     host = x
                     cb(err)
         (cb) ->
-            if host?
-                cb(); return
-            dbg("project not deployed, so choose best host based on snapshots")
+            dbg("get ordered list of hosts, based on newest snapshots")
             get_snapshots
                 project_id : opts.project_id
                 cb         : (err, snapshots) ->
@@ -4135,41 +4134,60 @@ exports.migrate_bup = (opts) ->
                     v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
                     v.sort()
                     v.reverse()
+                    v = (x[2] for x in v when x[2] != host)
+                    if host?
+                        v = [host].concat(v)
                     dbg("v = #{misc.to_json(v)}")
                     if v.length == 0
                         # nothing to do -- project never opened
+                        hosts = undefined
                         cb()
                     else
-                        host = v[0][2]
+                        hosts = v
                         cb()
         (cb) ->
-            if not host?
+            if not hosts?
                 cb(); return
-            dbg("project is available on #{host}")
+            dbg("project is available on #{hosts}")
             if opts.status?
-                opts.status.project_host = host
+                opts.status.hosts = hosts
             cb()
         (cb) ->
-            if not host?
+            if not hosts?
                 cb(); return
-            dbg("run python script to migrate over from remote")
-            misc_node.execute_code
-                command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py"
-                args        : ["migrate_remote", host, Math.round(lastmod/1000), opts.project_id]
-                timeout     : 12*60*60 
-                err_on_exit : false
-                cb          : (err, output) ->
-                    if err
-                        cb(err)
-                    else
-                        out = output.stdout + output.stderr
-                        if out.indexOf('ABUSE') != -1
-                            # mark as an abusive project
-                            abuser = true
-                        if out.indexOf('SUCCESS') != -1
-                            cb()
+            done = false
+            errors = {}
+            f = (host, c) ->
+                if done
+                    c(); return
+                dbg("run python script to migrate over from #{host}")
+                misc_node.execute_code
+                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py"
+                    args        : ["migrate_remote", host, Math.round(lastmod/1000), opts.project_id]
+                    timeout     : 60*60 
+                    err_on_exit : false
+                    cb          : (err, output) ->
+                        if err
+                            errors[host] = err
+                            c()
                         else
-                            cb(out)
+                            out = output.stdout + output.stderr
+                            if out.indexOf('ABUSE') != -1
+                                done = true
+                                # mark as an abusive project
+                                abuser = true
+                            if out.indexOf('SUCCESS') != -1
+                                done = true
+                                c()
+                            else
+                                errors[host] = output.stderr
+                                c()
+ 
+            async.mapSeries hosts, f, (err) ->
+                if not done
+                    cb("unable to migrate from any host! -- #{misc.to_json(errors)}")
+                else
+                    cb()
         (cb) ->
             dbg("success -- record time of successful migration start in database")
             database.update
