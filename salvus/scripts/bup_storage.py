@@ -292,6 +292,7 @@ class Project(object):
         if not os.path.exists(self.bup_path):
             self.cmd(['/usr/bin/bup', 'init'])
         self.create_home()
+        self.makedirs(self.conf_path)
 
     def set_branch(self, branch=''):
         if branch and branch != self.branch:
@@ -781,6 +782,7 @@ class Project(object):
 
     def migrate_remote(self, host, lastmod, max_snaps=10):
         log = self._log('migrate_remote')
+        self.init()
 
         log("check if remote is mounted")
         if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, self.project_mnt), verbose=1, ignore_errors=True):
