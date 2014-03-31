@@ -873,17 +873,24 @@ class Project(object):
 
         log("in fact, get %s more snapshots"%len(v))
 
+        just_get_home = False
         for i in v:
             path = os.path.join(snap_path, remote_snapshots[i])
             tm   = remote_snapshot_times[i]
 
-            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
+            try:
+                self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(path+'/') + [path],
+                         timeout=600)
+            except:
+                just_get_home = True
+                break
             self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', '-d', tm, path])
 
+        if just_get_home:
+            log("problems indexing zfs snapshots -- so just get a copy of the live filesystem")
+            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
+            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
 
-        #log("throw in a copy of the live filesystem, just in case, for free!")
-        #self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
-        #self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
         if len(v) > 10:
            log("doing a cleanup too, so we start fresh")
            self.cleanup()
