@@ -780,7 +780,7 @@ class Project(object):
         self.cleanup()
 
 
-    def migrate_remote(self, host, lastmod, max_snaps=75):
+    def migrate_remote(self, host, lastmod, max_snaps=10):
         log = self._log('migrate_remote')
 
         live_path = "/projects/%s/"%self.project_id
@@ -891,7 +891,7 @@ class Project(object):
             self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
             self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
 
-        if len(v) > 10:
+        if len(v) > 5:
            log("doing a cleanup too, so we start fresh")
            self.cleanup()
 
