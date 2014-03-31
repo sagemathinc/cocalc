@@ -37,9 +37,11 @@ Install script:
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math
+import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
+
+USERNAME =  pwd.getpwuid(os.getuid())[0]
 
 # If using ZFS:
 ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
@@ -49,6 +51,7 @@ BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
+PROJECTS_PATH  = '/home/salvus/vm/images/projects'
 
 # Where the server_id is stored
 SERVER_ID_FILE = '/bup/conf/bup_server_id'
@@ -112,7 +115,8 @@ def ensure_file_exists(src, target):
     if not os.path.exists(target):
         shutil.copyfile(src, target)
         s = os.stat(os.path.split(target)[0])
-        os.chown(target, s.st_uid, s.st_gid)
+        if USERNAME == "root":
+            os.chown(target, s.st_uid, s.st_gid)
 
 def check_uuid(uuid):
     if UUID(uuid).version != 4:
@@ -282,7 +286,8 @@ class Project(object):
         self._log('create_home')
         if not os.path.exists(self.project_mnt):
             self.makedirs(self.project_mnt)
-        os.chown(self.project_mnt, self.uid, self.gid)
+        if USERNAME == "root":
+            os.chown(self.project_mnt, self.uid, self.gid)
 
     def init(self):
         """
@@ -292,6 +297,7 @@ class Project(object):
         if not os.path.exists(self.bup_path):
             self.cmd(['/usr/bin/bup', 'init'])
         self.create_home()
+        self.makedirs(self.conf_path)
 
     def set_branch(self, branch=''):
         if branch and branch != self.branch:
@@ -397,7 +403,7 @@ class Project(object):
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
         return ['--exclude=%s'%(prefix+x) for x in excludes]
 
-    def save(self, path=None, timestamp=None, branch=None, sync=True):
+    def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True):
         """
         Save a snapshot.
         """
@@ -411,7 +417,7 @@ class Project(object):
         # when it hits a fuse filesystem.   TODO: somehow be more careful that each
         self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
 
-        what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path]).splitlines()
+        what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=0).splitlines()
         if len(what_changed) <= 1:   # 1 since always includes the directory itself
             # nothing to save -- don't.
             return
@@ -419,7 +425,7 @@ class Project(object):
         if timestamp is None:
             timestamp = time.time()
         self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
-        if path == self.project_mnt:
+        if mnt and path == self.project_mnt:
             self.mount_snapshots()
 
         if sync:
@@ -468,7 +474,8 @@ class Project(object):
         if not os.path.exists(path):
             log("creating %s"%path)
             os.makedirs(path, mode=0700)
-        os.chown(path, self.uid, self.gid)
+        if USERNAME == "root":
+            os.chown(path, self.uid, self.gid)
 
     def update_daemon_code(self):
         log = self._log('update_daemon_code')
@@ -486,7 +493,8 @@ class Project(object):
         if not os.path.exists(target):
             self.makedirs(os.path.split(target)[0])
             shutil.copyfile(src, target)
-            os.chown(target, self.uid, self.gid)
+            if USERNAME == "root":
+                os.chown(target, self.uid, self.gid)
 
     def ensure_conf_files(self):
         log = self._log('ensure_conf_files')
@@ -645,7 +653,7 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
+    def sync(self, replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True, set_quotas=True):
         status = []
         servers = json.loads(open(SERVERS_FILE).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
 
@@ -670,7 +678,7 @@ class Project(object):
                     s['host'] = remote
                     t = time.time()
                     try:
-                        self._sync(remote=remote, destructive=destructive, snapshots=snapshots)
+                        self._sync(remote=remote, destructive=destructive, snapshots=snapshots, set_quotas=set_quotas)
                     except Exception, err:
                         s['error'] = str(err)
                     s['time'] = time.time() - t
@@ -678,7 +686,7 @@ class Project(object):
                     s['error'] = 'unknown server'
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True):
+    def _sync(self, remote, destructive=False, snapshots=True, set_quotas=True):
         """
         NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
 
@@ -694,13 +702,14 @@ class Project(object):
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
         if os.path.exists(self.project_mnt):
-            # set remote disk quota, so rsync doesn't fail due to missing space.
-            if FILESYSTEM == 'zfs':
-                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", remote,
-                          'zfs set userquota@%s=%sM %s/projects'%(
+            if set_quotas:
+                # set remote disk quota, so rsync doesn't fail due to missing space.
+                if FILESYSTEM == 'zfs':
+                    self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
+                              'zfs set userquota@%s=%sM %s/projects'%(
                                             self.uid, self.get_settings()['disk'], ZPOOL)])
-            else:
-                raise NotImplementedError
+                else:
+                    raise NotImplementedError
 
             # ignore errors, since if we fusemounts a directory (bup snapshots!) then that leads to issues.
             self.cmd(["rsync", "-zaxH", "--delete", "--ignore-errors"] + self.exclude('') +
@@ -718,7 +727,7 @@ class Project(object):
             return
 
         log("get remote heads")
-        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", remote,
+        out = self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
                         'grep -H \"\" %s/refs/heads/*'%remote_bup_path], ignore_errors=True)
         if 'such file or directory' in out:
             remote_heads = []
@@ -731,11 +740,11 @@ class Project(object):
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
         self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
-                  self.bup_path + '/', "%s:%s/"%(remote, remote_bup_path)])
+                  self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
         back = self.cmd(["rsync", "-vaxH", "-e", 'ssh -o StrictHostKeyChecking=no',
-                         "%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
+                         "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
             # so user can get their files if anything important got overwritten.
@@ -750,7 +759,7 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', self.bup_path+'/', remote+'/'])
+                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', self.bup_path+'/', 'root@'+remote+'/'])
         if os.path.exists(self.project_mnt):
             log("mount snapshots")
             self.mount_snapshots()
@@ -781,22 +790,32 @@ class Project(object):
 
     def migrate_remote(self, host, lastmod, max_snaps=10):
         log = self._log('migrate_remote')
-
+        self.init()
+        project_mnt = '/projects/%s'%self.project_id
         log("check if remote is mounted")
-        if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, self.project_mnt), verbose=1, ignore_errors=True):
+        if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
             # try to mount and try again
             self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
                    host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
-            if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, self.project_mnt), verbose=1, ignore_errors=True):
+            if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
                 print "FAIL -- unable to mount"
                 return
 
         log("rsync from remote to local")
-        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(self.exclude(self.project_mnt), host, self.project_mnt, self.project_mnt))
+        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(' '.join(self.exclude(project_mnt)), host, project_mnt, self.project_mnt))
 
         log("save local copy to local repo")
-        self.save(sync=True)
+        self.save(sync=False, mnt=False)
+        self.cleanup()
+        log("syncing remotely...")
+        status = self.sync(replication_factor=REPLICATION_FACTOR, destructive=True, snapshots=True, set_quotas=False)
+        print str(status)
+        for r in status:
+            if r.get('error', False):
+                print "FAIL"
+                return False
         print "SUCCESS"
+        return True
 
     def xxx_migrate_remote(self, host, lastmod, max_snaps=10):
         log = self._log('migrate_remote')

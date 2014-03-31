@@ -4046,7 +4046,7 @@ exports.migrate_bup_all = (opts) ->
                             if stat?
                                 stat.status='failed'
                                 stat.error = err
-                                stat.walltime = misc.walltime(tm)
+                                stat.walltime = tm
                             fail += 1
                         else
                             if stat?
