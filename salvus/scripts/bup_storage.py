@@ -779,8 +779,26 @@ class Project(object):
         # migrate is assumed to only ever happen when we haven't been live pushing the project into the replication system.
         self.cleanup()
 
-
     def migrate_remote(self, host, lastmod, max_snaps=10):
+        log = self._log('migrate_remote')
+
+        log("check if remote is mounted")
+        if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, self.project_mnt), verbose=1, ignore_errors=True):
+            # try to mount and try again
+            self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
+                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
+            if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, self.project_mnt), verbose=1, ignore_errors=True):
+                print "FAIL -- unable to mount"
+                return
+
+        log("rsync from remote to local")
+        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(self.exclude(self.project_mnt), host, self.project_mnt, self.project_mnt))
+
+        log("save local copy to local repo")
+        self.save(sync=True)
+        print "SUCCESS"
+
+    def xxx_migrate_remote(self, host, lastmod, max_snaps=10):
         log = self._log('migrate_remote')
 
         live_path = "/projects/%s/"%self.project_id
