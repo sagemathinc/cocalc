@@ -1278,13 +1278,6 @@ class Client extends EventEmitter
                     quota       : DEFAULTS.quota   # TODO -- account based
                     idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb
-            (cb) =>
-                dbg("create backend project storage")
-                bup_server.project
-                    project_id : project_id
-                    cb         : (err, project) =>
-                        host = project.client.host
-                        cb(err)
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")
@@ -1365,10 +1358,11 @@ class Client extends EventEmitter
             else
                 project.local_hub.project.status
                     cb   : (err, status) =>
-                        delete status.secret_token
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
+                            if status?
+                                delete status.secret_token
                             @push_to_client(message.project_status(id:mesg.id, status:status))
 
 
@@ -2609,10 +2603,20 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             (cb) =>
                 @update_project(cb)
             (cb) =>
-                @project.restart(cb:cb)
+                @project.restart
+                    cb : (err) =>
+                        if err
+                           # try to reconnect, then try to restart again.
+                           @reconnect (err) =>
+                              if not err
+                                  @project.restart(cb:cb)
+                              else
+                                  cb(err)
+                        else
+                           cb()
             (cb) =>
                 @update_project_settings(cb)
-        ], cb)
+        ], cb) 
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,

@@ -960,8 +960,8 @@ class GlobalClient
                 health_a = @servers[a.replica_id]?.health
                 health_b = @servers[b.replica_id]?.health
                 if health_a? and health_b?
-                    health_a = Math.round(5*health_a)
-                    health_b = Math.round(5*health_b)
+                    health_a = Math.round(3.8*health_a)
+                    health_b = Math.round(3.8*health_b)
                     if health_a < health_b
                         # b is better
                         return 1

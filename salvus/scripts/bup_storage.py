@@ -792,7 +792,7 @@ class Project(object):
                 return
 
         log("rsync from remote to local")
-        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(self.exclude(self.project_mnt), host, self.project_mnt, self.project_mnt))
+        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(' '.join(self.exclude(self.project_mnt)), host, self.project_mnt, self.project_mnt))
 
         log("save local copy to local repo")
         self.save(sync=True)
