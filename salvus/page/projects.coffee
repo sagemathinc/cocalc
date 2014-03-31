@@ -413,7 +413,7 @@ new_project_button = $("#projects-create_project-button-create_project").click (
         description = $("#projects-create_project-description").attr("placeholder")
 
     new_project_button.icon_spin(start:true)
-    alert_message(message:"Creating new project '#{title}'.  Project will automatically appear in the list in about 30 seconds.", timeout:30)
+    alert_message(message:"Creating new project '#{title}'.  Project will automatically appear in the list in a few seconds.", timeout:10)
     salvus_client.create_project
         title       : title
         description : description
