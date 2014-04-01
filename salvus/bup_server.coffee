@@ -1195,15 +1195,40 @@ class ClientProject
     works: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
-            cb         : required
-        @status
-            timeout : opts.timeout
-            cb      : (err, status) =>
-                if err
-                    opts.cb(undefined, false)   # doesn't work.
-                else
-                    # probably should give a better test (?)
-                    opts.cb(undefined, status?['local_hub.port']?)
+            cb         : required   # cb(undefined, true if works)    -- never errors, since "not works=error"
+        # using status for now -- may want to use something cheaper (?)
+        works = false
+        async.series([
+            (cb) =>
+                @status
+                    timeout : opts.timeout
+                    cb      : (err, status) =>
+                        if err or not status?['local_hub.port']?
+                            cb()
+                        else
+                            works = true
+                            cb()
+            (cb) =>
+                if works
+                    cb(); return
+                @restart(cb : cb)
+            (cb) =>
+                if works
+                    cb(); return
+                @status
+                    timeout : opts.timeout
+                    cb      : (err, status) =>
+                        if err or not status?['local_hub.port']?
+                            cb()
+                        else
+                            works = true
+                            cb()
+        ], (err) =>
+            if err or not works
+                opts.cb(undefined, false)
+            else
+                opts.cb(undefined, true)
+        )
 
     stop: (opts) =>
         opts = defaults opts,

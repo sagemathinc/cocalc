@@ -320,7 +320,9 @@ CREATE TABLE projects (
      linked_projects      set<uuid>,   // projects that this one links to.
 
 
-     timeout_disabled  boolean // if true, never automatically kill this project simply due to it sitting around unused.
+     timeout_disabled  boolean, // if true, never automatically kill this project simply due to it sitting around unused.
+
+     abuser varchar
 
 );
 

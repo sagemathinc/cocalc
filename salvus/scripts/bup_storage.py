@@ -51,7 +51,7 @@ BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
-PROJECTS_PATH  = '/home/salvus/vm/images/projects'
+#PROJECTS_PATH  = '/home/salvus/vm/images/projects'
 
 # Where the server_id is stored
 SERVER_ID_FILE = '/bup/conf/bup_server_id'
