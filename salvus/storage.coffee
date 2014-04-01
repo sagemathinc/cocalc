@@ -3953,6 +3953,7 @@ exports.migrate_bup_all = (opts) ->
         max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
         only_new : false       # only try to migrate projects we haven't tried to migrate before.
         timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
+        exclude : []
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
     projects = undefined
@@ -4088,7 +4089,7 @@ exports.migrate_bup = (opts) ->
 
     needs_update = undefined
     last_migrate_bup = cassandra.now()
-    host = undefined 
+    host = undefined
     hosts = undefined
     client = undefined
     last_migrate_bup_error = undefined   # could be useful to know below...
@@ -4164,7 +4165,7 @@ exports.migrate_bup = (opts) ->
                 misc_node.execute_code
                     command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py"
                     args        : ["migrate_remote", host, Math.round(lastmod/1000), opts.project_id]
-                    timeout     : 60*60 
+                    timeout     : 60*60
                     err_on_exit : false
                     cb          : (err, output) ->
                         if err
@@ -4182,7 +4183,7 @@ exports.migrate_bup = (opts) ->
                             else
                                 errors[host] = output.stderr
                                 c()
- 
+
             async.mapSeries hosts, f, (err) ->
                 if not done
                     cb("unable to migrate from any host! -- #{misc.to_json(errors)}")
