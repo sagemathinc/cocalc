@@ -1390,7 +1390,7 @@ class Monitor(object):
                 dedup = float(x[14][:-1])
                 health = x[15]
                 d.update({'size':size, 'alloc':alloc, 'free':free, 'cap':cap, 'dedup':dedup, 'health':health})
-                if free < 12 or d['health'] != 'ONLINE':
+                if free < 5 or d['health'] != 'ONLINE':
                     d['status'] = 'down'  # little free ==> start receiving scary emails!
                 else:
                     d['status'] = 'up'

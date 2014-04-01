@@ -400,7 +400,7 @@ class Project(object):
         shutil.rmtree(self.bup_path)
 
     def exclude(self, prefix):
-        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots']
+        excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', 'core']
         return ['--exclude=%s'%(prefix+x) for x in excludes]
 
     def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True):
@@ -802,7 +802,7 @@ class Project(object):
                 return
 
         log("rsync from remote to local")
-        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(' '.join(self.exclude(project_mnt)), host, project_mnt, self.project_mnt))
+        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt))
 
         log("save local copy to local repo")
         self.save(sync=False, mnt=False)
