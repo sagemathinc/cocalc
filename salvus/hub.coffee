@@ -2455,28 +2455,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
         @project = bup_server.get_project(@project_id)
-        #@update_project_settings()   # no need to wait for this
+        cb(undefined, @)
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{m}")
-
-    update_project_settings: (cb) =>
-        dbg = (m) -> winston.debug("local_hub.update_project_settings(#{@project_id}): #{m}")
-        dbg()
-        database.select_one
-            table   : 'projects'
-            columns : ['settings']
-            where   : {project_id: @project_id}
-            cb      : (err, result) =>
-                dbg("got settings from database: #{misc.to_json(result[0])}")
-                if err or not result[0]?   # result[0] = undefined if no special settings
-                    cb?(err)
-                else
-                    opts = result[0]
-                    opts.cb = (err) =>
-                        dbg("set settings for project -- #{err}")
-                        cb?(err)
-                    @project.settings(opts)
 
     close: (cb) =>
         winston.debug("local_hub.close(#{@project_id}): #{m}")

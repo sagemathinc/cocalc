@@ -121,7 +121,7 @@ get_port = (type, cb) ->   # cb(err, port number)
                     ports[type] = parseInt(content)
                     cb(false, ports[type])
                 catch e
-                    cb("console_server port file corrupted")
+                    cb("#{type}_server port file corrupted")
 
 forget_port = (type) ->
     if ports[type]?

@@ -112,6 +112,11 @@ class Project
             timeout : TIMEOUT
             param   : undefined   # if given, should be an array or string
             cb      : undefined   # cb?(err)
+
+        if opts.action == 'get_state'
+            @get_state(cb : (err, state) => opts.cb?(err, state))
+            return 
+
         state  = undefined
         result = undefined
         # STATES: stopped, starting, running, restarting, stopping, saving, error
@@ -236,9 +241,10 @@ class Project
         @_action
             action : 'status'
             cb     : (err, status) =>
+                @dbg("get_state",'',"basing on status=#{misc.to_json(status)}")
                 if err
                     @state = 'error'
-                else if status.running
+                else if status.running and status['console_server.port']? and status['local_hub.port']?
                     @state = 'running'
                 else
                     @state = 'stopped'
@@ -482,7 +488,25 @@ x.c.push_servers_files(cb:console.log)
 class GlobalProject
     constructor: (@project_id, @global_client) ->
         @database = @global_client.database
- 
+        # we make an attempt to maintain stickiness to a given machine by setting the @_next_start_target
+        @get_location_pref (err, result) =>
+            if not err and result? 
+                winston.debug("setting prefered start target for project #{@project_id} to #{result[0]}")
+                @_next_start_target = result[0] 
+   
+    get_location_pref: (cb) =>
+        @database.select_one
+            table   : "projects"
+            columns : ["bup_location"]
+            where   : {project_id : @project_id}
+            cb      : cb
+    set_location_pref: (location, cb) =>
+        @database.update
+            table : "projects"
+            set   : {bup_location:location}
+            where   : {project_id : @project_id}
+            cb      : cb
+
     # starts project if necessary, waits until it is running, and 
     # gets the hostname port where the local hub is serving.
     local_hub_address: (opts) =>
@@ -539,6 +563,7 @@ class GlobalProject
                 (cb) =>
                     if port?
                         dbg("success -- we got our host")
+                        @_update_project_settings()   # non-blocking -- might as well do this on success.
                         cb()
                     else
                         dbg("fail -- not working yet")
@@ -565,6 +590,27 @@ class GlobalProject
                             opts.cb(undefined, {host:host, port:port, status:status})
          f()
           
+
+    _update_project_settings: (cb) =>
+        dbg = (m) -> winston.debug("GlobalProject.update_project_settings(#{@project_id}): #{m}")
+        dbg()
+        @database.select_one
+            table   : 'projects'
+            columns : ['settings']
+            where   : {project_id: @project_id}
+            cb      : (err, result) =>
+                dbg("got settings from database: #{misc.to_json(result[0])}")
+                if err or not result[0]?   # result[0] = undefined if no special settings
+                    cb?(err)
+                else
+                    opts = result[0]
+                    opts.cb = (err) =>
+                        if err
+                            dbg("set settings for project -- #{err}")
+                        else
+                            dbg("successful set settings")
+                        cb?(err)
+                    @settings(opts)
 
     start: (opts) =>
         opts = defaults opts,
@@ -603,9 +649,26 @@ class GlobalProject
                     @_stop_all(running_on.slice(1))
                     opts.cb?()
 
+
+    restart: (opts) =>
+        dbg = (m) -> winston.debug("GlobalProject.restart(#{@project_id}): #{m}")
+        dbg()
+        @running_project
+            cb : (err, project) =>
+                if err
+                    dbg("unable to determine running project -- #{err}")
+                    opts.cb(err)
+                else if project?
+                    dbg("project is running somewhere, so restart it there")
+                    project.restart(opts)
+                else
+                    dbg("project not running anywhere, so start it somewhere")
+                    @start(opts)
+
+
     save: (opts) =>
         opts = defaults opts,
-            cb : required
+            cb : undefined
         @get_host_where_running
             cb : (err, server_id) => 
                 if err
@@ -639,47 +702,60 @@ class GlobalProject
                         server_id : server_id
                         cb        : opts.cb
 
+    # return status of *running* project, if running somewhere, or {}.
     status: (opts) =>
         @running_project
             cb : (err, project) =>
                 if err 
                     opts.cb(err)
-                else
+                else if project?
                     project.status(opts)  
+                else
+                    opts.cb(undefined, {})  # no running project, so no status
 
+    # set settings of running project, if running somewhere, or an error.
     settings: (opts) =>
         @running_project
             cb : (err, project) =>
                 if err 
-                    opts.cb(err)
-                else
+                    opts.cb?(err)
+                else if project?
                     project.settings(opts)  
+                else
+                    opts.cb?("project not running anywhere")
 
     stop: (opts) =>
         opts = defaults opts,
-            cb : required
+            cb : undefined
         @get_host_where_running
             cb : (err, server_id) => 
                 if err
-                    opts.cb(err)
+                    opts.cb?(err)
                 else if not server_id?
-                    opts.cb() # not running anywhere -- nothing to save
+                    opts.cb?() # not running anywhere -- nothing to save
                 else
                     @_stop_all([server_id])
-                    opts.cb()
+                    opts.cb?()
 
     move: (opts) =>
         opts = defaults opts,
             target : undefined
-            cb     : required
+            cb     : undefined
         @_next_start_target = opts.target
+        dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
+        dbg()
         @get_host_where_running
             cb : (err, server_id) => 
                 if err
-                    opts.cb(err)
+                    dbg("error determining info about running status -- #{err}")
+                    opts.cb?(err)
                 else
                     @_next_start_avoid = server_id
-                    @stop(cb:cb) 
+                    if not server_id?
+                        @start(cb:opts.cb)
+                    else
+                        # next time user gets something to work, it'll happen on new machine
+                        @stop(cb:opts.cb) 
 
     get_host_where_running: (opts) =>
         opts = defaults opts,
@@ -694,6 +770,7 @@ class GlobalProject
                 else
                     running_on.sort() # sort so any client doing the same thing will kill the same other ones.
                     @_stop_all(running_on.slice(1))
+                    @set_location_pref(running_on[0])   # remember in db so we'll prefer this host in future
                     opts.cb(undefined, running_on[0])
   
     _stop_all: (v) =>
@@ -760,7 +837,7 @@ class GlobalProject
     # guaranteed to return length > 0
     get_state: (opts) =>
         opts = defaults opts,
-            timeout : 15
+            timeout : 7
             cb      : required
         dbg = (m) -> winston.info("get_state: #{m}")
         dbg()
@@ -780,13 +857,15 @@ class GlobalProject
             (cb) =>
                 dbg("query each server for the project's state there")
                 f = (server_id, cb) =>
-                    #dbg("query #{server_id} for state")
+                    dbg("query #{server_id} for state")
                     project = undefined
                     async.series([
                         (cb) =>
                             @project
                                 server_id : server_id
                                 cb        : (err, p) =>
+                                    if err
+                                        dbg("failed to get project on server #{server_id} -- #{err}")
                                     project = p
                                     cb(err)
                         (cb) =>

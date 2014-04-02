@@ -2418,7 +2418,7 @@ class ProjectPage
                     alert_message
                         type    : "info"
                         message : "Restarting project server..."
-                        timeout : 15
+                        timeout : 5
                     salvus_client.restart_project_server
                         project_id : @project.project_id
                         cb         : cb

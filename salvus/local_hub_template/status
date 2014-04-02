@@ -38,7 +38,7 @@ read('version', os.path.join(SMC, "salvus_version.js"), strip=True, int_value=Tr
 # a simple test that the node modules are probably installed.
 set('installed', os.path.exists(os.path.join(SMC, 'installed')))
 
-for name in ['secret_token', 'local_hub.port', 'raw.port']:
+for name in ['secret_token', 'local_hub.port', 'raw.port', 'console_server.port', 'sage_server.port']:
     read(name, os.path.join(SMC, 'data', name))
 
 ## set('disk_usage', int(os.popen('du -s "%s"'%project_path).read().split()[0]))
