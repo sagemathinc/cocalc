@@ -16,7 +16,7 @@ def set(prop, val):
     if val is False:
         done()
 
-def read(prop, filename, strip=False, int_value=False):
+def read(prop, filename, strip=False, int_value=False, to_int=False):
     try:
         s = open(filename).read()
         if strip:
@@ -28,6 +28,8 @@ def read(prop, filename, strip=False, int_value=False):
                 pass
         if int_value:
             s = int(s.split('=')[1])
+        if to_int:
+            s = int(s)
         status[prop] = s
     except:
         status[prop] = False
@@ -38,8 +40,9 @@ read('version', os.path.join(SMC, "salvus_version.js"), strip=True, int_value=Tr
 # a simple test that the node modules are probably installed.
 set('installed', os.path.exists(os.path.join(SMC, 'installed')))
 
-for name in ['secret_token', 'local_hub.port', 'raw.port', 'console_server.port', 'sage_server.port']:
-    read(name, os.path.join(SMC, 'data', name))
+for name in ['secret_token', 'local_hub.port', 'raw.port', 'console_server.port', 'sage_server.port', 'local_hub.pid', 'console_server.pid']:
+    to_int = 'port' in name or 'pid' in name
+    read(name, os.path.join(SMC, 'data', name), to_int=to_int)
 
 ## set('disk_usage', int(os.popen('du -s "%s"'%project_path).read().split()[0]))
 

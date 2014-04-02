@@ -260,6 +260,7 @@ class Project(object):
             return None
 
     def status(self):
+        log = self._log("status")
         s = {'username':self.username, 'uid':self.uid, 'gid':self.gid, 'settings':self.get_settings()}
         try:
             s['newest_snapshot'] = self.newest_snapshot()
@@ -276,7 +277,17 @@ class Project(object):
         try:
             t = json.loads(self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30))
             s.update(t)
-            s['running'] = True
+            for x in ['local_hub', 'console_server']:
+                if '%s.pid'%x in s:
+                    # check that really is such a process
+                    try:
+                        os.kill(s['%s.pid'%x], 0)
+                    except OSError:
+                        log("surprise -- process %s.pid not running"%x) 
+                        del s['%s.pid'%x]
+                        if '%s.port'%x in t:
+                            del s['%s.port'%x]
+            s['running'] = 'local_hub.pid' in s
             return s
         except:
             s['running'] = False
@@ -739,7 +750,7 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, 
+        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
@@ -759,7 +770,7 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', 
+                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
                           '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
         if os.path.exists(self.project_mnt):
             log("mount snapshots")

@@ -32,11 +32,11 @@ winston.add(winston.transports.Console, level: 'debug')
 REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
-TIMEOUT = 60*60  
+TIMEOUT = 60*60
 
 # never do a save action more frequently than this - more precisely, saves just get
 # ignored until this much time elapses *and* an interesting file changes.
-MIN_SAVE_INTERVAL_S = 120
+MIN_SAVE_INTERVAL_S = 60
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
@@ -115,7 +115,7 @@ class Project
 
         if opts.action == 'get_state'
             @get_state(cb : (err, state) => opts.cb?(err, state))
-            return 
+            return
 
         state  = undefined
         result = undefined
@@ -221,7 +221,7 @@ class Project
 
                 dbg("Doing action #{opts.action} that involves executing script")
                 args = [opts.action]
-                if opts.param?
+                if opts.param? and opts.param != 'force'
                     if typeof opts.param == 'string'
                         opts.param = misc.split(opts.param)  # turn it into an array
                     args = args.concat(opts.param)
@@ -233,8 +233,25 @@ class Project
     get_state: (opts) =>
         opts = defaults opts,
             cb : required
+
         if @state?
-            opts.cb(undefined, @state); return
+            if @state in ['running', 'saving']
+                #winston.debug("get_state -- confirming running status")
+                @_action
+                    action : 'status'
+                    cb     : (err, status) =>
+                        #winston.debug("get_state -- confirming based on status=#{misc.to_json(status)}")
+                        if err
+                            @state = 'error'
+                        else if not status.running
+                            #winston.debug("get_state got a status of #{misc.to_json(status)}")
+                            # must have got killed somehow
+                            @state = 'stopped'
+                        opts.cb(undefined, @state)
+            else
+                #winston.debug("get_state -- trusting running status")
+                opts.cb(undefined, @state)
+            return
         # We -- the server running on this compute node -- don't know the state of this project.
         # This might happen if the server were restarted, the machine rebooted, the project not
         # ever started, here, etc.  So we run a script and try to guess a state.
@@ -244,7 +261,7 @@ class Project
                 @dbg("get_state",'',"basing on status=#{misc.to_json(status)}")
                 if err
                     @state = 'error'
-                else if status.running and status['console_server.port']? and status['local_hub.port']?
+                else if status.running
                     @state = 'running'
                 else
                     @state = 'stopped'
@@ -490,10 +507,10 @@ class GlobalProject
         @database = @global_client.database
         # we make an attempt to maintain stickiness to a given machine by setting the @_next_start_target
         @get_location_pref (err, result) =>
-            if not err and result? 
+            if not err and result?
                 winston.debug("setting prefered start target for project #{@project_id} to #{result[0]}")
-                @_next_start_target = result[0] 
-   
+                @_next_start_target = result[0]
+
     get_location_pref: (cb) =>
         @database.select_one
             table   : "projects"
@@ -507,7 +524,7 @@ class GlobalProject
             where   : {project_id : @project_id}
             cb      : cb
 
-    # starts project if necessary, waits until it is running, and 
+    # starts project if necessary, waits until it is running, and
     # gets the hostname port where the local hub is serving.
     local_hub_address: (opts) =>
         opts = defaults opts,
@@ -520,7 +537,7 @@ class GlobalProject
            @_local_hub_address
                timeout : opts.timeout
                cb      : (err, r) =>
-                   for cb in @_local_hub_address_queue 
+                   for cb in @_local_hub_address_queue
                        cb(err, r)
                    delete @_local_hub_address_queue
 
@@ -529,7 +546,7 @@ class GlobalProject
             timeout : 30
             cb : required      # cb(err, {host:hostname, port:port})
         dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
-        dbg() 
+        dbg()
         server_id = undefined
         port      = undefined
         status    = undefined
@@ -555,9 +572,9 @@ class GlobalProject
                                 if err
                                     cb(err)
                                 else
-                                    project.status  
+                                    project.status
                                         cb : (err, _status) =>
-                                            status = _status 
+                                            status = _status
                                             port = status?['local_hub.port']
                                             cb()
                 (cb) =>
@@ -583,13 +600,13 @@ class GlobalProject
                         setTimeout(f, 2000)
                     else
                         # success!?
-                        host = @global_client.servers[server_id]?.host 
+                        host = @global_client.servers[server_id]?.host
                         if not host?
                             opts.cb("unknown server #{server_id}")
                         else
                             opts.cb(undefined, {host:host, port:port, status:status})
          f()
-          
+
 
     _update_project_settings: (cb) =>
         dbg = (m) -> winston.debug("GlobalProject.update_project_settings(#{@project_id}): #{m}")
@@ -614,11 +631,11 @@ class GlobalProject
 
     start: (opts) =>
         opts = defaults opts,
-            cb     : undefined 
+            cb     : undefined
         @get_state
             cb : (err, state) =>
                 if err
-                      opts.cb?(err); return 
+                      opts.cb?(err); return
                 running_on = (server_id for server_id, s of state when s in ['running', 'starting', 'restarting', 'saving'])
                 if running_on.length == 0
                     # find a place to run it
@@ -628,11 +645,11 @@ class GlobalProject
                     if @_next_start_avoid? and v.length > 1
                         v = (server_id for server_id in v when server_id != @_next_start_avoid)
                     if @_next_start_target? and @_next_start_target in v
-                        server_id = @_next_start_target 
+                        server_id = @_next_start_target
                     else
                         server_id = misc.random_choice(v)
                     delete @_next_start_target
-                    delete @_next_start_avoid 
+                    delete @_next_start_avoid
 
                     @project
                         server_id:server_id
@@ -641,7 +658,7 @@ class GlobalProject
                                opts.cb?(err)
                            else
                                project.start(cb : opts.cb)
-                else if running_on.length == 1 
+                else if running_on.length == 1
                     opts.cb?()   # done -- nothing further to do
                 else
                     # running on more than one -- repair by killing all but first
@@ -670,7 +687,7 @@ class GlobalProject
         opts = defaults opts,
             cb : undefined
         @get_host_where_running
-            cb : (err, server_id) => 
+            cb : (err, server_id) =>
                 if err
                     opts.cb?(err)
                 else if not server_id?
@@ -692,7 +709,7 @@ class GlobalProject
         opts = defaults opts,
             cb : required   # (err, project)
         @get_host_where_running
-            cb : (err, server_id) => 
+            cb : (err, server_id) =>
                 if err
                     opts.cb?(err)
                 else if not server_id?
@@ -706,10 +723,10 @@ class GlobalProject
     status: (opts) =>
         @running_project
             cb : (err, project) =>
-                if err 
+                if err
                     opts.cb(err)
                 else if project?
-                    project.status(opts)  
+                    project.status(opts)
                 else
                     opts.cb(undefined, {})  # no running project, so no status
 
@@ -717,10 +734,10 @@ class GlobalProject
     settings: (opts) =>
         @running_project
             cb : (err, project) =>
-                if err 
+                if err
                     opts.cb?(err)
                 else if project?
-                    project.settings(opts)  
+                    project.settings(opts)
                 else
                     opts.cb?("project not running anywhere")
 
@@ -728,7 +745,7 @@ class GlobalProject
         opts = defaults opts,
             cb : undefined
         @get_host_where_running
-            cb : (err, server_id) => 
+            cb : (err, server_id) =>
                 if err
                     opts.cb?(err)
                 else if not server_id?
@@ -745,7 +762,7 @@ class GlobalProject
         dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
         @get_host_where_running
-            cb : (err, server_id) => 
+            cb : (err, server_id) =>
                 if err
                     dbg("error determining info about running status -- #{err}")
                     opts.cb?(err)
@@ -755,7 +772,7 @@ class GlobalProject
                         @start(cb:opts.cb)
                     else
                         # next time user gets something to work, it'll happen on new machine
-                        @stop(cb:opts.cb) 
+                        @stop(cb:opts.cb)
 
     get_host_where_running: (opts) =>
         opts = defaults opts,
@@ -763,16 +780,17 @@ class GlobalProject
         @get_state
             cb : (err, state) =>
                 if err
-                      opts.cb(err); return 
+                      opts.cb(err); return
                 running_on = (server_id for server_id, s of state when s in ['running', 'starting', 'restarting', 'saving'])
                 if running_on.length == 0
                     opts.cb()
                 else
                     running_on.sort() # sort so any client doing the same thing will kill the same other ones.
-                    @_stop_all(running_on.slice(1))
-                    @set_location_pref(running_on[0])   # remember in db so we'll prefer this host in future
-                    opts.cb(undefined, running_on[0])
-  
+                    server_id = running_on[0]
+                    @_stop_all(  (x for x,s in state when x != server_id)  )
+                    @set_location_pref(server_id)   # remember in db so we'll prefer this host in future
+                    opts.cb(undefined, server_id)
+
     _stop_all: (v) =>
         if v.length == 0
             return
@@ -782,8 +800,8 @@ class GlobalProject
                 server_id:server_id
                 cb : (err, project) =>
                     if not err
-                        project.stop()
-           
+                        project.stop(force:true)
+
     # get local copy of project on a specific host
     project: (opts) =>
         opts = defaults opts,
@@ -817,7 +835,7 @@ class GlobalProject
             columns : ['bup_last_save']
             cb      : (err, result) =>
                 if err
-                    opts.cb(err)  
+                    opts.cb(err)
                 else
                     if result.length == 0 or not result[0][0]?
                         hosts = []
@@ -831,7 +849,7 @@ class GlobalProject
                          for server_id in hosts
                              last_save[server_id] = n
                          @set_last_save(last_save: last_save)
-                    opts.cb(undefined, hosts)  
+                    opts.cb(undefined, hosts)
 
     # determine the global state by querying *all servers*
     # guaranteed to return length > 0
@@ -875,7 +893,7 @@ class GlobalProject
                                     if err
                                         dbg("error getting state on #{server_id} -- #{err}")
                                         s = 'error'
-                                    @state[server_id] = s 
+                                    @state[server_id] = s
                                     cb()
                     ], cb)
 
@@ -1664,8 +1682,12 @@ class ClientProject
     stop: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
+            force      : false
             cb         : undefined
         opts.action = 'stop'
+        if opts.force
+            opts.param = 'force'
+            delete opts.force
         @action(opts)
 
 

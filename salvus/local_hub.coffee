@@ -96,7 +96,7 @@ init_info_json = () ->
     if not host?  # some testing setup not on the vpn
         host = require('os').networkInterfaces().eth1?[0].address
         if not host?
-            host = 'localhost' 
+            host = 'localhost'
     base_url   = ''
     port       = 22
     INFO =
@@ -126,6 +126,50 @@ get_port = (type, cb) ->   # cb(err, port number)
 forget_port = (type) ->
     if ports[type]?
         delete ports[type]
+
+# try to restart the console server and get port where it is listening
+restart_console_server = (cb) ->   # cb(err)
+    port_file = abspath("#{DATA}/console_server.port")
+    dbg = (m) -> winston.debug("restart_console_server: #{m}")
+    port = undefined
+    async.series([
+        (cb) ->
+            dbg("remove port_file=#{port_file}")
+            fs.unlink port_file, (err) ->
+                cb() # ignore error, e.g., if file not there.
+        (cb) ->
+            dbg("restart console server")
+            misc_node.execute_code
+                command     : "console_server restart"
+                timeout     : 10
+                err_on_exit : true
+                bash        : true
+                cb          : cb
+        (cb) ->
+            dbg("wait a little to see if #{port_file} appears, and if so read it and return port")
+            t = misc.walltime()
+            f = (cb) ->
+                if misc.walltime() - t > 5  # give up
+                    cb(); return
+                fs.exists port_file, (exists) ->
+                    if not exists
+                        cb(true)
+                    else
+                        fs.readFile port_file, (err, data) ->
+                            if err
+                                cb(err)
+                            else
+                                try
+                                    port = parseInt(data.toString())
+                                    cb()
+                                catch
+                                    cb('reading port corrupt')
+            misc.retry_until_success
+                f  : f
+                cb : cb
+    ], (err) =>
+        cb(err, port)
+    )
 
 
 class ConsoleSessions
@@ -162,12 +206,18 @@ class ConsoleSessions
             get_port 'console', (err, port) =>
                 winston.debug("got console server port = #{port}")
                 if err
-                    winston.debug("can't determine console server port; probably console server not running")
-                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
+                    winston.debug("can't determine console server port; probably console server not running -- try restarting it")
+                    restart_console_server (err, port) =>
+                        if err
+                            client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of console server."))
+                        else
+                            @_new_session(client_socket, mesg, port, session?.history)
                 else
                     @_new_session(client_socket, mesg, port, session?.history)
 
-    _new_session: (client_socket, mesg, port, history) =>
+    _new_session: (client_socket, mesg, port, history, cnt) =>
+        if not cnt?
+            cnt = 0
         winston.debug("_new_session: defined by #{json(mesg)}")
         # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
         misc_node.connect_to_locked_socket
@@ -175,10 +225,22 @@ class ConsoleSessions
             token : secret_token
             cb : (err, console_socket) =>
                 if err
+                    winston.debug("_new_session - error connecting to locked console socket -- #{err}")
                     forget_port('console')
-                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to console server."))
-                    winston.debug("_new_session: console server denied connection")
-                    return
+                    if cnt >= 3
+                        # too many tries -- give up
+                        client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- TOO MANY problems connecting to console server."))
+                        winston.debug("_new_session: console server denied connection too many times")
+                        return
+                    winston.debug("_new_session -- not too many (=#{cnt}) tries -- try to restart console server and try again.")
+                    restart_console_server (err, port) =>
+                        if err or not port?
+                            # even restarting console server failed
+                            client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to console server."))
+                            winston.debug("_new_session: console server denied connection")
+                        else
+                            @_new_session(client_socket, mesg, port, history, cnt+1)
+                        return
                 # Request a Console session from console_server
                 misc_node.enable_mesg(console_socket)
                 console_socket.write_mesg('json', mesg)
