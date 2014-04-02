@@ -71,7 +71,7 @@ DEFAULT_SETTINGS = {
     'cpu_shares' : 256,
     'cores'      : 2,
     'login_shell': '/bin/bash',
-    'mintime'    : 60*60*2,  # default = 2 hours idle (no save) time before kill
+    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
 }
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
@@ -246,7 +246,7 @@ class Project(object):
         self.start_daemons()
         self.umount_snapshots()
         # TODO: remove this chown once uid defn stabilizes
-        self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
+        #self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
         self.mount_snapshots()
 
     def get_zfs_status(self):
@@ -260,7 +260,7 @@ class Project(object):
             return None
 
     def status(self):
-        s = {'username':self.username, 'uid':self.uid, 'gid':self.gid}
+        s = {'username':self.username, 'uid':self.uid, 'gid':self.gid, 'settings':self.get_settings()}
         try:
             s['newest_snapshot'] = self.newest_snapshot()
             s['bup'] = 'working'

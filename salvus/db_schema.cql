@@ -278,7 +278,6 @@ CREATE TABLE projects (
      bup_state        map<uuid, text>,
      bup_last_save    map<uuid, timestamp>,
 
-
      settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'inode', 'mintime', 'login_shell'
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}

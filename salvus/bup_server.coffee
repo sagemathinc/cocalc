@@ -28,7 +28,7 @@ HashRing  = require 'hashring'
 REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
-TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
+TIMEOUT = 60*60  
 
 # never do a save action more frequently than this - more precisely, saves just get
 # ignored until this much time elapses *and* an interesting file changes.
@@ -571,7 +571,163 @@ x.c.push_servers_files(cb:console.log)
 class GlobalProject
     constructor: (@project_id, @global_client) ->
         @database = @global_client.database
+ 
+    # starts project if necessary, waits until it is running, and 
+    # gets the hostname port where the local hub is serving.
+    local_hub_address: (opts) =>
+        opts = defaults opts,
+            timeout : 30
+            cb : required      # cb(err, {host:hostname, port:port})
+        dbg = (m) -> winston.debug("local_hub_address(#{@project_id}): #{m}")
+        dbg() 
+        server_id = undefined
+        port      = undefined
+        attempt = (cb) =>
+            dbg("making an attempt to start")
+            async.series([
+                (cb) =>
+                    dbg("see if host running")
+                    @get_host_where_running
+                        cb : (err, s) =>
+                            port = undefined
+                            server_id = s
+                            cb(err)
+                (cb) =>
+                    if not server_id?
+                        dbg("not running anywhere, so try to start")
+                        @start(cb:cb)
+                    else
+                        dbg("running or starting somewhere, so test it out")
+                        @project
+                            server_id : server_id
+                            cb        : (err, project) =>
+                                if err
+                                    cb(err)
+                                else
+                                    project.status  
+                                        cb : (err, status) =>
+                                            port = status?['local_hub.port']
+                                            cb()
+                (cb) =>
+                    if port?
+                        dbg("success -- we got our host")
+                        cb()
+                    else
+                        dbg("fail -- not working yet")
+                        cb(true)
+             ], cb)
 
+        t = misc.walltime()
+        f = () =>
+            if misc.walltime() - t > opts.timeout
+                # give up
+                opts.cb("unable to start project running somewhere within about #{opts.timeout} seconds")
+            else
+                # try to open...
+                attempt (err) =>
+                    if err
+                        # try again in 2 seconds
+                        setTimeout(f, 2000)
+                    else
+                        # success!?
+                        host = @global_client.servers[server_id]?.host 
+                        if not host?
+                            opts.cb("unknown server #{server_id}")
+                        else
+                            opts.cb(undefined, {host:host, port:port})
+         f()
+          
+
+    start: (opts) =>
+        opts = defaults opts,
+            cb : undefined 
+        @get_state
+            cb : (err, state) =>
+                if err
+                      opts.cb?(err); return 
+                running_on = (server_id for server_id, s of state when s in ['running', 'starting', 'restarting', 'saving'])
+                if running_on.length == 0
+                    # find a place to run it
+                    v = (server_id for server_id, s of state when s not in ['error'])
+                    if v.length == 0
+                        v = misc.keys(state)
+                    server_id = misc.random_choice(v)
+                    @project
+                        server_id:server_id
+                        cb : (err, project) =>
+                           if err
+                               opts.cb?(err)
+                           else
+                               project.start(cb : opts.cb)
+                else if running_on.length == 1 
+                    opts.cb?()   # done -- nothing further to do
+                else
+                    # running on more than one -- repair by killing all but first
+                    running_on.sort() # sort so any client doing the same thing will kill the same other ones.
+                    @_stop_all(running_on.slice(1))
+                    opts.cb?()
+
+    save: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @get_host_where_running
+            cb : (err, server_id) => 
+                if err
+                    opts.cb?(err)
+                else if not server_id?
+                    opts.cb?() # not running anywhere -- nothing to save
+                else if @state?[server_id] == 'saving'
+                    opts.cb?() # already saving -- nothing to do
+                else
+                    @project
+                        server_id : server_id
+                        cb        : (err, project) =>
+                            if err
+                               opts.cb?(err)
+                            else
+                               project.save(cb:opts.cb)
+
+    stop: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @get_host_where_running
+            cb : (err, server_id) => 
+                if err
+                    opts.cb(err)
+                else if not server_id?
+                    opts.cb() # not running anywhere -- nothing to save
+                else
+                    @_stop_all([server_id])
+                    opts.cb()
+
+    move: (opts) =>
+        opts = defaults opts,
+            cb : required
+
+    get_host_where_running: (opts) =>
+        opts = defaults opts,
+            cb : required    # cb(err, serverid or undefined=not running anywhere)
+        @get_state
+            cb : (err, state) =>
+                if err
+                      opts.cb(err); return 
+                running_on = (server_id for server_id, s of state when s in ['running', 'starting', 'restarting', 'saving'])
+                if running_on.length == 0
+                    opts.cb()
+                else
+                    running_on.sort() # sort so any client doing the same thing will kill the same other ones.
+                    @_stop_all(running_on.slice(1))
+                    opts.cb(undefined, running_on[0])
+  
+    _stop_all: (v) =>
+        winston.debug("GlobalProject: repair by stopping on #{misc.to_json(v)}")
+        for server_id in v
+            @project
+                server_id:server_id
+                cb : (err, project) =>
+                    if not err
+                        project.stop()
+           
     # get local copy of project on a specific host
     project: (opts) =>
         opts = defaults opts,
@@ -587,49 +743,65 @@ class GlobalProject
                         project_id : @project_id
                         cb         : opts.cb
 
-    # return the global state of this project -- what's the daemon status on each host
-    get_state: (opts) =>
+    set_last_save: (opts) =>
+        opts = defaults opts,
+            last_save : required    # map  {server_id:timestamp, ...}
+            cb        : undefined
+        s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
+        f = (server_id, cb) =>
+            @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cb)
+        async.map(misc.keys(opts.last_save), f, (err) -> opts.cb?(err))
+
+    get_hosts: (opts) =>
         opts = defaults opts,
             cb : required
         @database.select_one
-            table   : 'projects'
-            columns : ['bup_state']
-            where   : {project_id : @project_id}
-            cb      : opts.cb
-
-    # set some of the global state of this project -- the daemon status on each host
-    set_state: (opts) =>
-        opts = defaults opts,
-            state : required    # map  {server_id:string, ...}
-            cb    : required
-        s = "UPDATE projects SET bup_state[?]=? WHERE project_id=?"
-        f = (server_id, cb) =>
-            @database.cql(s, [server_id, opts.state[server_id], @project_id], cb)
-        async.map(misc.keys(opts.state), f, opts.cb)
+            table : 'projects'
+            where : {project_id:@project_id}
+            columns : ['bup_last_save']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)  
+                else
+                    if not result[0]?
+                        hosts = []
+                    else
+                        hosts = misc.keys(result[0])
+                    if hosts.length == 0
+                         # default hosts -- for a new project
+                         hosts = @global_client.replicas(project_id: @project_id)
+                         last_save = {}
+                         n = cassandra.now()
+                         for server_id in hosts
+                             last_save[server_id] = n
+                         @set_last_save(last_save: last_save)
+                    opts.cb(undefined, hosts)  
 
     # determine the global state by querying *all servers*
-    update_state: (opts) =>
+    # guaranteed to return length > 0
+    get_state: (opts) =>
         opts = defaults opts,
             timeout : 15
             cb      : required
-        dbg = (m) -> winston.info("update_state: #{m}")
+        dbg = (m) -> winston.info("get_state: #{m}")
         dbg()
         servers = undefined
-        state = {}
+        @state = {}
         async.series([
             (cb) =>
-                dbg("use get_state to find the servers that host this project")
-                @get_state
-                    cb : (err, state) =>
+                dbg("lookup the servers that host this project")
+                @get_hosts
+                    cb : (err, hosts) =>
                         if err
                             cb(err)
                         else
-                            servers = misc.keys(state[0])
+                            servers = hosts
                             dbg("servers=#{misc.to_json(servers)}")
                             cb()
             (cb) =>
-                dbg("query each server for the project's state there and insert the result in the database")
+                dbg("query each server for the project's state there")
                 f = (server_id, cb) =>
+                    #dbg("query #{server_id} for state")
                     project = undefined
                     async.series([
                         (cb) =>
@@ -645,16 +817,13 @@ class GlobalProject
                                     if err
                                         dbg("error getting state on #{server_id} -- #{err}")
                                         s = 'error'
-                                    x = {}; x[server_id] = s
-                                    state[server_id] = s
-                                    @set_state
-                                        state : x
-                                        cb    : cb
+                                    @state[server_id] = s 
+                                    cb()
                     ], cb)
 
                 async.map(servers, f, cb)
 
-        ], (err) => opts.cb?(err, state)
+        ], (err) => opts.cb?(err, @state)
         )
 
 
