@@ -23,6 +23,10 @@ cassandra = require('cassandra')
 cql       = require("node-cassandra-cql")
 HashRing  = require 'hashring'
 
+# Set the log level
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
+
 {defaults, required} = misc
 
 REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
@@ -49,20 +53,19 @@ DATA = 'data'
 ## server-side: Storage server code
 ###########################
 
-# Execute a command using the bup_storage script.
-_bup_storage_no_queue = (opts) =>
+bup_storage = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("_bup_storage_no_queue: running #{misc.to_json(opts.args)}")
+    winston.debug("bup_storage: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
         args    : ["/usr/local/bin/bup_storage.py"].concat(opts.args)
         timeout : opts.timeout
         path    : process.cwd()
         cb      : (err, output) =>
-            winston.debug("_bup_storage_no_queue: finished running #{misc.to_json(opts.args)} -- #{err}")
+            winston.debug("bup_storage: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -70,29 +73,6 @@ _bup_storage_no_queue = (opts) =>
                     opts.cb(err)
             else
                 opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
-
-_bup_storage_queue = []
-_bup_storage_queue_running = 0
-
-bup_storage = (opts) =>
-    opts = defaults opts,
-        args    : required
-        timeout : TIMEOUT
-        cb      : required
-    _bup_storage_queue.push(opts)
-    process_bup_storage_queue()
-
-process_bup_storage_queue = () ->
-    winston.debug("process_bup_storage_queue: _bup_storage_queue_running=#{_bup_storage_queue_running}; _bup_storage_queue.length=#{_bup_storage_queue.length}")
-    if _bup_storage_queue.length > 0
-        opts = _bup_storage_queue.shift()
-        _bup_storage_queue_running += 1
-        cb = opts.cb
-        opts.cb = (err, output) =>
-            _bup_storage_queue_running -= 1
-            process_bup_storage_queue()
-            cb(err, output)
-        _bup_storage_no_queue(opts)
 
 
 # A single project from the point of view of the storage server
@@ -102,7 +82,6 @@ class Project
             project_id : required
             verbose    : true
 
-        @_action_queue   = []
         @project_id      = opts.project_id
         @verbose         = opts.verbose
 
@@ -148,6 +127,7 @@ class Project
                             @state = 'starting'
                             @_action
                                 action  : 'start'
+                                param   : opts.param
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
@@ -163,6 +143,7 @@ class Project
                             @state = 'restarting'
                             @_action
                                 action  : 'restart'
+                                param   : opts.param
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
@@ -178,6 +159,7 @@ class Project
                             @state = 'stopping'
                             @_action
                                 action  : 'stop'
+                                param   : opts.param
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
@@ -194,6 +176,7 @@ class Project
                             @state = 'saving'
                             @_action
                                 action  : 'save'
+                                param   : opts.param
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
@@ -206,8 +189,8 @@ class Project
 
                     else
                         @_action
-                            action : opts.action
-                            param  : opts.param
+                            action  : opts.action
+                            param   : opts.param
                             timeout : opts.timeout
                             cb      : (err, r) =>
                                 result = r
@@ -215,60 +198,6 @@ class Project
         ], (err) =>
             opts.cb?(err, result)
         )
-
-    xxx_action: (opts) =>
-        @_enque_action(opts)
-
-    _enque_action: (opts) =>
-        if not opts?
-            # doing that would be bad.
-            return
-        @_action_queue.push(opts)
-        @_process_action_queue()
-
-    _process_action_queue: () =>
-        if @_action_queue_current?
-            return
-        if @_action_queue.length > 0
-            opts = @_action_queue.shift()
-            @_action_queue_current = opts
-            cb = opts.cb
-
-            if opts.action == 'save' and @_last_save_time? and misc.walltime() - @_last_save_time < MIN_SAVE_INTERVAL_S
-                # ignore save request -- too frequent
-                cb?(undefined)
-                delete @_action_queue_current
-                @_process_action_queue()
-                return
-
-            opts.cb = (err,x,y,z) =>
-                delete @_action_queue_current
-                cb?(err,x,y,z)
-                if err
-                    # clear the queue
-                    for o in @_action_queue
-                        o.cb?("earlier action '#{o.action}' failed -- #{err}")
-                    @_action_queue = []
-                else
-                    if opts.action == 'save'
-                        @_last_save_time = misc.walltime()
-
-                    # remove all the same actions from the queue, since we consider most actions
-                    # idempotent (and even commutative), even if maybe they aren't quite.  This
-                    # simplifies things a lot, so that clients don't have to lock or coordinate
-                    # actions.  Also, clients should base their actions on the status, so they should
-                    # get the most recent view of it.
-                    for o in @_action_queue
-                        if o.action == opts.action
-                            o.cb?(err, x, y, z)
-                    @_action_queue = (o for o in @_action_queue when o.action != opts.action)
-                    @_process_action_queue()
-            @_action(opts)
-
-    delete_queue: () =>  # DANGEROUS -- ignores anything "in progress"
-        @_action_queue = []
-        @_action_queue_running = 0
-        delete @_action_queue_current
 
     _action: (opts) =>
         opts = defaults opts,
@@ -279,18 +208,6 @@ class Project
         dbg = (m) => @dbg("_action", opts, m)
         dbg()
         switch opts.action
-            when "queue"
-                q = {queue:({action:x.action, param:x.param} for x in @_action_queue) }
-                if @_action_queue_current?
-                    q.current = {action:@_action_queue_current.action, param:@_action_queue_current.param}
-                dbg("returning the queue -- #{misc.to_json(q)}")
-                opts.cb?(undefined, q)
-
-            when "delete_queue"
-                dbg("deleting the queue")
-                @delete_queue()
-                opts.cb?()
-
             when "get_state"
                 @get_state
                     cb : opts.cb
@@ -392,12 +309,6 @@ init_server_id = (cb) ->
                 else
                     SERVER_ID = data.toString()
                     cb()
-
-
-bup_queue_len = () ->
-    n = _bup_storage_queue.length + _bup_storage_queue_running
-    #winston.debug("bup_queue_len = #{n} = #{_bup_storage_queue.length} + #{_bup_storage_queue_running} ")
-    return n
 
 
 idle_timeout = () ->
@@ -578,7 +489,22 @@ class GlobalProject
         opts = defaults opts,
             timeout : 30
             cb : required      # cb(err, {host:hostname, port:port})
-        dbg = (m) -> winston.debug("local_hub_address(#{@project_id}): #{m}")
+        if @_local_hub_address_queue?
+            @_local_hub_address_queue.push(opts.cb)
+        else
+           @_local_hub_address_queue = [opts.cb]
+           @_local_hub_address
+               timeout : opts.timeout
+               cb      : (err, r) =>
+                   for cb in @_local_hub_address_queue 
+                       cb(err, r)
+                   delete @_local_hub_address_queue
+
+    _local_hub_address: (opts) =>
+        opts = defaults opts,
+            timeout : 30
+            cb : required      # cb(err, {host:hostname, port:port})
+        dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
         dbg() 
         server_id = undefined
         port      = undefined
@@ -626,7 +552,7 @@ class GlobalProject
                 # try to open...
                 attempt (err) =>
                     if err
-                        # try again in 2 seconds
+                        dbg("attempt to get address failed -- #{err}; try again in 2 seconds")
                         setTimeout(f, 2000)
                     else
                         # success!?
@@ -720,6 +646,8 @@ class GlobalProject
                     opts.cb(undefined, running_on[0])
   
     _stop_all: (v) =>
+        if v.length == 0
+            return
         winston.debug("GlobalProject: repair by stopping on #{misc.to_json(v)}")
         for server_id in v
             @project
@@ -755,7 +683,7 @@ class GlobalProject
     get_hosts: (opts) =>
         opts = defaults opts,
             cb : required
-        @database.select_one
+        @database.select
             table : 'projects'
             where : {project_id:@project_id}
             columns : ['bup_last_save']
@@ -763,10 +691,10 @@ class GlobalProject
                 if err
                     opts.cb(err)  
                 else
-                    if not result[0]?
+                    if result.length == 0 or not result[0][0]?
                         hosts = []
                     else
-                        hosts = misc.keys(result[0])
+                        hosts = misc.keys(result[0][0])
                     if hosts.length == 0
                          # default hosts -- for a new project
                          hosts = @global_client.replicas(project_id: @project_id)

@@ -294,7 +294,7 @@ class Project(object):
         Create user home directory and  bup repo.
         """
         log = self._log("create")
-        if not os.path.exists(self.bup_path):
+        if not os.path.exists(os.path.join(self.bup_path,'objects')):
             self.cmd(['/usr/bin/bup', 'init'])
         self.create_home()
         self.makedirs(self.conf_path)
