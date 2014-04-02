@@ -2454,17 +2454,8 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_multi_response = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
-        bup_server.project
-            project_id : @project_id
-            cb         : (err, project) =>
-                if err
-                    @dbg("failed to get project -- #{err}")
-                    cb(err)
-                else
-                    @dbg("successful connection")
-                    @project = project
-                    @update_project_settings()   # no need to wait for this
-                    cb(undefined, @)
+        @project = bup_server.get_project(@project_id)
+        #@update_project_settings()   # no need to wait for this
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{m}")
@@ -2488,188 +2479,19 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     @project.settings(opts)
 
     close: (cb) =>
-        dbg = (m) -> winston.debug("local_hub.close(#{@project_id}): #{m}")
-        dbg()
-        async.series([
-            (cb) =>
-                dbg("updating project location")
-                @update_project(cb:cb)
-            (cb) =>
-                dbg("stopping servers running on project; destroy accounts")
-                @project.stop(cb:cb)
-                @_sockets = {}
-            (cb) =>
-                dbg("sync project out")
-                cb()
-                @project.sync()  # no need to wait for this
-        ], cb)
+        winston.debug("local_hub.close(#{@project_id}): #{m}")
+        @project.close(cb:cb)
 
     move: (opts) =>
         opts = defaults opts,
             target : undefined
-            broken : false              # if true, assume moving due to host being BROKEN, so don't try to sync/stop cleanly, etc.
             cb     : undefined          # cb(err, {host:hostname})
-        current = @project.client.server_id
-        if current == opts.target
-            opts.cb(undefined, {host:@project.client.host})
-            return
-        async.series([
-            (cb) =>
-                if opts.broken
-                    cb(); return
-                @project.sync
-                    timeout   : 60    # do what you can in 60 seconds
-                    snapshots : false # don't bother trying to sync snaphots
-                    cb        : (err) =>
-                        cb()
-            (cb) =>
-                if opts.broken
-                    cb(); return
-                @project.stop
-                    timeout : 15
-                    cb      : cb
-                @_sockets = {}
-            (cb) =>
-                if opts.target?
-                    prefer = [opts.target]
-                else
-                    prefer = undefined
-                bup_server.project
-                    project_id : @project_id
-                    prefer     : prefer
-                    prefer_not : [current]
-                    cb         : (err, project) =>
-                        if err
-                            @dbg("failed to get project -- #{err}")
-                            cb(err)
-                        else
-                            @dbg("successful connection")
-                            @project = project
-                            cb()
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(undefined, @project.client.host)
-        )
-
-    ###
-    # ENSURE that we have a valid connection to a working LocalHub.
-    connect: (cb) =>
-        dbg = (m) -> @dbg("connect -- #{m}")
-        dbg()
-        @_sockets = {}
-        @_multi_response = {}
-        connected = false
-        async.series([
-            (cb) =>
-                dbg("getting a local socket")
-                @local_hub_socket (err) =>
-                    if not err
-                        dbg("FAILed to get local socket -- #{err}")
-                        connected = true
-                    cb()
-            (cb) =>
-                if connected
-                    cb()
-                else
-                    dbg("attempting to restart local hub server")
-                    @restart (err) =>
-                        if err
-                            dbg("error attempting to restart - #{err}")
-                            cb()
-                        else
-                            dbg("successful restart; now trying again to connect to local_hub")
-                            @local_hub_socket (err) =>
-                                if err
-                                    dbg("connecting failed the second time -- #{err}")
-                                else
-                                    dbg("second time connection succeeded")
-                                    connected = true
-                                cb()
-            (cb) =>
-                if connected
-                    cb()
-                dbg("ok, now lets try moving to another host")
-                @move
-                    broken : true
-                    cb     : (err) =>
-                        if err
-                            dbg("moving failed, which means no host is available -- this project is DOOMED -- #{err}")
-                            cb(err)
-                        else
-                            dbg("move worked, so now finally try to connect to local hub socket")
-                            @local_hub_socket(cb)
-        ], cb)
-    ###
-
-    # Get bup_server ClientProject associated to this project; if the bup_location has
-    #   changed in the database the project  is appropriately updated.
-    update_project: (cb) =>  # cb(err, project)
-        test_project = undefined
-        location     = undefined
-        async.series([
-            (cb) =>
-                bup_server.project_location
-                    project_id  : @project_id
-                    cb          : (err, _location) =>
-                        if err
-                            cb(err); return  # database error; little we can do
-                        location = _location
-                        # project still in same place
-                        if location == @project.client.server_id
-                            test_project = @project
-                            cb()
-                        else
-                            # Project moved (or is nowhere), so get new project at new location; also dis-invalidate all open connections
-                            # (they should be connected to killed processes, so die, but being explicit is best)
-                            @_sockets = {}; @_socket = undefined
-                            bup_server.project
-                                project_id : @project_id
-                                server_id  : location
-                                cb         : (err, p) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        test_project = p
-                                        cb()
-            (cb) =>
-                if not location?
-                    # know project works since bup_server.project only returns working project when server_id not set
-                    cb()
-                else
-                    # Now we have a test project.  Let's make sure it works.
-                    test_project.works
-                        cb : (err, works) =>
-                            if err
-                                cb(err)
-                            else if works
-                                @project = test_project
-                                cb()
-                            else
-                                # doesn't work -- just get something new that we can trust
-                                bup_server.project
-                                    project_id : @project_id
-                                    cb         : (err, p) =>
-                                        if err
-                                            cb(err)
-                                        else
-                                            @project = p
-                                            cb()
-        ], cb)
+        winston.debug("local_hub.close(#{@project_id}): #{m}")
+        @project.move(opts)
 
     restart: (cb) =>
         @dbg("restart")
-        async.series([
-            (cb) =>
-                @update_project(cb)
-            (cb) =>
-                @project.restart
-                    timeout : 60
-                    cb      : cb
-            (cb) =>
-                @update_project_settings(cb)
-        ], cb)
+        @project.restart(cb:cb)
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
@@ -2776,35 +2598,44 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # authenticated via the secret_token, and enhanced
     # to be able to send/receive json and blob messages.
     new_socket: (cb) =>     # cb(err, socket)
+        f = (cb) =>
+            connect_to_a_local_hub
+                port         : @address.port 
+                host         : @address.host
+                secret_token : @address.status.secret_token
+                cb           : cb
         socket = undefined
         async.series([
             (cb) =>
-                @update_project(cb)
+                if not @address?
+                    # get address of a working local hub
+                    @project.local_hub_address
+                        cb : (err, address) =>
+                            @address = address; cb(err)
+                else
+                    cb()
             (cb) =>
-                @project.status
-                    cb : (err, status) =>
-                        if err
-                            cb(err)
-                        else
-                            @_status = status
-                            if not status['local_hub.port']?
-                                cb("local_hub server not running")
-                            else if not status.secret_token?
-                                cb("status didn't return secret_token")
-                            else
-                                cb()
-            (cb) =>
-                connect_to_a_local_hub
-                    port         : @_status['local_hub.port']
-                    host         : @project.client.host
-                    secret_token : @_status.secret_token
-                    cb           : (err, _socket) =>
+                # try to connect to local hub socket using last known address
+                f (err, _socket) =>
+                    if not err
                         socket = _socket
-                        cb(err)
-
-        ], (err) =>
+                        cb()
+                    else
+                        # failed so get address of a working local hub
+                        @project.local_hub_address
+                            cb : (err, address) =>
+                                @address = address; cb(err)
+            (cb) =>
+                if not socket?
+                    # still don't have our connection -- try again
+                    f (err, _socket) =>
+                       socket = _socket; cb(err)
+                else
+                    cb()
+        ], (err) => 
             cb(err, socket)
-        )
+        ) 
+   
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
@@ -3028,11 +2859,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     killall: (cb) =>
         @dbg("kill all processes running on a local hub (including the local hub itself)")
-        @update_project (err) =>
-            if err
-                cb?(err)
-            else
-                @project.stop(cb:cb)
+        @project.stop(cb:cb)
 
 
     # Read a file from a project into memory on the hub.  This is

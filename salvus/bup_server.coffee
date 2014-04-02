@@ -488,7 +488,7 @@ class GlobalProject
     local_hub_address: (opts) =>
         opts = defaults opts,
             timeout : 30
-            cb : required      # cb(err, {host:hostname, port:port})
+            cb : required      # cb(err, {host:hostname, port:port, status:status})
         if @_local_hub_address_queue?
             @_local_hub_address_queue.push(opts.cb)
         else
@@ -508,6 +508,7 @@ class GlobalProject
         dbg() 
         server_id = undefined
         port      = undefined
+        status    = undefined
         attempt = (cb) =>
             dbg("making an attempt to start")
             async.series([
@@ -531,7 +532,8 @@ class GlobalProject
                                     cb(err)
                                 else
                                     project.status  
-                                        cb : (err, status) =>
+                                        cb : (err, _status) =>
+                                            status = _status 
                                             port = status?['local_hub.port']
                                             cb()
                 (cb) =>
@@ -560,13 +562,13 @@ class GlobalProject
                         if not host?
                             opts.cb("unknown server #{server_id}")
                         else
-                            opts.cb(undefined, {host:host, port:port})
+                            opts.cb(undefined, {host:host, port:port, status:status})
          f()
           
 
     start: (opts) =>
         opts = defaults opts,
-            cb : undefined 
+            cb     : undefined 
         @get_state
             cb : (err, state) =>
                 if err
@@ -577,7 +579,15 @@ class GlobalProject
                     v = (server_id for server_id, s of state when s not in ['error'])
                     if v.length == 0
                         v = misc.keys(state)
-                    server_id = misc.random_choice(v)
+                    if @_next_start_avoid? and v.length > 1
+                        v = (server_id for server_id in v when server_id != @_next_start_avoid)
+                    if @_next_start_target? and @_next_start_target in v
+                        server_id = @_next_start_target 
+                    else
+                        server_id = misc.random_choice(v)
+                    delete @_next_start_target
+                    delete @_next_start_avoid 
+
                     @project
                         server_id:server_id
                         cb : (err, project) =>
@@ -613,6 +623,38 @@ class GlobalProject
                             else
                                project.save(cb:opts.cb)
 
+
+    # if some project is actually running, return it; otherwise undefined
+    running_project: (opts) =>
+        opts = defaults opts,
+            cb : required   # (err, project)
+        @get_host_where_running
+            cb : (err, server_id) => 
+                if err
+                    opts.cb?(err)
+                else if not server_id?
+                    opts.cb?() # not running anywhere
+                else
+                    @project
+                        server_id : server_id
+                        cb        : opts.cb
+
+    status: (opts) =>
+        @running_project
+            cb : (err, project) =>
+                if err 
+                    opts.cb(err)
+                else
+                    project.status(opts)  
+
+    settings: (opts) =>
+        @running_project
+            cb : (err, project) =>
+                if err 
+                    opts.cb(err)
+                else
+                    project.settings(opts)  
+
     stop: (opts) =>
         opts = defaults opts,
             cb : required
@@ -628,7 +670,16 @@ class GlobalProject
 
     move: (opts) =>
         opts = defaults opts,
-            cb : required
+            target : undefined
+            cb     : required
+        @_next_start_target = opts.target
+        @get_host_where_running
+            cb : (err, server_id) => 
+                if err
+                    opts.cb(err)
+                else
+                    @_next_start_avoid = server_id
+                    @stop(cb:cb) 
 
     get_host_where_running: (opts) =>
         opts = defaults opts,
