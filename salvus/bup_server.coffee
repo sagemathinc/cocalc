@@ -95,7 +95,7 @@ process_bup_storage_queue = () ->
         _bup_storage_no_queue(opts)
 
 
-# A project from the point of view of the storage server
+# A single project from the point of view of the storage server
 class Project
     constructor: (opts) ->
         opts = defaults opts,
@@ -128,8 +128,95 @@ class Project
             cb      : opts.cb
 
     action: (opts) =>
-        cb = opts.cb
-        start_time = cassandra.now()
+        opts = defaults opts,
+            action  : required    # sync, save, etc.
+            timeout : TIMEOUT
+            param   : undefined   # if given, should be an array or string
+            cb      : undefined   # cb?(err)
+        state  = undefined
+        result = undefined
+        # STATES: stopped, starting, running, restarting, stopping, saving, error
+        async.series([
+            (cb) =>
+                @get_state
+                    cb : (err, s) =>
+                        state = s; cb(err)
+            (cb) =>
+                switch opts.action
+                    when 'start'
+                        if state in ['stopped', 'error'] or opts.param=='force'
+                            @state = 'starting'
+                            @_action
+                                action  : 'start'
+                                timeout : opts.timeout
+                                cb      : (err) =>
+                                    if err
+                                        @state = 'error'
+                                    else
+                                        @state = 'running'
+                                    cb(err)
+                        else
+                            cb()
+
+                    when 'restart'
+                        if state in ['running', 'error'] or opts.param=='force'
+                            @state = 'restarting'
+                            @_action
+                                action  : 'restart'
+                                timeout : opts.timeout
+                                cb      : (err) =>
+                                    if err
+                                        @state = 'error'
+                                    else
+                                        @state = 'running'
+                                    cb(err)
+                        else
+                            cb()
+
+                    when 'stop'
+                        if state in ['running', 'error'] or opts.param=='force'
+                            @state = 'stopping'
+                            @_action
+                                action  : 'stop'
+                                timeout : opts.timeout
+                                cb      : (err) =>
+                                    if err
+                                        @state = 'error'
+                                    else
+                                        @state = 'stopped'
+                                    cb(err)
+                        else
+                            cb()
+
+
+                    when 'save'
+                        if state in ['running'] or opts.param=='force'
+                            @state = 'saving'
+                            @_action
+                                action  : 'save'
+                                timeout : opts.timeout
+                                cb      : (err) =>
+                                    if err
+                                        @state = 'error'
+                                    else
+                                        @state = 'running'
+                                    cb(err)
+                        else
+                            cb()
+
+                    else
+                        @_action
+                            action : opts.action
+                            param  : opts.param
+                            timeout : opts.timeout
+                            cb      : (err, r) =>
+                                result = r
+                                cb(err)
+        ], (err) =>
+            opts.cb?(err, result)
+        )
+
+    xxx_action: (opts) =>
         @_enque_action(opts)
 
     _enque_action: (opts) =>
@@ -148,6 +235,7 @@ class Project
             cb = opts.cb
 
             if opts.action == 'save' and @_last_save_time? and misc.walltime() - @_last_save_time < MIN_SAVE_INTERVAL_S
+                # ignore save request -- too frequent
                 cb?(undefined)
                 delete @_action_queue_current
                 @_process_action_queue()
@@ -164,14 +252,16 @@ class Project
                 else
                     if opts.action == 'save'
                         @_last_save_time = misc.walltime()
-                    if opts.action != 'status'
-                        # remove all the same actions from the queue, since we consider most actions
-                        # idempotent (and even commutative), even if maybe they aren't quite.  This
-                        # simplifies things a lot, so that clients don't have to lock or coordinate actions.
-                        for o in @_action_queue
-                            if o.action == opts.action
-                                o.cb?(err, x, y, z)
-                        @_action_queue = (o for o in @_action_queue when o.action != opts.action)
+
+                    # remove all the same actions from the queue, since we consider most actions
+                    # idempotent (and even commutative), even if maybe they aren't quite.  This
+                    # simplifies things a lot, so that clients don't have to lock or coordinate
+                    # actions.  Also, clients should base their actions on the status, so they should
+                    # get the most recent view of it.
+                    for o in @_action_queue
+                        if o.action == opts.action
+                            o.cb?(err, x, y, z)
+                    @_action_queue = (o for o in @_action_queue when o.action != opts.action)
                     @_process_action_queue()
             @_action(opts)
 
@@ -195,11 +285,18 @@ class Project
                     q.current = {action:@_action_queue_current.action, param:@_action_queue_current.param}
                 dbg("returning the queue -- #{misc.to_json(q)}")
                 opts.cb?(undefined, q)
+
             when "delete_queue"
                 dbg("deleting the queue")
                 @delete_queue()
                 opts.cb?()
+
+            when "get_state"
+                @get_state
+                    cb : opts.cb
+
             else
+
                 dbg("Doing action #{opts.action} that involves executing script")
                 args = [opts.action]
                 if opts.param?
@@ -210,6 +307,26 @@ class Project
                     args    : args
                     timeout : opts.timeout
                     cb      : opts.cb
+
+    get_state: (opts) =>
+        opts = defaults opts,
+            cb : required
+        if @state?
+            opts.cb(undefined, @state); return
+        # We -- the server running on this compute node -- don't know the state of this project.
+        # This might happen if the server were restarted, the machine rebooted, the project not
+        # ever started, here, etc.  So we run a script and try to guess a state.
+        @_action
+            action : 'status'
+            cb     : (err, status) =>
+                if err
+                    @state = 'error'
+                else if status.running
+                    @state = 'running'
+                else
+                    @state = 'stopped'
+                opts.cb(undefined, @state)
+
 
 projects = {}
 get_project = (project_id) ->
@@ -450,6 +567,98 @@ x.c.push_servers_files(cb:console.log)
 
 ###
 
+# A project viewed globally (but from a particular hub)
+class GlobalProject
+    constructor: (@project_id, @global_client) ->
+        @database = @global_client.database
+
+    # get local copy of project on a specific host
+    project: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required
+        @global_client.storage_server
+            server_id : opts.server_id
+            cb        : (err, s) =>
+                if err
+                    opts.cb(err)
+                else
+                    s.project   # this is cached
+                        project_id : @project_id
+                        cb         : opts.cb
+
+    # return the global state of this project -- what's the daemon status on each host
+    get_state: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @database.select_one
+            table   : 'projects'
+            columns : ['bup_state']
+            where   : {project_id : @project_id}
+            cb      : opts.cb
+
+    # set some of the global state of this project -- the daemon status on each host
+    set_state: (opts) =>
+        opts = defaults opts,
+            state : required    # map  {server_id:string, ...}
+            cb    : required
+        s = "UPDATE projects SET bup_state[?]=? WHERE project_id=?"
+        f = (server_id, cb) =>
+            @database.cql(s, [server_id, opts.state[server_id], @project_id], cb)
+        async.map(misc.keys(opts.state), f, opts.cb)
+
+    # determine the global state by querying *all servers*
+    update_state: (opts) =>
+        opts = defaults opts,
+            timeout : 15
+            cb      : required
+        dbg = (m) -> winston.info("update_state: #{m}")
+        dbg()
+        servers = undefined
+        state = {}
+        async.series([
+            (cb) =>
+                dbg("use get_state to find the servers that host this project")
+                @get_state
+                    cb : (err, state) =>
+                        if err
+                            cb(err)
+                        else
+                            servers = misc.keys(state[0])
+                            dbg("servers=#{misc.to_json(servers)}")
+                            cb()
+            (cb) =>
+                dbg("query each server for the project's state there and insert the result in the database")
+                f = (server_id, cb) =>
+                    project = undefined
+                    async.series([
+                        (cb) =>
+                            @project
+                                server_id : server_id
+                                cb        : (err, p) =>
+                                    project = p
+                                    cb(err)
+                        (cb) =>
+                            project.get_state
+                                timeout : opts.timeout
+                                cb : (err, s) =>
+                                    if err
+                                        dbg("error getting state on #{server_id} -- #{err}")
+                                        s = 'error'
+                                    x = {}; x[server_id] = s
+                                    state[server_id] = s
+                                    @set_state
+                                        state : x
+                                        cb    : cb
+                    ], cb)
+
+                async.map(servers, f, cb)
+
+        ], (err) => opts.cb?(err, state)
+        )
+
+
+
 global_client_cache={}
 
 exports.global_client = (opts) ->
@@ -471,6 +680,9 @@ class GlobalClient
             database           : undefined   # connection to cassandra database
             replication_factor : 2
             cb                 : required   # cb(err, @) -- called when initialized
+
+        @_project_cache = {}
+
         async.series([
             (cb) =>
                 if opts.database?
@@ -511,6 +723,12 @@ class GlobalClient
                 opts.cb(err, @)
         )
 
+    get_project: (project_id) =>
+        P = @_project_cache[project_id]
+        if not P?
+            P = @_project_cache[project_id] = new GlobalProject(project_id, @)
+        return P
+
     _update: (cb) =>
         #dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
         #dbg("querying for storage servers...")
@@ -539,30 +757,6 @@ class GlobalClient
                     @hashrings[dc] = new HashRing(obj)
                 #dbg("all updated")
                 cb?()
-
-    close_stale_projects: (opts) =>
-        ops = defaults opts,
-            dry_run : false
-            ttl     : 60*60*6  # every 6 hours for now.
-            limit   : 40
-            cb      : required
-        opts.cb()
-
-    replicate_projects_needing_replication: (opts) =>
-        opts = defaults opts,
-            age_s     : 10*60  # 10 minutes
-            limit     : 2      # max number to replicate simultaneously
-            interval  : 3000
-            cb        : required
-        opts.cb()
-
-    replicate_all_with_errors: (opts) =>
-        opts = defaults opts,
-            limit : 10   # no more than this many projects will be replicated simultaneously
-            start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
-            stop  : undefined
-            cb    : required  # cb(err, {project_id:error when replicating that project})
-        opts.cb()
 
     push_servers_files: (opts) =>
         opts = defaults opts,
@@ -983,8 +1177,6 @@ class GlobalClient
 
 
 
-
-
 ###########################
 ## Client -- code below mainly sets up a connection to a given storage server
 ###########################
@@ -1158,7 +1350,7 @@ storage_server_client = (opts) ->
         C = client_cache[key] = new Client(host:opts.host, port:opts.port, secret: opts.secret, verbose:opts.verbose, server_id:opts.server_id)
     return C
 
-
+# A client on a *particular* server
 class ClientProject
     constructor: (@client, @project_id) ->
         @dbg("constructor",[],"")
@@ -1182,6 +1374,18 @@ class ClientProject
         opts.action = 'start'
         @action(opts)
 
+    # state is one of the following: stopped, starting, running, restarting, stopping, saving, error
+    get_state: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : required  # cb(err, state)
+        opts.action = 'get_state'
+        cb = opts.cb
+        opts.cb = (err, resp) =>
+            cb(err, resp?.result)
+        @action(opts)
+
+    # extensive information about the project, e.g., port it is listening on, quota information, etc.
     status: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
