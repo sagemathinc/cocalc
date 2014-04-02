@@ -686,7 +686,7 @@ class Project(object):
                     s['error'] = 'unknown server'
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, set_quotas=True):
+    def _sync(self, remote, destructive=False, snapshots=True, set_quotas=True, rsync_timeout=30):
         """
         NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
 
@@ -712,7 +712,7 @@ class Project(object):
                     raise NotImplementedError
 
             # ignore errors, since if we fusemounts a directory (bup snapshots!) then that leads to issues.
-            self.cmd(["rsync", "-zaxH", "--delete", "--ignore-errors"] + self.exclude('') +
+            self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
                       ['-e', 'ssh -o StrictHostKeyChecking=no',
                       self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
 
@@ -722,7 +722,7 @@ class Project(object):
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd(["rsync", "-axH", "--delete", "-e", 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-axH", "--delete", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
                       self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 
@@ -739,11 +739,11 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
+        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout, 
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd(["rsync", "-vaxH", "-e", 'ssh -o StrictHostKeyChecking=no',
+        back = self.cmd(["rsync", "-vaxH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
                          "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
@@ -759,7 +759,8 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', self.bup_path+'/', 'root@'+remote+'/'])
+                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', 
+                          '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
         if os.path.exists(self.project_mnt):
             log("mount snapshots")
             self.mount_snapshots()
