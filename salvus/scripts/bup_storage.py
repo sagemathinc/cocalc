@@ -277,7 +277,7 @@ class Project(object):
         try:
             t = json.loads(self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30))
             s.update(t)
-            for x in ['local_hub', 'console_server']:
+            for x in ['local_hub']:   # only list things that will be started after start_smc finishes.
                 if '%s.pid'%x in s:
                     # check that really is such a process
                     try:

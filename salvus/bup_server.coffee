@@ -136,6 +136,7 @@ class Project
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
+                                        winston.debug("action -- start -- error starting=#{err}")
                                         @state = 'error'
                                     else
                                         @state = 'running'
@@ -236,20 +237,21 @@ class Project
 
         if @state?
             if @state in ['running', 'saving']
-                #winston.debug("get_state -- confirming running status")
+                winston.debug("get_state -- confirming running status")
                 @_action
                     action : 'status'
                     cb     : (err, status) =>
-                        #winston.debug("get_state -- confirming based on status=#{misc.to_json(status)}")
+                        winston.debug("get_state -- confirming based on status=#{misc.to_json(status)}")
                         if err
                             @state = 'error'
                         else if not status.running
-                            #winston.debug("get_state got a status of #{misc.to_json(status)}")
+                            winston.debug("get_state got a status of #{misc.to_json(status)}")
                             # must have got killed somehow
-                            @state = 'stopped'
-                        opts.cb(undefined, @state)
+                            opts.cb(undefined, 'stopped')
+                        else
+                            opts.cb(undefined, @state)
             else
-                #winston.debug("get_state -- trusting running status")
+                winston.debug("get_state -- trusting running status since @state=#{@state}")
                 opts.cb(undefined, @state)
             return
         # We -- the server running on this compute node -- don't know the state of this project.
