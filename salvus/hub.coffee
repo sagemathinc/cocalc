@@ -4554,27 +4554,6 @@ init_bup_server = (cb) ->
 
 
 
-close_stale_projects = () ->
-    winston.debug("closing stale projects...")
-    bup_server.close_stale_projects
-        dry_run : false
-        ttl     : 60*60*6  # every 6 hours for now.
-        limit   : 40
-        cb : (err) -> winston.debug("finished closing stale projects (err=#{err})")
-
-replicate_projects_needing_replication = () ->
-    winston.debug("replicating projects that need replication...")
-    bup_server.replicate_projects_needing_replication
-        limit   : 3
-        age_s   : 5*60   # 5 minutes
-        cb : (err) -> winston.debug("finished replicating projects that need replication (err=#{err})")
-
-replicate_projects_with_replication_errors = () ->
-    winston.debug("replicating projects with replication errors")
-    bup_server.replicate_all_with_errors
-        limit   : 3
-        cb : (err) -> winston.debug("finished replicating projects that had replication errors (err=#{err})")
-
 
 #############################################
 # Start everything running
@@ -4603,18 +4582,6 @@ exports.start_server = start_server = () ->
             init_sockjs_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
-
-            if not program.local  # don't close stale projects for SMC in SMC
-                # We close stale projects about once per 1.5 hours.  There
-                # could be maybe 60-70 hubs (say), so this is plenty frequent.
-                setInterval(close_stale_projects, 1000*60*60 + Math.floor(100*60*60*Math.random()))
-                # Similarly, we periodically check every few hours for projects whose replicas
-                # are not sufficiently up-to-date and re-run replication on them.  This addresses
-                # projects that have slipped through the event driven cracks.
-                setInterval(replicate_projects_needing_replication, 2000*60*60*2 + Math.floor(1000*60*60*2*Math.random()))
-                # Every few hours we scan through the database for projects with
-                # replication errors and replicate those.
-                setInterval(replicate_projects_with_replication_errors, 1000*60*60*4 + Math.floor(1000*60*60*4*Math.random()))
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 

@@ -136,7 +136,8 @@ class Project
                                 action  : 'start'
                                 param   : opts.param
                                 timeout : opts.timeout
-                                cb      : (err) =>
+                                cb      : (err, r) =>
+                                    result = r
                                     if err
                                         @dbg("action", opts, "start -- error starting=#{err}")
                                         @state = 'error'
@@ -154,7 +155,8 @@ class Project
                                 action  : 'restart'
                                 param   : opts.param
                                 timeout : opts.timeout
-                                cb      : (err) =>
+                                cb      : (err, r) =>
+                                    result = r
                                     if err
                                         @dbg("action", opts, "failed to restart -- #{err}")
                                         @state = 'error'
@@ -172,7 +174,8 @@ class Project
                                 action  : 'stop'
                                 param   : opts.param
                                 timeout : opts.timeout
-                                cb      : (err) =>
+                                cb      : (err, r) =>
+                                    result = r
                                     if err
                                         @dbg("action", opts, "failed to stop -- #{err}")
                                         @state = 'error'
@@ -191,7 +194,8 @@ class Project
                                 action  : 'save'
                                 param   : opts.param
                                 timeout : opts.timeout
-                                cb      : (err) =>
+                                cb      : (err, r) =>
+                                    result = r
                                     if err
                                         @dbg("action", opts, "failed to save -- #{err}")
                                         @state = 'error'
@@ -700,14 +704,18 @@ class GlobalProject
     save: (opts) =>
         opts = defaults opts,
             cb : undefined
+        dbg = (m) -> winston.debug("GlobalProject.save(#{@project_id}): #{m}")
+        dbg()
         @get_host_where_running
             cb : (err, server_id) =>
                 if err
                     opts.cb?(err)
                 else if not server_id?
-                    opts.cb?() # not running anywhere -- nothing to save
+                    dbg("not running anywhere -- nothing to save")
+                    opts.cb?()
                 else if @state?[server_id] == 'saving'
-                    opts.cb?() # already saving -- nothing to do
+                    dbg("already saving -- nothing to do")
+                    opts.cb?()
                 else
                     @project
                         server_id : server_id
@@ -715,7 +723,22 @@ class GlobalProject
                             if err
                                opts.cb?(err)
                             else
-                               project.save(cb:opts.cb)
+                               project.save
+                                    cb : (err, result) =>
+                                        r = result?.result
+                                        dbg("RESULT = #{misc.to_json(result)}")
+                                        if not err and r? and r.timestamp? and r.files_saved > 0
+                                            dbg("record info about saving #{r.files_saved} files in database")
+                                            last_save = {}
+                                            last_save[server_id] = r.timestamp*1000
+                                            if r.sync?
+                                                for x in r.sync
+                                                    last_save[x.replica_id] = r.timestamp*1000
+                                            @set_last_save
+                                                last_save : last_save
+                                                cb        : opts.cb
+                                        else
+                                            opts.cb?(err)
 
 
     # if some project is actually running, return it; otherwise undefined

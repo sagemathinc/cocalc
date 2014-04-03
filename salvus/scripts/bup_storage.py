@@ -202,6 +202,7 @@ class Project(object):
         self.project_mnt           = os.path.join(PROJECTS_PATH, project_id)
         self.snap_mnt              = os.path.join(self.project_mnt, '.snapshots')
         self.touch_file            = os.path.join(self.bup_path, "conf", "touch")
+        self.save_log              = os.path.join(self.bup_path, "conf", "save_log.json")
         self.HEAD                  = "%s/HEAD"%self.bup_path
         self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
 
@@ -409,6 +410,8 @@ class Project(object):
     def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True):
         """
         Save a snapshot.
+
+        If sync is true, also syncs data out and returns info about how successful that was.
         """
         log = self._log("save")
         self.touch()
@@ -421,18 +424,38 @@ class Project(object):
         self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
 
         what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=0).splitlines()
-        if len(what_changed) <= 1:   # 1 since always includes the directory itself
-            # nothing to save -- don't.
-            return
+        files_saved = max(0, len(what_changed) - 1)      # 1 since always includes the directory itself
+        result = {'files_saved' : files_saved}
+        if files_saved > 0:
 
-        if timestamp is None:
-            timestamp = time.time()
-        self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
-        if mnt and path == self.project_mnt:
-            self.mount_snapshots()
+            if timestamp is None:
+                # mark by the time when we actually start saving, not start indexing above.
+                timestamp = int(time.time())
 
-        if sync:
-            self.sync()
+            result['timestamp'] = timestamp
+
+            self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
+
+            # record this so can properly describe the true "interval of time" over which the snapshot happened,
+            # in case we want to for some reason...
+            result['timestamp_end'] = int(time.time())
+
+            result['bup_repo_size_b'] = int(self.cmd(['du', '-s', self.bup_path]).split()[0])
+
+            if mnt and path == self.project_mnt:
+                self.mount_snapshots()
+
+            if sync:
+                result['sync'] = self.sync()
+
+            r = dict(result)
+            n = len(self.project_mnt)+1
+            r['files'] = [x[n:] for x in what_changed if len(x) > n]
+            open(self.save_log,'a').write(json.dumps(r)+'\n')
+
+
+
+        return result
 
     def tag(self, tag, delete=False):
         """
@@ -754,7 +777,7 @@ class Project(object):
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd(["rsync", "-vaxH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
+        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
                          "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
@@ -977,9 +1000,11 @@ if __name__ == "__main__":
     parser_restart = subparsers.add_parser('restart', help='restart servers')
     parser_restart.set_defaults(func=lambda args: project.restart())
 
+    def do_save(*args, **kwds):
+        print json.dumps(project.save(*args, **kwds))
     parser_save = subparsers.add_parser('save', help='save a snapshot then sync everything out')
     parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
-    parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
+    parser_save.set_defaults(func=lambda args: do_save(branch=args.branch))
 
     def do_sync(*args, **kwds):
         status = project.sync(*args, **kwds)
