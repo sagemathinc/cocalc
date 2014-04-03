@@ -274,9 +274,12 @@ CREATE TABLE projects (
 
      last_edited      timestamp,// timestamp of last modification of the project
 
+
      bup_location     uuid,     // location using new bup-based storage system
-     bup_state        map<uuid, text>,
      bup_last_save    map<uuid, timestamp>,
+     bup_repo_size_kb     int,      // last known size of bup repository in kilobytes = 1000 bytes
+     bup_working_size_kb  int,      // last known size of working directory in kilobytes = 1000 bytes
+
 
      settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'inode', 'mintime', 'login_shell'
 

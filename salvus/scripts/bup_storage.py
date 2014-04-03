@@ -439,7 +439,7 @@ class Project(object):
             # in case we want to for some reason...
             result['timestamp_end'] = int(time.time())
 
-            result['bup_repo_size_b'] = int(self.cmd(['du', '-s', self.bup_path]).split()[0])
+            result['bup_repo_size_kb'] = int(self.cmd(['du', '-s', '-x', '--block-size=KB', self.bup_path]).split()[0].split('k')[0])
 
             if mnt and path == self.project_mnt:
                 self.mount_snapshots()

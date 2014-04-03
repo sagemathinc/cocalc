@@ -541,6 +541,7 @@ class GlobalProject
             where   : {project_id : @project_id}
             cb      : cb
 
+
     # starts project if necessary, waits until it is running, and
     # gets the hostname port where the local hub is serving.
     local_hub_address: (opts) =>
@@ -791,8 +792,9 @@ class GlobalProject
                                                 for x in r.sync
                                                     last_save[x.replica_id] = r.timestamp*1000
                                             @set_last_save
-                                                last_save : last_save
-                                                cb        : opts.cb
+                                                last_save        : last_save
+                                                bup_repo_size_kb : r.bup_repo_size_kb
+                                                cb               : opts.cb
                                         else
                                             opts.cb?(err)
 
@@ -929,11 +931,25 @@ class GlobalProject
     set_last_save: (opts) =>
         opts = defaults opts,
             last_save : required    # map  {server_id:timestamp, ...}
+            bup_repo_size_kb : undefined  # if given, should be int
             cb        : undefined
-        s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
-        f = (server_id, cb) =>
-            @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cb)
-        async.map(misc.keys(opts.last_save), f, (err) -> opts.cb?(err))
+        async.series([
+            (cb) =>
+                s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
+                f = (server_id, cb) =>
+                    @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cb)
+                async.map(misc.keys(opts.last_save), f, cb)
+            (cb) =>
+                if opts.bup_repo_size_kb?
+                    @database.update
+                        table   : "projects"
+                        set     : {bup_repo_size_kb : opts.bup_repo_size_kb}
+                        where   : {project_id : @project_id}
+                        cb      : cb
+                else
+                    cb()
+        ], (err) -> opts.cb?(err))
+
 
     get_last_save: (opts) =>
         opts = defaults opts,
