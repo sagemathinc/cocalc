@@ -4208,6 +4208,183 @@ exports.migrate_bup = (opts) ->
 
 
 
+exports.project_uid = project_uid = (project_id) ->
+    shasum = require('crypto').createHash('sha512')
+    shasum.update(project_id)
+    n = Math.floor(parseInt(shasum.digest('hex').slice(0,8), 16) / 2)
+    if n <=65537
+        n += 65537
+    return n
+
+
+
+exports.prepare_bup = (opts) ->
+    opts = defaults opts,
+        limit : 1           # no more than this many simultaneous tasks
+        start : 0
+        end   : 10
+        cb    : undefined
+    dbg = (m) -> winston.debug("prepare_bup(): #{m}")
+    dbg()
+    work = []
+
+    servers_by_id = {}
+    servers_by_dc = {}
+    servers_hosting_project = {}
+    projects_on_server = {}
+
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                objectify : true
+                cb        : (err, servers) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in servers
+                            servers_by_id[x.server_id] = x
+                            v = servers_by_dc[x.dc]
+                            if not v?
+                                servers_by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            projects_on_server[x.server_id] = []
+                        cb()
+        (cb) ->
+            dbg("read in project allocation files")
+            f = (server_id, cb) ->
+                fs.readFile "bups/#{server_id}", (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        for project_id in data.toString().split('\n')
+                            projects_on_server[server_id].push(project_id)
+                            w = servers_hosting_project[project_id]
+                            if not w?
+                                w = servers_hosting_project[project_id] = []
+                            w.push(server_id)
+                        cb()
+            v = ['0663ed3c-e943-4d46-8c5e-b5e7bd5a61cc', '0985aa3e-c5e9-400e-8faa-32e7d5399dab', '2d7f86ce-14a3-41cc-955c-af5211f4a85e', '3056288c-a78d-4f64-af21-633214e845ad', '306ad75d-ffe0-43a4-911d-60b8cd133bc8', '44468f71-5e2d-4685-8d60-95c9d703bea0', '4e4a8d4e-4efa-4435-8380-54795ef6eb8f', '630910c8-d0ef-421f-894e-6f58a954f215', '767693df-fb0d-41a0-bb49-a614d7fbf20d', '795a90e2-92e0-4028-afb0-0c3316c48192', '801019d9-008a-45d4-a7ce-b72f6e99a74d', '806edbba-a66b-4710-9c65-47dd70503fc9', '8f5247e5-d449-4356-9ca7-1d971c79c7df', '94d4ebc1-d5fc-4790-affe-ab4738ca0384', '9e43d924-684d-479b-b601-994e17b7fd86', 'a7cc2a28-5e70-44d9-bbc7-1c5afea1fc9e', 'b9cd6c52-059d-44e1-ace0-be0a26568713', 'bc74ea05-4878-4c5c-90e2-facb70cfe338', 'c2ba4efc-8b4d-4447-8b0b-6a512e1cac97', 'd0bfc232-beeb-4062-9ad5-439c794594f3', 'd47df269-f3a3-47ed-854b-17d6d31fa4fd', 'dad2a46d-2a57-401a-bfe2-ac4fc7d50ec1', 'e06fb88a-1683-41d6-97d8-92e1f3fb5196', 'e676bb5a-c46c-4b72-8d87-0ef62e4a5c88', 'e682408b-c165-4635-abef-d0c5809fee26', 'eec826ad-f395-4a1d-bfb1-20f5a19d4bb0', 'f71dab5b-f40c-48db-a3d2-eefe6ec55f01']
+            async.map(v, f, cb)
+
+        (cb) ->
+            dbg("come up with a work schedule")
+
+            # make some hashrings so that our work schedule is consistent between runs
+            hashrings = {}
+            for dc, servers of servers_by_dc
+                v = {}
+                for server_id in servers
+                    v[server_id] = {vnodes:128}
+                hashrings[dc] = new HashRing(v)
+
+            data_centers = misc.keys(servers_by_dc)
+
+            for project_id, servers of servers_hosting_project
+                # Now for the real work.  servers is an array of the server_id's hosting the project right now.
+                # We want to have the project with 1 copy in each dc, and for consistency for now will make
+                # that the first one determined by consistent hashing.... if there are none already; otherwise,
+                # we take the first of those available sorted in alphabetical order.
+                # Once we know where we want things, we then delete some, copy some, and finally bup restore as well
+                have = {}
+                for dc in data_centers
+                    have[dc] = false
+
+                target = []
+                servers.sort()
+                for sever_id in servers
+                    dc = servers_by_id[server_id].dc
+                    if not have[dc]
+                        target.push(server_id)
+                        have[dc] = true
+                for dc, val of have
+                    if not val
+                        target.push(hashrings[dc].range(project_id, 1))
+
+                if target.length != data_centers.length
+                    cb("bug -- found target #{misc.to_json(target)} which has wrong length -- #{project_id}")
+
+                # now target is a list of 3 (num dc's) servers and they are where we want our data.
+
+                # we make our tasks so they can be done in parallel safely.
+
+                # 1. copy data to servers that want from servers where we have data and want (!) and restore
+                have_data = (server_id for server_id in target when server_id in servers)
+                source = have_data[0]
+                if not source?
+                    cb("bug -- we don't have any data--  #{project_id}")
+                for server_id in target
+                    if server_id not in have_data
+                        work.push({project_id:project_id, action:'copy_and_restore', src:source, dest:server_id})
+
+                # 2. delete data from where we don't want it
+                for server_id in servers
+                    if server_id not in target
+                        work.push({project_id:project_id, action:'delete', server_id:server_id})
+
+                # 3. bup restore working directory
+                for server_id in target
+                    if server_id in have_data
+                        work.push({project_id:project_id, action:'restore', server_id:server_id})
+
+                if work.length >= opts.end
+                    break
+            cb()
+
+        (cb) ->
+            dbg("do tasks #{opts.start} - #{opts.end} on the work schedule doing #{opts.limit} in parallel")
+
+            exec = (server_id, cmd, cb) ->
+                host = servers_by_id[server_id].host
+                misc_node.execute_code
+                    command     : "ssh"
+                    args        : ["-o StrictHostKeyChecking=no", "root@#{host}", cmd]
+                    timeout     : 30*60  # 30 minutes
+                    err_on_exit : true
+                    cb          : cb
+
+            task_delete = (project_id, server_id, cb) ->
+                if project_id.length != 36
+                    cb("invalid uuid -- #{project_id}")
+                else
+                    exec(server_id, "rm -rf /bup/bups/#{project_id}", cb)
+
+            task_copy = (project_id, src, dest, cb) ->
+                if project_id.length != 36
+                    cb("invalid uuid -- #{project_id}")
+                else
+                    exec(src, "rsync -axvH /bup/bups/#{project_id}/ #{dest}:/bup/bups/#{project_id}/", cb)
+
+            task_restore = (project_id, server_id, cb) ->
+                uid = project_uid(project_id)
+                exec(server_id, "bup restore --outdir=/bup/projects/#{project_id} master/latest && chown -R #{uid}:#{uid} /bup/projects/#{project_id}", cb)
+
+
+            do_task = (task, cb) ->
+                switch task.action
+                    when 'delete'
+                        task_delete(task.project_id, task.server_id, cb)
+                    when 'copy_and_restore'
+                        task_copy task.project_id, task.src, task.dest, (err) ->
+                            if err
+                                cb(err)
+                            else
+                                task_restore(task.project_id, task.server_id, cb)
+                    when 'restore'
+                        task_restore(task.project_id, task.server_id, cb)
+                    else
+                        cb("unknown action #{task.action}")
+
+
+    ], (err) -> opts.cb?(err))
+
+
 
 
 
