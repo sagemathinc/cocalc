@@ -275,21 +275,13 @@ class Project(object):
         if FILESYSTEM == 'zfs':
             s['zfs'] = self.get_zfs_status()
         try:
-            t = json.loads(self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30))
+            t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
+            t = json.loads(t)
             s.update(t)
-            for x in ['local_hub']:   # only list things that will be started after start_smc finishes.
-                if '%s.pid'%x in s:
-                    # check that really is such a process
-                    try:
-                        os.kill(s['%s.pid'%x], 0)
-                    except OSError:
-                        log("surprise -- process %s.pid not running"%x)
-                        del s['%s.pid'%x]
-                        if '%s.port'%x in t:
-                            del s['%s.port'%x]
-            s['running'] = 'local_hub.pid' in s
+            s['running'] = bool(t.get('local_hub.pid',False))
             return s
-        except:
+        except Exception, msg:
+            log("Error getting status -- %s"%msg)
             s['running'] = False
             return s
 

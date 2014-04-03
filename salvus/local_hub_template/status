@@ -40,10 +40,6 @@ read('version', os.path.join(SMC, "salvus_version.js"), strip=True, int_value=Tr
 # a simple test that the node modules are probably installed.
 set('installed', os.path.exists(os.path.join(SMC, 'installed')))
 
-for name in ['secret_token', 'local_hub.port', 'raw.port', 'console_server.port', 'sage_server.port', 'local_hub.pid', 'console_server.pid']:
-    to_int = 'port' in name or 'pid' in name
-    read(name, os.path.join(SMC, 'data', name), to_int=to_int)
-
 ## set('disk_usage', int(os.popen('du -s "%s"'%project_path).read().split()[0]))
 
 for daemon in ['local_hub', 'sage_server', 'console_server']:
@@ -52,11 +48,15 @@ for daemon in ['local_hub', 'sage_server', 'console_server']:
         try:
             pid = int(open(pidfile).read())
             os.kill(pid, 0)
-            set(daemon, pid)
+            set(daemon+'.pid', pid)
         except:
-            set(daemon, False)
+            set(daemon+'.pid', False)
     else:
-        set(daemon, False)
+        set(daemon+'.pid', False)
+
+for name in ['secret_token', 'local_hub.port', 'raw.port', 'console_server.port', 'sage_server.port']:
+    to_int = 'port' in name 
+    read(name, os.path.join(SMC, 'data', name), to_int=to_int)
 
 done()
 
