@@ -366,6 +366,7 @@ class Project(object):
             if n == 0:
                 break
         self.delete_user()  # so crontabs, remote logins, etc., won't happen
+        self.umount_snapshots()
 
     def restart(self):
         self.stop()
