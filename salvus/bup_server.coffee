@@ -113,9 +113,11 @@ class Project
             param   : undefined   # if given, should be an array or string
             cb      : undefined   # cb?(err)
 
+        @dbg('action', opts)
         if opts.action == 'get_state'
             @get_state(cb : (err, state) => opts.cb?(err, state))
             return
+
 
         state  = undefined
         result = undefined
@@ -136,9 +138,10 @@ class Project
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
-                                        winston.debug("action -- start -- error starting=#{err}")
+                                        @dbg("action", opts, "start -- error starting=#{err}")
                                         @state = 'error'
                                     else
+                                        @dbg("action", opts, "started successfully -- changing state to running")
                                         @state = 'running'
                                     cb(err)
                         else
@@ -153,8 +156,10 @@ class Project
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
+                                        @dbg("action", opts, "failed to restart -- #{err}")
                                         @state = 'error'
                                     else
+                                        @dbg("action", opts, "restarted successfully -- changing state to running")
                                         @state = 'running'
                                     cb(err)
                         else
@@ -169,8 +174,10 @@ class Project
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
+                                        @dbg("action", opts, "failed to stop -- #{err}")
                                         @state = 'error'
                                     else
+                                        @dbg("action", opts, "stopped successfully -- changing state to stopped")
                                         @state = 'stopped'
                                     cb(err)
                         else
@@ -186,8 +193,10 @@ class Project
                                 timeout : opts.timeout
                                 cb      : (err) =>
                                     if err
+                                        @dbg("action", opts, "failed to save -- #{err}")
                                         @state = 'error'
                                     else
+                                        @dbg("action", opts, "saved successfully -- changing state from saving back to running")
                                         @state = 'running'
                                     cb(err)
                         else
@@ -236,20 +245,23 @@ class Project
             cb : required
 
         if @state?
-            if @state in ['running', 'saving']
+            if @state not in ['starting', 'stopping']   # stopped, running, saving, error
                 winston.debug("get_state -- confirming running status")
                 @_action
                     action : 'status'
                     cb     : (err, status) =>
+                        state = @state
                         winston.debug("get_state -- confirming based on status=#{misc.to_json(status)}")
                         if err
-                            @state = 'error'
-                        else if not status.running
-                            winston.debug("get_state got a status of #{misc.to_json(status)}")
-                            # must have got killed somehow
-                            opts.cb(undefined, 'stopped')
+                            state = 'error'
+                        else if status.running
+                            # set @state to a running state: either 'saving' or 'running'
+                            if state != 'saving'
+                                state = 'running'
                         else
-                            opts.cb(undefined, @state)
+                            state = 'stopped'
+                        @state = state
+                        opts.cb(undefined, state)
             else
                 winston.debug("get_state -- trusting running status since @state=#{@state}")
                 opts.cb(undefined, @state)

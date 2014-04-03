@@ -283,7 +283,7 @@ class Project(object):
                     try:
                         os.kill(s['%s.pid'%x], 0)
                     except OSError:
-                        log("surprise -- process %s.pid not running"%x) 
+                        log("surprise -- process %s.pid not running"%x)
                         del s['%s.pid'%x]
                         if '%s.port'%x in t:
                             del s['%s.port'%x]
@@ -453,17 +453,25 @@ class Project(object):
 
     def newest_snapshot(self, branch=''):
         """
-        Return newest snapshot in current branch.
+        Return newest snapshot in current branch or None if there are no snapshots yet.
         """
-        return self.snapshots(branch)[-1]
+        v = self.snapshots(branch)
+        if len(v) > 0:
+            return v[-1]
+        else:
+            return None
 
     def snapshots(self, branch=''):
         """
-        Return list of all snapshots in date order of the project pool.
+        Return list of all snapshots in date order for the given branch.
         """
         if not branch:
             branch = self.branch
-        return self.cmd(["/usr/bin/bup", "ls", branch+'/'], verbose=0).split()[:-1]
+        if not os.path.exists(os.path.join(self.bup_path, 'refs', 'heads', branch)):
+            # branch doesn't exist
+            return []
+        else:
+            return self.cmd(["/usr/bin/bup", "ls", branch+'/'], verbose=0).split()[:-1]
 
     def branches(self):
         return {'branches':self.cmd("bup ls").split(), 'branch':self.branch}
