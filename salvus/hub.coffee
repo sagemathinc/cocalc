@@ -1278,6 +1278,16 @@ class Client extends EventEmitter
                     quota       : DEFAULTS.quota   # TODO -- account based
                     idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb
+            (cb) =>
+                dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
+                new_local_hub
+                    project_id : project_id
+                    cb         : (err, hub) =>
+                        if not err
+                            dbg("got local hub/project, now calling a function so that it opens")
+                            hub.local_hub_socket (err, socket) =>
+                                dbg("opened project")
+                cb() # but don't wait!
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")
@@ -2582,7 +2592,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     new_socket: (cb) =>     # cb(err, socket)
         f = (cb) =>
             connect_to_a_local_hub
-                port         : @address.port 
+                port         : @address.port
                 host         : @address.host
                 secret_token : @address.status.secret_token
                 cb           : cb
@@ -2614,10 +2624,10 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                        socket = _socket; cb(err)
                 else
                     cb()
-        ], (err) => 
+        ], (err) =>
             cb(err, socket)
-        ) 
-   
+        )
+
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]

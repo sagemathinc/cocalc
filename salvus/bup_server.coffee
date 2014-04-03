@@ -245,7 +245,7 @@ class Project
             cb : required
 
         if @state?
-            if @state not in ['starting', 'stopping']   # stopped, running, saving, error
+            if @state not in ['starting', 'stopping', 'restarting']   # stopped, running, saving, error
                 winston.debug("get_state -- confirming running status")
                 @_action
                     action : 'status'
@@ -557,7 +557,7 @@ class GlobalProject
 
     _local_hub_address: (opts) =>
         opts = defaults opts,
-            timeout : 30
+            timeout : 90
             cb : required      # cb(err, {host:hostname, port:port})
         dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
         dbg()
@@ -610,8 +610,8 @@ class GlobalProject
                 # try to open...
                 attempt (err) =>
                     if err
-                        dbg("attempt to get address failed -- #{err}; try again in 2 seconds")
-                        setTimeout(f, 2000)
+                        dbg("attempt to get address failed -- #{err}; try again in 5 seconds")
+                        setTimeout(f, 5000)
                     else
                         # success!?
                         host = @global_client.servers[server_id]?.host
