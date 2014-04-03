@@ -1278,6 +1278,16 @@ class Client extends EventEmitter
                     quota       : DEFAULTS.quota   # TODO -- account based
                     idle_timeout: DEFAULTS.idle_timeout # TODO -- account based
                     cb          : cb
+            (cb) =>
+                dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
+                new_local_hub
+                    project_id : project_id
+                    cb         : (err, hub) =>
+                        if not err
+                            dbg("got local hub/project, now calling a function so that it opens")
+                            hub.local_hub_socket (err, socket) =>
+                                dbg("opened project")
+                cb() # but don't wait!
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")
@@ -2123,7 +2133,6 @@ class CodeMirrorSession  # call new_codemirror_session above instead of using ne
                     winston.debug("local_hub --> hub: (connect) error -- #{to_json(err)}, #{to_json(resp)}, trying to connect to '#{@path}' in #{@project_id}.")
                     if resp?.path? and resp?.path.indexOf("sage_server.port") != -1
                         err = "The Sage Worksheet server is not running.  The system may be very heavily loaded, you may have messed up a custom install of Sage, or caused problems by customizing your packages.  Make this work in the terminal: <pre> cd ~/.sagemathcloud\necho 'import sage_server, sage_salvus' | sage</pre> then restart the Sage Worksheet server.<br>Or contact <a href='mailto:wstein@uw.edu' target='_blank'>wstein@uw.edu</a> for help."
-                    #@local_hub.reconnect()
                     cb?(err)
                 else if resp.event == 'error'
                     cb?(resp.error)
@@ -2450,173 +2459,31 @@ new_local_hub = (opts) ->    # cb(err, hub)
                 opts.cb(undefined, H)
 
 class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@project_id, cb) ->  # NOTE @project may be undefined.
+    constructor: (@project_id, cb) ->
         @_sockets = {}
         @_multi_response = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
-        bup_server.project
-            project_id : @project_id
-            cb         : (err, project) =>
-                if err
-                    @dbg("failed to get project -- #{err}")
-                    cb(err)
-                else
-                    @dbg("successful connection")
-                    @project = project
-                    cb(undefined, @)
-                    # no need to wait for this
-                    @update_project_settings()
-
+        @project = bup_server.get_project(@project_id)
+        cb(undefined, @)
 
     dbg: (m) =>
         winston.debug("local_hub(#{@project_id}): #{m}")
 
-    update_project_settings: (cb) =>
-        dbg = (m) -> winston.debug("local_hub.update_project_settings(#{@project_id}): #{m}")
-        dbg()
-        database.select_one
-            table   : 'projects'
-            columns : ['settings']
-            where   : {project_id: @project_id}
-            cb      : (err, result) =>
-                dbg("got settings from database: #{misc.to_json(result[0])}")
-                if err or not result[0]?   # result[0] = undefined if no special settings
-                    cb?(err)
-                else
-                    opts = result[0]
-                    opts.cb = (err) =>
-                        dbg("set settings for project -- #{err}")
-                        cb?(err)
-                    @project.settings(opts)
-
     close: (cb) =>
-        dbg = (m) -> winston.debug("local_hub.close(#{@project_id}): #{m}")
-        dbg()
-        async.series([
-            (cb) =>
-                dbg("updating project location")
-                @update_project(cb:cb)
-            (cb) =>
-                dbg("saving project")
-                @project.save(cb:cb)
-            (cb) =>
-                dbg("stopping servers running on project; destroying accounts")
-                @project.stop(cb:cb)
-                @_sockets = {}
-            (cb) =>
-                dbg("syncing project out")
-                @project.sync(cb:cb)
-        ], cb)
+        winston.debug("local_hub.close(#{@project_id}): #{m}")
+        @project.close(cb:cb)
 
     move: (opts) =>
         opts = defaults opts,
             target : undefined
             cb     : undefined          # cb(err, {host:hostname})
-        current = @project.client.server_id
-        if current == opts.target
-            opts.cb(undefined, {host:@project.client.host})
-            return
-        async.series([
-            (cb) =>
-                @project.sync
-                    timeout   : 60    # do what you can in 60 seconds
-                    snapshots : false # don't bother trying to sync snaphots
-                    cb        : (err) =>
-                        cb()
-            (cb) =>
-                @project.stop(cb:cb)
-                @_sockets = {}
-            (cb) =>
-                if opts.target?
-                    prefer = [opts.target]
-                else
-                    prefer = undefined
-                bup_server.project
-                    project_id : @project_id
-                    prefer     : prefer
-                    prefer_not : [current]
-                    cb         : (err, project) =>
-                        if err
-                            @dbg("failed to get project -- #{err}")
-                            cb(err)
-                        else
-                            @dbg("successful connection")
-                            @project = project
-                            cb()
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(undefined, @project.client.host)
-        )
-
-    reconnect:  (cb) =>
-        @dbg("reconnecting")
-        @connect((err) -> cb?(err))
-
-    connect: (cb) =>
-        @dbg("connect")
-        @_sockets = {}
-        @_multi_response = {}
-        @local_hub_socket  (err) =>
-            if err
-                @dbg("err=#{err}, so restarting local hub server")
-                f = () =>
-                    @restart (err) =>
-                        if err
-                            m = "unable to start and connect -- err=#{err}"
-                            @dbg(m)
-                            cb?(m)
-                        else
-                            @local_hub_socket (err) =>
-                                cb?(err)
-                setTimeout(f, 3000)
-            else
-                cb?()
-
-    # Get bup_server ClientProject associated to this project; if the bup_location has
-    #   changed in the database the project  is appropriately updated.
-    update_project: (cb) =>  # cb(err, project)
-        bup_server.project_location
-            project_id  : @project_id
-            cb          : (err, location) =>
-                if location == @project.client.server_id
-                    cb(undefined, @project)
-                else
-                    # it moved, so get new project at new location; also dis-invalidate all open connections
-                    # (they should be connected to killed processes, so die, but being explicit is best)
-                    @_sockets = {}
-                    bup_server.project
-                        project_id : @project_id
-                        server_id  : location
-                        cb         : (err, project) =>
-                            if err
-                                cb(err)
-                            else
-                                @project = project
-                                cb(undefined, project)
+        winston.debug("local_hub.close(#{@project_id}): #{m}")
+        @project.move(opts)
 
     restart: (cb) =>
         @dbg("restart")
-        async.series([
-            (cb) =>
-                @update_project(cb)
-            (cb) =>
-                @project.restart
-                    cb : (err) =>
-                        if err
-                           # try to reconnect, then try to restart again.
-                           @reconnect (err) =>
-                              if not err
-                                  @project.restart(cb:cb)
-                              else
-                                  cb(err)
-                        else
-                           cb()
-            (cb) =>
-                @update_project_settings(cb)
-        ], cb) 
+        @project.restart(cb:cb)
 
     # Send a JSON message to a session.
     # NOTE -- This makes no sense for console sessions, since they use a binary protocol,
@@ -2709,6 +2576,12 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                 socket.on 'end', () =>
                     delete @_status
                     delete @_socket
+                socket.on 'close', () =>
+                    delete @_status
+                    delete @_socket
+                socket.on 'error', () =>
+                    delete @_status
+                    delete @_socket
 
                 for c in @_local_hub_socket_queue
                     c(false, @_socket)
@@ -2717,32 +2590,44 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
     # authenticated via the secret_token, and enhanced
     # to be able to send/receive json and blob messages.
     new_socket: (cb) =>     # cb(err, socket)
+        f = (cb) =>
+            connect_to_a_local_hub
+                port         : @address.port
+                host         : @address.host
+                secret_token : @address.status.secret_token
+                cb           : cb
         socket = undefined
         async.series([
             (cb) =>
-                @update_project(cb)
+                if not @address?
+                    # get address of a working local hub
+                    @project.local_hub_address
+                        cb : (err, address) =>
+                            @address = address; cb(err)
+                else
+                    cb()
             (cb) =>
-                @project.status
-                    cb : (err, status) =>
-                        if err
-                            cb(err)
-                        else
-                            @_status = status
-                            if not status['local_hub.port']?
-                                cb("local_hub server not running")
-                            else if not status.secret_token?
-                                cb("status didn't return secret_token")
-                            else
-                                cb()
-            (cb) =>
-                connect_to_a_local_hub
-                    port         : @_status['local_hub.port']
-                    host         : @project.client.host
-                    secret_token : @_status.secret_token
-                    cb           : (err, _socket) =>
+                # try to connect to local hub socket using last known address
+                f (err, _socket) =>
+                    if not err
                         socket = _socket
-                        cb(err)
-        ], (err) => cb(err, socket))
+                        cb()
+                    else
+                        # failed so get address of a working local hub
+                        @project.local_hub_address
+                            cb : (err, address) =>
+                                @address = address; cb(err)
+            (cb) =>
+                if not socket?
+                    # still don't have our connection -- try again
+                    f (err, _socket) =>
+                       socket = _socket; cb(err)
+                else
+                    cb()
+        ], (err) =>
+            cb(err, socket)
+        )
+
 
     remove_multi_response_listener: (id) =>
         delete @_multi_response[id]
@@ -2966,11 +2851,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
 
     killall: (cb) =>
         @dbg("kill all processes running on a local hub (including the local hub itself)")
-        @update_project (err) =>
-            if err
-                cb?(err)
-            else
-                @project.stop(cb:cb)
+        @project.stop(cb:cb)
 
 
     # Read a file from a project into memory on the hub.  This is
@@ -4673,27 +4554,6 @@ init_bup_server = (cb) ->
 
 
 
-close_stale_projects = () ->
-    winston.debug("closing stale projects...")
-    bup_server.close_stale_projects
-        dry_run : false
-        ttl     : 60*60*6  # every 6 hours for now.
-        limit   : 40
-        cb : (err) -> winston.debug("finished closing stale projects (err=#{err})")
-
-replicate_projects_needing_replication = () ->
-    winston.debug("replicating projects that need replication...")
-    bup_server.replicate_projects_needing_replication
-        limit   : 3
-        age_s   : 5*60   # 5 minutes
-        cb : (err) -> winston.debug("finished replicating projects that need replication (err=#{err})")
-
-replicate_projects_with_replication_errors = () ->
-    winston.debug("replicating projects with replication errors")
-    bup_server.replicate_all_with_errors
-        limit   : 3
-        cb : (err) -> winston.debug("finished replicating projects that had replication errors (err=#{err})")
-
 
 #############################################
 # Start everything running
@@ -4722,18 +4582,6 @@ exports.start_server = start_server = () ->
             init_sockjs_server()
             init_stateless_exec()
             http_server.listen(program.port, program.host)
-
-            if not program.local  # don't close stale projects for SMC in SMC
-                # We close stale projects about once per 1.5 hours.  There
-                # could be maybe 60-70 hubs (say), so this is plenty frequent.
-                setInterval(close_stale_projects, 1000*60*60 + Math.floor(100*60*60*Math.random()))
-                # Similarly, we periodically check every few hours for projects whose replicas
-                # are not sufficiently up-to-date and re-run replication on them.  This addresses
-                # projects that have slipped through the event driven cracks.
-                setInterval(replicate_projects_needing_replication, 2000*60*60*2 + Math.floor(1000*60*60*2*Math.random()))
-                # Every few hours we scan through the database for projects with
-                # replication errors and replicate those.
-                setInterval(replicate_projects_with_replication_errors, 1000*60*60*4 + Math.floor(1000*60*60*4*Math.random()))
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
 

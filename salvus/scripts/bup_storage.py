@@ -51,7 +51,7 @@ BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
-PROJECTS_PATH  = '/home/salvus/vm/images/projects'
+#PROJECTS_PATH  = '/home/salvus/vm/images/projects'
 
 # Where the server_id is stored
 SERVER_ID_FILE = '/bup/conf/bup_server_id'
@@ -59,7 +59,7 @@ SERVER_ID_FILE = '/bup/conf/bup_server_id'
 # Where the file containing info about all servers is stored
 SERVERS_FILE   = '/bup/conf/bup_servers'
 
-REPLICATION_FACTOR = 2
+REPLICATION_FACTOR = 1
 
 # Default account settings
 
@@ -71,7 +71,7 @@ DEFAULT_SETTINGS = {
     'cpu_shares' : 256,
     'cores'      : 2,
     'login_shell': '/bin/bash',
-    'mintime'    : 60*60*2,  # default = 2 hours idle (no save) time before kill
+    'mintime'    : 60*60*3,  # default = 3 hours idle (no save) time before kill
 }
 
 FILESYSTEM = 'zfs'   # 'zfs' or 'ext4'
@@ -202,6 +202,7 @@ class Project(object):
         self.project_mnt           = os.path.join(PROJECTS_PATH, project_id)
         self.snap_mnt              = os.path.join(self.project_mnt, '.snapshots')
         self.touch_file            = os.path.join(self.bup_path, "conf", "touch")
+        self.save_log              = os.path.join(self.bup_path, "conf", "save_log.json")
         self.HEAD                  = "%s/HEAD"%self.bup_path
         self.branch = open(self.HEAD).read().split('/')[-1].strip() if os.path.exists(self.HEAD) else 'master'
 
@@ -246,7 +247,7 @@ class Project(object):
         self.start_daemons()
         self.umount_snapshots()
         # TODO: remove this chown once uid defn stabilizes
-        self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
+        #self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
         self.mount_snapshots()
 
     def get_zfs_status(self):
@@ -260,7 +261,8 @@ class Project(object):
             return None
 
     def status(self):
-        s = {'username':self.username, 'uid':self.uid, 'gid':self.gid}
+        log = self._log("status")
+        s = {'username':self.username, 'uid':self.uid, 'gid':self.gid, 'settings':self.get_settings()}
         try:
             s['newest_snapshot'] = self.newest_snapshot()
             s['bup'] = 'working'
@@ -274,11 +276,13 @@ class Project(object):
         if FILESYSTEM == 'zfs':
             s['zfs'] = self.get_zfs_status()
         try:
-            t = json.loads(self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30))
+            t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
+            t = json.loads(t)
             s.update(t)
-            s['running'] = True
+            s['running'] = bool(t.get('local_hub.pid',False))
             return s
-        except:
+        except Exception, msg:
+            log("Error getting status -- %s"%msg)
             s['running'] = False
             return s
 
@@ -294,7 +298,7 @@ class Project(object):
         Create user home directory and  bup repo.
         """
         log = self._log("create")
-        if not os.path.exists(self.bup_path):
+        if not os.path.exists(os.path.join(self.bup_path,'objects')):
             self.cmd(['/usr/bin/bup', 'init'])
         self.create_home()
         self.makedirs(self.conf_path)
@@ -310,9 +314,7 @@ class Project(object):
             self.makedirs(self.project_mnt)
             self.cmd(['/usr/bin/bup', 'restore', '%s/%s/'%(self.branch, snapshot), '--outdir', self.project_mnt])
             self.chown(self.project_mnt)
-            self.mount_snapshots()
         else:
-            self.mount_snapshots()
             src = os.path.join(self.snap_mnt, self.branch, snapshot)+'/'
             self.cmd(['rsync', '-axH', '--delete', self.exclude(src), src, self.project_mnt+'/'])
 
@@ -364,6 +366,7 @@ class Project(object):
             if n == 0:
                 break
         self.delete_user()  # so crontabs, remote logins, etc., won't happen
+        self.umount_snapshots()
 
     def restart(self):
         self.stop()
@@ -406,6 +409,8 @@ class Project(object):
     def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True):
         """
         Save a snapshot.
+
+        If sync is true, also syncs data out and returns info about how successful that was.
         """
         log = self._log("save")
         self.touch()
@@ -418,18 +423,38 @@ class Project(object):
         self.cmd(["/usr/bin/bup", "index", "-x"] + self.exclude(path+'/') + [path], ignore_errors=True)
 
         what_changed = self.cmd(["/usr/bin/bup", "index", '-m', path],verbose=0).splitlines()
-        if len(what_changed) <= 1:   # 1 since always includes the directory itself
-            # nothing to save -- don't.
-            return
+        files_saved = max(0, len(what_changed) - 1)      # 1 since always includes the directory itself
+        result = {'files_saved' : files_saved}
+        if files_saved > 0:
 
-        if timestamp is None:
-            timestamp = time.time()
-        self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
-        if mnt and path == self.project_mnt:
-            self.mount_snapshots()
+            if timestamp is None:
+                # mark by the time when we actually start saving, not start indexing above.
+                timestamp = int(time.time())
 
-        if sync:
-            self.sync()
+            result['timestamp'] = timestamp
+
+            self.cmd(["/usr/bin/bup", "save", "--strip", "-n", self.branch, '-d', timestamp, path])
+
+            # record this so can properly describe the true "interval of time" over which the snapshot happened,
+            # in case we want to for some reason...
+            result['timestamp_end'] = int(time.time())
+
+            result['bup_repo_size_kb'] = int(self.cmd(['du', '-s', '-x', '--block-size=KB', self.bup_path]).split()[0].split('k')[0])
+
+            if mnt and path == self.project_mnt:
+                self.mount_snapshots()
+
+            if sync:
+                result['sync'] = self.sync()
+
+            r = dict(result)
+            n = len(self.project_mnt)+1
+            r['files'] = [x[n:] for x in what_changed if len(x) > n]
+            open(self.save_log,'a').write(json.dumps(r)+'\n')
+
+
+
+        return result
 
     def tag(self, tag, delete=False):
         """
@@ -442,17 +467,25 @@ class Project(object):
 
     def newest_snapshot(self, branch=''):
         """
-        Return newest snapshot in current branch.
+        Return newest snapshot in current branch or None if there are no snapshots yet.
         """
-        return self.snapshots(branch)[-1]
+        v = self.snapshots(branch)
+        if len(v) > 0:
+            return v[-1]
+        else:
+            return None
 
     def snapshots(self, branch=''):
         """
-        Return list of all snapshots in date order of the project pool.
+        Return list of all snapshots in date order for the given branch.
         """
         if not branch:
             branch = self.branch
-        return self.cmd(["/usr/bin/bup", "ls", branch+'/'], verbose=0).split()[:-1]
+        if not os.path.exists(os.path.join(self.bup_path, 'refs', 'heads', branch)):
+            # branch doesn't exist
+            return []
+        else:
+            return self.cmd(["/usr/bin/bup", "ls", branch+'/'], verbose=0).split()[:-1]
 
     def branches(self):
         return {'branches':self.cmd("bup ls").split(), 'branch':self.branch}
@@ -686,7 +719,7 @@ class Project(object):
                     s['error'] = 'unknown server'
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, set_quotas=True):
+    def _sync(self, remote, destructive=False, snapshots=True, set_quotas=True, rsync_timeout=30):
         """
         NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
 
@@ -712,7 +745,7 @@ class Project(object):
                     raise NotImplementedError
 
             # ignore errors, since if we fusemounts a directory (bup snapshots!) then that leads to issues.
-            self.cmd(["rsync", "-zaxH", "--delete", "--ignore-errors"] + self.exclude('') +
+            self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
                       ['-e', 'ssh -o StrictHostKeyChecking=no',
                       self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
 
@@ -722,7 +755,7 @@ class Project(object):
 
         if destructive:
             log("push so that remote=local: easier; have to do this after a recompact (say)")
-            self.cmd(["rsync", "-axH", "--delete", "-e", 'ssh -o StrictHostKeyChecking=no',
+            self.cmd(["rsync", "-axH", "--delete", '--timeout', rsync_timeout, "-e", 'ssh -o StrictHostKeyChecking=no',
                       self.bup_path+'/', "root@%s:%s/"%(remote, remote_bup_path)])
             return
 
@@ -739,11 +772,11 @@ class Project(object):
                 a, b = x.split(':')[-2:]
                 remote_heads.append((os.path.split(a)[-1], b))
         log("sync from local to remote")
-        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
+        self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
                   self.bup_path + '/', "root@%s:%s/"%(remote, remote_bup_path)])
         log("sync from remote back to local")
         # the -v is important below!
-        back = self.cmd(["rsync", "-vaxH", "-e", 'ssh -o StrictHostKeyChecking=no',
+        back = self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', '--timeout', rsync_timeout,
                          "root@%s:%s/"%(remote, remote_bup_path), self.bup_path + "/"]).splitlines()
         if remote_heads and len([x for x in back if x.endswith('.pack')]) > 0:
             log("there were remote packs possibly not available locally, so make tags that points to them")
@@ -759,7 +792,8 @@ class Project(object):
                     open(path,'w').write(id)
             if tag is not None:
                 log("sync back any tags")
-                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no', self.bup_path+'/', 'root@'+remote+'/'])
+                self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
+                          '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
         if os.path.exists(self.project_mnt):
             log("mount snapshots")
             self.mount_snapshots()
@@ -965,9 +999,11 @@ if __name__ == "__main__":
     parser_restart = subparsers.add_parser('restart', help='restart servers')
     parser_restart.set_defaults(func=lambda args: project.restart())
 
+    def do_save(*args, **kwds):
+        print json.dumps(project.save(*args, **kwds))
     parser_save = subparsers.add_parser('save', help='save a snapshot then sync everything out')
     parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
-    parser_save.set_defaults(func=lambda args: project.save(branch=args.branch))
+    parser_save.set_defaults(func=lambda args: do_save(branch=args.branch))
 
     def do_sync(*args, **kwds):
         status = project.sync(*args, **kwds)

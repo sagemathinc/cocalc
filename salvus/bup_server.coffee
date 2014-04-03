@@ -23,16 +23,23 @@ cassandra = require('cassandra')
 cql       = require("node-cassandra-cql")
 HashRing  = require 'hashring'
 
+# Set the log level
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, level: 'debug')
+
 {defaults, required} = misc
 
 REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
-TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
+
+REPLICATION_FACTOR = 1  # per data center
+
+TIMEOUT = 60*60
 
 # never do a save action more frequently than this - more precisely, saves just get
 # ignored until this much time elapses *and* an interesting file changes.
-MIN_SAVE_INTERVAL_S = 120
+MIN_SAVE_INTERVAL_S = 60
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
@@ -49,20 +56,19 @@ DATA = 'data'
 ## server-side: Storage server code
 ###########################
 
-# Execute a command using the bup_storage script.
-_bup_storage_no_queue = (opts) =>
+bup_storage = (opts) =>
     opts = defaults opts,
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("_bup_storage_no_queue: running #{misc.to_json(opts.args)}")
+    winston.debug("bup_storage: running #{misc.to_json(opts.args)}")
     misc_node.execute_code
         command : "sudo"
         args    : ["/usr/local/bin/bup_storage.py"].concat(opts.args)
         timeout : opts.timeout
         path    : process.cwd()
         cb      : (err, output) =>
-            winston.debug("_bup_storage_no_queue: finished running #{misc.to_json(opts.args)} -- #{err}")
+            winston.debug("bup_storage: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -71,38 +77,14 @@ _bup_storage_no_queue = (opts) =>
             else
                 opts.cb(undefined, if output.stdout then misc.from_json(output.stdout) else undefined)
 
-_bup_storage_queue = []
-_bup_storage_queue_running = 0
 
-bup_storage = (opts) =>
-    opts = defaults opts,
-        args    : required
-        timeout : TIMEOUT
-        cb      : required
-    _bup_storage_queue.push(opts)
-    process_bup_storage_queue()
-
-process_bup_storage_queue = () ->
-    winston.debug("process_bup_storage_queue: _bup_storage_queue_running=#{_bup_storage_queue_running}; _bup_storage_queue.length=#{_bup_storage_queue.length}")
-    if _bup_storage_queue.length > 0
-        opts = _bup_storage_queue.shift()
-        _bup_storage_queue_running += 1
-        cb = opts.cb
-        opts.cb = (err, output) =>
-            _bup_storage_queue_running -= 1
-            process_bup_storage_queue()
-            cb(err, output)
-        _bup_storage_no_queue(opts)
-
-
-# A project from the point of view of the storage server
+# A single project from the point of view of the storage server
 class Project
     constructor: (opts) ->
         opts = defaults opts,
             project_id : required
             verbose    : true
 
-        @_action_queue   = []
         @project_id      = opts.project_id
         @verbose         = opts.verbose
 
@@ -128,57 +110,116 @@ class Project
             cb      : opts.cb
 
     action: (opts) =>
-        cb = opts.cb
-        start_time = cassandra.now()
-        @_enque_action(opts)
+        opts = defaults opts,
+            action  : required    # sync, save, etc.
+            timeout : TIMEOUT
+            param   : undefined   # if given, should be an array or string
+            cb      : undefined   # cb?(err)
 
-    _enque_action: (opts) =>
-        if not opts?
-            # doing that would be bad.
+        @dbg('action', opts)
+        if opts.action == 'get_state'
+            @get_state(cb : (err, state) => opts.cb?(err, state))
             return
-        @_action_queue.push(opts)
-        @_process_action_queue()
 
-    _process_action_queue: () =>
-        if @_action_queue_current?
-            return
-        if @_action_queue.length > 0
-            opts = @_action_queue.shift()
-            @_action_queue_current = opts
-            cb = opts.cb
 
-            if opts.action == 'save' and @_last_save_time? and misc.walltime() - @_last_save_time < MIN_SAVE_INTERVAL_S
-                cb?(undefined)
-                delete @_action_queue_current
-                @_process_action_queue()
-                return
+        state  = undefined
+        result = undefined
+        # STATES: stopped, starting, running, restarting, stopping, saving, error
+        async.series([
+            (cb) =>
+                @get_state
+                    cb : (err, s) =>
+                        state = s; cb(err)
+            (cb) =>
+                switch opts.action
+                    when 'start'
+                        if state in ['stopped', 'error'] or opts.param=='force'
+                            @state = 'starting'
+                            @_action
+                                action  : 'start'
+                                param   : opts.param
+                                timeout : opts.timeout
+                                cb      : (err, r) =>
+                                    result = r
+                                    if err
+                                        @dbg("action", opts, "start -- error starting=#{err}")
+                                        @state = 'error'
+                                    else
+                                        @dbg("action", opts, "started successfully -- changing state to running")
+                                        @state = 'running'
+                                    cb(err)
+                        else
+                            cb()
 
-            opts.cb = (err,x,y,z) =>
-                delete @_action_queue_current
-                cb?(err,x,y,z)
-                if err
-                    # clear the queue
-                    for o in @_action_queue
-                        o.cb?("earlier action '#{o.action}' failed -- #{err}")
-                    @_action_queue = []
-                else
-                    if opts.action == 'save'
-                        @_last_save_time = misc.walltime()
-                    if opts.action != 'status'
-                        # remove all the same actions from the queue, since we consider most actions
-                        # idempotent (and even commutative), even if maybe they aren't quite.  This
-                        # simplifies things a lot, so that clients don't have to lock or coordinate actions.
-                        for o in @_action_queue
-                            if o.action == opts.action
-                                o.cb?(err, x, y, z)
-                        @_action_queue = (o for o in @_action_queue when o.action != opts.action)
-                    @_process_action_queue()
-            @_action(opts)
+                    when 'restart'
+                        if state in ['running', 'error'] or opts.param=='force'
+                            @state = 'restarting'
+                            @_action
+                                action  : 'restart'
+                                param   : opts.param
+                                timeout : opts.timeout
+                                cb      : (err, r) =>
+                                    result = r
+                                    if err
+                                        @dbg("action", opts, "failed to restart -- #{err}")
+                                        @state = 'error'
+                                    else
+                                        @dbg("action", opts, "restarted successfully -- changing state to running")
+                                        @state = 'running'
+                                    cb(err)
+                        else
+                            cb()
 
-    delete_queue: () =>  # DANGEROUS -- ignores anything "in progress"
-        @_action_queue = []
-        @_action_queue_running = 0
-        delete @_action_queue_current
+                    when 'stop'
+                        if state in ['running', 'error'] or opts.param=='force'
+                            @state = 'stopping'
+                            @_action
+                                action  : 'stop'
+                                param   : opts.param
+                                timeout : opts.timeout
+                                cb      : (err, r) =>
+                                    result = r
+                                    if err
+                                        @dbg("action", opts, "failed to stop -- #{err}")
+                                        @state = 'error'
+                                    else
+                                        @dbg("action", opts, "stopped successfully -- changing state to stopped")
+                                        @state = 'stopped'
+                                    cb(err)
+                        else
+                            cb()
+
+
+                    when 'save'
+                        if state in ['running'] or opts.param=='force'
+                            @state = 'saving'
+                            @_action
+                                action  : 'save'
+                                param   : opts.param
+                                timeout : opts.timeout
+                                cb      : (err, r) =>
+                                    result = r
+                                    if err
+                                        @dbg("action", opts, "failed to save -- #{err}")
+                                        @state = 'error'
+                                    else
+                                        @dbg("action", opts, "saved successfully -- changing state from saving back to running")
+                                        @state = 'running'
+                                    cb(err)
+                        else
+                            cb()
+
+                    else
+                        @_action
+                            action  : opts.action
+                            param   : opts.param
+                            timeout : opts.timeout
+                            cb      : (err, r) =>
+                                result = r
+                                cb(err)
+        ], (err) =>
+            opts.cb?(err, result)
+        )
 
     _action: (opts) =>
         opts = defaults opts,
@@ -189,20 +230,15 @@ class Project
         dbg = (m) => @dbg("_action", opts, m)
         dbg()
         switch opts.action
-            when "queue"
-                q = {queue:({action:x.action, param:x.param} for x in @_action_queue) }
-                if @_action_queue_current?
-                    q.current = {action:@_action_queue_current.action, param:@_action_queue_current.param}
-                dbg("returning the queue -- #{misc.to_json(q)}")
-                opts.cb?(undefined, q)
-            when "delete_queue"
-                dbg("deleting the queue")
-                @delete_queue()
-                opts.cb?()
+            when "get_state"
+                @get_state
+                    cb : opts.cb
+
             else
+
                 dbg("Doing action #{opts.action} that involves executing script")
                 args = [opts.action]
-                if opts.param?
+                if opts.param? and opts.param != 'force'
                     if typeof opts.param == 'string'
                         opts.param = misc.split(opts.param)  # turn it into an array
                     args = args.concat(opts.param)
@@ -210,6 +246,48 @@ class Project
                     args    : args
                     timeout : opts.timeout
                     cb      : opts.cb
+
+    get_state: (opts) =>
+        opts = defaults opts,
+            cb : required
+
+        if @state?
+            if @state not in ['starting', 'stopping', 'restarting']   # stopped, running, saving, error
+                winston.debug("get_state -- confirming running status")
+                @_action
+                    action : 'status'
+                    cb     : (err, status) =>
+                        state = @state
+                        winston.debug("get_state -- confirming based on status=#{misc.to_json(status)}")
+                        if err
+                            state = 'error'
+                        else if status.running
+                            # set @state to a running state: either 'saving' or 'running'
+                            if state != 'saving'
+                                state = 'running'
+                        else
+                            state = 'stopped'
+                        @state = state
+                        opts.cb(undefined, state)
+            else
+                winston.debug("get_state -- trusting running status since @state=#{@state}")
+                opts.cb(undefined, @state)
+            return
+        # We -- the server running on this compute node -- don't know the state of this project.
+        # This might happen if the server were restarted, the machine rebooted, the project not
+        # ever started, here, etc.  So we run a script and try to guess a state.
+        @_action
+            action : 'status'
+            cb     : (err, status) =>
+                @dbg("get_state",'',"basing on status=#{misc.to_json(status)}")
+                if err
+                    @state = 'error'
+                else if status.running
+                    @state = 'running'
+                else
+                    @state = 'stopped'
+                opts.cb(undefined, @state)
+
 
 projects = {}
 get_project = (project_id) ->
@@ -275,12 +353,6 @@ init_server_id = (cb) ->
                 else
                     SERVER_ID = data.toString()
                     cb()
-
-
-bup_queue_len = () ->
-    n = _bup_storage_queue.length + _bup_storage_queue_running
-    #winston.debug("bup_queue_len = #{n} = #{_bup_storage_queue.length} + #{_bup_storage_queue_running} ")
-    return n
 
 
 idle_timeout = () ->
@@ -450,12 +522,536 @@ x.c.push_servers_files(cb:console.log)
 
 ###
 
+# A project viewed globally (but from a particular hub)
+class GlobalProject
+    constructor: (@project_id, @global_client) ->
+        @database = @global_client.database
+
+    get_location_pref: (cb) =>
+        @database.select_one
+            table   : "projects"
+            columns : ["bup_location"]
+            where   : {project_id : @project_id}
+            cb      : cb
+
+    set_location_pref: (server_id, cb) =>
+        @database.update
+            table : "projects"
+            set   : {bup_location : server_id}
+            where   : {project_id : @project_id}
+            cb      : cb
+
+
+    # starts project if necessary, waits until it is running, and
+    # gets the hostname port where the local hub is serving.
+    local_hub_address: (opts) =>
+        opts = defaults opts,
+            timeout : 30
+            cb : required      # cb(err, {host:hostname, port:port, status:status})
+        if @_local_hub_address_queue?
+            @_local_hub_address_queue.push(opts.cb)
+        else
+           @_local_hub_address_queue = [opts.cb]
+           @_local_hub_address
+               timeout : opts.timeout
+               cb      : (err, r) =>
+                   for cb in @_local_hub_address_queue
+                       cb(err, r)
+                   delete @_local_hub_address_queue
+
+    _local_hub_address: (opts) =>
+        opts = defaults opts,
+            timeout : 90
+            cb : required      # cb(err, {host:hostname, port:port})
+        dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
+        dbg()
+        server_id = undefined
+        port      = undefined
+        status    = undefined
+        attempt = (cb) =>
+            dbg("making an attempt to start")
+            async.series([
+                (cb) =>
+                    dbg("see if host running")
+                    @get_host_where_running
+                        cb : (err, s) =>
+                            port = undefined
+                            server_id = s
+                            cb(err)
+                (cb) =>
+                    if not server_id?
+                        dbg("not running anywhere, so try to start")
+                        @start(cb:cb)
+                    else
+                        dbg("running or starting somewhere, so test it out")
+                        @project
+                            server_id : server_id
+                            cb        : (err, project) =>
+                                if err
+                                    cb(err)
+                                else
+                                    project.status
+                                        cb : (err, _status) =>
+                                            status = _status
+                                            port = status?['local_hub.port']
+                                            cb()
+                (cb) =>
+                    if port?
+                        dbg("success -- we got our host")
+                        @_update_project_settings()   # non-blocking -- might as well do this on success.
+                        cb()
+                    else
+                        dbg("fail -- not working yet")
+                        cb(true)
+             ], cb)
+
+        t = misc.walltime()
+        f = () =>
+            if misc.walltime() - t > opts.timeout
+                # give up
+                opts.cb("unable to start project running somewhere within about #{opts.timeout} seconds")
+            else
+                # try to open...
+                attempt (err) =>
+                    if err
+                        dbg("attempt to get address failed -- #{err}; try again in 5 seconds")
+                        setTimeout(f, 5000)
+                    else
+                        # success!?
+                        host = @global_client.servers[server_id]?.host
+                        if not host?
+                            opts.cb("unknown server #{server_id}")
+                        else
+                            opts.cb(undefined, {host:host, port:port, status:status})
+         f()
+
+
+    _update_project_settings: (cb) =>
+        dbg = (m) -> winston.debug("GlobalProject.update_project_settings(#{@project_id}): #{m}")
+        dbg()
+        @database.select_one
+            table   : 'projects'
+            columns : ['settings']
+            where   : {project_id: @project_id}
+            cb      : (err, result) =>
+                dbg("got settings from database: #{misc.to_json(result[0])}")
+                if err or not result[0]?   # result[0] = undefined if no special settings
+                    cb?(err)
+                else
+                    opts = result[0]
+                    opts.cb = (err) =>
+                        if err
+                            dbg("set settings for project -- #{err}")
+                        else
+                            dbg("successful set settings")
+                        cb?(err)
+                    @settings(opts)
+
+    start: (opts) =>
+        opts = defaults opts,
+            cb     : undefined
+        dbg = (m) -> winston.debug("GlobalProject.start(#{@project_id}): #{m}")
+        dbg()
+        state     = undefined
+        project   = undefined
+        server_id = undefined
+        target    = undefined
+
+        async.series([
+            (cb) =>
+                @get_location_pref (err, result) =>
+                    if not err and result?
+                        dbg("setting prefered start target to #{result[0]}")
+                        target = result[0]
+                        cb()
+                    else
+                        cb(err)
+            (cb) =>
+                dbg("get global state of the project")
+                @get_state
+                    cb : (err, s) =>
+                        state = s; cb(err)
+            (cb) =>
+                running_on = (server_id for server_id, s of state when s in ['running', 'starting', 'restarting', 'saving'])
+                if running_on.length == 0
+                    dbg("find a place to run project")
+                    v = (server_id for server_id, s of state when s not in ['error'])
+                    if v.length == 0
+                        v = misc.keys(state)
+                    if target? and v.length > 1
+                        v = (server_id for server_id in v when server_id != @_next_start_avoid)
+                        delete @_next_start_avoid
+                    if target? and target in v
+                        server_id = target
+                        cb()
+                    else
+                        dbg("order good servers by most recent save time, and choose randomly from those")
+                        @get_last_save
+                            cb : (err, last_save) =>
+                                if err
+                                    cb(err)
+                                else
+                                    for server_id in v
+                                        if not last_save[server_id]?
+                                            last_save[server_id] = 0
+                                    w = []
+                                    for server_id, timestamp of last_save
+                                        if server_id not in v
+                                            delete last_save[server_id]
+                                        else
+                                            w.push(timestamp)
+                                    if w.length > 0
+                                        w.sort()
+                                        newest = w[w.length-1]
+                                        # we use date subtraction below because equality testing of dates does *NOT* work correctly
+                                        # for our purposes, maybe due to slight rounding errors and milliseconds.  And strategically
+                                        # it also makes sense to lump 2 projects with a save within a few seconds in our random choice.
+                                        v = (server_id for server_id in v when Math.abs(last_save[server_id] - newest) < 10*1000)
+                                    dbg("choosing randomly from #{v.length} choices with optimal save time")
+                                    server_id = misc.random_choice(v)
+                                    dbg("our choice is #{server_id}")
+                                    cb()
+
+                else if running_on.length == 1
+                    dbg("done -- nothing further to do -- project already running on one host")
+                    cb()
+                else
+                    dbg("project running on more than one host -- repair by killing all but first; this will force any clients to move to the correct host when their connections get dropped")
+                    running_on.sort() # sort so any client doing the same thing will kill the same other ones.
+                    @_stop_all(running_on.slice(1))
+                    cb()
+
+            (cb) =>
+                if not server_id?  # already running
+                    cb(); return
+                dbg("got project on #{server_id} so we can start it there")
+                @project
+                    server_id : server_id
+                    cb        : (err, p) =>
+                        project = p; cb (err)
+            (cb) =>
+                if not server_id?  # already running
+                    cb(); return
+                dbg("start project on #{server_id}")
+                project.start
+                    cb : (err) =>
+                        if not err
+                            dbg("success -- record that #{server_id} is now our preferred start location")
+                            @set_location_pref(server_id)
+                        cb(err)
+        ], (err) => opts.cb?(err))
+
+
+    restart: (opts) =>
+        dbg = (m) -> winston.debug("GlobalProject.restart(#{@project_id}): #{m}")
+        dbg()
+        @running_project
+            cb : (err, project) =>
+                if err
+                    dbg("unable to determine running project -- #{err}")
+                    opts.cb(err)
+                else if project?
+                    dbg("project is running somewhere, so restart it there")
+                    project.restart(opts)
+                else
+                    dbg("project not running anywhere, so start it somewhere")
+                    @start(opts)
+
+
+    save: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        dbg = (m) -> winston.debug("GlobalProject.save(#{@project_id}): #{m}")
+        dbg()
+        @get_host_where_running
+            cb : (err, server_id) =>
+                if err
+                    opts.cb?(err)
+                else if not server_id?
+                    dbg("not running anywhere -- nothing to save")
+                    opts.cb?()
+                else if @state?[server_id] == 'saving'
+                    dbg("already saving -- nothing to do")
+                    opts.cb?()
+                else
+                    @project
+                        server_id : server_id
+                        cb        : (err, project) =>
+                            if err
+                               opts.cb?(err)
+                            else
+                               project.save
+                                    cb : (err, result) =>
+                                        r = result?.result
+                                        dbg("RESULT = #{misc.to_json(result)}")
+                                        if not err and r? and r.timestamp? and r.files_saved > 0
+                                            dbg("record info about saving #{r.files_saved} files in database")
+                                            last_save = {}
+                                            last_save[server_id] = r.timestamp*1000
+                                            if r.sync?
+                                                for x in r.sync
+                                                    last_save[x.replica_id] = r.timestamp*1000
+                                            @set_last_save
+                                                last_save        : last_save
+                                                bup_repo_size_kb : r.bup_repo_size_kb
+                                                cb               : opts.cb
+                                        else
+                                            opts.cb?(err)
+
+
+    # if some project is actually running, return it; otherwise undefined
+    running_project: (opts) =>
+        opts = defaults opts,
+            cb : required   # (err, project)
+        @get_host_where_running
+            cb : (err, server_id) =>
+                if err
+                    opts.cb?(err)
+                else if not server_id?
+                    opts.cb?() # not running anywhere
+                else
+                    @project
+                        server_id : server_id
+                        cb        : opts.cb
+
+    # return status of *running* project, if running somewhere, or {}.
+    status: (opts) =>
+        @running_project
+            cb : (err, project) =>
+                if err
+                    opts.cb(err)
+                else if project?
+                    project.status(opts)
+                else
+                    opts.cb(undefined, {})  # no running project, so no status
+
+    # set settings of running project, if running somewhere, or an error.
+    settings: (opts) =>
+        @running_project
+            cb : (err, project) =>
+                if err
+                    opts.cb?(err)
+                else if project?
+                    project.settings(opts)
+                else
+                    opts.cb?("project not running anywhere")
+
+    stop: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        @get_host_where_running
+            cb : (err, server_id) =>
+                if err
+                    opts.cb?(err)
+                else if not server_id?
+                    opts.cb?() # not running anywhere -- nothing to save
+                else
+                    @_stop_all([server_id])
+                    opts.cb?()
+
+    # change the location preference for the next start, and attempts to stop
+    # if running somewhere now.
+    move: (opts) =>
+        opts = defaults opts,
+            target : undefined
+            cb     : undefined
+        dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
+        dbg()
+        async.series([
+            (cb) =>
+                if opts.target?
+                    dbg("set next open location preference -- #{err}")
+                    @set_location_pref(opts.target, cb)
+                else
+                    cb()
+            (cb) =>
+                @get_host_where_running
+                    cb : (err, server_id) =>
+                        if err
+                            dbg("error determining info about running status -- #{err}")
+                            cb(err)
+                        else
+                            @_next_start_avoid = server_id
+                            if server_id?
+                                # next start will happen on new machine...
+                                @stop
+                                    cb: (err) =>
+                                        dbg("non-fatal error stopping -- expected given that move is used when host is down -- #{err}")
+                                        cb()
+                            else
+                                cb()
+        ], (err) =>
+            dbg("move completed -- #{err}")
+            opts.cb?(err)
+        )
+
+    get_host_where_running: (opts) =>
+        opts = defaults opts,
+            cb : required    # cb(err, serverid or undefined=not running anywhere)
+        @get_state
+            cb : (err, state) =>
+                if err
+                      opts.cb(err); return
+                running_on = (server_id for server_id, s of state when s in ['running', 'starting', 'restarting', 'saving'])
+                if running_on.length == 0
+                    opts.cb()
+                else
+                    running_on.sort() # sort -- so any other client doing the same thing will kill the same other ones.
+                    server_id = running_on[0]
+                    @_stop_all(  (x for x,s in state when x != server_id)  )
+                    @set_location_pref(server_id)   # remember in db so we'll prefer this host in future
+                    opts.cb(undefined, server_id)
+
+    _stop_all: (v) =>
+        if v.length == 0
+            return
+        winston.debug("GlobalProject: repair by stopping on #{misc.to_json(v)}")
+        for server_id in v
+            @project
+                server_id:server_id
+                cb : (err, project) =>
+                    if not err
+                        project.stop(force:true)
+
+    # get local copy of project on a specific host
+    project: (opts) =>
+        opts = defaults opts,
+            server_id : required
+            cb        : required
+        @global_client.storage_server
+            server_id : opts.server_id
+            cb        : (err, s) =>
+                if err
+                    opts.cb(err)
+                else
+                    s.project   # this is cached
+                        project_id : @project_id
+                        cb         : opts.cb
+
+    set_last_save: (opts) =>
+        opts = defaults opts,
+            last_save : required    # map  {server_id:timestamp, ...}
+            bup_repo_size_kb : undefined  # if given, should be int
+            cb        : undefined
+        async.series([
+            (cb) =>
+                s = "UPDATE projects SET bup_last_save[?]=? WHERE project_id=?"
+                f = (server_id, cb) =>
+                    @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cb)
+                async.map(misc.keys(opts.last_save), f, cb)
+            (cb) =>
+                if opts.bup_repo_size_kb?
+                    @database.update
+                        table   : "projects"
+                        set     : {bup_repo_size_kb : opts.bup_repo_size_kb}
+                        where   : {project_id : @project_id}
+                        cb      : cb
+                else
+                    cb()
+        ], (err) -> opts.cb?(err))
+
+
+    get_last_save: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @database.select
+            table : 'projects'
+            where : {project_id:@project_id}
+            columns : ['bup_last_save']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    if result.length == 0 or not result[0][0]?
+                        last_save = {}
+                    else
+                        last_save = result[0][0]
+                    opts.cb(undefined, last_save)
+
+    get_hosts: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @database.select
+            table : 'projects'
+            where : {project_id:@project_id}
+            columns : ['bup_last_save']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    if result.length == 0 or not result[0][0]?
+                        hosts = []
+                    else
+                        hosts = misc.keys(result[0][0])
+                    if hosts.length == 0
+                         # default hosts -- for a new project
+                         hosts = @global_client.replicas(project_id: @project_id)
+                         last_save = {}
+                         n = cassandra.now()
+                         for server_id in hosts
+                             last_save[server_id] = n
+                         @set_last_save(last_save: last_save)
+                    opts.cb(undefined, hosts)
+
+    # determine the global state by querying *all servers*
+    # guaranteed to return length > 0
+    get_state: (opts) =>
+        opts = defaults opts,
+            timeout : 7
+            cb      : required
+        dbg = (m) -> winston.info("get_state: #{m}")
+        dbg()
+        servers = undefined
+        @state = {}
+        async.series([
+            (cb) =>
+                dbg("lookup the servers that host this project")
+                @get_hosts
+                    cb : (err, hosts) =>
+                        if err
+                            cb(err)
+                        else
+                            servers = hosts
+                            dbg("servers=#{misc.to_json(servers)}")
+                            cb()
+            (cb) =>
+                dbg("query each server for the project's state there")
+                f = (server_id, cb) =>
+                    dbg("query #{server_id} for state")
+                    project = undefined
+                    async.series([
+                        (cb) =>
+                            @project
+                                server_id : server_id
+                                cb        : (err, p) =>
+                                    if err
+                                        dbg("failed to get project on server #{server_id} -- #{err}")
+                                    project = p
+                                    cb(err)
+                        (cb) =>
+                            project.get_state
+                                timeout : opts.timeout
+                                cb : (err, s) =>
+                                    if err
+                                        dbg("error getting state on #{server_id} -- #{err}")
+                                        s = 'error'
+                                    @state[server_id] = s
+                                    cb()
+                    ], cb)
+
+                async.map(servers, f, cb)
+
+        ], (err) => opts.cb?(err, @state)
+        )
+
+
+
 global_client_cache={}
 
 exports.global_client = (opts) ->
     opts = defaults opts,
         database           : undefined
-        replication_factor : 2
+        replication_factor : REPLICATION_FACTOR
         cb                 : required
     key = misc.to_json(opts.replication_factor)
     C = global_client_cache[key]
@@ -469,8 +1065,11 @@ class GlobalClient
     constructor: (opts) ->
         opts = defaults opts,
             database           : undefined   # connection to cassandra database
-            replication_factor : 2
+            replication_factor : REPLICATION_FACTOR
             cb                 : required   # cb(err, @) -- called when initialized
+
+        @_project_cache = {}
+
         async.series([
             (cb) =>
                 if opts.database?
@@ -511,6 +1110,12 @@ class GlobalClient
                 opts.cb(err, @)
         )
 
+    get_project: (project_id) =>
+        P = @_project_cache[project_id]
+        if not P?
+            P = @_project_cache[project_id] = new GlobalProject(project_id, @)
+        return P
+
     _update: (cb) =>
         #dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
         #dbg("querying for storage servers...")
@@ -539,30 +1144,6 @@ class GlobalClient
                     @hashrings[dc] = new HashRing(obj)
                 #dbg("all updated")
                 cb?()
-
-    close_stale_projects: (opts) =>
-        ops = defaults opts,
-            dry_run : false
-            ttl     : 60*60*6  # every 6 hours for now.
-            limit   : 40
-            cb      : required
-        opts.cb()
-
-    replicate_projects_needing_replication: (opts) =>
-        opts = defaults opts,
-            age_s     : 10*60  # 10 minutes
-            limit     : 2      # max number to replicate simultaneously
-            interval  : 3000
-            cb        : required
-        opts.cb()
-
-    replicate_all_with_errors: (opts) =>
-        opts = defaults opts,
-            limit : 10   # no more than this many projects will be replicated simultaneously
-            start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
-            stop  : undefined
-            cb    : required  # cb(err, {project_id:error when replicating that project})
-        opts.cb()
 
     push_servers_files: (opts) =>
         opts = defaults opts,
@@ -983,8 +1564,6 @@ class GlobalClient
 
 
 
-
-
 ###########################
 ## Client -- code below mainly sets up a connection to a given storage server
 ###########################
@@ -1158,7 +1737,7 @@ storage_server_client = (opts) ->
         C = client_cache[key] = new Client(host:opts.host, port:opts.port, secret: opts.secret, verbose:opts.verbose, server_id:opts.server_id)
     return C
 
-
+# A client on a *particular* server
 class ClientProject
     constructor: (@client, @project_id) ->
         @dbg("constructor",[],"")
@@ -1182,6 +1761,18 @@ class ClientProject
         opts.action = 'start'
         @action(opts)
 
+    # state is one of the following: stopped, starting, running, restarting, stopping, saving, error
+    get_state: (opts) =>
+        opts = defaults opts,
+            timeout    : TIMEOUT
+            cb         : required  # cb(err, state)
+        opts.action = 'get_state'
+        cb = opts.cb
+        opts.cb = (err, resp) =>
+            cb(err, resp?.result)
+        @action(opts)
+
+    # extensive information about the project, e.g., port it is listening on, quota information, etc.
     status: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
@@ -1195,21 +1786,50 @@ class ClientProject
     works: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
-            cb         : required
-        @status
-            timeout : opts.timeout
-            cb      : (err, status) =>
-                if err
-                    opts.cb(undefined, false)   # doesn't work.
-                else
-                    # probably should give a better test (?)
-                    opts.cb(undefined, status?['local_hub.port']?)
+            cb         : required   # cb(undefined, true if works)    -- never errors, since "not works=error"
+        # using status for now -- may want to use something cheaper (?)
+        works = false
+        async.series([
+            (cb) =>
+                @status
+                    timeout : opts.timeout
+                    cb      : (err, status) =>
+                        if err or not status?['local_hub.port']?
+                            cb()
+                        else
+                            works = true
+                            cb()
+            (cb) =>
+                if works
+                    cb(); return
+                @restart(cb : cb)
+            (cb) =>
+                if works
+                    cb(); return
+                @status
+                    timeout : opts.timeout
+                    cb      : (err, status) =>
+                        if err or not status?['local_hub.port']?
+                            cb()
+                        else
+                            works = true
+                            cb()
+        ], (err) =>
+            if err or not works
+                opts.cb(undefined, false)
+            else
+                opts.cb(undefined, true)
+        )
 
     stop: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
+            force      : false
             cb         : undefined
         opts.action = 'stop'
+        if opts.force
+            opts.param = 'force'
+            delete opts.force
         @action(opts)
 
 
@@ -1272,7 +1892,7 @@ class ClientProject
         opts = defaults opts,
             timeout            : TIMEOUT
             destructive        : false
-            replication_factor : 2    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
+            replication_factor : REPLICATION_FACTOR    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
             snapshots          : true   # whether to sync snapshots -- if not given, only syncs live files
             cb                 : undefined
         params = ['--replication_factor', opts.replication_factor]
