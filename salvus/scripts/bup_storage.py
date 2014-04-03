@@ -314,9 +314,7 @@ class Project(object):
             self.makedirs(self.project_mnt)
             self.cmd(['/usr/bin/bup', 'restore', '%s/%s/'%(self.branch, snapshot), '--outdir', self.project_mnt])
             self.chown(self.project_mnt)
-            self.mount_snapshots()
         else:
-            self.mount_snapshots()
             src = os.path.join(self.snap_mnt, self.branch, snapshot)+'/'
             self.cmd(['rsync', '-axH', '--delete', self.exclude(src), src, self.project_mnt+'/'])
 
