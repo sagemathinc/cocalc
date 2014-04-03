@@ -59,7 +59,7 @@ SERVER_ID_FILE = '/bup/conf/bup_server_id'
 # Where the file containing info about all servers is stored
 SERVERS_FILE   = '/bup/conf/bup_servers'
 
-REPLICATION_FACTOR = 2
+REPLICATION_FACTOR = 1
 
 # Default account settings
 

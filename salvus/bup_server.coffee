@@ -32,6 +32,9 @@ winston.add(winston.transports.Console, level: 'debug')
 REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
+
+REPLICATION_FACTOR = 1  # per data center
+
 TIMEOUT = 60*60
 
 # never do a save action more frequently than this - more precisely, saves just get
@@ -523,11 +526,6 @@ x.c.push_servers_files(cb:console.log)
 class GlobalProject
     constructor: (@project_id, @global_client) ->
         @database = @global_client.database
-        # we make an attempt to maintain stickiness to a given machine by setting the @_next_start_target
-        @get_location_pref (err, result) =>
-            if not err and result?
-                winston.debug("setting prefered start target for project #{@project_id} to #{result[0]}")
-                @_next_start_target = result[0]
 
     get_location_pref: (cb) =>
         @database.select_one
@@ -535,10 +533,11 @@ class GlobalProject
             columns : ["bup_location"]
             where   : {project_id : @project_id}
             cb      : cb
-    set_location_pref: (location, cb) =>
+
+    set_location_pref: (server_id, cb) =>
         @database.update
             table : "projects"
-            set   : {bup_location:location}
+            set   : {bup_location : server_id}
             where   : {project_id : @project_id}
             cb      : cb
 
@@ -650,39 +649,96 @@ class GlobalProject
     start: (opts) =>
         opts = defaults opts,
             cb     : undefined
-        @get_state
-            cb : (err, state) =>
-                if err
-                      opts.cb?(err); return
+        dbg = (m) -> winston.debug("GlobalProject.start(#{@project_id}): #{m}")
+        dbg()
+        state     = undefined
+        project   = undefined
+        server_id = undefined
+        target    = undefined
+
+        async.series([
+            (cb) =>
+                @get_location_pref (err, result) =>
+                    if not err and result?
+                        dbg("setting prefered start target to #{result[0]}")
+                        target = result[0]
+                        cb()
+                    else
+                        cb(err)
+            (cb) =>
+                dbg("get global state of the project")
+                @get_state
+                    cb : (err, s) =>
+                        state = s; cb(err)
+            (cb) =>
                 running_on = (server_id for server_id, s of state when s in ['running', 'starting', 'restarting', 'saving'])
                 if running_on.length == 0
-                    # find a place to run it
+                    dbg("find a place to run project")
                     v = (server_id for server_id, s of state when s not in ['error'])
                     if v.length == 0
                         v = misc.keys(state)
-                    if @_next_start_avoid? and v.length > 1
+                    if target? and v.length > 1
                         v = (server_id for server_id in v when server_id != @_next_start_avoid)
-                    if @_next_start_target? and @_next_start_target in v
-                        server_id = @_next_start_target
+                        delete @_next_start_avoid
+                    if target? and target in v
+                        server_id = target
+                        cb()
                     else
-                        server_id = misc.random_choice(v)
-                    delete @_next_start_target
-                    delete @_next_start_avoid
+                        dbg("order good servers by most recent save time, and choose randomly from those")
+                        @get_last_save
+                            cb : (err, last_save) =>
+                                if err
+                                    cb(err)
+                                else
+                                    for server_id in v
+                                        if not last_save[server_id]?
+                                            last_save[server_id] = 0
+                                    w = []
+                                    for server_id, timestamp of last_save
+                                        if server_id not in v
+                                            delete last_save[server_id]
+                                        else
+                                            w.push(timestamp)
+                                    if w.length > 0
+                                        w.sort()
+                                        newest = w[w.length-1]
+                                        # we use date subtraction below because equality testing of dates does *NOT* work correctly
+                                        # for our purposes, maybe due to slight rounding errors and milliseconds.  And strategically
+                                        # it also makes sense to lump 2 projects with a save within a few seconds in our random choice.
+                                        v = (server_id for server_id in v when Math.abs(last_save[server_id] - newest) < 10*1000)
+                                    dbg("choosing randomly from #{v.length} choices with optimal save time")
+                                    server_id = misc.random_choice(v)
+                                    dbg("our choice is #{server_id}")
+                                    cb()
 
-                    @project
-                        server_id:server_id
-                        cb : (err, project) =>
-                           if err
-                               opts.cb?(err)
-                           else
-                               project.start(cb : opts.cb)
                 else if running_on.length == 1
-                    opts.cb?()   # done -- nothing further to do
+                    dbg("done -- nothing further to do -- project already running on one host")
+                    cb()
                 else
-                    # running on more than one -- repair by killing all but first
+                    dbg("project running on more than one host -- repair by killing all but first; this will force any clients to move to the correct host when their connections get dropped")
                     running_on.sort() # sort so any client doing the same thing will kill the same other ones.
                     @_stop_all(running_on.slice(1))
-                    opts.cb?()
+                    cb()
+
+            (cb) =>
+                if not server_id?  # already running
+                    cb(); return
+                dbg("got project on #{server_id} so we can start it there")
+                @project
+                    server_id : server_id
+                    cb        : (err, p) =>
+                        project = p; cb (err)
+            (cb) =>
+                if not server_id?  # already running
+                    cb(); return
+                dbg("start project on #{server_id}")
+                project.start
+                    cb : (err) =>
+                        if not err
+                            dbg("success -- record that #{server_id} is now our preferred start location")
+                            @set_location_pref(server_id)
+                        cb(err)
+        ], (err) => opts.cb?(err))
 
 
     restart: (opts) =>
@@ -791,25 +847,41 @@ class GlobalProject
                     @_stop_all([server_id])
                     opts.cb?()
 
+    # change the location preference for the next start, and attempts to stop
+    # if running somewhere now.
     move: (opts) =>
         opts = defaults opts,
             target : undefined
             cb     : undefined
-        @_next_start_target = opts.target
         dbg = (m) -> winston.debug("GlobalProject.move(#{@project_id}): #{m}")
         dbg()
-        @get_host_where_running
-            cb : (err, server_id) =>
-                if err
-                    dbg("error determining info about running status -- #{err}")
-                    opts.cb?(err)
+        async.series([
+            (cb) =>
+                if opts.target?
+                    dbg("set next open location preference -- #{err}")
+                    @set_location_pref(opts.target, cb)
                 else
-                    @_next_start_avoid = server_id
-                    if not server_id?
-                        @start(cb:opts.cb)
-                    else
-                        # next time user gets something to work, it'll happen on new machine
-                        @stop(cb:opts.cb)
+                    cb()
+            (cb) =>
+                @get_host_where_running
+                    cb : (err, server_id) =>
+                        if err
+                            dbg("error determining info about running status -- #{err}")
+                            cb(err)
+                        else
+                            @_next_start_avoid = server_id
+                            if server_id?
+                                # next start will happen on new machine...
+                                @stop
+                                    cb: (err) =>
+                                        dbg("non-fatal error stopping -- expected given that move is used when host is down -- #{err}")
+                                        cb()
+                            else
+                                cb()
+        ], (err) =>
+            dbg("move completed -- #{err}")
+            opts.cb?(err)
+        )
 
     get_host_where_running: (opts) =>
         opts = defaults opts,
@@ -822,7 +894,7 @@ class GlobalProject
                 if running_on.length == 0
                     opts.cb()
                 else
-                    running_on.sort() # sort so any client doing the same thing will kill the same other ones.
+                    running_on.sort() # sort -- so any other client doing the same thing will kill the same other ones.
                     server_id = running_on[0]
                     @_stop_all(  (x for x,s in state when x != server_id)  )
                     @set_location_pref(server_id)   # remember in db so we'll prefer this host in future
@@ -862,6 +934,23 @@ class GlobalProject
         f = (server_id, cb) =>
             @database.cql(s, [server_id, opts.last_save[server_id], @project_id], cb)
         async.map(misc.keys(opts.last_save), f, (err) -> opts.cb?(err))
+
+    get_last_save: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @database.select
+            table : 'projects'
+            where : {project_id:@project_id}
+            columns : ['bup_last_save']
+            cb      : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    if result.length == 0 or not result[0][0]?
+                        last_save = {}
+                    else
+                        last_save = result[0][0]
+                    opts.cb(undefined, last_save)
 
     get_hosts: (opts) =>
         opts = defaults opts,
@@ -946,7 +1035,7 @@ global_client_cache={}
 exports.global_client = (opts) ->
     opts = defaults opts,
         database           : undefined
-        replication_factor : 2
+        replication_factor : REPLICATION_FACTOR
         cb                 : required
     key = misc.to_json(opts.replication_factor)
     C = global_client_cache[key]
@@ -960,7 +1049,7 @@ class GlobalClient
     constructor: (opts) ->
         opts = defaults opts,
             database           : undefined   # connection to cassandra database
-            replication_factor : 2
+            replication_factor : REPLICATION_FACTOR
             cb                 : required   # cb(err, @) -- called when initialized
 
         @_project_cache = {}
@@ -1787,7 +1876,7 @@ class ClientProject
         opts = defaults opts,
             timeout            : TIMEOUT
             destructive        : false
-            replication_factor : 2    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
+            replication_factor : REPLICATION_FACTOR    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
             snapshots          : true   # whether to sync snapshots -- if not given, only syncs live files
             cb                 : undefined
         params = ['--replication_factor', opts.replication_factor]
