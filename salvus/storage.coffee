@@ -4223,6 +4223,8 @@ exports.prepare_bup = (opts) ->
         limit : 1           # no more than this many simultaneous tasks
         start : 0
         end   : 10
+        reverse : false
+        dryrun : false
         cb    : undefined
     dbg = (m) -> winston.debug("prepare_bup(): #{m}")
     dbg()
@@ -4232,6 +4234,8 @@ exports.prepare_bup = (opts) ->
     servers_by_dc = {}
     servers_hosting_project = {}
     projects_on_server = {}
+
+    save_time = misc.to_iso(new Date(1396569559669))
 
     async.series([
         (cb) ->
@@ -4248,6 +4252,7 @@ exports.prepare_bup = (opts) ->
                         cb(err)
                     else
                         for x in servers
+                            x.host = cassandra.inet_to_str(x.host)
                             servers_by_id[x.server_id] = x
                             v = servers_by_dc[x.dc]
                             if not v?
@@ -4265,10 +4270,11 @@ exports.prepare_bup = (opts) ->
                     else
                         for project_id in data.toString().split('\n')
                             projects_on_server[server_id].push(project_id)
-                            w = servers_hosting_project[project_id]
-                            if not w?
-                                w = servers_hosting_project[project_id] = []
-                            w.push(server_id)
+                            if not servers_hosting_project[project_id]?
+                                servers_hosting_project[project_id] = []
+                            if server_id.length != 36
+                                weird.error
+                            servers_hosting_project[project_id].push(server_id)
                         cb()
             v = ['0663ed3c-e943-4d46-8c5e-b5e7bd5a61cc', '0985aa3e-c5e9-400e-8faa-32e7d5399dab', '2d7f86ce-14a3-41cc-955c-af5211f4a85e', '3056288c-a78d-4f64-af21-633214e845ad', '306ad75d-ffe0-43a4-911d-60b8cd133bc8', '44468f71-5e2d-4685-8d60-95c9d703bea0', '4e4a8d4e-4efa-4435-8380-54795ef6eb8f', '630910c8-d0ef-421f-894e-6f58a954f215', '767693df-fb0d-41a0-bb49-a614d7fbf20d', '795a90e2-92e0-4028-afb0-0c3316c48192', '801019d9-008a-45d4-a7ce-b72f6e99a74d', '806edbba-a66b-4710-9c65-47dd70503fc9', '8f5247e5-d449-4356-9ca7-1d971c79c7df', '94d4ebc1-d5fc-4790-affe-ab4738ca0384', '9e43d924-684d-479b-b601-994e17b7fd86', 'a7cc2a28-5e70-44d9-bbc7-1c5afea1fc9e', 'b9cd6c52-059d-44e1-ace0-be0a26568713', 'bc74ea05-4878-4c5c-90e2-facb70cfe338', 'c2ba4efc-8b4d-4447-8b0b-6a512e1cac97', 'd0bfc232-beeb-4062-9ad5-439c794594f3', 'd47df269-f3a3-47ed-854b-17d6d31fa4fd', 'dad2a46d-2a57-401a-bfe2-ac4fc7d50ec1', 'e06fb88a-1683-41d6-97d8-92e1f3fb5196', 'e676bb5a-c46c-4b72-8d87-0ef62e4a5c88', 'e682408b-c165-4635-abef-d0c5809fee26', 'eec826ad-f395-4a1d-bfb1-20f5a19d4bb0', 'f71dab5b-f40c-48db-a3d2-eefe6ec55f01']
             async.map(v, f, cb)
@@ -4280,8 +4286,9 @@ exports.prepare_bup = (opts) ->
             hashrings = {}
             for dc, servers of servers_by_dc
                 v = {}
-                for server_id in servers
-                    v[server_id] = {vnodes:128}
+                for server in servers
+                    v[server.server_id] = {vnodes:128}
+                console.log('making hashring from', v)
                 hashrings[dc] = new HashRing(v)
 
             data_centers = misc.keys(servers_by_dc)
@@ -4298,14 +4305,19 @@ exports.prepare_bup = (opts) ->
 
                 target = []
                 servers.sort()
-                for sever_id in servers
+
+                for server_id in servers
                     dc = servers_by_id[server_id].dc
                     if not have[dc]
                         target.push(server_id)
                         have[dc] = true
                 for dc, val of have
                     if not val
-                        target.push(hashrings[dc].range(project_id, 1))
+                        server_id = hashrings[dc].range(project_id, 1, true)[0]
+                        #dbg("#{project_id}: adding new server_id = #{server_id}")
+                        if server_id.length != 36
+                            hash.ring.broken
+                        target.push(server_id)
 
                 if target.length != data_centers.length
                     cb("bug -- found target #{misc.to_json(target)} which has wrong length -- #{project_id}")
@@ -4321,6 +4333,8 @@ exports.prepare_bup = (opts) ->
                     cb("bug -- we don't have any data--  #{project_id}")
                 for server_id in target
                     if server_id not in have_data
+                        if server_id.length != 36
+                             total.bug
                         work.push({project_id:project_id, action:'copy_and_restore', src:source, dest:server_id})
 
                 # 2. delete data from where we don't want it
@@ -4333,40 +4347,89 @@ exports.prepare_bup = (opts) ->
                     if server_id in have_data
                         work.push({project_id:project_id, action:'restore', server_id:server_id})
 
-                if work.length >= opts.end
+                if not opts.reverse and opts.end != -1 and work.length >= opts.end
                     break
+
+            # sort the work by project id
+            work.sort (a,b) ->
+                if a.project_id < b.project_id
+                    return -1
+                else if a.project_id > b.project_id
+                    return 1
+                else 
+                    return 0
+    
             cb()
 
         (cb) ->
-            dbg("do tasks #{opts.start} - #{opts.end} on the work schedule doing #{opts.limit} in parallel")
+            if opts.end == -1
+                opts.end = work.length
+            dbg("do tasks #{opts.start} - #{opts.end-1} on the work schedule doing #{opts.limit} in parallel")
+            #dbg("work to do: #{misc.to_json(work.slice(opts.start, opts.end))}")
 
-            exec = (server_id, cmd, cb) ->
-                host = servers_by_id[server_id].host
+            exec_on = (server_id, cmd, cb) ->
+                host = servers_by_id[server_id]?['host']
+                if not host?
+                    dbg("invalid server #{server_id}")
+                    cb("target server #{server_id} not found")
+                    return
+                dbg("on #{host}: #{cmd}")
                 misc_node.execute_code
                     command     : "ssh"
                     args        : ["-o StrictHostKeyChecking=no", "root@#{host}", cmd]
-                    timeout     : 30*60  # 30 minutes
-                    err_on_exit : true
-                    cb          : cb
+                    timeout     : 60*60 
+                    err_on_exit : false
+                    verbose     : false
+                    cb          : (err, output) ->
+                        if err
+                            dbg("#{host}: #{cmd} -- FAIL #{err}")
+                            cb(err)
+                        else 
+                            v = output.stderr.split('\n')
+                            for x in v
+                               x = x.trim()
+                               if x.length > 1 and x.indexOf('chattr:')==-1 and x.indexOf('WARNING') == -1 and x.indexOf('ECDSA') == -1
+                                   dbg("{host}: #{cmd} -- ERROR due to '#{x}'")
+                                   cb(output.stderr); return
+                            cb()
 
             task_delete = (project_id, server_id, cb) ->
                 if project_id.length != 36
                     cb("invalid uuid -- #{project_id}")
                 else
-                    exec(server_id, "rm -rf /bup/bups/#{project_id}", cb)
+                    exec_on(server_id, "rm -rf /bup/bups/#{project_id}", cb)
 
             task_copy = (project_id, src, dest, cb) ->
+                host = servers_by_id[dest]?.host
+                if not host?
+                    cb("target server #{dest} not found")
                 if project_id.length != 36
                     cb("invalid uuid -- #{project_id}")
                 else
-                    exec(src, "rsync -axvH /bup/bups/#{project_id}/ #{dest}:/bup/bups/#{project_id}/", cb)
+                    exec_on(src, "rsync -axH /bup/bups/#{project_id}/ #{host}:/bup/bups/#{project_id}/", cb)
 
             task_restore = (project_id, server_id, cb) ->
                 uid = project_uid(project_id)
-                exec(server_id, "bup restore --outdir=/bup/projects/#{project_id} master/latest && chown -R #{uid}:#{uid} /bup/projects/#{project_id}", cb)
+                if project_id.length != 36
+                    cb("invalid uuid -- #{project_id}")
+                else
+                    exec_on server_id, "rm -rf /bup/projects/#{project_id} && BUP_DIR=/bup/bups/#{project_id} bup restore --outdir=/bup/projects/#{project_id} master/latest/ ; chown -R #{uid}:#{uid} /bup/projects/#{project_id}", (err) ->
+                       if err
+                           cb(err)
+                       else 
+                           q = "UPDATE projects set bup_last_save[?]=? where project_id=?"
+                           database.cql(q, [server_id, save_time, project_id], cb) 
 
-
+            i = opts.start
+            goal = opts.end - 1
+        
+           
             do_task = (task, cb) ->
+                dbg("******** #{i}/#{goal} ******* ")
+                i += 1
+                dbg("doing task #{misc.to_json(task)}")
+                if opts.dryrun
+                    cb(); return
                 switch task.action
                     when 'delete'
                         task_delete(task.project_id, task.server_id, cb)
@@ -4375,12 +4438,19 @@ exports.prepare_bup = (opts) ->
                             if err
                                 cb(err)
                             else
-                                task_restore(task.project_id, task.server_id, cb)
+                                task_restore(task.project_id, task.dest, cb)
                     when 'restore'
                         task_restore(task.project_id, task.server_id, cb)
                     else
                         cb("unknown action #{task.action}")
 
+            if opts.reverse
+                work.reverse()
+            if opts.end != -1
+                work = work.slice(opts.start, opts.end)
+            else
+                work = work.slice(opts.start)
+            async.mapLimit(work, opts.limit, do_task, cb) 
 
     ], (err) -> opts.cb?(err))
 
