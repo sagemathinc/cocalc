@@ -4356,9 +4356,9 @@ exports.prepare_bup = (opts) ->
                     return -1
                 else if a.project_id > b.project_id
                     return 1
-                else 
+                else
                     return 0
-    
+
             cb()
 
         (cb) ->
@@ -4377,14 +4377,14 @@ exports.prepare_bup = (opts) ->
                 misc_node.execute_code
                     command     : "ssh"
                     args        : ["-o StrictHostKeyChecking=no", "root@#{host}", cmd]
-                    timeout     : 60*60 
+                    timeout     : 60*60
                     err_on_exit : false
                     verbose     : false
                     cb          : (err, output) ->
                         if err
                             dbg("#{host}: #{cmd} -- FAIL #{err}")
                             cb(err)
-                        else 
+                        else
                             v = output.stderr.split('\n')
                             for x in v
                                x = x.trim()
@@ -4416,14 +4416,14 @@ exports.prepare_bup = (opts) ->
                     exec_on server_id, "rm -rf /bup/projects/#{project_id} && BUP_DIR=/bup/bups/#{project_id} bup restore --outdir=/bup/projects/#{project_id} master/latest/ ; chown -R #{uid}:#{uid} /bup/projects/#{project_id}", (err) ->
                        if err
                            cb(err)
-                       else 
+                       else
                            q = "UPDATE projects set bup_last_save[?]=? where project_id=?"
-                           database.cql(q, [server_id, save_time, project_id], cb) 
+                           database.cql(q, [server_id, save_time, project_id], cb)
 
             i = opts.start
             goal = opts.end - 1
-        
-           
+
+
             do_task = (task, cb) ->
                 dbg("******** #{i}/#{goal} ******* ")
                 i += 1
@@ -4450,10 +4450,129 @@ exports.prepare_bup = (opts) ->
                 work = work.slice(opts.start, opts.end)
             else
                 work = work.slice(opts.start)
-            async.mapLimit(work, opts.limit, do_task, cb) 
+            async.mapLimit(work, opts.limit, do_task, cb)
 
     ], (err) -> opts.cb?(err))
 
+
+
+exports.bup_set_quotas = (opts) ->
+    opts = defaults opts,
+        start : 0
+        end : 10
+        limit : 1
+        query_limit : 1000000
+        cb : undefined
+    dbg = (m) -> winston.debug("bup_set_quotas: #{m}")
+    dbg()
+
+    work = []
+    server_id_to_host = {}
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                objectify : true
+                cb        : (err, servers) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in servers
+                            server_id_to_host[x.server_id] = cassandra.inet_to_str(x.host)
+                        cb()
+
+        (cb) ->
+            dbg("get all projects")
+            database.select
+                table     : 'projects'
+                limit     : opts.query_limit
+                columns   : ['project_id', 'bup_last_save', 'bup_working_size_kb', 'bup_repo_size_kb', 'settings']
+                objectify : true
+                cb        : (err, result) ->
+                    if err
+                        cb(err); return
+                    for r in result
+                        if r.bup_last_save? and (not r.bup_working_size_kb? or not r.bup_repo_size_kb? or not r.settings?['disk']?)
+                            work.push({project_id:r.project_id, host:(server_id_to_host[server_id] for server_id,tm of r.bup_last_save)[0]})
+                    cb()
+        (cb) ->
+            dbg("now do the work")
+            exec_on = (host, cmd, cb) ->
+                dbg("on #{host}: #{cmd}")
+                misc_node.execute_code
+                    command     : "ssh"
+                    args        : ["-o StrictHostKeyChecking=no", "root@#{host}", cmd]
+                    timeout     : 10*60
+                    err_on_exit : false
+                    verbose     : false
+                    cb          : (err, output) ->
+                        if err
+                            dbg("#{host}: #{cmd} -- FAIL #{err}")
+                            cb(err)
+                        else
+                            v = output.stderr.split('\n')
+                            for x in v
+                               x = x.trim()
+                               if x.length > 1 and x.indexOf('chattr:')==-1 and x.indexOf('WARNING') == -1 and x.indexOf('ECDSA') == -1
+                                   dbg("{host}: #{cmd} -- ERROR due to '#{x}'")
+                                   cb(output.stderr); return
+                            cb(undefined, output.stdout)
+
+            i = 0
+            f = (task, cb) ->
+                dbg("*** #{i}/#{work.length-1} ***: #{misc.to_json(task)}")
+                i += 1
+                bup_repo_size_kb = undefined
+                bup_working_size_kb = undefined
+                async.series([
+                    (cb) ->
+                        exec_on task.host, "du -s -x --block-size=KB /bup/bups/#{task.project_id}", (err, output) ->
+                            if err
+                                cb(err)
+                            else
+                                bup_repo_size_kb = parseInt(output.split()[0].split('k')[0])
+                                cb()
+                    (cb) ->
+                        exec_on task.host, "du -s -x --block-size=KB /bup/projects/#{task.project_id}", (err, output) ->
+                            if err
+                                cb(err)
+                            else
+                                bup_working_size_kb = parseInt(output.split()[0].split('k')[0])
+                                cb()
+                    (cb) ->
+                        database.update
+                            table : "projects"
+                            set   : {bup_repo_size_kb : bup_repo_size_kb, bup_working_size_kb:bup_working_size_kb}
+                            where : {project_id : task.project_id}
+                            cb    : cb
+                    (cb) ->
+                        size = Math.round(bup_working_size_kb/1000)
+                        cpu_shares = 1
+                        if size <= 5000
+                            disk = 5000
+                        else
+                            disk = 2*size
+                        if size >= 11000
+                            # If I ever upped their quota, they deserver more cpu
+                            cpu_shares = 8
+                        database.cql("UPDATE projects SET settings[?]=? WHERE project_id=?", ['disk',"#{disk}",task.project_id], cb)
+                ], cb)
+
+            work.sort (a,b) ->
+                if a.project_id < b.project_id
+                    return -1
+                else if a.project_id > b.project_id
+                    return 1
+                else
+                    return 0
+            work = work.slice(opts.start, opts.end)
+            async.mapLimit(work, opts.limit, f, cb)
+    ], (err) -> opts.cb?(err))
 
 
 
