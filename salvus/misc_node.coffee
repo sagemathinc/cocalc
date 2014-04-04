@@ -435,7 +435,7 @@ exports.execute_code = execute_code = (opts) ->
 
         if opts.verbose
             winston.debug("finished exec of #{opts.command}")
-        winston.debug("stdout=#{stdout},stderr=#{stderr},exit_code=#{exit_code}")
+            winston.debug("stdout=#{stdout},stderr=#{stderr},exit_code=#{exit_code}")
         if not opts.err_on_exit and ran_code
             # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
             opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})
