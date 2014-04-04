@@ -64,8 +64,8 @@ REPLICATION_FACTOR = 1
 # Default account settings
 
 DEFAULT_SETTINGS = {
-    'disk'       : 3000,     # disk in megabytes
-    'scratch'    : 10000,    # disk quota on /scratch
+    'disk'       : 4000,     # disk in megabytes
+    'scratch'    : 15000,    # disk quota on /scratch
     'inode'      : 200000,   # not used with ZFS
     'memory'     : 8,        # memory in gigabytes
     'cpu_shares' : 256,
@@ -246,8 +246,8 @@ class Project(object):
         self.update_daemon_code()
         self.start_daemons()
         self.umount_snapshots()
-        # TODO: remove this chown once uid defn stabilizes
-        #self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
+        # TODO: remove this chown once (1) uid defn stabilizes
+        # self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
         self.mount_snapshots()
 
     def get_zfs_status(self):
@@ -325,11 +325,20 @@ class Project(object):
         self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
 
     def mount_snapshots(self):
+        log = self._log('mount_snapshots')
         self.umount_snapshots()
         if os.path.exists(self.snap_mnt):
             os.rmdir(self.snap_mnt)
-        self.makedirs(self.snap_mnt)
-        self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
+        try:
+            self.makedirs(self.snap_mnt)
+            self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
+        except Exception, msg:
+            # if there is no space to make the snapshot directory, user gets no snapshots.
+            if 'Disk quota exceeded' in msg:
+                log("nonfatal error -- %s"%msg)
+            else:
+                raise
+
 
     def touch(self):
         open(self.touch_file,'w')
@@ -369,6 +378,7 @@ class Project(object):
             if n == 0:
                 break
         self.delete_user()  # so crontabs, remote logins, etc., won't happen
+        self.unset_quota()
         self.umount_snapshots()
 
     def restart(self):
@@ -570,6 +580,51 @@ class Project(object):
             settings = dict(DEFAULT_SETTINGS)
         return settings
 
+    def set_quota(self, disk, scratch):
+
+        # Disk space quota
+
+        if FILESYSTEM == 'zfs':
+            """
+            zpool create -f bup XXXXX /dev/vdb
+            zfs create bup/projects
+            zfs set mountpoint=/projects bup/projects
+            zfs set dedup=on bup/projects
+            zfs set compression=lz4 bup/projects
+            zfs create bup/bups
+            zfs set mountpoint=/bup/bups bup/bups
+            chmod og-rwx /bup/bups
+
+            zfs create bup/scratch
+            zfs set mountpoint=/scratch bup/scratch
+            chmod a+rwx /scratch
+
+            zfs create bup/conf
+            zfs set mountpoint=/bup/conf bup/conf
+            chmod og-rwx /bup/conf
+            chown salvus. /bup/conf
+            """
+            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
+            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
+
+        """
+        elif FILESYSTEM == 'ext4':
+
+            #    filesystem options: usrquota,grpquota; then
+            #    sudo su
+            #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
+            disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
+            disk_hard  = disk * 1024
+            inode_soft = inode
+            inode_hard = 2*inode_soft
+            cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
+        """
+
+
+    def unset_quota(self):
+        cmd(['zfs', 'set', 'userquota@%s=none'%self.uid, '%s/projects'%ZPOOL])
+        cmd(['zfs', 'set', 'userquota@%s=none'%self.uid, '%s/scratch'%ZPOOL])
+
 
     def settings(self, memory=None, cpu_shares=None, cores=None, disk=None,
                          inode=None, login_shell=None, scratch=None, mintime=None):
@@ -620,45 +675,8 @@ class Project(object):
         except IOError:
             pass
 
-        # Disk space quota
-
-        if FILESYSTEM == 'zfs':
-            """
-            zpool create -f bup XXXXX /dev/vdb
-            zfs create bup/projects
-            zfs set mountpoint=/projects bup/projects
-            zfs set dedup=on bup/projects
-            zfs set compression=lz4 bup/projects
-            zfs create bup/bups
-            zfs set mountpoint=/bup/bups bup/bups
-            chmod og-rwx /bup/bups
-
-            zfs create bup/scratch
-            zfs set mountpoint=/scratch bup/scratch
-            chmod a+rwx /scratch
-
-            zfs create bup/conf
-            zfs set mountpoint=/bup/conf bup/conf
-            chmod og-rwx /bup/conf
-            chown salvus. /bup/conf
-            """
-            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
-            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
-
-        elif FILESYSTEM == 'ext4':
-
-            #    filesystem options: usrquota,grpquota; then
-            #    sudo su
-            #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
-            disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
-            disk_hard  = disk * 1024
-            inode_soft = inode
-            inode_hard = 2*inode_soft
-            cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
-
-        else:
-            raise RuntimeError("unknown FILESYSTEM='%s'"%FILESYSTEM)
-
+        # Set the quota
+        self.set_quota(disk=disk, scratch=scratch)
 
         # Cgroups
         if cores <= 0:
@@ -689,7 +707,7 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, targets="", replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True, set_quotas=True):
+    def sync(self, targets="", replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
         status = []
 
         if targets:
@@ -717,13 +735,13 @@ class Project(object):
         for s in status:
             t = time.time()
             try:
-                self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots, set_quotas=set_quotas)
+                self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots)
             except Exception, err:
                 s['error'] = str(err)
             s['time'] = time.time() - t
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, set_quotas=True, rsync_timeout=30):
+    def _sync(self, remote, destructive=False, snapshots=True, rsync_timeout=30):
         """
         NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
 
@@ -739,19 +757,19 @@ class Project(object):
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
         if os.path.exists(self.project_mnt):
-            if set_quotas:
-                # set remote disk quota, so rsync doesn't fail due to missing space.
-                if FILESYSTEM == 'zfs':
-                    self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
-                              'zfs set userquota@%s=%sM %s/projects'%(
-                                            self.uid, self.get_settings()['disk'], ZPOOL)])
-                else:
-                    raise NotImplementedError
+            def f(ignore_errors):
+                return self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
+                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=ignore_errors)
 
-            # ignore errors, since if we fusemounts a directory (bup snapshots!) then that leads to issues.
-            self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
-                      ['-e', 'ssh -o StrictHostKeyChecking=no',
-                      self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
+            e = f(ignore_errors=True)
+            if 'Disk quota exceeded' in e:
+                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
+                          'zfs set userquota@%s=%sM %s/projects'%(
+                                        self.uid, self.get_settings()['disk'], ZPOOL)])
+                f(ignore_errors=False)
+            elif 'ERROR' in e:
+                raise RuntimeError(e)
 
         if not snapshots:
             # nothing further to do -- we already sync'd the live files above, if we have any

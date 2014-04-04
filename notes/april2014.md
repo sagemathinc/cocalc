@@ -1,10 +1,12 @@
 
 - --> [x] (3:30) run prep script
 
-
 - [x] (0:48) change sync/save code to take list of target ip's based on db
+- [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
 
-- [ ] set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
+
+- [ ] I need to have a script that runs through all projects and sets the disk quota in the database somehow.
+      how?  just take larger of 2*current_usage and 4GB
 
 - [ ] implement `get_state` in `bup_storage.py`: it will return two things, according to a "local calculation" purely from within the project
         - state: stopped, starting, running, restarting, stopping, saving, error
@@ -13,8 +15,6 @@
         - progress: if there is a way to give how far along with doing something (e.g., rsyncing out to replicas)
     could do this by creating a conf file that is *NOT* rsync'd that stores stuff:   conf/state.json
 
-- [ ] quotas -- try to preserve them, and set them before doing bup restore!  right now my scripts set many of them to 3GB, but that won't make any sense in the longrun.  I could do something based on the size of the bup repo, or ...?
-
 - [ ] make bup_storage.py set a saving file, and remove it when saving finishes, so that status can report that.  MAYBE.  could be bad.
 
 - [ ] make the serverid's of replicas just be part of project settings exactly like anything else; and get set from the database. Why even bother with the database for the settings? -- well, otherwise how can we even find the project!
@@ -22,6 +22,8 @@
 
 
 AFTER SWITCH:
+
+- [ ] need code to clear all quotas on reboot just in case...
 
 - [ ] add files to bup/projectid/conf/replicas.json with the replics for that project, which will be used by default in the future to determine replicas; of course database save info and buplocation will be used to *find the project* in the first place, with the default for new projects determined by consistent hashing.  rolling this out is only necessary when I add new nodes.  Wait until after switch.
 
