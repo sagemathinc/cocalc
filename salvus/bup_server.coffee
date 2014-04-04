@@ -763,40 +763,88 @@ class GlobalProject
             cb : undefined
         dbg = (m) -> winston.debug("GlobalProject.save(#{@project_id}): #{m}")
         dbg()
-        @get_host_where_running
-            cb : (err, server_id) =>
-                if err
-                    opts.cb?(err)
-                else if not server_id?
-                    dbg("not running anywhere -- nothing to save")
-                    opts.cb?()
-                else if @state?[server_id] == 'saving'
-                    dbg("already saving -- nothing to do")
-                    opts.cb?()
-                else
-                    @project
-                        server_id : server_id
-                        cb        : (err, project) =>
-                            if err
-                               opts.cb?(err)
-                            else
-                               project.save
-                                    cb : (err, result) =>
-                                        r = result?.result
-                                        dbg("RESULT = #{misc.to_json(result)}")
-                                        if not err and r? and r.timestamp? and r.files_saved > 0
-                                            dbg("record info about saving #{r.files_saved} files in database")
-                                            last_save = {}
-                                            last_save[server_id] = r.timestamp*1000
-                                            if r.sync?
-                                                for x in r.sync
-                                                    last_save[x.replica_id] = r.timestamp*1000
-                                            @set_last_save
-                                                last_save        : last_save
-                                                bup_repo_size_kb : r.bup_repo_size_kb
-                                                cb               : opts.cb
-                                        else
-                                            opts.cb?(err)
+
+        need_to_save = false
+        project      = undefined
+        targets      = undefined
+        server_id    = undefined
+        errors       = []
+        async.series([
+            (cb) =>
+                dbg("figure out where/if project is running")
+                @get_host_where_running
+                    cb : (err, s) =>
+                        server_id = s
+                        if err
+                            cb(err)
+                        else if not server_id?
+                            dbg("not running anywhere -- nothing to save")
+                            cb()
+                        else if @state?[server_id] == 'saving'
+                            dbg("already saving -- nothing to do")
+                            cb()
+                        else
+                            need_to_save = true
+                            cb()
+            (cb) =>
+                if not need_to_save
+                    cb(); return
+                dbg("get the project itself")
+                @project
+                    server_id : server_id
+                    cb        : (err, p) =>
+                        project = p; cb(err)
+            (cb) =>
+                if not need_to_save
+                    cb(); return
+                dbg("get the save targets for replication")
+                @get_last_save
+                    cb : (err, last_save) =>
+                        if err
+                            cb(err)
+                        else
+                            if last_save?
+                                # targets are all ip addresses of servers we've replicated to so far (if any)
+                                dbg("last_save = #{misc.to_json(last_save)}")
+                                targets = (@global_client.servers[x].host for x,t of last_save when x != server_id)
+                                dbg("targets = #{misc.to_json(targets)}")
+                                # leave undefined otherwise -- will use consistent hashing to do initial save
+                            cb()
+            (cb) =>
+                if not need_to_save
+                    cb(); return
+                dbg("actually save the project and sync to targets=#{misc.to_json(targets)}")
+                project.save
+                    targets : targets
+                    cb      : (err, result) =>
+                        r = result?.result
+                        dbg("RESULT = #{misc.to_json(result)}")
+                        if not err and r? and r.timestamp? and r.files_saved > 0
+                            dbg("record info about saving #{r.files_saved} files in database")
+                            last_save = {}
+                            last_save[server_id] = r.timestamp*1000
+                            if r.sync?
+                                for x in r.sync
+                                    s = @global_client.hosts[x.host].server_id
+                                    if not x.error?
+                                        last_save[s] = r.timestamp*1000
+                                    else
+                                        # this replication failed
+                                        errors.push("replication to #{s} failed -- #{x.error}")
+                            @set_last_save
+                                last_save        : last_save
+                                bup_repo_size_kb : r.bup_repo_size_kb
+                                cb               : cb
+                        else
+                            cb(err)
+        ], (err) =>
+            if err
+                opts.cb?(err)
+            else if errors.length > 0
+                opts.cb?(errors)
+            else
+                opts.cb?()
+        )
 
 
     # if some project is actually running, return it; otherwise undefined
@@ -1129,12 +1177,14 @@ class GlobalClient
                 if err
                     cb?(err); return
                 @servers = {}
+                @hosts = {}
                 x = {}
                 max_dc = 0
                 for r in results
                     max_dc = Math.max(max_dc, r.dc)
                     r.host = cassandra.inet_to_str(r.host)  # parse inet datatype
                     @servers[r.server_id] = r
+                    @hosts[r.host] = r
                     if not x[r.dc]?
                         x[r.dc] = {}
                     v = x[r.dc]
@@ -1843,8 +1893,12 @@ class ClientProject
     save: (opts) =>
         opts = defaults opts,
             timeout    : TIMEOUT
+            targets    : undefined    # undefined or a list of ip addresses
             cb         : undefined
         opts.action = 'save'
+        if opts.targets?
+            opts.param = "--targets=#{opts.targets.join(',')}"
+        delete opts.targets
         @action(opts)
 
     init: (opts) =>
