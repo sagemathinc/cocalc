@@ -281,7 +281,7 @@ CREATE TABLE projects (
      bup_working_size_kb  int,      // last known size of working directory in kilobytes = 1000 bytes
 
 
-     settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'inode', 'mintime', 'login_shell'
+     settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'mintime', 'login_shell'
 
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 

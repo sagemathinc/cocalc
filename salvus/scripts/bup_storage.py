@@ -260,24 +260,29 @@ class Project(object):
         except RuntimeError:
             return None
 
-    def status(self):
+    def status(self, running=False):
         log = self._log("status")
-        s = {'username':self.username, 'uid':self.uid, 'gid':self.gid, 'settings':self.get_settings()}
-        try:
-            s['newest_snapshot'] = self.newest_snapshot()
-            s['bup'] = 'working'
-        except RuntimeError, mesg:
-            mesg = str(mesg)
-            if 'bup init' in mesg:
-                s['bup'] = 'uninitialized'  # it's just not initialized, which is no problem
-            else:
-                s['bup'] = mesg
-        s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
-        if FILESYSTEM == 'zfs':
-            s['zfs'] = self.get_zfs_status()
+        if running:
+            s = {}
+        else:
+            s = {'username':self.username, 'uid':self.uid, 'gid':self.gid, 'settings':self.get_settings()}
+            try:
+                s['newest_snapshot'] = self.newest_snapshot()
+                s['bup'] = 'working'
+            except RuntimeError, mesg:
+                mesg = str(mesg)
+                if 'bup init' in mesg:
+                    s['bup'] = 'uninitialized'  # it's just not initialized, which is no problem
+                else:
+                    s['bup'] = mesg
+            s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
+            if FILESYSTEM == 'zfs':
+                s['zfs'] = self.get_zfs_status()
+
         if self.username not in open('/etc/passwd').read():  # TODO: can be done better
             s['running'] = False
             return s
+
         try:
             t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
             t = json.loads(t)
@@ -1009,9 +1014,11 @@ if __name__ == "__main__":
     parser_start.set_defaults(func=lambda args: project.start())
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
-    def print_status():
-        print json.dumps(project.status())
-    parser_status.set_defaults(func=lambda args: print_status())
+    parser_status.add_argument("--running", help="if given only return running part of status (easier to compute)",
+                                   dest="running", default=False, action="store_const", const=True)
+    def print_status(running):
+        print json.dumps(project.status(running=running))
+    parser_status.set_defaults(func=lambda args: print_status(args.running))
 
     parser_stop = subparsers.add_parser('stop', help='Kill all processes running as this user and delete user.')
     parser_stop.add_argument("--only_if_idle", help="only actually stop the project if the project is idle long enough",

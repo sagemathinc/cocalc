@@ -1,12 +1,4 @@
 
-- --> [x] (3:30) run prep script
-
-- [x] (0:48) change sync/save code to take list of target ip's based on db
-- [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
-
-
-- [ ] I need to have a script that runs through all projects and sets the disk quota in the database somehow.
-      how?  just take larger of 2*current_usage and 4GB
 
 - [ ] implement `get_state` in `bup_storage.py`: it will return two things, according to a "local calculation" purely from within the project
         - state: stopped, starting, running, restarting, stopping, saving, error
@@ -15,9 +7,17 @@
         - progress: if there is a way to give how far along with doing something (e.g., rsyncing out to replicas)
     could do this by creating a conf file that is *NOT* rsync'd that stores stuff:   conf/state.json
 
-- [ ] make bup_storage.py set a saving file, and remove it when saving finishes, so that status can report that.  MAYBE.  could be bad.
+    --> OR just make an option to status that returns less information -- only what is needed for get_state.
 
-- [ ] make the serverid's of replicas just be part of project settings exactly like anything else; and get set from the database. Why even bother with the database for the settings? -- well, otherwise how can we even find the project!
+
+- --> [x] (3:30) run prep script -- will have to pause it when they overlap... then manually deal with a few bup extracts
+
+--> - [ ] code to start migration again of extracted working files, changed targets, etc.; and has to deal with creation of new projects too.
+  written -- NOT tested -- need to wait.
+
+- [ ] run the quota code again at the end to make sure those are all set
+
+
 
 
 
@@ -29,7 +29,9 @@ AFTER SWITCH:
 
 - [ ] add bup quota as a standard part of settings, and refuse to make further snapshots if bup usage exceeds 3 times user disk quota.  This will avoid a horrible edge case.   Critical that this produces an error that the user learns about.  This will happen for some users.  Alternatively, I could periodically rebuild those bup repos with many snapshots deleted - that would be much nicer and is totally do-able.
 
+- [ ] write snapshot browser.
 
+- [ ] manual project move system -- bring it back
 
 
 ========
@@ -53,3 +55,14 @@ AFTER SWITCH:
 
                 alter table projects add bup_repo_size_KB     int;
                 alter table projects add bup_working_size_KB  int;
+
+
+
+
+- [x] (0:48) change sync/save code to take list of target ip's based on db
+- [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
+- [x] (0:45) I need to have a script that runs through all projects and sets the disk quota in the database somehow.
+      how?  just take larger of 2*current_usage and 4GB
+
+- [x] make the serverid's of replicas just be part of project settings exactly like anything else; and get set from the database. Why even bother with the database for the settings? -- well, otherwise how can we even find the project!
+
