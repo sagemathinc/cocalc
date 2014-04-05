@@ -8,7 +8,7 @@ The basic idea:
 
    - a bup repo with snapshot history of a project is stored on k machines in each data center, with a way to sync repos
    - live files are also stored on those same k machines in a directory as part of one big dedup'd and compressed zpool, which is snapshotted regularly
-   - all internode/interdata centerreplication is done via rsync
+   - all internode/interdata-center replication is done via rsync
    - Loss of files is very hard, because the files and their history is contained in:
             (1) the bup repos  (backed up offsite)
             (2) the snapshots of the big single shared zfs filesystem (not backed up)
@@ -49,16 +49,8 @@ ZPOOL = 'bup'  # must have ZPOOL/bups and ZPOOL/projects filesystems
 BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
-PROJECTS_PATH  = '/projects'
+# PROJECTS_PATH  = '/projects'
 PROJECTS_PATH  = '/bup/projects'
-
-# Where the server_id is stored
-SERVER_ID_FILE = '/bup/conf/bup_server_id'
-
-# Where the file containing info about all servers is stored
-SERVERS_FILE   = '/bup/conf/bup_servers'
-
-REPLICATION_FACTOR = 1
 
 # Default account settings
 
@@ -692,7 +684,7 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, targets="", replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
+    def sync(self, targets="", destructive=False, snapshots=True):
         log = self._log('sync')
         status = [{'host':h} for h in targets.split(',')]
         if not targets:
@@ -806,7 +798,6 @@ class Project(object):
             tm = time.mktime(time.strptime(snapshot, "%Y-%m-%dT%H:%M:%S"))
             self.save(path=os.path.join(snap_path, snapshot), timestamp=tm)
 
-        # migrate is assumed to only ever happen when we haven't been live pushing the project into the replication system.
         self.cleanup()
 
     def migrate_remote(self, host, targets):
@@ -868,7 +859,7 @@ class Project(object):
             return
 
         def sync_out():
-            status = self.sync(replication_factor=REPLICATION_FACTOR, destructive=True, snapshots=True)
+            status = self.sync(destructive=True, snapshots=True)
             print str(status)
             for r in status:
                 if r.get('error', False):
@@ -1014,14 +1005,11 @@ if __name__ == "__main__":
         print json.dumps(status)
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
     parser_sync.add_argument("--targets", help="if given, a comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
-    parser_sync.add_argument("--replication_factor", help="number of replicas to sync with in each data center or [2,1,3]=2 in dc0, 1 in dc1, etc. (default: %s)"%REPLICATION_FACTOR,
-                                   dest="replication_factor", default=REPLICATION_FACTOR, type=int)
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
                                    dest="snapshots", default=False, action="store_const", const=True)
     parser_sync.set_defaults(func=lambda args: do_sync(targets            = args.targets,
-                                                       replication_factor = args.replication_factor,
                                                        destructive        = args.destructive,
                                                        snapshots          = args.snapshots))
 

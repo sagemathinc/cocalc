@@ -1,12 +1,15 @@
---> - [ ] migrate all projects again
+--> - [ ] migrate all projects again; update quota information using du script.
 
-- [ ] when opening a new project just place randomly -- no use of consistent hashing.
+
+--> - [ ] when opening a new project just place randomly -- no use of consistent hashing.
 
 - [ ] make it so move is never automatic but prompted
 
 - [ ] UI -- display current project state clearly somewhere
 
 - [ ] optimize file listing display
+
+
 
 
 

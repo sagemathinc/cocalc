@@ -21,7 +21,6 @@ misc_node = require('misc_node')
 uuid      = require('node-uuid')
 cassandra = require('cassandra')
 cql       = require("node-cassandra-cql")
-HashRing  = require 'hashring'
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -29,17 +28,13 @@ winston.add(winston.transports.Console, level: 'debug')
 
 {defaults, required} = misc
 
-REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
-REGISTRATION_TTL_S      = 60       # ttl for registration record
-
-
-REPLICATION_FACTOR = 1  # per data center
-
 TIMEOUT = 60*60
 
 # never do a save action more frequently than this - more precisely, saves just get
 # ignored until this much time elapses *and* an interesting file changes.
 MIN_SAVE_INTERVAL_S = 60
+
+STORAGE_SERVERS_UPDATE_INTERVAL_S = 180  # How frequently (in seconds)  to query the database for the list of storage servers
 
 IDLE_TIMEOUT_INTERVAL_S = 120   # The idle timeout checker runs once ever this many seconds.
 
@@ -509,7 +504,7 @@ start_server = () ->
 
 c=require('cassandra');x={};d=new c.Salvus(hosts:['10.1.11.2'], keyspace:'salvus', username:'salvus', password:fs.readFileSync('/home/salvus/salvus/salvus/data/secrets/cassandra/salvus').toString().trim(),consistency:1,cb:((e,d)->console.log(e);x.d=d))
 
-require('bup_server').global_client(database:x.d, replication_factor:1, cb:(e,c)->x.e=e;x.c=c)
+require('bup_server').global_client(database:x.d, cb:(e,c)->x.e=e;x.c=c)
 
 (x.c.register_server(host:"10.1.#{i}.5",dc:0,cb:console.log) for i in [10..21])
 
@@ -824,7 +819,7 @@ class GlobalProject
                             last_save[server_id] = r.timestamp*1000
                             if r.sync?
                                 for x in r.sync
-                                    s = @global_client.hosts[x.host].server_id
+                                    s = @global_client.servers.by_host[x.host].server_id
                                     if not x.error?
                                         last_save[s] = r.timestamp*1000
                                     else
@@ -1018,27 +1013,45 @@ class GlobalProject
     get_hosts: (opts) =>
         opts = defaults opts,
             cb : required
-        @database.select
-            table : 'projects'
-            where : {project_id:@project_id}
-            columns : ['bup_last_save']
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
+        hosts = []
+        dbg = (m) -> winston.debug("GlobalProject.get_hosts(#{@project_id}): #{m}")
+        async.series([
+            (cb) =>
+                dbg("get last save info from database...")
+                @database.select
+                    table : 'projects'
+                    where : {project_id:@project_id}
+                    columns : ['bup_last_save']
+                    cb      : (err, r) =>
+                        if err or not r? or r.length == 0
+                            cb(err)
+                        else
+                            if r?[0]?
+                                hosts = misc.keys(r[0])
+                            cb()
+            (cb) =>
+                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each data center")
+                servers = @global_client.servers
+                last_save = {}
+                now = cassandra.now()
+                for dc, servers_in_dc of servers.by_dc
+                    have_one = false
+                    for h in hosts
+                        if servers_in_dc[h]?
+                            have_one = true
+                            break
+                    if not have_one
+                        h = misc.random_choice(misc.keys(servers_in_dc))
+                        hosts.push(h)
+                        last_save[h] = now # brand new, so nothing to save yet
+                if last_save.length > 0
+                    @set_last_save
+                        last_save : last_save
+                        cb        : cb
                 else
-                    if result.length == 0 or not result[0][0]?
-                        hosts = []
-                    else
-                        hosts = misc.keys(result[0][0])
-                    if hosts.length == 0
-                         # default hosts -- for a new project
-                         hosts = @global_client.replicas(project_id: @project_id)
-                         last_save = {}
-                         n = cassandra.now()
-                         for server_id in hosts
-                             last_save[server_id] = n
-                         @set_last_save(last_save: last_save)
-                    opts.cb(undefined, hosts)
+                    cb()
+        ], (err) => opts.cb(undefined, hosts))
+
 
     # determine the global state by querying *all servers*
     # guaranteed to return length > 0
@@ -1093,27 +1106,26 @@ class GlobalProject
 
 
 
-global_client_cache={}
+global_client_cache=undefined
 
 exports.global_client = (opts) ->
     opts = defaults opts,
         database           : undefined
-        replication_factor : REPLICATION_FACTOR
         cb                 : required
-    key = misc.to_json(opts.replication_factor)
-    C = global_client_cache[key]
+    C = global_client_cache
     if C?
         opts.cb(undefined, C)
     else
-        global_client_cache[key] = new GlobalClient(database : opts.database, replication_factor : opts.replication_factor, cb : opts.cb)
+        global_client_cache = new GlobalClient
+            database : opts.database
+            cb       : opts.cb
 
 
 class GlobalClient
     constructor: (opts) ->
         opts = defaults opts,
-            database           : undefined   # connection to cassandra database
-            replication_factor : REPLICATION_FACTOR
-            cb                 : required   # cb(err, @) -- called when initialized
+            database : undefined   # connection to cassandra database
+            cb       : required   # cb(err, @) -- called when initialized
 
         @_project_cache = {}
 
@@ -1147,11 +1159,10 @@ class GlobalClient
                                 password    : password.toString().trim()
                                 cb          : cb
             (cb) =>
-                @replication_factor = opts.replication_factor
                 @_update(cb)
         ], (err) =>
             if not err
-                setInterval(@_update, 1000*60)  # update minute
+                setInterval(@_update, 1000*STORAGE_SERVERS_UPDATE_INTERVAL_S)  # update regularly
                 opts.cb(undefined, @)
             else
                 opts.cb(err, @)
@@ -1164,8 +1175,8 @@ class GlobalClient
         return P
 
     _update: (cb) =>
-        #dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
-        #dbg("querying for storage servers...")
+        dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
+        dbg("querying for available storage servers...")
         @database.select
             table     : 'storage_servers'
             columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'vnodes']
@@ -1175,23 +1186,18 @@ class GlobalClient
                 #dbg("got results; now initializing hashrings")
                 if err
                     cb?(err); return
-                @servers = {}
-                @hosts = {}
+                # parse result
+                @servers = {by_dc:{}, by_id:{}, by_host:{}}
                 x = {}
                 max_dc = 0
                 for r in results
                     max_dc = Math.max(max_dc, r.dc)
                     r.host = cassandra.inet_to_str(r.host)  # parse inet datatype
-                    @servers[r.server_id] = r
-                    @hosts[r.host] = r
-                    if not x[r.dc]?
-                        x[r.dc] = {}
-                    v = x[r.dc]
-                    v[r.server_id] = {vnodes:r.vnodes}
-                @hashrings = [undefined for i in [0..max_dc]]
-                for dc, obj of x
-                    @hashrings[dc] = new HashRing(obj)
-                #dbg("all updated")
+                    @servers.by_id[r.server_id] = r
+                    if not @servers.by_dc[r.dc]?
+                        @servers.by_dc[r.dc] = {}
+                    @servers.by_dc[r.dc][r.server_id] = r
+                    @servers.by_host[r.host] = r
                 cb?()
 
     push_servers_files: (opts) =>
@@ -1332,26 +1338,6 @@ class GlobalClient
                         cb    : cb
                 async.map(results, f, (err) => opts.cb?(err))
 
-
-    replicas: (opts) =>
-        opts = defaults opts,
-            project_id         : required
-            replication_factor : undefined
-        if not opts.replication_factor?
-            opts.replication_factor = @replication_factor
-        if typeof(opts.replication_factor) == 'number'
-            rep = (opts.replication_factor for i in [0...@hashrings.length])
-        else
-            rep = opts.replication_factor
-        v = []
-        i = 0
-        for hr in @hashrings
-            if rep[i] > 0  # hashring.range doesn't deal with 0 correctly.
-                for id in hr.range(opts.project_id, rep[i], true)
-                    v.push(id)
-            i += 1
-        return v
-
     storage_server: (opts) =>
         opts = defaults opts,
             server_id : required
@@ -1392,7 +1378,6 @@ class GlobalClient
         opts = defaults opts,
             project_id : required
             server_id  : undefined  # if undefined gets best working client pre-started; if defined connect if possible but don't start anything
-            replication_factor : undefined
             prefer     : undefined  # if given, should be array of prefered servers -- only used if project isn't already opened somewhere
             prefer_not : undefined  # array of servers we prefer not to use
             cb         : required   # cb(err, Project client connection on some host)
@@ -1453,11 +1438,10 @@ class GlobalClient
             (cb) =>
                 if works
                     cb(); return
-                dbg("try harder: get list of all replicas (except current) and ask in parallel about status of each")
+                dbg("try harder: get list of all locations (except current) and ask in parallel about status of each")
                 @project_status
-                    project_id         : opts.project_id
-                    replication_factor : opts.replication_factor
-                    cb                 : (err, _status) =>
+                    project_id  : opts.project_id
+                    cb          : (err, _status) =>
                         if err
                             cb(err)
                         else
@@ -1535,7 +1519,6 @@ class GlobalClient
     project_status: (opts) =>
         opts = defaults opts,
             project_id         : required
-            replication_factor : undefined
             timeout            : 20   # seconds
             cb                 : required    # cb(err, sorted list of status objects)
         status = []
@@ -1561,55 +1544,61 @@ class GlobalClient
                                     @score_servers(healthy   : [replica])
                                     t.status = _status
                                     cb()
-        async.map @replicas(project_id:opts.project_id), f, (err) =>
-            status.sort (a,b) =>
-                if a.error? and b.error?
-                    return 0  # doesn't matter -- both are broken/useless
-                if a.error? and not b.error
-                    # b is better
-                    return 1
-                if b.error? and not a.error?
-                    # a is better
-                    return -1
-                # sort of arbitrary -- mainly care about newest snapshot being newer = better = -1
-                if a.status.newest_snapshot?
-                    if not b.status.newest_snapshot?
-                        # a is better
-                        return -1
-                    else if a.status.newest_snapshot > b.status.newest_snapshot
-                        # a is better
-                        return -1
-                    else if a.status.newest_snapshot < b.status.newest_snapshot
-                        # b is better
-                        return 1
-                else
-                    if b.status.newest_snapshot?
-                        # b is better
-                        return 1
-                # Next compare health of server
-                health_a = @servers[a.replica_id]?.health
-                health_b = @servers[b.replica_id]?.health
-                if health_a? and health_b?
-                    health_a = Math.round(3.8*health_a)
-                    health_b = Math.round(3.8*health_b)
-                    if health_a < health_b
-                        # b is better
-                        return 1
-                    else if health_a > health_b
-                        # a is better
-                        return -1
-                # no error, so load must be defined
-                # smaller load is better -- later take into account free RAM, etc...
-                if a.status.load[0] < b.status.load[0]
-                    return -1
-                else if a.status.load[0] > b.status.load[0]
-                    return 1
-
-                return 0
-
-            opts.cb(undefined, status)
-
-
+        hosts = undefined
+        async.series([
+            (cb) =>
+                @get_hosts
+                    cb : (err, h) =>
+                        hosts = h; cb(err)
+            (cb) =>
+                async.map hosts, f, (err) =>
+                    status.sort (a,b) =>
+                        if a.error? and b.error?
+                            return 0  # doesn't matter -- both are broken/useless
+                        if a.error? and not b.error
+                            # b is better
+                            return 1
+                        if b.error? and not a.error?
+                            # a is better
+                            return -1
+                        # sort of arbitrary -- mainly care about newest snapshot being newer = better = -1
+                        if a.status.newest_snapshot?
+                            if not b.status.newest_snapshot?
+                                # a is better
+                                return -1
+                            else if a.status.newest_snapshot > b.status.newest_snapshot
+                                # a is better
+                                return -1
+                            else if a.status.newest_snapshot < b.status.newest_snapshot
+                                # b is better
+                                return 1
+                        else
+                            if b.status.newest_snapshot?
+                                # b is better
+                                return 1
+                        # Next compare health of server
+                        health_a = @servers[a.replica_id]?.health
+                        health_b = @servers[b.replica_id]?.health
+                        if health_a? and health_b?
+                            health_a = Math.round(3.8*health_a)
+                            health_b = Math.round(3.8*health_b)
+                            if health_a < health_b
+                                # b is better
+                                return 1
+                            else if health_a > health_b
+                                # a is better
+                                return -1
+                        # no error, so load must be defined
+                        # smaller load is better -- later take into account free RAM, etc...
+                        if a.status.load[0] < b.status.load[0]
+                            return -1
+                        else if a.status.load[0] > b.status.load[0]
+                            return 1
+                        return 0
+                    cb()
+            ], (err) =>
+                opts.cb(err, status)
+            )
 
 
 
@@ -1945,10 +1934,9 @@ class ClientProject
         opts = defaults opts,
             timeout            : TIMEOUT
             destructive        : false
-            replication_factor : REPLICATION_FACTOR    # number of replicas per datacenter; alternatively, given [2,1,3] would mean "2" in dc0, 1 in dc1, etc
             snapshots          : true   # whether to sync snapshots -- if not given, only syncs live files
             cb                 : undefined
-        params = ['--replication_factor', opts.replication_factor]
+        params = []
         if opts.snapshots
             params.push('--snapshots')
         if opts.destructive
