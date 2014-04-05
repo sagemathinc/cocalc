@@ -4576,7 +4576,7 @@ exports.bup_set_quotas = (opts) ->
         start : 0
         end : 10
         limit : 1
-        query_limit : 1000000
+        qlimit : 1000000
         cb : undefined
     dbg = (m) -> winston.debug("bup_set_quotas: #{m}")
     dbg()
@@ -4605,7 +4605,7 @@ exports.bup_set_quotas = (opts) ->
             dbg("get all projects")
             database.select
                 table     : 'projects'
-                limit     : opts.query_limit
+                limit     : opts.qlimit
                 columns   : ['project_id', 'bup_last_save', 'bup_working_size_kb', 'bup_repo_size_kb', 'settings']
                 objectify : true
                 cb        : (err, result) ->
@@ -4746,7 +4746,7 @@ exports.migrate2_bup_all = (opts) ->
                 table   : 'projects'
                 columns : ['project_id', 'last_edited', 'bup_last_save', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
                 objectify : true
-                limit   : opts.qlimit                
+                limit   : opts.qlimit
                 where   : where
                 cb      : (err, result) ->
                     if result?
