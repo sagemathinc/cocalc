@@ -64,8 +64,8 @@ REPLICATION_FACTOR = 1
 # Default account settings
 
 DEFAULT_SETTINGS = {
-    'disk'       : 3000,     # disk in megabytes
-    'scratch'    : 10000,    # disk quota on /scratch
+    'disk'       : 4000,     # disk in megabytes
+    'scratch'    : 15000,    # disk quota on /scratch
     'inode'      : 200000,   # not used with ZFS
     'memory'     : 8,        # memory in gigabytes
     'cpu_shares' : 256,
@@ -246,8 +246,8 @@ class Project(object):
         self.update_daemon_code()
         self.start_daemons()
         self.umount_snapshots()
-        # TODO: remove this chown once uid defn stabilizes
-        #self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
+        # TODO: remove this chown once (1) uid defn stabilizes
+        # self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
         self.mount_snapshots()
 
     def get_zfs_status(self):
@@ -275,6 +275,9 @@ class Project(object):
         s['load'] = [float(a.strip(',')) for a in os.popen('uptime').read().split()[-3:]]
         if FILESYSTEM == 'zfs':
             s['zfs'] = self.get_zfs_status()
+        if self.username not in open('/etc/passwd').read():  # TODO: can be done better
+            s['running'] = False
+            return s
         try:
             t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./status'], timeout=30)
             t = json.loads(t)
@@ -322,11 +325,20 @@ class Project(object):
         self.cmd(['fusermount', '-uz', self.snap_mnt], ignore_errors=True)
 
     def mount_snapshots(self):
+        log = self._log('mount_snapshots')
         self.umount_snapshots()
         if os.path.exists(self.snap_mnt):
             os.rmdir(self.snap_mnt)
-        self.makedirs(self.snap_mnt)
-        self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
+        try:
+            self.makedirs(self.snap_mnt)
+            self.cmd(['bup', 'fuse', '-o', '--uid', self.uid, '--gid', self.gid, self.snap_mnt])
+        except Exception, msg:
+            # if there is no space to make the snapshot directory, user gets no snapshots.
+            if 'Disk quota exceeded' in msg:
+                log("nonfatal error -- %s"%msg)
+            else:
+                raise
+
 
     def touch(self):
         open(self.touch_file,'w')
@@ -366,6 +378,7 @@ class Project(object):
             if n == 0:
                 break
         self.delete_user()  # so crontabs, remote logins, etc., won't happen
+        self.unset_quota()
         self.umount_snapshots()
 
     def restart(self):
@@ -406,7 +419,7 @@ class Project(object):
         excludes = ['*.sage-backup', '.sage/cache', '.fontconfig', '.sage/temp', '.zfs', '.npm', '.sagemathcloud', '.node-gyp', '.cache', '.forever', '.snapshots', 'core']
         return ['--exclude=%s'%(prefix+x) for x in excludes]
 
-    def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True):
+    def save(self, path=None, timestamp=None, branch=None, sync=True, mnt=True, targets=""):
         """
         Save a snapshot.
 
@@ -445,7 +458,7 @@ class Project(object):
                 self.mount_snapshots()
 
             if sync:
-                result['sync'] = self.sync()
+                result['sync'] = self.sync(targets=targets)
 
             r = dict(result)
             n = len(self.project_mnt)+1
@@ -567,6 +580,51 @@ class Project(object):
             settings = dict(DEFAULT_SETTINGS)
         return settings
 
+    def set_quota(self, disk, scratch):
+
+        # Disk space quota
+
+        if FILESYSTEM == 'zfs':
+            """
+            zpool create -f bup XXXXX /dev/vdb
+            zfs create bup/projects
+            zfs set mountpoint=/projects bup/projects
+            zfs set dedup=on bup/projects
+            zfs set compression=lz4 bup/projects
+            zfs create bup/bups
+            zfs set mountpoint=/bup/bups bup/bups
+            chmod og-rwx /bup/bups
+
+            zfs create bup/scratch
+            zfs set mountpoint=/scratch bup/scratch
+            chmod a+rwx /scratch
+
+            zfs create bup/conf
+            zfs set mountpoint=/bup/conf bup/conf
+            chmod og-rwx /bup/conf
+            chown salvus. /bup/conf
+            """
+            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
+            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
+
+        """
+        elif FILESYSTEM == 'ext4':
+
+            #    filesystem options: usrquota,grpquota; then
+            #    sudo su
+            #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
+            disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
+            disk_hard  = disk * 1024
+            inode_soft = inode
+            inode_hard = 2*inode_soft
+            cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
+        """
+
+
+    def unset_quota(self):
+        cmd(['zfs', 'set', 'userquota@%s=none'%self.uid, '%s/projects'%ZPOOL])
+        cmd(['zfs', 'set', 'userquota@%s=none'%self.uid, '%s/scratch'%ZPOOL])
+
 
     def settings(self, memory=None, cpu_shares=None, cores=None, disk=None,
                          inode=None, login_shell=None, scratch=None, mintime=None):
@@ -617,45 +675,8 @@ class Project(object):
         except IOError:
             pass
 
-        # Disk space quota
-
-        if FILESYSTEM == 'zfs':
-            """
-            zpool create -f bup XXXXX /dev/vdb
-            zfs create bup/projects
-            zfs set mountpoint=/projects bup/projects
-            zfs set dedup=on bup/projects
-            zfs set compression=lz4 bup/projects
-            zfs create bup/bups
-            zfs set mountpoint=/bup/bups bup/bups
-            chmod og-rwx /bup/bups
-
-            zfs create bup/scratch
-            zfs set mountpoint=/scratch bup/scratch
-            chmod a+rwx /scratch
-
-            zfs create bup/conf
-            zfs set mountpoint=/bup/conf bup/conf
-            chmod og-rwx /bup/conf
-            chown salvus. /bup/conf
-            """
-            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
-            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
-
-        elif FILESYSTEM == 'ext4':
-
-            #    filesystem options: usrquota,grpquota; then
-            #    sudo su
-            #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
-            disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
-            disk_hard  = disk * 1024
-            inode_soft = inode
-            inode_hard = 2*inode_soft
-            cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
-
-        else:
-            raise RuntimeError("unknown FILESYSTEM='%s'"%FILESYSTEM)
-
+        # Set the quota
+        self.set_quota(disk=disk, scratch=scratch)
 
         # Cgroups
         if cores <= 0:
@@ -686,40 +707,41 @@ class Project(object):
                 # ps returns an error code if there are NO processes at all (a common condition).
                 pids = []
 
-    def sync(self, replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True, set_quotas=True):
+    def sync(self, targets="", replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
         status = []
-        servers = json.loads(open(SERVERS_FILE).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
 
-        v = {}
-        for id, server in servers.iteritems():
-            dc = server['dc']
-            if dc not in v:
-                v[dc] = []
-            v[dc].append({'server_id':id, 'vnodes':server['vnodes']})
-        data_centers = [[] for i in range(max(v.keys())+1)]
-        for k, x in v.iteritems():
-            data_centers[k] = x
-        replicas = get_replicas(self.project_id, data_centers, replication_factor)
+        if targets:
+            status = [{'host':h} for h in targets.split(',')]
+        else:
+            servers = json.loads(open(SERVERS_FILE).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
 
-        server_id = open(SERVER_ID_FILE).read()
-        for replica_id in replicas:
-            if replica_id != server_id:
-                s = {'replica_id':replica_id}
-                status.append(s)
-                if replica_id in servers:
-                    remote = servers[replica_id]['host']
-                    s['host'] = remote
-                    t = time.time()
-                    try:
-                        self._sync(remote=remote, destructive=destructive, snapshots=snapshots, set_quotas=set_quotas)
-                    except Exception, err:
-                        s['error'] = str(err)
-                    s['time'] = time.time() - t
-                else:
-                    s['error'] = 'unknown server'
+            v = {}
+            for id, server in servers.iteritems():
+                dc = server['dc']
+                if dc not in v:
+                    v[dc] = []
+                v[dc].append({'server_id':id, 'vnodes':server['vnodes']})
+            data_centers = [[] for i in range(max(v.keys())+1)]
+            for k, x in v.iteritems():
+                data_centers[k] = x
+            replicas = get_replicas(self.project_id, data_centers, replication_factor)
+
+            server_id = open(SERVER_ID_FILE).read()
+            for replica_id in replicas:
+                if replica_id != server_id:
+                    if replica_id in servers:
+                        status.append({'replica_id':replica_id, 'host':servers[replica_id]['host']})
+
+        for s in status:
+            t = time.time()
+            try:
+                self._sync(remote=s['host'], destructive=destructive, snapshots=snapshots)
+            except Exception, err:
+                s['error'] = str(err)
+            s['time'] = time.time() - t
         return status
 
-    def _sync(self, remote, destructive=False, snapshots=True, set_quotas=True, rsync_timeout=30):
+    def _sync(self, remote, destructive=False, snapshots=True, rsync_timeout=30):
         """
         NOTE: sync is *always* destructive on live files; on snapshots it isn't by default.
 
@@ -735,19 +757,19 @@ class Project(object):
         remote_bup_path = os.path.join(BUP_PATH, self.project_id)
 
         if os.path.exists(self.project_mnt):
-            if set_quotas:
-                # set remote disk quota, so rsync doesn't fail due to missing space.
-                if FILESYSTEM == 'zfs':
-                    self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
-                              'zfs set userquota@%s=%sM %s/projects'%(
-                                            self.uid, self.get_settings()['disk'], ZPOOL)])
-                else:
-                    raise NotImplementedError
+            def f(ignore_errors):
+                return self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
+                          ['-e', 'ssh -o StrictHostKeyChecking=no',
+                          self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=ignore_errors)
 
-            # ignore errors, since if we fusemounts a directory (bup snapshots!) then that leads to issues.
-            self.cmd(["rsync", "-zaxH", '--timeout', rsync_timeout, "--delete", "--ignore-errors"] + self.exclude('') +
-                      ['-e', 'ssh -o StrictHostKeyChecking=no',
-                      self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=True)
+            e = f(ignore_errors=True)
+            if 'Disk quota exceeded' in e:
+                self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
+                          'zfs set userquota@%s=%sM %s/projects'%(
+                                        self.uid, self.get_settings()['disk'], ZPOOL)])
+                f(ignore_errors=False)
+            elif 'ERROR' in e:
+                raise RuntimeError(e)
 
         if not snapshots:
             # nothing further to do -- we already sync'd the live files above, if we have any
@@ -1002,20 +1024,23 @@ if __name__ == "__main__":
     def do_save(*args, **kwds):
         print json.dumps(project.save(*args, **kwds))
     parser_save = subparsers.add_parser('save', help='save a snapshot then sync everything out')
+    parser_save.add_argument("--targets", help="if given, a comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
     parser_save.add_argument("--branch", dest="branch", help="save to specified branch (default: whatever current branch is); will change to that branch if different", type=str, default='')
-    parser_save.set_defaults(func=lambda args: do_save(branch=args.branch))
+    parser_save.set_defaults(func=lambda args: do_save(branch=args.branch, targets=args.targets))
 
     def do_sync(*args, **kwds):
         status = project.sync(*args, **kwds)
         print json.dumps(status)
     parser_sync = subparsers.add_parser('sync', help='sync with all replicas')
+    parser_sync.add_argument("--targets", help="if given, a comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
     parser_sync.add_argument("--replication_factor", help="number of replicas to sync with in each data center or [2,1,3]=2 in dc0, 1 in dc1, etc. (default: %s)"%REPLICATION_FACTOR,
                                    dest="replication_factor", default=REPLICATION_FACTOR, type=int)
     parser_sync.add_argument("--destructive", help="sync, destructively overwriting all remote replicas (DANGEROUS)",
                                    dest="destructive", default=False, action="store_const", const=True)
     parser_sync.add_argument("--snapshots", help="include snapshots in sync",
                                    dest="snapshots", default=False, action="store_const", const=True)
-    parser_sync.set_defaults(func=lambda args: do_sync(replication_factor = args.replication_factor,
+    parser_sync.set_defaults(func=lambda args: do_sync(targets            = args.targets,
+                                                       replication_factor = args.replication_factor,
                                                        destructive        = args.destructive,
                                                        snapshots          = args.snapshots))
 
