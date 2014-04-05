@@ -541,7 +541,7 @@ class GlobalProject
     local_hub_address: (opts) =>
         opts = defaults opts,
             timeout : 30
-            cb : required      # cb(err, {host:hostname, port:port, status:status})
+            cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
         if @_local_hub_address_queue?
             @_local_hub_address_queue.push(opts.cb)
         else
@@ -556,14 +556,14 @@ class GlobalProject
     _local_hub_address: (opts) =>
         opts = defaults opts,
             timeout : 90
-            cb : required      # cb(err, {host:hostname, port:port})
+            cb : required      # cb(err, {host:hostname, port:port, status:status, server_id:server_id})
         dbg = (m) -> winston.info("local_hub_address(#{@project_id}): #{m}")
         dbg()
         server_id = undefined
         port      = undefined
         status    = undefined
         attempt = (cb) =>
-            dbg("making an attempt to start")
+            dbg("attempt")
             async.series([
                 (cb) =>
                     dbg("see if host running")
@@ -591,9 +591,8 @@ class GlobalProject
                                             cb()
                 (cb) =>
                     if port?
-                        dbg("success -- we got our host")
-                        @_update_project_settings()   # non-blocking -- might as well do this on success.
-                        cb()
+                        dbg("success -- we got our host #{server_id} at port #{port}")
+                        @_update_project_settings(cb)
                     else
                         dbg("fail -- not working yet")
                         cb(true)
@@ -612,11 +611,11 @@ class GlobalProject
                         setTimeout(f, 5000)
                     else
                         # success!?
-                        host = @global_client.servers[server_id]?.host
+                        host = @global_client.servers.by_id[server_id]?.host
                         if not host?
                             opts.cb("unknown server #{server_id}")
                         else
-                            opts.cb(undefined, {host:host, port:port, status:status})
+                            opts.cb(undefined, {host:host, port:port, status:status, server_id:server_id})
          f()
 
 
@@ -800,7 +799,7 @@ class GlobalProject
                             if last_save?
                                 # targets are all ip addresses of servers we've replicated to so far (if any)
                                 dbg("last_save = #{misc.to_json(last_save)}")
-                                targets = (@global_client.servers[x].host for x,t of last_save when x != server_id)
+                                targets = (@global_client.servers.by_id[x].host for x,t of last_save when x != server_id)
                                 dbg("targets = #{misc.to_json(targets)}")
                                 # leave undefined otherwise -- will use consistent hashing to do initial save
                             cb()
@@ -819,7 +818,10 @@ class GlobalProject
                             last_save[server_id] = r.timestamp*1000
                             if r.sync?
                                 for x in r.sync
-                                    s = @global_client.servers.by_host[x.host].server_id
+                                    if x.host == '' # special case - the server hosting the project
+                                        s = server_id
+                                    else
+                                        s = @global_client.servers.by_host[x.host].server_id
                                     if not x.error?
                                         last_save[s] = r.timestamp*1000
                                     else
@@ -1026,8 +1028,8 @@ class GlobalProject
                         if err or not r? or r.length == 0
                             cb(err)
                         else
-                            if r?[0]?
-                                hosts = misc.keys(r[0])
+                            if r[0][0]?
+                                hosts = misc.keys(r[0][0])
                             cb()
             (cb) =>
                 dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each data center")
@@ -1099,7 +1101,7 @@ class GlobalProject
                                     cb()
                     ], cb)
 
-                async.map(servers, f, cb)
+                async.map servers, f, (err) => cb(err)
 
         ], (err) => opts.cb?(err, @state)
         )
@@ -1176,16 +1178,16 @@ class GlobalClient
 
     _update: (cb) =>
         dbg = (m) -> winston.debug("GlobalClient._update: #{m}")
-        dbg("querying for available storage servers...")
+        #dbg("updating list of available storage servers...")
         @database.select
             table     : 'storage_servers'
             columns   : ['server_id', 'host', 'port', 'dc', 'health', 'secret', 'vnodes']
             objectify : true
             where     : {dummy:true}
             cb        : (err, results) =>
-                #dbg("got results; now initializing hashrings")
                 if err
                     cb?(err); return
+                #dbg("got #{results.length} storage servers")
                 # parse result
                 @servers = {by_dc:{}, by_id:{}, by_host:{}}
                 x = {}
@@ -1217,12 +1219,12 @@ class GlobalClient
                 dbg("writing file")
                 # @servers = {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
                 servers_conf = {}
-                for server_id, x of @servers
+                for server_id, x of @servers.by_id
                     servers_conf[server_id] = {host:x.host, vnodes:x.vnodes, dc:x.dc}
                 fs.writeFile(file, misc.to_json(servers_conf), cb)
             (cb) =>
                 f = (server_id, c) =>
-                    host = @servers[server_id].host
+                    host = @servers.by_id[server_id].host
                     dbg("copying #{file} to #{host}...")
                     misc_node.execute_code
                         command : "scp"
@@ -1233,7 +1235,7 @@ class GlobalClient
                             if err
                                 errors[server_id] = err
                             c()
-                async.map misc.keys(@servers), f, (err) =>
+                async.map misc.keys(@servers.by_id), f, (err) =>
                     if misc.len(errors) == 0
                         opts.cb?()
                     else
@@ -1342,10 +1344,10 @@ class GlobalClient
         opts = defaults opts,
             server_id : required
             cb        : required
-        if not @servers[opts.server_id]?
+        if not @servers.by_id[opts.server_id]?
             opts.cb("server #{opts.server_id} unknown")
             return
-        s = @servers[opts.server_id]
+        s = @servers.by_id[opts.server_id]
         if not s.host?
             opts.cb("no hostname known for #{opts.server_id}")
             return
@@ -1577,8 +1579,8 @@ class GlobalClient
                                 # b is better
                                 return 1
                         # Next compare health of server
-                        health_a = @servers[a.replica_id]?.health
-                        health_b = @servers[b.replica_id]?.health
+                        health_a = @servers.by_id[a.replica_id]?.health
+                        health_b = @servers.by_id[b.replica_id]?.health
                         if health_a? and health_b?
                             health_a = Math.round(3.8*health_a)
                             health_b = Math.round(3.8*health_b)
