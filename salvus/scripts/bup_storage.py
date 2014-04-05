@@ -50,7 +50,7 @@ BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
-#PROJECTS_PATH  = '/home/salvus/vm/images/projects'
+PROJECTS_PATH  = '/bup/projects'
 
 # Where the server_id is stored
 SERVER_ID_FILE = '/bup/conf/bup_server_id'
@@ -688,9 +688,12 @@ class Project(object):
                 pids = []
 
     def sync(self, targets="", replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
-        status = []
-
+        log = self._log('sync')
         status = [{'host':h} for h in targets.split(',')]
+        if not targets:
+            log("nothing to sync to")
+            return status
+        log("syncing to %s"%targets)
 
         for s in status:
             t = time.time()
@@ -776,9 +779,6 @@ class Project(object):
                 log("sync back any tags")
                 self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
                           '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
-        if os.path.exists(self.project_mnt):
-            log("mount snapshots")
-            self.mount_snapshots()
 
     def migrate_all(self, max_snaps=100):
         log = self._log('migrate_all')
@@ -808,7 +808,9 @@ class Project(object):
         log = self._log('migrate_remote')
         self.init()
         project_mnt = '/projects/%s'%self.project_id
+        t = time.time()
         log("check if remote is mounted")
+
         if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
             # try to mount and try again
             self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
@@ -816,12 +818,28 @@ class Project(object):
             if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
                 print "FAIL -- unable to mount"
                 return
-
+        log("time to mount %s"%(time.time()-t))
+ 
         log("rsync from remote to local")
-        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt))
+        t = time.time()
+        x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/"%(
+               ' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt), ignore_errors=True)
+        log("time to rsync=%s"%(time.time()-t))
+        for a in x.splitlines():
+            # allow these errors only -- e.g., sshfs mounts cause them
+            if 'ERROR' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a:
+                print a
+                print "FAIL"
+                return
 
         log("save local copy to local repo")
-        status = self.save(targets=targets, mnt=False)
+        t = time.time()
+        self.save(sync=False, mnt=False)
+        log("time to save=%s"%(time.time()-t))
+        log("sync out")
+        t = time.time()
+        status = self.sync(targets=targets, destructive=True)
+        log("time to sync=%s"%(time.time()-t))
         print str(status)
         for r in status:
             if r.get('error', False):
