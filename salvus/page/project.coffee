@@ -1311,10 +1311,15 @@ class ProjectPage
                 @update_file_search()
 
                 # No files
-                if directory_is_empty and path != ".trash" and path.slice(0,9) != ".snapshot"
+                if directory_is_empty and path != ".trash" and path.slice(0,10) != ".snapshots"
                     @container.find(".project-file-listing-no-files").show()
                 else
                     @container.find(".project-file-listing-no-files").hide()
+
+                if path.slice(0,10) == '.snapshots'
+                    @container.find(".project-file-listing-snapshot-warning").show()
+                else
+                    @container.find(".project-file-listing-snapshot-warning").hide()
 
                 if no_focus? and no_focus
                     return
@@ -2471,15 +2476,24 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
+
         update = () =>
-            salvus_client.project_last_snapshot_time
-                project_id : @project.project_id
-                cb         : (err, time) =>
-                    if not err and time?
+            salvus_client.exec
+                project_id  : @project.project_id
+                command     : "ls ~/.snapshots/master/|tail -2"
+                err_on_exit : true
+                cb          : (err, output) =>
+                    if not err
+                        time = output.stdout.split('\n')[0]  # format is 2014-04-04-061502
+                        # var d = new Date(year, month, day, hours, minutes, seconds, milliseconds);
+                        v = [time.slice(0,4), time.slice(5,7), time.slice(8,10),
+                                        time.slice(11,13), time.slice(13,15), time.slice(15,17), '0']
+                        time = new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
+                        console.log("time = ", time)
                         @_last_snapshot_time = time
                         # critical to use replaceWith!
                         c = @container.find(".project-snapshot-last-timeago span")
-                        d = $("<span>").attr('title',(new Date(1000*time)).toISOString()).timeago()
+                        d = $("<span>").attr('title', time.toISOString()).timeago()
                         c.replaceWith(d)
         update()
         @_update_last_snapshot_time = setInterval(update, 60000)
