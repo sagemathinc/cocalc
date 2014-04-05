@@ -23,7 +23,6 @@ In visudo:
 
 Install script:
 
-     cp /home/salvus/salvus/salvus/scripts/hashring.py /usr/local/bin/
      cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
      chown root:salvus /usr/local/bin/bup_storage.py
      chmod ug+rx /usr/local/bin/bup_storage.py
@@ -122,25 +121,6 @@ def check_uuid(uuid):
     if UUID(uuid).version != 4:
         raise RuntimeError("invalid uuid")
 
-
-
-def get_replicas(project_id, data_centers, replication_factor):
-    """
-    Use consistent hashing to choose replication_factor hosts for the given project_id in each data center.
-    """
-    if not isinstance(replication_factor, list):
-        replication_factor = [replication_factor] * len(data_centers)
-    else:
-        for i in range(len(replication_factor)-len(data_centers)):
-            replication_factor.append(0)
-    import hashring
-    replicas = []
-    for i, data_center in enumerate(data_centers):
-        d = {}
-        for x in data_center:
-            d[x['server_id']] = {'vnodes':x['vnodes']}
-        replicas += hashring.HashRing(d).range(project_id, replication_factor[i])
-    return replicas
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if isinstance(s, list):
@@ -710,27 +690,7 @@ class Project(object):
     def sync(self, targets="", replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
         status = []
 
-        if targets:
-            status = [{'host':h} for h in targets.split(',')]
-        else:
-            servers = json.loads(open(SERVERS_FILE).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
-
-            v = {}
-            for id, server in servers.iteritems():
-                dc = server['dc']
-                if dc not in v:
-                    v[dc] = []
-                v[dc].append({'server_id':id, 'vnodes':server['vnodes']})
-            data_centers = [[] for i in range(max(v.keys())+1)]
-            for k, x in v.iteritems():
-                data_centers[k] = x
-            replicas = get_replicas(self.project_id, data_centers, replication_factor)
-
-            server_id = open(SERVER_ID_FILE).read()
-            for replica_id in replicas:
-                if replica_id != server_id:
-                    if replica_id in servers:
-                        status.append({'replica_id':replica_id, 'host':servers[replica_id]['host']})
+        status = [{'host':h} for h in targets.split(',')]
 
         for s in status:
             t = time.time()
