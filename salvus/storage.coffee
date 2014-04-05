@@ -4740,8 +4740,8 @@ exports.migrate2_bup_all = (opts) ->
             dbg("querying database...")
             database.select
                 table   : 'projects'
-                columns : ['project_id', 'last_edited', 'last_bup_save', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
-                jsonify : true
+                columns : ['project_id', 'last_edited', 'bup_last_save', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
+                objectify : true
                 limit   : limit
                 cb      : (err, result) ->
                     if result?
@@ -4772,10 +4772,10 @@ exports.migrate2_bup_all = (opts) ->
                         dbg("filter out those that are already done: before #{result.length}")
                         v = []
                         for x in result
-                            if not x.last_bup_save? or misc.len(x.last_bup_save) < 3
+                            if not x.bup_last_save? or misc.len(x.bup_last_save) < 3
                                 v.push(x)
                             else
-                                for k, tm of x.last_bup_save
+                                for k, tm of x.bup_last_save
                                     if tm < x.last_edited
                                         v.push(x)
                                         break
@@ -4991,6 +4991,45 @@ exports.migrate2_bup = (opts) ->
         opts.cb(err)
     )
 
+
+
+exports.delete_all_bup_saves = (limit, cb) ->
+    projects = undefined
+
+    j = 0
+    f = (project, c) ->
+        j += 1
+        if true or j % 1000 == 0
+            console.log("#{j}/#{projects.length}")
+        if not project.bup_last_save?
+            c(); return
+        console.log("updating #{project.project_id}")
+        database.update
+            table : "projects"
+            set   : {bup_last_save: undefined, settings: undefined, bup_repo_size_kb:undefined, bup_working_size_kb:undefined}
+            where : {project_id : project.project_id}
+            consistency : 2
+            cb    : c
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            console.log("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'bup_last_save']
+                consistency : 2
+                objectify : true
+                limit   : limit
+                cb      : (err, r) ->
+                    projects = (x for x in r when x.bup_last_save?)
+                    cb(err)
+        (cb) ->
+            console.log("got #{projects.length} results")
+            async.mapLimit projects, 10, f, (err) ->
+                console.log("DONE")
+                cb()
+    ], cb)
 
 
 
