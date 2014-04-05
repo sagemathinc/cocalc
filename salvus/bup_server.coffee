@@ -256,19 +256,18 @@ class Project
                 winston.debug("get_state -- confirming running status")
                 @_action
                     action : 'status'
+                    param  : '--running'
                     cb     : (err, status) =>
-                        state = @state
                         winston.debug("get_state -- confirming based on status=#{misc.to_json(status)}")
                         if err
-                            state = 'error'
+                            @state = 'error'
                         else if status.running
                             # set @state to a running state: either 'saving' or 'running'
-                            if state != 'saving'
-                                state = 'running'
+                            if @state != 'saving'
+                                @state = 'running'
                         else
-                            state = 'stopped'
-                        @state = state
-                        opts.cb(undefined, state)
+                            @state = 'stopped'
+                        opts.cb(undefined, @state)
             else
                 winston.debug("get_state -- trusting running status since @state=#{@state}")
                 opts.cb(undefined, @state)

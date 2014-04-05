@@ -17,10 +17,11 @@ AFTER SWITCH:
 
 - [ ] add bup quota as a standard part of settings, and refuse to make further snapshots if bup usage exceeds 3 times user disk quota.  This will avoid a horrible edge case.   Critical that this produces an error that the user learns about.  This will happen for some users.  Alternatively, I could periodically rebuild those bup repos with many snapshots deleted - that would be much nicer and is totally do-able.
 
+- [ ] write snapshot browser.
+
+- [ ] manual project move system -- bring it back
 
 
-
-========
 
 
       - [x] switch the existing looping script to use RF=1
@@ -43,10 +44,11 @@ AFTER SWITCH:
                 alter table projects add bup_working_size_KB  int;
 
 
-- --> [x] (3:30) run prep script
 
 - [x] (0:48) change sync/save code to take list of target ip's based on db
 - [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
+- [x] (0:45) I need to have a script that runs through all projects and sets the disk quota in the database somehow.
+      how?  just take larger of 2*current_usage and 4GB
 
 
 - [x] there was a bug in the prep script (it set the quotas before extracting), and it seems useless.  NO!!
@@ -72,4 +74,3 @@ and also push out the correct consistent hashing file
         - step: init_repo, restore (copying files from bup), syncing template, etc.
         - progress: if there is a way to give how far along with doing something (e.g., rsyncing out to replicas)
     could do this by creating a conf file that is *NOT* rsync'd that stores stuff:   conf/state.json
-
