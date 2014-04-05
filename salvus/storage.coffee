@@ -4702,6 +4702,7 @@ exports.migrate2_bup_all = (opts) ->
         timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
         exclude : []
         only  : undefined      # if given, *ONLY* migrate projects in this list.
+        reverse : false
         loop  : 0              # if >=1; call it again with same inputs once it finishes
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
@@ -4849,7 +4850,10 @@ exports.migrate2_bup_all = (opts) ->
                     clearTimeout(timer)
                     cb()
 
-            async.mapLimit([0...projects.length], opts.limit, f, cb)
+            v = [0...projects.length]
+            if opts.reverse
+                v.reverse()
+            async.mapLimit(v, opts.limit, f, cb)
     ], (err) ->
         if opts.loop
             f = () =>

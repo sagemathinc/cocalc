@@ -1,41 +1,19 @@
+--> - [ ] migrate all projects again
 
-- [ ] there was a bug in the prep script (it set the quotas before extracting), and it seems useless.  NO!!
-I'm seriously tempted to do the following:
+- [ ] when opening a new project just place randomly -- no use of consistent hashing.
 
-1. delete everything:
-    - bups/bups; bup/projects; data in database
-    -
+- [ ] make it so move is never automatic but prompted
 
-and also push out the correct consistent hashing file
-2. write code that goes through each project, and
-   - rsync's the latest version of files to one new compute vm in same dc, chosen at random.
-   - takes a bup snapshot of that (via `bup_storage.py save`)
-   - sync's out to 2 other replicas
-   - stores info bup_last_saved entry in database.
+- [ ] UI -- display current project state clearly somewhere
+
+- [ ] optimize file listing display
 
 
 
-- [ ] I need to have a script that runs through all projects and sets the disk quota in the database somehow.
-      how?  just take larger of 2*current_usage and 4GB
-
-- [ ] implement `get_state` in `bup_storage.py`: it will return two things, according to a "local calculation" purely from within the project
-        - state: stopped, starting, running, restarting, stopping, saving, error
-        - when: when this state was entered
-        - step: init_repo, restore (copying files from bup), syncing template, etc.
-        - progress: if there is a way to give how far along with doing something (e.g., rsyncing out to replicas)
-    could do this by creating a conf file that is *NOT* rsync'd that stores stuff:   conf/state.json
-
-- [ ] make bup_storage.py set a saving file, and remove it when saving finishes, so that status can report that.  MAYBE.  could be bad.
-
-- [ ] make the serverid's of replicas just be part of project settings exactly like anything else; and get set from the database. Why even bother with the database for the settings? -- well, otherwise how can we even find the project!
-
-
+====
 
 AFTER SWITCH:
 
-- [ ] need code to clear all quotas on reboot just in case...
-
-- [ ] add files to bup/projectid/conf/replicas.json with the replics for that project, which will be used by default in the future to determine replicas; of course database save info and buplocation will be used to *find the project* in the first place, with the default for new projects determined by consistent hashing.  rolling this out is only necessary when I add new nodes.  Wait until after switch.
 
 - [ ] add bup quota as a standard part of settings, and refuse to make further snapshots if bup usage exceeds 3 times user disk quota.  This will avoid a horrible edge case.   Critical that this produces an error that the user learns about.  This will happen for some users.  Alternatively, I could periodically rebuild those bup repos with many snapshots deleted - that would be much nicer and is totally do-able.
 
@@ -69,4 +47,29 @@ AFTER SWITCH:
 
 - [x] (0:48) change sync/save code to take list of target ip's based on db
 - [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
+
+
+- [x] there was a bug in the prep script (it set the quotas before extracting), and it seems useless.  NO!!
+I'm seriously tempted to do the following:
+
+1. delete everything:
+    - bups/bups; bup/projects; data in database
+    -
+
+and also push out the correct consistent hashing file
+2. write code that goes through each project, and
+   - rsync's the latest version of files to one new compute vm in same dc, chosen at random.
+   - takes a bup snapshot of that (via `bup_storage.py save`)
+   - sync's out to 2 other replicas
+   - stores info bup_last_saved entry in database.
+
+- [x] I need to have a script that runs through all projects and sets the disk quota in the database somehow.
+      how?  just take larger of 2*current_usage and 4GB
+
+- [x] implement `get_state` in `bup_storage.py`: it will return two things, according to a "local calculation" purely from within the project
+        - state: stopped, starting, running, restarting, stopping, saving, error
+        - when: when this state was entered
+        - step: init_repo, restore (copying files from bup), syncing template, etc.
+        - progress: if there is a way to give how far along with doing something (e.g., rsyncing out to replicas)
+    could do this by creating a conf file that is *NOT* rsync'd that stores stuff:   conf/state.json
 
