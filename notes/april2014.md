@@ -1,5 +1,4 @@
 
-
 - [ ] implement `get_state` in `bup_storage.py`: it will return two things, according to a "local calculation" purely from within the project
         - state: stopped, starting, running, restarting, stopping, saving, error
         - when: when this state was entered
@@ -34,7 +33,6 @@ AFTER SWITCH:
 - [ ] manual project move system -- bring it back
 
 
-========
 
 
       - [x] switch the existing looping script to use RF=1
@@ -58,11 +56,13 @@ AFTER SWITCH:
 
 
 
-
 - [x] (0:48) change sync/save code to take list of target ip's based on db
 - [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
 - [x] (0:45) I need to have a script that runs through all projects and sets the disk quota in the database somehow.
       how?  just take larger of 2*current_usage and 4GB
 
 - [x] make the serverid's of replicas just be part of project settings exactly like anything else; and get set from the database. Why even bother with the database for the settings? -- well, otherwise how can we even find the project!
+- --> [x] (3:30) run prep script
 
+- [x] (0:48) change sync/save code to take list of target ip's based on db
+- [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.

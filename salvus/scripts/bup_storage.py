@@ -23,7 +23,6 @@ In visudo:
 
 Install script:
 
-     cp /home/salvus/salvus/salvus/scripts/hashring.py /usr/local/bin/
      cp /home/salvus/salvus/salvus/scripts/bup_storage.py /usr/local/bin/
      chown root:salvus /usr/local/bin/bup_storage.py
      chmod ug+rx /usr/local/bin/bup_storage.py
@@ -37,7 +36,7 @@ Install script:
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd
+import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
@@ -51,7 +50,7 @@ BUP_PATH       = '/bup/bups'
 
 # The path where project working files appear
 PROJECTS_PATH  = '/projects'
-#PROJECTS_PATH  = '/home/salvus/vm/images/projects'
+PROJECTS_PATH  = '/bup/projects'
 
 # Where the server_id is stored
 SERVER_ID_FILE = '/bup/conf/bup_server_id'
@@ -122,25 +121,6 @@ def check_uuid(uuid):
     if UUID(uuid).version != 4:
         raise RuntimeError("invalid uuid")
 
-
-
-def get_replicas(project_id, data_centers, replication_factor):
-    """
-    Use consistent hashing to choose replication_factor hosts for the given project_id in each data center.
-    """
-    if not isinstance(replication_factor, list):
-        replication_factor = [replication_factor] * len(data_centers)
-    else:
-        for i in range(len(replication_factor)-len(data_centers)):
-            replication_factor.append(0)
-    import hashring
-    replicas = []
-    for i, data_center in enumerate(data_centers):
-        d = {}
-        for x in data_center:
-            d[x['server_id']] = {'vnodes':x['vnodes']}
-        replicas += hashring.HashRing(d).range(project_id, replication_factor[i])
-    return replicas
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if isinstance(s, list):
@@ -468,7 +448,7 @@ class Project(object):
             r = dict(result)
             n = len(self.project_mnt)+1
             r['files'] = [x[n:] for x in what_changed if len(x) > n]
-            open(self.save_log,'a').write(json.dumps(r)+'\n')
+            codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
 
 
 
@@ -713,29 +693,12 @@ class Project(object):
                 pids = []
 
     def sync(self, targets="", replication_factor=REPLICATION_FACTOR, destructive=False, snapshots=True):
-        status = []
-
-        if targets:
-            status = [{'host':h} for h in targets.split(',')]
-        else:
-            servers = json.loads(open(SERVERS_FILE).read())  # {server_id:{host:'ip address', vnodes:128, dc:2}, ...}
-
-            v = {}
-            for id, server in servers.iteritems():
-                dc = server['dc']
-                if dc not in v:
-                    v[dc] = []
-                v[dc].append({'server_id':id, 'vnodes':server['vnodes']})
-            data_centers = [[] for i in range(max(v.keys())+1)]
-            for k, x in v.iteritems():
-                data_centers[k] = x
-            replicas = get_replicas(self.project_id, data_centers, replication_factor)
-
-            server_id = open(SERVER_ID_FILE).read()
-            for replica_id in replicas:
-                if replica_id != server_id:
-                    if replica_id in servers:
-                        status.append({'replica_id':replica_id, 'host':servers[replica_id]['host']})
+        log = self._log('sync')
+        status = [{'host':h} for h in targets.split(',')]
+        if not targets:
+            log("nothing to sync to")
+            return status
+        log("syncing to %s"%targets)
 
         for s in status:
             t = time.time()
@@ -821,9 +784,6 @@ class Project(object):
                 log("sync back any tags")
                 self.cmd(["rsync", "-axH", "-e", 'ssh -o StrictHostKeyChecking=no',
                           '--timeout', rsync_timeout, self.bup_path+'/', 'root@'+remote+'/'])
-        if os.path.exists(self.project_mnt):
-            log("mount snapshots")
-            self.mount_snapshots()
 
     def migrate_all(self, max_snaps=100):
         log = self._log('migrate_all')
@@ -849,28 +809,42 @@ class Project(object):
         # migrate is assumed to only ever happen when we haven't been live pushing the project into the replication system.
         self.cleanup()
 
-    def migrate_remote(self, host, lastmod, max_snaps=10):
+    def migrate_remote(self, host, targets):
         log = self._log('migrate_remote')
         self.init()
         project_mnt = '/projects/%s'%self.project_id
+        t = time.time()
         log("check if remote is mounted")
+
         if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
             # try to mount and try again
             self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=180)
+                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
             if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
                 print "FAIL -- unable to mount"
                 return
+        log("time to mount %s"%(time.time()-t))
 
         log("rsync from remote to local")
-        self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt))
+        t = time.time()
+        x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/"%(
+               ' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt), ignore_errors=True)
+        log("time to rsync=%s"%(time.time()-t))
+        for a in x.splitlines():
+            # allow these errors only -- e.g., sshfs mounts cause them
+            if 'ERROR' not in a and 'see previous errors' not in a and 'failed: Permission denied' not in a and 'Command exited with non-zero status' not in a:
+                print a
+                print "FAIL"
+                return
 
         log("save local copy to local repo")
+        t = time.time()
         self.save(sync=False, mnt=False)
-        log("cleaning up local repo")
-        self.cleanup()
-        log("syncing remotely...")
-        status = self.sync(replication_factor=REPLICATION_FACTOR, destructive=True, snapshots=True, set_quotas=False)
+        log("time to save=%s"%(time.time()-t))
+        log("sync out")
+        t = time.time()
+        status = self.sync(targets=targets, destructive=True)
+        log("time to sync=%s"%(time.time()-t))
         print str(status)
         for r in status:
             if r.get('error', False):
@@ -1099,8 +1073,8 @@ if __name__ == "__main__":
 
     parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
     parser_migrate_remote.add_argument("host", help="where migrating from", type=str)
-    parser_migrate_remote.add_argument("lastmod", help="last modification time (in seconds since epoch)", type=float)
-    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host,lastmod=args.lastmod))
+    parser_migrate_remote.add_argument("--targets", help="comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
+    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host, targets=args.targets))
 
     args = parser.parse_args()
 
