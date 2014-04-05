@@ -36,7 +36,7 @@ Install script:
 # on the system with arbitrary content.
 UNSAFE_MODE=False
 
-import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd
+import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
 
@@ -443,7 +443,7 @@ class Project(object):
             r = dict(result)
             n = len(self.project_mnt)+1
             r['files'] = [x[n:] for x in what_changed if len(x) > n]
-            open(self.save_log,'a').write(json.dumps(r)+'\n')
+            codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
 
 
 
@@ -814,12 +814,12 @@ class Project(object):
         if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
             # try to mount and try again
             self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=180)
+                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
             if 'sagemathcloud' not in self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -la %s/'"%(host, project_mnt), verbose=1, ignore_errors=True):
                 print "FAIL -- unable to mount"
                 return
         log("time to mount %s"%(time.time()-t))
- 
+
         log("rsync from remote to local")
         t = time.time()
         x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/"%(

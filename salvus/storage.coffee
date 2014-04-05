@@ -4694,12 +4694,14 @@ exports.bup_set_quotas = (opts) ->
 
 exports.migrate2_bup_all = (opts) ->
     opts = defaults opts,
-        limit : 1           # no more than this many projects will be migrated simultaneously
+        limit : 1            # no more than this many projects will be migrated simultaneously
+        qlimit : 100000
         start : undefined    # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
         exclude : []
+        only  : undefined      # if given, *ONLY* migrate projects in this list.
         loop  : 0              # if >=1; call it again with same inputs once it finishes
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
@@ -4710,7 +4712,6 @@ exports.migrate2_bup_all = (opts) ->
     todo = undefined
     dbg = (m) -> winston.debug("#{new Date()} -- migrate2_bup_all: #{m}")
     t = misc.walltime()
-    limit = 100000
     servers = {by_id:{}, by_dc:{}}
 
     async.series([
@@ -4738,11 +4739,15 @@ exports.migrate2_bup_all = (opts) ->
                         cb()
         (cb) ->
             dbg("querying database...")
+            where = undefined
+            if opts.only
+                where = {project_id:{'in':opts.only}}
             database.select
                 table   : 'projects'
                 columns : ['project_id', 'last_edited', 'bup_last_save', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
                 objectify : true
-                limit   : limit
+                limit   : opts.qlimit                
+                where   : where
                 cb      : (err, result) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
@@ -4876,6 +4881,7 @@ exports.migrate2_bup = (opts) ->
     lastmod = undefined
     hashrings = undefined
     targets = undefined
+    servers = opts.servers
 
     dbg("determine bup_last_save")
     if misc.len(opts.bup_last_save) < 3
@@ -4883,12 +4889,35 @@ exports.migrate2_bup = (opts) ->
         dcs = ("#{servers.by_id[x].dc}" for x in misc.keys(opts.bup_last_save))
         for dc in ['0','1','2']
             if dc not in dcs
-                opts.bup_last_save[misc.random_choice(servers.by_dc[dc])] = 0
+                opts.bup_last_save[misc.random_choice(servers.by_dc[dc]).server_id] = new Date(0)
     dbg("bup_last_save=#{misc.to_json(opts.bup_last_save)}")
 
 
 
     async.series([
+        (cb) ->
+            if servers?
+                cb(); return
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                where     : {dummy:true}
+                objectify : true
+                cb        : (err, results) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in results
+                            x.host = cassandra.inet_to_str(x.host)
+                            v = servers.by_dc[x.dc]
+                            if not v?
+                                servers.by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            servers.by_id[x.server_id] = x
+                        cb()
+
         (cb) ->
             dbg("setting last_migrate_bup_error to start...")
             database.update
@@ -4896,6 +4925,16 @@ exports.migrate2_bup = (opts) ->
                 set   : {last_migrate_bup_error : "start"}
                 where : {project_id : opts.project_id}
                 cb    : cb
+        (cb) ->
+            dbg("success -- record bup_last_save, etc.  in database -- so if interrupted use same choice next time")
+            f = (k, c) ->
+                d = opts.bup_last_save[k]
+                if d.low? and d.low==0
+                    d = new Date(0)
+                database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
+                             [k, d, opts.project_id], c)
+            async.map(misc.keys(opts.bup_last_save), f, cb)
+
         (cb) ->
             if host?
                 cb(); return
@@ -4938,7 +4977,10 @@ exports.migrate2_bup = (opts) ->
             if not hosts?
                 cb(); return
             done = false
-            targets = (servers.by_id[id].host for id in misc.keys(opts.bup_save_time))
+            targets = (servers.by_id[id].host for id in misc.keys(opts.bup_last_save))
+            targets.sort()
+            if opts.status?
+                opts.status.targets = targets
             errors = {}
             f = (host, c) ->
                 if done
@@ -4970,24 +5012,30 @@ exports.migrate2_bup = (opts) ->
 
             async.mapSeries hosts, f, (err) ->
                 if not done
-                    cb("unable to migrate from any host! -- #{misc.to_json(errors)}")
+                    cb(errors)
                 else
                     cb()
         (cb) ->
             dbg("success -- record bup_last_save, etc.  in database")
-            for k, v of opts.bup_last_save
-                opts.bup_last_save[k] = last_migrate_bup
+            f = (k, c) ->
+                database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
+                             [k, last_migrate_bup, opts.project_id], c)
+            async.map(misc.keys(opts.bup_last_save), f, cb)
+        (cb) ->
+            dbg("success -- record other stuff  in database")
             database.update
                 table : 'projects'
-                set   : {bup_last_save:opts.bup_last_save, last_migrate_bup : last_migrate_bup,  last_migrate_bup_error:undefined, abuser:abuser}
+                set   : {last_migrate_bup : last_migrate_bup,  last_migrate_bup_error:undefined, abuser:abuser}
                 where : {project_id : opts.project_id}
                 cb    : cb
-    ], (err) =>
+    ], (err) ->
         if err
             database.update
                 table : 'projects'
                 set   : {last_migrate_bup_error : misc.to_json(err), last_migrate_bup : last_migrate_bup}
                 where : {project_id : opts.project_id}
+        if opts.status?
+            opts.status.error = err
         opts.cb(err)
     )
 
@@ -5032,5 +5080,5 @@ exports.delete_all_bup_saves = (limit, cb) ->
     ], cb)
 
 
-
+# fs.writeFileSync('s.json', JSON.stringify(s))
 
