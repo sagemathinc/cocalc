@@ -1,8 +1,18 @@
 
-- --> [x] (3:30) run prep script
+- [ ] there was a bug in the prep script (it set the quotas before extracting), and it seems useless.  NO!!
+I'm seriously tempted to do the following:
 
-- [x] (0:48) change sync/save code to take list of target ip's based on db
-- [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
+1. delete everything:
+    - bups/bups; bup/projects; data in database
+    -
+
+and also push out the correct consistent hashing file
+2. write code that goes through each project, and
+   - rsync's the latest version of files to one new compute vm in same dc, chosen at random.
+   - takes a bup snapshot of that (via `bup_storage.py save`)
+   - sync's out to 2 other replicas
+   - stores info bup_last_saved entry in database.
+
 
 
 - [ ] I need to have a script that runs through all projects and sets the disk quota in the database somehow.
@@ -53,3 +63,10 @@ AFTER SWITCH:
 
                 alter table projects add bup_repo_size_KB     int;
                 alter table projects add bup_working_size_KB  int;
+
+
+- --> [x] (3:30) run prep script
+
+- [x] (0:48) change sync/save code to take list of target ip's based on db
+- [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
+

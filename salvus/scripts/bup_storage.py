@@ -844,7 +844,7 @@ class Project(object):
         # migrate is assumed to only ever happen when we haven't been live pushing the project into the replication system.
         self.cleanup()
 
-    def migrate_remote(self, host, lastmod, max_snaps=10):
+    def migrate_remote(self, host, targets):
         log = self._log('migrate_remote')
         self.init()
         project_mnt = '/projects/%s'%self.project_id
@@ -861,11 +861,7 @@ class Project(object):
         self.cmd("time rsync -axH --delete %s root@%s:%s/ %s/"%(' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt))
 
         log("save local copy to local repo")
-        self.save(sync=False, mnt=False)
-        log("cleaning up local repo")
-        self.cleanup()
-        log("syncing remotely...")
-        status = self.sync(replication_factor=REPLICATION_FACTOR, destructive=True, snapshots=True, set_quotas=False)
+        status = self.save(targets=targets, mnt=False)
         print str(status)
         for r in status:
             if r.get('error', False):
@@ -1092,8 +1088,8 @@ if __name__ == "__main__":
 
     parser_migrate_remote = subparsers.add_parser('migrate_remote', help='final migration')
     parser_migrate_remote.add_argument("host", help="where migrating from", type=str)
-    parser_migrate_remote.add_argument("lastmod", help="last modification time (in seconds since epoch)", type=float)
-    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host,lastmod=args.lastmod))
+    parser_migrate_remote.add_argument("--targets", help="comma separated ip addresses of computers to replicate to NOT including the current machine", dest="targets", default="", type=str)
+    parser_migrate_remote.set_defaults(func=lambda args: project.migrate_remote(host=args.host, targets=args.targets))
 
     args = parser.parse_args()
 
