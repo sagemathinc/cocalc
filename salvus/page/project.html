@@ -217,6 +217,7 @@
                     <div class="span3">
                         <input class="salvus-project-search-for-file-input search-query" type="search" placeholder="Choose files...">
                         <i class="salvus-project-search-for-file-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                        <div class="hide lighten salvus-project-search-describe">Showing <b><i>only</i></b> files that contain '<span></span>'.</div>
                     </div>
 
                     <!-- The current path -->
@@ -685,7 +686,7 @@
         </div>
     </div>
 
-    <div class="row span12 project-file-link-style project-file-link">
+    <div class="row span12 project-file-link-style project-file-link project-path-link">
         <div class="span" style="width: 10px;">
             <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
         </div>
@@ -723,7 +724,7 @@
             (<a class="project-file-last-commit-message lighten"></a>)
         </div>
     </div>
-    <div class="row span11  project-directory-link-style project-directory-link">
+    <div class="row span12 project-directory-link-style project-directory-link project-path-link">
         <div class="span " style="width: 10px;">
 
             <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>

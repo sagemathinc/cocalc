@@ -11,6 +11,9 @@
 
 
 
+BEFORE SWITCH:
+
+ - [ ] must update bup-1 on all vms!   https://github.com/williamstein/bup-1
 
 
 ====

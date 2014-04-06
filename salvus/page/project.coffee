@@ -442,20 +442,18 @@ class ProjectPage
 
     update_file_search: (event) =>
         search_box = @_file_search_box
-        include = 'project-listing-search-include'
-        exclude = 'project-listing-search-exclude'
         v = $.trim(search_box.val()).toLowerCase()
 
         listing = @container.find(".project-file-listing-file-list")
 
         if v == ""
-            # remove all styling
-            for entry in listing.children()
-                $(entry).removeClass(include)
-                $(entry).removeClass(exclude)
+            @container.find(".salvus-project-search-describe").hide()
+            listing.children().show()
             match = (s) -> true
         else
+            @container.find(".salvus-project-search-describe").show().find("span").text(v)
             terms = v.split(' ')
+            listing.children().hide()
             match = (s, is_dir) ->
                 s = s.toLowerCase()
                 for t in terms
@@ -469,17 +467,21 @@ class ProjectPage
         first = true
         for e in listing.children()
             entry = $(e)
-            fullpath = entry.data('name')
+            fullpath = entry.data('obj')?.fullname
+            if not fullpath?
+                entry.show()  # this is the "Parent directory" link.
+                continue
             filename = misc.path_split(fullpath).tail
             if match(filename, entry.hasClass('project-directory-link'))
                 if first and event?.keyCode == 13 # enter -- select first match (if any)
                     entry.click()
                     first = false
                 if v != ""
-                    entry.addClass(include); entry.removeClass(exclude)
+                    entry.show()
             else
                 if v != ""
-                    entry.addClass(exclude); entry.removeClass(include)
+                    entry.hide()
+
         if first and event?.keyCode == 13
             # No matches at all, and user pressed enter -- maybe they want to create a file?
             @display_tab("project-new-file")
@@ -917,8 +919,8 @@ class ProjectPage
 
         t = @container.find(".project-file-listing-current_path")
         t.empty()
-        if @current_path.length == 0
-            return
+        #if @current_path.length == 0
+        #    return
 
         t.append($("<a class=project-file-listing-path-segment-link>").html(template_home_icon.clone().click(() =>
             @current_path=[]; @update_file_list_tab())))
@@ -1129,8 +1131,17 @@ class ProjectPage
         @current_path = new_path
         @update_file_list_tab()
 
+
+
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
+        if @_updating_file_list_tab_LOCK
+            return # already updating it
+        @_updating_file_list_tab_LOCK = true
+        @_update_file_list_tab no_focus, () =>
+            setTimeout( (() => @_updating_file_list_tab_LOCK = false), 500 )
+
+    _update_file_list_tab: (no_focus, cb) =>
 
         spinner = @container.find(".project-file-listing-spinner")
         timer = setTimeout( (() -> spinner.show().spin()), 100 )
@@ -1144,54 +1155,88 @@ class ProjectPage
             url_path += '/'
         @push_state('files/' + url_path)
 
-        #console.log("path = ", path)
+
+        that = @
+        open_file =(e) ->
+            obj = $(e.delegateTarget).closest(".project-path-link").data('obj')
+            if obj.isdir
+                that.set_current_path(obj.fullname)
+                that.update_file_list_tab()
+            else
+                that.open_file
+                    path       : obj.fullname
+                    foreground : not(e.which==2 or e.ctrlKey)
+            return false
+
+        tm = misc.walltime()
+
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
             time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
+                clearTimeout(timer)
+                spinner.spin(false).hide()
+
+                tm = misc.walltime()
 
                 if listing?.real_path?
                     @set_current_path(listing.real_path)
                     @push_state('files/' + listing.real_path)
 
-                clearTimeout(timer)
-                spinner.spin(false).hide()
 
                 # Update the display of the path above the listing or file preview
                 @update_current_path()
 
-                # Update UI options that change as a result of browsing snapshots.
-                @update_snapshot_ui_elements()
-
-                @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
-                @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
-
                 if (err)
                     console.log("update_file_list_tab: error -- ", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
-                        #console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
                         @update_file_list_tab(no_focus)
                     else
-                        # just try again in a bit.
-                        setTimeout((()=>@update_file_list_tab(no_focus)), 3000)
-                        #alert_message(type:"error", message:"Error viewing files at '#{path}' in project '#{@project.title}'.")
+                        @set_current_path('')
+                        @_last_path_without_error = undefined # avoid any chance of infinite loop
+                        @update_file_list_tab(no_focus)
+                    cb()
                     return
 
                 # remember for later
                 @_last_path_without_error = path
 
                 if not listing?
+                    cb()
                     return
+
+                # If the files haven't changed -- a VERY common case -- don't rebuild the whole listing.
+                file_names = (x.name for x in listing.files)
+                file_names.sort()
+                file_names = "#{file_names}"  # have to convert to string to compare arrays in javascript
+                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == file_names
+                    cb()
+                    return
+                else
+                    @_update_file_list_tab_last_path = path
+                    @_update_file_list_tab_last_path_files = file_names
 
                 @_last_listing = listing
 
+                if @current_path[0] == '.trash'
+                    @container.find("a[href=#empty-trash]").show()
+                    @container.find("a[href=#trash]").hide()
+                else
+                    @container.find("a[href=#empty-trash]").hide()
+                    @container.find("a[href=#trash]").show()
+
+
                 # Now rendering the listing or file preview
                 file_or_listing = @container.find(".project-file-listing-file-list")
+
+                # TODO: for long listings this file_or_listing.empty() dominates.
+                # We should just change data/displayed names of entries or something and hide others -- be way more clever. For LATER.
                 file_or_listing.empty()
+
                 directory_is_empty = true
 
                 # The path we are viewing.
@@ -1242,24 +1287,23 @@ class ProjectPage
                     t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     file_or_listing.append(t)
 
+
+
+                #console.log("done updating misc stuff", misc.walltime(tm))
+
                 # Show the files
-                for obj in listing['files']
-                    if obj.isdir? and obj.isdir
-                        if obj.snapshot?
-                            t = template_project_directory_snapshot.clone()
-                            if obj.snapshot == ''
-                                t.find(".btn").hide()
-                        else
-                            t = template_project_directory.clone()
-                            t.droppable(drop:file_dropped_on_directory, scope:'files')
+                console.log("building listing...")
+                tm = misc.walltime()
+                for obj in listing.files
+                    if obj.isdir
+                        t = template_project_directory.clone()
+                        t.data(obj:obj)
+                        t.droppable(drop:file_dropped_on_directory, scope:'files')
                         t.find(".project-directory-name").text(obj.name)
+                        name = obj.name
                     else
-                        if obj.snapshot?
-                            t =  template_project_file_snapshot.clone()
-                            if obj.snapshot == ''
-                                t.find(".btn").hide()
-                        else
-                            t = template_project_file.clone()
+                        t = template_project_file.clone()
+                        t.data(obj:obj)
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
                             name = obj.name.slice(0,obj.name.length - ext.length - 1)
@@ -1285,6 +1329,14 @@ class ProjectPage
                             t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
                     #end if
 
+                    obj.fullname = if path != "" then path + '/' + obj.name else obj.name
+                    directory_is_empty = false
+                    # Add our new listing entry to the list:
+                    file_or_listing.append(t)
+                    t.click(open_file)
+
+                    continue
+
                     # Define file actions using a closure
                     @_init_listing_actions(t, path, obj.name, obj.fullname, obj.isdir? and obj.isdir, obj.snapshot?)
 
@@ -1303,12 +1355,14 @@ class ProjectPage
                         scope          : 'files'
 
                     t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
-                    # Finally add our new listing entry to the list:
-                    directory_is_empty = false
-                    file_or_listing.append(t)
+
 
                 #@clear_file_search()
+                console.log("done building listing in #{misc.walltime(tm)}")
+                tm = misc.walltime()
                 @update_file_search()
+                console.log("done building file search #{misc.walltime(tm)}")
+                tm = misc.walltime()
 
                 # No files
                 if directory_is_empty and path != ".trash" and path.slice(0,10) != ".snapshots"
@@ -1322,8 +1376,12 @@ class ProjectPage
                     @container.find(".project-file-listing-snapshot-warning").hide()
 
                 if no_focus? and no_focus
-                    return
+                    cb(); return
+
                 @focus_file_search()
+                console.log("done with everything #{misc.walltime(tm)}")
+
+                cb()
 
     _init_listing_actions: (t, path, name, fullname, isdir, is_snapshot) =>
         if not fullname?
@@ -2488,8 +2546,11 @@ class ProjectPage
                         # var d = new Date(year, month, day, hours, minutes, seconds, milliseconds);
                         v = [time.slice(0,4), time.slice(5,7), time.slice(8,10),
                                         time.slice(11,13), time.slice(13,15), time.slice(15,17), '0']
-                        time = new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
-                        console.log("time = ", time)
+                        try
+                            time = new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
+                        catch e
+                            console.log("error parsing last snapshot time: ", e)
+                            return
                         @_last_snapshot_time = time
                         # critical to use replaceWith!
                         c = @container.find(".project-snapshot-last-timeago span")
@@ -2509,7 +2570,7 @@ class ProjectPage
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id
