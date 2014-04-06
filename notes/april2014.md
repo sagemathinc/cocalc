@@ -1,14 +1,14 @@
---> - [ ] migrate all projects again; update quota information using du script.
+- [ ] migrate all projects again; update quota information using du script.
+
+- [ ] display snaphot times as local time (and timeago if not too slow)
+
+- [ ] move/copy/delete/download
+
+- [ ] UI -- display current project state clearly somewhere (and make it so move is never automatic but prompted)
 
 
---> - [ ] when opening a new project just place randomly -- no use of consistent hashing.
-
-- [ ] make it so move is never automatic but prompted
-
-- [ ] UI -- display current project state clearly somewhere
-
-- [ ] optimize file listing display
-
+- [x] optimize file listing display
+- [x] when opening a new project just place randomly -- no use of consistent hashing.
 
 
 BEFORE SWITCH:
