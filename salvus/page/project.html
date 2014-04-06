@@ -225,6 +225,9 @@
             <div class="not-small project-file-top-current-path-container">
                 <a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a>
             </div>
+            <div class="pull-right salvus-project-status-indicator-top-container">
+                <span class=" lighten salvus-project-status-indicator"></span>
+            </div>
 
             <!-- Tabs: place where you click on them -->
             <ul class="nav nav-pills  project-pages">
@@ -344,19 +347,27 @@
                     <div style="margin-left:3em;">
                         <div class="row">
                             <div class="span3">
-                                <h4><i class="fa fa-plus"> </i>  New file, new directory, or web link</h4>
+                                <h4><i class="fa fa-plus"> </i>  Create a new file or directory</h4>
                             </div>
                             <div class="span8" style="padding-top: 4px;">
+                                <h4>Name your new file (or paste in a link)</h4>
                                 <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
-                                <br><br>
+                                <br>
+                                <h4>Select the type of file</h4>
                                 <span style="width:100%">
-                                    <a class="btn btn-primary" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> File</a>
-                                    <a class="btn btn-warning"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder"></i> Folder</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new terminal (open this to reconnect later)"><i class="fa fa-credit-card"></i> Terminal</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="fa fa-superscript"></i> LaTeX</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="fa fa-file-o"> </i> Sage Worksheet</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="fa fa-file-o"></i> IPython Notebook</a>
-                                    <a class="btn"  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="top" title="Download a file or directory from the web"><i class="fa fa-cloud"></i> From Web</a>
+                                    <span class="btn-group">
+                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="fa fa-file-o"> </i> Sage Worksheet</a>
+                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="fa fa-file-o"></i> IPython Notebook</a>
+                                    </span><br>
+                                    <span class="btn-group">
+                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="fa fa-superscript"></i> LaTeX Document</a>
+                                        <a class="btn btn-info btn-large"  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new command line terminal"><i class="fa fa-credit-card"></i> Command Line Terminal</a>
+                                    </span><br>
+                                    <span class="btn-group">
+                                        <a class="btn  btn-large" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> Create File</a>
+                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder"></i> Create Folder</a>
+                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="top" title="Copy a file or directory from the web into your project"><i class="fa fa-cloud"></i> Copy from Internet Link</a>
+                                    </span>
                                     <!--<a class="btn btn-small" href="#old-worksheet"><i class="fa fa-file-o"> </i> (Old Worksheet)</a>-->
                                 </span>
                             </div>
@@ -364,7 +375,7 @@
                         <hr>
                         <div class="row" >
                             <div class="span3">
-                                <h4><i class="fa fa-cloud-upload"> </i> From your computer </h4>
+                                <h4><i class="fa fa-cloud-upload"> </i> Upload files from your computer </h4>
                             </div>
                             <div class="span8 project-dropzone" style="margin-bottom: 2em; overflow-y:auto; background-color: #eeeeee;">
                             </div>
@@ -471,6 +482,16 @@
                                     </div>
                                 </div>
 
+                                <div class="row-fluid project-settings-move" style="margin-top:1ex">
+                                    <div class="span4">
+                                        <h4>Status</h4>
+                                    </div>
+                                    <div class="span8">
+                                        <pre><span class="salvus-project-status-indicator"></span></pre>
+                                    </div>
+                                </div>
+
+
                             </div>
                         </div>
                         <div class="row-fluid">
@@ -518,7 +539,8 @@
                                 <h4>Disk Quota</h4>
                                 <span class="project-disk_usage hide">
                                     You are using <span class="salvus-userused-projects"></span> of this project's
-                                    disk quota of <span class="salvus-userquota-projects"></span>, and
+                                    <tt><b>home directory</b></tt>
+                                    disk quota of <span class="salvus-userquota-projects"></span>, and you're using
                                     <span class="salvus-userused-scratch"></span> of your
                                     disk quota of <span class="salvus-userquota-scratch"></span> on <tt><b>/scratch</b></tt>.
                                     Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need more space.

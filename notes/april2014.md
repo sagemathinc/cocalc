@@ -1,10 +1,14 @@
-- [ ] migrate all projects again; update quota information using du script.
+
+- [ ] migrate all projects again
+
+- [ ] update quota information using du script.
+
+--> - [ ] UI -- display current project state clearly somewhere (and make it so move is never automatic but prompted)
+
 
 - [ ] display snaphot times as local time (and timeago if not too slow)
 
 - [ ] move/copy/delete/download
-
-- [ ] UI -- display current project state clearly somewhere (and make it so move is never automatic but prompted)
 
 
 - [x] optimize file listing display
@@ -20,6 +24,7 @@ BEFORE SWITCH:
 
 AFTER SWITCH:
 
+- [ ] automated rolloing snapshots of bup/projects
 
 - [ ] add bup quota as a standard part of settings, and refuse to make further snapshots if bup usage exceeds 3 times user disk quota.  This will avoid a horrible edge case.   Critical that this produces an error that the user learns about.  This will happen for some users.  Alternatively, I could periodically rebuild those bup repos with many snapshots deleted - that would be much nicer and is totally do-able.
 

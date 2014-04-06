@@ -175,6 +175,7 @@ class ProjectPage
         @init_hidden_files_icon()
         @init_trash_link()
         @init_snapshot_link()
+        @init_local_status_link()
 
         @init_project_activity()  # must be after @create_editor()
 
@@ -879,6 +880,7 @@ class ProjectPage
                     for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
                         usage.find(".salvus-#{a}").text(zfs[a])
 
+            @update_local_status_link()
 
             ###
             salvus_client.exec
@@ -1379,10 +1381,10 @@ class ProjectPage
 
 
                 #@clear_file_search()
-                console.log("done building listing in #{misc.walltime(tm)}")
+                #console.log("done building listing in #{misc.walltime(tm)}")
                 tm = misc.walltime()
                 @update_file_search()
-                console.log("done building file search #{misc.walltime(tm)}")
+                #console.log("done building file search #{misc.walltime(tm)}")
                 tm = misc.walltime()
 
                 # No files
@@ -1400,7 +1402,7 @@ class ProjectPage
                     cb(); return
 
                 @focus_file_search()
-                console.log("done with everything #{misc.walltime(tm)}")
+                #console.log("done with everything #{misc.walltime(tm)}")
 
                 cb()
 
@@ -2543,20 +2545,19 @@ class ProjectPage
                 (cb) =>
                     link.find("i").addClass('fa-spin')
                     #link.icon_spin(start:true)
-                    alert_message
-                        type    : "info"
-                        message : "Restarting project server..."
-                        timeout : 5
                     salvus_client.restart_project_server
                         project_id : @project.project_id
                         cb         : cb
+                    # temporarily be more aggressive about getting status
+                    for n in [1,2,5,8,10,15,18,20]
+                        setTimeout(@update_local_status_link, n*1000)
                 (cb) =>
                     link.find("i").removeClass('fa-spin')
                     #link.icon_spin(false)
-                    alert_message
-                        type    : "success"
-                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                        timeout : 5
+                    #alert_message
+                    #    type    : "success"
+                    #    message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                    #    timeout : 5
             ])
             return false
 
@@ -2613,16 +2614,44 @@ class ProjectPage
                                         time.slice(11,13), time.slice(13,15), time.slice(15,17), '0']
                         try
                             time = new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
+                            @_last_snapshot_time = time
+                            # critical to use replaceWith!
+                            c = @container.find(".project-snapshot-last-timeago span")
+                            d = $("<span>").attr('title', time.toISOString()).timeago()
+                            c.replaceWith(d)
                         catch e
                             console.log("error parsing last snapshot time: ", e)
                             return
-                        @_last_snapshot_time = time
-                        # critical to use replaceWith!
-                        c = @container.find(".project-snapshot-last-timeago span")
-                        d = $("<span>").attr('title', time.toISOString()).timeago()
-                        c.replaceWith(d)
         update()
         @_update_last_snapshot_time = setInterval(update, 60000)
+
+    update_local_status_link: () =>
+        if @_update_local_status_link_lock
+            return
+        @_update_local_status_link_lock = true
+        timer = setTimeout((()=>delete @_update_local_status_link_lock), 30000)  # ensure don't lock forever
+        salvus_client.project_get_local_state
+            project_id : @project.project_id
+            cb         : (err, state) =>
+                delete @_update_local_status_link_lock
+                clearTimeout(timer)
+                if not err
+                    e = @container.find(".salvus-project-status-indicator")
+                    e.text(state.state)
+                    if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
+                        setTimeout(@update_local_status_link, 3000)
+                        console.log("spinning")
+                        e.icon_spin(start:true, delay:1)
+                    else
+                        e.icon_spin(false)
+
+    init_local_status_link: () =>
+        @update_local_status_link()
+        setInterval(@update_local_status_link, 30000)
+        # just opened project -- so be temporarily be more aggressive about getting status
+        for n in [1,3,8,12,16,20]
+            setTimeout(@update_local_status_link, n*1000)
+
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>

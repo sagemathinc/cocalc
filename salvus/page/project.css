@@ -157,12 +157,17 @@
 }
 
 .project-pages {
-    width: 98%;
+    width: 91%;
+}
+
+.salvus-project-status-indicator-top-container {
+    font-size: 9pt;
+    width:9%
 }
 
 .project-pages-button {
     cursor    : pointer;
-     /* margin-right:-.9em; */  /* this scrunched the upper left project page buttons -- which looks unprofessional */
+    margin-right:-.3em;
 }
 
 .project-search-form-input {

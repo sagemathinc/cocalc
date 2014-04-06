@@ -281,7 +281,7 @@ class Project(object):
         if not os.path.exists(os.path.join(self.bup_path,'objects')):
             self.cmd(['/usr/bin/bup', 'init'])
         self.create_home()
-        self.makedirs(self.conf_path)
+        self.makedirs(self.conf_path, chown=False)
 
     def set_branch(self, branch=''):
         if branch and branch != self.branch:
@@ -489,7 +489,7 @@ class Project(object):
         """
         self.cmd("cd %s; rm -f bupindex; rm -f objects/pack/*.midx; rm -f objects/pack/*.midx.tmp && rm -rf objects/*tmp && time git repack -lad"%self.bup_path)
 
-    def makedirs(self, path):
+    def makedirs(self, path, chown=True):
         log = self._log('makedirs')
         if os.path.exists(path) and not os.path.isdir(path):
             log("removing %s"%path)
@@ -497,7 +497,7 @@ class Project(object):
         if not os.path.exists(path):
             log("creating %s"%path)
             os.makedirs(path, mode=0700)
-        if USERNAME == "root":
+        if chown and USERNAME == "root":
             os.chown(path, self.uid, self.gid)
 
     def update_daemon_code(self):
@@ -544,7 +544,7 @@ class Project(object):
 
     def get_settings(self):
         if not os.path.exists(self.conf_path):
-            os.makedirs(self.conf_path)
+            self.makedirs(self.conf_path, chown=False)
         if os.path.exists(self.settings_path):
             try:
                 settings = json.loads(open(self.settings_path).read())

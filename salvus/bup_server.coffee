@@ -531,7 +531,11 @@ class GlobalProject
             table   : "projects"
             columns : ["bup_location"]
             where   : {project_id : @project_id}
-            cb      : cb
+            cb      : (err, result) =>
+                if err
+                    cb(err)
+                else
+                    cb(undefined, result[0])
 
     set_location_pref: (server_id, cb) =>
         @database.update
@@ -660,7 +664,7 @@ class GlobalProject
                 @get_location_pref (err, result) =>
                     if not err and result?
                         dbg("setting prefered start target to #{result[0]}")
-                        target = result[0]
+                        target = result
                         cb()
                     else
                         cb(err)
@@ -805,7 +809,7 @@ class GlobalProject
                 dbg("get the targets for replication")
                 @get_hosts
                     cb : (err, t) =>
-                        targets = (x for x in t when x != server_id)
+                        targets = (@global_client.servers.by_id[x].host for x in t when x != server_id)  # targets as ip addresses
                         dbg("sync_targets = #{misc.to_json(targets)}")
                         cb(err)
             (cb) =>
@@ -1059,6 +1063,34 @@ class GlobalProject
                     cb()
         ], (err) => opts.cb(undefined, hosts))
 
+    # determine state just on pref host.
+    get_local_state: (opts) =>
+        opts = defaults opts,
+            timeout : 15
+            cb      : required
+        server_id = undefined
+        project = undefined
+        state = 'error'
+        async.series([
+            (cb) =>
+                @get_location_pref (err, s) =>
+                    server_id = s; cb(err)
+            (cb) =>
+                @project
+                    server_id : server_id
+                    cb        : (err, p) =>
+                        if err
+                            dbg("failed to get project on server #{server_id} -- #{err}")
+                        project = p
+                        cb(err)
+            (cb) =>
+                project.get_state
+                    timeout : opts.timeout
+                    cb : (err, s) =>
+                        state = s; cb(err)
+        ], (err) =>
+            opts.cb(undefined, {state:state, host:@global_client.servers.by_id[server_id]?.host, server_id:server_id})
+        )
 
     # determine the global state by querying *all servers*
     # guaranteed to return length > 0

@@ -1376,6 +1376,32 @@ class Client extends EventEmitter
                             @push_to_client(message.project_status(id:mesg.id, status:status))
 
 
+    mesg_project_get_state: (mesg) =>
+        winston.debug("mesg_project_get_state")
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            else
+                project.local_hub.project.get_state
+                    cb   : (err, state) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.project_get_state(id:mesg.id, state:state))
+
+    mesg_project_get_local_state: (mesg) =>
+        winston.debug("mesg_project_get_local_state")
+        @get_project mesg, 'read', (err, project) =>
+            if err
+                return
+            else
+                project.local_hub.project.get_local_state
+                    cb   : (err, state) =>
+                        if err
+                            @error_to_client(id:mesg.id, error:err)
+                        else
+                            @push_to_client(message.project_get_state(id:mesg.id, state:state))
+
 
     mesg_update_project_data: (mesg) =>
         winston.debug("mesg_update_project_data")
@@ -1571,7 +1597,7 @@ class Client extends EventEmitter
                 cb           : (err, session) =>
                     #winston.debug("in mesg_codemirror_get_session: project.get_codemirror_session (project_id=#{mesg.project_id}, path=#{mesg.path}) -- returned (err=#{err})")
                     if err
-                        @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{err}")
+                        @error_to_client(id:mesg.id, error:"Problem getting file editing session -- #{misc.to_json(err)}")
                     else
                         if not @_file_access?
                             @_file_access = {}
