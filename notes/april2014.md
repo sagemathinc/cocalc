@@ -3,12 +3,14 @@
 
 - [ ] update quota information using du script.
 
---> - [ ] UI -- display current project state clearly somewhere (and make it so move is never automatic but prompted)
+- [x] UI -- display current project state clearly somewhere
+
+- [x] display  project quotas
 
 
 - [ ] display snaphot times as local time (and timeago if not too slow)
 
-- [ ] move/copy/delete/download
+- [ ] file move/copy/delete/download
 
 
 - [x] optimize file listing display
@@ -23,6 +25,8 @@ BEFORE SWITCH:
 ====
 
 AFTER SWITCH:
+
+- [ ] make it so move is never automatic but prompted?
 
 - [ ] automated rolloing snapshots of bup/projects
 

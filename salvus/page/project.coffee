@@ -867,38 +867,36 @@ class ProjectPage
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "Sagemath: #{@project.title}"
 
-        if not (@_computing_usage? and @_computing_usage)
-            usage = @container.find(".project-disk_usage")
-            # --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage
+        if not @_computing_status
             @_computing_usage = true
+            timer = setTimeout( (()=>@_computing_usage=False), 30000)
             salvus_client.project_status
                 project_id : @project.project_id
                 cb         : (err, status) =>
+                    if err
+                        return
+                    clearTimeout(timer)
                     delete @_computing_usage
+
+                    console.log(status)
+                    usage = @container.find(".project-disk_usage")
+
                     zfs = status.zfs
+                    if zfs?
+                        for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
+                            usage.find(".salvus-#{a}").text(zfs[a])
+
+                    if status.settings?
+                        usage.find(".salvus-project-settings-cores").text(status.settings.cores)
+                        usage.find(".salvus-project-settings-memory").text(status.settings.memory + "GB")
+                        usage.find(".salvus-project-settings-mintime").text(Math.round(status.settings.mintime/3600))
+                        usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
+
                     usage.show()
-                    for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
-                        usage.find(".salvus-#{a}").text(zfs[a])
 
             @update_local_status_link()
 
-            ###
-            salvus_client.exec
-                project_id : @project.project_id
-                command    : 'df -h $HOME'
-                bash       : true
-                timeout    : 30
-                cb         : (err, output) =>
-                    delete @_computing_usage
-                    if not err
-                        #usage.text(output.stdout.split('\t')[0])
-                        o = output.stdout.split('\n')[1].split(/\s+/)
-                        usage.show()
-                        usage.find(".salvus-usage-size").text(o[1])
-                        usage.find(".salvus-usage-used").text(o[2])
-                        usage.find(".salvus-usage-avail").text(o[3])
-                        usage.find(".salvus-usage-percent").text(o[4])
-            ###
+
 
         return @
 

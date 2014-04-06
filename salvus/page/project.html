@@ -498,7 +498,7 @@
                             <div class="span6 well project-settings-well project-collaborators-box">
                                 <div class="row-fluid">
                                     <div class="span4">
-                                        <h4 class="pull-left"><i class="fa fa-user"> </i> Collaborators</h4>
+                                        <h4 class="pull-left"><i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators</h4>
                                         <br><br>
                                         <span class="lighten">Can view and <b>modify</b> this project</span>
                                     </div>
@@ -535,16 +535,40 @@
                             </div>
 
                             <div class="span6 well project-settings-well">
-                                <!-- Disk usage of the project -->
-                                <h4>Disk Quota</h4>
+                                <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Project Quota</h4>
                                 <span class="project-disk_usage hide">
-                                    You are using <span class="salvus-userused-projects"></span> of this project's
-                                    <tt><b>home directory</b></tt>
-                                    disk quota of <span class="salvus-userquota-projects"></span>, and you're using
-                                    <span class="salvus-userused-scratch"></span> of your
-                                    disk quota of <span class="salvus-userquota-scratch"></span> on <tt><b>/scratch</b></tt>.
-                                    Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need more space.
-                                </span>
+                                    <ul>
+                                        <li> Home directory: used
+                                             <b><span class="salvus-userused-projects"></span></b> of <b><span class="salvus-userquota-projects"></span></b>
+                                        </li>
+
+                                        <li> /scratch: used
+
+                                             <b><span class="salvus-userused-scratch"></span></b> of <b><span class="salvus-userquota-scratch"></span></b>
+                                        <li>
+                                            Can use up to <b><span class="salvus-project-settings-cores"></span> CPU cores</b>
+                                        </li>
+
+                                        <li>
+                                            Can use up to <b><span class="salvus-project-settings-memory"></span> RAM</b>
+                                        </li>
+
+                                        <li>
+                                            Stops after <b><span class="salvus-project-settings-mintime"></span> hours</b> of inactivity
+                                        </li>
+
+                                        <li>
+                                            Gets <b><span class="salvus-project-settings-cpu_shares"></span> relative CPU share</b> (1 is fair sharing with other projects).
+                                        </li>
+
+                                    </ul>
+                                    <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
+                                        Include the project id
+                                        <span class="project-id"></span> in your email.</span>
+                            </span>
+
+
+
                                 <!-- Download the whole project -->
                                 <!--<a href="#download-project" class="btn  btn-success">
 <i class="fa fa-cloud-download"> </i> Download Project
