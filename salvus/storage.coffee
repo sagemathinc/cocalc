@@ -4785,7 +4785,7 @@ exports.migrate2_bup_all = (opts) ->
                                     if tm < x.last_edited
                                         v.push(x)
                                         break
-                        projects = result
+                        projects = v
                         todo = projects.length
                         dbg("of these -- #{todo} in the range remain to be migrated")
                     cb(err)
