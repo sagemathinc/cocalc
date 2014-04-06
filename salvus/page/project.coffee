@@ -1201,7 +1201,7 @@ class ProjectPage
     _update_file_list_tab: (no_focus, cb) =>
 
         spinner = @container.find(".project-file-listing-spinner")
-        timer = setTimeout( (() -> spinner.show().spin()), 100 )
+        timer = setTimeout( (() -> spinner.show().spin()), 1000 )
 
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
