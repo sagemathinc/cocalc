@@ -52,21 +52,24 @@
         <button type="button" class="close btn-close" aria-hidden="true">
             <span style="font-size:20pt;">×</span>
         </button>
-        <h3><i class="fa fa-bolt" style="font-size:32pt; padding-right:1em"> </i>  <span class="salvus-file-filename lighten contenteditable=true"></span></h3>
+        <h3>
+            <span  contenteditable="true" class="salvus-file-filename lighten"></span>
+            <span class="lighten pull-right" style="font-size: 11pt;color: #999;">(edit to rename)&nbsp;</span>
+        </h3>
     </div>
     <div class="center" style="padding-bottom: 1em; padding-top: 1em;">
-        <a class="btn btn-large btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span> Download</a>
+        <span class=" btn-group">
+            <a class="btn btn-large btn-warning" href="#move-file"><i class="fa fa-move"> </i> Move </a>
 
-        <a class="btn btn-large" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
+            <a class="btn btn-large btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>
 
-        <a class="btn btn-large btn-warning" href="#move-file"><i class="fa fa-edit"> </i> Move </a>
+            <a class="btn btn-large" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
 
-
-        <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Delete</a>
-
+            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Delete</a>
+        </span>
     </div>
     <div class="modal-footer">
-        <button class="btn btn-large btn-close"><span style="font-size:20pt;">×</span> Cancel </button>
+        <button class="btn btn-large btn-close"> Close </button>
     </div>
 </div>
 
@@ -197,13 +200,13 @@
         <button type="button" class="close btn-close" aria-hidden="true">
             <span style="font-size:20pt;">×</span>
         </button>
-        <h3><i class="fa fa-copy"> </i> Move File or Directory</h3>
+        <h3><i class="fa fa-move"> </i> Move File or Directory</h3>
     </div>
     <div class="well">
-        Copy<br><br>
-        <input type="text" style="width:100%" class="copy-file-src" value="">
-        to<br><br>
-        <input type="text" style="width:100%" class="copy-file-dest" value="">
+        Move<br><br>
+        <input type="text" style="width:100%" class="move-file-src" value="">
+        to (give a directory or new name)<br><br>
+        <input type="text" style="width:100%" class="move-file-dest" value="">
         <br><hr>
     </div>
     <div class="modal-footer">
@@ -464,7 +467,7 @@
 
                             <div class="span6 well project-settings-well">
                                 <!-- The project id -->
-                                <div class="row-fluid project-settings-move" style="margin-top:1ex">
+                                <div class="row-fluid project-settings-move" >
                                     <div class="span4">
                                         <h4>Project id</h4>
                                     </div>
@@ -473,7 +476,7 @@
                                     </div>
                                 </div>
 
-                                <div class="row-fluid project-settings-move" style="margin-top:1ex">
+                                <div class="row-fluid project-settings-move">
                                     <!-- Current location of the project -->
                                     <div class="span4">
                                         <h4>Location</h4>
@@ -484,7 +487,7 @@
                                     </div>
                                 </div>
 
-                                <div class="row-fluid project-settings-move" style="margin-top:1ex">
+                                <div class="row-fluid project-settings-move">
                                     <div class="span4">
                                         <h4>Status</h4>
                                     </div>

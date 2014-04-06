@@ -1139,17 +1139,54 @@ class ProjectPage
 
     file_action_dialog: (obj) =>
         dialog = $(".salvus-file-action-dialog").clone()
-        dialog.find(".salvus-file-filename").text(obj.fullname)
+        rename = () =>
+            new_name = name.text()
+            if new_name != obj.name
+                dialog.modal('hide')
+                path = misc.path_split(obj.fullname).head
+                @rename_file path, obj.name, new_name, (err) =>
+                    if err
+                        alert_message(type:"error", message:err)
+                    else
+                        obj.name = new_name
+                        if path != ""
+                            obj.fullname = path + "/" + new_name
+                        else
+                            obj.fullname = new_name
+                        @update_file_list_tab(true)
+
+        name = dialog.find(".salvus-file-filename").text(obj.name).blur(rename).keydown (evt) =>
+            if evt.which == 13
+                rename(); return false
+            else if evt.which == 27
+                name.text(obj.name).blur(); return false
+
         dialog.find(".btn-close").click () =>
             dialog.modal('hide')
             return false
         dialog.find("a[href=#copy-file]").click () =>
+            dialog.modal('hide')
             @copy_file_dialog(obj.fullname)
             return false
         dialog.find("a[href=#move-file]").click () =>
+            dialog.modal('hide')
             @move_file_dialog(obj.fullname)
             return false
 
+        if obj.isdir
+            # until we implement an archive process
+            dialog.find("a[href=#download-file]").hide()
+        else
+            dialog.find("a[href=#download-file]").click () =>
+                dialog.modal('hide')
+                @download_file
+                    path : obj.fullname
+                return false
+        dialog.find("a[href=#delete-file]").click () =>
+            dialog.modal('hide')
+            @trash_file
+                path : obj.fullname
+            return false
         dialog.modal()
 
 
@@ -1179,7 +1216,7 @@ class ProjectPage
         click_file =(e) ->
             obj = $(e.delegateTarget).closest(".project-path-link").data('obj')
             target = $(e.target)
-            if target.hasClass("salvus-file-action")
+            if target.hasClass("salvus-file-action") or target.parent().hasClass('salvus-file-action')
                 that.file_action_dialog(obj)
             else
                 if obj.isdir
@@ -1641,14 +1678,15 @@ class ProjectPage
         return false
 
 
-    rename_file: (path, original_name, new_name) =>
+    rename_file: (path, original_name, new_name, cb) =>
+        if new_name.indexOf('/') != -1
+            cb("filename may not contain a forward slash /")
+            return
         @move_file
             src : original_name
             dest : new_name
             path : path
-            cb   : (err) =>
-                if not err
-                    @update_file_list_tab(true)
+            cb   : cb
 
     move_file: (opts) =>
         opts = defaults opts,
@@ -2740,7 +2778,7 @@ class ProjectPage
 
         url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
         download_file(url)
-        bootbox.alert("If <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
         opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>

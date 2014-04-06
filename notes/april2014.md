@@ -3,18 +3,10 @@
 
 - [ ] update quota information using du script.
 
-- [x] UI -- display current project state clearly somewhere
 
-- [x] display  project quotas
-
-
-- [ ] display snaphot times as local time (and timeago if not too slow)
-
-- [ ] file move/copy/delete/download
+--> - [ ] display snaphot times as local time (and timeago if not too slow)
 
 
-- [x] optimize file listing display
-- [x] when opening a new project just place randomly -- no use of consistent hashing.
 
 
 BEFORE SWITCH:
@@ -59,6 +51,20 @@ AFTER SWITCH:
                 alter table projects add bup_working_size_KB  int;
 
 
+
+# DONE
+
+- [x] file move/copy/delete/download
+
+
+- [x] UI -- display current project state clearly somewhere
+
+- [x] display  project quotas
+
+
+
+- [x] optimize file listing display
+- [x] when opening a new project just place randomly -- no use of consistent hashing.
 
 - [x] (0:48) change sync/save code to take list of target ip's based on db
 - [x] (0:55) set quotas and sync -- instead we could set the quota when starting the project running, then unset when stopping it... and that's it.
