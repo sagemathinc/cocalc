@@ -21,9 +21,6 @@ MAX_TITLE_LENGTH = 15
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
-template_project_directory     = templates.find(".project-directory-link")
-template_project_file_snapshot      = templates.find(".project-file-link-snapshot")
-template_project_directory_snapshot = templates.find(".project-directory-link-snapshot")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
 template_project_commits       = templates.find(".project-commits")
@@ -1316,6 +1313,7 @@ class ProjectPage
 
                 that = @
 
+                # TODO: not used
                 file_dropped_on_directory = (event, ui) ->
                     src = ui.draggable.data('name')
                     if not src?
@@ -1330,12 +1328,14 @@ class ProjectPage
 
                 if that.current_path.length > 0
                     # Create special link to the parent directory
-                    t = template_project_directory.clone()
+                    t = template_project_file.clone()
+                    t.find("a[href=#file-action]").hide()
                     parent = that.current_path.slice(0, that.current_path.length-1).join('/')
                     if parent == ""
-                        parent = "."
+                        parent = "." 
                     t.data('name', parent)
-                    t.find(".project-directory-name").html("<i class='fa fa-reply'> </i> Parent Directory")
+                    t.find(".project-file-name").html("Parent Directory")
+                    t.find(".project-file-icon").removeClass("fa-file").addClass('fa-reply')
                     t.find("input").hide()  # hide checkbox, etc.
                     # Clicking to open the directory
                     t.click () ->
@@ -1355,15 +1355,21 @@ class ProjectPage
 
                 tm = misc.walltime()
                 for obj in listing.files
+                    t = template_project_file.clone()
+                    t.data(obj:obj)
                     if obj.isdir
-                        t = template_project_directory.clone()
-                        t.data(obj:obj)
-                        t.droppable(drop:file_dropped_on_directory, scope:'files')
-                        t.find(".project-directory-name").text(obj.name)
+                        t.find(".project-file-name").text(obj.name)
+                        date = undefined
+                        if path == ".snapshots/master" and obj.name.length == '2014-04-04-061502'.length
+                            date = misc.parse_bup_timestamp(obj.name)
+                            t.find(".project-file-name").text(date)
+                        else if obj.mtime
+                            date = new Date(obj.mtime*1000)
+                        if date?
+                            t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
                         name = obj.name
+                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder")
                     else
-                        t = template_project_file.clone()
-                        t.data(obj:obj)
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
                             name = obj.name.slice(0,obj.name.length - ext.length - 1)
@@ -2646,12 +2652,8 @@ class ProjectPage
                 err_on_exit : true
                 cb          : (err, output) =>
                     if not err
-                        time = output.stdout.split('\n')[0]  # format is 2014-04-04-061502
-                        # var d = new Date(year, month, day, hours, minutes, seconds, milliseconds);
-                        v = [time.slice(0,4), time.slice(5,7), time.slice(8,10),
-                                        time.slice(11,13), time.slice(13,15), time.slice(15,17), '0']
                         try
-                            time = new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
+                            time = misc.parse_bup_timestamp(output.stdout.split('\n')[0])
                             @_last_snapshot_time = time
                             # critical to use replaceWith!
                             c = @container.find(".project-snapshot-last-timeago span")

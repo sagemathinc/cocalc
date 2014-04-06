@@ -4,6 +4,8 @@
 - [ ] update quota information using du script.
 
 
+- [ ] replace git-ls by just ls for now.  It is too slow.
+
 --> - [ ] display snaphot times as local time (and timeago if not too slow)
 
 
