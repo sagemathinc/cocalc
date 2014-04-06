@@ -715,7 +715,7 @@ class exports.Editor
             tab.close_editor()
 
     resize_open_file_tabs: () =>
-        # Make a list of the tabs after the search menu.
+        # Make a list of the tabs after the search tab.
         x = @open_file_tabs()
         if x.length == 0
             return
@@ -726,7 +726,8 @@ class exports.Editor
             width = 204
         else
             start = x[0].offset().left
-            end   = x[0].parent().offset().left + x[0].parent().width()
+            #end   = x[0].parent().offset().left + x[0].parent().width()
+            end = @project_page.container.find(".project-settings-menu-item").offset().left
 
             n = x.length
             if n <= 2

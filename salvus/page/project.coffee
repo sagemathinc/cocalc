@@ -878,7 +878,9 @@ class ProjectPage
                     clearTimeout(timer)
                     delete @_computing_usage
 
-                    console.log(status)
+                    if not status?
+                        return
+
                     usage = @container.find(".project-disk_usage")
 
                     zfs = status.zfs
@@ -2635,13 +2637,19 @@ class ProjectPage
                 clearTimeout(timer)
                 if not err
                     e = @container.find(".salvus-project-status-indicator")
-                    e.text(state.state)
+                    c = @container.find(".salvus-project-status-indicator-button")
+                    upper_state = state.state[0].toUpperCase() + state.state.slice(1)
+                    e.text(upper_state)
                     if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
                         setTimeout(@update_local_status_link, 3000)
-                        console.log("spinning")
-                        e.icon_spin(start:true, delay:1)
-                    else
-                        e.icon_spin(false)
+
+                    (c.removeClass("btn-#{x}") for x in ['warning','danger'])
+                    switch state.state
+                        when 'starting', 'stopping', 'saving', 'restarting'
+                            c.addClass('btn-warning')
+                        when 'stopped'
+                            c.addClass('btn-danger')
+
 
     init_local_status_link: () =>
         @update_local_status_link()
@@ -2649,6 +2657,10 @@ class ProjectPage
         # just opened project -- so be temporarily be more aggressive about getting status
         for n in [1,3,8,12,16,20]
             setTimeout(@update_local_status_link, n*1000)
+
+        @container.find(".salvus-project-status-indicator-button").click () =>
+            @display_tab("project-settings")
+            return false
 
 
     # browse to the snapshot viewer.
