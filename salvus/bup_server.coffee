@@ -187,20 +187,25 @@ class Project
 
                     when 'save'
                         if state in ['running'] or opts.param=='force'
-                            @state = 'saving'
-                            @_action
-                                action  : 'save'
-                                param   : opts.param
-                                timeout : opts.timeout
-                                cb      : (err, r) =>
-                                    result = r
-                                    if err
-                                        @dbg("action", opts, "failed to save -- #{err}")
-                                        @state = 'error'
-                                    else
-                                        @dbg("action", opts, "saved successfully -- changing state from saving back to running")
-                                        @state = 'running'
-                                    cb(err)
+                            if not @_last_save? or misc.walltime() - @_last_save >= MIN_SAVE_INTERVAL_S
+                                @state = 'saving'
+                                @_last_save = misc.walltime()
+                                @_action
+                                    action  : 'save'
+                                    param   : opts.param
+                                    timeout : opts.timeout
+                                    cb      : (err, r) =>
+                                        result = r
+                                        if err
+                                            @dbg("action", opts, "failed to save -- #{err}")
+                                            @state = 'error'
+                                        else
+                                            @dbg("action", opts, "saved successfully -- changing state from saving back to running")
+                                            @state = 'running'
+                                        cb(err)
+                            else
+                                # ignore
+                                cb()
                         else
                             cb()
 
@@ -754,8 +759,15 @@ class GlobalProject
     save: (opts) =>
         opts = defaults opts,
             cb : undefined
+        # if we just saved this project, return immediately -- note: THIS IS "CLIENT" side, but there is a similar guard on the actual compute node
+        if @_last_save? and misc.walltime() - @_last_save < MIN_SAVE_INTERVAL_S
+            opts.cb?(undefined)
+            return
+
+        # put this here -- we don't even want to *try* more frequently than MIN_SAVE_INTERVAL_S, in case of save bup repo being broken (?)
+        @_last_save = misc.walltime()
+
         dbg = (m) -> winston.debug("GlobalProject.save(#{@project_id}): #{m}")
-        dbg()
 
         need_to_save = false
         project      = undefined
@@ -790,23 +802,16 @@ class GlobalProject
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("get the save targets for replication")
-                @get_last_save
-                    cb : (err, last_save) =>
-                        if err
-                            cb(err)
-                        else
-                            if last_save?
-                                # targets are all ip addresses of servers we've replicated to so far (if any)
-                                dbg("last_save = #{misc.to_json(last_save)}")
-                                targets = (@global_client.servers.by_id[x].host for x,t of last_save when x != server_id)
-                                dbg("targets = #{misc.to_json(targets)}")
-                                # leave undefined otherwise -- will use consistent hashing to do initial save
-                            cb()
+                dbg("get the targets for replication")
+                @get_hosts
+                    cb : (err, t) =>
+                        targets = (x for x in t when x != server_id)
+                        dbg("sync_targets = #{misc.to_json(targets)}")
+                        cb(err)
             (cb) =>
                 if not need_to_save
                     cb(); return
-                dbg("actually save the project and sync to targets=#{misc.to_json(targets)}")
+                dbg("save the project and sync")
                 project.save
                     targets : targets
                     cb      : (err, result) =>
@@ -1032,8 +1037,8 @@ class GlobalProject
                                 hosts = misc.keys(r[0][0])
                             cb()
             (cb) =>
-                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each data center")
                 servers = @global_client.servers
+                dbg("hosts=#{misc.to_json(hosts)}; ensure that we have (at least) one host from each of the #{misc.keys(servers.by_dc).length} data center")
                 last_save = {}
                 now = cassandra.now()
                 for dc, servers_in_dc of servers.by_dc
@@ -2004,6 +2009,14 @@ main = () ->
 
     winston.debug "Running as a Daemon"
     # run as a server/daemon (otherwise, is being imported as a library)
+    process.addListener "uncaughtException", (err) ->
+        winston.error("Uncaught exception: #{err}")
+    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+
+if program._name == 'bup_server.js'
+    main()
+
+
     process.addListener "uncaughtException", (err) ->
         winston.error("Uncaught exception: #{err}")
     daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)

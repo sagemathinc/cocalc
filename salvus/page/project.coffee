@@ -2500,7 +2500,7 @@ class ProjectPage
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
-        @current_path = ['.snapshots']
+        @current_path = ['.snapshots', 'master']
         @update_file_list_tab()
 
     init_trash_link: () =>
