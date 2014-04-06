@@ -286,6 +286,7 @@ class ProjectPage
         @init_file_sessions()
 
     push_state: (url) =>
+        #console.log("push_state: ", url)
         if not url?
             url = @_last_history_state
         if not url?
@@ -737,6 +738,9 @@ class ProjectPage
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
+                t.find("a").click () ->
+                    that.editor.show_recent()
+                    return false
             else if name == "project-new-file"
                 tab.onshow = () ->
                     that.push_state('new/' + that.current_path.join('/'))
@@ -944,8 +948,8 @@ class ProjectPage
             switch @current_tab.name
                 when "project-file-listing"
                     @container.find(".salvus-project-search-for-file-input").focus()
-                when "project-editor"
-                    @editor.focus()
+                #when "project-editor"
+                #    @editor.focus()
 
     init_dropzone_upload: () =>
         # Dropzone
@@ -1131,6 +1135,20 @@ class ProjectPage
         @current_path = new_path
         @update_file_list_tab()
 
+    file_action_dialog: (obj) =>
+        dialog = $(".salvus-file-action-dialog").clone()
+        dialog.find(".salvus-file-filename").text(obj.fullname)
+        dialog.find(".btn-close").click () =>
+            dialog.modal('hide')
+            return false
+        dialog.find("a[href=#copy-file]").click () =>
+            @copy_file_dialog(obj.fullname)
+            return false
+        dialog.find("a[href=#move-file]").click () =>
+            @move_file_dialog(obj.fullname)
+            return false
+
+        dialog.modal()
 
 
     # Update the listing of files in the current_path, or display of the current file.
@@ -1155,42 +1173,44 @@ class ProjectPage
             url_path += '/'
         @push_state('files/' + url_path)
 
-
         that = @
-        open_file =(e) ->
+        click_file =(e) ->
             obj = $(e.delegateTarget).closest(".project-path-link").data('obj')
-            if obj.isdir
-                that.set_current_path(obj.fullname)
-                that.update_file_list_tab()
+            target = $(e.target)
+            if target.hasClass("salvus-file-action")
+                that.file_action_dialog(obj)
             else
-                that.open_file
-                    path       : obj.fullname
-                    foreground : not(e.which==2 or e.ctrlKey)
-            return false
+                if obj.isdir
+                    that.set_current_path(obj.fullname)
+                    that.update_file_list_tab()
+                else
+                    that.open_file
+                        path       : obj.fullname
+                        foreground : not(e.which==2 or e.ctrlKey)
+            e.preventDefault()
+
 
         tm = misc.walltime()
-
+        #console.log("calling project_directory_listing with path=#{path}")
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
             time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
+                #console.log("got back listing=",listing)
                 clearTimeout(timer)
                 spinner.spin(false).hide()
 
                 tm = misc.walltime()
 
-                if listing?.real_path?
-                    @set_current_path(listing.real_path)
-                    @push_state('files/' + listing.real_path)
-
+                @set_current_path(path)
 
                 # Update the display of the path above the listing or file preview
                 @update_current_path()
 
                 if (err)
-                    console.log("update_file_list_tab: error -- ", err)
+                    #console.log("update_file_list_tab: error -- ", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
                         @set_current_path(@_last_path_without_error)
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
@@ -1292,7 +1312,8 @@ class ProjectPage
                 #console.log("done updating misc stuff", misc.walltime(tm))
 
                 # Show the files
-                console.log("building listing...")
+                #console.log("building listing for #{path}...")
+
                 tm = misc.walltime()
                 for obj in listing.files
                     if obj.isdir
@@ -1333,7 +1354,7 @@ class ProjectPage
                     directory_is_empty = false
                     # Add our new listing entry to the list:
                     file_or_listing.append(t)
-                    t.click(open_file)
+                    t.click(click_file)
 
                     continue
 
@@ -1490,7 +1511,7 @@ class ProjectPage
 
         copy = b.find("a[href=#copy-file]")
         copy.click () =>
-            @copy_file(fullname)
+            @copy_file_dialog(fullname)
             return false
 
         # Renaming a file
@@ -1500,15 +1521,15 @@ class ProjectPage
             @click_to_rename_file(path, file_link)
             return false
 
-    copy_file:  (path, cb) =>
+    copy_file_dialog:  (path, cb) =>
         dialog = $(".project-copy-file-dialog").clone()
         dialog.modal()
         new_dest = undefined
         new_src = undefined
         async.series([
             (cb) =>
-                if path.slice(0,5) == '.zfs/'
-                    dest = path.slice('.zfs/snapshot/2013-12-31T22:32:30/'.length)
+                if path.slice(0,'.snapshots/'.length) == '.snapshots/'
+                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
                 else
                     dest = path
                 dialog.find(".copy-file-src").val(path)
@@ -1539,6 +1560,50 @@ class ProjectPage
                             alert_message(type:"error", message:"Error copying #{new_src} to #{new_dest} -- #{output.stderr}")
                         else
                             alert_message(type:"success", message:"Successfully copied #{new_src} to #{new_dest}")
+                            @update_file_list_tab()
+                        cb(err)
+        ], (err) => cb?(err))
+
+
+    move_file_dialog:  (path, cb) =>
+        dialog = $(".project-move-file-dialog").clone()
+        dialog.modal()
+        new_dest = undefined
+        new_src = undefined
+        async.series([
+            (cb) =>
+                if path.slice(0,'.snapshots/'.length) == '.snapshots/'
+                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                else
+                    dest = path
+                dialog.find(".move-file-src").val(path)
+                dialog.find(".move-file-dest").val(dest).focus()
+                submit = (ok) =>
+                    dialog.modal('hide')
+                    if ok
+                        new_src = dialog.find(".move-file-src").val()
+                        new_dest = dialog.find(".move-file-dest").val()
+                    cb()
+                    return false
+                dialog.find(".btn-close").click(()=>submit(false))
+                dialog.find(".btn-submit").click(()=>submit(true))
+            (cb) =>
+                if not new_dest?
+                    cb(); return
+                alert_message(type:'info', message:"Moving #{new_src} to #{new_dest}...")
+                salvus_client.exec
+                    project_id : @project.project_id
+                    command    : 'mv'
+                    args       : [new_src, new_dest]
+                    timeout    : 60
+                    network_timeout : 75   # how long network call has until it must return something or get total error.
+                    err_on_exit: true
+                    path       : '.'
+                    cb         : (err, output) =>
+                        if err
+                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{output.stderr}")
+                        else
+                            alert_message(type:"success", message:"Successfully moved #{new_src} to #{new_dest}")
                             @update_file_list_tab()
                         cb(err)
         ], (err) => cb?(err))
