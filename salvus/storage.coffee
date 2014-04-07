@@ -4577,6 +4577,7 @@ exports.bup_set_quotas = (opts) ->
         end : 10
         limit : 1
         qlimit : 1000000
+        errors : required
         cb : undefined
     dbg = (m) -> winston.debug("bup_set_quotas: #{m}")
     dbg()
@@ -4686,6 +4687,13 @@ exports.bup_set_quotas = (opts) ->
                 else
                     return 0
             work = work.slice(opts.start, opts.end)
+            g = (task, cb) ->
+                f (task, err) ->
+                    if err
+                        errors.push({task:task, error:err})
+                        winston.debug("error! -- #{err}")
+                        winston.debug("#{errors.length} ERRORS so far")
+                cb()
             async.mapLimit(work, opts.limit, f, cb)
     ], (err) -> opts.cb?(err))
 
@@ -4703,6 +4711,7 @@ exports.migrate2_bup_all = (opts) ->
         exclude : []
         only  : undefined      # if given, *ONLY* migrate projects in this list.
         reverse : false
+        sort_by_time : true    # if true, stort by time (with newest first)
         loop  : 0              # if >=1; call it again with same inputs once it finishes
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
@@ -4753,19 +4762,17 @@ exports.migrate2_bup_all = (opts) ->
                     if result?
                         dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
                         result.sort (a,b) ->
+                            if opts.sort_by_time
+                                if a.last_edited > b.last_edited
+                                    return -1
+                                else if a.last_edited < b.last_edited
+                                    return 1
                             if a.project_id < b.project_id
                                 return -1
                             else if a.project_id > b.project_id
                                 return 1
                             else
                                 return 0
-
-                        if opts.start? and opts.stop?
-                            result = result.slice(opts.start, opts.stop)
-                        else if opts.start?
-                            result = result.slice(opts.start)
-                        else if opts.stop?
-                            result = result.slice(0, opts.stop)
 
                         dbg("filter out known abusers: before #{result.length}")
                         result = (x for x in result when not x.abuser?)
@@ -4785,7 +4792,16 @@ exports.migrate2_bup_all = (opts) ->
                                     if tm < x.last_edited
                                         v.push(x)
                                         break
-                        projects = v
+                        result = v
+                        if opts.start? and opts.stop?
+                            result = result.slice(opts.start, opts.stop)
+                        else if opts.start?
+                            result = result.slice(opts.start)
+                        else if opts.stop?
+                            result = result.slice(0, opts.stop)
+
+
+                        projects = result
                         todo = projects.length
                         dbg("of these -- #{todo} in the range remain to be migrated")
                     cb(err)
@@ -4953,11 +4969,10 @@ exports.migrate2_bup = (opts) ->
             get_snapshots
                 project_id : opts.project_id
                 cb         : (err, snapshots) ->
-                    # randomize so not all in same DC0...
-                    v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
-                    v.sort()
+                    v = ([snaps[0], h] for h, snaps of snapshots when snaps?.length >=1)
+                    v.sort()   
                     v.reverse()
-                    v = (x[2] for x in v when x[2] != host)
+                    v = (x[1] for x in v when x[1] != host) 
                     if host?
                         v = [host].concat(v)
                     dbg("v = #{misc.to_json(v)}")
