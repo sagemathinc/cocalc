@@ -15,6 +15,8 @@ BEFORE SWITCH:
 
 AFTER SWITCH:
 
+- [ ] go through and chown/sync every project systematically; evidently I didn't in the current migration, so I'll just put a chown in the start script for now -- this slows things down, but is temporary.
+
 - [ ] update quota information using du script and re-enable quotas
 
 - [ ] write code that cleans up /bup/projects fs by removing .sagemathcloud directories, etc., of projects not used for a while

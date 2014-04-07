@@ -206,6 +206,8 @@
 }
 
 .project-file-listing-file-list {
+    margin-left: 3em;
+    margin-right: 3em;
 }
 
 .project-commits-branch {
@@ -448,6 +450,7 @@
 
 .project-file-icon {
     font-size: 14pt;
+    width: 1em;
 }
 
 .salvus-file-action {
