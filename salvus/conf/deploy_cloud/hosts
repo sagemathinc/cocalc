@@ -96,7 +96,7 @@
 10.1.15.3 kvm       hub nginx   web15
 10.1.15.4 kvm       compute         compute15a
 10.1.15.5  kvm        compute-2     compute15dc0
-10.1.15.6 kvm       webdev
+10.1.15.7 kvm       webdev
 
 # DC0:RAC0   cloud16   
 10.1.16.1 kvm-host  edge            cloud16    cassandra-2
@@ -155,10 +155,10 @@
 10.3.7.4 gce1 compute7dc2 compute 
 10.3.8.4 gce1 compute8dc2 compute 
 
-10.3.1.1 dc2 cassandra1dc2   cassandra-2
-10.3.2.1 dc2 cassandra2dc2   cassandra-2
-10.3.3.1 dc2 cassandra3dc2   cassandra-2
-10.3.4.1 dc2 cassandra4dc2   cassandra-2
+#10.3.1.1 dc2 cassandra1dc2   cassandra-2
+#10.3.2.1 dc2 cassandra2dc2   cassandra-2
+#10.3.3.1 dc2 cassandra3dc2   cassandra-2
+#10.3.4.1 dc2 cassandra4dc2   cassandra-2
 
 # Backup
 #10.9.1.1 backup1  backup
@@ -166,3 +166,5 @@
 
 # Sage Cell Server  -- no vm, just ip
 10.10.1.1 cellserver1 cellserver
+
+

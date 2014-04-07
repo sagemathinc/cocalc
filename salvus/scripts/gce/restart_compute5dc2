@@ -1,0 +1,4 @@
+
+./delete_instance compute5dc2
+
+./add_instance_compute5dc2

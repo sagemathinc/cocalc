@@ -26,10 +26,12 @@ cql     = require("node-cassandra-cql")
 
 STATE_CONSISTENCY = cql.types.consistencies.two
 
-REGISTRATION_INTERVAL_S = 15       # register with the database every 20 seconds
+REGISTRATION_INTERVAL_S = 15       # register with the database every this many seconds
 REGISTRATION_TTL_S      = 60       # ttl for registration record
 
-TIMEOUT = 12*3600
+#TIMEOUT = 30*60   # default timeout on all locking zvol_storage operations (most use ZFS).
+
+TIMEOUT = 12*60*60  # very long for testing -- we *want* to know if anything ever locks
 
 
 ZVOL_EXTENSION = '.zvol.lz4'
@@ -61,8 +63,15 @@ is_project_new = exports.is_project_new = (project_id, cb) ->   #  cb(err, true 
 # We limit the maximum number of simultaneous zvol_storage.py calls to allow at once, since
 # this allows us to control ZFS contention, deadlocking, etc.
 # This is *CRITICAL*.  For better or worse, ZFS is incredibly broken when you try to do
-# multiple operations on a pool at once.  It's really sad.  But one at a time it works fine.
+# multiple operations on a pool at once.  It's really sad.
+
+# But one at a time definitely works fine (extensively tested.)
 ZVOL_STORAGE_LIMIT = 1
+
+# I'm going to do some testing with bigger values while doing the migration just to see what happens.
+# It's good to know before we go to production.
+# tried this and pretty quickly got massive slowdown... in throughput.
+#ZVOL_STORAGE_LIMIT = 9999
 
 # Execute a command using the zvol_storage script.
 _zvol_storage_no_queue = (opts) =>
@@ -103,6 +112,7 @@ process_zvol_storage_queue = () ->
     if _zvol_storage_queue.length > 0
         opts = _zvol_storage_queue.shift()
         _zvol_storage_queue_running += 1
+        update_register_with_database()   # important that queue length is accurate in db, so load balancing is better.
         cb = opts.cb
         opts.cb = (err, output) =>
             _zvol_storage_queue_running -= 1
@@ -647,7 +657,7 @@ exports.connect_to_database = connect_to_database = (cb) ->
         password    : password
         cb          : cb
 
-get_database = (cb) ->
+exports.get_database = get_database = (cb) ->
     async.series([read_password, connect_to_database], (err) -> cb(err, database))
 
 # compute_id = string or array of strings
@@ -1535,6 +1545,10 @@ exports.client_project = (opts) ->
         P = client_project_cache[opts.project_id] = new ClientProject(opts.project_id)
     opts.cb?(undefined, P)
     return P
+
+
+
+
 
 ###########################
 ## Command line interface

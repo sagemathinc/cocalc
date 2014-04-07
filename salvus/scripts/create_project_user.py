@@ -165,9 +165,11 @@ def cgroup(project_id, cpu=1024, memory='8G'):
         # do nothing on platforms where cgroups isn't supported (GCE right now, I'm looking at you.)
         return
     uname = username(project_id)
+    shares=100000
     cmd("cgcreate -g memory,cpu:%s"%uname)
     cmd('echo "%s" > /sys/fs/cgroup/memory/%s/memory.limit_in_bytes'%(memory, uname))
     cmd('echo "%s" > /sys/fs/cgroup/cpu/%s/cpu.shares'%(cpu, uname))
+    cmd('echo "%s" > /sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us'%(shares, uname))
     z = "\n%s  cpu,memory  %s\n"%(uname, uname)
     cur = open("/etc/cgrules.conf").read()
     if z not in cur:

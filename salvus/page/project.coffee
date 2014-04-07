@@ -21,9 +21,6 @@ MAX_TITLE_LENGTH = 15
 
 templates = $("#salvus-project-templates")
 template_project_file          = templates.find(".project-file-link")
-template_project_directory     = templates.find(".project-directory-link")
-template_project_file_snapshot      = templates.find(".project-file-link-snapshot")
-template_project_directory_snapshot = templates.find(".project-directory-link-snapshot")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
 template_project_commits       = templates.find(".project-commits")
@@ -175,6 +172,7 @@ class ProjectPage
         @init_hidden_files_icon()
         @init_trash_link()
         @init_snapshot_link()
+        @init_local_status_link()
 
         @init_project_activity()  # must be after @create_editor()
 
@@ -207,17 +205,6 @@ class ProjectPage
             @container.find(".project-size").text(human_readable_size(@project.size))
         else
             @container.find(".project-size-label").hide()
-
-        # Set the project location
-        #if @project.location?
-        #    l = @project.location
-        #    l = "#{l.username}@#{l.host}:#{l.path}" + (if l.port != 22 then " -p #{l.port}" else "")
-        #    @container.find(".project-location").text(l)#.attr('contenteditable', true).blur () ->
-            #    alert_message(message:"Changing project location not yet implemented.", type:'info')
-                # TODO -- actually implement project location change -- show a notification and send
-                # a message if makes sense; otherwise, don't.  Also, we should store all past
-                # project location in the database, and make it possible for the user to see them (?).
-                # console.log('changed to ', $(@).text())
 
         # Make it so editing the title and description of the project
         # sends a message to the hub.
@@ -297,6 +284,7 @@ class ProjectPage
         @init_file_sessions()
 
     push_state: (url) =>
+        #console.log("push_state: ", url)
         if not url?
             url = @_last_history_state
         if not url?
@@ -344,8 +332,8 @@ class ProjectPage
                 @display_tab("project-search")
 
     set_location: () =>
-        if @project.location? and @project.location.host?
-            x = @project.location.host
+        if @project.bup_location?
+            x = @project.bup_location
         else
             x = "..."
         @container.find(".project-location").text(x)
@@ -453,20 +441,18 @@ class ProjectPage
 
     update_file_search: (event) =>
         search_box = @_file_search_box
-        include = 'project-listing-search-include'
-        exclude = 'project-listing-search-exclude'
         v = $.trim(search_box.val()).toLowerCase()
 
         listing = @container.find(".project-file-listing-file-list")
 
         if v == ""
-            # remove all styling
-            for entry in listing.children()
-                $(entry).removeClass(include)
-                $(entry).removeClass(exclude)
+            @container.find(".salvus-project-search-describe").hide()
+            listing.children().show()
             match = (s) -> true
         else
+            @container.find(".salvus-project-search-describe").show().find("span").text(v)
             terms = v.split(' ')
+            listing.children().hide()
             match = (s, is_dir) ->
                 s = s.toLowerCase()
                 for t in terms
@@ -480,17 +466,21 @@ class ProjectPage
         first = true
         for e in listing.children()
             entry = $(e)
-            fullpath = entry.data('name')
+            fullpath = entry.data('obj')?.fullname
+            if not fullpath?
+                entry.show()  # this is the "Parent directory" link.
+                continue
             filename = misc.path_split(fullpath).tail
             if match(filename, entry.hasClass('project-directory-link'))
                 if first and event?.keyCode == 13 # enter -- select first match (if any)
                     entry.click()
                     first = false
                 if v != ""
-                    entry.addClass(include); entry.removeClass(exclude)
+                    entry.show()
             else
                 if v != ""
-                    entry.addClass(exclude); entry.removeClass(include)
+                    entry.hide()
+
         if first and event?.keyCode == 13
             # No matches at all, and user pressed enter -- maybe they want to create a file?
             @display_tab("project-new-file")
@@ -746,6 +736,9 @@ class ProjectPage
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
+                t.find("a").click () ->
+                    that.editor.show_recent()
+                    return false
             else if name == "project-new-file"
                 tab.onshow = () ->
                     that.push_state('new/' + that.current_path.join('/'))
@@ -871,25 +864,40 @@ class ProjectPage
         top_navbar.set_button_label(@project.project_id, label)
         document.title = "Sagemath: #{@project.title}"
 
-        if not (@_computing_usage? and @_computing_usage)
-            usage = @container.find(".project-disk_usage")
-            # --exclude=.sagemathcloud --exclude=.forever --exclude=.node* --exclude=.npm --exclude=.sage
+        if not @_computing_status
             @_computing_usage = true
-            salvus_client.exec
+            timer = setTimeout( (()=>@_computing_usage=False), 30000)
+            salvus_client.project_status
                 project_id : @project.project_id
-                command    : 'df -h $HOME'
-                bash       : true
-                timeout    : 30
-                cb         : (err, output) =>
+                cb         : (err, status) =>
+                    if err
+                        return
+                    clearTimeout(timer)
                     delete @_computing_usage
-                    if not err
-                        #usage.text(output.stdout.split('\t')[0])
-                        o = output.stdout.split('\n')[1].split(/\s+/)
-                        usage.show()
-                        usage.find(".salvus-usage-size").text(o[1])
-                        usage.find(".salvus-usage-used").text(o[2])
-                        usage.find(".salvus-usage-avail").text(o[3])
-                        usage.find(".salvus-usage-percent").text(o[4])
+
+                    if not status?
+                        return
+
+                    usage = @container.find(".project-disk_usage")
+
+                    zfs = status.zfs
+                    if zfs? and misc.len(zfs) > 0
+                        for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
+                            usage.find(".salvus-#{a}").text(zfs[a])
+                    else
+                        usage.find(".salvus-zfs-quotas").hide()
+
+                    if status.settings?
+                        usage.find(".salvus-project-settings-cores").text(status.settings.cores)
+                        usage.find(".salvus-project-settings-memory").text(status.settings.memory + "GB")
+                        usage.find(".salvus-project-settings-mintime").text(Math.round(status.settings.mintime/3600))
+                        usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
+
+                    usage.show()
+
+            @update_local_status_link()
+
+
 
         return @
 
@@ -916,8 +924,8 @@ class ProjectPage
 
         t = @container.find(".project-file-listing-current_path")
         t.empty()
-        if @current_path.length == 0
-            return
+        #if @current_path.length == 0
+        #    return
 
         t.append($("<a class=project-file-listing-path-segment-link>").html(template_home_icon.clone().click(() =>
             @current_path=[]; @update_file_list_tab())))
@@ -941,8 +949,8 @@ class ProjectPage
             switch @current_tab.name
                 when "project-file-listing"
                     @container.find(".salvus-project-search-for-file-input").focus()
-                when "project-editor"
-                    @editor.focus()
+                #when "project-editor"
+                #    @editor.focus()
 
     init_dropzone_upload: () =>
         # Dropzone
@@ -1128,11 +1136,71 @@ class ProjectPage
         @current_path = new_path
         @update_file_list_tab()
 
+    file_action_dialog: (obj) =>
+        dialog = $(".salvus-file-action-dialog").clone()
+        rename = () =>
+            new_name = name.text()
+            if new_name != obj.name
+                dialog.modal('hide')
+                path = misc.path_split(obj.fullname).head
+                @rename_file path, obj.name, new_name, (err) =>
+                    if err
+                        alert_message(type:"error", message:err)
+                    else
+                        obj.name = new_name
+                        if path != ""
+                            obj.fullname = path + "/" + new_name
+                        else
+                            obj.fullname = new_name
+                        @update_file_list_tab(true)
+
+        name = dialog.find(".salvus-file-filename").text(obj.name).blur(rename).keydown (evt) =>
+            if evt.which == 13
+                rename(); return false
+            else if evt.which == 27
+                name.text(obj.name).blur(); return false
+
+        dialog.find(".btn-close").click () =>
+            dialog.modal('hide')
+            return false
+        dialog.find("a[href=#copy-file]").click () =>
+            dialog.modal('hide')
+            @copy_file_dialog(obj.fullname)
+            return false
+        dialog.find("a[href=#move-file]").click () =>
+            dialog.modal('hide')
+            @move_file_dialog(obj.fullname)
+            return false
+
+        if obj.isdir
+            # until we implement an archive process
+            dialog.find("a[href=#download-file]").hide()
+        else
+            dialog.find("a[href=#download-file]").click () =>
+                dialog.modal('hide')
+                @download_file
+                    path : obj.fullname
+                return false
+        dialog.find("a[href=#delete-file]").click () =>
+            dialog.modal('hide')
+            @trash_file
+                path : obj.fullname
+            return false
+        dialog.modal()
+
+
     # Update the listing of files in the current_path, or display of the current file.
     update_file_list_tab: (no_focus) =>
+        if @_updating_file_list_tab_LOCK
+            return # already updating it
+        @_updating_file_list_tab_LOCK = true
+        @_update_file_list_tab no_focus, () =>
+            setTimeout( (() => @_updating_file_list_tab_LOCK = false), 500 )
+
+    _update_file_list_tab: (no_focus, cb) =>
 
         spinner = @container.find(".project-file-listing-spinner")
-        timer = setTimeout( (() -> spinner.show().spin()), 100 )
+        timer = setTimeout( (() -> spinner.show().spin()), 1000 )
 
         # TODO: ** must change this -- do *not* set @current_path until we get back the correct listing!!!!
 
@@ -1143,54 +1211,90 @@ class ProjectPage
             url_path += '/'
         @push_state('files/' + url_path)
 
-        #console.log("path = ", path)
+        that = @
+        click_file =(e) ->
+            obj = $(e.delegateTarget).closest(".project-path-link").data('obj')
+            target = $(e.target)
+            if target.hasClass("salvus-file-action") or target.parent().hasClass('salvus-file-action')
+                that.file_action_dialog(obj)
+            else
+                if obj.isdir
+                    that.set_current_path(obj.fullname)
+                    that.update_file_list_tab()
+                else
+                    that.open_file
+                        path       : obj.fullname
+                        foreground : not(e.which==2 or e.ctrlKey)
+            e.preventDefault()
+
+
+        tm = misc.walltime()
+        #console.log("calling project_directory_listing with path=#{path}")
         salvus_client.project_directory_listing
             project_id : @project.project_id
             path       : path
             time       : @_sort_by_time
             hidden     : @container.find("a[href=#hide-hidden]").is(":visible")
             cb         : (err, listing) =>
-
-                if listing?.real_path?
-                    @set_current_path(listing.real_path)
-                    @push_state('files/' + listing.real_path)
-
+                #console.log("got back listing=",listing)
                 clearTimeout(timer)
                 spinner.spin(false).hide()
+
+                tm = misc.walltime()
+
+                @set_current_path(path)
 
                 # Update the display of the path above the listing or file preview
                 @update_current_path()
 
-                # Update UI options that change as a result of browsing snapshots.
-                @update_snapshot_ui_elements()
-
-                @container.find("a[href=#empty-trash]").toggle(@current_path[0] == '.trash')
-                @container.find("a[href=#trash]").toggle(@current_path[0] != '.trash')
-
                 if (err)
-                    console.log("update_file_list_tab: error -- ", err)
+                    #console.log("update_file_list_tab: error -- ", err)
                     if @_last_path_without_error? and @_last_path_without_error != path
-                        #console.log("using last path without error:  ", @_last_path_without_error)
                         @set_current_path(@_last_path_without_error)
                         @_last_path_without_error = undefined # avoid any chance of infinite loop
                         @update_file_list_tab(no_focus)
                     else
-                        # just try again in a bit.
-                        setTimeout((()=>@update_file_list_tab(no_focus)), 3000)
-                        #alert_message(type:"error", message:"Error viewing files at '#{path}' in project '#{@project.title}'.")
+                        @set_current_path('')
+                        @_last_path_without_error = undefined # avoid any chance of infinite loop
+                        @update_file_list_tab(no_focus)
+                    cb()
                     return
 
                 # remember for later
                 @_last_path_without_error = path
 
                 if not listing?
+                    cb()
                     return
+
+                # If the files haven't changed -- a VERY common case -- don't rebuild the whole listing.
+                file_names = (x.name for x in listing.files)
+                file_names.sort()
+                file_names = "#{file_names}"  # have to convert to string to compare arrays in javascript
+                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == file_names
+                    cb()
+                    return
+                else
+                    @_update_file_list_tab_last_path = path
+                    @_update_file_list_tab_last_path_files = file_names
 
                 @_last_listing = listing
 
+                if @current_path[0] == '.trash'
+                    @container.find("a[href=#empty-trash]").show()
+                    @container.find("a[href=#trash]").hide()
+                else
+                    @container.find("a[href=#empty-trash]").hide()
+                    @container.find("a[href=#trash]").show()
+
+
                 # Now rendering the listing or file preview
                 file_or_listing = @container.find(".project-file-listing-file-list")
+
+                # TODO: for long listings this file_or_listing.empty() dominates.
+                # We should just change data/displayed names of entries or something and hide others -- be way more clever. For LATER.
                 file_or_listing.empty()
+
                 directory_is_empty = true
 
                 # The path we are viewing.
@@ -1211,6 +1315,7 @@ class ProjectPage
 
                 that = @
 
+                # TODO: not used
                 file_dropped_on_directory = (event, ui) ->
                     src = ui.draggable.data('name')
                     if not src?
@@ -1225,12 +1330,14 @@ class ProjectPage
 
                 if that.current_path.length > 0
                     # Create special link to the parent directory
-                    t = template_project_directory.clone()
+                    t = template_project_file.clone()
+                    t.find("a[href=#file-action]").hide()
                     parent = that.current_path.slice(0, that.current_path.length-1).join('/')
                     if parent == ""
                         parent = "."
                     t.data('name', parent)
-                    t.find(".project-directory-name").html("<i class='fa fa-reply'> </i> Parent Directory")
+                    t.find(".project-file-name").html("Parent Directory")
+                    t.find(".project-file-icon").removeClass("fa-file").addClass('fa-reply')
                     t.find("input").hide()  # hide checkbox, etc.
                     # Clicking to open the directory
                     t.click () ->
@@ -1241,24 +1348,30 @@ class ProjectPage
                     t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
                     file_or_listing.append(t)
 
+
+
+                #console.log("done updating misc stuff", misc.walltime(tm))
+
                 # Show the files
-                for obj in listing['files']
-                    if obj.isdir? and obj.isdir
-                        if obj.snapshot?
-                            t = template_project_directory_snapshot.clone()
-                            if obj.snapshot == ''
-                                t.find(".btn").hide()
-                        else
-                            t = template_project_directory.clone()
-                            t.droppable(drop:file_dropped_on_directory, scope:'files')
-                        t.find(".project-directory-name").text(obj.name)
+                #console.log("building listing for #{path}...")
+
+                tm = misc.walltime()
+                for obj in listing.files
+                    t = template_project_file.clone()
+                    t.data(obj:obj)
+                    if obj.isdir
+                        t.find(".project-file-name").text(obj.name)
+                        date = undefined
+                        if path == ".snapshots/master" and obj.name.length == '2014-04-04-061502'.length
+                            date = misc.parse_bup_timestamp(obj.name)
+                            t.find(".project-file-name").text(date)
+                        else if obj.mtime
+                            date = new Date(obj.mtime*1000)
+                        if date?
+                            t.find(".project-file-last-mod-date").attr('title', date.toISOString()).timeago()
+                        name = obj.name
+                        t.find(".project-file-icon").removeClass("fa-file").addClass("fa-folder")
                     else
-                        if obj.snapshot?
-                            t =  template_project_file_snapshot.clone()
-                            if obj.snapshot == ''
-                                t.find(".btn").hide()
-                        else
-                            t = template_project_file.clone()
                         if obj.name.indexOf('.') != -1
                             ext = filename_extension(obj.name)
                             name = obj.name.slice(0,obj.name.length - ext.length - 1)
@@ -1284,6 +1397,14 @@ class ProjectPage
                             t.find(".project-file-last-commit-message").text(trunc(obj.commit.message, 70))
                     #end if
 
+                    obj.fullname = if path != "" then path + '/' + obj.name else obj.name
+                    directory_is_empty = false
+                    # Add our new listing entry to the list:
+                    file_or_listing.append(t)
+                    t.click(click_file)
+
+                    continue
+
                     # Define file actions using a closure
                     @_init_listing_actions(t, path, obj.name, obj.fullname, obj.isdir? and obj.isdir, obj.snapshot?)
 
@@ -1302,22 +1423,33 @@ class ProjectPage
                         scope          : 'files'
 
                     t.find("a").tooltip(trigger:'hover', delay: { show: 500, hide: 100 }); t.find(".fa-move").tooltip(trigger:'hover', delay: { show: 500, hide: 100 })
-                    # Finally add our new listing entry to the list:
-                    directory_is_empty = false
-                    file_or_listing.append(t)
+
 
                 #@clear_file_search()
+                #console.log("done building listing in #{misc.walltime(tm)}")
+                tm = misc.walltime()
                 @update_file_search()
+                #console.log("done building file search #{misc.walltime(tm)}")
+                tm = misc.walltime()
 
                 # No files
-                if directory_is_empty and path != ".trash" and path.slice(0,9) != ".snapshot"
+                if directory_is_empty and path != ".trash" and path.slice(0,10) != ".snapshots"
                     @container.find(".project-file-listing-no-files").show()
                 else
                     @container.find(".project-file-listing-no-files").hide()
 
+                if path.slice(0,10) == '.snapshots'
+                    @container.find(".project-file-listing-snapshot-warning").show()
+                else
+                    @container.find(".project-file-listing-snapshot-warning").hide()
+
                 if no_focus? and no_focus
-                    return
+                    cb(); return
+
                 @focus_file_search()
+                #console.log("done with everything #{misc.walltime(tm)}")
+
+                cb()
 
     _init_listing_actions: (t, path, name, fullname, isdir, is_snapshot) =>
         if not fullname?
@@ -1426,7 +1558,7 @@ class ProjectPage
 
         copy = b.find("a[href=#copy-file]")
         copy.click () =>
-            @copy_file(fullname)
+            @copy_file_dialog(fullname)
             return false
 
         # Renaming a file
@@ -1436,15 +1568,15 @@ class ProjectPage
             @click_to_rename_file(path, file_link)
             return false
 
-    copy_file:  (path, cb) =>
+    copy_file_dialog:  (path, cb) =>
         dialog = $(".project-copy-file-dialog").clone()
         dialog.modal()
         new_dest = undefined
         new_src = undefined
         async.series([
             (cb) =>
-                if path.slice(0,5) == '.zfs/'
-                    dest = path.slice('.zfs/snapshot/2013-12-31T22:32:30/'.length)
+                if path.slice(0,'.snapshots/'.length) == '.snapshots/'
+                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
                 else
                     dest = path
                 dialog.find(".copy-file-src").val(path)
@@ -1480,6 +1612,50 @@ class ProjectPage
         ], (err) => cb?(err))
 
 
+    move_file_dialog:  (path, cb) =>
+        dialog = $(".project-move-file-dialog").clone()
+        dialog.modal()
+        new_dest = undefined
+        new_src = undefined
+        async.series([
+            (cb) =>
+                if path.slice(0,'.snapshots/'.length) == '.snapshots/'
+                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                else
+                    dest = path
+                dialog.find(".move-file-src").val(path)
+                dialog.find(".move-file-dest").val(dest).focus()
+                submit = (ok) =>
+                    dialog.modal('hide')
+                    if ok
+                        new_src = dialog.find(".move-file-src").val()
+                        new_dest = dialog.find(".move-file-dest").val()
+                    cb()
+                    return false
+                dialog.find(".btn-close").click(()=>submit(false))
+                dialog.find(".btn-submit").click(()=>submit(true))
+            (cb) =>
+                if not new_dest?
+                    cb(); return
+                alert_message(type:'info', message:"Moving #{new_src} to #{new_dest}...")
+                salvus_client.exec
+                    project_id : @project.project_id
+                    command    : 'mv'
+                    args       : [new_src, new_dest]
+                    timeout    : 60
+                    network_timeout : 75   # how long network call has until it must return something or get total error.
+                    err_on_exit: true
+                    path       : '.'
+                    cb         : (err, output) =>
+                        if err
+                            alert_message(type:"error", message:"Error moving #{new_src} to #{new_dest} -- #{output.stderr}")
+                        else
+                            alert_message(type:"success", message:"Successfully moved #{new_src} to #{new_dest}")
+                            @update_file_list_tab()
+                        cb(err)
+        ], (err) => cb?(err))
+
+
     click_to_rename_file: (path, link) =>
         if link.attr('contenteditable')
             # already done.
@@ -1510,14 +1686,15 @@ class ProjectPage
         return false
 
 
-    rename_file: (path, original_name, new_name) =>
+    rename_file: (path, original_name, new_name, cb) =>
+        if new_name.indexOf('/') != -1
+            cb("filename may not contain a forward slash /")
+            return
         @move_file
             src : original_name
             dest : new_name
             path : path
-            cb   : (err) =>
-                if not err
-                    @update_file_list_tab(true)
+            cb   : cb
 
     move_file: (opts) =>
         opts = defaults opts,
@@ -2015,6 +2192,7 @@ class ProjectPage
             return false
 
     init_move_project: () =>
+        return
         button = @container.find(".project-settings-move").find(".project-move-button")
 
         button.click () =>
@@ -2413,20 +2591,19 @@ class ProjectPage
                 (cb) =>
                     link.find("i").addClass('fa-spin')
                     #link.icon_spin(start:true)
-                    alert_message
-                        type    : "info"
-                        message : "Restarting project server..."
-                        timeout : 15
                     salvus_client.restart_project_server
                         project_id : @project.project_id
                         cb         : cb
+                    # temporarily be more aggressive about getting status
+                    for n in [1,2,5,8,10,15,18,20]
+                        setTimeout(@update_local_status_link, n*1000)
                 (cb) =>
                     link.find("i").removeClass('fa-spin')
                     #link.icon_spin(false)
-                    alert_message
-                        type    : "success"
-                        message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                        timeout : 5
+                    #alert_message
+                    #    type    : "success"
+                    #    message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
+                    #    timeout : 5
             ])
             return false
 
@@ -2469,22 +2646,68 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
+
         update = () =>
-            salvus_client.project_last_snapshot_time
-                project_id : @project.project_id
-                cb         : (err, time) =>
-                    if not err and time?
-                        @_last_snapshot_time = time
-                        # critical to use replaceWith!
-                        c = @container.find(".project-snapshot-last-timeago span")
-                        d = $("<span>").attr('title',(new Date(1000*time)).toISOString()).timeago()
-                        c.replaceWith(d)
+            salvus_client.exec
+                project_id  : @project.project_id
+                command     : "ls ~/.snapshots/master/|tail -2"
+                err_on_exit : true
+                cb          : (err, output) =>
+                    if not err
+                        try
+                            time = misc.parse_bup_timestamp(output.stdout.split('\n')[0])
+                            @_last_snapshot_time = time
+                            # critical to use replaceWith!
+                            c = @container.find(".project-snapshot-last-timeago span")
+                            d = $("<span>").attr('title', time.toISOString()).timeago()
+                            c.replaceWith(d)
+                        catch e
+                            console.log("error parsing last snapshot time: ", e)
+                            return
         update()
         @_update_last_snapshot_time = setInterval(update, 60000)
 
+    update_local_status_link: () =>
+        if @_update_local_status_link_lock
+            return
+        @_update_local_status_link_lock = true
+        timer = setTimeout((()=>delete @_update_local_status_link_lock), 30000)  # ensure don't lock forever
+        salvus_client.project_get_local_state
+            project_id : @project.project_id
+            cb         : (err, state) =>
+                delete @_update_local_status_link_lock
+                clearTimeout(timer)
+                if not err
+                    e = @container.find(".salvus-project-status-indicator")
+                    c = @container.find(".salvus-project-status-indicator-button")
+                    upper_state = state.state[0].toUpperCase() + state.state.slice(1)
+                    e.text(upper_state)
+                    if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
+                        setTimeout(@update_local_status_link, 3000)
+
+                    (c.removeClass("btn-#{x}") for x in ['warning','danger'])
+                    switch state.state
+                        when 'starting', 'stopping', 'saving', 'restarting'
+                            c.addClass('btn-warning')
+                        when 'stopped'
+                            c.addClass('btn-danger')
+
+
+    init_local_status_link: () =>
+        @update_local_status_link()
+        setInterval(@update_local_status_link, 30000)
+        # just opened project -- so be temporarily be more aggressive about getting status
+        for n in [1,3,8,12,16,20]
+            setTimeout(@update_local_status_link, n*1000)
+
+        @container.find(".salvus-project-status-indicator-button").click () =>
+            @display_tab("project-settings")
+            return false
+
+
     # browse to the snapshot viewer.
     visit_snapshot: () =>
-        @current_path = ['.snapshot']
+        @current_path = ['.snapshots', 'master']
         @update_file_list_tab()
 
     init_trash_link: () =>
@@ -2493,7 +2716,7 @@ class ProjectPage
             return false
 
         @container.find("a[href=#empty-trash]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
-            bootbox.confirm "<h1><i class='fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
+            bootbox.confirm "<h1><i class='fa fa-trash-o pull-right'></i></h1> <h5>Are you sure you want to permanently erase the items in the Trash?</h5><br> <span class='lighten'>Old versions of files, including the trash, are stored as snapshots.</span>  ", (result) =>
                 if result == true
                     salvus_client.exec
                         project_id : @project.project_id
@@ -2559,7 +2782,7 @@ class ProjectPage
 
         url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{opts.path}"
         download_file(url)
-        bootbox.alert("If <b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
+        bootbox.alert("<h3><i class='fa fa-cloud-download'> </i> Download File</h3><b>#{opts.path}</b> should be downloading.  If not, <a target='_blank' href='#{url}'>click here</a>.")
         opts.cb?()
 
     open_file_in_another_browser_tab: (path) =>

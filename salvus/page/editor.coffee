@@ -295,15 +295,16 @@ class exports.Editor
 
         $(document).on 'keyup', (ev) =>
             if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79
-                @focus()
+                @show_recent()
                 @project_page.display_tab("project-editor")
                 return false
 
 
-    focus: () =>
+    show_recent: () =>
         @hide_editor_content()
         @show_recent_file_list()
-        @element.find(".salvus-editor-search-openfiles-input").focus()
+        if not IS_MOBILE
+            @element.find(".salvus-editor-search-openfiles-input").focus()
 
     hide_editor_content: () =>
         @_editor_content_visible = false
@@ -714,7 +715,7 @@ class exports.Editor
             tab.close_editor()
 
     resize_open_file_tabs: () =>
-        # Make a list of the tabs after the search menu.
+        # Make a list of the tabs after the search tab.
         x = @open_file_tabs()
         if x.length == 0
             return
@@ -725,7 +726,8 @@ class exports.Editor
             width = 204
         else
             start = x[0].offset().left
-            end   = x[0].parent().offset().left + x[0].parent().width()
+            #end   = x[0].parent().offset().left + x[0].parent().width()
+            end = @project_page.container.find(".project-settings-menu-item").offset().left
 
             n = x.length
             if n <= 2
@@ -795,8 +797,10 @@ class exports.Editor
         $(".project-editor-recent-files-header").hide()
 
     show_recent_file_list: () =>
+        #console.log("show_recent_file_list")
         $(".salvus-editor-recent-files").show()
         $(".project-editor-recent-files-header").show()
+        @push_state('recent')
 
     # Make the tab appear in the tabs at the top, and if foreground=true, also make that tab active.
     display_tab: (opts) =>
@@ -858,7 +862,6 @@ class exports.Editor
         #    @display_tab(@active_tab.filename)
         if not IS_MOBILE
             @element.find(".salvus-editor-search-openfiles-input").focus()
-        @push_state('recent')
 
     push_state: (url) =>
         if not url?

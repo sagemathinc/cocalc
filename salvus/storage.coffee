@@ -3584,14 +3584,7 @@ exports.xxxx_migrate2_all_status = (opts) ->
 
 
 
-
-
-
-
-
-
-
-exports.migrate3 = (opts) ->
+exports.xxx_migrate3 = (opts) ->
     opts = defaults opts,
         project_id : required
         server     : undefined   # rsync here...
@@ -3731,7 +3724,7 @@ exports.migrate3 = (opts) ->
     )
 
 
-exports.migrate3_all = (opts) ->
+exports.xxx_migrate3_all = (opts) ->
     opts = defaults opts,
         limit : 20  # no more than this many projects will be migrated simultaneously
         start : undefined  # if given, only takes projects.slice(start, stop) -- useful for debugging
@@ -3741,7 +3734,8 @@ exports.migrate3_all = (opts) ->
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
         max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
         oldest_first : false
-        timeout : 1800         # timeout on any given migration -- actually leaves them running, but moves on...
+        only_new : false       # only try to migrate projects we haven't tried to migrate before.
+        timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
         cb    : undefined      # cb(err, {project_id:errors when migrating that project})
 
     projects = undefined
@@ -3776,6 +3770,9 @@ exports.migrate3_all = (opts) ->
                             result = result.slice(opts.start)
                         else if opts.stop?
                             result = result.slice(0, opts.stop)
+
+                        if opts.only_new
+                            result = (x for x in result when not x[2]? and not x[3]?)
 
                         if opts.max_age_h?
                             cutoff = cassandra.hours_ago(opts.max_age_h)
@@ -3858,4 +3855,1234 @@ exports.migrate3_all = (opts) ->
     ], (err) -> opts.cb?(err, errors))
 
 
+
+
+exports.migrate4_schedule = (opts) ->
+    opts = defaults opts,
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+    dbg = (m) -> winston.debug("migrate4: #{m}")
+    projects = undefined
+    hosts = {}
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id']
+                limit   : 1000000
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results ")
+                        result.sort()
+                        projects = result
+                    cb(err)
+        (cb) ->
+            dbg("creating schedule")
+            for project_id in projects
+                host = hashrings['1'].range(project_id, 1)[0]
+                if not hosts[host]?
+                    hosts[host] = [project_id]
+                else
+                    hosts[host].push(project_id)
+            dbg("saving schedule to disk")
+            for k, v of hosts
+                fs.writeFileSync(k, v.join('\n'))
+            cb()
+    ], opts.cb?())
+
+
+exports.migrate4_store_repos_in_db = (opts) ->
+    opts = defaults opts,
+        limit : 3   # number to store at once
+        status : required
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+    storage_server = require('storage_server')
+    db = undefined
+    projects = undefined
+
+    # this happens sometimes... due to disconnect from database...
+    process.addListener "uncaughtException", (err) ->
+        winston.error("Uncaught exception: #{err}")
+
+    async.series([
+        (cb) ->
+            storage_server.get_database (err, d) ->
+                db = d
+                cb(err)
+        (cb) ->
+            fs.readdir '/home/salvus/bup', (err, files) ->
+                projects = files
+                projects.sort()
+                cb(err)
+        (cb) ->
+            g = (project_id, c) ->
+                s = {project_id:project_id}
+                opts.status.push(s)
+                cs = db.chunked_storage(id:project_id)
+                t = misc.walltime()
+                cs.sync
+                    path : "/home/salvus/bup/#{project_id}"
+                    cb   : (err) ->
+                        s.time = misc.walltime(t)
+                        if err
+                            s.error = err # error *recorded*
+                        c() # keep going no matter what
+
+            f = (project_id, c) ->
+                h = () ->
+                    dbg("timed out #{project_id} after 15 minutes")
+                    c()
+                    c = undefined
+                timer = setTimeout(h, 15*60*1000)
+                g project_id, () ->
+                    clearTimeout(timer)
+                    c?()
+            async.mapLimit(projects, opts.limit, f, cb)
+    ], (err) -> opts.cb?(err))
+
+exports.xxxmigrate_bup_all = (opts) ->
+    opts = defaults opts,
+        limit : 20           # no more than this many projects will be migrated simultaneously
+        start : undefined    # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        retry_errors : false   # also retry to migrate ones that failed with an error last time (normally those are ignored the next time)
+        retry_all : false      # if true, just redo everything
+        status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
+        max_age_h : undefined  # if given, only consider projects that were modified in the last max_age_h hours.
+        only_new : false       # only try to migrate projects we haven't tried to migrate before.
+        timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
+        exclude : []
+        loop  : 0              # if >=1; call it again with same inputs once it finishes
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+
+    projects = undefined
+    errors   = {}
+    done = 0
+    fail = 0
+    todo = undefined
+    dbg = (m) -> winston.debug("#{new Date()} -- migrate_bup_all: #{m}")
+    t = misc.walltime()
+    limit = 100000
+
+
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            dbg("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'last_edited', 'last_migrate_bup', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
+                limit   : limit
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
+                        result.sort()
+                        if opts.start? and opts.stop?
+                            result = result.slice(opts.start, opts.stop)
+                        else if opts.start?
+                            result = result.slice(opts.start)
+                        else if opts.stop?
+                            result = result.slice(0, opts.stop)
+
+                        dbg("filter out known abusers: before #{result.length}")
+                        result = (x for x in result when not x[4]?)
+                        dbg("filter out known abusers: after #{result.length}")
+
+                        dbg("filter out those that haven't ever had a snapshot: before #{result.length}")
+                        result = (x for x in result when x[5]?)
+                        dbg("filter out those that haven't ever had a snapshot: after #{result.length}")
+
+                        if opts.only_new
+                            result = (x for x in result when not x[2]? and not x[3]?)
+
+                        if opts.max_age_h?
+                            cutoff = cassandra.hours_ago(opts.max_age_h)
+                            result = (x for x in result when x[1]? and misc.to_iso(new Date(x[1])) >= cutoff)
+                            dbg("considering only the #{result.length} projects that have a snapshot from within the last #{opts.max_age_h} hours")
+                        if opts.retry_all
+                            projects = (x[0] for x in result)
+                        else if opts.retry_errors
+                            projects = (x[0] for x in result when x[3]? or (not x[2]? or x[1] > x[2]))
+                        else
+                            # don't try any projects with errors, unless they have been newly modified
+                            projects = (x[0] for x in result when (not x[2]? or x[1] > x[2]))
+                        if opts.exclude?
+                            v = {}
+                            for p in opts.exclude
+                                v[p] = true
+                            projects = (p for p in projects when not v[p])
+                        todo = projects.length
+                        dbg("of these -- #{todo} in the range remain to be migrated")
+                    cb(err)
+        (cb) ->
+            i = 1
+            times = []
+            start0 = misc.walltime()
+            g = (i, cb) ->
+                project_id = projects[i]
+                dbg("*******************************************")
+                dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
+                dbg("*******************************************")
+                start = misc.walltime()
+                if opts.status?
+                    stat = {status:'migrating...', project_id:project_id}
+                    opts.status.push(stat)
+                exports.migrate_bup
+                    project_id : project_id
+                    status     : stat
+                    cb         : (err) ->
+
+                        tm = misc.walltime(start)
+                        times.push(tm)
+                        avg_time = times.reduce((t,s)->t+s)/times.length
+                        eta_time = ((todo - times.length) * avg_time)/opts.limit
+
+                        total_time = misc.walltime(start0)
+                        avg_time2 = total_time / times.length
+                        eta_time2 = (todo - times.length) * avg_time2
+
+                        if err
+                            if stat?
+                                stat.status='failed'
+                                stat.error = err
+                                stat.walltime = tm
+                            fail += 1
+                        else
+                            if stat?
+                                stat.status='done'
+                            done += 1
+                        dbg("******************************************* ")
+                        dbg("finished #{project_id} in #{tm} seconds     ")
+                        dbg("MIGRATE_ALL (loop=#{opts.loop+1}, #{opts.limit} at once) STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}; #{todo-done-fail} left")
+                        dbg("    total time     : #{total_time}")
+                        dbg("    avg time per   : #{avg_time}s/each")
+                        dbg("    eta if per     : #{eta_time/3600}h or #{eta_time/60}m")
+                        dbg("    effective avg  : #{avg_time2}s/each")
+                        dbg("    effective eta  : #{eta_time2/3600}h or #{eta_time2/60}m")
+                        dbg("*******************************************")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            f = (i, cb) ->
+                h = () ->
+                    dbg("timed out #{i}=#{projects[i]} after #{opts.timeout} seconds")
+                    cb()
+                timer = setTimeout(h, opts.timeout*1000)
+                g i, () ->
+                    clearTimeout(timer)
+                    cb()
+
+            async.mapLimit([0...projects.length], opts.limit, f, cb)
+    ], (err) ->
+        if opts.loop
+            f = () =>
+                opts.loop += 1
+                exports.migrate_bup_all(opts)
+            winston.debug("WAITING 90 seconds to space things out... before doing loop #{opts.loop+1}")
+            setTimeout(f, 1000*90)
+            return
+        opts.cb?(err, errors)
+    )
+
+
+# This NOW ASSUMES that prepare_bup completed.
+exports.xxxmigrate_bup = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        server     : undefined   # rsync here...
+        status     : undefined
+        cb         : required
+    dbg = (m) -> winston.debug("migrate3(#{opts.project_id}): #{m}")
+    dbg()
+
+    needs_update = undefined
+    last_migrate_bup = cassandra.now()
+    host = undefined
+    hosts = undefined
+    client = undefined
+    last_migrate_bup_error = undefined   # could be useful to know below...
+    abuser = undefined
+    lastmod = undefined
+    hashrings = undefined
+    servers_by_dc = {}
+    servers_by_id = {}
+    targets = undefined
+    async.series([
+        (cb) ->
+            dbg("getting last migration error...")
+            database.select_one
+                table : 'projects'
+                columns : ['last_migrate_bup_error', 'last_snapshot']
+                where : {project_id : opts.project_id}
+                cb    : (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        last_migrate_bup_error = result[0]
+                        lastmod = result[1]
+                        dbg("last_migrate_bup_error = #{last_migrate_bup_error}")
+                        cb()
+        (cb) ->
+            dbg("setting last_migrate_bup_error to start...")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error : "start"}
+                where : {project_id : opts.project_id}
+                cb    : cb
+        (cb) ->
+            if host?
+                cb(); return
+            dbg("get current location of project from database")
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    host = x
+                    cb(err)
+        (cb) ->
+            dbg("get ordered list of hosts, based on newest snapshots")
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                    # randomize so not all in same DC0...
+                    v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
+                    v.sort()
+                    v.reverse()
+                    v = (x[2] for x in v when x[2] != host)
+                    if host?
+                        v = [host].concat(v)
+                    dbg("v = #{misc.to_json(v)}")
+                    if v.length == 0
+                        # nothing to do -- project never opened
+                        hosts = undefined
+                        cb()
+                    else
+                        hosts = v
+                        cb()
+        (cb) ->
+            if not hosts?
+                cb(); return
+            dbg("project is available on #{hosts}")
+            if opts.status?
+                opts.status.hosts = hosts
+            cb()
+
+        (cb) ->
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                where     : {dummy:true}
+                objectify : true
+                cb        : (err, servers) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in servers
+                            x.host = cassandra.inet_to_str(x.host)
+                            v = servers_by_dc[x.dc]
+                            if not v?
+                                servers_by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            servers_by_id[x.server_id] = x
+                        hashrings = {}
+                        for dc, servers of servers_by_dc
+                            v = {}
+                            for server in servers
+                                v[server.server_id] = {vnodes:128}
+                            console.log('making hashring from', v)
+                            hashrings[dc] = new HashRing(v)
+                        cb()
+
+
+        (cb) ->
+            dbg("get targets")
+            database.select_one
+                table : 'projects'
+                where : {project_id : opts.project_id}
+                columns : ['bup_last_save']
+                cb      : (err, result) ->
+                    if err
+                        cb(err)
+                    else
+                        if result[0]? and misc.len(result[0]) == 3
+                            targets = (servers_by_id[server_id].host for server_id, z of result[0])
+                        else
+                            targets = (servers_by_id[hashrings["#{n}"].range(opts.project_id, 1)[0]].host for n in [0,1,2])
+                        cb()
+
+        (cb) ->
+            if not hosts?
+                cb(); return
+            done = false
+            errors = {}
+            f = (host, c) ->
+                if done
+                    c(); return
+                dbg("run python script to migrate over from #{host}")
+                misc_node.execute_code
+                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage_custom.py"
+                    args        : ["migrate_remote", host, targets.join(','), Math.round(lastmod/1000), opts.project_id]
+                    timeout     : 60*60
+                    err_on_exit : false
+                    cb          : (err, output) ->
+                        if err
+                            errors[host] = err
+                            c()
+                        else
+                            out = output.stdout + output.stderr
+                            if out.indexOf('ABUSE') != -1
+                                done = true
+                                # mark as an abusive project
+                                abuser = true
+                            if out.indexOf('SUCCESS') != -1
+                                done = true
+                                c()
+                            else
+                                errors[host] = output.stderr
+                                c()
+
+            async.mapSeries hosts, f, (err) ->
+                if not done
+                    cb("unable to migrate from any host! -- #{misc.to_json(errors)}")
+                else
+                    cb()
+        (cb) ->
+            dbg("success -- record time of successful migration start in database")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup : last_migrate_bup,  last_migrate_bup_error:undefined, abuser:abuser}
+                where : {project_id : opts.project_id}
+                cb    : cb
+    ], (err) =>
+        if err
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error : misc.to_json(err), last_migrate_bup : last_migrate_bup}
+                where : {project_id : opts.project_id}
+        opts.cb(err)
+    )
+
+
+
+
+
+
+
+
+
+exports.project_uid = project_uid = (project_id) ->
+    shasum = require('crypto').createHash('sha512')
+    shasum.update(project_id)
+    n = Math.floor(parseInt(shasum.digest('hex').slice(0,8), 16) / 2)
+    if n <=65537
+        n += 65537
+    return n
+
+
+
+exports.prepare_bup = (opts) ->
+    opts = defaults opts,
+        limit : 1           # no more than this many simultaneous tasks
+        start : 0
+        end   : 10
+        reverse : false
+        dryrun : false
+        cb    : undefined
+        errors : required
+    dbg = (m) -> winston.debug("prepare_bup(): #{m}")
+    dbg()
+    work = []
+
+    servers_by_id = {}
+    servers_by_dc = {}
+    servers_hosting_project = {}
+    projects_on_server = {}
+
+    save_time = misc.to_iso(new Date(1396569559669))
+
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                objectify : true
+                cb        : (err, servers) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in servers
+                            x.host = cassandra.inet_to_str(x.host)
+                            servers_by_id[x.server_id] = x
+                            v = servers_by_dc[x.dc]
+                            if not v?
+                                servers_by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            projects_on_server[x.server_id] = []
+                        cb()
+        (cb) ->
+            dbg("read in project allocation files")
+            f = (server_id, cb) ->
+                fs.readFile "bups/#{server_id}", (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        for project_id in data.toString().split('\n')
+                            projects_on_server[server_id].push(project_id)
+                            if not servers_hosting_project[project_id]?
+                                servers_hosting_project[project_id] = []
+                            if server_id.length != 36
+                                weird.error
+                            servers_hosting_project[project_id].push(server_id)
+                        cb()
+            v = ['0663ed3c-e943-4d46-8c5e-b5e7bd5a61cc', '0985aa3e-c5e9-400e-8faa-32e7d5399dab', '2d7f86ce-14a3-41cc-955c-af5211f4a85e', '3056288c-a78d-4f64-af21-633214e845ad', '306ad75d-ffe0-43a4-911d-60b8cd133bc8', '44468f71-5e2d-4685-8d60-95c9d703bea0', '4e4a8d4e-4efa-4435-8380-54795ef6eb8f', '630910c8-d0ef-421f-894e-6f58a954f215', '767693df-fb0d-41a0-bb49-a614d7fbf20d', '795a90e2-92e0-4028-afb0-0c3316c48192', '801019d9-008a-45d4-a7ce-b72f6e99a74d', '806edbba-a66b-4710-9c65-47dd70503fc9', '8f5247e5-d449-4356-9ca7-1d971c79c7df', '94d4ebc1-d5fc-4790-affe-ab4738ca0384', '9e43d924-684d-479b-b601-994e17b7fd86', 'a7cc2a28-5e70-44d9-bbc7-1c5afea1fc9e', 'b9cd6c52-059d-44e1-ace0-be0a26568713', 'bc74ea05-4878-4c5c-90e2-facb70cfe338', 'c2ba4efc-8b4d-4447-8b0b-6a512e1cac97', 'd0bfc232-beeb-4062-9ad5-439c794594f3', 'd47df269-f3a3-47ed-854b-17d6d31fa4fd', 'dad2a46d-2a57-401a-bfe2-ac4fc7d50ec1', 'e06fb88a-1683-41d6-97d8-92e1f3fb5196', 'e676bb5a-c46c-4b72-8d87-0ef62e4a5c88', 'e682408b-c165-4635-abef-d0c5809fee26', 'eec826ad-f395-4a1d-bfb1-20f5a19d4bb0', 'f71dab5b-f40c-48db-a3d2-eefe6ec55f01']
+            async.map(v, f, cb)
+
+        (cb) ->
+            dbg("come up with a work schedule")
+
+            # make some hashrings so that our work schedule is consistent between runs
+            hashrings = {}
+            for dc, servers of servers_by_dc
+                v = {}
+                for server in servers
+                    v[server.server_id] = {vnodes:128}
+                console.log('making hashring from', v)
+                hashrings[dc] = new HashRing(v)
+
+            data_centers = misc.keys(servers_by_dc)
+
+            for project_id, servers of servers_hosting_project
+                # Now for the real work.  servers is an array of the server_id's hosting the project right now.
+                # We want to have the project with 1 copy in each dc, and for consistency for now will make
+                # that the first one determined by consistent hashing.... if there are none already; otherwise,
+                # we take the first of those available sorted in alphabetical order.
+                # Once we know where we want things, we then delete some, copy some, and finally bup restore as well
+                have = {}
+                for dc in data_centers
+                    have[dc] = false
+
+                target = []
+                servers.sort()
+
+                for server_id in servers
+                    dc = servers_by_id[server_id].dc
+                    if not have[dc]
+                        target.push(server_id)
+                        have[dc] = true
+                for dc, val of have
+                    if not val
+                        server_id = hashrings[dc].range(project_id, 1, true)[0]
+                        #dbg("#{project_id}: adding new server_id = #{server_id}")
+                        if server_id.length != 36
+                            hash.ring.broken
+                        target.push(server_id)
+
+                if target.length != data_centers.length
+                    cb("bug -- found target #{misc.to_json(target)} which has wrong length -- #{project_id}")
+
+                # now target is a list of 3 (num dc's) servers and they are where we want our data.
+
+                # we make our tasks so they can be done in parallel safely.
+
+                # 1. copy data to servers that want from servers where we have data and want (!) and restore
+                have_data = (server_id for server_id in target when server_id in servers)
+                source = have_data[0]
+                if not source?
+                    cb("bug -- we don't have any data--  #{project_id}")
+                for server_id in target
+                    if server_id not in have_data
+                        if server_id.length != 36
+                             total.bug
+                        work.push({project_id:project_id, action:'copy_and_restore', src:source, dest:server_id})
+
+                # 2. delete data from where we don't want it
+                for server_id in servers
+                    if server_id not in target
+                        work.push({project_id:project_id, action:'delete', server_id:server_id})
+
+                # 3. bup restore working directory
+                for server_id in target
+                    if server_id in have_data
+                        work.push({project_id:project_id, action:'restore', server_id:server_id})
+
+                if not opts.reverse and opts.end != -1 and work.length >= opts.end
+                    break
+
+            # sort the work by project id
+            work.sort (a,b) ->
+                if a.project_id < b.project_id
+                    return -1
+                else if a.project_id > b.project_id
+                    return 1
+                else
+                    return 0
+
+            cb()
+
+        (cb) ->
+            if opts.end == -1
+                opts.end = work.length
+            dbg("do tasks #{opts.start} - #{opts.end-1} on the work schedule doing #{opts.limit} in parallel")
+            #dbg("work to do: #{misc.to_json(work.slice(opts.start, opts.end))}")
+
+            exec_on = (server_id, cmd, cb) ->
+                host = servers_by_id[server_id]?['host']
+                if not host?
+                    dbg("invalid server #{server_id}")
+                    cb("target server #{server_id} not found")
+                    return
+                dbg("on #{host}: #{cmd}")
+                misc_node.execute_code
+                    command     : "ssh"
+                    args        : ["-o StrictHostKeyChecking=no", "root@#{host}", cmd]
+                    timeout     : 120*60
+                    err_on_exit : false
+                    verbose     : false
+                    cb          : (err, output) ->
+                        if err
+                            dbg("#{host}: #{cmd} -- FAIL #{err}")
+                            cb(err)
+                        else
+                            v = output.stderr.split('\n')
+                            for x in v
+                               x = x.trim()
+                               if x.length > 1 and x.indexOf('chattr:')==-1 and x.indexOf('WARNING') == -1 and x.indexOf('ECDSA') == -1
+                                   dbg("{host}: #{cmd} -- ERROR due to '#{x}'")
+                                   cb(output.stderr); return
+                            cb()
+
+            task_delete = (project_id, server_id, cb) ->
+                if project_id.length != 36
+                    cb("invalid uuid -- #{project_id}")
+                else
+                    exec_on(server_id, "rm -rf /bup/bups/#{project_id}", cb)
+
+            task_copy = (project_id, src, dest, cb) ->
+                host = servers_by_id[dest]?.host
+                if not host?
+                    cb("target server #{dest} not found")
+                if project_id.length != 36
+                    cb("invalid uuid -- #{project_id}")
+                else
+                    exec_on(src, "rsync -axH /bup/bups/#{project_id}/ #{host}:/bup/bups/#{project_id}/", cb)
+
+            task_restore = (project_id, server_id, cb) ->
+                uid = project_uid(project_id)
+                if project_id.length != 36
+                    cb("invalid uuid -- #{project_id}")
+                    return
+                done = false
+                async.series([
+                    (cb) ->
+                        database.select_one
+                            table : 'projects'
+                            where : {project_id : project_id}
+                            columns : ['bup_repo_corrupt']
+                            cb      : (err, result) ->
+                                if err
+                                    cb(err)
+                                else
+                                    if result[0]?
+                                        cb("bup repo known to be corrupt")
+                                    else
+                                        cb()
+                    (cb) ->
+                        database.select_one
+                            table : 'projects'
+                            where : {project_id : project_id}
+                            columns : ['bup_last_save']
+                            cb      : (err, result) ->
+                                if err
+                                    cb(err)
+                                else
+                                    if result[0]? and result[0][server_id]?
+                                        done = true
+                                    cb()
+                    (cb) ->
+                        if done
+                            cb(); return
+                        c = "rm -rf /bup/projects/#{project_id} && BUP_DIR=/bup/bups/#{project_id} bup restore --outdir=/bup/projects/#{project_id} master/latest/ ; chown -R #{uid}:#{uid} /bup/projects/#{project_id}"
+                        exec_on server_id, c, (err) =>
+                            if err
+                                if err.indexOf('issing') != -1
+                                    database.update
+                                        table : 'projects'
+                                        where : {project_id : project_id}
+                                        set   : {'bup_repo_corrupt':true}
+                                        cb    : (e) ->
+                                            cb(err)
+                                else
+                                    cb(err)
+                            else
+                                cb()
+                    (cb) ->
+                        if done
+                            cb(); return
+                        q = "UPDATE projects set bup_last_save[?]=? where project_id=?"
+                        database.cql(q, [server_id, save_time, project_id], cb)
+                ], cb)
+
+            i = opts.start
+            goal = opts.end - 1
+            do_task = (task, cb) ->
+                dbg("******** #{i}/#{goal} ******* ")
+                i += 1
+                dbg("doing task #{misc.to_json(task)}")
+                if opts.dryrun
+                    cb(); return
+                switch task.action
+                    when 'delete'
+                        task_delete(task.project_id, task.server_id, cb)
+                    when 'copy_and_restore'
+                        task_copy task.project_id, task.src, task.dest, (err) ->
+                            if err
+                                cb(err)
+                            else
+                                task_restore(task.project_id, task.dest, cb)
+                    when 'restore'
+                        task_restore(task.project_id, task.server_id, cb)
+                    else
+                        cb("unknown action #{task.action}")
+            f = (task, cb) ->
+                do_task task, (err) ->
+                    if err
+                        opts.errors.push(err)
+                        winston.debug("ERROR -- #{err} on task #{misc.to_json(task)}")
+                    cb()
+
+            if opts.reverse
+                work.reverse()
+            if opts.end != -1
+                work = work.slice(opts.start, opts.end)
+            else
+                work = work.slice(opts.start)
+            async.mapLimit(work, opts.limit, f, cb)
+
+    ], (err) -> opts.cb?(err))
+
+
+
+exports.bup_set_quotas = (opts) ->
+    opts = defaults opts,
+        start : 0
+        end : 10
+        limit : 1
+        qlimit : 1000000
+        cb : undefined
+    dbg = (m) -> winston.debug("bup_set_quotas: #{m}")
+    dbg()
+
+    work = []
+    server_id_to_host = {}
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                objectify : true
+                cb        : (err, servers) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in servers
+                            server_id_to_host[x.server_id] = cassandra.inet_to_str(x.host)
+                        cb()
+
+        (cb) ->
+            dbg("get all projects")
+            database.select
+                table     : 'projects'
+                limit     : opts.qlimit
+                columns   : ['project_id', 'bup_last_save', 'bup_working_size_kb', 'bup_repo_size_kb', 'settings']
+                objectify : true
+                cb        : (err, result) ->
+                    if err
+                        cb(err); return
+                    for r in result
+                        if r.bup_last_save? and (not r.bup_working_size_kb? or not r.bup_repo_size_kb? or not r.settings?['disk']?)
+                            work.push({project_id:r.project_id, host:(server_id_to_host[server_id] for server_id,tm of r.bup_last_save)[0]})
+                    cb()
+        (cb) ->
+            dbg("now do the work")
+            exec_on = (host, cmd, cb) ->
+                dbg("on #{host}: #{cmd}")
+                misc_node.execute_code
+                    command     : "ssh"
+                    args        : ["-o StrictHostKeyChecking=no", "root@#{host}", cmd]
+                    timeout     : 60*60
+                    err_on_exit : false
+                    verbose     : false
+                    cb          : (err, output) ->
+                        if err
+                            dbg("#{host}: #{cmd} -- FAIL #{err}")
+                            cb(err)
+                        else
+                            v = output.stderr.split('\n')
+                            for x in v
+                               x = x.trim()
+                               if x.length > 1 and x.indexOf('chattr:')==-1 and x.indexOf('WARNING') == -1 and x.indexOf('ECDSA') == -1
+                                   dbg("{host}: #{cmd} -- ERROR due to '#{x}'")
+                                   cb(output.stderr); return
+                            cb(undefined, output.stdout)
+
+            i = 0
+            f = (task, cb) ->
+                dbg("*** #{i}/#{work.length-1} ***: #{misc.to_json(task)}")
+                i += 1
+                bup_repo_size_kb = undefined
+                bup_working_size_kb = undefined
+                async.series([
+                    (cb) ->
+                        exec_on task.host, "du -s -x --block-size=KB /bup/bups/#{task.project_id}", (err, output) ->
+                            if err
+                                cb(err)
+                            else
+                                bup_repo_size_kb = parseInt(output.split()[0].split('k')[0])
+                                cb()
+                    (cb) ->
+                        exec_on task.host, "du -s -x --block-size=KB /bup/projects/#{task.project_id}", (err, output) ->
+                            if err
+                                cb(err)
+                            else
+                                bup_working_size_kb = parseInt(output.split()[0].split('k')[0])
+                                cb()
+                    (cb) ->
+                        database.update
+                            table : "projects"
+                            set   : {bup_repo_size_kb : bup_repo_size_kb, bup_working_size_kb:bup_working_size_kb}
+                            where : {project_id : task.project_id}
+                            cb    : cb
+                    (cb) ->
+                        size = Math.round(bup_working_size_kb/1000)
+                        cpu_shares = 1
+                        if size <= 5000
+                            disk = 5000
+                        else
+                            disk = 2*size
+                        if size >= 11000
+                            # If I ever upped their quota, they deserver more cpu
+                            cpu_shares = 8
+                        database.cql("UPDATE projects SET settings[?]=? WHERE project_id=?", ['disk',"#{disk}",task.project_id], cb)
+                ], cb)
+
+            work.sort (a,b) ->
+                if a.project_id < b.project_id
+                    return -1
+                else if a.project_id > b.project_id
+                    return 1
+                else
+                    return 0
+            work = work.slice(opts.start, opts.end)
+            async.mapLimit(work, opts.limit, f, cb)
+    ], (err) -> opts.cb?(err))
+
+
+
+
+exports.migrate2_bup_all = (opts) ->
+    opts = defaults opts,
+        limit : 1            # no more than this many projects will be migrated simultaneously
+        qlimit : 100000
+        start : undefined    # if given, only takes projects.slice(start, stop) -- useful for debugging
+        stop  : undefined
+        status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
+        timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
+        exclude : []
+        only  : undefined      # if given, *ONLY* migrate projects in this list.
+        reverse : false
+        loop  : 0              # if >=1; call it again with same inputs once it finishes
+        cb    : undefined      # cb(err, {project_id:errors when migrating that project})
+
+    projects = undefined
+    errors   = {}
+    done = 0
+    fail = 0
+    todo = undefined
+    dbg = (m) -> winston.debug("#{new Date()} -- migrate2_bup_all: #{m}")
+    t = misc.walltime()
+    servers = {by_id:{}, by_dc:{}}
+
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                where     : {dummy:true}
+                objectify : true
+                cb        : (err, results) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in results
+                            x.host = cassandra.inet_to_str(x.host)
+                            v = servers.by_dc[x.dc]
+                            if not v?
+                                servers.by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            servers.by_id[x.server_id] = x
+                        cb()
+        (cb) ->
+            dbg("querying database...")
+            where = undefined
+            if opts.only
+                where = {project_id:{'in':opts.only}}
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'last_edited', 'bup_last_save', 'last_migrate_bup_error', 'abuser', 'last_snapshot']
+                objectify : true
+                limit   : opts.qlimit
+                where   : where
+                cb      : (err, result) ->
+                    if result?
+                        dbg("got #{result.length} results in #{misc.walltime(t)} seconds")
+                        result.sort (a,b) ->
+                            if a.project_id < b.project_id
+                                return -1
+                            else if a.project_id > b.project_id
+                                return 1
+                            else
+                                return 0
+
+                        if opts.start? and opts.stop?
+                            result = result.slice(opts.start, opts.stop)
+                        else if opts.start?
+                            result = result.slice(opts.start)
+                        else if opts.stop?
+                            result = result.slice(0, opts.stop)
+
+                        dbg("filter out known abusers: before #{result.length}")
+                        result = (x for x in result when not x.abuser?)
+                        dbg("filter out known abusers: after #{result.length}")
+
+                        dbg("filter out those that haven't ever had a snapshot: before #{result.length}")
+                        result = (x for x in result when x.last_snapshot?)
+                        dbg("filter out those that haven't ever had a snapshot: after #{result.length}")
+
+                        dbg("filter out those that are already done: before #{result.length}")
+                        v = []
+                        for x in result
+                            if not x.bup_last_save? or misc.len(x.bup_last_save) < 3
+                                v.push(x)
+                            else
+                                for k, tm of x.bup_last_save
+                                    if tm < x.last_edited
+                                        v.push(x)
+                                        break
+                        projects = result
+                        todo = projects.length
+                        dbg("of these -- #{todo} in the range remain to be migrated")
+                    cb(err)
+        (cb) ->
+            i = 1
+            times = []
+            start0 = misc.walltime()
+            g = (i, cb) ->
+                project = projects[i]
+                project_id = project.project_id
+                dbg("*******************************************")
+                dbg("Starting to migrate #{project_id}: #{i+1}/#{todo}")
+                dbg("*******************************************")
+                start = misc.walltime()
+                if opts.status?
+                    stat = {status:'migrating...', project_id:project_id}
+                    opts.status.push(stat)
+                exports.migrate2_bup
+                    project_id    : project_id
+                    bup_last_save : project.bup_last_save
+                    status        : stat
+                    servers       : servers
+                    cb            : (err) ->
+
+                        tm = misc.walltime(start)
+                        times.push(tm)
+                        avg_time = times.reduce((t,s)->t+s)/times.length
+                        eta_time = ((todo - times.length) * avg_time)/opts.limit
+
+                        total_time = misc.walltime(start0)
+                        avg_time2 = total_time / times.length
+                        eta_time2 = (todo - times.length) * avg_time2
+
+                        if err
+                            if stat?
+                                stat.status='failed'
+                                stat.error = err
+                                stat.walltime = tm
+                            fail += 1
+                        else
+                            if stat?
+                                stat.status='done'
+                            done += 1
+                        dbg("******************************************* ")
+                        dbg("finished #{project_id} in #{tm} seconds     ")
+                        dbg("MIGRATE_ALL (loop=#{opts.loop+1}, #{opts.limit} at once) STATUS: (success=#{done} + fail=#{fail} = #{done+fail})/#{todo}; #{todo-done-fail} left")
+                        dbg("    total time     : #{total_time}")
+                        dbg("    avg time per   : #{avg_time}s/each")
+                        dbg("    eta if per     : #{eta_time/3600}h or #{eta_time/60}m")
+                        dbg("    effective avg  : #{avg_time2}s/each")
+                        dbg("    effective eta  : #{eta_time2/3600}h or #{eta_time2/60}m")
+                        dbg("*******************************************")
+                        if err
+                            errors[project_id] = err
+                        cb()
+            f = (i, cb) ->
+                h = () ->
+                    dbg("timed out #{i}=#{projects[i]} after #{opts.timeout} seconds")
+                    cb()
+                timer = setTimeout(h, opts.timeout*1000)
+                g i, () ->
+                    clearTimeout(timer)
+                    cb()
+
+            v = [0...projects.length]
+            if opts.reverse
+                v.reverse()
+            async.mapLimit(v, opts.limit, f, cb)
+    ], (err) ->
+        if opts.loop
+            f = () =>
+                opts.loop += 1
+                exports.migrate_bup_all(opts)
+            winston.debug("WAITING 90 seconds to space things out... before doing loop #{opts.loop+1}")
+            setTimeout(f, 1000*90)
+            return
+        opts.cb?(err, errors)
+    )
+
+exports.migrate2_bup = (opts) ->
+    opts = defaults opts,
+        project_id    : required
+        bup_last_save : {}
+        status        : undefined
+        servers       : required
+        cb            : required
+    dbg = (m) -> winston.debug("migrate2_bup(#{opts.project_id}): #{m}")
+    dbg()
+
+    needs_update = undefined
+    last_migrate_bup = cassandra.now()
+    host = undefined
+    hosts = undefined
+    client = undefined
+    last_migrate_bup_error = undefined   # could be useful to know below...
+    abuser = undefined
+    lastmod = undefined
+    hashrings = undefined
+    targets = undefined
+    servers = opts.servers
+
+    dbg("determine bup_last_save")
+    if misc.len(opts.bup_last_save) < 3
+        # ensure have at least one from each dc
+        dcs = ("#{servers.by_id[x].dc}" for x in misc.keys(opts.bup_last_save))
+        for dc in ['0','1','2']
+            if dc not in dcs
+                opts.bup_last_save[misc.random_choice(servers.by_dc[dc]).server_id] = new Date(0)
+    dbg("bup_last_save=#{misc.to_json(opts.bup_last_save)}")
+
+
+
+    async.series([
+        (cb) ->
+            if servers?
+                cb(); return
+            dbg("get storage server information")
+            database.select
+                table     : "storage_servers"
+                columns   : ['server_id', 'host', 'port', 'dc']
+                where     : {dummy:true}
+                objectify : true
+                cb        : (err, results) =>
+                    if err
+                        cb(err)
+                    else
+                        for x in results
+                            x.host = cassandra.inet_to_str(x.host)
+                            v = servers.by_dc[x.dc]
+                            if not v?
+                                servers.by_dc[x.dc] = [x]
+                            else
+                                v.push(x)
+                            servers.by_id[x.server_id] = x
+                        cb()
+
+        (cb) ->
+            dbg("setting last_migrate_bup_error to start...")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error : "start"}
+                where : {project_id : opts.project_id}
+                cb    : cb
+        (cb) ->
+            dbg("success -- record bup_last_save, etc.  in database -- so if interrupted use same choice next time")
+            f = (k, c) ->
+                d = opts.bup_last_save[k]
+                if d.low? and d.low==0
+                    d = new Date(0)
+                database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
+                             [k, d, opts.project_id], c)
+            async.map(misc.keys(opts.bup_last_save), f, cb)
+
+        (cb) ->
+            if host?
+                cb(); return
+            dbg("get current location of project from database")
+            get_current_location
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    host = x
+                    cb(err)
+        (cb) ->
+            dbg("get ordered list of hosts, based on newest snapshots")
+            get_snapshots
+                project_id : opts.project_id
+                cb         : (err, snapshots) ->
+                    # randomize so not all in same DC0...
+                    v = ([snaps[0], Math.random(), host] for host, snaps of snapshots when snaps?.length >=1)
+                    v.sort()
+                    v.reverse()
+                    v = (x[2] for x in v when x[2] != host)
+                    if host?
+                        v = [host].concat(v)
+                    dbg("v = #{misc.to_json(v)}")
+                    if v.length == 0
+                        # nothing to do -- project never opened
+                        hosts = undefined
+                        cb()
+                    else
+                        hosts = v
+                        cb()
+        (cb) ->
+            if not hosts?
+                cb(); return
+            dbg("project is available on #{hosts}")
+            if opts.status?
+                opts.status.hosts = hosts
+            cb()
+
+
+        (cb) ->
+            if not hosts?
+                cb(); return
+            done = false
+            targets = (servers.by_id[id].host for id in misc.keys(opts.bup_last_save))
+            targets.sort()
+            if opts.status?
+                opts.status.targets = targets
+            errors = {}
+            f = (host, c) ->
+                if done
+                    c(); return
+                dbg("run python script to migrate over from #{host} to #{targets.join(',')}...")
+                execute_on
+                    user        : 'root'
+                    host        : targets[0]
+                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py migrate_remote #{host} --targets=#{targets.slice(1).join(',')} #{opts.project_id}"
+                    timeout     : 3*60*60
+                    err_on_exit : false
+                    err_on_stderr : false
+                    cb          : (err, output) ->
+                        if err
+                            errors[host] = err
+                            c()
+                        else
+                            out = output.stdout + output.stderr
+                            if out.indexOf('ABUSE') != -1
+                                done = true
+                                # mark as an abusive project
+                                abuser = true
+                            if out.indexOf('SUCCESS') != -1
+                                done = true
+                                c()
+                            else
+                                errors[host] = output.stderr
+                                c()
+
+            async.mapSeries hosts, f, (err) ->
+                if not done
+                    cb(errors)
+                else
+                    cb()
+        (cb) ->
+            dbg("success -- record bup_last_save, etc.  in database")
+            f = (k, c) ->
+                database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
+                             [k, last_migrate_bup, opts.project_id], c)
+            async.map(misc.keys(opts.bup_last_save), f, cb)
+        (cb) ->
+            dbg("success -- record other stuff  in database")
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup : last_migrate_bup,  last_migrate_bup_error:undefined, abuser:abuser}
+                where : {project_id : opts.project_id}
+                cb    : cb
+    ], (err) ->
+        if err
+            database.update
+                table : 'projects'
+                set   : {last_migrate_bup_error : misc.to_json(err), last_migrate_bup : last_migrate_bup}
+                where : {project_id : opts.project_id}
+        if opts.status?
+            opts.status.error = err
+        opts.cb(err)
+    )
+
+
+
+exports.delete_all_bup_saves = (limit, cb) ->
+    projects = undefined
+
+    j = 0
+    f = (project, c) ->
+        j += 1
+        if true or j % 1000 == 0
+            console.log("#{j}/#{projects.length}")
+        if not project.bup_last_save?
+            c(); return
+        console.log("updating #{project.project_id}")
+        database.update
+            table : "projects"
+            set   : {bup_last_save: undefined, settings: undefined, bup_repo_size_kb:undefined, bup_working_size_kb:undefined}
+            where : {project_id : project.project_id}
+            consistency : 2
+            cb    : c
+    async.series([
+        (cb) ->
+            connect_to_database(cb)
+        (cb) ->
+            console.log("querying database...")
+            database.select
+                table   : 'projects'
+                columns : ['project_id', 'bup_last_save']
+                consistency : 2
+                objectify : true
+                limit   : limit
+                cb      : (err, r) ->
+                    projects = (x for x in r when x.bup_last_save?)
+                    cb(err)
+        (cb) ->
+            console.log("got #{projects.length} results")
+            async.mapLimit projects, 10, f, (err) ->
+                console.log("DONE")
+                cb()
+    ], cb)
+
+
+# fs.writeFileSync('s.json', JSON.stringify(s))
 

@@ -407,6 +407,10 @@ On the VM hosts, some things are critical:
     # put this in cron since it's so critical that the perms are right... or vm's won't start
     */10 * * * * sudo chmod a+r /boot/vmlinuz-*; sudo chmod a+rw /dev/fuse
 
+In /etc/sysctl.conf, put:
+
+    vm.swappiness=1
+
 
 """
 
@@ -621,14 +625,6 @@ def build_python_packages():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
-def build_bup():
-    log.info('building bup'); start = time.time()
-    try:
-        path = extract_package('bup')
-        cmd('./build', path)
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start
 
 def build_node_proxy():
     log.info('building node-proxy module'); start = time.time()
@@ -683,9 +679,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="install all Python packages")
 
-    parser.add_argument('--build_bup', dest='build_bup', action='store_const', const=True, default=False,
-                        help="install bup (git-style incremental compressed snapshots)")
-
     args = parser.parse_args()
 
     try:
@@ -719,9 +712,6 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()
-
-        if args.build_all or args.build_bup:
-            times['bup'] = build_bup()
 
     finally:
         if times:

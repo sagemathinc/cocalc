@@ -1,4 +1,3 @@
 #!/usr/bin/env bash
 
-PW=`cat $HOME/salvus/salvus/data/secrets/storage/salvus`
-cqlsh -k storage -u salvus -p $PW $1
+cqlsh -k storage -u salvus  $1

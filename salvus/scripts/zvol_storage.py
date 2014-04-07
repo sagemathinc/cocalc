@@ -294,7 +294,7 @@ class Project(object):
         log("create a pool on the zvol")
         cmd("sudo /sbin/zpool create %s -m '%s' %s"%(self.project_pool, self.project_mnt, self.zvol_dev))
         cmd("sudo /sbin/zfs set compression=lz4 %s"%self.project_pool)
-        cmd("sudo /sbin/zfs set dedup=on %s"%self.project_pool)  # no problem at all locally.
+        cmd("sudo /sbin/zfs set dedup=off %s"%self.project_pool)  # dedup (even locally) may be evil!
         cmd("sudo /bin/chown %s:%s %s"%(self.uid, self.uid, self.project_mnt))
         cmd("sudo /bin/chmod og-rwx %s"%self.project_mnt)
 
@@ -497,7 +497,7 @@ class Project(object):
         try:
             log("sending new stream: %s"%target)
             try:
-                out = cmd("sudo /sbin/zfs send -Dv %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
+                out = cmd("sudo /sbin/zfs send -v %s | lz4c - > %s.partial && mv %s.partial %s"%(snap, target, target, target))
                 if 'does not exist' in out:  # does not result in nonzero error code, due to use of streams
                     raise RuntimeError(out)
             except:
