@@ -1076,6 +1076,8 @@ class GlobalProject
                 @get_location_pref (err, s) =>
                     server_id = s; cb(err)
             (cb) =>
+                if not server_id?
+                    cb(); return
                 @project
                     server_id : server_id
                     cb        : (err, p) =>
@@ -1084,6 +1086,9 @@ class GlobalProject
                         project = p
                         cb(err)
             (cb) =>
+                if not server_id?
+                    state = 'closed'
+                    cb(); return
                 project.get_state
                     timeout : opts.timeout
                     cb : (err, s) =>
@@ -1183,13 +1188,15 @@ class GlobalClient
                             else
                                 v = program.address.split('.')
                                 a = parseInt(v[1]); b = parseInt(v[3])
-                                if a == 1 and b>=1 and b<=7
-                                    hosts = ("10.1.#{i}.1" for i in [1..7]).join(',')
+                                if program.address == '10.1.15.7'  # devel
+                                    hosts = ["10.1.15.2"]
+                                else if a == 1 and b>=1 and b<=7
+                                    hosts = ("10.1.#{i}.1" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
-                                    hosts = ("10.1.#{i}.1" for i in [10..21]).join(',')
+                                    hosts = ("10.1.#{i}.1" for i in [10..21])
                                 else if a == 3
                                     # TODO -- change this as soon as we get a DB spun up at Google...
-                                    hosts = ("10.1.#{i}.1" for i in [10..21]).join(',')
+                                    hosts = ("10.1.#{i}.1" for i in [10..21])
                             @database = new cassandra.Salvus
                                 hosts       : hosts
                                 keyspace    : if process.env.USER=='wstein' then 'test' else 'salvus'
@@ -1668,9 +1675,6 @@ class Client
         dbg = (m) => winston.debug("Storage client (#{@host}:#{@port}): #{m}")
         dbg()
         async.series([
-            (cb) =>
-                dbg("ensure secret_token")
-                read_secret_token(cb)
             (cb) =>
                 dbg("connect to locked socket")
                 misc_node.connect_to_locked_socket
