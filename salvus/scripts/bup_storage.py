@@ -815,8 +815,8 @@ class Project(object):
 
         log("rsync from remote to local")
         t = time.time()
-        x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/"%(
-               ' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt), ignore_errors=True)
+        x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/; chown -R %s:%s %s/"%(
+               ' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt, self.uid, self.gid, self.project_mnt), ignore_errors=True)
         log("time to rsync=%s"%(time.time()-t))
         for a in x.splitlines():
             # allow these errors only -- e.g., sshfs mounts cause them
