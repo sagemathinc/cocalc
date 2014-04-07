@@ -881,9 +881,11 @@ class ProjectPage
                     usage = @container.find(".project-disk_usage")
 
                     zfs = status.zfs
-                    if zfs?
+                    if zfs? and misc.len(zfs) > 0
                         for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
                             usage.find(".salvus-#{a}").text(zfs[a])
+                    else
+                        usage.find(".salvus-zfs-quotas").hide()
 
                     if status.settings?
                         usage.find(".salvus-project-settings-cores").text(status.settings.cores)
@@ -1332,7 +1334,7 @@ class ProjectPage
                     t.find("a[href=#file-action]").hide()
                     parent = that.current_path.slice(0, that.current_path.length-1).join('/')
                     if parent == ""
-                        parent = "." 
+                        parent = "."
                     t.data('name', parent)
                     t.find(".project-file-name").html("Parent Directory")
                     t.find(".project-file-icon").removeClass("fa-file").addClass('fa-reply')

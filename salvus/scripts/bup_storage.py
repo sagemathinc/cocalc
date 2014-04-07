@@ -29,6 +29,27 @@ Install script:
      chmod og-w /usr/local/bin/bup_storage.py
      chmod o-x /usr/local/bin/bup_storage.py
 
+
+Setup Pool:
+
+zpool create -f bup XXXXX /dev/vdb
+zfs create bup/projects
+zfs set mountpoint=/projects bup/projects
+zfs set dedup=on bup/projects
+zfs set compression=lz4 bup/projects
+zfs create bup/bups
+zfs set mountpoint=/bup/bups bup/bups
+chmod og-rwx /bup/bups
+
+zfs create bup/scratch
+zfs set mountpoint=/scratch bup/scratch
+chmod a+rwx /scratch
+
+zfs create bup/conf
+zfs set mountpoint=/bup/conf bup/conf
+chmod og-rwx /bup/conf
+chown salvus. /bup/conf
+
 """
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
@@ -39,6 +60,9 @@ UNSAFE_MODE=False
 import argparse, hashlib, math, os, random, shutil, socket, string, sys, time, uuid, json, signal, math, pwd, codecs
 from subprocess import Popen, PIPE
 from uuid import UUID, uuid4
+
+# Flag to turn off all use of quotas, since it will take a while to set these up after migration.
+QUOTAS_ENABLED=False
 
 USERNAME =  pwd.getpwuid(os.getuid())[0]
 
@@ -224,6 +248,8 @@ class Project(object):
 
     def get_zfs_status(self):
         q = {}
+        if not QUOTAS_ENABLED:
+            return q
         try:
             for x in ['userquota', 'userused']:
                 for y in ['projects', 'scratch']:
@@ -275,7 +301,7 @@ class Project(object):
 
     def init(self):
         """
-        Create user home directory and  bup repo.
+        Create user home directory and bup repo.
         """
         log = self._log("create")
         if not os.path.exists(os.path.join(self.bup_path,'objects')):
@@ -558,47 +584,18 @@ class Project(object):
         return settings
 
     def set_quota(self, disk, scratch):
-
-        # Disk space quota
-
-        if FILESYSTEM == 'zfs':
-            """
-            zpool create -f bup XXXXX /dev/vdb
-            zfs create bup/projects
-            zfs set mountpoint=/projects bup/projects
-            zfs set dedup=on bup/projects
-            zfs set compression=lz4 bup/projects
-            zfs create bup/bups
-            zfs set mountpoint=/bup/bups bup/bups
-            chmod og-rwx /bup/bups
-
-            zfs create bup/scratch
-            zfs set mountpoint=/scratch bup/scratch
-            chmod a+rwx /scratch
-
-            zfs create bup/conf
-            zfs set mountpoint=/bup/conf bup/conf
-            chmod og-rwx /bup/conf
-            chown salvus. /bup/conf
-            """
-            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
-            cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
-
         """
-        elif FILESYSTEM == 'ext4':
-
-            #    filesystem options: usrquota,grpquota; then
-            #    sudo su
-            #    mount -o remount /; quotacheck -vugm /dev/mapper/ubuntu--vg-root -F vfsv1; quotaon -av
-            disk_soft  = int(0.8*disk * 1024)   # assuming block size of 1024 (?)
-            disk_hard  = disk * 1024
-            inode_soft = inode
-            inode_hard = 2*inode_soft
-            cmd(["setquota", '-u', self.username, str(disk_soft), str(disk_hard), str(inode_soft), str(inode_hard), '-a'])
+        Disk space quota
         """
+        if not QUOTAS_ENABLED:
+            return
+        cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, disk), '%s/projects'%ZPOOL])
+        cmd(['zfs', 'set', 'userquota@%s=%sM'%(self.uid, scratch), '%s/scratch'%ZPOOL])
 
 
     def unset_quota(self):
+        if not QUOTAS_ENABLED:
+            return
         cmd(['zfs', 'set', 'userquota@%s=none'%self.uid, '%s/projects'%ZPOOL])
         cmd(['zfs', 'set', 'userquota@%s=none'%self.uid, '%s/scratch'%ZPOOL])
 
@@ -723,7 +720,7 @@ class Project(object):
                           self.project_mnt+'/', "root@%s:%s/"%(remote, self.project_mnt)], ignore_errors=ignore_errors)
 
             e = f(ignore_errors=True)
-            if 'Disk quota exceeded' in e:
+            if QUOTAS_ENABLED and 'Disk quota exceeded' in e:
                 self.cmd(["ssh", "-o", "StrictHostKeyChecking=no", 'root@'+remote,
                           'zfs set userquota@%s=%sM %s/projects'%(
                                         self.uid, self.get_settings()['disk'], ZPOOL)])

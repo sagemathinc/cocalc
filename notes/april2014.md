@@ -1,24 +1,23 @@
 
-- [ ] migrate all projects again
-
-- [ ] update quota information using du script.
-
-
-- [ ] replace git-ls by just ls for now.  It is too slow.
-
---> - [ ] display snaphot times as local time (and timeago if not too slow)
-
-
-
-
 BEFORE SWITCH:
 
- - [ ] must update bup-1 on all vms!   https://github.com/williamstein/bup-1
+ - [ ] migrate all projects
+
+ - [x] restart migration from newest to oldest, sorted by modification time.
+
+ - [x] must update bup-1 on all vms!   https://github.com/williamstein/bup-1
+ - [x] update code
+
+ - [ ] start a testing hub and test live projects
 
 
 ====
 
 AFTER SWITCH:
+
+- [ ] update quota information using du script and re-enable quotas
+
+- [ ] write code that cleans up /bup/projects fs by removing .sagemathcloud directories, etc., of projects not used for a while
 
 - [ ] make it so move is never automatic but prompted?
 
@@ -55,6 +54,12 @@ AFTER SWITCH:
 
 
 # DONE
+
+- [x] just don't set quotas now; that gets done later.
+- [x] replace git-ls by just ls for now.  It is too slow.
+- [x] display snaphot times as local time (and timeago if not too slow)
+
+
 
 - [x] file move/copy/delete/download
 
