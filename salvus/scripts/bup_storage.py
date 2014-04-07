@@ -466,11 +466,14 @@ class Project(object):
             r = dict(result)
             n = len(self.project_mnt)+1
             r['files'] = [x[n:] for x in what_changed if len(x) > n]
-            codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
-
-
+            try:
+                codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
+            except Exception, msg:
+                # the save log is only a convenience -- not critical.
+                log("WARNING: unable to write to save log -- %s"%msg)
 
         return result
+
 
     def tag(self, tag, delete=False):
         """
