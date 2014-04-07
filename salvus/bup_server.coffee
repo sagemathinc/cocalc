@@ -2048,12 +2048,3 @@ main = () ->
 if program._name == 'bup_server.js'
     main()
 
-
-    process.addListener "uncaughtException", (err) ->
-        winston.error("Uncaught exception: #{err}")
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
-
-if program._name == 'bup_server.js'
-    main()
-
-
