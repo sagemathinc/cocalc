@@ -2679,18 +2679,11 @@ class ProjectPage
                 clearTimeout(timer)
                 if not err
                     e = @container.find(".salvus-project-status-indicator")
-                    c = @container.find(".salvus-project-status-indicator-button")
                     upper_state = state.state[0].toUpperCase() + state.state.slice(1)
                     e.text(upper_state)
+                    @editor.resize_open_file_tabs()
                     if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
                         setTimeout(@update_local_status_link, 3000)
-
-                    (c.removeClass("btn-#{x}") for x in ['warning','danger'])
-                    switch state.state
-                        when 'starting', 'stopping', 'saving', 'restarting'
-                            c.addClass('btn-warning')
-                        when 'stopped'
-                            c.addClass('btn-danger')
 
 
     init_local_status_link: () =>

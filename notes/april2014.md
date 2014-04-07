@@ -3,17 +3,24 @@ BEFORE SWITCH:
 
  - [ ] migrate all projects
 
- - [x] restart migration from newest to oldest, sorted by modification time.
+ - [ ] change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 
- - [x] must update bup-1 on all vms!   https://github.com/williamstein/bup-1
- - [x] update code
+ - [ ] changing file ordering doesn't work first time due to caching.
+
+ - [ ] raw doesn't work; ipython doesn't work -- so probably port forwarding doesn't work at all.
 
  - [ ] start a testing hub and test live projects
+
 
 
 ====
 
 AFTER SWITCH:
+
+
+- [ ] have stable ipv6 project ip addresses be would be a huge *win*.  LXC would make that possible.
+
+- [ ] deal with the exception around this - codecs.open(self.save_log,'a',"utf-8-sig").write(json.dumps(r)+'\n')
 
 - [ ] go through and chown/sync every project systematically; evidently I didn't in the current migration, so I'll just put a chown in the start script for now -- this slows things down, but is temporary.
 
@@ -56,6 +63,11 @@ AFTER SWITCH:
 
 
 # DONE
+
+ - [x] restart migration from newest to oldest, sorted by modification time.
+ - [x] must update bup-1 on all vms!   https://github.com/williamstein/bup-1
+ - [x] update code
+
 
 - [x] just don't set quotas now; that gets done later.
 - [x] replace git-ls by just ls for now.  It is too slow.

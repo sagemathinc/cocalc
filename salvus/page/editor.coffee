@@ -726,8 +726,8 @@ class exports.Editor
             width = 204
         else
             start = x[0].offset().left
-            #end   = x[0].parent().offset().left + x[0].parent().width()
-            end = @project_page.container.find(".project-settings-menu-item").offset().left
+            end   = x[0].parent().offset().left + x[0].parent().width()
+            #end = @project_page.container.find(".project-settings-menu-item").offset().left
 
             n = x.length
             if n <= 2
