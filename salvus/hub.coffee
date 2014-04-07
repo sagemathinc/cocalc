@@ -1400,7 +1400,7 @@ class Client extends EventEmitter
                         if err
                             @error_to_client(id:mesg.id, error:err)
                         else
-                            @push_to_client(message.project_get_state(id:mesg.id, state:state))
+                            @push_to_client(message.project_get_local_state(id:mesg.id, state:state))
 
 
     mesg_update_project_data: (mesg) =>
