@@ -242,8 +242,8 @@ class Project(object):
         self.update_daemon_code()
         self.start_daemons()
         self.umount_snapshots()
-        # TODO: remove this chown once (1) uid defn stabilizes
-        # self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
+        # TODO: remove this chown once (1) uid defn stabilizes -- after migration will go through all projects and properly chown.
+        self.cmd(["chown", "-R", "%s:%s"%(self.username, self.groupname), self.project_mnt])
         self.mount_snapshots()
 
     def get_zfs_status(self):
