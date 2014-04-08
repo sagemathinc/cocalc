@@ -47,6 +47,35 @@
 
 
 
+<div class="modal hide salvus-file-action-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3>
+            <span  contenteditable="true" class="salvus-file-filename lighten"></span>
+            <span class="lighten pull-right" style="font-size: 11pt;color: #999;">(edit to rename)&nbsp;</span>
+        </h3>
+    </div>
+    <div class="center" style="padding-bottom: 1em; padding-top: 1em;">
+        <span class=" btn-group">
+            <a class="btn btn-large btn-warning" href="#move-file"><i class="fa fa-move"> </i> Move </a>
+
+            <a class="btn btn-large btn-success" href="#download-file"><i class="fa fa-cloud-download"> </i> Download</a>
+
+            <a class="btn btn-large" href="#copy-file"><i class="fa fa-copy"> </i> Copy</a>
+
+            <a class="btn btn-danger btn-large" href="#delete-file"><i class="fa fa-trash-o"> </i> Delete</a>
+        </span>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-close"> Close </button>
+    </div>
+</div>
+
+
+
+
 <div class="modal hide project-invite-noncloud-users-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-header">
         <button type="button" class="close btn-close" aria-hidden="true">
@@ -92,7 +121,7 @@
         Your project is stored on
         several computers in different datacenters.
         It runs in <b>exactly one</b> of these locations, but you can
-        move it by selecting another location below.  
+        move it by selecting another location below.
         <br><br>
         <span class="salvus-project-location-dialog-error hide"></span>
         <span class="salvus-project-replica-replicating hide">(Project is currently being replicated)</span>
@@ -166,6 +195,25 @@
     </div>
 </div>
 
+<div class="modal hide project-move-file-dialog"  data-backdrop="static"  tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-header">
+        <button type="button" class="close btn-close" aria-hidden="true">
+            <span style="font-size:20pt;">×</span>
+        </button>
+        <h3><i class="fa fa-move"> </i> Move File or Directory</h3>
+    </div>
+    <div class="well">
+        Move<br><br>
+        <input type="text" style="width:100%" class="move-file-src" value="">
+        to (give a directory or new name)<br><br>
+        <input type="text" style="width:100%" class="move-file-dest" value="">
+        <br><hr>
+    </div>
+    <div class="modal-footer">
+        <button class="btn btn-large btn-close">Cancel</button>
+        <button class="btn btn-large btn-submit btn-primary">Move File</button>
+    </div>
+</div>
 
 
 <!-- The actual project file browser, etc., interface -->
@@ -180,30 +228,36 @@
             <div class="not-small project-file-top-current-path-container">
                 <a href="#project-file-listing"><span class="project-file-top-current-path-display"></span></a>
             </div>
+            <!--<a class="pull-right salvus-project-status-indicator-button pill">
+                <i class="project-control-icon fa fa-wrench"> </i>
+                <span class="salvus-project-status-indicator"></span>
+            </a>-->
 
             <!-- Tabs: place where you click on them -->
             <ul class="nav nav-pills  project-pages">
                 <!-- Settings specific to this project -->
                 <!-- Browse through files in the project -->
+                <!-- Project settings -->
 
                 <!-- we use data-target instead of href=# to avoid the highly annoying link text that appears on hover at the bottom of the screen! -->
                 <li class="super-menu project-pages-button">
                     <a data-target="project-file-listing"  data-toggle="tooltip" data-placement="right" title="Browse files"><i class="project-control-icon fa fa-folder-open-o"></i> Files</a></li>
 
-                <!-- File editor with links to recent files -->
-                <li class="super-menu project-pages-button"><a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files"><i class="project-control-icon fa fa-clock-o"> </i> Recent</a></li>
-
                 <!-- Create a new file (or, etc.)-->
                 <li class="super-menu project-pages-button"><a data-target="project-new-file" data-toggle="tooltip" data-placement="right" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon fa fa-plus-circle"> </i> New</a></li>
+
 
                 <!-- Project activities  -->
                 <li class="super-menu project-pages-button"><a data-target="project-activity" data-toggle="tooltip" data-placement="right" title="Log of project activity and central chat"><i class="project-control-icon fa fa-list"> </i> Log</a></li>
 
-                <!-- Project settings -->
-                <li class="super-menu project-pages-button "><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon fa fa-wrench"> </i> <span class="not-big">Settings</span></a></li>
+                <!-- File editor with links to recent files -->
+                <li class="super-menu project-pages-button"><a data-target="project-editor" data-toggle="tooltip" data-placement="bottom" title="Recent files"><i class="project-control-icon fa fa-clock-o"> </i> Recent</a></li>
 
                 <!-- Search -->
-                <li class="super-menu project-pages-button project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon fa fa-search"> </i> <span class="not-big">Search</span></a></li>
+                <li class="super-menu project-pages-button project-search-menu-item"><a data-target="project-search" data-toggle="tooltip" data-placement="bottom" title="Search files in the project"> <i class="project-control-icon fa fa-search"> </i> Find</a></li>
+
+                <li class="super-menu project-pages-button  project-settings-menu-item"><a data-target="project-settings" data-toggle="tooltip" data-placement="bottom" title="Project settings and controls"><i class="project-control-icon fa fa-wrench"> </i>  <span class="salvus-project-status-indicator"></span></a>
+                </li>
 
 
             </ul>
@@ -217,6 +271,7 @@
                     <div class="span3">
                         <input class="salvus-project-search-for-file-input search-query" type="search" placeholder="Choose files...">
                         <i class="salvus-project-search-for-file-input-clear lighten fa fa-times-circle" style="cursor:pointer; margin-left: -2em;"></i>
+                        <div class="hide lighten salvus-project-search-describe">Showing <b><i>only</i></b> files that contain '<span></span>'.</div>
                     </div>
 
                     <!-- The current path -->
@@ -291,26 +346,34 @@
 
             <!-- Create a new file -->
             <div class="project-new-file hide">
-                <h1 style="margin-left:1em;">Add to <span class="project-new-file-if-root">home directory of project</span>
+                <h1 style="margin-left:1em;">Create New in <span class="project-new-file-if-root">home directory of project</span>
                     <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a>
                 </h1>
                 <div class="row">
                     <div style="margin-left:3em;">
                         <div class="row">
                             <div class="span3">
-                                <h4><i class="fa fa-plus"> </i>  New file, new directory, or web link</h4>
+                                <h4><i class="fa fa-plus"> </i>  Create a new file or directory</h4>
                             </div>
                             <div class="span8" style="padding-top: 4px;">
+                                <h4>Name your new file (or paste in a link)</h4>
                                 <input class="project-new-file-path-input" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
-                                <br><br>
+                                <br>
+                                <h4>Select the type of file</h4>
                                 <span style="width:100%">
-                                    <a class="btn btn-primary" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> File</a>
-                                    <a class="btn btn-warning"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder"></i> Folder</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new terminal (open this to reconnect later)"><i class="fa fa-credit-card"></i> Terminal</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="fa fa-superscript"></i> LaTeX</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="fa fa-file-o"> </i> Sage Worksheet</a>
-                                    <a class="btn btn-info"  style="margin-top:1ex"  href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="fa fa-file-o"></i> IPython Notebook</a>
-                                    <a class="btn"  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="top" title="Download a file or directory from the web"><i class="fa fa-cloud"></i> From Web</a>
+                                    <span class="btn-group">
+                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="Create a new Sage worksheet"><i class="fa fa-file-o"> </i> Sage Worksheet</a>
+                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-ipython" data-toggle="tooltip" data-placement="top" title="Create a new IPython notebook"><i class="fa fa-file-o"></i> IPython Notebook</a>
+                                    </span><br>
+                                    <span class="btn-group">
+                                        <a class="btn btn-info  btn-large"  style="margin-top:1ex"  href="#new-latex" data-toggle="tooltip" data-placement="top" title="Create a new LaTeX document"><i class="fa fa-superscript"></i> LaTeX Document</a>
+                                        <a class="btn btn-info btn-large"  style="margin-top:1ex"  href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Create a new command line terminal"><i class="fa fa-credit-card"></i> Command Line Terminal</a>
+                                    </span><br>
+                                    <span class="btn-group">
+                                        <a class="btn  btn-large" style="margin-top:1ex" href="#new-file" data-toggle="tooltip" data-placement="top" title="Create a new file of any type you want (determined by the extension)"><i class="fa fa-file"></i> Create File</a>
+                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-folder" data-toggle="tooltip" data-placement="top" title="Create a new folder"><i class="fa fa-folder"></i> Create Folder</a>
+                                        <a class="btn  btn-large"  style="margin-top:1ex"  href="#new-download" data-toggle="tooltip" data-placement="top" title="Copy a file or directory from the web into your project"><i class="fa fa-cloud"></i> Copy from Internet Link</a>
+                                    </span>
                                     <!--<a class="btn btn-small" href="#old-worksheet"><i class="fa fa-file-o"> </i> (Old Worksheet)</a>-->
                                 </span>
                             </div>
@@ -318,7 +381,7 @@
                         <hr>
                         <div class="row" >
                             <div class="span3">
-                                <h4><i class="fa fa-cloud-upload"> </i> From your computer </h4>
+                                <h4><i class="fa fa-cloud-upload"> </i> Upload files from your computer </h4>
                             </div>
                             <div class="span8 project-dropzone" style="margin-bottom: 2em; overflow-y:auto; background-color: #eeeeee;">
                             </div>
@@ -384,14 +447,14 @@
 
             <!-- Page to configure the settings for this project -->
             <div class="project-settings hide">  <!-- hidden by default -->
-                <h1 class="big-only" style="margin-left:1em;">Project Settings</h1>
+                <h1 class="big-only" style="margin-left:1em;">Project Control</h1>
                 <span class="hide salvus-project-id-warning pull-right"
                       title="When doing development of SMC inside an SMC project, the security of the raw http server and ipython server is via the project id; other users on the same VM that know the project id of your devel project both from the POV of SMC and of your local server, could get readonly access to your files (or read/write if you start an ipython server).">DANGER (hover with mouse)</span>
                 <div class="row">
                     <div class="well" style="margin-left:3em; margin-right:3em;">
                         <div class="row-fluid">
                             <div class="span6 well project-heading-well">
-                                <h4>Title and Description <span class="lighten"> (click to edit)</span></h4>
+                                <h4><i class="fa fa-gear"> </i>&nbsp;&nbsp;  Title and Description <span class="lighten"> (click to edit)</span></h4>
                                 <!-- Title of the project (editable) -->
                                 <h4>
                                     <span class="project-public"><i class="fa fa-eye">&nbsp;&nbsp;&nbsp;&nbsp;</i></span>
@@ -405,24 +468,42 @@
 
                             <div class="span6 well project-settings-well">
                                 <!-- The project id -->
-                                <div class="row-fluid project-settings-move" style="margin-top:1ex">
+                                <h4><i class="fa fa-gears"> </i>&nbsp;&nbsp; Status</h4>
+                                <div class="row-fluid project-settings-move" >
                                     <div class="span4">
-                                        <h4>Project id</h4>
+                                        <h5>Project id</h5>
                                     </div>
                                     <div class="span8">
                                         <pre class="project-id">loading&hellip;</pre>
                                     </div>
                                 </div>
 
-                                <div class="row-fluid project-settings-move" style="margin-top:1ex">
+                                <div class="row-fluid project-settings-move">
                                     <!-- Current location of the project -->
                                     <div class="span4">
-                                        <h4>Locations</h4>
+                                        <h5>Location</h5>
                                     </div>
                                     <div class="span8">
-                                        <pre><a class="project-location project-move-button"></a><a class="pull-right project-location-heading project-move-button btn btn-info btn-small"><i class="fa fa-building"> </i> Locations&hellip;</a></pre>
+                                        <!--<pre><a class="project-location project-move-button"></a></pre>-->
+                                        <pre><span class="project-location project-move-button"></span></pre>
                                     </div>
                                 </div>
+
+                                <div class="row-fluid project-settings-move">
+                                    <div class="span4">
+                                        <h5>Project Server</h5>
+                                    </div>
+                                    <div class="span5">
+                                        <pre><span class="salvus-project-status-indicator"></span></pre>
+                                    </div>
+                                    <div class="span3">
+                                        <a href="#restart-project" class="btn  btn-warning"
+                                           data-toggle="tooltip" data-placement="right" title="Restart this project server">
+                                            <i class="fa fa-refresh"> </i> Restart
+                                        </a>
+                                    </div>
+                                </div>
+
 
                             </div>
                         </div>
@@ -430,7 +511,7 @@
                             <div class="span6 well project-settings-well project-collaborators-box">
                                 <div class="row-fluid">
                                     <div class="span4">
-                                        <h4 class="pull-left"><i class="fa fa-user"> </i> Collaborators</h4>
+                                        <h4 class="pull-left"><i class="fa fa-user"> </i>&nbsp;&nbsp; Collaborators</h4>
                                         <br><br>
                                         <span class="lighten">Can view and <b>modify</b> this project</span>
                                     </div>
@@ -467,9 +548,41 @@
                             </div>
 
                             <div class="span6 well project-settings-well">
-                                <!-- Disk usage of the project -->
-                                <h4>Usage</h4>
-                                <b>Files and snapshots:</b> <span class="project-disk_usage hide"><span class="salvus-usage-used"></span>B (or <span class="salvus-usage-percent"></span>) this project's quota of <span class="salvus-usage-size"></span>B  (<span class="salvus-usage-avail"></span>B are left).</span>  Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need more space.
+                                <h4><i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Quota</h4>
+                                <span class="project-disk_usage hide">
+                                    <ul>
+                                        <li class="salvus-zfs-quotas"> Home directory: used
+                                            <b><span class="salvus-userused-projects"></span></b> of <b><span class="salvus-userquota-projects"></span></b>
+                                        </li>
+
+                                        <li class="salvus-zfs-quotas"> /scratch: used
+
+                                            <b><span class="salvus-userused-scratch"></span></b> of <b><span class="salvus-userquota-scratch"></span></b>
+                                        </li>
+                                        <li>
+                                            Can use up to <b><span class="salvus-project-settings-cores"></span> CPU cores</b>
+                                        </li>
+
+                                        <li>
+                                            Can use up to <b><span class="salvus-project-settings-memory"></span> RAM</b>
+                                        </li>
+
+                                        <li>
+                                            Stops after <b><span class="salvus-project-settings-mintime"></span> hours</b> of inactivity
+                                        </li>
+
+                                        <li>
+                                            Gets <b><span class="salvus-project-settings-cpu_shares"></span> relative CPU share</b> (1 is fair sharing with other projects).
+                                        </li>
+
+                                    </ul>
+                                    <span class="lighten"> Email <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a> if you need me to raise a quota (which is currently <b><i>free</i></b>).
+                                        Include the project id
+                                        <span class="project-id"></span> in your email.</span>
+                                </span>
+
+
+
                                 <!-- Download the whole project -->
                                 <!--<a href="#download-project" class="btn  btn-success">
 <i class="fa fa-cloud-download"> </i> Download Project
@@ -479,7 +592,7 @@
                         </div>
                         <div class="row-fluid">
                             <div class="span6 well project-settings-well">
-                                <h4>Restart...</h4>
+                                <h4><i class="fa fa-refresh"> </i>&nbsp;&nbsp;  Restart...</h4>
 
                                 <div class="row-fluid">
                                     <div class="span8">
@@ -507,37 +620,42 @@
                                 <br>
                                 <div class="row-fluid">
                                     <div class="span12 lighten">
-                                        Still not working?!  Immediately email me (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working!
+                                        Still not working after restarting the project server?!  Immediately email me (William Stein) at <a target="_blank" href="mailto:wstein@uw.edu">wstein@uw.edu</a>.  I want to know if anything isn't working!  Include the project id
+                                        <span class="project-id"></span> in your email.
                                     </div>
 
                                 </div>
                             </div>
                             <div class="span6 well project-settings-well">
-                                <h4>Danger!</h4>
+                                <h4><i class="fa fa-warning"> </i>&nbsp;&nbsp; Danger!</h4>
                                 <div class="row-fluid project-settings-make-public hide">
-                                    <div class="span8">
-                                        Make it so anyone can see the contents of this project. You choose who can modify it.
-                                    </div>
-                                    <div class="span4">
-                                    <!-- Change public / private -->
-                                        <a href="#make-public" class="btn btn-danger  pull-right"
-                                            data-toggle="tooltip" data-placement="right" title="Make it so anyone can see the contents of this project. You choose who can modify it.">
-                                            <i class="fa fa-eye"> </i> Make Public...
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
+                                    <div class="hide">
+                                        <div class="span8">
+                                            Make it so anyone can see the contents of this project. You choose who can modify it.
+                                        </div>
+                                        <div class="span4">
+                                            <!-- Change public / private -->
+                                            <a href="#make-public" class="btn btn-danger  pull-right"
+                                               data-toggle="tooltip" data-placement="right" title="Make it so anyone can see the contents of this project. You choose who can modify it.">
+                                                <i class="fa fa-eye"> </i> Make Public...
+                                                <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <br>
-                                <div class="row-fluid project-settings-make-private hide" style="margin-top:1ex">
-                                    <div class="span8">
-                                        Make it so you choose who can see and modify contents of this project
-                                    </div>
-                                    <div class="span4 pull-right">
-                                        <a href="#make-private" class="btn btn-danger  pull-right"
-                                            data-toggle="tooltip" data-placement="right" title="Make it so you choose who can see and modify contents of this project.">
-                                            <i class="fa fa-lock"> </i> Make Private...
-                                            <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
-                                        </a>
+                                <div class="hide row-fluid project-settings-make-private" style="margin-top:1ex">
+                                    <div class="hide">
+                                        <div class="span8">
+                                            Make it so you choose who can see and modify contents of this project
+                                        </div>
+                                        <div class="span4 pull-right">
+                                            <a href="#make-private" class="btn btn-danger  pull-right"
+                                               data-toggle="tooltip" data-placement="right" title="Make it so you choose who can see and modify contents of this project.">
+                                                <i class="fa fa-lock"> </i> Make Private...
+                                                <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <br>
@@ -577,7 +695,7 @@
 
             <!-- Search -->
             <div class="project-search hide">
-                <h1  class="big-only" style="margin-left:1em;">Search Current Directory</h1>
+                <h1  class="big-only" style="margin-left:1em;">Find Files</h1>
                 <div class="project-search-spinner hide">
                 </div>
                 <div class="row well"  style="margin-left:3em; margin-right:3em;">
@@ -589,10 +707,10 @@
                         <div class="project-search-output-path-heading hide">
                             <span class="lighten"><a href="#project-file-listing">Navigate to a different folder</a> to search in it.</span>
                             <br><br>
-                            <h5>
+                            <h4>
                                 Results of searching in <span class="project-search-output-path"></span>
                                 for "<span class="project-search-output-terms"></span>"
-                            </h5>
+                            </h4>
                         </div>
                     </div>
                     <div class="span3">
@@ -649,97 +767,24 @@
         </div>
     </div>
 
-    <div class="row span12 project-file-link-style project-file-link-snapshot">
-        <div class="span" style="width:120px">
-            <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore file from snapshot"><i class="fa fa-external-link"> </i> </a>
-        </div>
-        <a class="span" style="width: 20px;">
-            <i class="fa fa-file-o project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-        </a>
-        <div class="span" style="width:15em;">
-            <a href="#open-file"><span class="project-file-name"></span><span class="project-file-name-extension"></span></a>
-        </div>
-    </div>
 
-    <div class="row span11 project-directory-link-style project-directory-link-snapshot">
-        <div class="span" style="width:120px">
-            <a class="btn btn-small pull-right" href="#restore"  data-toggle="tooltip" data-placement="bottom" title="Restore directory from snapshot"><i class="fa fa-external-link"> </i> </a>
+    <div class="row-fluid project-file-link-style project-file-link project-path-link">
+        <div class="span2" style="width: 8em;">
+            <a href="#file-action" class="salvus-file-action btn btn-small">
+                <i class="fa fa-move"> </i> <i class="fa fa-cloud-download"></i>  <i class="fa fa-copy"></i>
+                <i class="fa fa-trash-o"> </i>
+            </a>
         </div>
-        <a class="span" style="width: 20px;">
-            <i class="fa fa-folder project-file-icon">&nbsp;&nbsp;&nbsp;&nbsp;</i>
-        </a>
-        <div class="span" style="width:15em;">
-            <a href="#open-file"><span class="project-directory-name"></span></a>
-        </div>
-    </div>
-
-    <div class="row span12 project-file-link-style project-file-link">
-        <div class="span" style="width: 10px;">
-            <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag file into a folder" > </i>
+        <div class="span6">
+            <a> <i class="fa project-file-icon fa-file" style="padding-right:1em"> </i></a>
+            <a  href="#open-file" class="project-file-name"></a><span class="project-file-name-extension"></span>
         </div>
 
-        <div class="span pull-right" style="width:100px">
-            <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
-                <a class="btn btn-small" href="#copy-file"  data-toggle="tooltip" data-placement="bottom" title="Copy file..."><i class="fa fa-copy"> </i> </a>
-                <a class="btn btn-small" href="#rename-file"  data-toggle="tooltip" data-placement="bottom" title="Rename file..."><i class="fa fa-edit"> </i> </a>
-                <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download file..."><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
-                <a class="btn btn-danger btn-small" href="#delete-file"  data-toggle="tooltip" data-placement="bottom" title="Delete file..."><i class="fa fa-trash-o"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
-            </span>
-        </div>
-
-        <div class="span" style="width: 10px;">
-            <!-- <i class="fa fa-check-empty lighten"> </i> -->   <!-- TODO: enable this when we have functions for groups of files -->
-        </div>
-        <a class="span" style="width: 20px;">
-            <i class="fa fa-file-o project-file-icon"> </i>
-        </a>
-
-        <div class="span" style="width:15em;">
-            <a class="salvus-no-middle-click" href="#open-file"><span class="salvus-no-middle-click project-file-name"></span><span class="salvus-no-middle-click  project-file-name-extension"></span></a>
-        </div>
-
-        <div class="span smallish" style="width:140px;">
+        <div class="span4">
             <span class="project-file-last-mod-date">
             </span>
         </div>
-        <div class="span smallish" style="width:30px;">
-            <span class="project-file-size">
-            </span>
-        </div>
-        <div class="big-only span3 lighten smallish">
-            <span class="project-file-last-commit-date-container"><span class="project-file-last-commit-date"></span></span>
-            (<a class="project-file-last-commit-message lighten"></a>)
-        </div>
-    </div>
-    <div class="row span11  project-directory-link-style project-directory-link">
-        <div class="span " style="width: 10px;">
 
-            <i class="fa fa-move project-file-drag-handle   " data-toggle="tooltip" data-placement="bottom" title="Drag folder into another folder"> </i>
-
-        </div>
-        <div class="span pull-right" style="width:60px">
-            <span class="btn-group project-file-buttons  hide" style="top:-3px; position:relative;">
-
-                <a class="btn btn-small" href="#copy-file"  data-toggle="tooltip" data-placement="bottom" title="Copy folder..."><i class="fa fa-copy"> </i> </a>
-
-                <a class="btn btn-small" href="#rename-file" data-toggle="tooltip" data-placement="bottom" title="Rename folder"><i class="fa fa-edit"> </i> </a>
-                <a class="btn btn-small" href="#download-file"  data-toggle="tooltip" data-placement="bottom" title="Download folder (as archive)"><i class="fa fa-cloud-download"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
-                <a class="btn btn-danger btn-small" href="#delete-file" data-toggle="tooltip" data-placement="bottom" title="Move folder to the trash"><i class="fa fa-trash-o"> </i> <span class="spinner hide"><i class="fa fa-spinner fa fa-spin"></i></span></a>
-
-            </span>
-        </div>
-
-        <div class="span" style="width: 10px;">
-            <!--
-<i class="fa fa-check-empty lighten"> </i>
--->
-        </div>
-        <a class="span" style="width: 20px;">
-            <i class="fa fa-folder project-file-icon"> </i>
-        </a>
-        <div class="span" style="width:15em;">
-            <a  href="#open-file" class="project-directory-name"></a>
-        </div>
     </div>
 
     <a class="project-home-icon">

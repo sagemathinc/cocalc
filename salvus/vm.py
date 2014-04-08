@@ -14,7 +14,10 @@ vm.py -- create and run a virtual machine based on the standard
 
 import logging, os, shutil, socket, tempfile, time
 
-from admin import run, sh
+from admin import run
+import admin
+
+sh = admin.SH(maxtime=600)
 
 conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 
@@ -23,7 +26,7 @@ conf_path = os.path.join(os.path.split(os.path.realpath(__file__))[0], 'conf')
 ###########################################
 
 def virsh(command, name):
-    return run(['virsh', '--connect', 'qemu:///system', command, name], verbose=False).strip()
+    return run(['virsh', '--connect', 'qemu:///system', command, name], verbose=False, maxtime=600).strip()
 
 def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
     #################################
@@ -118,7 +121,7 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
         # - mount the image in a temp directory
         vmhost_tincname = socket.gethostname().replace('-','_')
         try:
-            run(['guestmount', '-i', '-a', new_img, '--rw', tmp_path], maxtime=60)
+            run(['guestmount', '-i', '-a', new_img, '--rw', tmp_path], maxtime=600)
 
             #### hostname ####
             hostname_file = os.path.join(tmp_path,'etc/hostname')
@@ -202,7 +205,7 @@ def run_kvm(ip_address, hostname, stop, vcpus, ram, vnc, disk, base, fstab):
         sh['chmod', 'g+rw', new_img]
         os.system("ls -lh %s"%new_img)
 
-        log.info(run(cmd, maxtime=120))
+        log.info(run(cmd, maxtime=600))
 
         log.info("created new virtual machine in %s seconds -- now running", time.time()-t); t = time.time()
 

@@ -71,6 +71,11 @@ Before building, do:
 
     cd spl-0.6.2 && ./configure && make deb-utils deb-kmod && dpkg -i kmod-spl-devel_0.6.2-1_amd64.deb kmod-spl-devel-3*.deb && cd ../zfs-0.6.2 && ./configure && make deb-utils deb-kmod && cd .. && dpkg -i */*.deb
 
+    # To remove:
+    dpkg -r kmod-spl-3.2.0-59-generic kmod-spl-devel kmod-spl-devel-3.2.0-59-generic spl kmod-zfs-3.2.0-59-generic kmod-zfs-devel kmod-zfs-devel-3.2.0-59-generic zfs zfs-devel zfs-dracut zfs-test
+
+
+
 # LZ4 -- compression
 
     # Ubuntu
@@ -92,13 +97,8 @@ MaxStartups 128
 
 On Ubuntu 13.10
 
-   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev golang-go libicu-dev libicu-devlibicu-dev libicu-dev libicu-dev iceweasel xvfb
+   sudo apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr tcl-dev tk-dev golang-go libicu-dev libicu-devlibicu-dev libicu-dev libicu-dev iceweasel xvfb tree
 
-
-
-On Debian 7 (Google)
-
-apt-get install emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml  tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libhdf5-dev libhdf5-doc libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf spell golang-go libicu-dev libicu-devlibicu-dev libicu-dev libicu-dev iceweasel xvfb
 
 
 # Aldor - in 13.10, have to modify /etc/apt/sources.list.d/pippijn-ppa-*.list and replace version with "precise"
@@ -402,6 +402,10 @@ On the VM hosts, some things are critical:
     # put this in cron since it's so critical that the perms are right... or vm's won't start
     */10 * * * * sudo chmod a+r /boot/vmlinuz-*; sudo chmod a+rw /dev/fuse
 
+In /etc/sysctl.conf, put:
+
+    vm.swappiness=1
+
 
 """
 
@@ -616,14 +620,6 @@ def build_python_packages():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
-def build_bup():
-    log.info('building bup'); start = time.time()
-    try:
-        path = extract_package('bup')
-        cmd('./build', path)
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start
 
 def build_node_proxy():
     log.info('building node-proxy module'); start = time.time()
@@ -678,9 +674,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_python_packages', dest='build_python_packages', action='store_const', const=True, default=False,
                         help="install all Python packages")
 
-    parser.add_argument('--build_bup', dest='build_bup', action='store_const', const=True, default=False,
-                        help="install bup (git-style incremental compressed snapshots)")
-
     args = parser.parse_args()
 
     try:
@@ -714,9 +707,6 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()
-
-        if args.build_all or args.build_bup:
-            times['bup'] = build_bup()
 
     finally:
         if times:

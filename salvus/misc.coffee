@@ -349,7 +349,7 @@ exports.retry_until_success = (opts) ->
         opts.f (err)->
             if err
                 if opts.max_tries? and opts.max_tries <= tries
-                    opts.cb?("maximum tries exceeded")
+                    opts.cb?("maximum tries exceeded - last error #{err}")
                 else
                     delta = Math.min(opts.max_delay, opts.factor * delta)
                     setTimeout(g, delta)
@@ -516,6 +516,8 @@ exports.uniquify_string = (s) ->
             seen_already[c] = true
     return t
 
+exports.endswith = (s, t) ->
+    return s.slice(s.length - t.length) == t
 
 # Return string t=s+'\n'*k so that t ends in at least n newlines.
 # Returns s itself (so no copy made) if s already ends in n newlines (a common case).
@@ -551,6 +553,10 @@ exports.make_valid_name = (s) ->
 
 
 
+# format is 2014-04-04-061502
+exports.parse_bup_timestamp = (s) ->
+    v = [s.slice(0,4), s.slice(5,7), s.slice(8,10), s.slice(11,13), s.slice(13,15), s.slice(15,17), '0']
+    return new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
 
 
 

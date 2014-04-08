@@ -43,16 +43,32 @@ assert  = require('assert')
 async   = require('async')
 winston = require('winston')                    # https://github.com/flatiron/winston
 
-Client  = require("node-cassandra-cql").Client  # https://github.com/jorgebay/node-cassandra-cql
+cql     = require("node-cassandra-cql")
+Client  = cql.Client  # https://github.com/jorgebay/node-cassandra-cql
 uuid    = require('node-uuid')
 {EventEmitter} = require('events')
 
 moment  = require('moment')
 
-storage = require('storage')
-
 _ = require('underscore')
 
+CONSISTENCIES = (cql.types.consistencies[k] for k in ['any', 'one', 'two', 'three', 'quorum', 'localQuorum', 'eachQuorum', 'all'])
+
+higher_consistency = (consistency) ->
+    if not consistency?
+        return cql.types.consistencies.any
+    else if consistency == 1
+        consistency = 'one'
+    else if consistency == 2
+        consistency = 'two'
+    else if consistency == 3
+        consistency = 'three'
+    i = CONSISTENCIES.indexOf(consistency)
+    if i == -1
+        # unknown -- ?
+        return cql.types.consistencies.quorum # official default
+    else
+        return CONSISTENCIES[Math.min(CONSISTENCIES.length-1,i+1)]
 
 
 # the time right now, in iso format ready to insert into the database:
@@ -72,7 +88,7 @@ exports.inet_to_str = (r) -> [r[0], r[1], r[2], r[3]].join('.')
 
 #########################################################################
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'size', 'deleted'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'location', 'bup_location', 'size', 'deleted'].concat(PROJECT_GROUPS)
 
 # This is used in account creation right now, so has to be set.
 # It is actually not used in practice and the limits have no meaning.
@@ -361,16 +377,20 @@ exports.from_cassandra = from_cassandra = (value, json) ->
 class exports.Cassandra extends EventEmitter
     constructor: (opts={}) ->    # cb is called on connect
         opts = defaults opts,
-            hosts    : ['localhost']
-            cb       : undefined
-            keyspace : undefined
-            username : undefined
-            password : undefined
-            consistency : undefined
-            verbose : false # quick hack for debugging...
+            hosts           : ['localhost']
+            cb              : undefined
+            keyspace        : undefined
+            username        : undefined
+            password        : undefined
+            query_timeout_s : 60    # any query that doesn't finish after this amount of time (due to cassandra/driver *bugs*) will be retried a few times (same as consistency causing retries)
+            query_max_retry : 10    # max number of retries
+            consistency     : undefined
+            verbose         : false # quick hack for debugging...
             conn_timeout_ms : 5000  # Maximum time in milliseconds to wait for a connection from the pool.
 
         @keyspace = opts.keyspace
+        @query_timeout_s = opts.query_timeout_s
+        @query_max_retry = opts.query_max_retry
 
         if opts.hosts.length == 1
             # the default QUORUM won't work if there is only one node.
@@ -544,21 +564,23 @@ class exports.Cassandra extends EventEmitter
             set       : {}
             ttl       : 0
             cb        : undefined
+            consistency : undefined  # default...
             json      : []          # list of columns to convert to JSON
         vals = []
         set = @_set(opts.set, vals, opts.json)
         where = @_where(opts.where, vals, opts.json)
-        @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.cb)
+        @cql("UPDATE #{opts.table} USING ttl #{opts.ttl} SET #{set} WHERE #{where}", vals, opts.consistency, opts.cb)
 
     delete: (opts={}) ->
         opts = defaults opts,
             table : undefined
             where : {}
             thing : ''
+            consistency : undefined  # default...
             cb    : undefined
         vals = []
         where = @_where(opts.where, vals)
-        @cql("DELETE #{opts.thing} FROM #{opts.table} WHERE #{where}", vals, opts.cb)
+        @cql("DELETE #{opts.thing} FROM #{opts.table} WHERE #{where}", vals, opts.consistency, opts.cb)
 
     select: (opts={}) =>
         opts = defaults opts,
@@ -620,31 +642,51 @@ class exports.Cassandra extends EventEmitter
             consistency = undefined
         if not consistency?
             consistency = @consistency
-        f = (c) =>
+        g = (c) =>
             try
                 @conn.execute query, vals, consistency, (error, results) =>
                     if error
                         winston.error("Query cql('#{query}',params=#{misc.to_json(vals).slice(0,1024)}) caused a CQL error:\n#{error}")
                     # TODO - this test for "ResponseError: Operation timed out" is HORRIBLE.
-                    if error? and "#{error}".indexOf("peration timed out") != -1
+                    # The any of its parents is because often when the server is loaded it rejects requests sometimes
+                    # with "no permissions. ... any of its parents".
+                    if error? and ("#{error}".indexOf("peration timed out") != -1 or "#{error}".indexOf("any of its parents") != -1)
                         winston.error("... so probably re-doing query")
                         c(error)
                     else
                         cb?(error, results?.rows)
+                        cb = undefined  # ensure is only called once
                         c()
             catch e
                 m = "exception doing cql query -- #{misc.to_json(e).slice(0,1000)}"
                 winston.error(m)
                 cb?(m)
+                cb = undefined  # ensure is only called once
                 c()
+
+        f = (c) =>
+            failed = () =>
+                m = "query #{query}, params=#{misc.to_json(vals).slice(0,1024)}, timed out with no response at all after #{@query_timeout_s} seconds -- likely retrying"
+                winston.error(m)
+                c(m)
+                c = undefined # ensure only called once
+            _timer = setTimeout(failed, 1000*@query_timeout_s)
+            g (err) =>
+                clearTimeout(_timer)
+                c?(err)
 
         # If a query fails due to "Operation timed out", then we will keep retrying, up to 10 times, with exponential backoff.
         # ** This is ABSOLUTELY critical, if we have a loaded system, slow nodes, want to use consistency level > 1, etc, **
         # since otherwise all our client code would have to do this...
         misc.retry_until_success
             f         : f
-            max_tries : 10
+            max_tries : @query_max_retry
             max_delay : 3000
+            cb        : (err) =>
+                if err
+                    cb?("query failed even after #{@query_max_retry} attempts -- giving up -- #{err}")
+                else
+                    cb?()
 
 
     key_value_store: (opts={}) -> # key_value_store(name:"the name")
@@ -1965,11 +2007,6 @@ class exports.Salvus extends exports.Cassandra
 
         @_touch_project_cache[id] = misc.walltime()
 
-        # Try to make a snapshot (will not make them too frequently) if the project is *not* currently being replicated
-        storage.snapshot
-            project_id              : opts.project_id
-            only_if_not_replicating : true  # since making snapshots can mess up replication
-
         set = {last_edited: now()}
         if opts.size
             set.size = opts.size
@@ -2318,7 +2355,6 @@ class exports.Salvus extends exports.Cassandra
                 if error
                     opts.cb(error)
                 else
-
                     for r in results
                         # fill in a default name for the project -- used in the URL
                         if not r.name and r.title?
@@ -2699,7 +2735,7 @@ class ChunkedStorage
             db      : required     # db = a database connection
             id      : required     # id = a uuid
             verbose : true   # verbose = if true, log a lot about what happens.
-            limit   : 5
+            limit   : 3
         @db = opts.db
         @id = opts.id
         @verbose = opts.verbose
@@ -2739,6 +2775,8 @@ class ChunkedStorage
             age_s : 120*60  # 2 hours -- delete all chunks associated to any records in storage_active that are at least this old
             cb    : undefined
         dbg = (m) => @dbg('delete_lost_chunks', '', m)
+
+        opts.cb("TODO: do not use this yet -- it should be changed to verify that lost data *really* is lost!  Since the way things are done, the data could be perfectly written and the only problem is deleting the storage writing record.")
 
         results = undefined
         tm      = exports.seconds_ago(opts.age_s)
@@ -2814,8 +2852,8 @@ class ChunkedStorage
             name          : undefined  # defaults to equal filename if given; if filename not given, name *must* be given
             blob          : undefined  # Buffer  # EXACTLY ONE of blob or path must be defined
             filename      : undefined  # filename  -- instead read blob directly from file, which will work even if file is HUGE
-            chunk_size_mb : 10         # 10MB
-            limit         : undefined          # max number of chunks to save at once
+            chunk_size_mb : 4          # 4MB
+            limit         : undefined  # max number of chunks to save at once
             cb            : undefined
 
         if not opts.limit?
@@ -2841,6 +2879,14 @@ class ChunkedStorage
         dbg = (m) => @dbg('put', opts.name, m)
         dbg()
         total_time = misc.walltime()
+
+        if opts.name and opts.name[opts.name.length-1] == '/'
+            dbg("it's a directory (not file)")
+            query = "UPDATE storage SET chunk_ids=[], size=?, chunk_size=? WHERE id=? AND name=?"
+            dbg(query)
+            @db.cql(query, ["0", chunk_size, @id, opts.name], (err) => opts.cb?(err))
+            return
+
 
         chunk_size = opts.chunk_size_mb * 1000000
         size       = undefined
@@ -2890,6 +2936,7 @@ class ChunkedStorage
                         fs.read fd, chunk, 0, chunk.length, start, (err) =>
                             c(err, chunk)
 
+                num_saved = 0
                 f = (i, c) =>
                     t = misc.walltime()
                     chunk_id = chunk_ids[i]
@@ -2902,22 +2949,13 @@ class ChunkedStorage
                         else
                             query = "UPDATE storage_chunks SET chunk=?, size=? WHERE chunk_id=?"
                             @db.cql query, [chunk, chunk.length, chunk_id], 1, (err) =>
-                                dbg("saved chunk #{i}/#{num_chunks-1} in #{misc.walltime(t)} s")
+                                num_saved += 1
+                                dbg("saved chunk #{i} -- now #{num_saved} of #{num_chunks} done.  (#{misc.walltime(t)} s)")
                                 c(err)
 
-                g = (i, c) =>
-                    h = (c) =>
-                        f(i,c)
-
-                    misc.retry_until_success
-                        f         : h
-                        max_tries : 15
-                        max_delay : 5000
-                        cb        : c
-
-                async.mapLimit [0...num_chunks], opts.limit, g, (err) =>
+                async.mapLimit [0...num_chunks], opts.limit, f, (err) =>
                     if err
-                        dbg("something went wrong writing chunks (#{err}): delete any chunks we just wrote")
+                        dbg("something went wrong writing chunks (#{misc.to_json(err)}): delete any chunks we just wrote")
                         g = (id, c) =>
                             @db.delete
                                 table : 'storage_chunks'
@@ -2975,6 +3013,36 @@ class ChunkedStorage
             opts.name = opts.filename
 
         dbg = (m) => @dbg('get', opts.name, m)
+        dbg()
+
+        if opts.filename? and opts.filename[opts.filename.length-1] == '/'
+            dbg("directory (not file)")
+            if opts.filename[0] != '/'
+                path = process.cwd()+'/'+opts.filename
+            else
+                path = opts.filename
+            path = path.slice(0,path.length-1)  # get rid of trailing /
+            fs.exists path, (exists) =>
+                if exists
+                    opts.cb()
+                else
+                    misc_node.ensure_containing_directory_exists path, (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            fs.mkdir path, 0o700, (err) =>
+                                if err?
+                                    if err.code == 'EEXIST'
+                                        opts.cb()
+                                    else
+                                        opts.cb(err)
+                                else
+                                    opts.cb()
+
+            return
+
+
+
         chunk_ids = undefined
         chunks = {}
         chunk_size = undefined
@@ -3040,15 +3108,17 @@ class ChunkedStorage
                     cb(); return
                 dbg("get chunks")
                 consistency = {}
+                num_chunks = 0
                 f = (i, c) =>
                     t = misc.walltime()
 
-                    # For each i, we first try with a consistency of 1 -- if that doesn't work, we increase it to 2, since the
-                    # data *is* there.
+                    # Keep increasing consistency until it works.
                     if not consistency[i]?
-                        consistency[i] = 1
+                        consistency[i] = cql.types.consistencies.one
                     else
-                        consistency[i] += 1
+                        consistency[i] = higher_consistency(consistency[i])
+                        dbg("increasing read consistency for chunk #{i} to #{consistency[i]}")
+
                     @db.select_one
                         table       : 'storage_chunks'
                         where       : {chunk_id:chunk_ids[i]}
@@ -3057,11 +3127,11 @@ class ChunkedStorage
                         consistency : consistency[i]
                         cb          : (err, result) =>
                             if err
-                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; will likely retry with higher consistency level")
-                                consistency[i] = true
+                                dbg("failed to read chunk #{i}/#{chunk_ids.length-1} from DB in #{misc.walltime(t)} s -- #{err}; may retry with higher consistency")
                                 c(err)
                             else
-                                dbg("got chunk #{i}/#{chunk_ids.length-1} in #{misc.walltime(t)} s")
+                                num_chunks += 1
+                                dbg("got chunk #{i}:  #{num_chunks} of #{chunk_ids.length} chunks (time: #{misc.walltime(t)}s)")
                                 chunk = result[0]
                                 chunks[chunk_ids[i]] = {chunk:chunk, start:i*chunk_size, chunk_id:chunk_ids[i]}
                                 if opts.filename?
@@ -3075,7 +3145,11 @@ class ChunkedStorage
                 g = (i, c) =>
                     h = (c) =>
                         f(i,c)
-                    misc.retry_until_success_wrapper(f:h, start_delay:1, max_delay:5000, exp_factor:1.2, max_tries:10)(c)
+                    misc.retry_until_success
+                        f         : h
+                        max_tries : CONSISTENCIES.length + 1
+                        max_delay : 3000
+                        cb        : c
                 async.mapLimit([0...chunk_ids.length], opts.limit, g, cb)
             (cb) =>
                 if opts.filename?
@@ -3177,6 +3251,8 @@ class ChunkedStorage
     #
     # Files with the same name and size are considered equal (for our application
     # this is fine).
+    #
+    # Directories are files whose name ends in a slash.
 
     sync_diff: (opts) =>
         opts = defaults opts,
@@ -3208,7 +3284,7 @@ class ChunkedStorage
                 dbg("get files in path")
                 misc_node.execute_code
                     command     : 'find'
-                    args        : [opts.path, '-type', 'f', '-printf', '%s %P\n']  # size_bytes filename
+                    args        : [opts.path, '-printf', '%y %s %P\n']  # type size_bytes filename
                     timeout     : 360
                     err_on_exit : true
                     path        : process.cwd()
@@ -3219,8 +3295,12 @@ class ChunkedStorage
                         else
                             for x in output.stdout.split('\n')
                                 v = misc.split(x)
-                                if v.length == 2
-                                    local_files[v[1]] = parseInt(v[0])
+                                if v.length == 3
+                                    if v[0] == 'd' or v[0] == 'f'  # only files and directories
+                                        name = v[2]
+                                        if v[0] == 'd'
+                                            name += '/'
+                                        local_files[name] = parseInt(v[1])
                             cb()
         ], (err) =>
             if err

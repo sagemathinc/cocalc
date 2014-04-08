@@ -6,7 +6,7 @@ def cmd(s):
    print s
    print os.system(s) 
 
-hosts = ['10.1.%s.1'%i for i in range(1,8) + range(10,22)]
+hosts = ['10.1.%s.1'%i for i in range(1,8) + range(10,22)]+ ['10.3.%s.1'%i for i in range(1,5)]
 
 for h in hosts:
-   cmd("time ssh %s 'nodetool repair -pr -par storage storage'"%h)
+   cmd("time ssh %s 'nodetool repair -pr -par storage'"%h)

@@ -274,6 +274,15 @@ CREATE TABLE projects (
 
      last_edited      timestamp,// timestamp of last modification of the project
 
+
+     bup_location     uuid,     // location using new bup-based storage system
+     bup_last_save    map<uuid, timestamp>,
+     bup_repo_size_kb     int,      // last known size of bup repository in kilobytes = 1000 bytes
+     bup_working_size_kb  int,      // last known size of working directory in kilobytes = 1000 bytes
+
+
+     settings         map<text,text>,  // various project settings, e.g., 'memory', 'cpu_shares', 'cores', 'disk', 'mintime', 'login_shell'
+
      location         varchar,  // the username@host on which deployed: JSON -- {username:, host:, port:, path:}
 
      status           varchar,  // 'new'=just created, 'opened'=right after opening, 'closed'=right after closing, etc. -- maybe "archived" at some pointed (?)
@@ -287,6 +296,7 @@ CREATE TABLE projects (
 
      quota            varchar,
 
+
      quota_zfs        varchar,  // string, e.g., '10G' or '19390834300'  (can be with units or no units and bytes)
      usage_zfs        varchar,  // JSON: {avail:?, used:?, usedsnap:?})  # ? are strings like '17M' or '13G' as output by zfs.  NOT bytes.
      errors_zfs       map<timestamp, text>, // error messages with the zfs storage system.  Monitor this every so often.
@@ -296,6 +306,9 @@ CREATE TABLE projects (
      last_migrated2   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
      location2        varchar,   // location in new ZFS/cassandra setup used for migration.
      last_migrate2_error varchar, // DEPRECATED: used for migrating2
+
+     last_migrated3   timestamp, // used from ZFS to Cassandra/image format.  delete/ignore when done.
+     last_migrate3_error varchar, // DEPRECATED: used for migrating2
 
      old_location     varchar,   // DEPRECATED: used for migrating... (so can delete after that is done).
 
@@ -313,7 +326,9 @@ CREATE TABLE projects (
      linked_projects      set<uuid>,   // projects that this one links to.
 
 
-     timeout_disabled  boolean // if true, never automatically kill this project simply due to it sitting around unused.
+     timeout_disabled  boolean, // if true, never automatically kill this project simply due to it sitting around unused.
+
+     abuser varchar
 
 );
 
@@ -570,11 +585,31 @@ CREATE TABLE banned_email_addresses (
     dummy         boolean
 );
 
+CREATE TABLE storage_servers (
+    dummy     boolean,
+    server_id uuid,
+    host      inet,
+    port      int,
+    dc        int,
+    health    float,
+    secret    varchar,
+    PRIMARY KEY(dummy, server_id)
+);
+
+
 
 /*STORAGE */
 
 /*
-  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '2', 'DC1': '2'};
+  CREATE KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
+  ALTER KEYSPACE storage WITH replication = {'class': 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
+
+  ALTER KEYSPACE system_auth WITH REPLICATION = {'class' : 'NetworkTopologyStrategy', 'DC0': '3', 'DC1': '3', 'DC2':'3'};
+
+CREATE USER salvus WITH PASSWORD '...'  SUPERUSER;
+DROP USER cassandra;
+CREATE USER storage_server WITH PASSWORD '...';
+
 */
 
 
@@ -584,7 +619,7 @@ CREATE TABLE banned_email_addresses (
   - querying the writing table is an easy way to see what writes are happening right now.
 */
 CREATE TABLE storage_writing (
-    dummy       boolean,    /* so we can easily do a select * on this table */
+    dummy       boolean,    /* so can do:   select id,name,size from storage_writing where dummy=true    */
     timestamp   timestamp,
     id          uuid,
     name        varchar,
@@ -633,7 +668,7 @@ CREATE TABLE project_state (
     import_pool    timestamp,    /* last zpool import; undefined if exported */
     snapshot_pool  timestamp,    /* last time the filsystem in the zpool was snapshotted on this host */
     scrub_pool     timestamp,    /* last time we ran zpool scrub on this pool */
-    broken         boolean,      /* set to true of we consider this copy of the project broken: change once fixed */      
+    broken         boolean,      /* set to true of we consider this copy of the project broken: change once fixed */
     PRIMARY KEY    (project_id, compute_id)
 );
 
@@ -647,6 +682,7 @@ CREATE TABLE compute_hosts (
     port           int,          /* port of storage server: undefined if down -- set frequently with a ttl */
     up_since       timestamp,    /* time when this host became fully operational; undefined if down -- set frequently with a ttl! */
     health         float,        /* 0 is bad, 1 is good */
+    zfs_queue_len  int,          /* zfs ops: first come, first served: is queue is big, mounting even a small project could take a while */
     projects       set<uuid>,    /* projects with data on this compute host */
     PRIMARY KEY (dummy, compute_id)
 );
@@ -656,14 +692,9 @@ CREATE TABLE project_new (
     project_id  uuid PRIMARY KEY,
     new         boolean,      /* if true, mount and *run* using the new storage format */
 );
-GRANT SELECT ON table project_new TO storage_server;
-GRANT MODIFY ON table project_new TO storage_server;
-
-
 
 CREATE INDEX on compute_hosts(host);
 
-CREATE USER storage_server WITH PASSWORD '...';
 
 GRANT SELECT ON table storage TO storage_server;
 GRANT MODIFY ON table storage TO storage_server;
@@ -677,3 +708,6 @@ GRANT SELECT ON table project_state  TO storage_server;
 GRANT MODIFY ON table project_state  TO storage_server;
 GRANT SELECT ON table compute_hosts TO storage_server;
 GRANT MODIFY ON table compute_hosts TO storage_server;
+GRANT SELECT ON table project_new TO storage_server;
+GRANT MODIFY ON table project_new TO storage_server;
+

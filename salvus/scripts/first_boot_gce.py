@@ -78,8 +78,9 @@ def conf():
         cmd("/home/salvus/salvus/salvus/data/local/sbin/tincd -k; sleep 2")
         cmd("nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd")
 
-    # Copy over newest version of sudo project creation script, and ensure permissions are right.
-    os.system("cp /home/salvus/salvus/salvus/scripts/create_project_user.py /usr/local/bin/; chmod a-w /usr/local/bin/create_project_user.py; chmod a+rx /usr/local/bin/create_project_user.py")
+    # Copy over newest version of certain scripts and set permissions
+    for s in ['bup_storage.py', 'hashring.py']:
+        os.system("cp /home/salvus/salvus/salvus/scripts/%s /usr/local/bin/; chmod og-w /usr/local/bin/%s; chmod og+rx /usr/local/bin/%s"%(s,s,s))
 
     # make it so there is a stable mac address for people who want to run their legal copy of magma, etc. in a private project.
     cmd("ip link add link eth0 address f0:de:f1:b0:66:8e eth0.1 type macvlan")
@@ -89,37 +90,24 @@ def conf():
     if os.path.exists("/mnt/conf/post"):
         cmd("/mnt/conf/post")
 
-    # Create the storage user in case it doesn't exist
-    cmd("groupadd -g 999 -o storage")
-    cmd("useradd -u 999 -g 999 -o -d /home/storage storage")
-
     cmd("chmod og-rwx -R /home/salvus/")
-    cmd("chmod og-rwx -R /home/storage/")
-
-    # Copy over newest version of storage management script to storage user.
-    os.system("cp /home/salvus/salvus/salvus/scripts/smc_storage.py /home/storage/; chown storage. /home/storage/smc_storage.py")
-
-    # Remove the temporary ZFS send/recv streams -- they can't possibly be valid since we're just booting up.
-    cmd("rm /home/storage/.storage*")
-
-    # Import the ZFS pool -- without mounting!
-    cmd("/home/salvus/salvus/salvus/scripts/mount_zfs_pools.py & ")
 
     if hostname.startswith('compute'):
         # Create a firewall so that only the hub nodes can connect to things like ipython and the raw server.
         cmd("/home/salvus/salvus/salvus/scripts/compute_firewall.sh")
         # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/cassandra")
-        # Start the storage server 
-        cmd("su - salvus /home/salvus/salvus/salvus/scripts/start_storage_server")
-        # Get rid of private ssh key, which isn't needed on compute vm's
-        cmd("rm /home/salvus/.ssh/id_rsa") 
+        # Start the storage server
+        os.system("zpool import -f bup; su - salvus -c 'cd /home/salvus/salvus/salvus/&& . salvus-env&& ./bup_server start'")
+        # Install crontab for snapshotting the bup pool, etc.
+        os.system("crontab /home/salvus/salvus/salvus/scripts/root-compute.crontab")
 
     if hostname.startswith("cassandra"):
         # Delete data that doesn't need to be on this node
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets/")
-        # Import the zpool, copy custom config, start cassandra Daemon
-        cmd("zpool import -f cassandra; rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  service cassandra start")
+        # Copy custom config, start cassandra Daemon
+        cmd("mkdir /cassandra; mount /dev/sdb2 /cassandra")
+        cmd("rm -rf /var/log/cassandra; ln -s /cassandra/log /var/log/cassandra; cp /cassandra/etc/* /etc/cassandra/;  rm -rf /var/lib/cassandra; ln -s /cassandra/lib /var/lib/cassandra; service cassandra start")
         cmd("rm -rf /home/salvus/salvus/salvus/data/secrets")
 
 

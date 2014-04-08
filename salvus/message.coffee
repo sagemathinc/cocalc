@@ -74,6 +74,28 @@ message
     project_id    : undefined
     info          : undefined
 
+
+
+
+
+message
+    event         : 'project_status'
+    id            : undefined
+    project_id    : undefined
+    status        : undefined
+
+message
+    event         : 'project_get_state'
+    id            : undefined
+    project_id    : undefined
+    state         : undefined
+
+message
+    event         : 'project_get_local_state'
+    id            : undefined
+    project_id    : undefined
+    state         : undefined
+
 #
 # A period ping message must usually be sent by the client to keep a
 # worksheet/console open, except when worksheet/console is explicitly
@@ -1158,10 +1180,9 @@ message
 
 message
     event      : 'storage'
-    project_id : required
     action     : required    # open, save, snapshot, latest_snapshot, close
+    project_id : undefined
     param      : undefined
     id         : undefined
 
 
-    

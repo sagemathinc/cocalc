@@ -217,7 +217,7 @@ class Project(object):
         Create and mount storage for the given project.
         """
         log = self._log("create")
-        if len(os.listdir(self.stream_path)) > 0:
+        if len(optimal_stream_sequence(self.streams())) > 0:
             self.import_pool()
             return
         log("create new zfs filesystem POOL/images/project_id (error if it exists already)")
@@ -242,14 +242,18 @@ class Project(object):
         if kill is None:
             kill = self._kill
         self.export_pool(kill=kill)
+        self.umount_image_fs()
+
+    def umount_image_fs(self):
+        """
+        Unmount the given project.
+        """
         log("unmounting image filesystem")
         e = cmd("sudo /sbin/zfs set mountpoint=none %s"%self.image_fs, ignore_errors=True)
         if e and 'dataset does not exist' not in e:
             raise RuntimeError(e)
         if os.path.exists('/'+self.image_fs):
             os.rmdir('/' + self.image_fs)
-        #if os.path.exists(self.project_mnt):
-        #    os.rmdir(self.project_mnt)
 
     def is_project_pool_imported(self):
         s = cmd("sudo /sbin/zpool list %s"%self.project_pool, ignore_errors=True)
@@ -266,17 +270,23 @@ class Project(object):
         """
         log = self._log("import_pool")
         s = '/'+self.image_fs
-        if len(os.listdir(self.stream_path)) == 0:
+        if len(optimal_stream_sequence(self.streams())) == 0:
             if os.path.exists(s) and len(os.listdir(s)) > 0:
                 pass
             else:
-                log("no streams, so just created a new empty pool.")
+                log("no streams and no images, so just create a new empty pool.")
                 self.create(DEFAULT_QUOTA)
                 return
         if not self.is_project_pool_imported():
             log("project pool not imported, so receiving streams")
+            # The syncs below are *critical*; without it, we always get total deadlock from this following simple example:
+            #     zfs rollback -r storage/images/bec33943-51b7-4ebb-b51b-15998a83775b@2014-03-14T16:22:43
+            #     cat /storage/streams/bec33943-51b7-4ebb-b51b-15998a83775b/2014-03-14T16:22:43--2014-03-15T22:51:56 | lz4c -d - | sudo zfs recv storage/images/bec33943-51b7-4ebb-b51b-15998a83775b
+            #     zpool import -fN project-bec33943-51b7-4ebb-b51b-15998a83775b -d /storage/images/bec33943-51b7-4ebb-b51b-15998a83775b/
             self.recv_streams()
+            sync()
             mount(s, self.image_fs)
+            sync()
             log("now importing project pool from /%s"%self.image_fs)
             cmd("sudo /sbin/zpool import -fN %s -d '/%s'"%(self.project_pool, self.image_fs))
         log("setting mountpoint to %s"%self.project_mnt)
@@ -312,8 +322,12 @@ class Project(object):
         v = []
         for x in os.listdir(self.stream_path):
             p = os.path.join(self.stream_path, x)
-            if os.path.isfile(p) and not x.endswith(".partial"):
-                v.append(Stream(self, p))
+            if os.path.isfile(p) and not x.endswith(".partial") and not x.endswith('.tmp'):
+                if os.path.getsize(p) == 15 and open(p).read() == '\x04"M\x18dp\xb9\x00\x00\x00\x00\x05]\xcc\x02':
+                    # left over files from a bug which was fixed....
+                    os.unlink(p)
+                else:
+                    v.append(Stream(self, p))
         v.sort()
         log("found %s streams"%len(v))
         return v
@@ -330,6 +344,7 @@ class Project(object):
         snaps   = snapshots(self.image_fs)
         streams = optimal_stream_sequence(self.streams())
         log("optimal stream sequence: %s"%[x.filename for x in streams])
+        log("snapshot sequence: %s"%snaps)
 
         # rollback the snapshot snaps[rollback_to] (if defined), so that snapshot no longer exists.
         rollback_to = len(snaps)
@@ -345,24 +360,41 @@ class Project(object):
             else:
                 apply_starting_with = 0  # apply all
                 rollback_to = 0  # get rid of all snapshots
+        elif len(streams) == 1:
+            if len(snaps) == 0 and snaps[0] == streams.start:
+                # nothing to do -- there's only one and it's applied
+                return
+            else:
+                # must apply everything
+                rollback_to = 0
+                apply_starting_with = 0
         else:
             # figure out which streams to apply, and whether we need to rollback anything
-            newest = snaps[rollback_to-1]
-            i = len(streams) - 1
-            while i >= 0:
-                 if streams[i].start == newest:
-                     # apply starting here
-                     apply_starting_with = i
-                     break
-                 elif streams[i].end == newest:
-                     # end of a block in the optimal sequence is the newest snapshot; in this case,
-                     # this must be the last step in the optimal sequence, or we would have exited
-                     # in the above if.  So there is nothing to apply.
-                     return
-                 elif streams[i].start < newest and streams[i].end >= newest:
-                     rollback_to -= 1
-                     newest = snaps[rollback_to-1]
-                 i -= 1
+            newest_snap = snaps[-1]
+            apply_starting_with = len(streams) - 1
+            while apply_starting_with >= 0 and rollback_to >= 1:
+                print apply_starting_with, rollback_to
+                if streams[apply_starting_with].start == newest_snap:
+                    print "branch 0"
+                    # apply starting here
+                    break
+                elif streams[apply_starting_with].end == newest_snap:
+                    print "branch 1"
+                    # end of a block in the optimal sequence is the newest snapshot; in this case,
+                    # this must be the last step in the optimal sequence, or we would have exited
+                    # in the above if.  So there is nothing to apply.
+                    return
+                elif streams[apply_starting_with].start < newest_snap and streams[apply_starting_with].end > newest_snap:
+                    print "branch 2"
+                    rollback_to -= 1
+                    newest_snap = snaps[rollback_to-1]
+                else:
+                    print "branch 3"
+                    apply_starting_with -= 1
+
+        log("apply_starting_with = %s"%apply_starting_with)
+        log("rollback_to = %s"%rollback_to)
+
 
         # streams that need to be applied
         streams = streams[apply_starting_with:]
@@ -380,13 +412,6 @@ class Project(object):
         log("now applying %s incoming streams"%len(streams))
         for stream in streams:
             stream.apply()
-
-        # The sync below is *critical*; without it, we always get total deadlock from this following simple example:
-        #     zfs rollback -r storage/images/bec33943-51b7-4ebb-b51b-15998a83775b@2014-03-14T16:22:43
-        #     cat /storage/streams/bec33943-51b7-4ebb-b51b-15998a83775b/2014-03-14T16:22:43--2014-03-15T22:51:56 | lz4c -d - | sudo zfs recv storage/images/bec33943-51b7-4ebb-b51b-15998a83775b
-        #     zpool import -fN project-bec33943-51b7-4ebb-b51b-15998a83775b -d /storage/images/bec33943-51b7-4ebb-b51b-15998a83775b/
-
-        sync()
 
 
     def send_streams(self):
@@ -438,8 +463,12 @@ class Project(object):
                 raise
             # Now discard any streams we no longer need...
             for x in v:
-                if x.start >= start:
-                    log("discarding old stream: %s"%x.path)
+                if x.start != x.end:
+                    if x.start >= start:
+                        log("discarding old stream: %s"%x.path)
+                        os.unlink(x.path)
+                elif start == end and x.start < start:
+                    log("discarding old initial stream: %s"%x.path)
                     os.unlink(x.path)
         except RuntimeError:
             log("problem sending stream -- don't leave a broken stream around")
@@ -505,9 +534,10 @@ class Project(object):
         if kill is None:
             kill = self._kill
         log = self._log("close")
+        self.export_pool(kill=kill)
         if send_streams:
             self.send_streams()
-        self.umount(kill=kill)
+        self.umount_image_fs()
         self.destroy_image_fs()
 
     def replicate(self, target, delete=False):
@@ -702,17 +732,17 @@ if __name__ == "__main__":
     parser_close = subparsers.add_parser('close', help='send_streams, unmount, destroy images, etc., leaving only streams')
     parser_close.add_argument("--nosend_streams", help="if given, don't send_streams first: DANGEROUS", default=False, action="store_const", const=True)
     parser_close.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_close.set_defaults(func=lambda args: project.close(send_streams=not args.nosend_streams, kill=args.kill))
 
     parser_destroy = subparsers.add_parser('destroy', help='Delete all traces of this project from this machine.  *VERY DANGEROUS.*')
     parser_destroy.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_destroy.set_defaults(func=lambda args: project.destroy(kill=args.kill))
 
     parser_destroy_image_fs = subparsers.add_parser('destroy_image_fs', help='export project pool and destroy the image filesystem, leaving only streams')
     parser_destroy_image_fs.add_argument("--kill", help="kill all processes by user first",
-                                   dest="kill", default=False, action="store_const", const=True)
+                                   dest="kill", default=None, action="store_const", const=True)
     parser_destroy_image_fs.set_defaults(func=lambda args: project.destroy_image_fs(kill=args.kill))
 
     parser_destroy_streams = subparsers.add_parser('destroy_streams', help='destroy all streams stored locally')

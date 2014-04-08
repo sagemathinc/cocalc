@@ -178,11 +178,13 @@ exports.connect_to_locked_socket = (opts) ->
         timeout : 5
         cb      : required
 
+    winston.debug("#{misc.to_json(opts)}")
+
     winston.debug("misc_node: connecting to a locked socket on port #{port}...")
     timer = undefined
 
     timed_out = () ->
-        m = "Timed out trying to connect to locked socket on port #{port}"
+        m = "misc_node: timed out trying to connect to locked socket on port #{port}"
         winston.debug(m)
         cb(m)
         socket.end()
@@ -333,7 +335,13 @@ exports.execute_code = execute_code = (opts) ->
             if opts.gid
                 o.gid = opts.gid
 
-            r = child_process.spawn(opts.command, opts.args, o)
+            try
+                r = child_process.spawn(opts.command, opts.args, o)
+            catch e
+                # Yes, spawn can cause this error if there is no memory, and there's no event! --  Error: spawn ENOMEM
+                c("error #{misc.to_json(e)}")
+                return
+
             ran_code = true
 
             if opts.verbose
@@ -367,6 +375,15 @@ exports.execute_code = execute_code = (opts) ->
 
             r.on 'exit', (code) ->
                 exit_code = code
+                finish()
+
+            # This can happen, e.g., "Error: spawn ENOMEM" if there is no memory.  Without this handler,
+            # an unhandled exception gets raised, which is nasty.
+            # From docs: "Note that the exit-event may or may not fire after an error has occured. "
+            r.on 'error', (err) ->
+                if not exit_code?
+                    exit_code = 1
+                stderr += to_json(err)
                 finish()
 
             callback_done = false
@@ -410,10 +427,15 @@ exports.execute_code = execute_code = (opts) ->
         # winston.debug("(time: #{walltime() - start_time}): Done running '#{opts.command} #{opts.args.join(' ')}'; resulted in stdout='#{stdout}', stderr='#{stderr}', exit_code=#{exit_code}, err=#{err}")
         # Do not litter:
         if tmpfilename?
-            fs.unlink(tmpfilename)
+            try
+                fs.unlink(tmpfilename)
+            catch e
+                winston.debug("failed to unlink #{tmpfilename}")
+
 
         if opts.verbose
             winston.debug("finished exec of #{opts.command}")
+            winston.debug("stdout=#{stdout},stderr=#{stderr},exit_code=#{exit_code}")
         if not opts.err_on_exit and ran_code
             # as long as we made it to running some code, we consider this a success (that is what err_on_exit means).
             opts.cb?(false, {stdout:stdout, stderr:stderr, exit_code:exit_code})
@@ -610,7 +632,12 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
                         cb()
                 (cb) ->
                     fs.mkdir(dir, 0o700, cb)
-            ], (err) -> cb?(err))
+            ], (err) ->
+                if err.code == 'EEXIST'
+                    cb?()
+                else
+                    cb?(err)
+            )
 
 exports.ensure_containing_directory_exists = ensure_containing_directory_exists
 
