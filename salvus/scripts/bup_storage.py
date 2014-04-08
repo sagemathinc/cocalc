@@ -380,7 +380,9 @@ class Project(object):
             log("kill attempt left %s procs"%n)
             if n == 0:
                 break
-        self.delete_user()  # so crontabs, remote logins, etc., won't happen
+
+        # So crontabs, remote logins, etc., won't happen -- but we *DO* maybe want remote login/crontab. Not sure.
+        self.delete_user()
         self.unset_quota()
         self.umount_snapshots()
 
@@ -819,7 +821,8 @@ class Project(object):
         log("rsync from remote to local")
         t = time.time()
         x = self.cmd("rsync -Haxq --ignore-errors --delete %s root@%s:%s/ %s/; chown -R %s:%s %s/"%(
-               ' '.join(self.exclude(project_mnt+"/")), host, project_mnt, self.project_mnt, self.uid, self.gid, self.project_mnt), ignore_errors=True)
+               ' '.join(self.exclude("")),
+               host, project_mnt, self.project_mnt, self.uid, self.gid, self.project_mnt), ignore_errors=True)
         log("time to rsync=%s"%(time.time()-t))
         for a in x.splitlines():
             # allow these errors only -- e.g., sshfs mounts cause them
@@ -844,123 +847,6 @@ class Project(object):
         print "SUCCESS"
         return True
 
-    def xxx_migrate_remote(self, host, lastmod, max_snaps=10):
-        log = self._log('migrate_remote')
-
-        live_path = "/projects/%s/"%self.project_id
-        snap_path  = os.path.join(live_path, '.zfs/snapshot/')
-
-        log("is it an abusive bitcoin miner?")
-        x = self.cmd("bup ls master/latest/", verbose=1, ignore_errors=True)  # will fail if nothing local
-        if 'minerd' in x or 'coin' in x:
-            log("ABUSE")
-            print "ABUSE"
-            # nothing more to do
-            return
-
-        def sync_out():
-            status = self.sync(destructive=True, snapshots=True)
-            print str(status)
-            for r in status:
-                if r.get('error', False):
-                    print "FAIL"
-                    return False
-            return True
-
-        log("get list of local snapshots")
-        try:
-            local_snapshots = self.cmd("bup ls master/", verbose=1).split()[:-1]
-        except:
-            local_snapshots = []
-        local_snapshots.sort()
-        local_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%d-%H%M%S")) for s in local_snapshots]
-
-        if len(local_snapshots) == 0:
-            newest_local = 0
-        else:
-            newest_local = local_snapshot_times[-1]
-
-        log("newest_local=%s, lastmod=%s"%(newest_local, lastmod))
-        if newest_local+3 >= lastmod:  # 3 seconds due to rounding...
-            sync_out()
-            print "SUCCESS"
-            return
-
-        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls %s/'"%(host, live_path), ignore_errors=True, verbose=1)
-        if 'minerd' in x or 'coin' in x:
-            log("ABUSE")
-            print "ABUSE"
-            # nothing more to do
-            return
-
-        log("maybe they are not a bitcoin miner after all...")
-        if not os.path.exists(self.bup_path):
-            self.cmd(['/usr/bin/bup', 'init'])
-
-        log("get list of remote snapshots")
-        x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=True)
-        if 'No such file or' in x:
-            # try to mount and try again
-            self.cmd("ssh -o StrictHostKeyChecking=no  root@%s 'zfs set mountpoint=/projects/%s projects/%s; zfs mount projects/%s'"%(
-                   host, self.project_id, self.project_id, self.project_id), ignore_errors=True, timeout=600)
-            x = self.cmd("ssh -o StrictHostKeyChecking=no root@%s 'ls -1 %s/'"%(host, snap_path), verbose=1, ignore_errors=False)
-        remote_snapshots = x.splitlines()
-        remote_snapshots.sort()
-
-        log("do we need to do anything?")
-        if len(remote_snapshots) == 0:
-            # this shouldn't come up, but well...
-            print "SUCCESS"
-            return
-        remote_snapshot_times = [time.mktime(time.strptime(s, "%Y-%m-%dT%H:%M:%S")) for s in remote_snapshots]
-        newest_remote = remote_snapshot_times[-1]
-
-
-        if newest_remote < newest_local:
-            log("nothing more to do -- we have enough")
-            if sync_out():
-                print "SUCCESS"
-            return
-
-        log("get some more snapshots")
-        # v = indices into remote_snapshots list of the snapshots we need
-        v = [i for i in range(len(remote_snapshots)) if remote_snapshot_times[i] not in local_snapshot_times]
-
-        if len(v) > max_snaps:
-            log('shrinking list to save time')
-            trim = math.ceil(len(v)/max_snaps)
-            w = [v[i] for i in range(len(v)) if i%trim==0]
-            for i in range(1,5):
-                if w[-i] != v[-i]:
-                    w.append(v[-i])
-            v = w
-
-        log("in fact, get %s more snapshots"%len(v))
-
-        just_get_home = False
-        for i in v:
-            path = os.path.join(snap_path, remote_snapshots[i])
-            tm   = remote_snapshot_times[i]
-
-            try:
-                self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(path+'/') + [path],
-                         timeout=600)
-            except:
-                just_get_home = True
-                break
-            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', '-d', tm, path])
-
-        if just_get_home:
-            log("problems indexing zfs snapshots -- so just get a copy of the live filesystem")
-            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "index", "-x"] + self.exclude(live_path+'/') + [live_path], ignore_errors=True)
-            self.cmd(["/usr/bin/bup", "on", 'root@'+host, "save", "--strip", "-n", 'master', live_path])
-
-        if len(v) > 5:
-           log("doing a cleanup too, so we start fresh")
-           self.cleanup()
-
-        if sync_out():
-            print "SUCCESS"
 
 
 

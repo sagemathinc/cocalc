@@ -1,15 +1,57 @@
+- [ ] migration -- no way to finish without some painful actions
+
+   - make 1 new gce machine with all disks mounted it
+   - mount snapshot of all projects disks to all my .5 machines
+   - rewrite migrate script to use .5 instead of .4 and for gce use special machine.
+   - run.
+
+
+salvus@cloud1:~$ more disable_apparmor_vm.py
+#!/usr/bin/env python
+import os
+for x in os.popen("apparmor_status").readlines():
+    v = x.split()
+    print v
+    if len(v) == 1 and v[0].startswith('libvirt-'):
+        s="apparmor_parser -R /etc/apparmor.d/libvirt/%s"%v[0]
+        print s
+        os.system(s)
+
+
+    virsh snapshot-create-as compute1a snap1 snap1-desc --disk-only --diskspec vdc,snapshot=external,file=/home/salvus/vm/images/persistent/compute1a-projects-sn1.img
+    qemu-img create -b compute1a-projects.img -f qcow2 compute1dc1-projects.img
+
+    virsh snapshot-create-as compute7a snap1 snap1-desc --disk-only --diskspec vdc,snapshot=external,file=/home/salvus/vm/images/persistent/compute7a-projects-sn1.img vdd,snapshot=external,file=/home/salvus/vm/images/persistent/compute7a-projects2-sn1.img
+    qemu-img create -b compute1a-projects.img -f qcow2 compute1dc1-projects.img
+    qemu-img create -b compute7a-projects.img -f qcow2 compute1dc1-projects2.img
+    qemu-img create -b compute7a-projects2.img -f qcow2 compute1dc1-projects3.img
+
+
+    virsh snapshot-create-as compute5a snap1 snap1-desc --disk-only --diskspec vdc,snapshot=external,file=/home/salvus/vm/images/persistent/compute5a-projects-sn1.img vdd,snapshot=external,file=/home/salvus/vm/images/persistent/compute5a-projects2-sn1.img
+    qemu-img create -b compute5a-projects.img -f qcow2 compute2dc1-projects.img
+    qemu-img create -b compute5a-projects2.img -f qcow2 compute2dc1-projects.img
+
+ - compute1a, compute7a will be /projects1 and /projects7 on compute1dc1
+
+          zpool import -f 1330245248116180286 projects7
+          zpool import -f 17637146741023513795 projects1
+
+ - compute2a is on compute2a:/projects  (no choice, due to raw partition)
+
+ - compute5a will be /projects on compute2dc1
+
+
 
 BEFORE SWITCH:
 
  - [ ] migrate all projects
+   - this is just too slow/flakie due to replication
+   - i need to just clone *all* the disk onto new machines and just do everything without touching the existing compute vm's
 
- - [ ] change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 
- - [ ] changing file ordering doesn't work first time due to caching.
-
- - [ ] raw doesn't work; ipython doesn't work -- so probably port forwarding doesn't work at all.
 
  - [ ] start a testing hub and test live projects
+ - [ ] (yes it does -- retest non-locally) raw doesn't work; ipython doesn't work -- so probably port forwarding doesn't work at all.
 
 
 
@@ -17,6 +59,7 @@ BEFORE SWITCH:
 
 AFTER SWITCH:
 
+ - [ ] MAYBE -- or maybe not -- change bup_storage to never delete account: it's very useful for linking projects and sharing files to have account available at all times.  will make, e.g., persistent sshfs possible; make sure .ssh is not ssh excluded from rsync
 
 - [ ] have stable ipv6 project ip addresses be would be a huge *win*.  LXC would make that possible.
 
@@ -63,6 +106,9 @@ AFTER SWITCH:
 
 
 # DONE
+
+ - [x] changing file ordering doesn't work first time due to caching.
+
 
  - [x] restart migration from newest to oldest, sorted by modification time.
  - [x] must update bup-1 on all vms!   https://github.com/williamstein/bup-1

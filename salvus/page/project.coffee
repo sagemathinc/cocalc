@@ -1271,12 +1271,13 @@ class ProjectPage
                 file_names = (x.name for x in listing.files)
                 file_names.sort()
                 file_names = "#{file_names}"  # have to convert to string to compare arrays in javascript
-                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == file_names
+                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == file_names and @_update_file_sort_by_time == @_sort_by_time
                     cb()
                     return
                 else
                     @_update_file_list_tab_last_path = path
                     @_update_file_list_tab_last_path_files = file_names
+                    @_update_file_sort_by_time = @_sort_by_time
 
                 @_last_listing = listing
 
