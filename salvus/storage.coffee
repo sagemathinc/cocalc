@@ -4707,7 +4707,7 @@ exports.migrate2_bup_all = (opts) ->
         start : undefined    # if given, only takes projects.slice(start, stop) -- useful for debugging
         stop  : undefined
         status: undefined      # if given, should be a list, which will get status for projects push'd as they are running.
-        timeout : 7200         # timeout on any given migration -- actually leaves them running, but moves on...
+        timeout : 2000         # timeout on any given migration -- actually leaves them running, but moves on...
         exclude : []
         only  : undefined      # if given, *ONLY* migrate projects in this list.
         reverse : false
@@ -4784,12 +4784,13 @@ exports.migrate2_bup_all = (opts) ->
 
                         dbg("filter out those that are already done: before #{result.length}")
                         v = []
+                        t = new Date(1396877998939)
                         for x in result
                             if not x.bup_last_save? or misc.len(x.bup_last_save) < 3
                                 v.push(x)
                             else
                                 for k, tm of x.bup_last_save
-                                    if tm < x.last_edited
+                                    if tm < t or tm < x.last_edited
                                         v.push(x)
                                         break
                         result = v
@@ -4874,7 +4875,7 @@ exports.migrate2_bup_all = (opts) ->
         if opts.loop
             f = () =>
                 opts.loop += 1
-                exports.migrate_bup_all(opts)
+                exports.migrate2_bup_all(opts)
             winston.debug("WAITING 90 seconds to space things out... before doing loop #{opts.loop+1}")
             setTimeout(f, 1000*90)
             return
@@ -4954,8 +4955,8 @@ exports.migrate2_bup = (opts) ->
                 database.cql("UPDATE projects set bup_last_save[?]=? WHERE project_id=?",
                              [k, d, opts.project_id], c)
             async.map(misc.keys(opts.bup_last_save), f, cb)
-
         (cb) ->
+            cb(); return
             if host?
                 cb(); return
             dbg("get current location of project from database")
@@ -4966,12 +4967,25 @@ exports.migrate2_bup = (opts) ->
                     cb(err)
         (cb) ->
             dbg("get ordered list of hosts, based on newest snapshots")
+            dc0 = ("10.1.#{i}.4" for i in [1..7])
             get_snapshots
                 project_id : opts.project_id
                 cb         : (err, snapshots) ->
                     v = ([snaps[0], h] for h, snaps of snapshots when snaps?.length >=1)
-                    v.sort()   
-                    v.reverse()
+                    v.sort (a,b) ->
+                       if a[0] > b[0]
+                           return -1
+                       if a[0] < b[0]      
+                           return 1
+                       #if a[1].slice(0,4) == '10.3'
+                       #    return 1
+                       #if b[1].slice(0,4) == '10.3'
+                       #    return -1
+                       #if a[1] in dc0
+                       #    return -1
+                       #if b[1] in dc0 
+                       #    return -1
+                       return 0 
                     v = (x[1] for x in v when x[1] != host) 
                     if host?
                         v = [host].concat(v)
@@ -5004,11 +5018,13 @@ exports.migrate2_bup = (opts) ->
             f = (host, c) ->
                 if done
                     c(); return
-                dbg("run python script to migrate over from #{host} to #{targets.join(',')}...")
+                it = misc.random_choice((x for x in targets when x != '10.1.1.5'))
+                other_targets = (x for x in targets when x != it)
+                dbg("run python script on #{it} to migrate over from #{host} to #{targets.join(',')}...")
                 execute_on
                     user        : 'root'
-                    host        : targets[0]
-                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py migrate_remote #{host} --targets=#{targets.slice(1).join(',')} #{opts.project_id}"
+                    host        : it
+                    command     : "/home/salvus/salvus/salvus/scripts/bup_storage.py migrate_remote #{host} --targets=#{other_targets.join(',')} #{opts.project_id}"
                     timeout     : 3*60*60
                     err_on_exit : false
                     err_on_stderr : false
@@ -5100,4 +5116,17 @@ exports.delete_all_bup_saves = (limit, cb) ->
 
 
 # fs.writeFileSync('s.json', JSON.stringify(s))
+
+exports.project_to_user = (projects, cb) ->
+    users = {}
+    f = (project_id, cb) -> 
+        get_current_location
+           project_id : project_id
+           cb         : (err, host) ->
+               if err
+                   cb(err)
+               else
+                   users[project_id] = "#{username(project_id)}@#{host}"
+                   cb()
+    async.map(projects, f, (err) -> cb(err, users))
 
