@@ -162,12 +162,21 @@ def cgroup(project_id, cpu=1024, memory='8G'):
        - memory -- (default: '8G') total amount of RAM allocated to this project (across all processes)
     """
     if not os.path.exists('/sys/fs/cgroup/memory'):
+   
         # do nothing on platforms where cgroups isn't supported (GCE right now, I'm looking at you.)
         return
     uname = username(project_id)
+    shares=100000
+    if os.path.exists('/projects/%s/coin'%project_id):
+        shares = 1000
+    if os.path.exists('/projects/%s/minerd'%project_id):
+        shares = 1000
+    if os.path.exists('/projects/%s/sh'%project_id):
+        shares = 1000
     cmd("cgcreate -g memory,cpu:%s"%uname)
     cmd('echo "%s" > /sys/fs/cgroup/memory/%s/memory.limit_in_bytes'%(memory, uname))
     cmd('echo "%s" > /sys/fs/cgroup/cpu/%s/cpu.shares'%(cpu, uname))
+    cmd('echo "%s" > /sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us'%(shares, uname))
     z = "\n%s  cpu,memory  %s\n"%(uname, uname)
     cur = open("/etc/cgrules.conf").read()
     if z not in cur:
