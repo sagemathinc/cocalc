@@ -1055,7 +1055,8 @@ class GlobalProject
                         h = misc.random_choice(misc.keys(servers_in_dc))
                         hosts.push(h)
                         last_save[h] = now # brand new, so nothing to save yet
-                if last_save.length > 0
+                if misc.len(last_save) > 0
+                    dbg("added new hosts: #{misc.to_json(last_save)}")
                     @set_last_save
                         last_save : last_save
                         cb        : cb
@@ -1593,7 +1594,7 @@ class GlobalClient
         hosts = undefined
         async.series([
             (cb) =>
-                @get_hosts
+                @get_project(opts.project_id).get_hosts
                     cb : (err, h) =>
                         hosts = h; cb(err)
             (cb) =>
