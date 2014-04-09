@@ -1227,6 +1227,7 @@ class ProjectPage
                         foreground : not(e.which==2 or e.ctrlKey)
             e.preventDefault()
 
+        @update_snapshot_link()
 
         tm = misc.walltime()
         #console.log("calling project_directory_listing with path=#{path}")
@@ -1268,15 +1269,13 @@ class ProjectPage
                     return
 
                 # If the files haven't changed -- a VERY common case -- don't rebuild the whole listing.
-                file_names = (x.name for x in listing.files)
-                file_names.sort()
-                file_names = "#{file_names}"  # have to convert to string to compare arrays in javascript
-                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == file_names and @_update_file_sort_by_time == @_sort_by_time
+                files = misc.to_json(listing)  # use json to deep compare -- e.g., file size matters!
+                if @_update_file_list_tab_last_path == path and @_update_file_list_tab_last_path_files == files and @_update_file_sort_by_time == @_sort_by_time
                     cb()
                     return
                 else
                     @_update_file_list_tab_last_path = path
-                    @_update_file_list_tab_last_path_files = file_names
+                    @_update_file_list_tab_last_path_files = files
                     @_update_file_sort_by_time = @_sort_by_time
 
                 @_last_listing = listing
@@ -2647,26 +2646,25 @@ class ProjectPage
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
+        @update_snapshot_link()
 
-        update = () =>
-            salvus_client.exec
-                project_id  : @project.project_id
-                command     : "ls ~/.snapshots/master/|tail -2"
-                err_on_exit : true
-                cb          : (err, output) =>
-                    if not err
-                        try
-                            time = misc.parse_bup_timestamp(output.stdout.split('\n')[0])
-                            @_last_snapshot_time = time
-                            # critical to use replaceWith!
-                            c = @container.find(".project-snapshot-last-timeago span")
-                            d = $("<span>").attr('title', time.toISOString()).timeago()
-                            c.replaceWith(d)
-                        catch e
-                            console.log("error parsing last snapshot time: ", e)
-                            return
-        update()
-        @_update_last_snapshot_time = setInterval(update, 60000)
+    update_snapshot_link: () =>
+        salvus_client.exec
+            project_id  : @project.project_id
+            command     : "ls ~/.snapshots/master/|tail -2"
+            err_on_exit : true
+            cb          : (err, output) =>
+                if not err
+                    try
+                        time = misc.parse_bup_timestamp(output.stdout.split('\n')[0])
+                        @_last_snapshot_time = time
+                        # critical to use replaceWith!
+                        c = @container.find(".project-snapshot-last-timeago span")
+                        d = $("<span>").attr('title', time.toISOString()).timeago()
+                        c.replaceWith(d)
+                    catch e
+                        console.log("error parsing last snapshot time: ", e)
+                        return
 
     update_local_status_link: () =>
         if @_update_local_status_link_lock
@@ -2689,14 +2687,9 @@ class ProjectPage
 
     init_local_status_link: () =>
         @update_local_status_link()
-        setInterval(@update_local_status_link, 30000)
-        # just opened project -- so be temporarily be more aggressive about getting status
-        for n in [1,3,8,12,16,20]
-            setTimeout(@update_local_status_link, n*1000)
-
-        @container.find(".salvus-project-status-indicator-button").click () =>
-            @display_tab("project-settings")
-            return false
+        #@container.find(".salvus-project-status-indicator-button").click () =>
+        #    @display_tab("project-settings")
+        #    return false
 
 
     # browse to the snapshot viewer.
