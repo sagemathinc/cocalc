@@ -51,6 +51,7 @@ chmod og-rwx /bup/conf
 chown salvus. /bup/conf
 
 """
+
 # If UNSAFE_MODE=False, we only provide a restricted subset of options.  When this
 # script will be run via sudo, it is useful to minimize what it is able to do, e.g.,
 # there is no reason it should have easy command-line options to overwrite any file
@@ -660,6 +661,14 @@ class Project(object):
             cfs_quota = -1  # no limit
         else:
             cfs_quota = int(100000*cores)
+
+        # Special case -- if certain files are in the project, make them slow as molasses
+        try:
+            for bad in open('/root/banned_files').read().split():
+                if os.path.exists(os.path.join(self.project_mnt, bad)):
+                    cfs_quota = 1000
+        except Exception, msg:
+            log("WARNING: non-fatal issue reading banned_files file: %s"%msg)
 
         self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
         open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sG"%memory)
