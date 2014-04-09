@@ -5,7 +5,8 @@ BEFORE SWITCH:
  - [ ] clean up everything: on all host machines after migration stabilizes
  - [ ] replicate everything around: x.c.repair(qlimit:1000000, limit:30, destructive:true, cb:console.log, dryrun:false)
  - [ ] test ui changes on other browsers.
-
+ 
+ - [ ] include some more anti-bitcoin mining measures.
 
 ====
 
@@ -31,11 +32,12 @@ AFTER SWITCH:
 
 - [ ] add bup quota as a standard part of settings, and refuse to make further snapshots if bup usage exceeds 3 times user disk quota.  This will avoid a horrible edge case.   Critical that this produces an error that the user learns about.  This will happen for some users.  Alternatively, I could periodically rebuild those bup repos with many snapshots deleted - that would be much nicer and is totally do-able.
 
-- [ ] write snapshot browser.
+- [ ] script to cleanup bup repos, e.g., delete tmp files, maybe recompact, etc.
 
-- [ ] manual project move system -- bring it back
+- [ ] manual project move system -- bring it back...
 
 
+======
 
 
       - [x] switch the existing looping script to use RF=1

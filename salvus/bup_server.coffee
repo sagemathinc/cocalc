@@ -1190,7 +1190,7 @@ class GlobalClient
                                 v = program.address.split('.')
                                 a = parseInt(v[1]); b = parseInt(v[3])
                                 if program.address == '10.1.15.7'  # devel
-                                    hosts = ["10.1.15.2"]
+                                    hosts = ["10.1.15.2", '10.1.16.2', '10.1.14.2']
                                 else if a == 1 and b>=1 and b<=7
                                     hosts = ("10.1.#{i}.1" for i in [1..7])
                                 else if a == 1 and b>=10 and b<=21
@@ -1656,6 +1656,7 @@ class GlobalClient
             destructive : false
             timeout     : TIMEOUT
             dryrun      : false       # if true, just return the projects that need sync; don't actually sync
+            status      : []
             cb          : required    # cb(err, errors)
         dbg = (m) => winston.debug("GlobalClient.repair(#{opts.project_id}): #{m}")
         dbg()
@@ -1674,7 +1675,13 @@ class GlobalClient
                             cb(err)
                         else
                             dbg("got #{r.length} records")
-                            r.sort()
+                            r.sort (a,b) ->
+                                if a.project_id < b.project_id
+                                    return -1
+                                else if a.project_id > b.project_id
+                                    return 1
+                                else
+                                    return 0
                             for project in r
                                 if not project.bup_last_save? or misc.len(project.bup_last_save) == 0
                                     continue
@@ -1707,8 +1714,12 @@ class GlobalClient
             (cb) =>
                 if opts.dryrun
                     cb(); return
+                i = 0
                 f = (project, cb) =>
-                    dbg("syncing project #{project.project_id}")
+                    i += 1
+                    dbg("*** syncing project #{i}/#{projects.length} ***: #{project.project_id}")
+                    s = {'status':'running...', project:project}
+                    opts.status.push(s)
                     async.series([
                         (cb) =>
                             @project
@@ -1732,7 +1743,13 @@ class GlobalClient
                             @get_project(project.project_id).set_last_save
                                 last_save : last_save
                                 cb        : cb
-                    ], (err) => cb(err))
+                    ], (err) =>
+                        dbg("*** got result for #{project.project_id}: #{err}")
+                        s['status'] = 'done'
+                        if err
+                            s['error'] = err
+                        cb(err)
+                    )
 
                 dbg("#{projects.length} projects need to be sync'd")
                 async.mapLimit(projects, opts.limit, f, (err) => cb())
